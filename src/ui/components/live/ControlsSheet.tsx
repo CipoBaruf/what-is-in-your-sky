@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useT } from '../../../i18n/useT';
 import { SHEET_MAX_SHARE, SHEET_SIDE_SHARE } from '../../../lib/layout';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
@@ -61,6 +61,18 @@ export function ControlsSheet({ open, onOpenChange, place, children, className }
   const closeRef = useRef<HTMLButtonElement>(null);
   const side = shape === 'landscape-phone';
   const still = useMediaQuery(REDUCED_MOTION);
+  /*
+   * R148 (FR-FSC-2, D-935): the focus moves in only on an open the reader made while the sheet was on the page. A
+   * sheet mounted already open — the live page's layout coming back after the sky screen, with the sheet and the
+   * picker as the reader left them — leaves the focus where the screen's close put it (`[ hold up to the sky ]`),
+   * and arms itself for the next open once it has closed.
+   */
+  const [armed, setArmed] = useState(!open);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setArmed(true);
+  }
 
   // The two shares, from the one constant each (CSSOM, not a style attribute: the CSP).
   useLayoutEffect(() => {
@@ -111,7 +123,7 @@ export function ControlsSheet({ open, onOpenChange, place, children, className }
         <div ref={bodyRef} className={styles.body} data-testid="sheet-body">
           {children}
         </div>
-        {open && <FocusIn body={bodyRef} fallback={closeRef} />}
+        {open && armed && <FocusIn body={bodyRef} fallback={closeRef} />}
       </section>
     </>
   );

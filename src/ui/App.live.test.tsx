@@ -69,10 +69,11 @@ describe('<App> and the live route', () => {
     // R92 (FR-A11Y-1, F-71): nothing of the home page, and the live page's own landmarks — its top row the
     // banner, the rest the main, no footer.
     // R129 (D-845): the header is the live page's own, told its page, inside the page's banner.
-    expect(screen.getByTestId('header')).toHaveAttribute('data-page', 'live');
-    expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-top-row'));
+    // R148 (FR-FULL-2, D-920): on compact the banner is the head over the sky, and the `h1` the page's name with the place.
+    expect(screen.queryByTestId('header')).toBeNull();
+    expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-head'));
     expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-dome'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Live sky');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('live · −38.93, −67.99');
     expect(screen.queryByRole('contentinfo')).toBeNull();
     // R144 (FR-TONIGHT-6): on compact the conditions are the context line under the shown time.
     expect(await screen.findByTestId('live-context')).toBeInTheDocument();
@@ -98,7 +99,7 @@ describe('<App> and the live route', () => {
     render(<App />);
     const own = appStore.getState().observer;
     go('#live?lat=51.48&lon=-0.01&alt=0');
-    expect(await screen.findByTestId('live-place')).toHaveTextContent('51.48, −0.01');
+    expect(await screen.findByTestId('sheet-place')).toHaveTextContent('51.48, −0.01');
     // R83 (FR-VISIT-1, D-538): over a saved place the link's is a visit — shown, and the saved one kept.
     const shared = appStore.getState().visiting;
     expect(shared).toMatchObject({ lat: 51.48, lon: -0.01, altM: 0, source: 'coords', label: '51.48, −0.01' });
@@ -128,7 +129,7 @@ describe('<App> and the live route', () => {
     render(<App />);
     const passesBefore = appStore.getState().passes;
     go(liveLinkHash({ observer: fix, t: null })); // '#live?lat=-38.93392&lon=-67.99032&alt=270'
-    expect(await screen.findByTestId('live-place')).toHaveTextContent('Neuquén, Argentina');
+    expect(await screen.findByTestId('sheet-place')).toHaveTextContent('Neuquén, Argentina');
     expect(appStore.getState().observer).toBe(fix);
     expect(appStore.getState().passes).toBe(passesBefore);
   });

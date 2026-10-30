@@ -63,23 +63,157 @@
   --chart-floor-on: 0;
 }
 
-/* R144 (FR-TONIGHT-6): the compact top row's status — the mark, then the page's name in the accent as the header
-   draws it (`Header.module.css` `.pageName`), the place after. The header draws the name itself when it is given no
-   status; here the status is the mark and the name together. */
-.topStatus {
-  display: inline-flex;
+/* --- R148 (FR-FULL-1..4, FR-FULL-10; D-919, D-920, D-923, D-924, D-934): the compact sky page is the full form. --- */
+
+/* The head over the sky (FR-FULL-2): the page's banner, fixed at the box's top-left inside the safe area at
+   `--z-raised`, as wide as the box; `[ ← ]` and the shown time stand `--space-3` in from the left edge, and the
+   head's own `max-inline-size` keeps `--space-3` at the right (`SkyHead.module.css`). R89's link notes stand under
+   it. The area lets the pointer through to the sky; the head takes it back. */
+.fullTop {
+  position: fixed;
+  inset-block-start: env(safe-area-inset-top);
+  inset-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  z-index: var(--z-raised);
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding-block-start: var(--space-1);
+  pointer-events: none;
+}
+
+.fullTop > * {
+  margin-inline-start: var(--space-3);
+  pointer-events: auto;
+}
+
+.fullTop > [data-page-notices] {
+  max-width: none;
+  margin-inline-end: var(--space-3);
+  padding: 0;
+}
+
+/* The card (FR-FULL-10): centred across the box, above `[ controls ]`'s row (a target's height and a group gap). */
+.cardArea {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--target) + var(--space-3));
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--space-3);
+  pointer-events: none;
+}
+
+.cardArea > * {
+  pointer-events: auto;
+}
+
+/* The hint (FR-FULL-3, D-924): one line at the box's bottom-left, on `[ controls ]`'s row — a target tall, the line
+   centred in it — where both fit in 36 cells, and in the row above it otherwise. Not a control: the pointer goes
+   through it to the sky. */
+.hintArea {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-end: 0;
+  display: flex;
   align-items: center;
-  gap: var(--cell);
-  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-height: var(--target);
+  max-inline-size: calc(100% - 2 * var(--space-3));
+  pointer-events: none;
+}
+
+.hintArea[data-beside='false'] {
+  inset-block-end: var(--target);
+}
+
+.hintArea > p {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  overflow: hidden;
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* `[ controls ]` (FR-FULL-3): the box's bottom-right, inside the safe area, on the overlay surface. */
+.controls {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  inset-block-end: 0;
+  background: var(--screen-overlay);
+  pointer-events: auto;
+}
+
+/* The sheet's view row (FR-FULL-4): the view control at the left and `[x] stars` at its right end, one line, as
+   the layout's own view row draws it (`SkyViewLayout.module.css`). */
+.viewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cell);
+  min-height: var(--tap);
   min-width: 0;
 }
 
-.pageName {
-  color: var(--accent);
+.viewRow > :last-child:not(:first-child) {
+  margin-left: auto;
+}
+
+/* The facing row (FR-FULL-4, D-923): the chart's readout with a button laid over it at the row's whole size — a
+   target tall, named by the words (a button holds phrasing content only, the readout is a `p`) — and the picker
+   under it while open, a row apart. On the dome the words stand alone. */
+.facing {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.facingReadout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  min-width: 0;
+}
+
+.facingWords {
+  min-width: 0;
+}
+
+.facingWords p {
+  margin: 0;
+}
+
+.facingHit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.facingPicker {
+  min-width: 0;
+}
+
+/* The list panel (FR-FULL-4, D-905): under the actions, inside the sheet, with the hidden-objects toggle in its
+   head; on the page only while `[ list (n) ]` holds it open, so the closed list takes no gap. */
+.listPanel {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 /* R144 (FR-TONIGHT-6, D-905): the list panel's head on compact — the hidden-objects toggle, one tap row, over the
-   panel's two rows; it is on the page only while the panel is open, so the closed list takes no gap (D-892). */
+   panel's two rows. */
 .listHead {
   display: flex;
   align-items: center;

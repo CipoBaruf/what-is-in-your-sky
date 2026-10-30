@@ -24,14 +24,23 @@ import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
  * `under`. R77 cut the tall shapes and R78 the short ones (`shortRowsFor`).
  *
  * R144 (FR-TONIGHT-6, FR-WATCH-4 as amended v2.7; D-902): on compact the two
- * states render **one** inventory, in both shapes — the top row, the shown
- * time with its chip (`headline`), the context line, the box, the time track,
- * the three taps and `[ list (n) ] Share` — so nothing appears or disappears
- * when `t` leaves real time. The indicator's word, the next-event block, the
- * conditions line, the overview, the stripe, the step row, the playback row,
- * `[ scrub ]`, `[ back to live ]` and the hidden-objects toggle have left the
- * compact lists (the toggle is the list panel's head now, D-905, and is not a
- * row). The wide lists are R77's and R78's, unchanged.
+ * states render **one** inventory, in both shapes, so nothing appears or
+ * disappears when `t` leaves real time. The indicator's word, the next-event
+ * block, the conditions line, the overview, the stripe, the step row, the
+ * playback row, `[ scrub ]`, `[ back to live ]` and the hidden-objects toggle
+ * have left the compact lists (the toggle is the list panel's head now, D-905,
+ * and is not a row). The wide lists are R77's and R78's, unchanged.
+ *
+ * R148 (FR-FULL-3, FR-FULL-4, FR-WATCH-4 as amended v2.8; D-928): the one
+ * compact inventory is split in two. `COMPACT_OVERLAY` is what stands over the
+ * sky with the sheet closed — the box, the head (`[ ← ]` and the shown time),
+ * `[ controls ]`, and the hint and the card, each on its own condition —
+ * and `COMPACT_SHEET` what the sheet holds, in FR-FULL-4's order: the context
+ * line, the track, the taps, the view row, the facing row, `[ list (n) ] Share`.
+ * `rowsFor` answers the overlay alone with the sheet closed and both with it
+ * open; the page renders the sheet's rows in both states (the sheet stays
+ * mounted, `inert` while closed, D-932), so "present" is "in the DOM and not
+ * under `inert`". The top row, the mark and the headline have left compact.
  */
 export type { LiveState };
 export type LiveShape = 'tall' | 'short';
@@ -43,6 +52,10 @@ export function liveShape(placement: ScrubPlacement): LiveShape {
 
 export type LiveRow =
   | 'top-row'
+  | 'head'
+  | 'controls'
+  | 'hint'
+  | 'card'
   | 'indicator'
   | 'clock'
   | 'next-event'
@@ -52,6 +65,8 @@ export type LiveRow =
   | 'box'
   | 'track'
   | 'taps'
+  | 'view-row'
+  | 'facing'
   | 'conditions'
   | 'overview'
   | 'stripe'
@@ -67,6 +82,10 @@ export type LiveRow =
 /** The test id each row renders under: the one place a test finds it by. */
 export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   'top-row': 'live-top-row',
+  head: 'live-head',
+  controls: 'live-controls',
+  hint: 'sky-hint',
+  card: 'live-card',
   indicator: 'live-indicator',
   clock: 'live-clock',
   'next-event': 'next-event',
@@ -76,6 +95,8 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   box: 'live-dome',
   track: 'live-track',
   taps: 'live-taps',
+  'view-row': 'live-view-row',
+  facing: 'live-facing',
   conditions: 'status-strip',
   overview: 'overview-row',
   stripe: 'time-stripe',
@@ -92,18 +113,28 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
 export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
 
 /**
- * R144 (FR-TONIGHT-6, D-902): the compact page's one inventory, in both states and both shapes — on the
- * landscape phone the same slots stand in its rail (FR-FLOW-15). In reading order: the top row (`[ ← ]`, the
- * mark, `live`, the place), the shown time with its chip, the context line, the box (the view row, the readout
- * in its corner, the drawing, the picker on tap and the hint are the frame's and the layout's, `box`), the time
- * track with its label row, the three taps, and `[ list (n) ] Share`.
+ * R148 (FR-FULL-1..3, D-928): what stands with the sheet closed — the box (the screen), and over it the head and
+ * `[ controls ]` always, the hint until `skyHintSeen` and the card while it asks (`COMPACT_CONDITIONAL`: the test
+ * checks those two by their own conditions).
  */
-export const COMPACT_ROWS: readonly LiveRow[] = ['top-row', 'headline', 'context', 'box', 'track', 'taps', 'actions', 'list', 'share'];
+export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', 'hint', 'card'];
+
+/** The overlay rows that are there on their own condition, not in every render: the hint and the card. */
+export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['hint', 'card'];
+
+/**
+ * R148 (FR-FULL-4, D-923, D-928): the sheet's rows, in FR-FULL-4's order — the context line, the time track and
+ * the taps, the view row, the facing row, and the actions with `[ list (n) ]` and Share. The list panel opens
+ * under the actions, inside the sheet, and is not a row (D-905).
+ */
+export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'list', 'share'];
 
 /**
  * FR-WATCH-4's inventory, in reading order.
  *
- * - **Compact, both states:** `COMPACT_ROWS` (R144, FR-TONIGHT-6).
+ * - **Compact, both states:** `COMPACT_OVERLAY`, and `COMPACT_SHEET` after it while the sheet is open (R148,
+ *   FR-FULL-3, FR-FULL-4). `sheetOpen` is the sheet's state, open by default: the page renders every compact
+ *   row in both states and asks with the default; a test asks for the reachable rows with `false`.
  * - **Wide, watching:** the box, and the rail — the indicator with the clock,
  *   the next-event block, the conditions line, the overview and
  *   `[ scrub the night ] [ Hidden ] [ Share this sky ]`.
@@ -112,8 +143,8 @@ export const COMPACT_ROWS: readonly LiveRow[] = ['top-row', 'headline', 'context
  *   and the rail: the indicator with `[ back to live ]`, the conditions line and
  *   `[ Hidden ] [ Share this moment ]`.
  */
-export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): readonly LiveRow[] {
-  if (mode === 'compact') return COMPACT_ROWS;
+export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape, sheetOpen = true): readonly LiveRow[] {
+  if (mode === 'compact') return sheetOpen ? [...COMPACT_OVERLAY, ...COMPACT_SHEET] : COMPACT_OVERLAY;
   if (shape === 'short') return shortRowsFor(state);
   return state === 'watching'
     ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
@@ -162,7 +193,7 @@ export function jumpFitsOnPath({ lastLineEndPx, spacePx, controlPx, rowPx }: { l
  * stripe and the step row; the overview stays in the rail, under the
  * conditions line, in both states. (The landscape phone's short inventory —
  * the rail with the indicator and the clock at its head — is gone with R144:
- * compact is `COMPACT_ROWS` in both shapes, FR-FLOW-15.)
+ * compact is one inventory in both shapes, FR-FLOW-15.)
  */
 /**
  * R85 (F-81, FR-CAP-5, D-549): the short wide window's inventory — the legend in the rail, between the rail's

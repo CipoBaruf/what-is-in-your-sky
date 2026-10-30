@@ -143,7 +143,8 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     go('#live');
     await screen.findByTestId('live-page');
     const headings = outline();
-    expect(headings[0]).toEqual([1, en.live.open]);
+    // R148 (FR-FULL-2): on compact the `h1` is the page's name with the place, visually hidden.
+    expect(headings[0]).toEqual([1, `${en.header.pages.live} · ${observer.label}`]);
     expect(headings.filter(([level]) => level === 1)).toHaveLength(1);
     expect(skippedLevels(headings)).toEqual([]);
   });
@@ -242,9 +243,13 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     liveLink.focus();
     fireEvent.click(liveLink);
     await screen.findByTestId('live-page');
+    // R148 (FR-FULL-10): nothing is up at this instant, so the card asks and takes the focus; answered, the focus is
+    // on `[ controls ]` — the Back control is where the page puts it with no card to answer (FR-A11Y-4).
     await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByTestId('live-back'));
+      expect(document.activeElement).toBe(screen.getByTestId('live-card-next'));
     });
+    fireEvent.click(screen.getByTestId('live-card-now'));
+    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
     expect(announcer).toHaveTextContent(`${en.live.open} · ${APP}`);
     fireEvent.click(screen.getByTestId('live-back'));
     await waitFor(() => {

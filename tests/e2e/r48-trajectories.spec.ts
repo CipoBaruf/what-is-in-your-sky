@@ -147,49 +147,51 @@ test.describe('the live page on a desk with a touch screen', () => {
 test.describe('the live page on a portrait phone', () => {
   test.use({ viewport: PORTRAIT, hasTouch: true });
 
-  test('the portrait rows: one top row, the headline, the full-bleed box with the readout in its corner, the track, the taps, the actions, the list, nothing scrolls (FR-LIVE-7, FR-COMP-5, FR-TONIGHT-6)', async ({ page }) => {
+  test('the portrait rows: the head over the box, which is the viewport, and in the sheet the context line, the track, the taps, the view row, the facing row, the actions and the list, nothing scrolls (FR-FULL-1, FR-FULL-4, FR-TONIGHT-6)', async ({ page }) => {
     await openLive(page);
     /*
      * R71 (FR-LEG-7): the legend is a row of this page only while `[ list (n) ]` holds it open, so the rows
-     * below are measured with it open — the state that has one of everything. Closed, the box has the panel's
-     * height instead, which is `live-compact.spec.ts`'s measurement (FR-LEG-8).
+     * below are measured with it open — the state that has one of everything.
      *
      * R144 (FR-TONIGHT-6): the rows are the same held or not; the instant is held on the track all the same.
+     * R148 (FR-FULL-4): the rows are the sheet's, over the box, which is the viewport (FR-FULL-1).
      */
     await openLegend(page);
     await enterScrubbing(page);
     // `--row` is 1.5 rem at the 16 px base (D-65).
     const row = 24;
-    const top = await box(page, 'live-top-row');
-    const headline = await box(page, 'live-headline');
+    const head = await box(page, 'live-head');
     const context = await box(page, 'live-context');
     const chart = await box(page, 'chart-box');
-    const readout = await box(page, 'sky-readout-toggle');
+    const facing = await box(page, 'live-facing');
+    const viewRow = await box(page, 'live-view-row');
+    await page.getByTestId('chart-legend-slot').scrollIntoViewIfNeeded();
     // The list's panel, two tap rows that scroll inside themselves (`live-compact.spec.ts`), not the rows it holds.
     const legend = await box(page, 'chart-legend-slot');
-    const head = await box(page, 'live-list-head');
+    const listHead = await box(page, 'live-list-head');
     const track = await box(page, 'live-track');
     const taps = await box(page, 'live-taps');
     const actions = await box(page, 'live-actions');
-    // FR-COMP-1: one text row at the top (D-246); FR-COMP-5: the box is full-bleed.
-    expect(top.height).toBeLessThanOrEqual(row + 1);
-    expect(chart.width).toBe(PORTRAIT.width);
-    expect(chart.height).toBeGreaterThan(0);
-    // FR-TONIGHT-6: the headline and its context line between the top row and the box; the readout inside the box's corner.
-    expect(headline.y).toBeGreaterThanOrEqual(top.y + top.height - 1);
-    expect(context.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
-    expect(chart.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
-    expect(readout.y).toBeGreaterThanOrEqual(chart.y - 1);
-    expect(readout.y + readout.height).toBeLessThanOrEqual(chart.y + chart.height / 2);
-    // Under the box: the track (two tap rows with its label row), the taps, the actions, then the list's head and the list.
-    expect(track.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
+    const sheet = await box(page, 'live-sheet');
+    // FR-FULL-1: the box is the viewport; FR-FULL-2: the head over its top-left.
+    expect(Math.round(chart.width)).toBe(PORTRAIT.width);
+    expect(Math.round(chart.height)).toBe(PORTRAIT.height);
+    expect(head.y).toBeLessThan(PORTRAIT.height / 4);
+    expect(head.x).toBeLessThan(PORTRAIT.width / 4);
+    // FR-FULL-4: in the sheet, top to bottom — the context line, the track (two tap rows with its label row), the
+    // taps, the view row, the facing row, the actions, then the list's head and the list.
+    expect(context.y).toBeGreaterThanOrEqual(sheet.y - 1);
+    expect(track.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
     expect(track.height).toBeGreaterThanOrEqual(2 * row - 1);
     expect(taps.y).toBeGreaterThanOrEqual(track.y + track.height - 1);
-    expect(actions.y).toBeGreaterThanOrEqual(taps.y + taps.height - 1);
-    expect(head.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
-    expect(legend.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
-    // FR-TONIGHT-9: everything inside the viewport, and the page does not scroll.
-    expect(legend.y + legend.height).toBeLessThanOrEqual(PORTRAIT.height + 0.5);
+    expect(viewRow.y).toBeGreaterThanOrEqual(taps.y + taps.height - 1);
+    expect(facing.y).toBeGreaterThanOrEqual(viewRow.y + viewRow.height - 1);
+    expect(actions.y).toBeGreaterThanOrEqual(facing.y + facing.height - 1);
+    expect(listHead.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
+    expect(legend.y).toBeGreaterThanOrEqual(listHead.y + listHead.height - 1);
+    // FR-FULL-4, FR-TONIGHT-9: the list inside the sheet, the sheet inside the viewport, and the page does not scroll.
+    expect(legend.y + legend.height).toBeLessThanOrEqual(sheet.y + sheet.height + 0.5);
+    expect(sheet.y + sheet.height).toBeLessThanOrEqual(PORTRAIT.height + 0.5);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(PORTRAIT.height + 1);
     // FR-LIVE-7 as amended: no "drag the dome" hint on this page.
     await expect(page.getByText(/Drag the dome|Arrastra el domo/)).toHaveCount(0);
@@ -219,12 +221,14 @@ test.describe('the live page on a landscape phone', () => {
         await enterScrubbing(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        // R144 (FR-TONIGHT-6, FR-FLOW-15): the track is in the rail, under the headline, and the page does not scroll.
+        // R148 (FR-FULL-1, FR-FULL-4): the dome is the viewport, the track in the side sheet under the context line, and the page does not scroll.
         const dome = await box(page, 'live-dome');
         const track = await box(page, 'live-track');
-        const headline = await box(page, 'live-headline');
-        expect(track.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-        expect(track.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
+        const sheet = await box(page, 'live-sheet');
+        const context = await box(page, 'live-context');
+        expect(Math.round(dome.width)).toBe(LANDSCAPE.width);
+        expect(track.x).toBeGreaterThanOrEqual(sheet.x - 1);
+        expect(track.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
         await page.screenshot({ path: `docs/screenshots/r48-live-844-landscape-${theme}-${locale}.png` });
       });
     }

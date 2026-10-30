@@ -9,7 +9,7 @@
  * is `tests/e2e/sky-layout.spec.ts`.
  */
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../../tests/support/matchMedia';
 import { stubResizeObserver } from '../../../../tests/support/resizeObserver';
 import { en } from '../../../i18n/en';
@@ -17,6 +17,7 @@ import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { fireEvent } from '@testing-library/react';
+import { SHEET_TAP_SLOP_PX } from '../../../lib/layout';
 import { SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
 
 let media: MatchMediaStub | null = null;
@@ -312,6 +313,82 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     all();
     expect(screen.queryByTestId('sky-readout-toggle')).toBeNull();
     expect(slots()).toEqual([...SLOT_ORDER]);
+  });
+
+  /**
+   * R148 (FR-FULL-1, FR-FULL-6; D-919): the full form, on compact in both shapes — the drawing in its fixed wrapper, the
+   * overlay and the sheet slots over it, no rhythm marks, no other slot rendered, the chart's parts landing wherever
+   * the page puts their slots (the sheet); on wide the form is ignored and the page is the rail.
+   */
+  it('with form full renders the drawing, the overlay and the sheet and nothing else, in both compact shapes, and the rail on wide', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    all('en', undefined, { form: 'full', readoutIn: 'sheet', overlay: <p>over</p>, sheet: <SkyViewChartSlot name="readout" /> });
+    const layout = screen.getByTestId('layout');
+    expect(layout).toHaveAttribute('data-shape', 'full');
+    expect(layout).toHaveAttribute('data-readout', 'sheet');
+    expect(slots()).toEqual(['drawing', 'overlay', 'sheet']);
+    for (const slot of layout.querySelectorAll('[data-slot]')) expect(slot).not.toHaveAttribute('data-rhythm');
+    const wrap = layout.querySelector('[data-sky-full]');
+    expect(wrap).not.toBeNull();
+    expect(wrap?.querySelector('[data-slot="drawing"]')).toContainElement(screen.getByTestId('chart'));
+    expect(wrap?.querySelector('[data-slot="overlay"]')).toHaveTextContent('over');
+    // No corner readout, no picker slot: the page's sheet is where the readout lands.
+    expect(screen.queryByTestId('sky-readout-toggle')).toBeNull();
+    expect(layout.querySelector('[data-slot="sheet"] [data-placed="readout"]')).toHaveTextContent('Facing N');
+    expect(layout.querySelector('[data-placed="picker"]')).toBeNull();
+    cleanup();
+    media.restore();
+    media = stubMatchMedia(844, 390);
+    all('en', undefined, { form: 'full', overlay: <p>over</p> });
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'full');
+    expect(slots()).toEqual(['drawing', 'overlay']);
+    cleanup();
+    media.restore();
+    media = stubMatchMedia(WIDE_PX);
+    all('en', undefined, { form: 'full', overlay: <p>over</p>, sheet: <p>sheet</p> });
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'rail');
+    expect(slots()).toEqual([...SLOT_ORDER]);
+    expect(screen.queryByText('over')).toBeNull();
+  });
+
+  /** R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky closes the open sheet and swallows its click; a drag and a press elsewhere do not. */
+  it('with form full and the sheet open closes it on a tap on the drawing, swallowing the click, and not on a drag, a press in the sheet, or with the sheet closed', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    const onSheetClose = vi.fn();
+    const clicked = vi.fn();
+    const mount = (sheetOpen: boolean) =>
+      render(
+        <SkyViewLayout data-testid="layout" form="full" sheetOpen={sheetOpen} onSheetClose={onSheetClose} drawing={<div data-testid="box">box</div>} overlay={<button type="button" data-testid="over" />} sheet={<div data-testid="sheet">sheet</div>} />,
+      );
+    const press = (target: HTMLElement, id: number, from: [number, number], to: [number, number]): void => {
+      fireEvent.pointerDown(target, { pointerId: id, isPrimary: true, clientX: from[0], clientY: from[1] });
+      fireEvent.pointerUp(target, { pointerId: id, isPrimary: true, clientX: to[0], clientY: to[1] });
+      fireEvent.click(target);
+    };
+    const { unmount } = mount(false);
+    screen.getByTestId('box').addEventListener('click', clicked);
+    press(screen.getByTestId('box'), 1, [10, 10], [10, 10]);
+    expect(onSheetClose).not.toHaveBeenCalled();
+    expect(clicked).toHaveBeenCalledTimes(1);
+    unmount();
+    mount(true);
+    const box = screen.getByTestId('box');
+    box.addEventListener('click', clicked);
+    // A drag: past the slop, the sheet stays and the drawing gets the click.
+    press(box, 2, [10, 10], [10 + SHEET_TAP_SLOP_PX, 10]);
+    expect(onSheetClose).not.toHaveBeenCalled();
+    expect(clicked).toHaveBeenCalledTimes(2);
+    // A press in the sheet or on the overlay is not a press on the sky.
+    press(screen.getByTestId('sheet'), 3, [10, 10], [10, 10]);
+    press(screen.getByTestId('over'), 4, [10, 10], [10, 10]);
+    expect(onSheetClose).not.toHaveBeenCalled();
+    // A tap: closed, and the click never reaches the drawing.
+    press(box, 5, [10, 10], [10 + SHEET_TAP_SLOP_PX - 1, 10]);
+    expect(onSheetClose).toHaveBeenCalledTimes(1);
+    expect(clicked).toHaveBeenCalledTimes(2);
+    // The swallow was for that one click: the next reaches the drawing.
+    fireEvent.click(box);
+    expect(clicked).toHaveBeenCalledTimes(3);
   });
 
   /** R144 (FR-TONIGHT-9): a filling column writes the room its rows leave the drawing; a column that grows with its rows writes nothing. */

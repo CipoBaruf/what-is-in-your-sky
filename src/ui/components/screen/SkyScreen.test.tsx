@@ -144,6 +144,12 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     // R136 (FR-FLOW-15, V26-12): the screen opens from `[ hold up to the sky ]` alone, which the window in the box
     // offers beside its picker on a phone with a sensor; the view option only chooses the view.
     if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(screen.getByRole('button', { name: en.chart.view.window }));
+    // R148 (FR-FULL-4, D-923): on the compact live page the facing row — `[ hold up to the sky ]` with it — is behind the
+    // readout in the sheet, in both shapes; the sheet is opened first, as a reader would.
+    const controls = screen.queryByTestId('live-controls');
+    if (controls !== null && controls.getAttribute('aria-expanded') !== 'true') fireEvent.click(controls);
+    const readoutToggle = screen.queryByTestId('sky-readout-toggle');
+    if (readoutToggle !== null && readoutToggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(readoutToggle);
     for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -183,7 +189,8 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
       expect(screen.queryByTestId(testid), testid).toBeNull();
     }
     expect(screen.queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
-    expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
+    // R148 (FR-FULL-2): the compact page's head over the sky, covered and inert as the top row was.
+    expect(screen.getByTestId('live-top-area')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
 
     // FR-FSC-2: the `×` is the one icon in the app, named rather than bracketed, and the layer is a modal dialog.

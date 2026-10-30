@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows, ROW_PX, scrubPlacement, type LiveFold, type PageShape, type ScrubPlacement } from '../../lib/layout';
+import { foldRows, hintFitsBeside, ROW_PX, scrubPlacement, type LiveFold, type PageShape, type ScrubPlacement } from '../../lib/layout';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { legendKeys, legendRows } from '../../lib/legend';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
@@ -12,7 +12,7 @@ import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { tonightBand } from '../../lib/shownTime';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
-import { nextTarget, openingJump, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
+import { nextTarget, openingChoice, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { EpochMs, Observer, Pass } from '../../model';
 import { useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
@@ -27,10 +27,13 @@ import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
+import { ControlsSheet } from '../components/live/ControlsSheet';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
+import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
-import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
+import { ContextLine, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
+import { SkyHead } from '../components/live/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
@@ -51,8 +54,8 @@ import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
 import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
-import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
-import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
+import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { REDUCED_MOTION, useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
@@ -111,14 +114,21 @@ import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type 
  * **Tonight on the phone (R144: FR-TONIGHT-1, 2, 4, 6, 9; FR-WATCH-1..5 as
  * amended v2.7; D-898, D-901, D-902, D-904, D-905).** On compact the two states
  * are still a fact read from `t`, but the page renders one inventory in both:
- * the shown time with its chip, the context line, the view row, the drawing
- * with the facing readout in its corner, the time track, the three taps and
- * `[ list (n) ] Share`. A `#live` with no `t` waits for the stored run's passes
- * and decides once: a visible pass up now keeps real time; otherwise the page
- * jumps to the first visible rise in the span, a minute early, and plays at the
- * automatic rate to the night's end — paused under reduced motion, never after
- * `now` (`stayOnNow`, in memory) and never when the reader moved first. Wide
- * is R77's page, untouched.
+ * the shown time with its chip, the context line, the view row, the time
+ * track, the three taps and `[ list (n) ] Share`. Wide is R77's page, untouched.
+ *
+ * **The full sky (R148: FR-FULL-1..7, FR-FULL-10; D-919..D-928, D-934..D-936).**
+ * On compact the page is the layout's `full` form: the box is the screen, the
+ * head (`[ ← ]` and the shown time) is the banner fixed over its top-left, and
+ * `[ controls ]` at the bottom-right opens a sheet over the sky with the
+ * context line, the track and the taps, the view row, the facing row and the
+ * actions with the list panel. A `#live` with no `t` waits for the stored run's
+ * passes and decides once: a visible pass up now keeps real time; otherwise a
+ * card over the sky asks — `[ see next pass ]` lands a minute before the first
+ * visible rise and plays (paused under reduced motion), `[ see now ]` stays —
+ * and never when the reader moved first. A tap on the sky closes the open
+ * sheet, a drag turns the camera; `Esc` takes the screen, the card, the sheet
+ * and then the page, in that order.
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
@@ -156,6 +166,13 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    */
   const screenOpen = useAppStore((s) => s.skyScreen);
   const closeSkyScreen = useAppStore((s) => s.closeSkyScreen);
+  /*
+   * R148 (FR-FULL-5, FR-FULL-10; D-927): `Esc` in four steps, in this one listener — the sky screen up closes it;
+   * else the card up is answered as `[ see now ]`; else the open sheet closes; else the page is left. The two
+   * middle steps are the sky page's state (`LiveSky`, which is mounted only with a sky to draw), read through
+   * `escRef`: it answers `true` when it took the key.
+   */
+  const escRef = useRef<() => boolean>(() => false);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
@@ -164,6 +181,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
         closeSkyScreen();
         return;
       }
+      if (escRef.current()) return;
       onLeave();
     };
     document.addEventListener('keydown', onKeyDown);
@@ -223,7 +241,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
       </Page>
     );
   }
-  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} />;
+  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} escRef={escRef} />;
 }
 
 /**
@@ -254,7 +272,7 @@ const NO_FOLD: readonly LiveFold[] = [];
  * from the state's rows, so the element is rendered by whichever of the two pages there is; the inert page has
  * no box and folds nothing. `data-scrub-placement` is `scrubPlacement`'s answer, for the stylesheet and the tests.
  */
-function Page({ state, wakeLock, fold, placement, shape = 'portrait', top, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; shape?: PageShape; top: ReactNode; children: ReactNode }) {
+function Page({ state, wakeLock, fold, placement, shape = 'portrait', form = 'rows', top, title, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; shape?: PageShape; form?: 'rows' | 'full'; top: ReactNode; title?: string; children: ReactNode }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   /*
@@ -272,12 +290,14 @@ function Page({ state, wakeLock, fold, placement, shape = 'portrait', top, child
       data-compact={compact}
       // R144 (FR-TONIGHT-9): every shape is one viewport high again — the compact column's box is what its rows leave (R132's scrolling column is gone).
       data-shape={shape}
+      // R148 (FR-FULL-1, D-919): the compact sky page is the full form — the box is the screen, the head is fixed over it.
+      data-form={form}
       {...(placement === null ? {} : { 'data-scrub-placement': placement })}
       {...(!compact && fold.length > 0 ? { 'data-fold': fold.join(' ') } : {})}
     >
       <header className="landmark-contents">{top}</header>
       <main className="landmark-contents">
-        <VisuallyHidden as="h1">{t.live.open}</VisuallyHidden>
+        <VisuallyHidden as="h1">{title ?? t.live.open}</VisuallyHidden>
         {children}
       </main>
     </div>
@@ -448,10 +468,10 @@ function SecondClock({ clockRef, children }: { clockRef: RefObject<EpochMs>; chi
   return <SecondClockContext.Provider value={clock}>{children}</SecondClockContext.Provider>;
 }
 
-/** The compact headline on the page's 1 s clock. */
-function Headline(props: Omit<ShownTimeProps, 'clock'>) {
+/** R148 (FR-FULL-2, D-920): the head over the sky — `[ ← ]` and the shown time — on the page's 1 s clock. */
+function ClockedHead({ onBack, ...props }: Omit<ShownTimeProps, 'clock'> & { onBack: () => void }) {
   const clock = useContext(SecondClockContext);
-  return <ShownTime {...props} clock={clock} />;
+  return <SkyHead {...props} clock={clock} onBack={onBack} />;
 }
 
 /** The time track, its value text the headline's words on the same 1 s clock (FR-TONIGHT-3, D-900). */
@@ -463,11 +483,22 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
 }
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
-function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void }) {
+function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean> }) {
   const t = useT();
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const shape = usePageShape();
+  /*
+   * R148 (FR-FULL-4, FR-FULL-5; D-921): the sheet's open state is the page's — `useState`, so every visit opens with
+   * it closed, and held here rather than in the sheet so the turn of the phone, which keeps this page mounted
+   * (D-877), keeps it. Nothing of it reaches the hash or the history.
+   */
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // FR-FULL-5: closing by the page's own ways — the tap on the sky, `Esc` — returns the focus to `[ controls ]`.
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  }, []);
   // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
   /*
@@ -518,29 +549,99 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const { scrub, play, pause, toNow, readerWrote } = playback;
   const shown = playback.t;
   /*
-   * R144 (FR-TONIGHT-1, FR-TONIGHT-2; D-898): the jump — one effect, compact only, decided once when the passes arrive.
-   * A URL that carries `t` (FR-LIVE-9), a visit that has tapped `now` (`stayOnNow`, in memory) or a reader who moved
-   * the instant or touched a control before the passes landed (`readerWrote`) leaves the page where it is. Otherwise
-   * `openingJump` says where to land — `null` with a visible pass up now or none rising in the span — and the page
-   * sets the instant as its own write (`'page'`, which leaves `readerWrote` alone) and plays, unless the reader asked
-   * for less motion, where it lands paused. A wide render decides once too: never.
+   * R148 (FR-FULL-10, FR-TONIGHT-1 and FR-TONIGHT-2 as amended v2.8; D-925): the card in place of R144's jump — one
+   * effect, compact only, decided once when the passes arrive. A URL that carries `t` (FR-LIVE-9) or a reader who
+   * moved the instant or touched a control before the passes landed (`readerWrote`) leaves the page where it is,
+   * with no card. Otherwise `openingChoice` says: a visible pass up now is no card; a rise later in the span is the
+   * card asking, with the pass and the instant `[ see next pass ]` lands on; none in the span is the card's advice.
+   * The page stays on real time, not playing, until the reader answers. A wide render decides once too: never.
    */
-  const stayOnNow = useAppStore((s) => s.stayOnNow);
-  const setStayOnNow = useAppStore((s) => s.setStayOnNow);
   const jumpDecided = useRef(false);
-  const hasPasses = passes.length > 0;
+  // The stored run's passes have arrived for this place (FR-OFF-8) — with or without one inside the span, since the
+  // card's advice is for a span with none (R144's jump waited for one in the span, having nothing to say otherwise).
+  const passesKnown = ownPasses && (passesState.passes.length > 0 || passesState.status === 'done');
   const reducedMotion = useMediaQuery(REDUCED_MOTION);
+  const [opening, setOpening] = useState<CardChoice | null>(null);
   useEffect(() => {
-    if (!hasPasses || jumpDecided.current) return;
+    if (!passesKnown || jumpDecided.current) return;
     jumpDecided.current = true;
-    if (!compact || (link?.t ?? null) !== null || stayOnNow || readerWrote.current) return;
-    const instant = openingJump(passes, now, span);
-    if (instant === null) return;
-    scrub(instant, 'page');
-    if (!reducedMotion) play('page');
-    // D-898: the decision is taken once, on the first render with passes; what it reads is what that render has.
+    if (!compact || (link?.t ?? null) !== null || readerWrote.current) return;
+    const choice = openingChoice(passes, now, span);
+    // The decision is taken once, when the passes arrive, from a ref the render must not read (`readerWrote`): an effect, as the jump was.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (choice.kind !== 'up') setOpening(choice);
+    // D-898, D-925: the decision is taken once, on the first render with passes; what it reads is what that render has.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPasses]);
+  }, [passesKnown]);
+  /*
+   * D-925: `[ see next pass ]` does what the jump did — lands on the lead instant and plays, paused under reduced
+   * motion (FR-TONIGHT-2) — with the sheet closed, as it is until the reader opens it; `[ see now ]` and
+   * `[ see the sky now ]` leave real time alone. Either way the card goes.
+   */
+  const onCardNext = useCallback(
+    (at: EpochMs) => {
+      setOpening(null);
+      scrub(at);
+      if (!reducedMotion) play();
+    },
+    [scrub, play, reducedMotion],
+  );
+  const onCardNow = useCallback(() => {
+    setOpening(null);
+  }, []);
+  /*
+   * D-925: the reader moving the time is an answer in itself — a drag or a tap on the track, `[ tonight ]`,
+   * `[ next ]`, `[ now ]` or the play control, every one a reader's write (the ones that set `readerWrote`), so
+   * each of the page's handlers for them answers the card first. A drag on the sky turns the camera and writes
+   * nothing, so the card stays.
+   */
+  const answered = useCallback(() => {
+    setOpening(null);
+  }, []);
+  const onPlay = useCallback(() => {
+    answered();
+    play();
+  }, [answered, play]);
+  const onPause = useCallback(() => {
+    answered();
+    pause();
+  }, [answered, pause]);
+  /*
+   * FR-FULL-10: when the card goes, focus returns to `[ controls ]` — where the card held it (its first button took
+   * it on appearing, and the card's unmount dropped it to the body). A reader who answered from the sheet keeps the
+   * control under their finger (D-934).
+   */
+  const hadCard = useRef(false);
+  useEffect(() => {
+    if (opening !== null) {
+      hadCard.current = true;
+      return;
+    }
+    if (!hadCard.current) return;
+    hadCard.current = false;
+    const active = document.activeElement;
+    if (active === null || active === document.body) document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  }, [opening]);
+  // D-927: the two middle steps of `Esc` — the card answered as `[ see now ]`, then the sheet closed.
+  useLayoutEffect(() => {
+    escRef.current = () => {
+      if (opening !== null) {
+        setOpening(null);
+        return true;
+      }
+      if (sheetOpen) {
+        closeSheet();
+        return true;
+      }
+      return false;
+    };
+  });
+  useEffect(
+    () => () => {
+      escRef.current = () => false;
+    },
+    [escRef],
+  );
   /*
    * R77 (FR-WATCH-1, D-446): the page is watching while the shown instant is real time and scrubbing while it is
    * held — paused, or playing at a speed. The state is that predicate over the instant `usePlayback` already
@@ -664,15 +765,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const passesPending = !ownPasses || (passesState.status !== 'done' && passesState.status !== 'error');
 
   const indicator = has('indicator') ? <StateIndicator held={scrubbing} /> : null;
-  // R144 (FR-TONIGHT-6): the compact top row — the mark without its word, then the page's name; the place follows.
-  const topStatus = compact ? (
-    <span className={styles.topStatus}>
-      <StateIndicator held={scrubbing} word={false} />
-      <span className={styles.pageName} data-testid="header-page">
-        {t.header.pages.live}
-      </span>
-    </span>
-  ) : null;
   /*
    * R101 (FR-JUMP-1, FR-JUMP-2; D-624): `[ see this pass ]` dispatches the hold that exists — `stepTo`, the landing
    * `pass ▶|` makes (FR-SPAN-4) — at the rise the headline names. Holding is scrubbing (FR-WATCH-1), so the stripe
@@ -737,43 +829,43 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * R144 (FR-TONIGHT-3, FR-TONIGHT-4, FR-TONIGHT-7; D-897, D-900, D-901, D-911): the compact page's own rows. Tonight's
    * band is worked out once per tick for the chip and the context line (D-911). Every seek on the track pauses and
    * holds the instant; `tonight` and `next` land where `lib/tonightJump.ts` says (and `tonight` plays, or pauses at
-   * an empty night's start); `now` is FR-LIVE-5's action and marks the visit (D-898). None of these pass `'page'`:
-   * they are the reader's writes.
+   * an empty night's start); `now` is FR-LIVE-5's action. None of these pass `'page'`: they are the reader's writes,
+   * and each answers the card (D-925).
    */
   const night = useMemo(() => tonightBand(bands, now), [bands, now]);
   const seek = useCallback(
     (at: EpochMs) => {
+      answered();
       pause();
       scrub(at);
     },
-    [pause, scrub],
+    [answered, pause, scrub],
   );
   const onTonight = useCallback(() => {
     const target = tonightTarget(bands, passes, now, shown, span);
     if (target === null) return;
+    answered();
     scrub(target.t);
     if (target.play) play();
     else pause();
-  }, [bands, passes, now, shown, span, scrub, play, pause]);
+  }, [bands, passes, now, shown, span, answered, scrub, play, pause]);
   const withTaps = rows.has('taps');
   // `tonight` has nowhere to land with no night in the bands (none yet, or a polar summer): disabled, as `next` and `now` are.
   const noTonight = useMemo(() => withTaps && tonightTarget(bands, passes, now, now, span) === null, [withTaps, bands, passes, now, span]);
   const nextAt = useMemo(() => (withTaps ? nextTarget(passes, shown) : null), [withTaps, passes, shown]);
   const onNext = useCallback(() => {
-    if (nextAt !== null) scrub(nextAt);
-  }, [nextAt, scrub]);
+    if (nextAt === null) return;
+    answered();
+    scrub(nextAt);
+  }, [nextAt, answered, scrub]);
+  // R148 (FR-TONIGHT-4 as amended v2.8, D-926): `now` returns to real time and stops, and marks nothing — the card is asked on every visit.
   const onNow = useCallback(() => {
+    answered();
     toNow();
-    setStayOnNow(true);
-  }, [toNow, setStayOnNow]);
+  }, [answered, toNow]);
   const shownTimeProps = { t: shown, realTime: playback.realTime, now, night, timeZone: observer.timeZone };
-  const shownHeadline = has('headline') ? (
-    <div data-testid="live-headline">
-      <Headline {...shownTimeProps} />
-    </div>
-  ) : null;
   const context = has('context') ? (
-    <div data-testid="live-context">
+    <div data-testid="live-context" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <ContextLine parts={contextLine({ passes, t: shown, span, night, sky: bodies.sky, cloud: cloud.state })} timeZone={observer.timeZone} />
     </div>
   ) : null;
@@ -784,7 +876,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   ) : null;
   const taps = has('taps') ? (
     <div className={styles.tapsRow} data-rhythm="row">
-      <TimeTaps playing={playback.playing} onPlay={play} onPause={pause} onTonight={onTonight} tonightDisabled={noTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={onNow} nowDisabled={playback.realTime} />
+      <TimeTaps playing={playback.playing} onPlay={onPlay} onPause={onPause} onTonight={onTonight} tonightDisabled={noTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={onNow} nowDisabled={playback.realTime} />
     </div>
   ) : null;
   /*
@@ -805,7 +897,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     </div>
   );
   const actions = (
-    <div className={styles.actions} data-testid="live-actions">
+    <div className={styles.actions} data-testid="live-actions" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
@@ -838,10 +930,24 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more },
     [inventoryRows, t],
   );
-  const top = <TopRow place={observer.label} indicator={topStatus} screenOpen={screenOpen} onLeave={onLeave} />;
+  /*
+   * R148 (FR-FULL-2, FR-FLOW-3 as amended v2.8; D-920, D-934): on compact the top row and the mark leave the page.
+   * The head over the sky — `[ ← ]` and the shown time on the 1 s clock — is the page's banner still (FR-A11Y-1,
+   * F-71), fixed at the box's top-left inside the safe area by `Live.module.css`, with R89's link notes under it;
+   * the page's name and the place are the `h1`, visually hidden. While the sky screen is up it is covered and inert,
+   * as the top row was (FR-FSC-1). Wide keeps R129's top row.
+   */
+  const top = compact ? (
+    <div className={styles.fullTop} data-testid="live-top-area" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+      <ClockedHead {...shownTimeProps} onBack={onLeave} />
+      {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
+    </div>
+  ) : (
+    <TopRow place={observer.label} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
+  );
   const page = (children: ReactNode): ReactNode => (
     <SecondClock clockRef={clockRef}>
-      <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} shape={shape} top={top}>
+      <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} shape={shape} top={top} {...(compact ? { form: 'full' as const, title: `${t.header.pages.live} · ${observer.label}` } : {})}>
         {children}
       </Page>
     </SecondClock>
@@ -851,6 +957,57 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const hintShown = useSkyHintShown(hintView);
   const highlightedId = highlighted?.id ?? null;
   const followKey = useMemo(() => (highlightedId === null ? null : (legendKeys(legendRowsNow)[highlightedId] ?? null)), [legendRowsNow, highlightedId]);
+  // R148 (FR-FULL-3, D-924): the hint's line, for where it stands beside `[ controls ]`.
+  const hintLine = useSkyHintLine(hintView, followKey);
+  const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, t.sheet.controls);
+  /*
+   * R148 (FR-FULL-4, D-923): the facing row in the sheet — the chart's readout as a button that opens the picker under
+   * it, D-904's corner moved into the sheet. The chart portals both parts into the page's slots; the picker's slot is
+   * on the page only while the row is open, so the chart places its facing row there on the tap and nowhere before
+   * it. A pick — one of the row's options — closes it, read off the DOM, since a portal's events bubble through the
+   * chart's tree and not through this row (D-904); `[ hold up to the sky ]` beside the points leaves it open. On
+   * the dome, which has no picker, the readout stands alone.
+   */
+  const facingLabelId = useId();
+  const facingPickerId = useId();
+  const hasPicker = hintView !== 'dome';
+  const facingPickerRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) return;
+      element.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest(PICK_SELECTOR)) setPickerOpen(false);
+      });
+    },
+    [],
+  );
+  const facing = (
+    <div className={styles.facing} data-testid="live-facing" data-rhythm="group">
+      <div className={styles.facingReadout}>
+        <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
+          <SkyViewChartSlot name="readout" />
+        </div>
+        {hasPicker && (
+          <button
+            type="button"
+            className={styles.facingHit}
+            data-testid="sky-readout-toggle"
+            aria-labelledby={facingLabelId}
+            aria-expanded={pickerOpen}
+            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
+            onClick={() => {
+              setPickerOpen(!pickerOpen);
+            }}
+          />
+        )}
+      </div>
+      {hasPicker && pickerOpen && (
+        <div className={styles.facingPicker} id={facingPickerId} ref={facingPickerRef} data-testid="live-facing-picker">
+          <SkyViewChartSlot name="picker" />
+        </div>
+      )}
+    </div>
+  );
   if (screenOpen) {
     return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} scene={scene} initialFacingAzDeg={0} onClose={closeScreen} />);
   }
@@ -894,7 +1051,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     <div className={styles.railHead} data-testid="live-rail-head">
       {!compact && indicatorLine}
       {nextEvent}
-      {shownHeadline}
       {context}
     </div>
   );
@@ -904,16 +1060,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       <StarsToggle />
     </>
   );
-  const list = compact ? (
-    <>
-      {legendOpen && (
-        <div className={styles.listHead} data-testid="live-list-head">
-          <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        </div>
-      )}
-      <SkyViewChartSlot name="list" />
-    </>
-  ) : (
+  const list = (
     <>
       <SkyViewChartSlot name="list" />
       {conditions}
@@ -921,7 +1068,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   );
   const timeline =
     track !== null || taps !== null ? (
-      <div className={styles.timeline} data-testid="live-timeline">
+      <div className={styles.timeline} data-testid="live-timeline" {...(compact ? { 'data-rhythm': 'group' } : {})}>
         {track}
         {taps}
       </div>
@@ -933,51 +1080,94 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       {actions}
     </div>
   );
+  const drawing = (
+    <div className={styles.dome} data-testid="live-dome" data-stripe-under={false} ref={domeRef}>
+      {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and the illumination
+          its conditions line gave up. The wide page leaves the legend's plain Moon line. R61 (D-312) → R132: on wide the box is
+          cut inside the drawing slot (`stacked`, `measureBox`); the rail is the layout's, not the frame's. */}
+      <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
+        <LegendInventoryContext.Provider value={legendInventory}>
+          <SkyChart
+            passes={chartPasses}
+            observer={observer}
+            highlightedPassId={null}
+            now={shown}
+            sun={bodies.sun}
+            moon={bodies.moon}
+            hidden={hidden}
+            colorBy="pass"
+            fill
+            initialFacingAzDeg={0}
+            {...(compact ? { legendOpen } : {})}
+            moonPhase={compact}
+            chartHand={chartHand}
+            scene={scene}
+            facingPassId={highlighted?.id ?? null}
+            {...(compact ? {} : { stacked: true, measureBox: true })}
+          />
+        </LegendInventoryContext.Provider>
+      </ChartFrameSlots.Provider>
+    </div>
+  );
+  /*
+   * R148 (FR-FULL-1..7, FR-FULL-10; D-919, D-922..D-925): the compact page is the layout's full form — the box is the
+   * screen, and over it the overlay (the card while it asks, the hint until the first gesture) and the sheet slot
+   * (`[ controls ]` at the bottom-right, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
+   * context line; the track and the taps; the view row; the facing row; `[ list (n) ] [ Share ]` with the list panel
+   * under it. They stay mounted while the sheet is closed, inert (D-932), so a turn of the phone keeps every state.
+   * The hint stands on the button's row where both fit in 36 cells and in the row above it otherwise (D-924).
+   */
+  if (compact) {
+    const overlay = (
+      <>
+        {opening !== null && (
+          <div className={styles.cardArea}>
+            <OpeningCard choice={opening} now={now} timeZone={observer.timeZone} onNext={onCardNext} onNow={onCardNow} />
+          </div>
+        )}
+        {hintLine !== null && (
+          <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
+            <SkyHint view={hintView} followKey={followKey} />
+          </div>
+        )}
+      </>
+    );
+    const sheet = (
+      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} className={styles.controls}>
+        {context}
+        {timeline}
+        <div className={styles.viewRow} data-testid="live-view-row" data-rhythm="group">
+          {viewRow}
+        </div>
+        {facing}
+        {actions}
+        {legendOpen && (
+          <div className={styles.listPanel} data-testid="live-list" data-rhythm="group">
+            <div className={styles.listHead} data-testid="live-list-head">
+              <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
+            </div>
+            <SkyViewChartSlot name="list" />
+          </div>
+        )}
+      </ControlsSheet>
+    );
+    return page(<SkyViewLayout className={styles.layout} data-testid="live-layout" fill form="full" readoutIn="sheet" sheetOpen={sheetOpen} onSheetClose={closeSheet} drawing={drawing} overlay={overlay} sheet={sheet} />);
+  }
   return page(
     <SkyViewLayout
       className={styles.layout}
       data-testid="live-layout"
       fill
-      readoutIn={compact ? 'corner' : 'row'}
+      readoutIn="row"
       pickerOpen={pickerOpen}
       onPickerOpen={setPickerOpen}
-      roomKey={compact ? String(legendOpen) : undefined}
       answer={answer}
       viewRow={viewRow}
       readout={<SkyViewChartSlot name="readout" />}
-      drawing={
-        <div className={styles.dome} data-testid="live-dome" data-stripe-under={false} ref={domeRef}>
-          {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and the illumination
-              its conditions line gave up. The wide page leaves the legend's plain Moon line. R61 (D-312) → R132: on wide the box is
-              cut inside the drawing slot (`stacked`, `measureBox`); the rail is the layout's, not the frame's. */}
-          <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
-            <LegendInventoryContext.Provider value={legendInventory}>
-              <SkyChart
-                passes={chartPasses}
-                observer={observer}
-                highlightedPassId={null}
-                now={shown}
-                sun={bodies.sun}
-                moon={bodies.moon}
-                hidden={hidden}
-                colorBy="pass"
-                fill
-                initialFacingAzDeg={0}
-                {...(compact ? { legendOpen } : {})}
-                moonPhase={compact}
-                chartHand={chartHand}
-                scene={scene}
-                facingPassId={highlighted?.id ?? null}
-                {...(compact ? {} : { stacked: true, measureBox: true })}
-              />
-            </LegendInventoryContext.Provider>
-          </ChartFrameSlots.Provider>
-        </div>
-      }
+      drawing={drawing}
       picker={<SkyViewChartSlot name="picker" />}
       hint={hintShown && <SkyHint view={hintView} followKey={followKey} />}
       {...(timeline === null ? {} : { timeline })}
-      {...(compact ? { action: actions } : {})}
       list={list}
       {...(foot === null ? {} : { foot })}
     />,

@@ -19,7 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
 import { I18nProvider } from '../../i18n/useT';
-import { WIDE_MIN_PX } from '../../lib/layout';
+import { SHEET_TAP_SLOP_PX, WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
 import { skyBodiesAt } from '../../lib/skyBodies';
@@ -33,7 +33,7 @@ import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
 import { LivePage, TICK_MS, visibleCount } from './Live';
-import { COMPACT_ROWS, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
+import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
 const pass = goldenPassFixture();
@@ -396,7 +396,8 @@ describe('<LivePage>', () => {
     // R77 (FR-WATCH-1 c, D-446): a link with `t` opens scrubbing — the instant is held, so the page says so — and
     // the share action names the moment it carries. FR-TONIGHT-1: a link's `t` is never jumped from.
     expect(chip()).toHaveAttribute('data-kind', 'ahead');
-    expect(screen.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+    // R148 (FR-FULL-10): a link's `t` opens that instant with no card.
+    expect(screen.queryByTestId('live-card')).toBeNull();
     expect(screen.getByRole('button', { name: 'Share this moment' })).toBeInTheDocument();
     expect(shownAt()).toBe(t);
   });
@@ -427,8 +428,9 @@ describe('<LivePage>', () => {
   /**
    * R85 (FR-COMP-7, D-549; F-82): on compact the return control draws `[ ← ]` and is named by the word, in
    * both languages, and on wide since R129 (FR-FLOW-3). R144 (FR-TONIGHT-4, FR-TONIGHT-6): the way back to real
-   * time on compact is the taps row's `[ now ]` / `[ ahora ]`, disabled while the page is on real time; the top row
-   * is `[ ← ]`, the mark and the page's name, with the place after.
+   * time on compact is the taps row's `[ now ]` / `[ ahora ]`, disabled while the page is on real time. R148
+   * (FR-FULL-2, D-920, D-934): the top row and the mark have left compact — `[ ← ]` heads the sky with the shown
+   * time, in the page's banner, and the page's name with the place is the `h1`, visually hidden.
    */
   it.each([
     ['en', 'Back', 'now', 'live'],
@@ -442,11 +444,14 @@ describe('<LivePage>', () => {
     );
     const back = screen.getByRole('button', { name });
     expect(back).toHaveTextContent(/^←$/);
-    const topRow = screen.getByTestId('live-top-row');
-    expect(within(topRow).getByRole('button')).toBe(back);
-    expect(within(topRow).getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
-    expect(within(topRow).getByTestId('header-page')).toHaveTextContent(pageName);
-    expect(within(topRow).queryByTestId('live-state-word')).toBeNull();
+    const head = screen.getByTestId('live-head');
+    expect(within(head).getByRole('button')).toBe(back);
+    expect(within(head).getByTestId('shown-time')).toBeInTheDocument();
+    expect(screen.getByRole('banner')).toContainElement(head);
+    expect(screen.queryByTestId('live-top-row')).toBeNull();
+    expect(screen.queryByTestId('live-state-mark')).toBeNull();
+    expect(screen.queryByTestId('header-page')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(`${pageName} · ${observer.label}`);
     const now = within(screen.getByTestId('live-taps')).getByRole('button', { name: nowWord });
     expect(now).toBeDisabled();
     hold();
@@ -507,7 +512,9 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
     expect(screen.queryByRole('group', { name: 'Language' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Theme' })).toBeNull();
-    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-place')).toHaveTextContent(observer.label);
+    // R148 (FR-FULL-4): the place is the sheet's head's.
+    expect(screen.queryByTestId('live-top-row')).toBeNull();
+    expect(within(screen.getByTestId('sheet-head')).getByTestId('sheet-place')).toHaveTextContent(observer.label);
     expect(screen.getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
     // R48 (FR-LIVE-7 as amended): no "drag the dome" hint on this page, whichever view.
     expect(screen.queryByText(en.chart.domeHint)).toBeNull();
@@ -540,23 +547,22 @@ describe('<LivePage>', () => {
    * layout's own rail on wide, where the frame cuts the box inside the drawing slot (`stacked`, the dome's aspect)
    * and carries no aside of its own any more (R61's D-312 rail is the layout's).
    */
-  it('is the layout’s column on compact and its box and rail at every wide width, the frame cutting the box inside the slot', () => {
+  it('is the layout’s full form on compact and its box and rail at every wide width, the frame cutting the box inside the slot', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
+    // R148 (FR-FULL-1, D-919): the full form — the drawing, the overlay and the sheet, and no row outside them.
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-form', 'full');
     // R92 (D-529): a cell of the page's grid, through the `display: contents` main.
     expect(screen.getByTestId('live-layout').parentElement).toBe(screen.getByRole('main'));
     expect(screen.getByRole('main').parentElement).toBe(screen.getByTestId('live-page'));
-    // FR-TONIGHT-6's order on compact: the headline, the view row, the drawing with the readout in its corner (D-904), the
-    // timeline, the actions, the list — no picker row until the readout is tapped, and no hint slot, since the polar
-    // chart has no drag (D-864).
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'polar');
-    expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'drawing', 'readout', 'timeline', 'action', 'list']);
-    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-readout', 'corner');
-    expect(within(screen.getByTestId('live-layout').querySelector('[data-slot="action"]') as HTMLElement).getByTestId('live-actions')).toBeInTheDocument();
-    expect(within(screen.getByTestId('live-layout').querySelector('[data-slot="timeline"]') as HTMLElement).getByTestId('live-track')).toBeInTheDocument();
-    expect(within(screen.getByTestId('live-layout').querySelector('[data-slot="timeline"]') as HTMLElement).getByTestId('live-taps')).toBeInTheDocument();
+    expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['drawing', 'overlay', 'sheet']);
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-readout', 'sheet');
+    expect(screen.getByTestId('sky-readout-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'sheet');
+    const sheet = screen.getByTestId('live-layout').querySelector('[data-slot="sheet"]') as HTMLElement;
+    for (const id of ['live-controls', 'live-sheet', 'live-actions', 'live-track', 'live-taps', 'live-context', 'live-view-row', 'live-facing']) expect(within(sheet).getByTestId(id), id).toBeInTheDocument();
     unmount();
     // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box.
     for (const [width, height] of [
@@ -707,12 +713,13 @@ describe('<LivePage>', () => {
     act(() => {
       media?.setSize(390, 3000);
     });
-    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
+    // R148 (FR-FULL-4): the track and the taps are the sheet's.
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.queryByTestId('stripe-block')).toBeNull();
     expect(screen.queryByTestId('time-stripe')).toBeNull();
-    expect(screen.getByTestId('live-track').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
+    expect(screen.getByTestId('live-track').closest('[data-slot]')).toHaveAttribute('data-slot', 'sheet');
     expect(screen.getByTestId('live-layout').querySelector('[data-slot="foot"]')).toBeNull();
   });
 
@@ -734,9 +741,11 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('playback-row')).toBeNull();
     expect(screen.queryByTestId('step-controls')).toBeNull();
     expect(screen.queryByTestId('time-readout')).toBeNull();
-    expect([...(screen.getByTestId('live-layout').querySelector('[data-slot="list"]')?.children ?? [])].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['list']);
+    // R148 (FR-FULL-4): the list panel is on the page only while `[ list (n) ]` holds it open, under the actions in the sheet.
+    expect(screen.queryByTestId('live-list')).toBeNull();
     openList();
-    expect([...(screen.getByTestId('live-layout').querySelector('[data-slot="list"]')?.children ?? [])].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-list-head', 'list']);
+    expect([...screen.getByTestId('live-list').children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-list-head', 'list']);
+    expect(screen.getByTestId('live-list').previousElementSibling).toBe(screen.getByTestId('live-actions'));
     const toggle = within(screen.getByTestId('live-list-head')).getByTestId('live-hidden-toggle');
     expect(toggle).toHaveAccessibleName('Hidden objects');
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -772,7 +781,8 @@ describe('<LivePage>', () => {
     expect(toggle).toHaveAccessibleName(en.live.starsToggleName);
     expect(toggle).toHaveTextContent(en.live.starsToggle);
     // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the control in the picker's idiom, `[x] stars` last.
-    const viewRow = toggle.closest('[data-slot="viewRow"]') as HTMLElement;
+    // R148 (FR-FULL-4): on compact the row is the sheet's.
+    const viewRow = toggle.closest('[data-testid="live-view-row"]') as HTMLElement;
     expect(viewRow).not.toBeNull();
     const control = within(viewRow).getByRole('group', { name: en.chart.viewGroup });
     expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
@@ -893,16 +903,16 @@ describe('<LivePage>', () => {
       appStore.getState().openSkyScreen();
     });
     expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-    for (const testid of ['live-side', 'live-track', 'live-taps', 'live-headline', 'live-context', 'live-actions']) expect(screen.queryByTestId(testid)).toBeNull();
-    // The page's one-row header is covered rather than unmounted, and out of the accessible tree with it.
-    expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
+    for (const testid of ['live-side', 'live-track', 'live-taps', 'live-headline', 'live-context', 'live-actions', 'live-controls', 'live-sheet']) expect(screen.queryByTestId(testid)).toBeNull();
+    // The page's head is covered rather than unmounted, and out of the accessible tree with it (R148: the head over the sky, not a top row).
+    expect(screen.getByTestId('live-top-area')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
     // Leaving the screen: the whole page is back, at the instant it was left at — not at now.
     act(() => {
       appStore.getState().closeSkyScreen();
     });
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden');
+    expect(screen.getByTestId('live-top-area')).not.toHaveAttribute('aria-hidden');
     expect(screen.getByTestId('live-track')).toBeInTheDocument();
     expect(screen.getByTestId('live-taps')).toBeInTheDocument();
     expect(shownAt()).toBe(later.start.t - LEAD);
@@ -968,11 +978,12 @@ describe('<LivePage>', () => {
       await windowDrawn();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
       const turned = lookAz();
-      // The landscape phone: the rail's arrangement, still the window and still facing where it was.
+      // The landscape phone: the full form still (R148), the sheet a side panel, still the window and still facing where it was.
       act(() => {
         media?.setSize(844, 390);
       });
-      expect(screen.getByTestId('live-rail-head')).toBeInTheDocument();
+      expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
+      expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
       await windowDrawn();
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(lookAz()).toBe(turned);
@@ -1178,57 +1189,62 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5; D-902): the compact page
-   * renders one inventory in both states — every row `COMPACT_ROWS` lists present, every other `LiveRow` absent,
-   * identical before and after the instant leaves real time — in the column and in the landscape rail alike. The
-   * state is still a fact: the mark on the top row runs or stands, and the chip says `now` or the offset.
+   * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5; D-902) → R148 (FR-FULL-3,
+   * FR-FULL-4, FR-WATCH-4 as amended v2.8; D-928): the compact page renders one inventory in both states — split in
+   * two. With the sheet closed the reachable rows are the overlay's (the box, the head, `[ controls ]`, and the hint
+   * and the card on their own conditions); with it open the sheet's rows too, in FR-FULL-4's order. Every other
+   * `LiveRow` is absent, identical before and after the instant leaves real time, in the portrait and the
+   * landscape phone alike — both the full form (D-919). "Present" is in the DOM and not under `inert`: the sheet's
+   * rows stay mounted while it is closed (D-932). The state is still a fact: the chip says `now` or the offset.
    */
   it.each([
-    ['portrait', [390, 844], 'column', 'under'],
-    ['landscape', [844, 390], 'rail', 'rail'],
-  ] as const)('renders the compact %s page as one inventory in both states, the mark and the chip saying which (FR-TONIGHT-6, FR-WATCH-4, FR-WATCH-5)', (_shape, size, layoutShape, placement) => {
+    ['portrait', [390, 844], 'bottom', 'under'],
+    ['landscape', [844, 390], 'side', 'rail'],
+  ] as const)('renders the compact %s page as one inventory in both states and both sheet states, the chip saying which (FR-TONIGHT-6, FR-FULL-3, FR-FULL-4, FR-WATCH-4)', (_shape, size, sheetForm, placement) => {
     withSky();
     media = stubMatchMedia(size[0], size[1]);
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
-    const present = (): string[] => LIVE_ROWS.filter((row) => container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`) !== null);
-    const inventory = (state: string): void => {
+    const reachable = (row: string): boolean => {
+      const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row as keyof typeof LIVE_ROW_TEST_ID]}"]`);
+      return found !== null && found.closest('[inert]') === null;
+    };
+    const present = (): string[] => LIVE_ROWS.filter(reachable);
+    const inventory = (state: string, sheetOpen: boolean): void => {
+      const listed = new Set(rowsFor('watching', 'compact', 'tall', sheetOpen));
       for (const row of LIVE_ROWS) {
-        const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
-        if (COMPACT_ROWS.includes(row)) expect(found, `compact ${state}: ${row} is rendered`).not.toBeNull();
-        else expect(found, `compact ${state}: ${row} is not in the DOM`).toBeNull();
+        if (COMPACT_CONDITIONAL.includes(row)) continue;
+        expect(reachable(row), `compact ${state}, sheet ${sheetOpen ? 'open' : 'closed'}: ${row} is ${listed.has(row) ? 'reachable' : 'not reachable'}`).toBe(listed.has(row));
       }
     };
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
-    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', layoutShape);
-    // Watching: the ISS is up, so the page stays on real time (FR-TONIGHT-1's first case) and says `now`.
-    inventory('watching');
-    const watching = present();
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', sheetForm);
+    // Watching: the ISS is up, so the page stays on real time (FR-TONIGHT-1's first case) with no card, and says `now`.
+    inventory('watching', false);
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    // The polar chart has no hint (D-864).
+    expect(screen.queryByTestId('sky-hint')).toBeNull();
+    const closed = present();
     expect(chip()).toHaveAttribute('data-kind', 'now');
-    const mark = within(screen.getByTestId('live-top-row')).getByTestId('live-state-mark');
-    expect(mark).toHaveAttribute('data-state', 'live');
-    expect(within(mark).getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
-    expect(screen.queryByTestId('live-state-word')).toBeNull();
-    // The rows in their slots: the headline and the context in the answer, the track and the taps in the timeline, the actions in the action.
-    const slotOf = (id: string): string | null => screen.getByTestId(id).closest('[data-slot]')?.getAttribute('data-slot') ?? null;
-    expect(slotOf('live-headline')).toBe('answer');
-    expect(slotOf('live-context')).toBe('answer');
-    expect(slotOf('live-track')).toBe('timeline');
-    expect(slotOf('live-taps')).toBe('timeline');
-    expect(slotOf('live-actions')).toBe('action');
+    expect(screen.queryByTestId('live-state-mark')).toBeNull();
+    expect(screen.queryByTestId('live-top-row')).toBeNull();
+    // The sheet open: its rows in FR-FULL-4's order under the head, and the actions `[ list (n) ] [ Share ]`.
+    fireEvent.click(screen.getByTestId('live-controls'));
+    inventory('watching', true);
+    const open = present();
+    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
     expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['list (1)', 'Share']);
     expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
-    // Held: a key on the track holds the instant; nothing appears, nothing disappears, and the mark stands still.
+    // Held: a key on the track holds the instant; nothing appears, nothing disappears.
     act(() => {
       vi.setSystemTime(T + 4_000);
     });
     hold();
-    inventory('scrubbing');
-    expect(present()).toEqual(watching);
+    inventory('scrubbing', true);
+    expect(present()).toEqual(open);
     expect(shownAt()).toBe(T);
     expect(chip()).not.toHaveAttribute('data-kind', 'now');
-    expect(mark).toHaveAttribute('data-state', 'held');
-    expect(within(mark).getByTestId('mark')).toHaveAttribute('data-mark-running', 'false');
     expect(screen.getByRole('button', { name: en.live.shareMoment })).toBeInTheDocument();
     // A quarter hour on, and the tick moves real time under it, not the held instant (FR-WATCH-1).
     fireEvent.keyDown(track(), { key: 'ArrowRight' });
@@ -1239,14 +1255,325 @@ describe('<LivePage>', () => {
     });
     expect(shownAt()).toBe(T + 15 * 60_000);
     expect(chip()).toHaveTextContent(/^in 14 min$/);
-    // `[ now ]`: real time again, the same rows, and the visit marked (FR-TONIGHT-4, D-898).
+    // `[ now ]`: real time again, the same rows, and nothing marked (FR-TONIGHT-4 as amended, D-926).
     fireEvent.click(screen.getByTestId('live-tap-now'));
-    inventory('watching');
-    expect(present()).toEqual(watching);
+    inventory('watching', true);
+    expect(present()).toEqual(open);
     expect(chip()).toHaveAttribute('data-kind', 'now');
-    expect(mark).toHaveAttribute('data-state', 'live');
     expect(screen.getByTestId('live-tap-now')).toBeDisabled();
-    expect(appStore.getState().stayOnNow).toBe(true);
+    expect('stayOnNow' in appStore.getState()).toBe(false);
+    // Closed again: the overlay's rows alone, held or not.
+    fireEvent.click(screen.getByTestId('sheet-close'));
+    inventory('watching', false);
+    expect(present()).toEqual(closed);
+    hold();
+    inventory('scrubbing', false);
+    expect(present()).toEqual(closed);
+  });
+
+  /**
+   * R148 (FR-FULL-3): with the sheet closed the compact page renders exactly the box, the head, `[ controls ]` and,
+   * until `skyHintSeen`, the hint — on the window, which has one — and nothing else reachable over the sky; the hint
+   * stands in the row above the button, since the window's three clauses never fit beside it (D-924).
+   */
+  it('with the sheet closed renders the box, the head, [ controls ] and the hint over the sky, the hint above the button where it does not fit beside (FR-FULL-3, D-924)', () => {
+    withSky();
+    act(() => {
+      appStore.getState().setChartView('window');
+      appStore.getState().setSkyHintSeen(false);
+    });
+    media = stubMatchMedia(390, 844);
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const overlay = container.querySelector('[data-slot="overlay"]') as HTMLElement;
+    const hint = within(overlay).getByTestId('sky-hint');
+    // The window's three clauses (a mouse's here) never fit beside the button.
+    expect(hint.parentElement).toHaveAttribute('data-beside', 'false');
+    expect(within(overlay).queryByTestId('live-card')).toBeNull();
+    const reachable = LIVE_ROWS.filter((row) => {
+      const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
+      return found !== null && found.closest('[inert]') === null;
+    });
+    expect(reachable.sort()).toEqual(['box', 'controls', 'head', 'hint'].sort());
+    // The dome's drag clause fits beside the button in English (`hintFitsBeside`: 35.75 cells with a mouse).
+    act(() => {
+      appStore.getState().setChartView('dome');
+    });
+    expect(within(overlay).getByTestId('sky-hint').parentElement).toHaveAttribute('data-beside', 'true');
+    // Seen: gone for good.
+    act(() => {
+      appStore.getState().setSkyHintSeen(true);
+    });
+    expect(within(overlay).queryByTestId('sky-hint')).toBeNull();
+  });
+
+  /**
+   * R148 (FR-FULL-4, D-923): the sheet's children in FR-FULL-4's order in every view, with the facing row the chart's
+   * readout as a button that opens the picker under it on the window and the polar chart, and the readout alone on the
+   * dome; a pick closes it, a second tap closes it, and `[ hold up to the sky ]` beside the points leaves it open.
+   */
+  it.each(['polar', 'window', 'dome'] as const)('holds the sheet’s rows in FR-FULL-4’s order on the %s, the facing row with its picker where the view has one', async (view) => {
+    withSky();
+    act(() => {
+      appStore.getState().setChartView(view);
+    });
+    media = stubMatchMedia(390, 844);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    fireEvent.click(screen.getByTestId('live-controls'));
+    const body = screen.getByTestId('sheet-body');
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
+    const timeline = screen.getByTestId('live-timeline');
+    expect(timeline.children).toHaveLength(2);
+    expect(timeline.children[0]).toBe(screen.getByTestId('live-track'));
+    expect(timeline.children[1]).toContainElement(screen.getByTestId('live-taps'));
+    expect(within(screen.getByTestId('live-view-row')).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
+    expect(screen.getByTestId('live-view-row').lastElementChild).toBe(screen.getByTestId('stars-toggle'));
+    // Every group a group apart, the rows inside the timeline a row apart (FR-FLOW-10).
+    for (const child of body.children) expect(child).toHaveAttribute('data-rhythm', 'group');
+    for (const child of screen.getByTestId('live-timeline').children) expect(child).toHaveAttribute('data-rhythm', 'row');
+    const facing = screen.getByTestId('live-facing');
+    if (view === 'window') {
+      await waitFor(() => {
+        expect(document.querySelector('[data-drawing="window"]')).not.toBeNull();
+      });
+    }
+    const readoutId = { polar: 'chart-convention', window: 'window-readout', dome: 'dome-readout' }[view];
+    await waitFor(() => {
+      expect(within(facing).getByTestId(readoutId)).toBeInTheDocument();
+    });
+    if (view === 'dome') {
+      expect(within(facing).queryByTestId('sky-readout-toggle')).toBeNull();
+      expect(screen.queryByTestId('live-facing-picker')).toBeNull();
+      return;
+    }
+    const toggle = within(facing).getByTestId('sky-readout-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAccessibleName(within(facing).getByTestId(readoutId).textContent ?? '');
+    expect(screen.queryByTestId('live-facing-picker')).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const picker = screen.getByTestId('live-facing-picker');
+    expect(picker.previousElementSibling).toBe(toggle.parentElement);
+    expect(toggle.getAttribute('aria-controls')).toBe(picker.id);
+    await waitFor(() => {
+      expect(within(picker).getAllByRole('button').length).toBeGreaterThan(0);
+    });
+    if (view === 'window') {
+      // A point closes the row (D-904); `[ hold up to the sky ]` beside the points is `SkyViewLayout.test.tsx`'s case and the screen's own.
+      fireEvent.click(within(picker).getByRole('button', { name: 'NE' }));
+      expect(screen.queryByTestId('live-facing-picker')).toBeNull();
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(toggle);
+    }
+    // A second tap closes it.
+    fireEvent.click(toggle);
+    expect(screen.queryByTestId('live-facing-picker')).toBeNull();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  /**
+   * R148 (FR-FULL-10, FR-TONIGHT-1 and FR-TONIGHT-2 as amended v2.8; D-925): the card, with a stored run and nothing
+   * visible up at now. It appears with `t` on real time, not playing, with focus on its first button and the sentence
+   * in a polite region; `[ see next pass ]` lands on the lead instant and plays — paused under reduced motion — with
+   * the sheet closed; `[ see now ]` and `Esc` leave real time; when it goes, focus is on `[ controls ]`.
+   */
+  it('asks with the card when nothing is up, and [ see next pass ] lands a minute before the rise and plays, paused under reduced motion (FR-FULL-10, FR-TONIGHT-2)', () => {
+    withSky([later, tomorrow]);
+    media = stubMatchMedia(390, 844);
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const card = screen.getByTestId('live-card');
+    expect(card).toHaveAttribute('data-kind', 'ask');
+    expect(card.closest('[data-slot]')).toHaveAttribute('data-slot', 'overlay');
+    expect(within(card).getByText(en.live.opening.nothingUp)).toBeInTheDocument();
+    expect(within(card).getByTestId('live-card-pass')).toHaveTextContent(/^Tiangong · 12:48 · in 3 h 00 min$/);
+    expect(document.activeElement).toBe(screen.getByTestId('live-card-next'));
+    expect(chip()).toHaveAttribute('data-kind', 'now');
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    fireEvent.click(screen.getByTestId('live-card-next'));
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(shownAt()).toBe(later.start.t - LEAD);
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
+    expect(chip()).toHaveAttribute('data-kind', 'ahead');
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
+    unmount();
+    // Reduced motion: the landing, paused.
+    media.setReducedMotion(true);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    fireEvent.click(screen.getByTestId('live-card-next'));
+    expect(shownAt()).toBe(later.start.t - LEAD);
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+  });
+
+  it('[ see now ], Esc and the reader moving the time each put the card away on real time; a drag on the sky leaves it (FR-FULL-10, D-925, D-927)', () => {
+    withSky([later, tomorrow]);
+    media = stubMatchMedia(390, 844);
+    const onLeave = vi.fn();
+    const first = render(<LivePage link={null} onLeave={onLeave} />);
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    // A drag on the sky: the camera's, not the time's — the card stays.
+    const dome = screen.getByTestId('live-dome');
+    fireEvent.pointerDown(dome, { pointerId: 1, isPrimary: true, clientX: 100, clientY: 300 });
+    fireEvent.pointerUp(dome, { pointerId: 1, isPrimary: true, clientX: 160, clientY: 330 });
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    // Opening the sheet leaves it standing.
+    fireEvent.click(screen.getByTestId('live-controls'));
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    // `[ see now ]`: real time, the card gone.
+    fireEvent.click(screen.getByTestId('live-card-now'));
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(chip()).toHaveAttribute('data-kind', 'now');
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+    first.unmount();
+    // `Esc` is `[ see now ]`, and does not leave the page.
+    const second = render(<LivePage link={null} onLeave={onLeave} />);
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(chip()).toHaveAttribute('data-kind', 'now');
+    expect(onLeave).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
+    second.unmount();
+    // The reader moving the time in the sheet is an answer: `[ next ]` here, the track and the play control alike.
+    for (const answer of ['live-tap-next', 'live-play', 'track'] as const) {
+      const run = render(<LivePage link={null} onLeave={onLeave} />);
+      expect(screen.getByTestId('live-card')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('live-controls'));
+      if (answer === 'track') fireEvent.keyDown(track(), { key: 'ArrowRight' });
+      else fireEvent.click(screen.getByTestId(answer));
+      expect(screen.queryByTestId('live-card'), answer).toBeNull();
+      // Answered from the sheet: the focus stays with the control the reader used (D-934).
+      expect(document.activeElement).not.toBe(screen.getByTestId('live-controls'));
+      run.unmount();
+    }
+  });
+
+  it('shows no card for a link’s t, for a pass up now, for a reader who moved first, or on wide; the advice with none in the span (FR-FULL-10)', () => {
+    media = stubMatchMedia(390, 844);
+    // A pass up now: no card (FR-TONIGHT-1's first case).
+    withSky();
+    const upNow = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    upNow.unmount();
+    // A link's `t`.
+    withSky([later, tomorrow]);
+    const linked = render(<LivePage link={{ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: T + HOUR }} onLeave={() => undefined} />);
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    linked.unmount();
+    // The reader moved first: the passes arrive after a key on the track.
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-0', status: 'computing', observer, passes: [], hasDarkness: true } });
+    });
+    const early = render(<LivePage link={null} onLeave={() => undefined} />);
+    fireEvent.click(screen.getByTestId('live-controls'));
+    fireEvent.keyDown(track(), { key: 'ArrowRight' });
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [later, tomorrow], hasDarkness: true } });
+    });
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    early.unmount();
+    // None in the span: the advice, over `[ see the sky now ]`.
+    withSky([over, beyond]);
+    const none = render(<LivePage link={null} onLeave={() => undefined} />);
+    const card = screen.getByTestId('live-card');
+    expect(card).toHaveAttribute('data-kind', 'advise');
+    expect(within(card).getByText(en.live.opening.noPass)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('live-card-now'));
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(chip()).toHaveAttribute('data-kind', 'now');
+    none.unmount();
+    // Wide never asks (V27-1).
+    media.restore();
+    media = stubMatchMedia(1280, 800);
+    withSky([later, tomorrow]);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+  });
+
+  /**
+   * R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky above the open sheet closes it and is spent on that — the
+   * click that follows never reaches the drawing — in each view; a press that travels past `SHEET_TAP_SLOP_PX` is a
+   * drag, which leaves the sheet open and reaches the view. With the sheet closed a tap on the sky closes nothing.
+   */
+  it.each(['polar', 'dome', 'window'] as const)('on the %s a tap on the sky closes the open sheet and swallows its click, a drag past the slop passes through with the sheet open', (view) => {
+    withSky();
+    act(() => {
+      appStore.getState().setChartView(view);
+    });
+    media = stubMatchMedia(390, 844);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const dome = screen.getByTestId('live-dome');
+    const clicked = vi.fn();
+    dome.addEventListener('click', clicked);
+    const press = (id: number, from: [number, number], to: [number, number]): void => {
+      fireEvent.pointerDown(dome, { pointerId: id, isPrimary: true, clientX: from[0], clientY: from[1] });
+      fireEvent.pointerUp(dome, { pointerId: id, isPrimary: true, clientX: to[0], clientY: to[1] });
+      fireEvent.click(dome, { clientX: to[0], clientY: to[1] });
+    };
+    // Closed: the tap reaches the drawing.
+    press(1, [100, 300], [102, 301]);
+    expect(clicked).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('live-controls'));
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    // A drag: the sheet stays open and the drawing gets its events.
+    press(2, [100, 300], [100 + SHEET_TAP_SLOP_PX, 300]);
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    expect(clicked).toHaveBeenCalledTimes(2);
+    // A tap: closed, the click swallowed, and focus back on `[ controls ]`.
+    press(3, [100, 300], [100 + SHEET_TAP_SLOP_PX - 1, 300]);
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    expect(screen.getByTestId('live-controls')).toHaveAttribute('aria-expanded', 'false');
+    expect(clicked).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
+    // A press on the sheet itself, or on `[ controls ]`, is not a press on the sky.
+    fireEvent.click(screen.getByTestId('live-controls'));
+    fireEvent.pointerDown(screen.getByTestId('sheet-body'), { pointerId: 4, isPrimary: true, clientX: 100, clientY: 700 });
+    fireEvent.pointerUp(screen.getByTestId('sheet-body'), { pointerId: 4, isPrimary: true, clientX: 100, clientY: 700 });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+  });
+
+  /**
+   * R148 (FR-FULL-5, FR-FULL-10, FR-LIVE-1; D-927): `Esc`'s four steps in order — the sky screen closes, the card is
+   * answered, the sheet closes, the page is left — and the sheet's state survives a turn of the phone (FR-FLOW-15).
+   */
+  it('takes Esc in four steps: the screen, the card, the sheet, then the page (D-927), and keeps the sheet and its list through a turn', () => {
+    withSky([later, tomorrow]);
+    media = stubMatchMedia(390, 844);
+    const onLeave = vi.fn();
+    render(<LivePage link={null} onLeave={onLeave} />);
+    fireEvent.click(screen.getByTestId('live-controls'));
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    act(() => {
+      appStore.getState().openSkyScreen();
+    });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
+    expect(screen.getByTestId('live-card')).toBeInTheDocument();
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('live-card')).toBeNull();
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    expect(onLeave).not.toHaveBeenCalled();
+    // The list open, then the turn: the sheet and the list as they were, the side form.
+    openList();
+    expect(screen.getByTestId('live-list')).toBeInTheDocument();
+    act(() => {
+      media?.setSize(844, 390);
+    });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
+    expect(screen.getByTestId('live-list')).toBeInTheDocument();
+    act(() => {
+      media?.setSize(390, 844);
+    });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
+    expect(onLeave).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onLeave).toHaveBeenCalledTimes(1);
   });
 
   /**
@@ -1394,21 +1721,15 @@ describe('<LivePage>', () => {
     scrub();
     expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
     unmount();
-    // R144 (FR-TONIGHT-6, FR-TONIGHT-7): on compact the word is the chip's — `now`, or the offset — beside a mark that never moves.
+    // R144 (FR-TONIGHT-6, FR-TONIGHT-7) → R148 (FR-FULL-2): on compact the word is the chip's — `now`, or the offset — and there is no mark at all.
     media.restore();
     media = stubMatchMedia(390, 844);
     media.setReducedMotion(true);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    const mark = screen.getByTestId('live-state-mark');
-    const markFrame = (): string | null => mark.querySelector('[data-mark-layer="bead"]')?.getAttribute('data-mark-frame') ?? null;
-    const still = markFrame();
-    act(() => {
-      vi.advanceTimersByTime(5_000);
-    });
-    expect(markFrame()).toBe(still);
+    expect(screen.queryByTestId('live-state-mark')).toBeNull();
+    expect(screen.queryByTestId('mark')).toBeNull();
     expect(chip()).toHaveTextContent(/^now$/);
     hold();
-    expect(mark).toHaveAttribute('data-state', 'held');
     expect(chip()).toHaveTextContent(/^<1 min ago$|^in <1 min$/);
   });
 
@@ -1732,7 +2053,8 @@ describe('<LivePage>', () => {
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
     // R132 (D-842): the legend is the layout's `list` slot's, not the dome row's.
     const legend = screen.getByTestId('chart-legend');
-    expect(legend.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    // R148 (FR-FULL-4): on compact the list panel is the sheet's, under the actions.
+    expect(legend.closest('[data-testid="live-list"]')).not.toBeNull();
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
     expect(tiangongKey).toMatch(/^[A-Z]$/);

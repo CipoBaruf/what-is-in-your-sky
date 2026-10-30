@@ -17,7 +17,7 @@
  * `runFor` is playback's wall time.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { backToLive, domeDrawn, enterScrubbing, homeAt, openLegend, pressTrackAt, setThemeOnHome, shownOnTrack, stripFilled, T } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, homeAt, leaveLive, openLegend, pressTrackAt, setThemeOnHome, shownOnTrack, stripFilled, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 
@@ -332,12 +332,12 @@ for (const width of [390, 1280] as const) {
     await scrubbedWithHidden(page, 'en');
     await page.screenshot({ path: `docs/screenshots/r33-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the theme is switched on the home page, since the compact live page carries no switch.
-    await page.keyboard.press('Escape');
+    await leaveLive(page);
     await setThemeOnHome(page, 'en', 'night');
     await scrubbedWithHidden(page, 'en');
     await page.clock.runFor(500);
     await page.screenshot({ path: `docs/screenshots/r33-live-${String(width)}-night-en.png` });
-    await page.keyboard.press('Escape');
+    await leaveLive(page);
     await setThemeOnHome(page, 'en', 'dark');
   });
 }

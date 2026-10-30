@@ -146,8 +146,7 @@ test.describe('a live link’s moment (FR-VISIT-3)', () => {
   test('a t that has passed opens watching, with its note', async ({ page }) => {
     await page.goto(liveLink(T - 2 * HOUR));
     await domeDrawn(page);
-    // R144 (FR-TONIGHT-6): the state word left the compact top row; the mark says it, and the chip.
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
+    // R144 (FR-TONIGHT-6) → R148 (FR-FULL-2): the state word and the mark left the compact page; the chip says it.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     await expect(page.getByTestId('link-note')).toHaveAttribute('data-note', 'past');
     await expect(page.getByTestId('link-note')).toContainText('which has passed. Showing now.');
@@ -156,7 +155,7 @@ test.describe('a live link’s moment (FR-VISIT-3)', () => {
   test('a t 30 h ahead opens held at the end of the span, with its note', async ({ page }) => {
     await page.goto(liveLink(T + 30 * HOUR));
     await domeDrawn(page);
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+    await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
     await expect(page.getByTestId('shown-chip')).toContainText('24 h');
     await expect(page.getByTestId('link-note')).toHaveAttribute('data-note', 'far');
     await expect(page.getByTestId('link-note')).toContainText('more than 24 h ahead');

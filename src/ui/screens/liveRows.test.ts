@@ -5,40 +5,63 @@
  */
 import { describe, expect, it } from 'vitest';
 import { foldRows, LIVE_FOLD_NEEDS, LIVE_FOLD_ORDER } from '../../lib/layout';
-import { COMPACT_ROWS, inventoryClip, jumpFitsOnPath, jumpPlacement, LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { COMPACT_CONDITIONAL, COMPACT_OVERLAY, COMPACT_SHEET, inventoryClip, jumpFitsOnPath, jumpPlacement, LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 const TIMELINE: readonly LiveRow[] = ['time-row', 'stripe', 'steps', 'playback'];
 
-/** R144 (FR-TONIGHT-6, D-902): what left the compact page — none of these is in its list in either state or shape. */
-const GONE_FROM_COMPACT: readonly LiveRow[] = ['indicator', 'clock', 'time-row', 'next-event', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'back-to-live', 'scrub', 'hidden'];
+/**
+ * R144 (FR-TONIGHT-6, D-902) → R148 (FR-FULL-2, FR-FULL-3; D-920, D-928): what left the compact page — none of these
+ * is in its list in either state, either shape or either sheet state. The top row and the headline are R148's: the
+ * head over the sky carries `[ ← ]` and the shown time, and the mark is gone.
+ */
+const GONE_FROM_COMPACT: readonly LiveRow[] = ['top-row', 'headline', 'indicator', 'clock', 'time-row', 'next-event', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'back-to-live', 'scrub', 'hidden'];
 
 describe('rowsFor (FR-WATCH-4)', () => {
-  /** R144 (FR-TONIGHT-6, FR-WATCH-4 as amended v2.7; D-902): one compact inventory, in both states and both shapes. */
-  it('compact: the top row, the shown time, the context line, the box, the track, the taps and [ list (n) ] Share — the same list watching and scrubbing, tall and short', () => {
-    expect(COMPACT_ROWS).toEqual(['top-row', 'headline', 'context', 'box', 'track', 'taps', 'actions', 'list', 'share']);
+  /**
+   * R148 (FR-FULL-3, FR-FULL-4, FR-WATCH-4 as amended v2.8; D-928): one compact inventory, split — the overlay with the
+   * sheet closed, the overlay and the sheet with it open — the same in both states and both shapes.
+   */
+  it('compact: the box, the head, [ controls ], the hint and the card over the sky; the sheet’s rows in FR-FULL-4’s order with the sheet open — the same list watching and scrubbing, tall and short', () => {
+    expect(COMPACT_OVERLAY).toEqual(['box', 'head', 'controls', 'hint', 'card']);
+    expect(COMPACT_SHEET).toEqual(['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'list', 'share']);
+    expect(COMPACT_CONDITIONAL).toEqual(['hint', 'card']);
+    for (const row of COMPACT_CONDITIONAL) expect(COMPACT_OVERLAY).toContain(row);
     for (const shape of ['tall', 'short'] as const) {
-      expect(rowsFor('watching', 'compact', shape)).toEqual(COMPACT_ROWS);
-      expect(rowsFor('scrubbing', 'compact', shape)).toEqual(rowsFor('watching', 'compact', shape));
+      expect(rowsFor('watching', 'compact', shape, false)).toEqual(COMPACT_OVERLAY);
+      expect(rowsFor('watching', 'compact', shape, true)).toEqual([...COMPACT_OVERLAY, ...COMPACT_SHEET]);
+      // The page's own call, with no sheet state: everything it renders in both states (the sheet's rows stay mounted, D-932).
+      expect(rowsFor('watching', 'compact', shape)).toEqual([...COMPACT_OVERLAY, ...COMPACT_SHEET]);
+      for (const sheet of [false, true]) expect(rowsFor('scrubbing', 'compact', shape, sheet)).toEqual(rowsFor('watching', 'compact', shape, sheet));
     }
   });
 
-  it('compact: the indicator’s word, the next event, the conditions, the overview, the stripe block, [ scrub ], [ back to live ] and the hidden toggle are not rows of it (D-902, D-905)', () => {
+  it('compact: the top row, the headline, the indicator’s word, the next event, the conditions, the overview, the stripe block, [ scrub ], [ back to live ] and the hidden toggle are not rows of it (D-902, D-905, D-928)', () => {
     for (const state of ['watching', 'scrubbing'] as const) {
       for (const shape of ['tall', 'short'] as const) {
-        const rows = rowsFor(state, 'compact', shape);
-        for (const row of GONE_FROM_COMPACT) expect(rows, `${state} ${shape}: ${row}`).not.toContain(row);
-        for (const row of ['headline', 'context', 'track', 'taps', 'list', 'share'] as const) expect(rows, `${state} ${shape}: ${row}`).toContain(row);
+        for (const sheet of [false, true]) {
+          const rows = rowsFor(state, 'compact', shape, sheet);
+          for (const row of GONE_FROM_COMPACT) expect(rows, `${state} ${shape}: ${row}`).not.toContain(row);
+          for (const row of ['box', 'head', 'controls'] as const) expect(rows, `${state} ${shape}: ${row}`).toContain(row);
+          for (const row of ['context', 'track', 'taps', 'view-row', 'facing', 'list', 'share'] as const) expect(rows.includes(row), `${state} ${shape} sheet ${String(sheet)}: ${row}`).toBe(sheet);
+        }
       }
     }
-    // The four new ids have test ids of their own (D-902).
-    expect(LIVE_ROW_TEST_ID.headline).toBe('live-headline');
+    // The new ids have test ids of their own (D-928).
+    expect(LIVE_ROW_TEST_ID.head).toBe('live-head');
+    expect(LIVE_ROW_TEST_ID.controls).toBe('live-controls');
+    expect(LIVE_ROW_TEST_ID.card).toBe('live-card');
+    expect(LIVE_ROW_TEST_ID.facing).toBe('live-facing');
+    expect(LIVE_ROW_TEST_ID.hint).toBe('sky-hint');
+    expect(LIVE_ROW_TEST_ID['view-row']).toBe('live-view-row');
     expect(LIVE_ROW_TEST_ID.context).toBe('live-context');
     expect(LIVE_ROW_TEST_ID.track).toBe('live-track');
     expect(LIVE_ROW_TEST_ID.taps).toBe('live-taps');
-    // …and none of them is a wide row: wide is R77's and R78's, unchanged.
+    // …and none of them is a wide row: wide is R77's and R78's, unchanged, the sheet state ignored.
     for (const state of ['watching', 'scrubbing'] as const) {
       for (const shape of ['tall', 'short'] as const) {
-        for (const row of ['headline', 'context', 'track', 'taps'] as const) expect(rowsFor(state, 'wide', shape)).not.toContain(row);
+        for (const row of ['head', 'controls', 'hint', 'card', 'context', 'track', 'taps', 'view-row', 'facing'] as const) expect(rowsFor(state, 'wide', shape)).not.toContain(row);
+        expect(rowsFor(state, 'wide', shape, false)).toEqual(rowsFor(state, 'wide', shape, true));
+        expect(rowsFor(state, 'wide', shape)).toContain('top-row');
       }
     }
   });

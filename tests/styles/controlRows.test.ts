@@ -281,14 +281,7 @@ const rows = (t: Messages): readonly Row[] => [
    * R85 (FR-COMP-7, D-549): the top row and the actions rows are pinned at `LIVE_ROW_BUDGET`, two cells inside
    * FR-COMP-4's 36, in both languages — the room to spare F-82 found Spanish did not have.
    */
-  {
-    // R144 (FR-TONIGHT-6): `[ ← ]`, the mark, `en vivo` and `Cipolletti` — the state word has left the row: 28 cells in Spanish.
-    name: 'the live top row with the mark and the page name (FR-WATCH-2, FR-TONIGHT-6, FR-COMP-7)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-top-row'),
-    setUp: withLiveSky,
-    budget: LIVE_ROW_BUDGET,
-  },
+  // R148 (FR-FULL-2, D-920): the compact live top row is gone — the head over the sky and the sheet's head are `sheetRows.test.ts`'s rows.
   {
     // R144 (FR-TONIGHT-6): `[ list (1) ] [ Share ]`, 23 cells in English; `[ ver 1 ] [ Compartir ]`, 24 in Spanish — the one actions row, in both states.
     name: 'the live actions row (FR-WATCH-4, FR-TONIGHT-6, FR-COMP-7)',
@@ -325,7 +318,8 @@ const rows = (t: Messages): readonly Row[] => [
   {
     name: 'the live view row (FR-FLOW-4, D-846)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-layout').querySelector('[data-slot="viewRow"]') as Element,
+    // R148 (FR-FULL-4): the live page's view row is the sheet's.
+    find: () => screen.getByTestId('live-view-row'),
     setUp: withLiveSky,
     budget: VIEW_ROW_BUDGET,
   },
@@ -463,7 +457,7 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
   ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
     setUp();
     render(createElement(I18nProvider, { locale, children: element() }));
-    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"]') as Element;
+    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"]') as Element;
     const cells = rowCells(row, table);
     expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
     expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));

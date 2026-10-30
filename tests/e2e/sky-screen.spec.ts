@@ -89,7 +89,8 @@ test.describe('the sky screen on a phone held sideways', () => {
     await stubCompass(page);
     await countPermissionAsks(page);
     await livePage(page);
-    await expect(page.getByTestId('live-track')).toBeVisible();
+    // v2.8 (FR-FULL-3): the compact live page is the sky with `[ controls ]` over it; the track is in the sheet.
+    await expect(page.getByTestId('live-controls')).toBeVisible();
     expect(await asks(page)).toBe(0);
 
     await openScreen(page);
@@ -103,9 +104,9 @@ test.describe('the sky screen on a phone held sideways', () => {
     expect(box?.x).toBeCloseTo(0, 0);
     expect(box?.y).toBeCloseTo(0, 0);
 
-    // The page's one-row header is under it and not reachable: what is at its middle is the layer, not the row.
+    // The page's head over the sky (FR-FULL-2, D-934) is under it and not reachable: what is at its middle is the layer, not the head.
     const reachable = await page.evaluate(() => {
-      const row = document.querySelector('[data-testid="live-top-row"]');
+      const row = document.querySelector('[data-testid="live-top-area"]');
       if (!row) return 'no row';
       const rect = row.getBoundingClientRect();
       const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
@@ -113,7 +114,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     });
     expect(reachable).toBe('the layer');
     // …and it is out of the keyboard's way as well as the finger's (D-321).
-    await expect(page.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.getByTestId('live-top-area')).toHaveAttribute('aria-hidden', 'true');
     // None of the page's rows is rendered at all.
     for (const testid of ['live-side', 'stripe-block', 'playback-row', 'live-actions']) await expect(page.getByTestId(testid)).toHaveCount(0);
 
@@ -137,9 +138,9 @@ test.describe('the sky screen on a phone held sideways', () => {
     await page.getByRole('button', { name: CLOSE }).click();
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    // R144 (FR-TONIGHT-6, FR-FLOW-15): the compact rows, the landscape phone's too — the track in the overview's place.
-    await expect(page.getByTestId('live-track')).toBeVisible();
-    await expect(page.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden', 'true');
+    // v2.8 (FR-FULL-2, FR-FULL-3): the full sky comes back, its head live again and `[ controls ]` over it.
+    await expect(page.getByTestId('live-controls')).toBeVisible();
+    await expect(page.getByTestId('live-top-area')).not.toHaveAttribute('aria-hidden', 'true');
     // FR-FSC-2 (D-351): focus is back on the control the screen was opened from — R136 (V26-12): `[ hold up to the sky ]`.
     await expect(page.getByTestId('window-hold-up')).toBeFocused();
     expect(await asks(page)).toBe(1);

@@ -25,6 +25,8 @@
   padding: var(--space-2) calc(2 * var(--cell));
   background: var(--bg);
   color: var(--fg);
+  /* R148 (D-919): the layout's sheet slot lets the pointer through to the sky; the sheet itself takes it. */
+  pointer-events: auto;
   overscroll-behavior: contain;
   visibility: hidden;
   transition:
@@ -81,6 +83,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--fg-dim);
+}
+
+/* R148: the place is what gives; `[ settings ]` and `[ close ]` keep their cells on a row too narrow for all three (360 px, Spanish). */
+.head > :not(.place) {
+  flex: none;
 }
 
 .body {
