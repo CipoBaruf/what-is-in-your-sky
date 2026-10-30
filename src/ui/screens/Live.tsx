@@ -487,8 +487,10 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * (D-877), keeps it. Nothing of it reaches the hash or the history.
    */
   const [sheetOpen, setSheetOpen] = useState(false);
+  // FR-FULL-5: closing by the page's own ways — the tap on the sky, `Esc` — returns the focus to `[ controls ]`.
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
+    document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
   }, []);
   // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
@@ -548,11 +550,13 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * The page stays on real time, not playing, until the reader answers. A wide render decides once too: never.
    */
   const jumpDecided = useRef(false);
-  const hasPasses = passes.length > 0;
+  // The stored run's passes have arrived for this place (FR-OFF-8) — with or without one inside the span, since the
+  // card's advice is for a span with none (R144's jump waited for one in the span, having nothing to say otherwise).
+  const passesKnown = ownPasses && (passesState.passes.length > 0 || passesState.status === 'done');
   const reducedMotion = useMediaQuery(REDUCED_MOTION);
   const [opening, setOpening] = useState<CardChoice | null>(null);
   useEffect(() => {
-    if (!hasPasses || jumpDecided.current) return;
+    if (!passesKnown || jumpDecided.current) return;
     jumpDecided.current = true;
     if (!compact || (link?.t ?? null) !== null || readerWrote.current) return;
     const choice = openingChoice(passes, now, span);
@@ -561,7 +565,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     if (choice.kind !== 'up') setOpening(choice);
     // D-898, D-925: the decision is taken once, on the first render with passes; what it reads is what that render has.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPasses]);
+  }, [passesKnown]);
   /*
    * D-925: `[ see next pass ]` does what the jump did — lands on the lead instant and plays, paused under reduced
    * motion (FR-TONIGHT-2) — with the sheet closed, as it is until the reader opens it; `[ see now ]` and
@@ -619,7 +623,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         return true;
       }
       if (sheetOpen) {
-        setSheetOpen(false);
+        closeSheet();
         return true;
       }
       return false;

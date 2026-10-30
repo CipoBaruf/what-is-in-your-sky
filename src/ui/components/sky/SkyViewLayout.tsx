@@ -347,17 +347,24 @@ export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetC
    * and gives the drag up on the capture it then loses) and swallows the `click` that follows (one capture-phase
    * listener, armed for that one event), so the first tap is spent on closing: no follow, no star pick. A longer
    * travel passes through untouched and turns the camera with the sheet open. A press that lands on the overlay or
-   * in the sheet is not a press on the sky. With the sheet closed the wrapper listens to nothing.
+   * in the sheet is not a press on the sky. With the sheet closed a press is nothing to the wrapper; the swallow
+   * outlives the close, since the click lands after the sheet's state has changed.
    */
   const fullRef = useRef<HTMLDivElement | null>(null);
+  const sheetOpenRef = useRef(sheetOpen);
+  const onSheetCloseRef = useRef(onSheetClose);
+  useLayoutEffect(() => {
+    sheetOpenRef.current = sheetOpen;
+    onSheetCloseRef.current = onSheetClose;
+  }, [sheetOpen, onSheetClose]);
   useEffect(() => {
     const wrap = fullRef.current;
-    if (!wrap || shape !== 'full' || !sheetOpen) return;
+    if (!wrap || shape !== 'full') return;
     let press: { id: number; x: number; y: number } | null = null;
     let swallow = false;
     const onSky = (target: EventTarget | null): boolean => target instanceof Element && target.closest('[data-slot="drawing"]') !== null && target.closest('[data-slot="overlay"], [data-slot="sheet"]') === null;
     const onDown = (event: PointerEvent): void => {
-      press = event.isPrimary && onSky(event.target) ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
+      press = sheetOpenRef.current && event.isPrimary !== false && onSky(event.target) ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
     };
     const onUp = (event: PointerEvent): void => {
       if (press === null || press.id !== event.pointerId) return;
@@ -366,7 +373,7 @@ export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetC
       if (travel >= SHEET_TAP_SLOP_PX) return;
       swallow = true;
       event.stopPropagation();
-      onSheetClose?.();
+      onSheetCloseRef.current?.();
     };
     const onCancel = (): void => {
       press = null;
@@ -387,7 +394,7 @@ export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetC
       wrap.removeEventListener('pointercancel', onCancel, true);
       wrap.removeEventListener('click', onClick, true);
     };
-  }, [shape, sheetOpen, onSheetClose]);
+  }, [shape]);
 
   const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {

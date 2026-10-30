@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useT } from '../../../i18n/useT';
 import { SHEET_MAX_SHARE, SHEET_SIDE_SHARE } from '../../../lib/layout';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
@@ -67,8 +67,12 @@ export function ControlsSheet({ open, onOpenChange, place, children, className }
    * picker as the reader left them — leaves the focus where the screen's close put it (`[ hold up to the sky ]`),
    * and arms itself for the next open once it has closed.
    */
-  const armed = useRef(!open);
-  if (!open) armed.current = true;
+  const [armed, setArmed] = useState(!open);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setArmed(true);
+  }
 
   // The two shares, from the one constant each (CSSOM, not a style attribute: the CSP).
   useLayoutEffect(() => {
@@ -119,7 +123,7 @@ export function ControlsSheet({ open, onOpenChange, place, children, className }
         <div ref={bodyRef} className={styles.body} data-testid="sheet-body">
           {children}
         </div>
-        {open && armed.current && <FocusIn body={bodyRef} fallback={closeRef} />}
+        {open && armed && <FocusIn body={bodyRef} fallback={closeRef} />}
       </section>
     </>
   );
