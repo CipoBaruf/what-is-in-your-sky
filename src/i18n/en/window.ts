@@ -20,6 +20,10 @@ export const windowMessages = {
      */
     relative: 'This device is not reporting which way it faces.',
     hint: 'Hold the phone up: the window shows the sky it points at.',
+    /** R151 (FR-GYRO-1, D-943): the toggle that turns the page's own sky with the phone, after the `[ ] ` mark. */
+    followToggle: 'follow the phone',
+    /** R151 (FR-GYRO-3, D-943): the one line under the toggle after a refusal, until the next tap. */
+    followRefused: "Motion access is off. Allow it in the browser's settings, then tap again.",
     /** R121 (FR-SKY-7, D-790): the pass detail's facing picker's first option — the explained pass's peak, beside the eight points and `up`. */
     peak: 'peak',
     /**
