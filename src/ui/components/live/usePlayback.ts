@@ -74,6 +74,12 @@ export interface PlaybackOptions {
    * instant.
    */
   end?: (from: EpochMs) => EpochMs;
+  /**
+   * R144 (FR-TONIGHT-7): where `play` starts while the shown instant is real time — the clock the page's headline
+   * shows, which ticks each second where `realNow` ticks every ten, so a play from real time never steps back to the
+   * last tick. Read at the tap and clamped to the span; `realNow` without it.
+   */
+  realFrom?: () => EpochMs;
   /** Injected for tests; the window's by default. */
   raf?: { request: (callback: (wall: number) => void) => number; cancel: (id: number) => void };
 }
@@ -87,7 +93,7 @@ const windowRaf = {
 
 const NO_PASSES: readonly PassTimes[] = [];
 
-export function usePlayback({ span, realNow, initial, speed: speedOption, passes = NO_PASSES, end, raf = windowRaf }: PlaybackOptions): Playback {
+export function usePlayback({ span, realNow, initial, speed: speedOption, passes = NO_PASSES, end, realFrom, raf = windowRaf }: PlaybackOptions): Playback {
   const auto = speedOption === 'auto';
   const [held, setHeldState] = useState<EpochMs | null>(initial);
   const [playing, setPlaying] = useState(false);
@@ -162,6 +168,11 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
   useEffect(() => {
     realNowRef.current = realNow;
   }, [realNow]);
+  // Read at the tap, so a new reader each render (an inline arrow) does not remake `play`.
+  const realFromRef = useRef(realFrom);
+  useEffect(() => {
+    realFromRef.current = realFrom;
+  }, [realFrom]);
   const aheadRef = useRef(initial !== null && initial > realNow);
   useEffect(() => {
     aheadRef.current = held !== null && held > realNowRef.current;
@@ -219,11 +230,11 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
   const play = useCallback(
     (origin?: WriteOrigin) => {
       mark(origin);
-      // From real time, playback starts where the tick is; from the end of the span there is nowhere to go.
-      // R39 (F-36): the held instant is clamped here, not only on the way out. It is set unclamped — a link's
+      // From real time, playback starts where the tick is (or the clock `realFrom` reads, R144); from the end of
+      // the span there is nowhere to go. R39 (F-36): the held instant is clamped here, not only on the way out. It is set unclamped — a link's
       // `t` before the span, or one real time has walked past — and the frame loop reads the held value itself,
       // so without this playback would run from outside the span while the page went on showing its edge.
-      const from = heldRef.current === null ? realNow : clampToSpan(heldRef.current, span);
+      const from = clampToSpan(heldRef.current ?? realFromRef.current?.() ?? realNow, span);
       anchorStop(from);
       if (from >= Math.min(spanEnd, stopRef.current)) return;
       if (auto) publishRate(autoSpeed(from, passesRef.current));

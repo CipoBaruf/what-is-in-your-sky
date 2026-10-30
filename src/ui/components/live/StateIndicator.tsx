@@ -13,15 +13,22 @@ export const INDICATOR_MARK_PX = 24;
  * colour or motion alone (FR-X-5), and under reduced motion — where the bead
  * never moves — it is what says which state this is. The mark itself is
  * `aria-hidden`; the word is a status, so the change is announced.
+ *
+ * R144 (FR-TONIGHT-6): `word={false}` is the mark alone, for the compact live page's top row — the word has left
+ * it, the chip beside the shown time says `now` or the offset (FR-TONIGHT-7), and the mark still runs or stands
+ * still with the state. Its own test id, since `live-indicator` names the row with the word, which the compact
+ * inventory no longer holds.
  */
-export function StateIndicator({ held }: { held: boolean }) {
+export function StateIndicator({ held, word = true }: { held: boolean; word?: boolean }) {
   const t = useT();
   return (
-    <span className={styles.indicator} data-testid="live-indicator" data-state={held ? 'held' : 'live'}>
+    <span className={styles.indicator} data-testid={word ? 'live-indicator' : 'live-state-mark'} data-state={held ? 'held' : 'live'}>
       <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running={!held} tone={held ? 'warn' : 'accent'} />
-      <span role="status" className={styles.word} data-testid="live-state-word">
-        {held ? t.live.state.held : t.live.state.live}
-      </span>
+      {word && (
+        <span role="status" className={styles.word} data-testid="live-state-word">
+          {held ? t.live.state.held : t.live.state.live}
+        </span>
+      )}
     </span>
   );
 }

@@ -23,11 +23,6 @@ export const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTUR
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 export const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
-/**
- * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
- * (FR-VIS-5): whether the page mounted before or after the second `domeDrawn` lets run is not the point.
- */
-export const realTimeField = (t: number): RegExp => new RegExp(`^Time (${new Date(t).toISOString().slice(0, 10)} )?${hhmmss(t).slice(0, 7)}\\d UTC$`);
 
 export const golden = (): { start: number; peak: number; end: number } => {
   const pass = reference.firstGoldenPass;
@@ -412,7 +407,7 @@ export async function bandUnderBox(page: Page, box: { y: number; height: number 
  * nobody advances again and the page stays on its fallback (main CI, run
  * 33943966372). So the clock is ticked until each expectation holds, in steps
  * small enough to keep the shown instant inside the ten-second bucket the
- * strip assertions read (`realTimeField`).
+ * wide strip's time assertions read.
  */
 export async function domeDrawn(page: Page): Promise<void> {
   // `getAttribute` would wait for the element and hold the poll on its first tick; `count` does not.
@@ -498,6 +493,10 @@ export async function openSkyScreen(page: Page, locale: 'en' | 'es' = 'en', with
   // `[ hold up to the sky ]`, which the window offers where a compass can follow.
   await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
   const holdUp = scope.getByTestId('window-hold-up');
+  // R144 (FR-TONIGHT-6, D-904): on the compact live page the facing row — `[ hold up to the sky ]` with it — opens on a tap
+  // on the readout in the box's corner; the stars page and the pass detail have no such toggle and draw the row as before.
+  const readoutToggle = scope.getByTestId('sky-readout-toggle');
+  if ((await readoutToggle.count()) > 0 && (await readoutToggle.getAttribute('aria-expanded')) !== 'true') await readoutToggle.click();
   // A paused clock holds the window chunk's Suspense reveal (R32), so the clock is run until the control is there.
   await expect
     .poll(async () => {
@@ -577,6 +576,15 @@ export async function openLegend(page: Page): Promise<void> {
  * wide — so the clock and the Moon are waited for where the line has them.
  */
 export async function stripFilled(page: Page): Promise<void> {
+  // R144 (FR-TONIGHT-6, FR-TONIGHT-7): the compact page has no conditions line — its headline is the shown time
+  // and its context line the sky, the clouds and the next rise (or the pass up); the line is filled once the sky
+  // word has arrived with the astronomy chunk (the pending ellipsis gone).
+  if ((await page.getByTestId('status-strip').count()) === 0) {
+    await expect(page.getByTestId('shown-time')).toBeVisible();
+    await expect(page.getByTestId('context-line')).toBeVisible();
+    await expect(page.getByTestId('context-line')).not.toContainText('…', { timeout: 30_000 });
+    return;
+  }
   const fields = ['sky', 'cloud', 'count'];
   for (const field of ['time', 'moon']) if ((await page.getByTestId(`live-${field}`).count()) > 0) fields.push(field);
   for (const field of fields) {
@@ -585,12 +593,45 @@ export async function stripFilled(page: Page): Promise<void> {
   }
 }
 
+/** R144 (FR-TONIGHT-3): the compact page's time track — its slider, whose value is the shown instant. */
+export const trackBar = (page: Page): Locator => page.getByTestId('time-track-bar');
+
+/** The compact page's shown instant, read off the track's slider. */
+export async function shownOnTrack(page: Page): Promise<number> {
+  return Number(await trackBar(page).getAttribute('aria-valuenow'));
+}
+
+/**
+ * R144 (FR-TONIGHT-3): a press on the track at `t`, which seeks there (the track pauses and holds the instant); a
+ * press that lands inside a pass tick's zone lands on that pass's lead instant instead (D-909), so a caller that
+ * wants an exact instant asks for one away from the ticks.
+ */
+export async function pressTrackAt(page: Page, t: number): Promise<void> {
+  const bar = trackBar(page);
+  const span = { start: Number(await bar.getAttribute('aria-valuemin')), end: Number(await bar.getAttribute('aria-valuemax')) };
+  const box = await bar.boundingBox();
+  if (!box) throw new Error('the time track has no box');
+  const x = box.x + (box.width * (t - span.start)) / (span.end - span.start);
+  await page.mouse.move(x, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+}
+
 /**
  * R77 (FR-WATCH-1 a, FR-WATCH-4): the live page opens watching, where the stripe, the step row and the playback
  * row are not rendered. A spec that drives them enters scrubbing first, as a reader does — `[ scrub ]`, which
  * holds the instant on screen — and `[ back to live ]` (the old `Now`, `live-now`) leaves it.
  */
 export async function enterScrubbing(page: Page): Promise<void> {
+  // R144 (FR-WATCH-1 as amended v2.7, FR-TONIGHT-6): on compact `[ scrub ]` is gone with the stripe; the instant is
+  // held by a key on the time track — `Home`, the span's start, which is real time — and the mark on the top row
+  // says `held`. The rows are the same before and after (one inventory), so nothing else is waited for.
+  if ((await page.getByTestId('live-scrub').count()) === 0) {
+    await trackBar(page).focus();
+    await page.keyboard.press('Home');
+    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+    return;
+  }
   await page.getByTestId('live-scrub').click();
   await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'held');
   await expect(page.getByTestId('time-stripe')).toBeVisible();
@@ -603,8 +644,14 @@ export async function enterScrubbing(page: Page): Promise<void> {
   });
 }
 
-/** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. */
+/** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. R144: on compact, the taps row's `[ now ]`. */
 export async function backToLive(page: Page): Promise<void> {
+  if ((await page.getByTestId('live-now').count()) === 0) {
+    await page.getByTestId('live-tap-now').click();
+    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
+    await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+    return;
+  }
   await page.getByTestId('live-now').click();
   await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);

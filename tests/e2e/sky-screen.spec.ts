@@ -89,7 +89,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     await stubCompass(page);
     await countPermissionAsks(page);
     await livePage(page);
-    await expect(page.getByTestId('overview-row')).toBeVisible();
+    await expect(page.getByTestId('live-track')).toBeVisible();
     expect(await asks(page)).toBe(0);
 
     await openScreen(page);
@@ -137,7 +137,8 @@ test.describe('the sky screen on a phone held sideways', () => {
     await page.getByRole('button', { name: CLOSE }).click();
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    await expect(page.getByTestId('overview-row')).toBeVisible();
+    // R144 (FR-TONIGHT-6, FR-FLOW-15): the compact rows, the landscape phone's too — the track in the overview's place.
+    await expect(page.getByTestId('live-track')).toBeVisible();
     await expect(page.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden', 'true');
     // FR-FSC-2 (D-351): focus is back on the control the screen was opened from — R136 (V26-12): `[ hold up to the sky ]`.
     await expect(page.getByTestId('window-hold-up')).toBeFocused();

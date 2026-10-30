@@ -103,7 +103,8 @@ async function counts(page: Page, passId: string): Promise<Counts> {
   return { arcId, segmentCount, satellites };
 }
 
-test.use({ viewport: { width: 390, height: 844 } });
+// R144 (FR-TONIGHT-6): the stripe and the overview are the wide page's; the compact page's track is `live-tonight.spec.ts`'s.
+test.use({ viewport: { width: 1280, height: 800 } });
 
 test('a click on the stripe, and a reload of the link it writes, keep the same passes on screen (F-56)', async ({ page }) => {
   // `settled`: the recompute the stored run kicks off (R24) must be finished before anything here

@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { MARK_FRAME_MS, MARK_ORBIT_FRAMES } from './tiers';
-
-/** FR-MARK-5: the one query the mark asks about the reader. */
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
 /**
  * R74 (FR-MARK-5): which pre-rasterised bead frame to draw.

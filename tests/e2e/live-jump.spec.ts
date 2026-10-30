@@ -4,8 +4,9 @@
  * that pass's rise — FR-SPAN-4's landing, to the second — with the drawing showing its arc and the hash carrying
  * the held `t`; `[ back to live ]` (FR-LIVE-5's `now`) returns to watching and takes `t` off the URL.
  *
- * Two widths, one for each place `liveRows.ts` puts the control: a phone, where it is on the path line, and a
- * 1920 px desktop, where the path fills the rail's line and it stands beside `[ scrub the night ]`.
+ * One width since R144 (FR-TONIGHT-6): the 1920 px desktop, where the path fills the rail's line and the control
+ * stands beside `[ scrub the night ]`. The compact page has no next-event block and no `[ see this pass ]` any more —
+ * by day it jumps to tonight's first rise on its own (FR-TONIGHT-1), which `live-tonight.spec.ts` holds.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, NINE_DAYS_ON, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
@@ -30,10 +31,7 @@ async function openLiveByDay(page: Page): Promise<void> {
   await stripFilled(page);
 }
 
-for (const [width, height, where] of [
-  [390, 844, 'next-event-path'],
-  [1920, 1080, 'live-actions'],
-] as const) {
+for (const [width, height, where] of [[1920, 1080, 'live-actions']] as const) {
   test.describe(`${String(width)} × ${String(height)}`, () => {
     test.use({ viewport: { width, height }, hasTouch: false });
 

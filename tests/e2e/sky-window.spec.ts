@@ -584,6 +584,9 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await expect(chart).toHaveAttribute('data-view', 'window');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(chart.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    // R144 (FR-TONIGHT-6, D-904): on the compact live page the facing row opens from the readout in the box's corner.
+    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]')).toHaveCount(0);
+    await page.getByTestId('sky-readout-toggle').click();
     await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').getByTestId('window-facing')).toBeVisible();
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-live-390-window-dark-en.png` });

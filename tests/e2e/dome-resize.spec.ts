@@ -37,6 +37,16 @@ async function openLive(page: Page): Promise<void> {
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
+  /*
+   * R144 (FR-TONIGHT-1, FR-TONIGHT-4): on a phone the page jumps to the next visible rise and plays, on real frames,
+   * so two loads would draw two instants. `[ now ]` brings it back to the fixed clock and keeps it there for the
+   * visit: both loads then draw the same instant, and what differs is the resize alone.
+   */
+  if ((await page.getByTestId('live-taps').count()) > 0) {
+    await expect.poll(() => page.getByTestId('live-play').getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
+    await page.getByTestId('live-tap-now').click();
+    await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+  }
 }
 
 /** The extent once the box and the raster have stopped moving: two identical reads a frame apart. */

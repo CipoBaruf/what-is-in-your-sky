@@ -227,10 +227,10 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   it('draws the instant the page was showing, not now (FR-FSC-8, US-21 AC5)', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // R77 (FR-WATCH-4): the step row is the scrubbing state's.
-    fireEvent.click(screen.getByTestId('live-scrub'));
-    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
-    const scrubbed = Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
+    // R144 (FR-TONIGHT-4): `[ tonight ]` lands a minute before the pass and plays, the pause holds it; the track carries the instant.
+    fireEvent.click(screen.getByTestId('live-tap-tonight'));
+    fireEvent.click(screen.getByTestId('live-play'));
+    const scrubbed = Number(screen.getByTestId('time-track-bar').getAttribute('aria-valuenow'));
     expect(scrubbed).toBeGreaterThan(NOW);
     recorded.props.length = 0;
     await open();
@@ -244,7 +244,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
    * R136 (FR-FLOW-15): the press is `[ hold up to the sky ]`, which the window in the box offers, so that view is the
    * window — saved, whichever view the page was on before it (D-876).
    */
-  /* R77 (FR-WATCH-1, FR-WATCH-4): at real time the page is watching — the overview and `[ scrub ]`, and no `back to live` to press. */
+  /* R144 (FR-TONIGHT-6): the compact page renders one inventory in both states — the track and the taps, `[ now ]` among them. */
   it.each(['dome', 'polar'] as const)('closes back to the window chosen from the %s, with the watching rows at real time', async (from) => {
     withSky(from);
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
@@ -255,9 +255,9 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     fireEvent.click(screen.getByTestId('sky-screen-close'));
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
-    expect(screen.getByTestId('live-scrub')).toBeInTheDocument();
-    expect(screen.queryByTestId('live-now')).toBeNull();
+    expect(screen.getByTestId('live-track')).toBeInTheDocument();
+    expect(screen.getByTestId('live-tap-now')).toBeInTheDocument();
+    expect(screen.queryByTestId('live-scrub')).toBeNull();
     expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
 
     // `Esc`, which closes the screen before it can leave the page (D-321).
@@ -265,7 +265,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
+    expect(screen.getByTestId('live-track')).toBeInTheDocument();
     expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
 
     // And leaving the live page altogether (FR-FOL-1's "leaving the live page").

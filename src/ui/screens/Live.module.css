@@ -1,10 +1,10 @@
-/* R32 (FR-LIVE-1): the live page. R132 (FR-FLOW-4, FR-FLOW-6; D-842): the page is the top row and, under it,
-   `SkyViewLayout` — the column on a portrait phone (the headline, the view row, the readout, the box, the facing
-   row, the hint, the actions, the legend and the conditions, then the stripe block while scrubbing), the box
-   beside the rail on wide and on the landscape phone. The layout owns the order and the gaps; this file lays out
-   the page's own rows — the headline, the conditions, the stripe block, the actions, the rail's head and foot —
-   and the page's two heights: one viewport high wherever there is a rail, a column that scrolls past the box on
-   the portrait phone. Two cells of side padding, like the frame the rest of the app draws in. `minmax(0, 1fr)`
+/* R32 (FR-LIVE-1): the live page. R132 (FR-FLOW-4, FR-FLOW-6; D-842) → R144 (FR-TONIGHT-6, FR-TONIGHT-9): the page
+   is the top row and, under it, `SkyViewLayout` — the column on a portrait phone (the shown time and the context
+   line, the view row, the box with the readout in its corner, the facing row on tap, the hint, the track and the
+   taps, the actions, the list), the box beside the rail on wide and on the landscape phone. The layout owns the
+   order and the gaps; this file lays out the page's own rows — the headline, the conditions, the stripe block, the
+   track and the taps, the actions, the rail's head and foot — and the page's one height: one viewport high in every
+   shape, the portrait column included, which no longer scrolls past its box. Two cells of side padding, like the frame the rest of the app draws in. `minmax(0, 1fr)`
    tracks throughout, so a row wider than the phone cannot widen the page (R71, `tests/e2e/narrow.spec.ts`).
 
    R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is `usePageShape`'s and the mode `useLayoutMode`'s, both
@@ -25,13 +25,10 @@
   color: var(--fg);
 }
 
-/* R132 (FR-FLOW-4): the portrait phone's column scrolls past its box (the box is the frame's floor, never shorter
-   than wide, FR-COMP-5); the page is as tall as its rows and at least the viewport. The landscape phone keeps the
-   viewport (FR-LIVE-7): the layout fills the body (`fill`) and its rail scrolls inside it. */
-.page[data-column='true'] {
-  height: auto;
-  min-height: 100dvh;
-}
+/* R132 (FR-FLOW-4) → R144 (FR-TONIGHT-9): the portrait phone's column no longer scrolls past its box. The page is
+   one viewport high in every shape; the layout fills the body (`fill`) and measures the room its rows leave the
+   drawing (`SkyViewLayout`, `--sky-drawing-room`), so the box is what the rows leave, up to the bowl's cut or the
+   square (FR-COMP-5: the gaps give, then the box). The landscape phone's rail scrolls inside the layout as before. */
 
 .layout {
   grid-area: body;
@@ -60,8 +57,54 @@
    layout's own gaps are its slots' (`SkyViewLayout.module.css`). */
 .page[data-compact='true'] {
   --live-row-gap: calc(var(--row) / 6);
-  /* `--chart-floor-on` (D-233): the frame's floor is on — the column scrolls, so the box may be as tall as it is wide. */
-  --chart-floor-on: 1;
+  /* `--chart-floor-on` (D-233) → R144 (FR-TONIGHT-9): the frame's own square floor is off again. The square is the
+     layout's rule now (`SkyViewLayout.module.css`, capped at the room the rows leave), and a floor inside the frame
+     would spill the drawing over the track and the taps on a short phone rather than let the box give. */
+  --chart-floor-on: 0;
+}
+
+/* R144 (FR-TONIGHT-6): the compact top row's status — the mark, then the page's name in the accent as the header
+   draws it (`Header.module.css` `.pageName`), the place after. The header draws the name itself when it is given no
+   status; here the status is the mark and the name together. */
+.topStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cell);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.pageName {
+  color: var(--accent);
+}
+
+/* R144 (FR-TONIGHT-6, D-905): the list panel's head on compact — the hidden-objects toggle, one tap row, over the
+   panel's two rows; it is on the page only while the panel is open, so the closed list takes no gap (D-892). */
+.listHead {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  min-width: 0;
+}
+
+/* R144 (FR-TONIGHT-3, FR-TONIGHT-4): the timeline slot — the track with its label row, then the taps, a row apart
+   (one control group, FR-FLOW-10); each is a marked block for `rhythm.spec.ts`. */
+.timeline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.trackRow,
+.tapsRow {
+  min-width: 0;
+}
+
+/* On the landscape phone the rail scrolls inside itself (FR-FLOW-15) and has no height to save: the taps row holds
+   the half row its hit boxes overhang (D-913) inside its own box, so nothing spills past the timeline slot. */
+.page[data-shape='landscape-phone'] .tapsRow {
+  padding-block: calc((var(--tap) - var(--row)) / 2);
 }
 
 /* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */
@@ -131,11 +174,32 @@
 }
 
 /* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like the toggles beside it, not the boxed
-   button. R85 (D-549): bracketed again, `[ Compartir ]`. */
+   button. R85 (D-549): bracketed again, `[ Compartir ]`. R144 (FR-TONIGHT-9): the row is one text row — each
+   control's 48 px hit box is padding and a matching negative margin (D-246's device, global.css `inline-control`),
+   as the taps row's are — so the box at 390 × 667 keeps its 280 px; the page's padding under the last row is the
+   half row the boxes overhang (below). */
 .page[data-compact='true'] .actions button {
   padding: 0;
   border: 0;
   background: none;
+}
+
+.page[data-compact='true'][data-shape='portrait'] .actions button {
+  padding: calc((var(--tap) - var(--row)) / 2) 0;
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
+}
+
+.page[data-compact='true'][data-shape='portrait'] .actions button:focus-visible {
+  padding-block: 0;
+  margin-block: 0;
+}
+
+/* The actions row's and the taps row's hit boxes overhang their text row by half a row (D-246); under the page's last
+   row that overhang would be a scrollbar (FR-LIVE-1), so the compact page's padding under its rows is that half row.
+   Portrait alone: on the landscape phone the two rows stand in the rail, which scrolls inside itself (FR-FLOW-15),
+   and the layout keeps the viewport's height less the quarter row it had. */
+.page[data-compact='true'][data-shape='portrait'] {
+  padding-bottom: calc(var(--row) / 2);
 }
 
 /* …and the share action's own row keeps no gap before an empty confirmation: those two cells were the 37th and 38th. */
@@ -205,16 +269,6 @@
 .page[data-compact='true'] .headline [data-testid='next-event-time'] {
   font-size: 1.25rem;
   line-height: var(--row);
-}
-
-/* R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels on compact, `now` at the left and `+24 h` at the right. */
-.overviewLabels {
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--small);
-  line-height: var(--row);
-  color: var(--fg-dim);
 }
 
 /* R77 (FR-WATCH-4, FR-WATCH-5) → R132: the rail's head is the layout's `answer` — the indicator with the clock or

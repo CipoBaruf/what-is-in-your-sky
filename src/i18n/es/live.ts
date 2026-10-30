@@ -71,8 +71,6 @@ export const live: typeof EnLive = {
     seeThisPass: 'ver este pase',
     seeThisPassName: (name) => `Ver este pase: ${name}, fijado en su salida`,
     heldOffset: (p) => `${p.sign}${offsetSpan(p)}`,
-    overviewStart: 'ahora',
-    overviewEnd: '+24 h',
     share: 'Compartir este cielo',
     shareMoment: 'Compartir este momento',
     shareTitle: 'El cielo ahora mismo',

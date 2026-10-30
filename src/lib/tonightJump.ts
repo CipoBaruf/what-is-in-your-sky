@@ -14,6 +14,9 @@ import type { SkyBand, Span } from './timeStripe';
  */
 const LEAD_MS = TONIGHT_LEAD_MIN * 60_000;
 
+/** R144: the lead in ms, for the page's time track (`leadMs`, D-909) — `src/ui` may not read `physics/constants` itself (PLAN §3). */
+export const TONIGHT_LEAD_MS = LEAD_MS;
+
 function lead(start: EpochMs, now: EpochMs): EpochMs {
   return Math.max(now, start - LEAD_MS);
 }
