@@ -1,0 +1,94 @@
+/* R147 (FR-FULL-4, FR-FULL-5; D-921): the controls sheet over the compact live page's sky.
+
+   It stands on the page ground at `--z-sheet`, fixed to the viewport, which in the full form is the box (D-919).
+   Two forms, from `usePageShape` (`data-form`): in portrait a bottom sheet the full width, with a hairline top edge,
+   as tall as its content up to `--sheet-max-share` of `100dvh`; on the landscape phone a panel at the right,
+   `--sheet-side-share` of the viewport's width and its full height, with a hairline left edge. Both shares are
+   `lib/layout.ts`'s, written on the element by `ControlsSheet` (CSSOM, the CSP).
+
+   Closed, the sheet stays in the tree, `inert`, slid off its edge, and is `visibility: hidden` once the slide is
+   over (the `visibility` step waits the slide out), so nothing of it is drawn, hit or read. Open, it is visible at
+   once and slides in. FR-FULL-4 allows a slide of at most 200 ms and none under reduced motion (`data-motion`); the
+   duration is the module's own custom property, the app's only one (D-932).
+
+   The head stays and the body scrolls inside the sheet; the page never scrolls, and `overscroll-behavior` keeps a
+   fling at the body's end off the sky under it. FR-FLOW-10: `--space-3` between the groups (the head and the body,
+   and the body's rows, which are the page's groups). */
+.sheet {
+  --sheet-slide: 200ms;
+  position: fixed;
+  z-index: var(--z-sheet);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  padding: var(--space-2) calc(2 * var(--cell));
+  background: var(--bg);
+  color: var(--fg);
+  overscroll-behavior: contain;
+  visibility: hidden;
+  transition:
+    transform var(--sheet-slide) ease-out,
+    visibility 0s linear var(--sheet-slide);
+}
+
+.sheet[data-form='bottom'] {
+  inset-inline: 0;
+  inset-block-end: 0;
+  max-block-size: calc(var(--sheet-max-share) * 100dvh);
+  padding-block-end: calc(var(--space-2) + env(safe-area-inset-bottom));
+  padding-inline: calc(2 * var(--cell) + env(safe-area-inset-left)) calc(2 * var(--cell) + env(safe-area-inset-right));
+  border-block-start: var(--border);
+  transform: translateY(100%);
+}
+
+.sheet[data-form='side'] {
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: calc(var(--sheet-side-share) * 100vw);
+  block-size: 100dvh;
+  padding-block: calc(var(--space-2) + env(safe-area-inset-top)) calc(var(--space-2) + env(safe-area-inset-bottom));
+  padding-inline-end: calc(2 * var(--cell) + env(safe-area-inset-right));
+  border-inline-start: var(--border);
+  transform: translateX(100%);
+}
+
+/* After the two forms, so the open state's `transform` outranks each form's closed one at the same weight. */
+.sheet[data-open='true'] {
+  visibility: visible;
+  transform: none;
+  transition: transform var(--sheet-slide) ease-out;
+}
+
+/* `prefers-reduced-motion: reduce`, asked in script as the app asks it everywhere (`useMediaQuery(REDUCED_MOTION)`):
+   a stylesheet's conditions are the layout's widths and heights alone (FR-DS-3, `breakpoint.test.ts`). */
+.sheet[data-motion='reduce'] {
+  transition: none;
+}
+
+/* The head: the place, dim and cut with an ellipsis, then `[ settings ]` and `[ close ]` at the row's right end. */
+.head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+.place {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-dim);
+}
+
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}

@@ -517,3 +517,54 @@ export const DETAIL_DRAWING_TOP_PX = 480;
  * raise to 0.6: the share is read against the body (R132's summary records the reading).
  */
 export const DETAIL_DRAWING_MIN_SHARE = 0.6;
+
+/**
+ * R147 (FR-FULL-3, D-918): with the sheet closed, the head, the `[ controls ]` button and the hint together cover at
+ * most this share of the compact live page's box. The head row and the button row are about 44 px each; at
+ * 390 × 844 that is about a tenth of the box with the hint, so the sky keeps nearly nine tenths of the screen.
+ * The card (FR-FULL-10), which goes on the reader's first pick, is not counted. `live-full.spec.ts` sums the three's
+ * bounding boxes against it.
+ */
+export const FULL_OVERLAY_MAX_SHARE = 0.12;
+
+/**
+ * R147 (FR-FULL-4, D-918, D-921): the open sheet is never taller than this share of the viewport's height
+ * (`100dvh`); past it its body scrolls and its head stays. At 390 × 844 at least 250 px of sky stays in sight above
+ * it, so the reader sees the drawing follow the track. `ControlsSheet` writes it as `--sheet-max-share`.
+ */
+export const SHEET_MAX_SHARE = 0.7;
+
+/**
+ * R147 (FR-FULL-4, D-918, D-921): on the landscape phone the sheet is a panel at the right, this share of the
+ * viewport's width and its full height: as wide as FR-FLOW-15's rail, so the open page looks like 2.6's landscape
+ * page and the closed one is all sky. Written as the rail's own expression so the two cannot drift.
+ * `ControlsSheet` writes it as `--sheet-side-share`.
+ */
+export const SHEET_SIDE_SHARE = 1 - LANDSCAPE_DRAWING_MIN_SHARE;
+
+/**
+ * R147 (FR-FULL-4, FR-FULL-5, D-918, D-922): a press on the sky above the open sheet that travels less than this,
+ * px, is a tap and closes the sheet; one that travels further is a drag and turns the camera with the sheet open.
+ * R148's `full` wrapper reads it.
+ */
+export const SHEET_TAP_SLOP_PX = 8;
+
+/** FR-COMP-4: the compact control row's budget, cells of the body's 16 px advance (a 390 px viewport). */
+const ROW_BUDGET_CELLS = 36;
+/** `--small` (0.875 rem): a character of a line at it is this many body cells (D-504, `controlRows.test.ts`). */
+const SMALL_CELL = 14 / BASE_FONT_PX;
+/** `TextButton`'s brackets, `[ ` and ` ]`, drawn round its label in body cells. */
+const BRACKET_CELLS = 4;
+/** One cell between two controls on a row (`tests/styles/cells.ts`). */
+const GAP_CELLS = 1;
+
+/**
+ * R147 (FR-FULL-3, D-924): whether the sky hint, one line at `--small`, stands on the `[ controls ]` button's row at
+ * the box's bottom (true) or in the row above it (false). They share the row when the hint, a cell of gap and the
+ * bracketed button fit `ROW_BUDGET_CELLS`, counted as `controlRows.test.ts` counts a row: a character is a cell at the
+ * body size and `14 / 16` of one at `--small`. `buttonLabel` is the words between the brackets.
+ */
+export function hintFitsBeside(text: string, buttonLabel: string): boolean {
+  const cells = text.length * SMALL_CELL + GAP_CELLS + BRACKET_CELLS + buttonLabel.length;
+  return cells <= ROW_BUDGET_CELLS;
+}
