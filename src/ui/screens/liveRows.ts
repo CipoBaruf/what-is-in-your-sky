@@ -36,7 +36,8 @@ import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
  * sky with the sheet closed — the box, the head (`[ ← ]` and the shown time),
  * `[ controls ]`, and the hint and the card, each on its own condition —
  * and `COMPACT_SHEET` what the sheet holds, in FR-FULL-4's order: the context
- * line, the track, the taps, the view row, the facing row, `[ list (n) ] Share`.
+ * line, the track, the taps, the view row, the facing row, `[ Share ]` (and, R150,
+ * the satellites, open, at the end).
  * `rowsFor` answers the overlay alone with the sheet closed and both with it
  * open; the page renders the sheet's rows in both states (the sheet stays
  * mounted, `inert` while closed, D-932), so "present" is "in the DOM and not
@@ -76,8 +77,8 @@ export type LiveRow =
   | 'scrub'
   | 'back-to-live'
   | 'hidden'
-  | 'list'
-  | 'share';
+  | 'share'
+  | 'satellites';
 
 /** The test id each row renders under: the one place a test finds it by. */
 export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
@@ -106,8 +107,8 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   scrub: 'live-scrub',
   'back-to-live': 'live-now',
   hidden: 'live-hidden-toggle',
-  list: 'live-legend-toggle',
   share: 'live-share',
+  satellites: 'live-satellites',
 };
 
 export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
@@ -123,11 +124,12 @@ export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', '
 export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['hint', 'card'];
 
 /**
- * R148 (FR-FULL-4, D-923, D-928): the sheet's rows, in FR-FULL-4's order — the context line, the time track and
- * the taps, the view row, the facing row, and the actions with `[ list (n) ]` and Share. The list panel opens
- * under the actions, inside the sheet, and is not a row (D-905).
+ * R148 (FR-FULL-4, D-923, D-928) and R150 (FR-GYRO-10, D-949): the sheet's rows, in FR-GYRO-10's order — the
+ * context line, the time track and the taps, the view row, the facing row, the actions with `[ Share ]`, and the
+ * satellites: "Satellites (n)" with the hidden toggle at its end and the list open under it. v2.8's `[ list (n) ]`
+ * is gone.
  */
-export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'list', 'share'];
+export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites'];
 
 /**
  * FR-WATCH-4's inventory, in reading order.

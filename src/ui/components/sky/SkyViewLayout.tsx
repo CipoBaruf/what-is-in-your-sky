@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import { LANDSCAPE_DRAWING_MIN_SHARE, SHEET_TAP_SLOP_PX } from '../../../lib/layout';
+import { LANDSCAPE_DRAWING_MIN_SHARE } from '../../../lib/layout';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { usePageShape } from '../live/usePageShape';
@@ -114,13 +114,6 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
    * rendered. Ignored on wide, where the page is the rail.
    */
   form?: 'full' | undefined;
-  /**
-   * R148 (FR-FULL-4, FR-FULL-5; D-922): whether the page's sheet is open. While it is, a tap on the sky — a press
-   * that travels under `SHEET_TAP_SLOP_PX` — calls `onSheetClose` and is spent on that (the click after it is
-   * swallowed); a longer press is a drag and reaches the view. Closed, the layout listens to nothing.
-   */
-  sheetOpen?: boolean | undefined;
-  onSheetClose?: (() => void) | undefined;
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
   describedBy?: string | undefined;
   /** The id of the heading that names the drawing on the page — the pass's name — for the chart's figure (`aria-labelledby`). */
@@ -165,7 +158,7 @@ const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
 const PICK = PICK_SELECTOR;
 
-export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetClose, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -339,63 +332,6 @@ export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetC
     };
   }, [roomMeasured, slotKey, pickerOpen, roomKey, targets]);
 
-  /*
-   * R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky closes the open sheet; a drag does not. The three views tell
-   * a tap from a drag each in their own way, so the sheet does not reach into them: while it is open the full
-   * wrapper listens in the capture phase — `pointerdown` on the drawing records the point, `pointerup` with a
-   * travel under `SHEET_TAP_SLOP_PX` closes the sheet, stops there (the window names a star on its own `pointerup`,
-   * and gives the drag up on the capture it then loses) and swallows the `click` that follows (one capture-phase
-   * listener, armed for that one event), so the first tap is spent on closing: no follow, no star pick. A longer
-   * travel passes through untouched and turns the camera with the sheet open. A press that lands on the overlay or
-   * in the sheet is not a press on the sky. With the sheet closed a press is nothing to the wrapper; the swallow
-   * outlives the close, since the click lands after the sheet's state has changed.
-   */
-  const fullRef = useRef<HTMLDivElement | null>(null);
-  const sheetOpenRef = useRef(sheetOpen);
-  const onSheetCloseRef = useRef(onSheetClose);
-  useLayoutEffect(() => {
-    sheetOpenRef.current = sheetOpen;
-    onSheetCloseRef.current = onSheetClose;
-  }, [sheetOpen, onSheetClose]);
-  useEffect(() => {
-    const wrap = fullRef.current;
-    if (!wrap || shape !== 'full') return;
-    let press: { id: number; x: number; y: number } | null = null;
-    let swallow = false;
-    const onSky = (target: EventTarget | null): boolean => target instanceof Element && target.closest('[data-slot="drawing"]') !== null && target.closest('[data-slot="overlay"], [data-slot="sheet"]') === null;
-    const onDown = (event: PointerEvent): void => {
-      press = sheetOpenRef.current && event.isPrimary !== false && onSky(event.target) ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
-    };
-    const onUp = (event: PointerEvent): void => {
-      if (press === null || press.id !== event.pointerId) return;
-      const travel = Math.hypot(event.clientX - press.x, event.clientY - press.y);
-      press = null;
-      if (travel >= SHEET_TAP_SLOP_PX) return;
-      swallow = true;
-      event.stopPropagation();
-      onSheetCloseRef.current?.();
-    };
-    const onCancel = (): void => {
-      press = null;
-    };
-    const onClick = (event: Event): void => {
-      if (!swallow) return;
-      swallow = false;
-      event.stopPropagation();
-      event.preventDefault();
-    };
-    wrap.addEventListener('pointerdown', onDown, true);
-    wrap.addEventListener('pointerup', onUp, true);
-    wrap.addEventListener('pointercancel', onCancel, true);
-    wrap.addEventListener('click', onClick, true);
-    return () => {
-      wrap.removeEventListener('pointerdown', onDown, true);
-      wrap.removeEventListener('pointerup', onUp, true);
-      wrap.removeEventListener('pointercancel', onCancel, true);
-      wrap.removeEventListener('click', onClick, true);
-    };
-  }, [shape]);
-
   const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {
     const node = slots[name];
@@ -486,7 +422,7 @@ export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetC
     return (
       <SkyViewContext.Provider value={context}>
         <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape="full" data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(readoutIn === 'sheet' ? { 'data-readout': 'sheet' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
-          <div ref={fullRef} className={styles.fullWrap} data-sky-full="">
+          <div className={styles.fullWrap} data-sky-full="">
             <div className={[styles.slot, styles.drawing, styles.fullDrawing].join(' ')} data-slot="drawing">
               {slots.drawing}
             </div>

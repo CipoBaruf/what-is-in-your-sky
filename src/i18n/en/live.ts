@@ -117,14 +117,11 @@ export const live = {
     hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
     hiddenLabel: (p: { name: string; reason: string }) => `${p.name} · ${p.reason}`,
     /**
-     * R71 (FR-LEG-7, D-387, D-388): the compact actions row's legend control,
-     * `[ list (3) ]`. The count is the drawn passes — the rows the panel would
-     * list — and not the Sun and Moon lines, which are in the panel and
-     * uncounted (OQ-26: "list (2)" on an empty sky is the one number this must
-     * not show). The word is the control's whole label, so it is also its
-     * accessible name; `aria-expanded` carries the state.
+     * R150 (FR-GYRO-10, D-949, D-951): the heading over the satellites list at the controls sheet's end, in place of
+     * v2.8's `[ list (n) ]`. The count is the drawn passes — the rows the list holds — and not the Sun and Moon
+     * lines, which are in it and uncounted (OQ-26, FR-TONIGHT-7's count).
      */
-    list: (p: { count: number }) => `list (${String(p.count)})`,
+    satellites: (p: { count: number }) => `Satellites (${String(p.count)})`,
     /**
      * R85 (F-81, FR-CAP-5, D-549): the short wide window's inventory ends on a whole row, and this line under it
      * says how many entries the clip leaves out; the list still scrolls to them.

@@ -152,7 +152,9 @@ function WindowView(props: SkyChartProps) {
 // R121 (FR-WIN-4 as amended v2.5, D-789): offered on every page and every device; `SkyChartView`'s `available()` is gone with it.
 const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 
-export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
+// R150 (FR-GYRO-11, D-950): the window first, on every page and width — `[Window] Polar Dome`. Which view opens is the
+// pref's (`defaultChartView`), not this order.
+export const SKY_CHART_VIEWS: readonly SkyChartView[] = [WINDOW_VIEW, POLAR_VIEW, DOME_VIEW];
 
 /**
  * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
