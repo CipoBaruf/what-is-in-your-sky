@@ -217,9 +217,9 @@ for (const locale of LOCALES) {
           expect(hintBox.y).toBeGreaterThan(drawing.box.y + drawing.box.height / 2);
           expect(hintBox.x).toBeLessThan(drawing.box.x + drawing.box.width / 4);
         }
-        // The sheet's rows in FR-FULL-4's order, the view row one line.
+        // The sheet's rows in FR-GYRO-10's order (R150: the satellites last), the view row one line.
         const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
+        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
         await expectViewRowOneLine(page.getByTestId('live-view-row'), locale);
         // The facing row: the readout as a button on the window and the polar chart, which have a picker — a tap opens
         // it directly under the readout, a second tap closes it; the dome's readout stands alone.

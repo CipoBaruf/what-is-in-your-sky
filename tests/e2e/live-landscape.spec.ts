@@ -20,6 +20,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, enterScrubbing, homeAt, leaveLive, openSheet, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
+import { SHEET_MAX_SHARE } from '../../src/lib/layout';
 
 const LANDSCAPE = { width: 844, height: 390 };
 
@@ -87,7 +88,8 @@ test.describe('the live page on a landscape phone', () => {
     expect(pageBox?.height).toBe(LANDSCAPE.height);
 
     // R148 (FR-FULL-1, FR-FULL-4): the box is the whole viewport; the head stands over its top-left and the sheet
-    // (opened by `enterScrubbing`) is a side panel at the right, with the context line and the track in it, in order.
+    // (opened by `enterScrubbing`) is — R150 (FR-GYRO-7) — the bottom sheet, at most SHEET_MAX_SHARE of the height,
+    // under the head, with the context line and the track in it, in order.
     const dome = await page.getByTestId('live-dome').boundingBox();
     const side = await page.getByTestId('live-sheet').boundingBox();
     const head = await page.getByTestId('live-head').boundingBox();
@@ -97,11 +99,12 @@ test.describe('the live page on a landscape phone', () => {
     expect(Math.round(dome.width)).toBe(LANDSCAPE.width);
     expect(Math.round(dome.height)).toBe(LANDSCAPE.height);
     expect(head.y).toBeLessThan(LANDSCAPE.height / 4);
-    expect(head.x).toBeLessThan(side.x);
-    expect(side.x + side.width).toBeLessThanOrEqual(LANDSCAPE.width + 1);
-    expect(Math.round(side.height)).toBe(LANDSCAPE.height);
-    expect(track.x).toBeGreaterThanOrEqual(side.x - 1);
-    expect(context.x).toBeGreaterThanOrEqual(side.x - 1);
+    expect(head.y + head.height).toBeLessThanOrEqual(side.y + 1);
+    expect(Math.abs(side.width - LANDSCAPE.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(side.y + side.height - LANDSCAPE.height)).toBeLessThanOrEqual(1);
+    expect(side.height).toBeLessThanOrEqual(SHEET_MAX_SHARE * LANDSCAPE.height + 1);
+    expect(track.y).toBeGreaterThanOrEqual(side.y - 1);
+    expect(context.y).toBeGreaterThanOrEqual(side.y - 1);
     expect(track.y).toBeGreaterThan(context.y + context.height - 1);
     for (const id of ['shown-time', 'context-line']) await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
     // The sheet's body may scroll itself where its rows wrap past the viewport; the page never does.
@@ -200,14 +203,14 @@ test.describe('the live page on a portrait phone with a compass', () => {
     // after it — and the taps row `▶ [ tonight ] [ next ] [ now ]` one line too, held or not.
     const actions = await page.getByTestId('live-actions').boundingBox();
     const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
-    expect(shareWatching?.height ?? 0, 'one line').toBeLessThanOrEqual((actions?.height ?? 0) + 1);
+    expect(shareWatching?.y ?? 0, 'one line').toBeLessThanOrEqual((actions?.y ?? 0) + (actions?.height ?? 0));
     const taps = await page.getByTestId('live-taps').getByRole('button').all();
     const tapTops = await Promise.all(taps.map(async (tap) => (await tap.boundingBox())?.y ?? 0));
     for (const top of tapTops) expect(Math.abs(top - (tapTops[0] ?? 0))).toBeLessThanOrEqual(1);
     await enterScrubbing(page);
     const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
     const actionsHeld = await page.getByTestId('live-actions').boundingBox();
-    expect(share?.height ?? 0, 'one line').toBeLessThanOrEqual((actionsHeld?.height ?? 0) + 1);
+    expect(share?.y ?? 0, 'one line').toBeLessThanOrEqual((actionsHeld?.y ?? 0) + (actionsHeld?.height ?? 0));
     expect(actionsHeld?.height).toBe(actions?.height);
     await page.getByTestId('live-tap-now').click();
     // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
