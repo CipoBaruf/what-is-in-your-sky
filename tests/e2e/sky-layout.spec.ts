@@ -456,6 +456,8 @@ for (const viewport of TURNED) {
         const sheetBody = await box(page.getByTestId('sheet-body'));
         for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
           await expect(part).toBeVisible();
+          // The sheet's body scrolls on the shortest phone (667 × 375): the part is read where the body shows it.
+          await part.scrollIntoViewIfNeeded();
           const partBox = await box(part);
           // Across, inside the row; down, inside the sheet's body — an inline control's 48 px hit box overhangs its
           // text line by half a row on each side (D-246), which on a second line reaches past the row's box.
