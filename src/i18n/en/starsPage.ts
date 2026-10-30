@@ -6,7 +6,7 @@ type Planet = (typeof PLANETS)[number];
 /**
  * FR-I18N-2, FR-STAR-10 (R115, D-756, D-777): the words only the stars page
  * draws — the page, `In this field`, the window's star label and the readout's second line
- * and the screen's control — so the names task (R116) and the screen task
+ * and the screen's control (gone with R152) — so the names task (R116) and the screen task
  * (R117) add none. Not merged into `en.ts`: the main chunk carries the
  * catalogs (D-69), and these ride in the `stars` chunk that draws them, read
  * by `useStarsPageT()` (`starsPageT.ts`) in the active language. `es/starsPage.ts`
@@ -47,6 +47,4 @@ export const starsPage = {
   mag: (p: { mag: string }) => `mag ${p.mag}`,
   /** FR-STAR-7: the readout's second line and a row of the list, "Canopus · mag −0.7 · 28° up · S". */
   named: (p: { name: string; mag: string; altitude: string; point: CompassPoint }) => `${p.name} · mag ${p.mag} · ${p.altitude} up · ${p.point}`,
-  /** FR-STAR-5 (R117): the one `--tap` row that opens the sky screen in the stars inventory, where the sensor is. */
-  holdUp: 'hold up to the sky',
 };

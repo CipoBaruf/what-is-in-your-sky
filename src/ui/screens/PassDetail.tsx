@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
@@ -25,9 +25,10 @@ import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
+import { orientationApiPresent } from '../components/live/compassHeading';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
-import { SkyScreen } from '../components/screen/SkyScreen';
+import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
@@ -104,16 +105,14 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const timeZone = observer.timeZone;
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
   const now = useNow(TICK_MS);
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arc at this page's own instant, thinned by
-   * the twilight. The Sun and the Moon are evaluated here once and handed to the chart and the screen, which would
-   * otherwise each evaluate them again (D-149). `[ stars ]` is on the view row, after the view control; on compact
-   * `inline`, so it takes the row's second text line and not a row of its own (D-814). While the sheet is `inert`
-   * behind another layer none of the drawing is seen, so the drawing's instant holds where it was and neither the
-   * bodies nor the stars are evaluated again until the sheet is back; the countdown keeps the clock. The screen
-   * is not such a layer: it draws this scene, so it keeps it ticking.
+   * the twilight. The Sun and the Moon are evaluated here once and handed to the chart (D-149). `[ stars ]` is on
+   * the view row, after the view control; on compact `inline`, so it takes the row's second text line and not a row
+   * of its own (D-814). While the sheet is `inert` behind another layer none of the drawing is seen, so the
+   * drawing's instant holds where it was and neither the bodies nor the stars are evaluated again until the sheet
+   * is back; the countdown keeps the clock.
    */
   const [drawnNow, setDrawnNow] = useState(now);
   if (!inert && drawnNow !== now) setDrawnNow(now);
@@ -151,64 +150,18 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     return { start: at(pass.start), peak: at(pass.peak), end: at(pass.end) };
   }, [starSource, pass, lat, lon, locale]);
   /*
-   * R66 (FR-FSC-1, FR-FSC-9; V13-9, D-351, D-354): the sky screen over this
-   * sheet. The window is a view this page offers again (FR-FSC-6) and what
-   * choosing it opens is the same layer the live page opens — the chart's view
-   * control sets the flag, this page renders the screen, and the `×` closes it.
-   *
-   * The layer is portaled to the body like the sheet itself: inside the sheet
-   * it would be a fixed child of a scrolling container, and on iOS a fixed
-   * child of a scrolled ancestor is not reliably the viewport.
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this guide's window follows the phone — page
+   * state, off on every open and never saved. The toggle turns it on after the grant, in the `action` slot where
+   * `[ hold up to the sky ]` stood (FR-FLOW-8's primary action); the window turns it off when a drag or a box key
+   * takes the sky back (`onFollowEnd`). Drawn only where the sensor is (FR-WIN-4's presence test, asked once at
+   * mount). R66's sky screen over the sheet is gone (FR-GYRO-6, D-945).
    */
-  const screenOpen = useAppStore((s) => s.skyScreen);
-  const closeScreen = useAppStore((s) => s.closeSkyScreen);
-  /*
-   * FR-FSC-2: `Esc` closes the screen and stops, before the app's one `keydown`
-   * listener (`lib/shortcuts.ts`) can read the same press as "close the guide".
-   * Capture, so it runs before that listener's bubble phase on the same
-   * document, and `stopPropagation` is what keeps the press from reaching it.
-   */
-  useEffect(() => {
-    if (!screenOpen) return;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeScreen();
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [screenOpen, closeScreen]);
-  // FR-FSC-2: leaving the guide by any route closes the screen.
-  const openRef = useRef(screenOpen);
-  useEffect(() => {
-    openRef.current = screenOpen;
-  }, [screenOpen]);
-  useEffect(
-    () => () => {
-      if (openRef.current) closeScreen();
-    },
-    [closeScreen],
-  );
-  /*
-   * FR-FSC-9: the sheet is held still under the layer and gets its place back.
-   * It is the app's one scrolling container (`.sheet`), so without this a drag
-   * on the screen that the layer does not consume scrolls the guide behind it,
-   * and closing would come back somewhere else.
-   */
-  useEffect(() => {
-    const sheet = sheetRef.current;
-    if (!screenOpen || !sheet) return;
-    const top = sheet.scrollTop;
-    const previous = sheet.style.overflow;
-    sheet.style.overflow = 'hidden';
-    return () => {
-      sheet.style.overflow = previous;
-      sheet.scrollTop = top;
-    };
-  }, [screenOpen]);
+  const [following, setFollowing] = useState(false);
+  const endFollow = useCallback(() => {
+    setFollowing(false);
+  }, []);
+  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
+  const action = sensor ? <FollowToggle on={following} onChange={setFollowing} className={styles.follow} /> : null;
   // Focus in on open, back to the opener on close. Once, on open: crossing
   // the breakpoint swaps the shell around the same guide and must not take
   // the reader's focus away from wherever they had put it. R50 (F-8): a
@@ -277,6 +230,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       fill
       chartHand={chartHand}
       facingOptions={PEAK_FACING_OPTIONS}
+      follow={following}
+      onFollowEnd={endFollow}
       legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
     />
   );
@@ -308,43 +263,37 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       drawing={chart}
       picker={<SkyViewChartSlot name="picker" />}
       hint={hintShown && <SkyHint view={view} />}
+      {...(action === null ? {} : { action })}
       list={list}
       foot={foot}
     />
   );
 
-  // The screen is the same layer on both shells; the sheet is what has a scroll to hold still.
-  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={drawnNow} sun={bodies.sun} moon={bodies.moon} scene={scene} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
-
   if (!compact) {
     return (
-      <>
-        <GuidePanel
-          passId={pass.id}
-          name={pass.name}
-          headingId={headingId}
-          headingRef={headingRef}
-          onClose={onClose}
-          onShowList={onShowList}
-          head={
-            <>
-              {countdown}
-              {landmark}
-              {meta}
-            </>
-          }
-          times={times}
-        >
-          {layout(null, 'panel')}
-        </GuidePanel>
-        {screen}
-      </>
+      <GuidePanel
+        passId={pass.id}
+        name={pass.name}
+        headingId={headingId}
+        headingRef={headingRef}
+        onClose={onClose}
+        onShowList={onShowList}
+        head={
+          <>
+            {countdown}
+            {landmark}
+            {meta}
+          </>
+        }
+        times={times}
+      >
+        {layout(null, 'panel')}
+      </GuidePanel>
     );
   }
 
   return createPortal(
-    <>
-    <div ref={sheetRef} inert={inert || screenOpen} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
+    <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         {/* R129 (FR-FLOW-3, D-845; F10): the sheet's top row is the app's one header, told it is the pass detail —
             `[ ← ]`, `pass` and the pass's date. The language and theme switches that opened the page are the settings
@@ -364,9 +313,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
           'rail',
         )}
       </div>
-    </div>
-    {screen}
-    </>,
+    </div>,
     document.body,
   );
 }

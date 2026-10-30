@@ -58,7 +58,6 @@ describe('tokens.css sections (FR-DS-1, D-700)', () => {
     for (const name of ['space', 'edges', 'layers'] as const) {
       for (const [key, value] of section(name)) {
         if (key === 'space-block') continue; // V23-5: 1.2 rem, kept at its value beside the scale (OQ-37)
-        if (key === 'gutter') continue; // FR-GUT-1: 28 px on purpose, pinned to `GUTTER_PX` in script (gutter.test.ts holds the two equal)
         expect(value, `--${key}: ${value}`).not.toMatch(BARE_LENGTH);
         expect(value, `--${key}: ${value}`).toMatch(GRID_WRITTEN);
       }
@@ -67,7 +66,7 @@ describe('tokens.css sections (FR-DS-1, D-700)', () => {
   });
 
   it('has the scales FR-DS-1 names, at their values', () => {
-    expect([...section('space').keys()]).toEqual(['space-1', 'space-2', 'space-3', 'space-4', 'space-5', 'space-block', 'gutter']);
+    expect([...section('space').keys()]).toEqual(['space-1', 'space-2', 'space-3', 'space-4', 'space-5', 'space-block']);
     expect(section('space').get('space-2')).toBe('calc(var(--row) / 2)');
     expect(section('space').get('space-5')).toBe('calc(2 * var(--row))');
     for (const key of ['border', 'border-control', 'radius-0', 'radius-1', 'radius-2', 'focus-ring', 'focus-offset', 'focus-offset-tight', 'weight-bold', 'window-fill-opacity', 'chart-hairline']) expect(section('edges').has(key), `--${key}`).toBe(true);

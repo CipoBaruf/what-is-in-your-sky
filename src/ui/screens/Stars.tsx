@@ -1,5 +1,4 @@
-import { memo, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
@@ -10,8 +9,6 @@ import { starsAt } from '../../lib/skyStars';
 import type { EpochMs, Observer } from '../../model';
 import { useActiveObserver, useAppStore, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
-import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
-import { useSkyScreen } from '../components/screen/useSkyScreen';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
 import { groundState, type View } from '../components/guide/skychart/window/projection';
@@ -33,7 +30,9 @@ import { HOUR_MS, type Span } from '../../lib/timeStripe';
 import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
+import { orientationApiPresent } from '../components/live/compassHeading';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
+import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './Stars.module.css';
@@ -42,7 +41,7 @@ import styles from './Stars.module.css';
  * R115 (FR-STAR-3, FR-STAR-4, FR-STAR-7, FR-STAR-8, FR-STAR-10; US-39; D-756):
  * the `#stars` page — the `stars` chunk's one export, behind `StarsRoute.ts`.
  *
- * It composes the window the screen and the live page already have (R113's
+ * It composes the window the live page already has (R113's
  * `SkyWindow`, the hand camera) with the scene only this page builds: the
  * catalogue (`data/stars/catalog.ts`) and every star and planet where it is
  * at the ticking instant (`lib/skyStars.ts`), with the four layer switches.
@@ -71,6 +70,12 @@ import styles from './Stars.module.css';
  * `STARS_TICK_MS` as the live page's watching state ticks; the catalogue is
  * in this chunk, so a precached chunk and a saved observer are the whole page.
  * With no observer it is FR-LIVE-1's inert line and `[ set a place ]`.
+ *
+ * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6; D-943..D-945): where the phone has
+ * the sensor, `[ follow the phone ]` stands in the `action` slot where
+ * `[ hold up to the sky ]` stood, and on it the page's own window takes the
+ * sensor; a drag hands it back. The sky screen's stars inventory (R117) is
+ * gone with the screen.
  */
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
@@ -105,7 +110,7 @@ const UNMEASURED = { width: 0, height: 0 };
 /**
  * R126 (FR-SKY-6): whether the store's run is this sky's and has arrived — the live page's `liveState` rule: this
  * place's run (`sameLocation`), finished, or with passes standing in while a new one computes. A run computing from
- * nothing, one that failed with nothing, or one for another place is not in, and `[ passes ]` then hands the screen
+ * nothing, one that failed with nothing, or one for another place is not in, and `[ passes ]` then hands the window
  * no passes rather than an empty night.
  */
 export function passesRunIn(passes: Pick<PassesState, 'observer' | 'status' | 'passes'>, observer: Observer): boolean {
@@ -147,7 +152,6 @@ export function StarsPage() {
 }
 
 function StarsSky({ observer }: { observer: Observer }) {
-  const t = useT();
   const p = useStarsPageT();
   const mode = useLayoutMode();
   const wide = mode === 'wide';
@@ -171,12 +175,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   /*
    * R126 (FR-SKY-6, D-794): `[ passes ]` — page state, off on every open and never saved. With it on the scene
    * carries tonight's passes: the store's run for this place, FR-TRAJ-1's set at now with each arc's state, handed
-   * to the window with the legend's keys and series colours as the live page's chart hands them, to the screen,
-   * and to `In this field`. A run for another place is not this sky's, so it carries none (FR-OFF-8's rule).
+   * to the window with the legend's keys and series colours as the live page's chart hands them, and to
+   * `In this field`. A run for another place is not this sky's, so it carries none (FR-OFF-8's rule).
    *
    * The run is "in" as the live page's `liveState` has it: this place's, and finished or standing in with passes.
-   * Until it is, `passes` is `null` — the screen is handed none and stays the stars inventory, so no empty-sky chip
-   * says "nothing tonight" for a night not yet computed.
+   * Until it is, `passes` is `null`, so nothing says "nothing tonight" for a night not yet computed.
    *
    * The set is the live page's (`livePasses`, `src/lib`), and the arcs' states are its `arcKey` / `withArcStates`:
    * the array is remade only when the set or a state changes, not on every 10 s tick. The legend's rows are worked
@@ -299,101 +302,17 @@ function StarsSky({ observer }: { observer: Observer }) {
   }, []);
 
   /*
-   * FR-STAR-5 (R117, D-756): the way into the sky screen's stars inventory. The tap is FR-WIN-4's — the permission
-   * inside it, one reading with a north before the layer (`useSkyScreen`) — and the store's flag is what says the
-   * layer is up, as on the live page and the pass detail; this page renders it over itself with its own scene, so
-   * the screen carries the layers as the toggles have them and the instant the page is showing (FR-FSC-8).
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this page's window follows the phone — page state,
+   * off on every open and never saved. The toggle turns it on after the grant; the window turns it off when a drag
+   * or a box key takes the sky back (`onFollowEnd`), the hand camera seeded where the phone last pointed. The row is
+   * drawn only where the sensor is (FR-WIN-4's presence test, asked once at mount), in the `action` slot where
+   * `[ hold up to the sky ]` stood.
    */
-  const entry = useSkyScreen();
-  const screenOpen = useAppStore((s) => s.skyScreen);
-  const closeScreen = useAppStore((s) => s.closeSkyScreen);
-  const windowRefocused = useAppStore((s) => s.windowRefocused);
-  const setWindowNote = useAppStore((s) => s.setWindowNote);
-  /*
-   * FR-FOL-2, FR-WIN-4: the note is the store's one line, which the live page's and the pass detail's taps set too;
-   * this row shows it only after this page's own tap, and leaving takes this page's note with it.
-   */
-  const [asked, setAsked] = useState(false);
-  const storeNote = useAppStore((s) => s.windowNote);
-  const note = asked ? storeNote : null;
-  const { open: openScreen } = entry;
-  const holdUp = useCallback(() => {
-    setAsked(true);
-    openScreen();
-  }, [openScreen]);
-  const holdUpRef = useRef<HTMLButtonElement>(null);
-  /*
-   * FR-FSC-2: `Esc` closes the screen and stops there, before the app's one `keydown` listener (`lib/shortcuts.ts`)
-   * reads the same press as "leave the page" — capture, and `stopPropagation`, as the pass detail does.
-   */
-  useEffect(() => {
-    if (!screenOpen) return;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeScreen();
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [screenOpen, closeScreen]);
-  /*
-   * FR-FSC-2: leaving the page by any route closes the screen (the shell closes it first on a hash change). The
-   * close's one-shot refocus is this page's to spend and the page is going, so it is spent here rather than left
-   * for the next page to read as its own close; this page's note goes the same way.
-   */
-  const openRef = useRef(screenOpen);
-  const askedRef = useRef(asked);
-  useEffect(() => {
-    openRef.current = screenOpen;
-    askedRef.current = asked;
-  }, [screenOpen, asked]);
-  useEffect(
-    () => () => {
-      if (openRef.current) {
-        closeScreen();
-        windowRefocused();
-      }
-      if (askedRef.current) setWindowNote(null);
-    },
-    [closeScreen, windowRefocused, setWindowNote],
-  );
-  /*
-   * FR-FSC-9: the compact page scrolls the document, so the document is held still under the layer; a drag on the
-   * screen that the layer does not consume moves nothing behind it. The place comes back on this page's own close
-   * (below), not on an unmount, so a route change does not carry this page's offset to the next one.
-   */
-  const heldTop = useRef(0);
-  useEffect(() => {
-    if (!screenOpen) return;
-    const root = document.documentElement;
-    heldTop.current = window.scrollY;
-    const previous = root.style.overflow;
-    root.style.overflow = 'hidden';
-    return () => {
-      root.style.overflow = previous;
-    };
-  }, [screenOpen]);
-  /*
-   * FR-FSC-2 (D-351): a close of the screen this page opened gives the document its place back and the focus to the
-   * control that opened it — or, where the phone has just lost the window (FR-WIN-4), to the box, so focus never
-   * falls to the body. A close somewhere else (the store's flag is global) is not this page's to answer.
-   */
-  const openedHere = useRef(false);
-  useEffect(() => {
-    if (screenOpen) {
-      openedHere.current = true;
-      return;
-    }
-    if (!openedHere.current) return;
-    openedHere.current = false;
-    window.scrollTo({ top: heldTop.current, behavior: 'instant' });
-    const target = holdUpRef.current ?? (skyRef.current && windowBox(skyRef.current));
-    target?.focus({ preventScroll: true });
-    windowRefocused();
-  }, [screenOpen, windowRefocused]);
+  const [following, setFollowing] = useState(false);
+  const endFollow = useCallback(() => {
+    setFollowing(false);
+  }, []);
+  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
 
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
@@ -410,22 +329,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   /*
    * R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s slots — the `h1` block as `answer`, the
    * window's readout in `readout` (placed by the window itself), the drawing, this page's own facing picker, the
-   * hint, `[ hold up to the sky ]` full width right after it, the layer toggles as one group of two rows, then
-   * `In this field`. On wide the layout is the box and the rail, in the same order; the box is cut here, as
-   * before, and written on the layout's root.
+   * hint, `[ follow the phone ]` right after it where the sensor is (R152), the layer toggles as one group of two
+   * rows, then `In this field`. On wide the layout is the box and the rail, in the same order; the box is cut here,
+   * as before, and written on the layout's root.
    */
-  const action =
-    entry.available || note !== null ? (
-      <div className={styles.holdUp} data-testid="stars-hold-up-row">
-        {/* FR-STAR-5, FR-FLOW-8: one full-width button at least 48 px tall, and FR-LIVE-8's note under it after a denial or a phone with no north. */}
-        {entry.available && <TextButton label={p.holdUp} onClick={holdUp} ref={holdUpRef} data-testid="stars-hold-up" box="accent" fill className={styles.holdUpButton} />}
-        {note !== null && (
-          <p className={styles.note} role="status" data-testid="stars-hold-up-note">
-            {t.window[note]}
-          </p>
-        )}
-      </div>
-    ) : null;
+  const action = sensor ? <FollowToggle on={following} onChange={setFollowing} className={styles.follow} /> : null;
   const layerRows = (
     <section aria-labelledby={layersId} className={styles.block}>
       <SectionHeading id={layersId} visuallyHidden={!wide}>
@@ -454,37 +362,29 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   return (
     <div className={styles.page} data-layout={mode}>
-      {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
-          for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
-          the screen's window and not a second one under it (FR-STAR-9). */}
-      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-        <Held held={screenOpen}>
-          {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
-          <SkyViewLayout
-            className={styles.skyLayout}
-            data-testid="stars-layout"
-            answer={<StarsHeading observer={observer} now={now} />}
-            readout={<SkyViewChartSlot name="readout" />}
-            drawing={
-              // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
-              // tap all begin with a pointer down in the box, caught here before the window's own handlers.
-              <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
-                <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
-              </div>
-            }
-            // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
-            // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846).
-            picker={<FacingPicker camera={camera} className={styles.row} />}
-            hint={hintShown && <SkyHint view="window" />}
-            {...(action === null ? {} : { action })}
-            layers={layerRows}
-            list={field}
-          />
-        </Held>
+      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
+        {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
+        <SkyViewLayout
+          className={styles.skyLayout}
+          data-testid="stars-layout"
+          answer={<StarsHeading observer={observer} now={now} />}
+          readout={<SkyViewChartSlot name="readout" />}
+          drawing={
+            // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
+            // tap all begin with a pointer down in the box, caught here before the window's own handlers.
+            <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
+              <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={endFollow} />
+            </div>
+          }
+          // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
+          // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846).
+          picker={<FacingPicker camera={camera} className={styles.row} />}
+          hint={hintShown && <SkyHint view="window" />}
+          {...(action === null ? {} : { action })}
+          layers={layerRows}
+          list={field}
+        />
       </div>
-      {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
-          sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
-      {screenOpen && <StarsScreen camera={camera} scene={scene} passes={passes ?? undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
     </div>
   );
 }
@@ -530,33 +430,6 @@ function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
     <p className={styles.tonight} data-testid="stars-tonight">
       {[dark, t.weather.state[clouds.state]].filter((piece) => piece !== null).join(' · ')}
     </p>
-  );
-}
-
-/**
- * The page's own parts while the screen covers them: a `memo` that keeps its last render for as long as `held`, so a
- * tick re-renders the layer's window and leaves this one, the picker and the list as they were until the close.
- */
-const Held = memo(
-  function Held({ children }: { held: boolean; children: ReactNode }) {
-    return children;
-  },
-  (_previous, next) => next.held,
-);
-
-type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon' | 'onClose'> & { camera: HandCamera; scene: SkyScene; passes: readonly LegendPass[] | undefined };
-
-/**
- * The stars inventory's layer, portaled to the body as the pass detail's is. The sensor drives it from the hand's
- * facing, read once as the layer mounts — the open — and not on every render; the page's camera stays as it was
- * for the return. R126 (FR-SKY-6, D-794): with `[ passes ]` on it is handed the scene's passes — an empty set too,
- * which is a night with nothing to name and still the live page's screen — and with it off none at all.
- */
-function StarsScreen({ camera, scene, passes, observer, now, sun, moon, onClose }: StarsScreenProps) {
-  const [facingAzDeg] = useState(() => camera.get().azDeg);
-  return createPortal(
-    <SkyScreen inventory="stars" scene={scene} {...(passes === undefined ? {} : { passes })} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />,
-    document.body,
   );
 }
 

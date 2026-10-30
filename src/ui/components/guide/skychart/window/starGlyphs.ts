@@ -22,8 +22,7 @@ import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
  *
  * No px length outside the sheet (FR-DS-2): `SIZE_PX` carries the chart text
  * tokens' values under their names and `HIT_RADIUS_PX` is `--tap` / 4;
- * `starGlyphs.test.ts` reads `tokens.css` and holds both to it, as
- * `gutter.test.ts` holds `GUTTER_PX`.
+ * `starGlyphs.test.ts` reads `tokens.css` and holds both to it.
  */
 
 export type StarGlyph = '*' | '+' | '.' | '@';

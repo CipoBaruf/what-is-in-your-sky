@@ -11,7 +11,7 @@ import { collide, COLLISION_PX, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, mag
 
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
 
-/** A root token's px value at the 16 px base (`gutter.test.ts`'s reader): `Npx`, `Nrem` or `calc(K * var(--name))`. */
+/** A root token's px value at the 16 px base (R79's reader): `Npx`, `Nrem` or `calc(K * var(--name))`. */
 function px(name: string): number {
   const match = new RegExp(`--${name}:\\s*([^;]+);`).exec(tokens);
   const value = match?.[1]?.trim();

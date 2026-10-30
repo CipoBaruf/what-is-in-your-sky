@@ -14,7 +14,7 @@ export interface FollowToggleProps {
   /** `OptionToggle`'s `inline`, for a compact row whose height the toggle must not change. */
   inline?: boolean;
   /** Placement only. */
-  className?: string;
+  className?: string | undefined;
 }
 
 /**

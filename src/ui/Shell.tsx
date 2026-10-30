@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useT } from '../i18n/useT';
-import { appStore, followHash } from '../state';
+import { followHash } from '../state';
 import { VisuallyHidden } from './components/primitives/VisuallyHidden';
 import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
 
@@ -13,8 +13,7 @@ import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
  * `contentinfo`, the polite region that names each new route once, and the
  * effect that keeps `document.title` on the route and the language. It also
  * mounts the app's one `popstate` + `hashchange` subscriber, which follows a
- * changed hash into the store (R83, `followHash`), closes the sky screen before
- * the route under it changes (FR-ROUTE-2; OQ-22 stays the owner's), and after
+ * changed hash into the store (R83, `followHash`), and after
  * each route change puts the focus back on what opened the route just left
  * (FR-A11Y-4, `navigation.takeFocusTarget`).
  *
@@ -82,12 +81,10 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
   const t = useT();
   const main = useRef<HTMLElement>(null);
 
-  // The one route listener (D-533): the store follows the hash, and a sky screen closes before the route changes.
+  // The one route listener (D-533): the store follows the hash. R152 (FR-GYRO-6): the sky screen it closed first is gone.
   useEffect(
     () =>
       subscribe((event) => {
-        const state = appStore.getState();
-        if (state.skyScreen) state.closeSkyScreen();
         if (event.type === 'hashchange') followHash(window.location.hash);
       }),
     [],

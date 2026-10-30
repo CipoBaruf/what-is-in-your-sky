@@ -43,10 +43,6 @@
     "count": 4,
     "reason": "R110 (D-736): 4 the sheet names — the SVG root's font-family: inherit (the stack, already inherited), 12px, 11px and 9px (--chart-text-12, -11, -9)."
   },
-  "src/ui/components/guide/skychart/window/CompassGutter.module.css": {
-    "count": 10,
-    "reason": "R110 (D-736): 3 the sheet names — the spoken marks' 1px × 1px clip with its -1px margin (VisuallyHidden's rule, D-704); 7 stay — the gutter's drawing in device pixels like --gutter itself (D-711, OQ-38): the bracket's 1px inset top and bottom and its 1px rule, the 1px centre line, the 3px × 8px tick and the key's 8px row (D-737)."
-  },
   "src/ui/components/guide/skychart/window/SkyWindow.module.css": {
     "count": 4,
     "reason": "R110 (D-736): 4 the sheet names — the SVG root's font-family: inherit (the stack, already inherited), 12px, 15px and 14px (--chart-text-12, -15, -14)."
@@ -90,10 +86,6 @@
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,
     "reason": "R110 (D-736): 2 the sheet names — two 0.75rem gaps (--space-2)."
-  },
-  "src/ui/components/screen/SkyScreen.module.css": {
-    "count": 1,
-    "reason": "R110 (D-736): 1 the sheet names — the close control's font-family: inherit (global.css's font: inherit already makes it)."
   },
   "src/ui/components/weather/CloudBadge.module.css": {
     "count": 3,

@@ -32,7 +32,5 @@ export const chart: typeof EnChart = {
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
     liveLabel: 'Todo el cielo en el instante mostrado',
-    /** R66 (FR-FSC-2): la `×` de la pantalla del cielo. R73 (D-427): el nombre de la pantalla se fue con el estado vertical. */
-    screenClose: 'Cerrar',
   },
 };

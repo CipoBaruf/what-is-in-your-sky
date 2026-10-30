@@ -97,35 +97,6 @@
   color: var(--fg-dim);
 }
 
-/* R62 (FR-FSC-3, FR-LEG-2 as amended v1.3, D-322): the follow screen's strip.
-   The times take a fourth column instead of a second line, so a row is one line
-   and the two rows FR-FSC-3 allows the strip are two lines of text — at 844 px
-   there is room for the short form (rise and end, the peak is the picture) and
-   the name beside it. The times never wrap: a name long enough to need the room
-   is what is truncated, since the clock figures are the row's fixed part.
-
-   The tap target stays: `--tap` is still the row's minimum height, so the strip
-   is two rows of 48 px whatever the text does, and FR-LEG-4's tap has something
-   to land on. `--legend-row` (`ChartFrame`, screen mode) is that same height,
-   which is what makes `max-height: calc(2 * var(--legend-row))` two rows. */
-.screen .row {
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.screen .times {
-  grid-column: 4;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-.screen .name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-
 /* R85 (F-81, FR-CAP-5, D-549): the short wide live window's inventory. Every
    entry is a whole number of text rows — a row button is the tap target, two
    rows, the name over the times, neither wrapping; a body line and the empty
