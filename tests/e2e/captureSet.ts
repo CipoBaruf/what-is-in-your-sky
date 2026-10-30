@@ -274,6 +274,11 @@ export const SCREENS: readonly CaptureScreen[] = [
     what: "The same page one `[ scrub ]` on (FR-WATCH-1 b, FR-WATCH-4): the bead held and warm beside `held`, the time row, the stripe's chunk with its 24 h overview, the stepping row and the playback row, and `[ back to live ]` at the head of the block. The pair with `live-watching` is what a reviewer reads the state split off: at 1200 × 450 the block is a bar inside the box (FR-WATCH-6) and the box's height is the same in both pictures (FR-WATCH-7), and at 844 × 390 it is in the rail with the dome column unmoved.",
   },
   {
+    name: 'live-tonight',
+    widths: [360, 390],
+    what: "v2.7's opening state on the phone (FR-TONIGHT-1, FR-TONIGHT-2, US-42 AC1): `#live` opened at 13:00 local with nothing up, so the page has jumped to the evening's first visible pass, its rise less `TONIGHT_LEAD_MIN` — the shown time, the chip `tonight · in …`, the context line, the track's thumb on the pass's tick and the taps under it. Shot under `prefers-reduced-motion: reduce`, where the jump lands paused, so the picture is one instant and not a frame of the play. Compact only: wide never jumps.",
+  },
+  {
     name: 'sky-screen-sky',
     widths: [844],
     what: 'The sky screen (FR-FSC-1, R64, R66) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and, since R79, the 28 px compass gutter along the bottom (FR-GUT-1..5) — the band of azimuth, the bracket of the field, a tick per pass — and nothing of the live page under it.',

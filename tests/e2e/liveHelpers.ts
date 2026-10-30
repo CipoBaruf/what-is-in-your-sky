@@ -630,6 +630,9 @@ export async function enterScrubbing(page: Page): Promise<void> {
     await trackBar(page).focus();
     await page.keyboard.press('Home');
     await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+    // R145: on the landscape phone the focus scrolled the rail (the layout, D-864) down to the track; it is read
+    // from the top, as the wide branch below reads it.
+    await railToTop(page);
     return;
   }
   await page.getByTestId('live-scrub').click();
@@ -638,6 +641,11 @@ export async function enterScrubbing(page: Page): Promise<void> {
   // R132 (D-864): on the landscape phone `[ scrub ]` is the rail's foot and the rail scrolls inside the layout (the
   // page never does, FR-LIVE-7), so the click above scrolled the rail to reach it; the rail's head is read from the
   // top, as a reader who scrolled back would. Whether every row fits the landscape rail is R136's.
+  await railToTop(page);
+}
+
+/** The landscape rail (`live-layout`, which scrolls inside the page on the phone turned, D-864) back at its top. */
+export async function railToTop(page: Page): Promise<void> {
   await page.evaluate(() => {
     const layout = document.querySelector<HTMLElement>('[data-testid="live-layout"]');
     if (layout && layout.scrollTop > 0) layout.scrollTop = 0;

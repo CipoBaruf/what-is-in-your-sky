@@ -75,7 +75,8 @@ export const SOURCES = [
     // its two states (FR-WATCH-9 f). Watching is the right half of that split for a first
     // picture: it is the page as it opens, with no scrub block over the sky. R135 (FR-FLOW-14):
     // a phone opens on the window since v2.6, following the pass that is up, so the tile is the
-    // pass among the stars and no longer the braille dome; the caption says what it shows.
+    // pass among the stars and no longer the braille dome; the caption says what it shows. R145 (FR-TONIGHT-6):
+    // since v2.7 the tile also carries the shown time, the context line, the time track and the three taps.
     file: 'v1-live-watching-390-dark-en.png',
     caption: 'The sky over you, the pass among the stars',
     w: 390,

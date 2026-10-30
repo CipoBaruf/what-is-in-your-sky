@@ -732,7 +732,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   ) : null;
   const stripe = has('stripe') ? <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} /> : null;
   const steps = has('steps') ? <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} /> : null;
-  const conditions = has('conditions') ? <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} /> : null;
+  const conditions = has('conditions') ? <StatusStrip sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} /> : null;
   /*
    * R144 (FR-TONIGHT-3, FR-TONIGHT-4, FR-TONIGHT-7; D-897, D-900, D-901, D-911): the compact page's own rows. Tonight's
    * band is worked out once per tick for the chip and the context line (D-911). Every seek on the track pauses and
@@ -788,12 +788,11 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     </div>
   ) : null;
   /*
-   * R78 (FR-WATCH-5, FR-WATCH-6): wherever the page has a rail — wide, and the landscape phone — its head is the
-   * indicator with the clock, or with `[ back to live ]` while scrubbing, so the way out of the state stands in
-   * one place and never scrolls away with the rows under it. On compact portrait the control is on the actions row.
-   * R144: the compact rail (the landscape phone) holds the same slots as the column (FR-FLOW-15), so the head is wide's.
+   * R78 (FR-WATCH-5, FR-WATCH-6): on wide the rail's head is the indicator with the clock, or with
+   * `[ back to live ]` while scrubbing, so the way out of the state stands in one place and never scrolls away with
+   * the rows under it. R144, R145: the compact rail (the landscape phone) holds the same slots as the column
+   * (FR-FLOW-15) and has no such head — its indicator is the top row's and its `now` is `TimeTaps`'s (FR-TONIGHT-6).
    */
-  const backAtHead = !compact;
   const indicatorLine = (
     <div className={styles.indicatorLine}>
       {indicator}
@@ -802,14 +801,13 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
           {formatClock(now, observer.timeZone, locale)}
         </time>
       )}
-      {has('back-to-live') && backAtHead && <BackToLive onNow={playback.toNow} />}
+      {has('back-to-live') && <BackToLive onNow={playback.toNow} />}
     </div>
   );
   const actions = (
     <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
-      {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
@@ -894,7 +892,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    */
   const answer = (
     <div className={styles.railHead} data-testid="live-rail-head">
-      {backAtHead && indicatorLine}
+      {!compact && indicatorLine}
       {nextEvent}
       {shownHeadline}
       {context}

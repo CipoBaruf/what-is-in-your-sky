@@ -45,8 +45,6 @@ export const live = {
     open: 'Live sky',
     /** FR-COMP-1 (R52): the same control on the compact header's 36-cell row, lower case beside `[ settings ]`. */
     openShort: 'live',
-    /** The Now panel's link to the same page. */
-    openFromNow: 'Watch the sky live',
     loading: 'Loading the live sky…',
     /**
      * R89 (FR-LIVE-1 as amended v2.1, FR-FIRST-1, F-75, F-92): the three states before the page can draw, told
@@ -60,45 +58,34 @@ export const live = {
     failedInstead: 'There is no stored sky to draw meanwhile.',
     /**
      * The conditions line's accessible name; the fields below are its labels (FR-LIVE-3). R77 (FR-WATCH-3):
-     * one line per state — on wide `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon waxing crescent, 18 % lit`,
-     * on compact the clock and three short words with the labels spoken, `21:14:32 dark clear 3 up`.
+     * one line in both states, `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon waxing crescent, 18 % lit`. Wide's
+     * alone since R145: compact's `21:14:32 dark clear 3 up` and its words went with FR-TONIGHT-6.
      */
     strip: 'Sky conditions',
-    timeLabel: 'Time',
     skyLabel: 'Sky',
     cloudLabel: 'Clouds',
     countLabel: 'Up',
-    /** The compact count's spoken label: its value already says `3 up`. */
-    countSpoken: 'Satellites',
     moonLabel: 'Moon',
     /** The sky state in words (FR-LIVE-3, `SkyState`). */
     sky: { day: 'day', 'bright-twilight': 'bright twilight', dark: 'dark' } satisfies Record<SkyState, string>,
-    /** R77 (FR-WATCH-3, FR-COMP-4): the compact line's sky word, one word each so the line keeps its 36 cells. */
-    skyShort: { day: 'day', 'bright-twilight': 'twilight', dark: 'dark' } satisfies Record<SkyState, string>,
-    /** R77 (FR-WATCH-3): the compact line's cloud verdict, one word each; `unknown` without a forecast (FR-WX-5). */
-    cloudWord: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
-    /** R85 (FR-COMP-7): what a screen reader says for the cloud word, where the word is an abbreviation (Spanish `s/d`); the same word here. */
+    /**
+     * R85 (FR-COMP-7): what a screen reader says for the cloud word, where the word is an abbreviation (Spanish `s/d`);
+     * the same word here. R145: the context line's (`context.cloudWord`) since the compact conditions line went (FR-TONIGHT-6).
+     */
     cloudSpoken: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
-    /** R77 (FR-WATCH-3): the compact line's count, `3 up`. */
-    upCount: (count: number) => `${String(count)} up`,
     /** A field whose value is not known yet — the astronomy is still loading. */
     pending: '…',
     /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
     moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
     /**
      * R77 (FR-WATCH-1, FR-WATCH-2, FR-MARK-5): the state indicator's word beside the mark — never the colour
-     * alone (FR-X-5) — and the two ways between the states. `[ scrub ]` holds the instant at the tap
-     * (`[ scrub the night ]` on wide); `[ back to live ]` is FR-LIVE-5's `now` action, named for where it goes.
+     * alone (FR-X-5) — and the two ways between the states. `[ scrub the night ]` holds the instant at the tap;
+     * `[ back to live ]` is FR-LIVE-5's `now` action, named for where it goes. R145 (FR-TONIGHT-6, FR-TONIGHT-8): both
+     * are wide's, and compact's `[ scrub ]` and `[ live ]` (R85) are gone with the rows that held them.
      */
     state: { live: 'live', held: 'held' },
-    scrub: 'scrub',
     scrubWide: 'scrub the night',
     backToLive: 'back to live',
-    /**
-     * R85 (FR-COMP-7, D-549): the same action on the compact actions row, whose Share has its brackets back —
-     * `[ live ] [ ] Hidden [ Share ]`, 29 cells. `backToLive` stays its accessible name, which contains the word.
-     */
-    backToLiveShort: 'live',
     /**
      * R101 (FR-JUMP-1): the watching headline's one control after its path line — `[ see this pass ]`, which holds
      * the page at the named pass's rise. `seeThisPassName` is its accessible name, with the satellite it names.
@@ -194,7 +181,6 @@ export const live = {
      * Betelgeuse, in Orion"; with no landmark star "passes through Orion". The degrees come formatted, the star's
      * and the constellation's names in the active language (D-832).
      */
-    landmarkWord,
     landmarkLine: (p: { degrees: string; word: LandmarkWord; star: string; constellation: string }) => `passes ${p.degrees} ${landmarkWord[p.word]} ${p.star}, in ${p.constellation}`,
     landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
     /**

@@ -47,7 +47,7 @@ import { IDLE_PASSES } from '../../src/state/slices/passes';
 import { fixtureRecords } from '../support/catalogFixtures';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
-import { HiddenToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
+import { HiddenToggle } from '../../src/ui/components/live/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { ToggleGroup } from '../../src/ui/components/primitives/ToggleGroup';
@@ -56,7 +56,6 @@ import { SettingsPage } from '../../src/ui/screens/Settings';
 import { StepLine } from '../../src/ui/screens/Home';
 import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
-import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
 import { PassDetail } from '../../src/ui/screens/PassDetail';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
@@ -259,11 +258,7 @@ const rows = (t: Messages): readonly Row[] => [
   { name: 'the next-event live link (FR-LIVE-1)', element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByTestId('now-live-link') },
   { name: 'the sort row (US-5 AC2 as amended)', element: createElement(SortToggle, { value: 'chronological', onChange: noop }), find: () => screen.getByRole('group', { name: t.passes.sortGroup }) },
   { name: 'the chart view control (FR-CHART-1)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
-  {
-    name: 'the playback row (FR-LIVE-4)',
-    element: createElement(PlaybackControls, { playing: false, speed: 60, onPlay: noop, onPause: noop, onSpeed: noop }),
-    find: () => screen.getByTestId('playback-controls'),
-  },
+  // R145 (FR-TONIGHT-6): the playback row is wide's alone (the compact page plays from `TimeTaps`, pinned below), so it has no compact row here.
   { name: 'the hidden-objects toggle (FR-LIVE-6)', element: createElement(HiddenToggle, { hidden: false, onToggle: noop }), find: () => screen.getByTestId('live-hidden-toggle') },
   {
     // R70 (FR-SPAN-3, FR-COMP-4 as amended v1.4): the six controls the row is re-cut to are the tightest row in
@@ -278,7 +273,8 @@ const rows = (t: Messages): readonly Row[] => [
    * R77 (FR-WATCH-8, FR-COMP-4 as amended v2.0, V20-8): the live page's new compact rows, rendered from the page
    * itself so the order, the labels and the forms are the ones `Live.tsx` gives them — the top row with the
    * indicator (`[ ← ]`, the mark, the word, the place, which ellipsises past its cells: a ten-letter place
-   * here), the two actions rows, and the conditions line at its longest.
+   * here), the two actions rows, and the conditions line at its longest (R145: gone with FR-TONIGHT-6, and its row
+   * here with it).
    *
    * R85 (FR-COMP-7, D-549): the top row and the actions rows are pinned at `LIVE_ROW_BUDGET`, two cells inside
    * FR-COMP-4's 36, in both languages — the room to spare F-82 found Spanish did not have.
@@ -341,12 +337,6 @@ const rows = (t: Messages): readonly Row[] => [
     name: 'the pass detail view row’s [ stars ] line (FR-SKY-3)',
     element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
     find: () => screen.getByTestId('stars-toggle'),
-  },
-  {
-    // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.
-    name: 'the live conditions line at its longest (FR-WATCH-3)',
-    element: createElement(StatusStrip, { t: pass.start.t, timeZone: 'America/Argentina/Salta', sky: 'bright-twilight', cloud: { state: 'partly', effectivePct: 50, at: pass.start.t }, count: 12, moon: null }),
-    find: () => screen.getByTestId('status-strip'),
   },
   /*
    * R87 (FR-VISIT-2): the visit notice on a phone is at most two rows — the sentence's short form, then the two

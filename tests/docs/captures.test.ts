@@ -64,7 +64,9 @@ describe('the v1 capture set', () => {
     const DESK_WIDE = new Set(['live-window']);
     // R135 (FR-FLOW-2, FR-FLOW-12): the Where opened by its `[ details ]` is a phone's screen — on wide the Where is
     // never folded (D-844), so there is nothing to open and no 1280 px file to shoot.
-    const PHONE_ONLY = new Set(['where-opened']);
+    // R145 (FR-TONIGHT-1): the jumped live page is a phone's screen too — wide never jumps, so a 1280 px file
+    // would be `live-watching`'s.
+    const PHONE_ONLY = new Set(['where-opened', 'live-tonight']);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
@@ -113,7 +115,8 @@ describe('the v1 capture set', () => {
     // R135 (FR-FLOW-12): + 16 each for `home-up-now`, `home-no-pass` and `home-daylight` (360, 390, 1280, 1920),
     // + 8 `where-opened` (360, 390), and + 4 each for `guide` and `stars` at 844 × 390, the phone turned; − 8 for
     // `live-window` at 360 and 390, which since FR-FLOW-14 is `live-watching`'s picture there.
-    expect(captureSet()).toHaveLength(386);
+    // R145 (FR-TONIGHT-1): + 8 `live-tonight` (360, 390).
+    expect(captureSet()).toHaveLength(394);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
