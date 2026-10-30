@@ -42,6 +42,8 @@
 | Scope (v2.6.1) | Spec Phase 2o "the review fixes": **R137–R140** in the `## v2.6.1 tasks` block below, four tasks in two waves of three and one, lanes `chart`, `data`, `live` and `docs`, all `opus` with an `opus` review, 500 turns, no fallback, `Gate: auto`; no tag |
 | Inputs (v2.7) | `SPEC.md` v2.7, `PLAN.md` v0.15 (Decision Log V27-1..V27-8 and Decisions D-896..D-906, with §16.26 treated as fixed) |
 | Scope (v2.7) | Spec Phase 2p "tonight on the phone": **R141–R145** in the `## v2.7 tasks` block below, five tasks in three waves of three, one and one, lanes `data`, `chart`, `ui`, `live` and `docs`, `fable` on R144 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
+| Inputs (v2.8) | `SPEC.md` v2.8, `PLAN.md` v0.16 (Decision Log V28-1..V28-8 and Decisions D-918..D-929, with §16.27 treated as fixed) |
+| Scope (v2.8) | Spec Phase 2q "the full sky": **R146–R149** in the `## v2.8 tasks` block below, four tasks in three waves of two, one and one, lanes `data`, `ui`, `live` and `docs`, `fable` on R148 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -4134,3 +4136,132 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
 | FR-TONIGHT-10 | R145 |
 
 Waves (for the sanity check): **wave 1** R141 (data) + R142 (chart) + R143 (ui) — **wave 2** R144 (live) — **wave 3** R145 (docs). No two tasks of a wave name the same file: R142 owns `track.ts` and the two registration files, R143 owns `live.ts` and `controlRows.test.ts`, R141 owns `usePlayback`.
+
+## v2.8 tasks
+
+Draft, cut 2026-10-30 from `SPEC.md` v2.8 and `PLAN.md` v0.16. Spec Phase 2q, "the full sky": on the phone the live page's drawing fills the screen in every view, with only `[ ← ]`, the shown time and its chip, and one `[ controls ]` button over it; every other control moves into a sheet over the sky (bottom in portrait, side in landscape); and with nothing visible up, a card asks whether to see the next pass or the sky now instead of jumping (FR-FULL-1..10, US-43, V28-1..V28-8). The compact live page only; wide, the stars page and the pass detail are unchanged (V28-1). The phase ends with `2.8.0` on `main`; the tag and the deploy are the owner's.
+
+Delivery is PLAN §16 with §16.27: four tasks in three waves of two, one and one, `Model: fable` on R148 and `opus` on the rest, every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto`.
+
+Decision block (§16.2), reserved in PLAN §16.27: **R146 D-930..D-931, R147 D-932..D-933, R148 D-934..D-936, R149 D-937..D-938**. D-918..D-929 are the plan's.
+
+What every session reads, named in each task as "the phase set": SPEC §4.50 whole (FR-FULL-1..10 and its constants table), US-43, §9 Phase 2q, §12 V28-1..V28-8; SPEC §4.49 (FR-TONIGHT-1..7, as amended) for the parts that move; PLAN §2.43, §2.44, §9.10 and §16.27.
+
+### Wave 1
+
+- [ ] **R146 — The card: `openingChoice`, `OpeningCard`, its strings, its tests**
+  - **Lane:** data
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); PLAN D-897, D-898, D-925; `lib/tonightJump.{ts,test.ts}`; `components/live/{ShownTime,TimeTaps}.tsx` (the chip's words and the `.target` idiom); `components/live/hiddenObjects.ts`; `src/i18n/{en,es}/live.ts`; `tests/styles/controlRows.test.ts`; `docs/DESIGN.md` (`TextButton`, `--screen-overlay`, `--hairline`).
+  - **Goal:** a card that, given the stored run and now, says "Nothing visible up now" with the next pass's name, time and chip over `[ see next pass ]` `[ see now ]`, or the no-pass advice over `[ see the sky now ]`, in both languages, rendered and tested on its own (the page mounts it in R148).
+  - **Satisfies:** FR-FULL-10 (the decision and the card), FR-FULL-8 (the card's strings); US-43 AC5 (unit level).
+  - **Scope (PLAN D-925):**
+    - `openingChoice(passes, now, span)` in `lib/tonightJump.ts` returning `up`, `ask` with the pass and its lead instant, or `advise`, over `openingJump`'s visible-pass predicate.
+    - `components/live/OpeningCard.{tsx,module.css,test.tsx}`: both forms, callbacks `onNext(at)` and `onNow()`, `role="group"`, the polite live sentence, focus to its first button on mount.
+    - The card's strings in `src/i18n/{en,es}/live.ts`; its rows in `controlRows.test.ts` (36 cells, 360 and 390 px, both languages).
+  - **Touches outside the lane:** `components/live/OpeningCard.*`, `src/i18n/{en,es}/live.ts`, `tests/styles/controlRows.test.ts`.
+  - **Out of scope:** mounting the card in `Live.tsx`, the effect, `Esc` (R148).
+  - **Done when:**
+    - `tonightJump.test.ts` covers `up`, `ask`, `advise` and a hidden pass; `OpeningCard.test.tsx` and `controlRows.test.ts` pass.
+    - The Done note gives every card line in both languages with its cell count.
+    - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
+
+- [ ] **R147 — The sheet and the head: the constants, `ControlsSheet`, `SkyHead`, `hintFitsBeside`, the sheet's strings, their tests**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); PLAN D-877, D-918, D-920, D-921, D-924; `lib/layout.{ts,test.ts}` (`LANDSCAPE_DRAWING_MIN_SHARE`); `components/live/usePageShape.ts`; `components/live/ShownTime.tsx`; `components/common/Header.tsx` (the back control); `ui/hooks/useOpenerFocus.ts` and the pass detail's sheet; `src/i18n/{en,es}.ts` and `src/i18n/{en,es}/track.ts` (how a catalog file is registered); `docs/DESIGN.md` (`TextButton`, `VisuallyHidden`, `--z-sheet`, `--screen-overlay`).
+  - **Goal:** the parts the page will place over and under the sky, each working on its own: a `[ controls ]` button that opens and closes a non-modal sheet (bottom in portrait, at most seven tenths of the height; side in landscape), the head with the back control and the shown time, and the rule for where the hint stands.
+  - **Satisfies:** FR-FULL-2, FR-FULL-3 (the button), FR-FULL-4 (the sheet's frame), FR-FULL-5 (open, close, focus), FR-FULL-8 (the sheet's strings); US-43 AC3 (component level).
+  - **Scope (PLAN D-918, D-920, D-921, D-924):**
+    - `FULL_OVERLAY_MAX_SHARE`, `SHEET_MAX_SHARE`, `SHEET_SIDE_SHARE`, `SHEET_TAP_SLOP_PX` and `hintFitsBeside` in `lib/layout.ts`.
+    - `components/live/ControlsSheet.{tsx,module.css,test.tsx}`: the button, the region, the head (place, `[ settings ]`, `[ close ]`), the scrolling body, the two forms, the reduced-motion transition, focus in and back; open state controlled by props.
+    - `components/live/SkyHead.{tsx,module.css,test.tsx}`.
+    - `src/i18n/{en,es}/sheet.ts` (new) and its registration; the rows in a new `tests/styles/sheetRows.test.ts`.
+  - **Touches outside the lane:** `lib/layout.ts`, `src/i18n/{en,es}.ts`.
+  - **Out of scope:** mounting any of it in `Live.tsx`, `SkyViewLayout`'s form, the tap on the sky (R148); `controlRows.test.ts` (R146's).
+  - **Done when:**
+    - `ControlsSheet.test.tsx`, `SkyHead.test.tsx`, `layout.test.ts` and `sheetRows.test.ts` pass.
+    - The Done note gives the sheet's two forms on the dev page or a test harness at 390 × 844 and 844 × 390, the focus moves, and the head's longest form in both languages.
+    - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
+
+### Wave 2
+
+- [ ] **R148 — The page: `SkyViewLayout`'s `full` form, the compact branch's overlay and sheet, the card's effect, `stayOnNow` removed, the tap that closes the sheet, `Esc`'s four steps, the split inventory, `live-full.spec.ts` and the specs at the compact sizes**
+  - **Lane:** live
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R146, R147
+  - **Reads:** the phase set (above); SPEC FR-FLOW-3, FR-FLOW-4, FR-FLOW-6, FR-FLOW-10, FR-FLOW-11, FR-FLOW-15, FR-LIVE-1, FR-LIVE-9, FR-WATCH-7 (as amended); PLAN D-877, D-898, D-902, D-904, D-919, D-922, D-923, D-925..D-928; `screens/{Live.tsx,Live.module.css,Live.test.tsx,liveRows.ts,liveRows.test.ts}`; `components/sky/SkyViewLayout.{tsx,module.css}` and its test; `components/live/TimeTaps.tsx`; `state/slices/ui.ts`; `skychart/window/SkyWindow.tsx` (`tapSlop`), `skychart/dome/SkyDome.tsx`, `skychart/polar/SkyPolar.tsx` (how each takes a tap); `tests/e2e/{live-compact,live-states,live-tonight,live-jump,targets,rhythm,shapes}.spec.ts`, `tests/e2e/{flowPages.ts,liveHelpers.ts}`; R146's and R147's new modules.
+  - **Goal:** a phone opened on `#live` is all sky in every view, with the back control and the time at the top and `[ controls ]` at the bottom; in the day a card asks next pass or now; the button opens the sheet with the context, the track and taps, the view row, the facing row, the actions and the list; a tap on the sky or `Esc` closes it; nothing ever resizes the sky; wide is untouched.
+  - **Satisfies:** FR-FULL-1, FR-FULL-3..7, FR-FULL-10; FR-TONIGHT-1, FR-TONIGHT-2, FR-TONIGHT-4, FR-TONIGHT-6, FR-TONIGHT-9 as amended; US-43 AC1–AC5; US-42 as read by Phase 2q's definition of done.
+  - **Scope (PLAN D-919, D-922, D-923, D-925..D-928):**
+    - `SkyViewLayout`'s `form: 'full'`: the fixed, safe-area, `100dvh` wrapper, the `overlay` and `sheet` slots, `readoutIn: 'sheet'`, the capture-phase tap listener while the sheet is open.
+    - `Live.tsx`'s compact branch: `SkyHead`, `ControlsSheet` with D-923's children in order, the hint in the overlay by `hintFitsBeside`, the hidden `h1`; `TopRow` and the mark leave compact.
+    - The card's effect in place of the jump effect; `OpeningCard` in the overlay; the reader-wrote ref answering it; `stayOnNow` and its setter removed (and `TimeTaps`' call).
+    - `Esc`'s four steps in the one listener.
+    - `liveRows.ts`: `COMPACT_OVERLAY` and `COMPACT_SHEET` (D-928).
+    - Tests and specs per §9.10's second to seventh bullets, with the new `tests/e2e/live-full.spec.ts`; `live-compact.spec.ts`'s floors replaced.
+  - **Touches outside the lane:** `components/sky/SkyViewLayout.*`, `components/live/TimeTaps.tsx`, `state/slices/ui.ts`, the e2e specs above.
+  - **Out of scope:** wide's rows and code paths; the stars page and the pass detail (they keep `column` and `rail`); the capture set (R149); removing strings wide still reads.
+  - **Done when:**
+    - `Live.test.tsx` (the card's cases, the sheet's order, the tap and drag, `Esc`'s steps, the inventory identical in both states), `liveRows.test.ts`, `SkyViewLayout.test.tsx` pass.
+    - `live-full.spec.ts` passes at 390 × 844, 390 × 667, 360 × 640 and 844 × 390 in every view and both languages; `live-states.spec.ts` the box unchanged across closed, open, open with the list and a track drag; `live-tonight.spec.ts` with the card in both languages; `targets`, `rhythm` and `shapes` green with the sheet open.
+    - Every wide e2e spec and the stars page's and pass detail's specs unchanged and green.
+    - The Done note gives `chart-box`'s rect against the viewport at the three portrait sizes, the overlay's share, the sheet's height with the list open, and the card's landing instant on the noon clock.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+
+### Wave 3
+
+- [ ] **R149 — The capture set and 2.8.0: the compact live captures and the sheet's, the diff against 2.7.0, the strings no reader uses, the budget row, `package.json` 2.8.0, `docs/RELEASE.md` §21, no tag**
+  - **Lane:** docs
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R148
+  - **Reads:** the phase set (above); SPEC FR-CAP-5, FR-FLOW-17's rule; PLAN D-178, D-916, D-917; `docs/RELEASE.md` §20; `tests/e2e/{captureSet.ts,v1-captures.spec.ts}`; `scripts/bundle-budget.ts`; `src/i18n/{en,es}/{live,sheet}.ts` and `messages.test.ts`; the memory of the captures wrapper config (a wrapper config in `sdd-run/`, no `VAR=1 cmd`).
+  - **Goal:** the capture set shows the full-sky phone page, closed and open, and nothing else moved; nothing the phone stopped reading is left behind if wide does not read it either; `main` reads 2.8.0 ready for the owner's tag.
+  - **Satisfies:** FR-FULL-8 (removals), FR-FULL-9; US-43 AC6; §9 Phase 2q's release item.
+  - **Scope:**
+    - Re-shoot the `v1-*` set; the changed files are only compact live captures (portrait and landscape, every view, sheet closed); add the sheet open and the sheet with the list open at 390 × 844 and 844 × 390, both themes and languages, and the card; list them against FR-FULL-9's named moves.
+    - Remove the strings and components no page reads any more (`npm run check:dead`, `rg` outside `src/i18n`).
+    - `scripts/bundle-budget.ts`: `live` under 15 KB, `main` within `FULL_MAIN_KB` over 2.7.0 and under 180 KB; re-set by D-178.
+    - `package.json` and the lock `2.8.0`; `docs/RELEASE.md` §21: what 2.8.0 brings (R146–R148), the budget table against 2.7.0, the owner's phone check (open live in the afternoon, the whole screen sky and the card, `[ see next pass ]`, open the controls, drag the track, close with a tap on the sky) and the tag on this PR's squash SHA with the push to `release`; the README's live screen if it shows the phone.
+  - **Touches outside the lane:** `src/i18n/**` removals, `scripts/bundle-budget.ts`, `package.json`, `package-lock.json`.
+  - **Out of scope:** any behaviour change; the tag and the deploy.
+  - **Done when:**
+    - FR-CAP-5's diff against 2.7.0 lists only compact live files and the added sheet and card files; no wide file moves.
+    - `npm run bundle:budget` green; `npm run check:dead` green.
+    - The Done note lists the changed and added capture files, the `main` and `live` rows against 2.7.0, every removed key by name, and the SHA to tag.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+
+### Requirement coverage (v2.8)
+
+| Requirement | Task |
+|---|---|
+| FR-FULL-1 | R148 |
+| FR-FULL-2 | R147 (the head), R148 (mounted) |
+| FR-FULL-3 | R147 (the button, the hint rule), R148 (the overlay) |
+| FR-FULL-4 | R147 (the sheet's frame), R148 (its contents, the tap) |
+| FR-FULL-5 | R147 (open, close, focus), R148 (the tap, `Esc`) |
+| FR-FULL-6 | R148 |
+| FR-FULL-7 | R148 |
+| FR-FULL-8 | R146, R147 (new strings), R149 (removals) |
+| FR-FULL-9 | R149 |
+| FR-FULL-10 | R146 (the decision, the card), R148 (the effect, `Esc`) |
+
+Waves (for the sanity check): **wave 1** R146 (data) + R147 (ui) — **wave 2** R148 (live) — **wave 3** R149 (docs). No two tasks of a wave name the same file: R146 owns `live.ts`, `controlRows.test.ts` and `tonightJump.ts`; R147 owns `sheet.ts`, the two registration files, `lib/layout.ts` and `sheetRows.test.ts`.
