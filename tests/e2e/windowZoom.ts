@@ -1,7 +1,7 @@
 /**
  * R125 (FR-SKY-14, D-798): the zoom's gestures for the specs, shared by
- * `window-zoom.spec.ts` (the box on the live page and the stars page) and
- * `sky-screen.spec.ts` (the screen under the sensor).
+ * `window-zoom.spec.ts` (the box on the live page and the stars page); R152
+ * retired `sky-screen.spec.ts`, which pinched the screen under the sensor.
  *
  * Playwright drives one pointer, so the two-finger pinch is synthetic: pointer
  * events dispatched on the box in the page, two `touch` pointers going down

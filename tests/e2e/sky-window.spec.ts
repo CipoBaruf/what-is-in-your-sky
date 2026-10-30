@@ -2,34 +2,25 @@
  * R47 (FR-WIN-1..5, FR-GUIDE-2b as amended, US-21 AC1..AC4, AC7): the sky
  * window on the production build.
  *
- * On a phone (`hasTouch`, D-175's presence test) the view toggle offers
- * "Window"; choosing it draws the window in the frame the dome and the polar
- * share, and a synthetic `deviceorientationabsolute` reading moves the horizon
- * and the compass names with it — the picture eased toward each reading one
- * frame at a time under the installed clock (the rate figure in the summary).
- * A saved window that still needs a tap shows `[ point at the sky ]` in its
- * place; the tap asks, and a refusal leaves the dome with the note.
- *
  * R121 (FR-SKY-2, FR-SKY-7, FR-WIN-4, FR-WIN-5 as amended v2.5; D-789, D-790):
- * the option is on every device. On a desk (the last two blocks) it is a view
- * laid out in the box under the hand camera — saved on wide, cut to the
- * browser window's shape, the picker in the rail or the controls row; the
- * chart's own unsaved choice on compact without a sensor — and the pass
- * detail's window opens facing the pass's peak, on the page and on the screen.
+ * the option is on every device. On a desk it is a view laid out in the box
+ * under the hand camera — saved on wide, cut to the browser window's shape,
+ * the picker in the rail or the controls row — and the pass detail's window
+ * opens facing the pass's peak; on a compact page it is the same view in the
+ * square box. R152 (FR-GYRO-6, D-945): the phone's cases — the sky screen the
+ * pass detail opened, its refusal and its compass-less phone — went with the
+ * screen; the phone's window following the phone is `follow.spec.ts`.
  *
- * The captures for the PR: the window at 390 px, both themes, both languages,
- * aimed from the stubbed orientation at the glare pass's peak, 20° up — the
- * spike's "horizon" framing (`docs/window/FINDINGS.md`). The place, the pass
- * and the instant are `r45-captures.spec.ts`'s: Paris on 2026-09-02, three
- * minutes into the glare pass, with the Moon up and the Sun in the twilight
- * band, so the drawing has its bodies and the legend its lines.
+ * The place, the pass and the instant are `r45-captures.spec.ts`'s: Paris on
+ * 2026-09-02, three minutes into the glare pass, with the Moon up and the Sun
+ * in the twilight band, so the drawing has its bodies and the legend its lines.
  *
  *   npx playwright test sky-window --project=chromium
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { bandUnderBox, openSheet, SPACE_3_PX, stubCompass } from './liveHelpers';
+import { bandUnderBox, openSheet, SPACE_3_PX } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -40,7 +31,6 @@ const SHOWN = GLARE_PASS_START + 180_000;
 const TICK_MS = 10_000;
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
-const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
 const FRAME_MS = 16;
 
 const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
@@ -77,295 +67,9 @@ async function openDetail(page: Page, locale: CaptureLocale): Promise<Locator> {
   return figure;
 }
 
-/** iOS's `requestPermission`, answering as told, installed before the app loads. */
-async function withPermissionPrompt(page: Page, answer: 'granted' | 'denied'): Promise<void> {
-  await page.addInitScript((value: string) => {
-    const ctor = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
-    ctor.requestPermission = () => Promise.resolve(value);
-  }, answer);
-}
-
-/** A reading from the phone: the W3C alpha for a back facing `azDeg`, tilted `altDeg` up; then one frame. */
-async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
-  await page.evaluate(
-    ([alpha, beta]) => {
-      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha, beta, gamma: 0, absolute: true }));
-    },
-    [(360 - azDeg) % 360, 90 + altDeg] as [number, number],
-  );
-  await page.clock.runFor(FRAME_MS);
-}
-
-/** The tap that chooses the window; the clock runs after it because the paused clock holds React's lazy reveal (R32). */
-/**
- * R66 (FR-FSC-1, FR-FSC-6; V13-6, V13-9, D-350, D-351): choosing "window" on
- * the pass detail opens the **sky screen** — the same layer the live page
- * opens — and not a third view laid out in the sheet. The tap arms the sensor
- * and the first reading with a north in it is what opens anything, so the
- * caller gets a reading in before it waits for the layer.
- */
-async function chooseWindow(page: Page, locale: CaptureLocale): Promise<Locator> {
-  await holdUp(page, locale);
-  await page.evaluate(() => {
-    window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
-  });
-  await page.clock.runFor(1000);
-  return page.getByTestId('sky-screen');
-}
-
-/**
- * R136 (FR-FLOW-14, FR-FLOW-15): the window option chooses the view, and the screen's one door is the window's
- * `[ hold up to the sky ]`, whose tap is the one that asks for the sensor. The window is chosen first where the
- * guide is not on it yet.
- */
-async function holdUp(page: Page, locale: CaptureLocale): Promise<void> {
-  const option = guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] });
-  if ((await option.getAttribute('aria-pressed')) !== 'true') await option.click();
-  await page.clock.runFor(1000);
-  await guide(page).getByTestId('window-hold-up').click();
-}
-
-/** The hold-up's tap where nothing is expected to open: a refusal, or a phone with no north. */
-async function tapWindow(page: Page, locale: CaptureLocale): Promise<void> {
-  await holdUp(page, locale);
-  await page.clock.runFor(1000);
-}
-
-/** Frames until the smoothing has settled on the last reading. */
-const settle = async (page: Page): Promise<void> => {
-  await page.clock.runFor(40 * FRAME_MS);
-};
-
 const look = async (window: Locator): Promise<{ az: number; alt: number }> => ({
   az: Number(await window.getAttribute('data-look-az')),
   alt: Number(await window.getAttribute('data-look-alt')),
-});
-
-test.describe('the sky window on a phone', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  test('is offered on the pass detail, opens the sky screen, and turns with the phone one frame at a time', async ({ page }) => {
-    await stubCompass(page);
-    // R66 (FR-FSC-4): the screen draws sideways, so the phone is held sideways for every drawing case here.
-    await open(page, { width: 844, height: 390 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    const figure = await openDetail(page, 'en');
-    await expect(figure).toHaveAttribute('data-view', 'dome');
-    const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
-
-    // US-21 AC1, AC14 (R136: FR-FLOW-15): the option chooses the window, and its `[ hold up to the sky ]` opens the
-    // screen, over the sheet.
-    const layer = await chooseWindow(page, 'en');
-    await expect(layer).toHaveCount(1);
-    // The sheet is untouched under it: the guide is still on the view the reader picked, the window.
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    const drawing = layer.locator('[data-drawing="window"]');
-    await expect(drawing).toBeVisible();
-    await expect(drawing).toHaveAttribute('aria-hidden', 'true');
-    expect(await page.locator('canvas').count()).toBe(0);
-    const w = layer.locator('[data-look-az]');
-    // R121 (FR-SKY-7, D-790): before the first reading the screen looks at the pass as `facePeak` says — the peak's
-    // azimuth at `clamp(61 − 15, 20, 75)` = 46°, the peak in the field's upper half and its key in view. (R47's rule,
-    // 61 − 30 + 8 = 39°, is the live page's screen's still, which names its own facing.)
-    const placeholder = await look(w);
-    expect(placeholder.alt).toBe(46);
-    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
-    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
-    await expect(layer.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
-    // No hand-driven view (FR-WIN-5): a drag on the drawing turns nothing.
-    const box = (await drawing.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 5 });
-    await page.mouse.up();
-    expect(await look(w)).toEqual(placeholder);
-
-    // US-21 AC3: a reading north on the horizon; the compass name N comes into view, S is not.
-    const horizonBefore = await layer.locator('[data-horizon]').getAttribute('d');
-    await point(page, 0, 0);
-    await settle(page);
-    await expect(w).toHaveAttribute('data-state', 'on');
-    const north = await look(w);
-    // Paris: the declination is about +2°, so magnetic north is a true 2° (US-21 AC6). R127: the readout carries it
-    // whatever its second line says — the landmark line while the pass detail's pass has one (FR-SKY-11), the
-    // true-north line otherwise.
-    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
-    expect(Math.abs(declination)).toBeGreaterThan(0.5);
-    expect(north.az).toBe((Math.round(declination) + 360) % 360);
-    expect(north.alt).toBe(0);
-    await expect(layer.getByTestId('window-readout')).toContainText(`Facing N (${String(north.az)}°) · up 0°`);
-    await expect(layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]')).toHaveCount(1);
-    if ((await layer.getByTestId('window-heading').count()) > 0) await expect(layer.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
-    else await expect(layer.getByTestId('window-landmark')).toHaveText(/^passes /);
-    await expect(layer.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'true');
-    await expect(layer.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'false');
-    expect(await layer.locator('[data-horizon]').getAttribute('d')).not.toBe(horizonBefore);
-
-    // A quarter turn east and 30° up, then the rate: thirty readings a degree apart, one frame each, and every
-    // frame drew — the look moved on each (FR-WIN-3: the window draws at the display rate, 60/s under the clock).
-    await point(page, 90, 30);
-    const partWay = await look(w);
-    expect(partWay.az).toBeGreaterThan(north.az + 5);
-    expect(partWay.az).toBeLessThan(85);
-    await settle(page);
-    expect(await look(w)).toEqual({ az: (90 + Math.round(declination) + 360) % 360, alt: 30 });
-    await expect(layer.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'false');
-    await expect(layer.locator('[data-anchor="E"]')).toHaveAttribute('data-in-view', 'true');
-    let drawn = 0;
-    let previous = (await look(w)).az;
-    for (let i = 1; i <= 30; i += 1) {
-      await point(page, 90 + i * 3, 30);
-      const now = (await look(w)).az;
-      if (now !== previous) drawn += 1;
-      previous = now;
-    }
-    expect(drawn).toBeGreaterThanOrEqual(28);
-
-    // Over the head (US-21 AC3): the zenith mark in view, the picture continuous.
-    await point(page, 180, 89);
-    await settle(page);
-    expect((await look(w)).alt).toBe(89);
-    await expect(layer.locator('[data-marker="zenith"]')).toHaveAttribute('data-in-view', 'true');
-
-    // R136 (FR-FLOW-14, D-876): the device carries the view the reader picked, the window, saved on compact too.
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
-  });
-
-  /** FR-FOL-2 as amended v1.3.1: a refusal opens no screen, leaves the guide on its view, and keeps the option. */
-  test('a refused permission opens nothing, leaves the guide on its view with the note, and the option stays', async ({ page }) => {
-    await stubCompass(page);
-    await withPermissionPrompt(page, 'denied');
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    const figure = await openDetail(page, 'en');
-    const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await tapWindow(page, 'en');
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    // R136: the refusal is the hold-up's, and the guide stays on the window the option chose.
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveText('Motion access was refused. To be asked again, reload the page: Safari asks once per load.');
-    await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
-    // Any other choice clears the note.
-    await toggle.getByRole('button', { name: 'Polar' }).click();
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveCount(0);
-    await expect(toggle.getByRole('button', { name: 'Window' })).toBeVisible();
-  });
-
-  /**
-   * FR-WIN-4: a phone whose readings carry no north opens nothing. R121 (FR-WIN-4 as amended v2.5, FR-SKY-2): it
-   * keeps the option — the presence test governs the sensor, never the view. R136 (FR-FLOW-15): the ask is the
-   * hold-up's, the window stays in the box under the hand, and with no sensor left the hold-up is gone.
-   */
-  test('a phone with no compass heading gets the note, keeps the option, and the window stays in the box by hand', async ({ page }) => {
-    await stubCompass(page);
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    const figure = await openDetail(page, 'en');
-    const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await tapWindow(page, 'en');
-    await page.evaluate(() => {
-      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 30, beta: 90, gamma: 0, absolute: false }));
-    });
-    await page.clock.runFor(FRAME_MS);
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    // R136: the window the option chose stays the view, by hand, under the note.
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
-    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
-    // The sensor is lost for the session, so the window no longer offers the screen's door; the box stays by hand.
-    await expect(guide(page).getByTestId('window-hold-up')).toHaveCount(0);
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
-  });
-
-  /** R90 (FR-FAIL-7): the two notes it changed, captured in both languages. */
-  for (const locale of ['en', 'es'] as const) {
-    for (const note of ['silent', 'denied'] as const) {
-      test(`capture: the ${note} note at 390, dark, ${locale}`, async ({ page }) => {
-        await stubCompass(page);
-        if (note === 'denied') await withPermissionPrompt(page, 'denied');
-        await open(page, { width: 390, height: 844 }, { locale, theme: 'dark', observer: PARIS, chartView: 'dome' });
-        await openDetail(page, locale);
-        await holdUp(page, locale);
-        await page.clock.runFor(3000);
-        await expect(guide(page).getByTestId('chart-view-note')).toBeVisible();
-        await guide(page).getByTestId('chart-view-note').scrollIntoViewIfNeeded();
-        await page.screenshot({ path: `${CAPTURE_DIR}/r90-window-390-${note}-dark-${locale}.png` });
-      });
-    }
-  }
-
-  /** R90 (FR-FAIL-7, D-550): a device whose orientation API never sends a reading gets the note after SENSOR_WAIT_S (3 s). */
-  test('a device that sends no reading gets the note three seconds after the tap', async ({ page }) => {
-    await stubCompass(page);
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    const figure = await openDetail(page, 'en');
-    const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await holdUp(page, 'en');
-    await page.clock.runFor(2900);
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveCount(0);
-    await page.clock.runFor(100);
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    // R121 (FR-WIN-4 as amended v2.5): the option stays; it is the sensor that is lost for the session.
-    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
-  });
-
-  for (const theme of THEMES) {
-    for (const locale of LOCALES) {
-      test(`capture: the sky screen from a pass detail at 844 x 390, ${theme}, ${locale}, aimed at the peak`, async ({ page }) => {
-        await stubCompass(page);
-        await open(page, { width: 844, height: 390 }, { locale, theme, observer: PARIS, chartView: 'dome' });
-        await openDetail(page, locale);
-        const layer = await chooseWindow(page, locale);
-        const w = layer.locator('[data-look-az]');
-        await expect(w).toBeAttached();
-        // The placeholder already points at the peak azimuth, as high as the peak needs: the reading puts the phone
-        // there, then again less Paris's declination (known once the window is on), so the true look is the placeholder's.
-        const aim = await look(w);
-        await point(page, aim.az, aim.alt);
-        await settle(page);
-        await expect(w).toHaveAttribute('data-state', 'on');
-        const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
-        await point(page, aim.az - declination, aim.alt);
-        await settle(page);
-        expect(await look(w)).toEqual(aim);
-        await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
-        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-        await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        await expect(layer.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Hacia el' : 'Facing');
-        // R127 (FR-SKY-11): the second line is the landmark line while the pass has one, the true-north line otherwise.
-        const second = layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]');
-        await expect(second).toHaveCount(1);
-        await expect(second).toContainText(locale === 'es' ? /norte verdadero|^pasa / : /true north|^passes /);
-        await page.mouse.move(0, 0);
-        await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-844-${theme}-${locale}.png` });
-      });
-    }
-  }
-
-  test('capture: the horizon with its compass names, aimed 12° up toward the peak', async ({ page }) => {
-    await stubCompass(page);
-    await open(page, { width: 844, height: 390 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    await openDetail(page, 'en');
-    const layer = await chooseWindow(page, 'en');
-    const w = layer.locator('[data-look-az]');
-    const peakAz = Number(await w.getAttribute('data-look-az'));
-    await point(page, peakAz, 12);
-    await settle(page);
-    await expect(w).toHaveAttribute('data-state', 'on');
-    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
-    await point(page, peakAz - declination, 12);
-    await settle(page);
-    expect(await look(w)).toEqual({ az: peakAz, alt: 12 });
-    // The peak is in the south-southwest: the names either side of it are on the horizon in view, and the ticks between them.
-    await expect(layer.locator('[data-horizon]')).toHaveAttribute('d', /^M/);
-    await expect(layer.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'true');
-    await expect(layer.locator('[data-tick][data-in-view="true"]')).not.toHaveCount(0);
-    await layer.locator('[data-drawing]').scrollIntoViewIfNeeded();
-    await page.mouse.move(0, 0);
-    await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-844-horizon-dark-en.png` });
-  });
 });
 
 /** The box a locator is laid out in. */
@@ -421,9 +125,8 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
-    // A view like the other two: drawn here, not on a screen, and saved (FR-WIN-5 as amended v2.5).
+    // A view like the other two: drawn here and saved (FR-WIN-5 as amended v2.5).
     await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
     const w = figure.locator('[data-look-az]');
     await expect(w).toHaveAttribute('data-state', 'hand');
@@ -447,11 +150,11 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     expect(readout.y).toBeGreaterThanOrEqual(boxRect.y - 1);
     expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
     await expect(guide(page).getByTestId('sky-hint')).toHaveText('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
-    // The picker: `peak` first and pressed, the eight points, `up`; no `[ hold up to the sky ]` without a sensor.
+    // The picker: `peak` first and pressed, the eight points, `up`; no `[ follow the phone ]` without a sensor (FR-GYRO-1).
     const picker = guide(page).getByRole('group', { name: 'Facing' });
     await expect(picker.getByRole('button')).toHaveText(['peak', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
     await expect(picker.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(guide(page).getByTestId('window-hold-up')).toHaveCount(0);
+    await expect(guide(page).getByTestId('follow-toggle')).toHaveCount(0);
     // The guide panel scrolls on its own, so the box stands below its fold at 800 px: bring its foot to the panel's edge first.
     await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
     await page.mouse.move(0, 0);
@@ -550,7 +253,6 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     const w = figure.locator('[data-look-az]');
     await expect(w).toHaveAttribute('data-state', 'hand');
     expect((await look(w)).alt).toBe(46);
@@ -586,7 +288,6 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await page.getByTestId('live-layout').getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     await expect(chart).toHaveAttribute('data-view', 'window');
-    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(chart.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     // R148 (FR-FULL-4, D-923): the facing row opens from the readout in the sheet.
     await expect(page.getByTestId('live-facing-picker')).toHaveCount(0);

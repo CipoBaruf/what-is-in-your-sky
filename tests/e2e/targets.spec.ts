@@ -1,6 +1,6 @@
 /**
  * R134 (FR-FLOW-11, F13; D-851): targets a thumb can hit. At 390 × 844, in both languages, every `a`, `button`,
- * `[role=radio]` and `input` on the five pages and the sky screen has a hit area of at least 44 × 44 px — or, in a
+ * `[role=radio]` and `input` on the five pages has a hit area of at least 44 × 44 px — or, in a
  * row too dense for that (`.target-row`, the facing picker), is at least 44 px tall with its hit area meeting its
  * neighbours' so every point of the row is a target. Links inside a `p` are running text and exempt; so is what
  * the page has put out of reach (`inert`, `aria-hidden`) or not drawn.
@@ -12,7 +12,7 @@
  *   npx playwright test targets --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
-import { caseName, FLOW_CASES, LOCALES, openFlowPage, openSkyScreenPage, PHONE } from './flowPages';
+import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE } from './flowPages';
 
 /** WCAG 2.5.5 (target size, enhanced) and Apple's guideline. */
 const TARGET_PX = 44;
@@ -84,13 +84,17 @@ for (const locale of LOCALES) {
       });
     }
 
-    test.describe('the sky screen', () => {
+    /** R152 (FR-GYRO-1, D-944): on a phone with the sensor, `[ follow the phone ]` stands on three pages and is a target like the rest. */
+    test.describe('[ follow the phone ] (a touch device, FR-WIN-4)', () => {
       test.use({ hasTouch: true });
 
-      test('every control on the sky screen is a 44 × 44 target or a meeting row', async ({ page }) => {
-        const screen = await openSkyScreenPage(page, locale);
-        expect(await misses(screen)).toEqual([]);
-      });
+      for (const which of ['live', 'stars', 'detail'] as const) {
+        test(`[ follow the phone ] on the ${which} page is a 44 × 44 target`, async ({ page }) => {
+          const root = await openFlowPage(page, which, locale, 'window');
+          await expect(root.getByTestId('follow-toggle')).toBeVisible();
+          expect(await misses(root.getByTestId('follow'))).toEqual([]);
+        });
+      }
     });
   });
 }

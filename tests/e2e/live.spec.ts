@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, openSkyScreen, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -145,82 +145,6 @@ test.describe('the live page', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('banner')).toBeVisible();
   });
-});
-
-/**
- * R44 (FR-WIN-3, US-21 AC6; F-41, D-185), rewritten by R59 (FR-FOL-1..3,
- * FR-LIVE-8 as amended v1.2, D-276) and again by R64 (FR-FSC-1, FR-FSC-2,
- * FR-FSC-4, FR-WIN-6 as amended v1.3; D-321): the follow case, on the phone
- * viewport with a touch screen — the one profile the control is rendered in
- * (D-175).
- *
- * What the option opens is the sky screen, a layer over the whole viewport,
- * and this viewport is a phone held *upright*: so what a reader gets here is
- * the picture in the portrait box with FR-FSC-11's line of advice over it, in
- * their own language, and the `×` (R73: it was FR-FSC-4's note and nothing
- * else until v1.4.1). The screen drawn sideways is `sky-screen.spec.ts`; what
- * this holds is that the layer covers the page in portrait too, that the
- * advice is translated (FR-I18N-2 admits no English on the Spanish page), and
- * that the `×` gives the page back with nothing saved on the way through. The
- * strip's true-north line is gone with the window's being a view of this page:
- * the declination is the screen's readout line now (FR-FSC-4).
- */
-test.describe('the live page with the sky screen open upright', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  for (const [locale, note] of [
-    ['en', 'Turn the phone sideways to see more sky.'],
-    ['es', 'Gira el teléfono de lado para ver más cielo.'],
-  ] as const) {
-    test(`[ hold up to the sky ] opens the sky screen, which draws upright with the advice over it (${locale})`, async ({ page }) => {
-      await stubCompass(page);
-      await homeAt(page, T, locale);
-      await page.getByTestId('live-link').click();
-      await domeDrawn(page);
-      await stripFilled(page);
-
-      // Not following: the dome is the view, with the rows of the watching state under it (R77: the overview,
-      // and no stripe block), and no layer over any of it. The line has no heading field.
-      const chart = page.getByTestId('sky-chart');
-      await expect(chart).toHaveAttribute('data-view', 'dome');
-      await expect(page.getByTestId('live-heading')).toHaveCount(0);
-      // R148 (FR-FULL-4): the track and the view control are the sheet's.
-      await openSheet(page);
-      await expect(page.getByTestId('live-track')).toBeVisible();
-      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-
-      // R136 (FR-FLOW-15): the window option is a view in the box and opens nothing; its `[ hold up to the sky ]`
-      // arms the sensor, and the first reading with a north in it opens the screen (D-350).
-      expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
-      await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
-      await expect(chart).toHaveAttribute('data-view', 'window');
-      await heading(page, 270);
-      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-      const layer = await openSkyScreen(page, locale);
-      await expect(layer).toHaveCount(1);
-      // FR-FSC-1: nothing of the page is on the layer, and the page's own chart never became the window.
-      await expect(page.getByTestId('stripe-block')).toHaveCount(0);
-      await expect(page.getByTestId('playback-row')).toHaveCount(0);
-      await expect(page.getByTestId('live-side')).toHaveCount(0);
-      // FR-FSC-4 as rewritten / FR-GUT-7 / US-21 AC12 as amended v2.0: upright, the picture is drawn in the band
-      // with the advice as a line under the countdown, in this page's language.
-      await expect(page.locator('[data-drawing="window"] [data-horizon]')).toHaveCount(1);
-      await expect(page.getByTestId('window-turn-advice')).toHaveText(note);
-      await expect(page.getByRole('button', { name: locale === 'en' ? 'Close' : 'Cerrar' })).toBeVisible();
-      // The capture the PR carries: the screen as an upright phone gets it, in each language. R73 renamed it
-      // off `r66-…`, whose two files are the evidence for the state this replaces and stay as they were.
-      await page.screenshot({ path: `docs/screenshots/r73-live-390-screen-portrait-dark-${locale}.png` });
-
-      // FR-FSC-2: the `×` is the way out, back to the window in the box the reader picked.
-      await page.getByTestId('sky-screen-close').click();
-      await expect(layer).toHaveCount(0);
-      await expect(chart).toHaveAttribute('data-view', 'window');
-      await expect(page.getByTestId('live-track')).toBeVisible();
-      // FR-FLOW-14 (D-876): the window the reader chose is saved on compact as on wide; the screen saved nothing of its own.
-      const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { chartView?: string });
-      expect(prefs.chartView).toBe('window');
-    });
-  }
 });
 
 /**

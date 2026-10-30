@@ -37,7 +37,6 @@ const PREFS_KEY = 'wiys:prefs:v1';
  * absent from the set and this is the pass the old `GLARE_PASS` screens are
  * shot on.
  */
-export const SHOWN_PASS_START = BRIGHTEST_PASS.start;
 export const SHOWN_PASS = BRIGHTEST_PASS.id;
 /** 05:00 local on the 6th, 48 minutes before the night's first bright pass (D-690). */
 export const CLOCK = SHOWCASE_NIGHT;
