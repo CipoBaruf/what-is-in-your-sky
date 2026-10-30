@@ -1,6 +1,6 @@
 /* R115 (FR-STAR-3, D-756): the stars page. R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s —
    the column on compact (the `h1` block, the readout, the box full-bleed and square, the facing row, the hint,
-   `[ hold up to the sky ]`, the layers' two rows, the list) and the box beside the rail on wide, in the same order.
+   `[ follow the phone ]`, the layers' two rows, the list) and the box beside the rail on wide, in the same order.
    The layout owns the gaps; this file sizes the wide box (cut by `Stars.tsx` to the browser window's shape beside
    the rail's minimum, `fitBox`, FR-LIVE-7's rule) and the page's own rows. Every length is a token or a count of
    cells (FR-DS-2). */
@@ -101,22 +101,9 @@
   justify-self: start;
 }
 
-/* R117 (FR-STAR-5), R132 (FR-FLOW-8): `[ hold up to the sky ]` is a full-width button at least 48 px tall, right
-   after the hint, and FR-LIVE-8's note under it — the one line of the row allowed to wrap, since a denial's words
-   are longer than the compact row's cells. */
-.holdUp {
-  display: grid;
-  gap: var(--space-1);
+/* R152 (FR-GYRO-1, D-944): `[ follow the phone ]` in the action slot where `[ hold up to the sky ]` stood (R117,
+   R132) — one row at least `--tap` tall, and the refusal line under it when there is one. */
+.follow {
   min-height: var(--tap);
-}
-
-.holdUpButton {
-  width: 100%;
-  min-height: var(--tap);
-  justify-content: center;
-}
-
-.note {
-  margin: 0;
-  color: var(--fg-dim);
+  align-content: center;
 }

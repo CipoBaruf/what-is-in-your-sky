@@ -44,6 +44,7 @@ import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { TimeTaps } from '../components/live/TimeTaps';
 import { TimeTrack, type TimeTrackProps } from '../components/live/TimeTrack';
+import { orientationApiPresent } from '../components/live/compassHeading';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePageShape } from '../components/live/usePageShape';
 import { usePlayback } from '../components/live/usePlayback';
@@ -53,7 +54,7 @@ import { useStarSource } from '../components/live/useStarSource';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
 import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
-import { SkyScreen } from '../components/screen/SkyScreen';
+import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
@@ -127,14 +128,22 @@ import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type 
  * passes and decides once: a visible pass up now keeps real time; otherwise a
  * card over the sky asks — `[ see next pass ]` lands a minute before the first
  * visible rise and plays (paused under reduced motion), `[ see now ]` stays —
- * and never when the reader moved first. `Esc` takes the screen, the card,
- * the sheet and then the page, in that order.
+ * and never when the reader moved first. `Esc` takes the card, the sheet and
+ * then the page, in that order.
  *
  * **The sheet (R150: FR-GYRO-7, FR-GYRO-8, FR-GYRO-10; D-947..D-951).** The
  * sheet is a bottom sheet in both shapes and closes on its `×`, a swipe down,
  * `[ controls ]` or `Esc`; a tap on the sky with it open is the sky's. It ends
  * with the satellites: "Satellites (n)" with the hidden toggle at its end and
  * the list open under it, in place of `[ list (n) ]`.
+ *
+ * **Following the phone (R152: FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, FR-GYRO-6;
+ * D-943..D-945).** Where the phone has the sensor, `[ follow the phone ]`
+ * stands in the sheet after the view row (compact) and in the rail's `View`
+ * group (wide); on, the page's own window takes the sensor, and a drag or a
+ * box key hands it back (`onFollowEnd`). The state is this page's, off on
+ * every visit. The sky screen the view control used to open is gone, with the
+ * `Esc` step and the inert top row it had.
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
@@ -164,29 +173,16 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   /*
    * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
    *
-   * R64 (FR-FSC-2, D-321): with the sky screen up, Esc closes the screen and
-   * stops — the branch is here, in the page's one listener, rather than in a
-   * second listener racing this one for the same key. R66 (D-351): what closes
-   * it is the store's own flag, since the screen is no longer this page's to
-   * own; leaving the page closes it too, on the way out.
-   */
-  const screenOpen = useAppStore((s) => s.skyScreen);
-  const closeSkyScreen = useAppStore((s) => s.closeSkyScreen);
-  /*
-   * R148 (FR-FULL-5, FR-FULL-10; D-927): `Esc` in four steps, in this one listener — the sky screen up closes it;
-   * else the card up is answered as `[ see now ]`; else the open sheet closes; else the page is left. The two
-   * middle steps are the sky page's state (`LiveSky`, which is mounted only with a sky to draw), read through
-   * `escRef`: it answers `true` when it took the key.
+   * R148 (FR-FULL-5, FR-FULL-10; D-927) → R152 (FR-GYRO-6, D-945): `Esc` in three steps, in this one listener —
+   * the card up is answered as `[ see now ]`; else the open sheet closes; else the page is left. (R64's first
+   * step, the sky screen, went with the screen.) The two first steps are the sky page's state (`LiveSky`, which
+   * is mounted only with a sky to draw), read through `escRef`: it answers `true` when it took the key.
    */
   const escRef = useRef<() => boolean>(() => false);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
-      if (screenOpen) {
-        closeSkyScreen();
-        return;
-      }
       if (escRef.current()) return;
       onLeave();
     };
@@ -194,19 +190,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [onLeave, screenOpen, closeSkyScreen]);
-  // FR-FSC-2: leaving the live page by any route closes the screen; the ref is the last committed answer, so the
-  // cleanup that runs on unmount reads it without depending on it.
-  const openRef = useRef(screenOpen);
-  useEffect(() => {
-    openRef.current = screenOpen;
-  }, [screenOpen]);
-  useEffect(
-    () => () => {
-      if (openRef.current) closeSkyScreen();
-    },
-    [closeSkyScreen],
-  );
+  }, [onLeave]);
 
   const passes = useAppStore((s) => s.passes);
   const retryElements = useAppStore((s) => s.retryElements);
@@ -226,7 +210,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
 
   if (state !== 'sky' || observer === null) {
     return (
-      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null} top={<TopRow place={observer?.label ?? null} screenOpen={screenOpen} onLeave={onLeave} />}>
+      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null} top={<TopRow place={observer?.label ?? null} onLeave={onLeave} />}>
         <div className={styles.inert} data-testid="live-inert" data-inert={state}>
           {state === 'no-place' && (
             <>
@@ -319,19 +303,16 @@ function Page({ state, wakeLock, fold, placement, shape = 'portrait', form = 'ro
  * R148, R149 (FR-FULL-2, D-934): the compact page with a place has `SkyHead` over the sky in its stead, so on compact
  * this row is the inert page's alone; the mark and the state indicator it carried on compact (R77, R144) left with it.
  */
-function TopRow({ place, screenOpen, onLeave }: { place: string | null; screenOpen: boolean; onLeave: () => void }) {
+function TopRow({ place, onLeave }: { place: string | null; onLeave: () => void }) {
   return (
     /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment note head the page under this row,
        R87's components as home mounts them; empty, the strip is not drawn and the area is the row alone. */
     <div className={styles.topArea} data-testid="live-top-area">
-      {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
-          the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
-          the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
-      <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+      <div className={styles.topRow} data-testid="live-top-row">
         {/* R85 (FR-COMP-7, D-549): `[ ← ]`, named by the word it no longer draws, is the header's on every sub-page now. */}
         <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} />
       </div>
-      {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
+      <PageNotices kinds={LIVE_NOTES} />
     </div>
   );
 }
@@ -506,11 +487,23 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
   /*
-   * D-789 (R121 review): the window in the box is this page's, not its chart's. The page mounts no chart at all
-   * while the sky screen is up, so the hand camera's facing is held here, where a turn of the phone, a trip to the
-   * screen and back, or the screen opened from `[ hold up to the sky ]` keep it (FR-FLOW-15).
+   * D-789 (R121 review): the window in the box is this page's, not its chart's, so the hand camera's facing is held
+   * here, where a turn of the phone keeps it (FR-FLOW-15).
    */
   const chartHand = useChartHand();
+  /*
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether the page's own window follows the phone. Page
+   * state, off on every visit and never saved; the toggle turns it on after the grant, and the window turns it off
+   * when the finger takes the sky back (`onFollowEnd`). The toggle is drawn only where the sensor is (`sensor`,
+   * FR-WIN-4's presence test, asked once at mount as `FollowToggle` itself asks it), so a page without one has no
+   * row for it at all.
+   */
+  const [following, setFollowing] = useState(false);
+  const endFollow = useCallback(() => {
+    setFollowing(false);
+  }, []);
+  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
+  const followToggle = sensor ? <FollowToggle on={following} onChange={setFollowing} /> : null;
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -694,25 +687,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);
-  /*
-   * R66 (FR-FSC-1, FR-FSC-6; V13-6, D-350, D-351): the screen is opened from the chart's own view control and
-   * held in the store, so what this page needs is the one flag that says whether it is drawn at all. The page
-   * still decides everything *around* the layer: the inert header, `Esc`, the hidden objects, and closing on
-   * the way out.
-   */
-  const screenOpen = useAppStore((s) => s.skyScreen);
-  const closeScreen = useAppStore((s) => s.closeSkyScreen);
-  /*
-   * R144 (FR-FSC-2, D-914): the corner picker's open state is the page's, not the layout's, since the layout is not
-   * mounted while the screen is up: the screen is opened from `[ hold up to the sky ]` inside the open picker, and
-   * the `×` gives focus back to that control, which is only there if the row comes back open.
-   */
+  // R144 (FR-FSC-2, D-914): the corner picker's open state is the page's, not the layout's, so a turn of the phone keeps it.
   const [pickerOpen, setPickerOpen] = useState(false);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
-  // FR-FSC-5 (D-325): held off the sky screen at the hook — while it is up the worker is not asked at all, so
-  // no `computeAt` message leaves the page and there is nothing dimmed for the screen to draw even by accident.
   // R77 (FR-WATCH-4, V20-8): the toggle's saved state applies in both states wherever the control stands.
-  const hiddenState = useHiddenObjects(observer, shown, liveHidden && !screenOpen);
+  const hiddenState = useHiddenObjects(observer, shown, liveHidden);
   const hidden = useMemo(
     () => hiddenMarkers(hiddenState, drawnAt(passes, shown), (name, reason) => t.live.hiddenLabel({ name, reason: t.live.hiddenReason[reason] })),
     [hiddenState, passes, shown, t],
@@ -721,12 +700,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
-  /*
-   * R66 (FR-FSC-8, FR-WIN-6 and FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen shows *this* instant.
-   * The layer replaces the page's grid with every hook still mounted, so `usePlayback` keeps its interval and
-   * the screen advances at the page's own speed; closing gives the page back at the instant playback has
-   * reached, which is `shown` and needs no restore.
-   */
   // R48 (FR-TRAJ-1, FR-TRAJ-3, D-189): each pass carries the state its arc is drawn in at the shown instant; the
   // legend reads the same value. Memoised on the states, not the instant, so a frame that changes no state remakes nothing.
   const arcs = arcKey(passes, shown);
@@ -734,13 +707,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   /*
    * R71 (FR-LEG-7, D-387, D-388): the compact page's legend control and what it says. `n` is the rows
    * `lib/legend.ts` derives from the props the chart is given — the drawn passes, and the FR-LIVE-6 markers
-   * where they are shown — and not the Sun and Moon lines (OQ-26). The open state is the store's, so it
-   * survives a reload (`prefs.liveLegendOpen`).
-   *
-   * R77 (FR-WATCH-4, V20-8): on compact the control is on the watching row only — the scrubbing row gives its
-   * cells to `[ back to live ]` and the hidden-objects toggle — but the panel is the legend, which scrubbing
-   * renders as watching does ("everything watching renders except the next-event block"): a list opened while
-   * watching stays open through the scrub, with the arcs' states in it, and closes from the watching row.
+   * where they are shown — and not the Sun and Moon lines (OQ-26). R150 (D-954): the panel is always open at the
+   * sheet's end, and R152 took the `liveLegendOpen` pref out of the store with nothing reading it.
    */
   const legendRowsNow = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }), [chartPasses, shown, hidden]);
   const legendCount = legendRowsNow.length;
@@ -911,18 +879,12 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   );
 
   /*
-   * FR-FSC-1 (D-321): while the control holds, the layer is what this page draws. The page's own hooks are
-   * all above this line and stay mounted — the passes and the stored set, playback and the `now` effect, the
-   * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
-   * grid is not built. The one-row header is left mounted and covered, `inert` (FR-FSC-1).
-   */
-  /*
    * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
    * leaves it, measured here in whole text rows; no times header takes one of them (D-863). R132 (D-864): the
    * legend is the layout's `list` slot now, so the budget is that slot's height less the conditions line under it.
    */
-  const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
+  const inventoryRows = useInventoryRows(!compact && placement === 'overlay', domeRef);
   const legendInventory = useMemo<LegendInventory | null>(
     () =>
       inventoryRows === null
@@ -934,16 +896,15 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * R148 (FR-FULL-2, FR-FLOW-3 as amended v2.8; D-920, D-934): on compact the top row and the mark leave the page.
    * The head over the sky — `[ ← ]` and the shown time on the 1 s clock — is the page's banner still (FR-A11Y-1,
    * F-71), fixed at the box's top-left inside the safe area by `Live.module.css`, with R89's link notes under it;
-   * the page's name and the place are the `h1`, visually hidden. While the sky screen is up it is covered and inert,
-   * as the top row was (FR-FSC-1). Wide keeps R129's top row.
+   * the page's name and the place are the `h1`, visually hidden. Wide keeps R129's top row.
    */
   const top = compact ? (
-    <div className={styles.fullTop} data-testid="live-top-area" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+    <div className={styles.fullTop} data-testid="live-top-area">
       <ClockedHead {...shownTimeProps} onBack={onLeave} />
-      {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
+      <PageNotices kinds={LIVE_NOTES} />
     </div>
   ) : (
-    <TopRow place={observer.label} screenOpen={screenOpen} onLeave={onLeave} />
+    <TopRow place={observer.label} onLeave={onLeave} />
   );
   const page = (children: ReactNode): ReactNode => (
     <SecondClock clockRef={clockRef}>
@@ -965,8 +926,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * it, D-904's corner moved into the sheet. The chart portals both parts into the page's slots; the picker's slot is
    * on the page only while the row is open, so the chart places its facing row there on the tap and nowhere before
    * it. A pick — one of the row's options — closes it, read off the DOM, since a portal's events bubble through the
-   * chart's tree and not through this row (D-904); `[ hold up to the sky ]` beside the points leaves it open. On
-   * the dome, which has no picker, the readout stands alone.
+   * chart's tree and not through this row (D-904). On the dome, which has no picker, the readout stands alone.
    */
   const facingLabelId = useId();
   const facingPickerId = useId();
@@ -1008,10 +968,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       )}
     </div>
   );
-  if (screenOpen) {
-    return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} scene={scene} initialFacingAzDeg={0} onClose={closeScreen} />);
-  }
-
   /*
    * R132 (FR-FLOW-4, FR-FLOW-6; D-842, D-846, D-848): the page is `SkyViewLayout`'s slots, at every width and
    * shape — the layout is what knows whether it is the column, the box beside the rail, or the landscape phone.
@@ -1054,10 +1010,12 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       {context}
     </div>
   );
+  // R152 (FR-GYRO-1, D-944): on wide `[ follow the phone ]` is the rail's `View` group's second line, after `[x] stars`.
   const viewRow = (
     <>
       <SkyViewChartSlot name="control" />
-      <StarsToggle />
+      <StarsToggle {...(compact ? {} : { className: styles.viewEnd })} />
+      {!compact && sensor && <FollowToggle on={following} onChange={setFollowing} className={styles.followWide} />}
     </>
   );
   const list = (
@@ -1103,6 +1061,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             chartHand={chartHand}
             scene={scene}
             facingPassId={highlighted?.id ?? null}
+            follow={following}
+            onFollowEnd={endFollow}
             {...(compact ? {} : { stacked: true, measureBox: true })}
           />
         </LegendInventoryContext.Provider>
@@ -1114,8 +1074,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * screen, and over it the overlay (the card while it asks, the hint until the first gesture) and the sheet slot
    * (`[ controls ]` at the bottom-right, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
    * context line; the track and the taps; the view row; the facing row; `[ Share ]`; and (R150, FR-GYRO-10, D-949)
-   * the satellites, open, under their heading with the hidden toggle at its end. R152's `[ follow the phone ]` row
-   * goes between the view row and the facing row (FR-GYRO-10). They stay mounted while the sheet is closed, inert (D-932), so a turn of the phone keeps every state.
+   * the satellites, open, under their heading with the hidden toggle at its end; R152's `[ follow the phone ]` row
+   * stands between the view row and the facing row where the phone has the sensor (FR-GYRO-1, FR-GYRO-10). They
+   * stay mounted while the sheet is closed, inert (D-932), so a turn of the phone keeps every state.
    * The hint stands on the button's row where both fit in 36 cells and in the row above it otherwise (D-924).
    */
   if (compact) {
@@ -1140,7 +1101,14 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         <div className={styles.viewRow} data-testid="live-view-row" data-rhythm="group">
           {viewRow}
         </div>
-        {facing}
+        {followToggle !== null && (
+          <div className={styles.followRow} data-testid="live-follow" data-rhythm="group">
+            {followToggle}
+          </div>
+        )}
+        {/* R152 (FR-GYRO-5, D-957): while following the facing row is not drawn — its readout is not (nothing describes the
+            sensor's view) and a pick by hand would fight the sensor; it is back, where the phone last pointed, when following ends. */}
+        {!following && facing}
         {actions}
         <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
           <div className={styles.satellitesHead} data-testid="live-satellites-head">

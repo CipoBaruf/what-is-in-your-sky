@@ -6,29 +6,24 @@
  * names, markers and key placed and marked in or out of view; the Sun, the
  * Moon and the hidden objects; the arc states; and, through `SkyChart`, the
  * refusal's note with the dome as the view and the compass-less phone losing
- * the option.
+ * the option. R152 (FR-GYRO-6): the sky screen's cases — the overlays, the
+ * gutter, the chip, the upright rows — went with the screen; the following
+ * window is `SkyWindow.follow.test.tsx`'s.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
-import { stubMatchMedia, type MatchMediaStub } from '../../../../../../tests/support/matchMedia';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import { en } from '../../../../../i18n/en';
 import { es } from '../../../../../i18n/es';
 import { I18nProvider } from '../../../../../i18n/useT';
 import type { Observer } from '../../../../../model';
 import { appStore } from '../../../../../state';
-import { ScreenTurnProvider } from '../../../screen/screenTurn';
-import { SkyChart } from '../SkyChart';
 import type { HiddenMarker } from '../SkyChart.types';
 import { createHandCamera, SENSOR_CAMERA } from './camera';
 import { requestOrientationAccess, resetOrientationAccess } from './orientationAccess';
-import { turnTo } from './gutter';
 import * as projection from './projection';
 import type { StarField as StarFieldData } from './scene';
-import type { Quarter } from './screenTurn';
 import { placeholderAltDeg, SkyWindow } from './SkyWindow';
 import { StarField } from './StarField';
 
@@ -91,32 +86,6 @@ const flush = async (): Promise<void> => {
 const aim = (azDeg: number, altDeg: number): { alpha: number; beta: number } => ({ alpha: (360 - azDeg) % 360, beta: 90 + altDeg });
 
 const inView = (el: Element | null): boolean => el?.getAttribute('data-in-view') === 'true';
-
-/**
- * R73 (D-427): the measured box. jsdom measures nothing, so the window falls
- * back to its square `UNMEASURED`; this is the `ResizeObserver` reporting one
- * size the moment it is asked to observe, which is what a real layout does
- * before the first paint. It is the box and not the viewport that decides the
- * field, the ground states and the advice now, so a test that wants an upright
- * picture asks for an upright box.
- */
-function stubBox(width: number, height: number): void {
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      constructor(private readonly callback: ResizeObserverCallback) {}
-      observe(): void {
-        this.callback([{ contentRect: { width, height } } as ResizeObserverEntry], this as unknown as ResizeObserver);
-      }
-      unobserve(): void {
-        /* nothing to detach */
-      }
-      disconnect(): void {
-        /* nothing to detach */
-      }
-    },
-  );
-}
 
 /** Is the point inside the closed `M … L … Z` polygon? A ray cast to the right, for the ground clip (R56). */
 function encloses(d: string, x: number, y: number): boolean {
@@ -451,399 +420,11 @@ describe('<SkyWindow>', () => {
       expect(wrapper(container)).toHaveAttribute('data-state', 'on');
     });
 
-    /**
-     * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12): the window is a saved view on a phone too, and the permission
-     * is asked for by `[ hold up to the sky ]` beside its picker, never by the view option.
-     */
-    it('through SkyChart: a refusal at [ hold up to the sky ] keeps the page on the window with the note; a compass-less phone keeps the option too', async () => {
-      const frame = scriptedFrames();
-      withPhone(() => Promise.resolve('denied'));
-      appStore.getState().setChartView('window');
-      render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      const figure = screen.getByRole('figure');
-      const toggle = screen.getByRole('group', { name: 'Chart view' });
-      fireEvent.click(await screen.findByTestId('window-hold-up'));
-      await flush();
-      // FR-FOL-2: nothing opened, the page is on the view it was on, and the note says why.
-      expect(appStore.getState().skyScreen).toBe(false);
-      expect(figure).toHaveAttribute('data-view', 'window');
-      expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
-      expect(appStore.getState().chartView).toBe('window');
-      expect(within(toggle).getByRole('button', { name: 'Window' })).toBeInTheDocument();
-      // Choosing another view clears the note.
-      fireEvent.click(within(toggle).getByRole('button', { name: 'Polar' }));
-      expect(screen.queryByTestId('chart-view-note')).toBeNull();
-
-      // A phone with no north in its readings: the note, no screen, and (FR-WIN-4 as amended v2.5) the option kept.
-      withPhone();
-      resetOrientationAccess();
-      fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
-      expect(appStore.getState().skyScreen).toBe(false);
-      fireEvent.click(await screen.findByTestId('window-hold-up'));
-      reading({ alpha: 30, beta: 90, absolute: false });
-      frame();
-      expect(appStore.getState().skyScreen).toBe(false);
-      expect(figure).toHaveAttribute('data-view', 'window');
-      expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
-      expect(appStore.getState().windowLost).toBe(true);
-      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'window' });
-    });
-
-    it('asks for the permission inside the tap on [ hold up to the sky ], not on the view option (FR-WIN-4), and opens the screen on the first reading', async () => {
-      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
-      withPhone(requestPermission);
-      appStore.getState().setChartView('dome');
-      render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      fireEvent.click(within(screen.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Window' }));
-      expect(requestPermission).not.toHaveBeenCalled();
-      fireEvent.click(await screen.findByTestId('window-hold-up'));
-      expect(requestPermission).toHaveBeenCalledTimes(1);
-      // Granted, but not yet open: the reading with a heading is what decides (F-42, D-350).
-      await flush();
-      expect(appStore.getState().skyScreen).toBe(false);
-      expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
-      reading({ alpha: 30, beta: 90, absolute: true });
-      expect(appStore.getState().skyScreen).toBe(true);
-      // One prompt in total: the window the screen mounts inherits the grant (D-350).
-      expect(requestPermission).toHaveBeenCalledTimes(1);
-    });
   });
 
-  /**
-   * R63 (FR-FSC-1; US-21 AC11; D-323) and R73 (FR-FSC-4 as rewritten,
-   * FR-FSC-10, FR-FSC-11; US-21 AC12 as amended, AC15; D-427, D-428, D-429):
-   * the window on the sky screen. `screen` reaches `SkyChartProps` with R62,
-   * so the tests ask for it the way the component reads it — through a cast —
-   * and the screen's own layout (the overlays, the `×`, the turned layer) is
-   * `SkyScreen.test.tsx`'s to test.
-   *
-   * What R73 deleted was the veil: held upright the box was one note with no
-   * drawing in it, which on a rotation-locked phone was the whole screen and
-   * the reader's only move was a system setting the app has no business asking
-   * for. These assert the opposite, so they fail on `origin/main`.
-   */
-  describe('on the sky screen (FR-FSC-4 as rewritten)', () => {
-    /** D-322's prop, before the type carries it. */
-    const asScreen = { screen: true } as { screen?: boolean };
-    const legend = <p data-testid="window-legend">A · ISS</p>;
-    const viewControl = <span data-testid="view-control">Chart view</span>;
-    /** 844 × 390 is the sky screen's landscape phone (D-326); 390 × 844 the same phone upright. */
-    const LANDSCAPE = [844, 390] as const;
-    const PORTRAIT = [390, 844] as const;
-    let media: MatchMediaStub | null = null;
 
-    afterEach(() => {
-      media?.restore();
-      media = null;
-    });
-
-    const paint = (container: HTMLElement): number => container.querySelectorAll('[data-drawing="window"] *').length;
-
-    it('held upright lays out the readout, the next event with the advice on its peak line, the band, the legend and the gutter (FR-GUT-7)', () => {
-      // The viewport says landscape and the box is upright: on a rotation-locked phone that is the true pair,
-      // and D-427 makes the box the one that is believed.
-      media = stubMatchMedia(...LANDSCAPE);
-      stubBox(...PORTRAIT);
-      const detach = vi.spyOn(window, 'removeEventListener');
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={pass.start.t - 60_000} legend={legend} controls={viewControl} legendKeys={{ [pass.id]: 'A' }} />);
-      const w = wrapper(container);
-      expect(w).toHaveAttribute('data-orientation', 'portrait');
-      // D-451: the frame lays out upright from the same reading — five rows, in order, the `×`'s overlay over them.
-      const frameEl = screen.getByTestId('chart-frame');
-      expect(frameEl).toHaveAttribute('data-orientation', 'portrait');
-      expect([...frameEl.children].map((el) => el.getAttribute('data-row')).filter(Boolean)).toEqual(['readout', 'headline', 'band', 'legend', 'gutter']);
-
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      expect(w).toHaveAttribute('data-state', 'on');
-
-      // FR-FSC-4: the drawing, the readout and the legend are all there upright — nothing waits for the turn.
-      expect(paint(container)).toBeGreaterThan(0);
-      expect(container.querySelector(`[data-pass-id="${pass.id}"] [data-marker]`)).not.toBeNull();
-      expect(container.querySelector('[data-horizon]')?.getAttribute('d')).toMatch(/^M/);
-      expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
-      expect(screen.getByTestId('window-readout')).toHaveTextContent('Facing');
-      expect(screen.getByTestId('window-legend')).toBeInTheDocument();
-      expect(screen.getByTestId('chart-legend-slot')).toBeInTheDocument();
-      expect(screen.queryByTestId('window-gate')).toBeNull();
-
-      // FR-GUT-7 (D-451): the advice is secondary copy under the countdown's block — not a note over the picture,
-      // and not spoken as a status. FR-FSC-11's `role="status"` line is gone. R81 (D-508) re-cut the block to the
-      // countdown label, the time and the path line, which names the pass.
-      expect(screen.queryByTestId('window-turn-note')).toBeNull();
-      const headline = screen.getByTestId('window-headline');
-      expect(within(headline).getByTestId('next-event-label')).toBeInTheDocument();
-      const peakLine = within(headline).getByTestId('next-event-path');
-      expect(peakLine).toHaveTextContent('ISS (Zarya)');
-      const advice = within(headline).getByTestId('window-turn-advice');
-      expect(advice).toHaveTextContent(en.window.turnAdvice);
-      expect(advice).not.toHaveAttribute('role');
-      expect(peakLine.compareDocumentPosition(advice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(screen.getByTestId('chart-box')).not.toContainElement(advice);
-      expect(screen.queryByTestId('window-ground-note')).toBeNull();
-      expect(screen.getByTestId('chart-gutter-slot')).toContainElement(screen.getByTestId('compass-gutter'));
-
-      // FR-FOL-2: nothing detached the sensor, so nothing has to be asked again on the turn.
-      const dropped = detach.mock.calls.filter(([type]) => String(type).startsWith('deviceorientation'));
-      expect(dropped).toEqual([]);
-    });
-
-    it('drops the advice and the legend for the gutter once the box is wide, whatever the viewport says (FR-GUT-1, D-451)', () => {
-      // The other true pair on a locked phone: a portrait viewport with a box the turned layer made wide.
-      media = stubMatchMedia(...PORTRAIT);
-      stubBox(...LANDSCAPE);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} legend={legend} legendKeys={{ [pass.id]: 'A' }} />);
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      expect(wrapper(container)).toHaveAttribute('data-orientation', 'landscape');
-      expect(screen.queryByTestId('window-turn-advice')).toBeNull();
-      expect(screen.queryByTestId('window-headline')).toBeNull();
-      // FR-GUT-1: sideways the bottom slot is the gutter, and the legend strip is not rendered at all.
-      expect(screen.getByTestId('chart-gutter-slot')).toContainElement(screen.getByTestId('compass-gutter'));
-      expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
-      expect(screen.queryByTestId('window-legend')).toBeNull();
-      expect(paint(container)).toBeGreaterThan(0);
-      expect(screen.getByTestId('window-readout')).toBeInTheDocument();
-    });
-
-    it('reports the quarter it read from the pose, once per turn of the hand (FR-FSC-10, D-429)', () => {
-      stubBox(...PORTRAIT);
-      const frame = scriptedFrames();
-      const reported: Quarter[] = [];
-      const report = (quarter: Quarter): void => {
-        reported.push(quarter);
-      };
-      render(
-        <ScreenTurnProvider value={{ quarter: 0, report }}>
-          <SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />
-        </ScreenTurnProvider>,
-      );
-      // Before the first reading the browser's own angle stands, so the layer turns by nothing.
-      expect(reported).toEqual([0]);
-
-      // The phone held sideways, its top to the reader's left: the pose is a quarter the viewport never reported.
-      reading({ alpha: 0, beta: 0, gamma: -90 });
-      frame();
-      settle(frame);
-      expect(reported.at(-1)).toBe(90);
-      // Forty settling frames, one report: the quarter is a thing that changes when a hand turns.
-      expect(reported).toEqual([0, 90]);
-
-      // Back upright, and back to 0.
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      expect(reported.at(-1)).toBe(0);
-    });
-
-    it('reports nothing and turns nothing off a screen, where there is no provider at all', () => {
-      stubBox(...PORTRAIT);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      reading({ alpha: 0, beta: 0, gamma: -90 });
-      frame();
-      settle(frame);
-      // No provider, no throw, no advice, no gutter, and the projection is still the browser's own angle (D-425).
-      expect(screen.queryByTestId('window-turn-advice')).toBeNull();
-      expect(screen.queryByTestId('compass-gutter')).toBeNull();
-      expect(paint(container)).toBeGreaterThan(0);
-    });
-
-    it('says the advice in Spanish', () => {
-      stubBox(...PORTRAIT);
-      render(
-        <I18nProvider locale="es">
-          <SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />
-        </I18nProvider>,
-      );
-      expect(screen.getByTestId('window-turn-advice')).toHaveTextContent(es.window.turnAdvice);
-      expect(es.window.turnAdvice).not.toBe(en.window.turnAdvice);
-    });
-
-    it('keeps the ground note the only line over the drawing upright, the advice staying on the peak line (FR-GUT-7, FR-FOL-5)', () => {
-      stubBox(...PORTRAIT);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={pass.start.t + 1_000} />);
-      const box = screen.getByTestId('chart-box');
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      expect(within(box).queryAllByRole('status')).toEqual([]);
-
-      // Pointed below the horizon: the ground note is the line over the drawing, and it is the only one.
-      reading(aim(pass.peak.azDeg, -20));
-      frame();
-      settle(frame);
-      expect(wrapper(container)).toHaveAttribute('data-ground', 'ground');
-      expect(within(box).getAllByRole('status')).toEqual([screen.getByTestId('window-ground-note')]);
-      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.ground);
-      expect(screen.getByTestId('window-turn-advice')).toBeInTheDocument();
-
-      // Raising the phone takes the note away with no tap.
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      expect(screen.queryByTestId('window-ground-note')).toBeNull();
-    });
-
-    it('sweeps the ground states in an upright box too, which D-323 had made landscape-only (FR-FOL-5)', () => {
-      stubBox(...PORTRAIT);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      const w = wrapper(container);
-      const states: (string | null)[] = [];
-      for (let altDeg = 80; altDeg >= -80; altDeg -= 5) {
-        reading(aim(pass.peak.azDeg, altDeg));
-        frame();
-        settle(frame);
-        states.push(w.getAttribute('data-ground'));
-      }
-      expect(states.filter((state, index) => state !== states[index - 1])).toEqual(['sky', 'ground', 'buried']);
-      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.buried);
-      expect(container.querySelector('[data-ground-veil="buried"]')).not.toBeNull();
-    });
-
-    it('sweeps the ground states in landscape as R56 left them (FR-FOL-5)', () => {
-      media = stubMatchMedia(...LANDSCAPE);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      const w = wrapper(container);
-      const states: (string | null)[] = [];
-      for (let altDeg = 80; altDeg >= -80; altDeg -= 5) {
-        reading(aim(pass.peak.azDeg, altDeg));
-        frame();
-        settle(frame);
-        states.push(w.getAttribute('data-ground'));
-      }
-      expect(states.filter((state, index) => state !== states[index - 1])).toEqual(['sky', 'ground', 'buried']);
-      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.buried);
-    });
-
-    it('shows no [ point at the sky ] anywhere, and asks for nothing itself (FR-WIN-5 as amended v1.3.1, FR-FOL-2)', () => {
-      media = stubMatchMedia(...LANDSCAPE);
-      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
-      withPhone(requestPermission);
-      const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      expect(within(onScreenBox).queryByTestId('window-gate')).toBeNull();
-      expect(requestPermission).not.toHaveBeenCalled();
-
-      // R66 (V13-8): off a screen either — the gate is gone with the saved view it guarded.
-      const { container: page } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      expect(within(page).queryByTestId('window-gate')).toBeNull();
-      expect(requestPermission).not.toHaveBeenCalled();
-    });
-
-    it('carries no view control and no hint; the pass detail’s window carries both', () => {
-      media = stubMatchMedia(...LANDSCAPE);
-      const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} controls={viewControl} />);
-      expect(within(onScreenBox).queryByTestId('view-control')).toBeNull();
-      expect(within(onScreenBox).queryByText(en.window.hint)).toBeNull();
-
-      const { container: page } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} controls={viewControl} />);
-      expect(within(page).getByTestId('view-control')).toBeInTheDocument();
-      expect(within(page).getByText(en.window.hint)).toBeInTheDocument();
-    });
-
-    /** R79 (FR-GUT-6, US-28 AC4): one line over an empty field, never over a ground note, gone when a pass is in the field. */
-    describe('the empty-field chip (FR-GUT-6)', () => {
-      const before = pass.start.t - 60_000;
-      // The golden pass is a short low arc in the north-east; facing west-south-west, nothing of it is in the field.
-      const away = (pass.start.azDeg + 210) % 360;
-
-      it('names the next pass, the shorter turn to where it rises and the countdown, and goes when the pass is in the field', () => {
-        stubBox(...LANDSCAPE);
-        const frame = scriptedFrames();
-        render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={before} legendKeys={{ [pass.id]: 'A' }} />);
-        reading(aim(pass.peak.azDeg, 20));
-        frame();
-        settle(frame);
-        expect(screen.queryByTestId('window-chip')).toBeNull();
-
-        reading(aim(away, 20));
-        frame();
-        settle(frame);
-        const chip = screen.getByTestId('window-chip');
-        expect(chip).toHaveAttribute('role', 'status');
-        expect(chip.textContent).toMatch(/^Nothing in this part of the sky\. ISS \(Zarya\) is \d+° (left|right), up in 1:00\.$/);
-        const [, angle, side] = /is (\d+)° (left|right)/.exec(chip.textContent ?? '') ?? [];
-        const turn = turnTo(pass.start.azDeg, away);
-        expect(side).toBe(turn.side);
-        expect(Math.abs(Number(angle) - turn.angleDeg)).toBeLessThanOrEqual(1);
-        // The gutter says the same thing: the pass is off the band, at the end the chip turns towards.
-        expect(screen.getByTestId('compass-gutter').querySelector(`[data-edge="${turn.side}"]`)).toHaveTextContent('A');
-
-        // Turning back brings the pass into the field, and the chip goes with no tap.
-        reading(aim(pass.peak.azDeg, 20));
-        frame();
-        settle(frame);
-        expect(screen.queryByTestId('window-chip')).toBeNull();
-      });
-
-      it('is never drawn over a ground note', () => {
-        stubBox(...LANDSCAPE);
-        const frame = scriptedFrames();
-        render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={before} />);
-        reading(aim(away, -20));
-        frame();
-        settle(frame);
-        expect(screen.getByTestId('window-ground-note')).toBeInTheDocument();
-        expect(screen.queryByTestId('window-chip')).toBeNull();
-      });
-
-      it('names no direction with nothing in the span, and speaks Spanish', () => {
-        stubBox(...LANDSCAPE);
-        const { unmount } = render(<SkyWindow {...asScreen} fill passes={[]} observer={observer} highlightedPassId={null} now={before} />);
-        expect(screen.getByTestId('window-chip')).toHaveTextContent(en.window.emptySky);
-        unmount();
-        render(
-          <I18nProvider locale="es">
-            <SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={before} initialFacingAzDeg={away} />
-          </I18nProvider>,
-        );
-        expect(screen.getByTestId('window-chip').textContent).toMatch(/^Nada en esta parte del cielo\. ISS \(Zarya\) está \d+° a la (izquierda|derecha), sale en 1:00\.$/);
-      });
-
-      it('is the screen’s: the pass detail’s window off a screen has none', () => {
-        stubBox(...LANDSCAPE);
-        render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} now={before} initialFacingAzDeg={away} />);
-        expect(screen.queryByTestId('window-chip')).toBeNull();
-      });
-    });
-
-    it('leaves the window without `screen` drawing in portrait, as R47 built it', () => {
-      media = stubMatchMedia(...PORTRAIT);
-      stubBox(...PORTRAIT);
-      const frame = scriptedFrames();
-      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} legend={legend} legendKeys={{ [pass.id]: 'A' }} />);
-      reading(aim(pass.peak.azDeg, 20));
-      frame();
-      settle(frame);
-      const w = wrapper(container);
-      expect(w).not.toHaveAttribute('data-orientation');
-      // FR-GUT-7 is the screen's: the pass detail's window is a box in a sheet, not the picture in the hand.
-      expect(screen.queryByTestId('window-turn-advice')).toBeNull();
-      expect(screen.queryByTestId('compass-gutter')).toBeNull();
-      expect(paint(container)).toBeGreaterThan(0);
-      expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
-      expect(screen.getByTestId('window-readout')).toBeInTheDocument();
-      expect(screen.getByTestId('window-legend')).toBeInTheDocument();
-    });
-  });
 });
 
-/**
- * R73 → R79: where the notes stand on a screen. Sideways the bottom of the box
- * is the compass gutter, `--gutter` over the drawing (FR-GUT-1), and the notes'
- * own place — `bottom: var(--row)` — is inside it, so on a sideways screen
- * they clear it by half a row. Upright the gutter is a row of its own under
- * the band and the box's bottom is free. jsdom applies none of this, so the
- * rule is read rather than measured, as `SkyScreen.test.tsx` reads the
- * layer's own two.
- */
 /** A two-star field with one figure, in the catalogue's columns (D-748, D-749), as the stars page would hand it. */
 const field: StarFieldData = {
   catalog: { ra: [88.8, 78.6], dec: [7.4, -8.2], mag: [0.5, 0.18], name: ['Betelgeuse', 'Rigel'], desig: ['α Ori', 'β Ori'], con: ['Ori', 'Ori'], figures: [{ con: 'Ori', part: '', segments: [[0, 1]] }] },
@@ -1386,17 +967,6 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(withScene.container.innerHTML).toBe(html);
     expect(wrapper(withScene.container)).toHaveAttribute('data-state', 'idle');
     expect(withScene.container.querySelector('[tabindex]')).toBeNull();
-  });
-});
-
-describe('the notes clear the gutter on a screen (FR-GUT-1, FR-GUT-6, FR-FOL-5)', () => {
-  it('stands the chip and the ground note above the gutter sideways, and at their own place otherwise', () => {
-    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/window/SkyWindow.module.css'), 'utf8');
-    expect(css).toMatch(/\.groundNote,\s*\.chip \{\s*bottom: var\(--row\);/);
-    expect(css).toMatch(
-      /\.window\[data-screen='true'\]\[data-orientation='landscape'\] \.groundNote,\s*\.window\[data-screen='true'\]\[data-orientation='landscape'\] \.chip \{\s*bottom: calc\(var\(--gutter\) \+ var\(--row\) \/ 2\);/,
-    );
-    expect(css).not.toContain('.turnNote');
   });
 });
 

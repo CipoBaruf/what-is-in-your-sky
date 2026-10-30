@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
@@ -79,8 +79,13 @@ import { useSkyBodies } from './useSkyBodies';
  * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12, D-876): the compact cases
  * are gone. The window is a view on compact as on wide — chosen, it is saved
  * and laid out in the box — and the default with nothing saved is the window
- * on compact and the dome on wide (`defaultChartView`). The option never
- * opens the screen; `[ hold up to the sky ]` beside the facing picker does.
+ * on compact and the dome on wide (`defaultChartView`).
+ *
+ * R152 (FR-GYRO-2, FR-GYRO-6; D-941, D-945): the sky screen is retired with
+ * `screen`, `overlay`, `inventory` and the store's one-shot refocus. `follow`
+ * is the page's: while it is set this chart shows the window — `setChartView`
+ * is not called, so the saved view is what it was — and hands `follow` and
+ * `onFollowEnd` to the window with the rest of the props.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -117,16 +122,14 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
  * before its chunk arrives, so the fallback's box is already the window's shape and does not jump when it lands.
  */
 function inBox(props: SkyChartProps): boolean {
-  return props.hand !== undefined && props.screen !== true && (props.camera === undefined || props.camera.source === 'hand');
+  return props.hand !== undefined && (props.camera === undefined || props.camera.source === 'hand');
 }
 
 function WindowView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        // R64 (FR-FSC-1, D-321): the screen's chunk loads with the screen's frame, so the follow screen's `×` — the
-        // page's `overlay`, and the one way out of the layer — is in the document from the first frame and not only
-        // once the window has arrived. Off a screen this is R47's fallback unchanged.
+        // R47's fallback: the frame the window will fill, so the box is already its shape when the chunk lands.
         <ChartFrame
           controls={props.controls}
           legend={props.legend}
@@ -135,8 +138,6 @@ function WindowView(props: SkyChartProps) {
           {...(props.measureBox === undefined ? {} : { measureBox: props.measureBox })}
           {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
           {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
-          {...(props.screen === undefined ? {} : { screen: props.screen })}
-          {...(props.overlay === undefined ? {} : { overlay: props.overlay })}
           handWindow={inBox(props)}
           fill={props.fill ?? false}
         >
@@ -173,12 +174,8 @@ function viewFor(id: SkyChartView['id']): SkyChartView {
  * the text alternative (FR-GUIDE-7) — so the figure carries a name instead of
  * a caption, and it fills the box it is given rather than the guide's square.
  *
- * R62 (FR-FSC-1, FR-FSC-3; D-322): `screen` is the sky screen — the window,
- * filling the host, with no caption, no toggle, no controls row and no rails,
- * its readout and its legend overlaid on the drawing by the frame. It is the
- * only way the window is ever mounted since R66 (D-351): the pages render
- * `SkyScreen`, `SkyScreen` renders this chart with `screen`. R136 (D-876):
- * a page lays out any of the three, the window in the box under the hand.
+ * R136 (D-876): a page lays out any of the three, the window in the box under the hand. R152 (FR-GYRO-2, D-941):
+ * with `follow` set the view is the window whatever `chartView` says, and nothing is written.
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
@@ -191,66 +188,47 @@ export function SkyChart(props: SkyChartProps) {
   const note = useAppStore((s) => s.windowNote);
   /*
    * D-789 (R121): the window in the box, under the hand camera. The camera's slot is the page's where it gives one
-   * (`chartHand`), else this chart's own: the dome and back keeps the facing, and on the live page so do a turn of
-   * the phone and a trip to the screen. The window fills the slot in its own chunk.
+   * (`chartHand`), else this chart's own: the dome and back keeps the facing, and on the live page so does a turn of
+   * the phone. The window fills the slot in its own chunk.
    */
   const ownHand = useChartHand();
   const { slot: hand } = props.chartHand ?? ownHand;
-  /*
-   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the control that opened it — since R136 (V26-12)
-   * `[ hold up to the sky ]` beside the facing picker, queried in the picker's slot or the figure. The page's
-   * chart is unmounted while the layer is up and is a new element when it returns, so what says "the screen
-   * just closed" is the store's one-shot flag and not a ref of this component's. Where the control is gone —
-   * the phone has just lost the sensor (FR-WIN-4) — the window's view option takes it, else the first option,
-   * queried wherever the frame has put the control, so focus never falls to the body.
-   */
-  const refocus = useAppStore((s) => s.refocusWindow);
-  const windowRefocused = useAppStore((s) => s.windowRefocused);
   const figureRef = useRef<HTMLElement>(null);
   // R132 (D-842): the control may stand in the page's view row rather than in the figure; the slot says where.
   const controlSlot = useChartSlot('control');
-  const controlTarget = controlSlot.target;
-  const inLayoutForFocus = controlSlot.inLayout;
-  const pickerTarget = useChartSlot('picker').target;
-  useEffect(() => {
-    if (props.screen === true || !refocus) return;
-    // In a layout the option lands in the page's slot a commit after this chart mounts: the flag waits for it.
-    if (inLayoutForFocus && controlTarget === null) return;
-    const group = controlTarget ?? figureRef.current;
-    const holdUp = (pickerTarget ?? figureRef.current)?.querySelector<HTMLElement>('[data-testid="window-hold-up"]');
-    (holdUp ?? group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
-    windowRefocused();
-  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus, pickerTarget]);
-  // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
-  // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
-  const screen = props.screen ?? false;
+  const follow = props.follow ?? false;
   const moonPhase = props.moonPhase ?? false;
   // D-876 (R136): the saved view, else the window on compact and the dome on wide (`defaultChartView`).
   const pageView: ChartView = defaultChartView(mode, chartView);
-  const view = screen ? WINDOW_VIEW : viewFor(pageView);
+  /*
+   * FR-GYRO-2 (D-941, D-957): following, the view is the window and the preference is neither read for it nor
+   * written. Once following has been on, the window stays the view after it ends — "the view becomes the window",
+   * and a drag that ends following hands the finger the window it is on, not the saved dome (FR-GYRO-4) — until
+   * the reader chooses a view; the choice is this chart's own state, so a reload opens on the saved view.
+   */
+  const [becameWindow, setBecameWindow] = useState(follow);
+  if (follow && !becameWindow) setBecameWindow(true);
+  const view = follow || becameWindow ? WINDOW_VIEW : viewFor(pageView);
   /*
    * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
-   * window is laid out in the box under the hand. The screen opens from `[ hold up to the sky ]` alone (V26-12),
-   * so choosing the window asks for no permission; choosing any view clears the note the last refusal left.
+   * window is laid out in the box under the hand. Choosing the window asks for no permission — the follow toggle
+   * does (FR-GYRO-2); choosing any view clears the note the last refusal left, and D-957's hold on the window.
    */
-  const choose = useCallback(
-    (id: ChartView) => {
-      viewFor(id).choose?.();
-      setChartView(id);
-    },
-    [setChartView],
-  );
-  // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
-  // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.
+  const choose = (id: ChartView): void => {
+    viewFor(id).choose?.();
+    setBecameWindow(false);
+    setChartView(id);
+  };
+  // R58 review (D-277) → R66 (D-352): a window that cannot run here leaves the note beside this control; nothing
+  // is written, because the reader chose neither the failure nor a view to fall back to.
   const unavailable = useCallback(
     (reason: 'denied' | 'relative') => {
       dropWindowView(reason);
     },
     [dropWindowView],
   );
-  // D-322: a screen fills what it is given by construction — the page hands the chart the whole viewport.
   const { passes, observer, className, now, hidden, colorBy, onSelectPass } = props;
-  const fill = screen || (props.fill ?? false);
+  const fill = props.fill ?? false;
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
   // never changes where the Sun and the Moon are (R22).
   const bodies = useSkyBodies(props);
@@ -300,11 +278,9 @@ export function SkyChart(props: SkyChartProps) {
   // top of the list, but the table is what the guide is about and stays at its head.
   const leadRow = props.legendLead === undefined ? undefined : rows.find((row) => row.passId === props.highlightedPassId);
   const lead = props.legendLead !== undefined && leadRow !== undefined ? { passId: leadRow.passId, node: props.legendLead(leadRow) } : undefined;
-  // FR-STAR-5: the stars inventory has no pass, so no legend at all.
-  const legend = props.inventory === 'stars' ? null : <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} screen={screen} moonPhase={moonPhase} />;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} moonPhase={moonPhase} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
-  // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.
   const { viewAction } = useContext(ChartFrameSlots);
   /*
    * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the chart draws none of its rows itself. The view
@@ -320,7 +296,7 @@ export function SkyChart(props: SkyChartProps) {
   ) : (
     <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   );
-  const chartControls = screen ? null : (
+  const chartControls = (
     <>
       {/*
        * R66 (FR-COMP-4, US-5 AC2; V13-6, D-358): no visible `View:` on compact. With the window back in
@@ -350,40 +326,29 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
-  // D-322: on a screen the rails are not the chart's to place — there is no stripe row and no side column to
-  // stand one in — so they are dropped here rather than left for the frame to ignore.
-  const { aside, stripe, chartHand: _chartHand, ...bare } = props;
-  const forwarded = screen ? { ...bare, fill: true } : { ...bare, aside, stripe };
+  const { chartHand: _chartHand, ...forwarded } = props;
   // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).
-  const legendPlaced = inLayout && !screen;
-  const placedLegend = legendPlaced && legend !== null && props.legendOpen !== false ? (
+  const legendPlaced = inLayout;
+  const placedLegend = legendPlaced && props.legendOpen !== false ? (
     <div className={styles.legendSlot} data-testid="chart-legend-slot" {...(props.legendOpen === undefined ? {} : { id: LEGEND_PANEL_ID })}>
       {legend}
     </div>
   ) : null;
   // R132 (D-864): in a layout the figure has no caption, so it is named by the page's heading where there is one (the pass's name), else as the live page's.
   const { labelledBy, describedBy } = controlSlot;
-  const figureName =
-    inLayout && !screen
-      ? { ...(labelledBy === undefined ? (fill ? { 'aria-label': t.chart.liveLabel } : {}) : { 'aria-labelledby': labelledBy }), ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }) }
-      : fill
-        ? { 'aria-label': t.chart.liveLabel }
-        : {};
+  const figureName = inLayout
+    ? { ...(labelledBy === undefined ? (fill ? { 'aria-label': t.chart.liveLabel } : {}) : { 'aria-labelledby': labelledBy }), ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }) }
+    : fill
+      ? { 'aria-label': t.chart.liveLabel }
+      : {};
   return (
-    <figure
-      ref={figureRef}
-      className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
-      data-testid="sky-chart"
-      data-view={view.id}
-      data-screen={screen}
-      {...figureName}
-    >
+    <figure ref={figureRef} className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')} data-testid="sky-chart" data-view={view.id} {...(follow ? { 'data-follow': 'true' } : {})} {...figureName}>
       {!fill && !inLayout && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
       {!fill && !inLayout && chartControls}
-      {inLayout && !screen && controlSlot.place(chartControls)}
+      {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
-      {/* D-789: the hand camera's slot goes to the page's view and not to a screen, whose window is the sensor's. */}
-      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !screen && !inLayout ? { controls: chartControls } : {})} {...(screen ? {} : { hand })} />
+      {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
+      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
     </figure>
   );
 }

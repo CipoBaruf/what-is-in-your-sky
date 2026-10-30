@@ -1203,7 +1203,7 @@ unchanged.
   and R117 added the rest. What v2.4 left in main is the route and its lazy import, the
   header's `[ stars ]`, the When pane's `Stars tonight · [ look up ]`, the `?` overlay's
   three rows with their words in both catalogs, and R117's stars inventory in
-  `SkyScreen.tsx`, which main carries because the pass detail opens the screen. The
+  `SkyScreen` (retired by R152), which main carried because the pass detail opened the screen. The
   overrun is the When pane's line, the overlay's rows and the inventory, all past "the
   route and the link". None of it is a cheap lazy import: main draws each of them before
   the `stars` chunk loads, and the words that only the page draws already moved at R115.

@@ -200,9 +200,9 @@ for (const locale of LOCALES) {
           });
           await expect(page.getByTestId('sheet-head')).toBeInViewport({ ratio: 1 });
           await expect(page.getByTestId('sheet-close')).toBeVisible();
-          // Every row of FR-GYRO-10 is in the sheet, in order, the satellites last; the satellites' heading in view at the body's end.
+          // Every row of FR-GYRO-10 is in the sheet, in order, the satellites last; the satellites' heading in view at the body's end. R152 (FR-GYRO-1): on this touch profile `[ follow the phone ]` is the row after the view row.
           const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-          expect(order).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+          expect(order).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites']);
           await expect(page.getByTestId('live-satellites-head')).toBeInViewport();
           await closeSheet(page);
           expect(await box(page, 'chart-box')).toEqual(chart);

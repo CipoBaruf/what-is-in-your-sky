@@ -34,12 +34,6 @@ export interface OrientationReading {
   webkitCompassHeading?: number | null;
 }
 
-/** The two fields and the WebKit one, off the event, whatever the platform's type says. */
-export function readingFrom(event: DeviceOrientationEvent): OrientationReading {
-  const webkit = (event as DeviceOrientationEvent & { webkitCompassHeading?: unknown }).webkitCompassHeading;
-  return { alpha: event.alpha, absolute: event.absolute, webkitCompassHeading: typeof webkit === 'number' ? webkit : null };
-}
-
 /** The compass heading of the top of the device, degrees clockwise from north, or `null` for a relative-only reading. */
 export function deviceHeading(reading: OrientationReading): number | null {
   const webkit = reading.webkitCompassHeading;

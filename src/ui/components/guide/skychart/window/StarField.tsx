@@ -95,7 +95,7 @@ export interface StarFieldProps {
 }
 
 /** R127 (D-832): the catalogue as the name readers take it; a catalogue without the Spanish tables (a test's) reads in English. */
-export function catalogNames(catalog: StarFieldData['catalog']): StarNamesSource {
+function catalogNames(catalog: StarFieldData['catalog']): StarNamesSource {
   return {
     name: catalog.name,
     nameEs: catalog.nameEs ?? [],

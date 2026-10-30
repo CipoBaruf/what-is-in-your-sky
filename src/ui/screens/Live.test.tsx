@@ -26,6 +26,7 @@ import { formatClock } from '../../lib/timeFormat';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
+import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
@@ -44,7 +45,6 @@ const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unava
 const initial = appStore.getInitialState();
 
 /** R66 (V13-6, D-350): the way into the sky screen — the view control's "window" option, on this page as on the pass detail. */
-const windowOption = (): HTMLElement => within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window });
 const HOUR = 3_600_000;
 
 /**
@@ -865,43 +865,9 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R48 (FR-WIN-6, US-21 AC5) → R64 (D-321) → R66 (FR-FSC-8, FR-WIN-6 and
-   * FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen replaces the page,
-   * and it shows **the instant the page was showing**. R48's reset to real time
-   * is gone: it is what stopped a reader watching a pass that has not happened
-   * yet through the phone, which is the whole point of the window.
-   */
-  it('the sky screen replaces the page at the instant the page was showing, and closing brings the rows back there (FR-FSC-1, FR-FSC-8)', () => {
-    withSky();
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    // R144 (FR-TONIGHT-4): `[ next ]` lands a minute before the next rise.
-    fireEvent.click(screen.getByTestId('live-tap-next'));
-    expect(shownAt()).toBe(later.start.t - LEAD);
-    expect(screen.getByTestId('live-tap-now')).toBeEnabled();
-    act(() => {
-      appStore.getState().openSkyScreen();
-    });
-    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-    for (const testid of ['live-side', 'live-track', 'live-taps', 'live-headline', 'live-context', 'live-actions', 'live-controls', 'live-sheet']) expect(screen.queryByTestId(testid)).toBeNull();
-    // The page's head is covered rather than unmounted, and out of the accessible tree with it (R148: the head over the sky, not a top row).
-    expect(screen.getByTestId('live-top-area')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
-    // Leaving the screen: the whole page is back, at the instant it was left at — not at now.
-    act(() => {
-      appStore.getState().closeSkyScreen();
-    });
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('live-top-area')).not.toHaveAttribute('aria-hidden');
-    expect(screen.getByTestId('live-track')).toBeInTheDocument();
-    expect(screen.getByTestId('live-taps')).toBeInTheDocument();
-    expect(shownAt()).toBe(later.start.t - LEAD);
-    expect(screen.getByTestId('live-tap-now')).toBeEnabled();
-  });
-
-  /**
-   * D-789 (R121 review): the window in the box is the page's, not its chart's. The live page drops its chart for
-   * the sky screen and mounts a different one for the landscape rail than for portrait; the hand's facing and the
-   * compact choice of the window without a sensor outlive both, and a trip to wide drops the choice for the saved view.
+   * D-789 (R121 review): the window in the box is the page's, not its chart's. The live page mounts a different
+   * chart for the landscape rail than for portrait; the hand's facing and the compact choice of the window outlive
+   * both, and a trip to wide drops the choice for the saved view.
    */
   describe('the window in the box across the page’s charts (FR-SKY-2, D-789)', () => {
     const handBox = (): HTMLElement => document.querySelector<HTMLElement>('[data-state="hand"] [tabindex="0"]') as HTMLElement;
@@ -911,38 +877,6 @@ describe('<LivePage>', () => {
         expect(document.querySelector('[data-drawing="window"]')).not.toBeNull();
       });
     };
-
-    it('keeps the hand’s facing through the sky screen on wide', async () => {
-      media = stubMatchMedia(1280, 800);
-      withSky();
-      act(() => {
-        appStore.getState().setChartView('window');
-      });
-      render(<LivePage link={null} onLeave={() => undefined} />);
-      await windowDrawn();
-      // Under CI load the hand camera can arrive after the first drawing; a key before it is dropped.
-      await waitFor(() => {
-        expect(document.querySelector('[data-state="hand"]')).not.toBeNull();
-      });
-      const before = lookAz();
-      fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
-      await waitFor(() => {
-        expect(lookAz()).not.toBe(before);
-      });
-      const turned = lookAz();
-      act(() => {
-        appStore.getState().openSkyScreen();
-      });
-      // The page's chart is gone with the page; the screen's chart is the only one.
-      expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-screen', 'true');
-      act(() => {
-        appStore.getState().closeSkyScreen();
-      });
-      await windowDrawn();
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-      expect(lookAz()).toBe(turned);
-    });
 
     /** R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877): the compact choice is saved, and a turn of the phone keeps the view and the facing. */
     it('saves the compact choice of the window and keeps it and the facing through a turn and a trip to wide', async () => {
@@ -966,7 +900,6 @@ describe('<LivePage>', () => {
       await windowDrawn();
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(lookAz()).toBe(turned);
-      expect(appStore.getState().skyScreen).toBe(false);
       // Wide and back: the saved view on both.
       act(() => {
         media?.setSize(1280, 800);
@@ -1526,21 +1459,16 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R148 (FR-FULL-5, FR-FULL-10, FR-LIVE-1; D-927): `Esc`'s four steps in order — the sky screen closes, the card is
-   * answered, the sheet closes, the page is left — and the sheet's state survives a turn of the phone (FR-FLOW-15).
+   * R148 (FR-FULL-5, FR-FULL-10, FR-LIVE-1; D-927) → R152 (FR-GYRO-6, D-945): `Esc`'s three steps in order — the
+   * card is answered, the sheet closes, the page is left (the sky screen's step is gone with the screen) — and the
+   * sheet's state survives a turn of the phone (FR-FLOW-15).
    */
-  it('takes Esc in four steps: the screen, the card, the sheet, then the page (D-927), and keeps the sheet and its list through a turn', () => {
+  it('takes Esc in three steps: the card, the sheet, then the page (D-927, D-945), and keeps the sheet and its list through a turn', () => {
     withSky([later, tomorrow]);
     media = stubMatchMedia(390, 844);
     const onLeave = vi.fn();
     render(<LivePage link={null} onLeave={onLeave} />);
     fireEvent.click(screen.getByTestId('live-controls'));
-    expect(screen.getByTestId('live-card')).toBeInTheDocument();
-    act(() => {
-      appStore.getState().openSkyScreen();
-    });
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('live-card')).toBeInTheDocument();
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -1822,198 +1750,182 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R59 (FR-FOL-1, FR-FOL-3, US-10, US-21 AC8), amended by R64 (FR-FSC-1,
-   * FR-FSC-2, D-321): the control opens the follow *screen* — a layer over the
-   * whole viewport — rather than switching the page's view. Entering is
-   * FR-WIN-6's route by any other name (the instant goes back to real time),
-   * and the screen's `×` is what the second press was: the control is not on
-   * the screen. The page's `data-view` never moves, because the page is not
-   * what draws the window any more.
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-3, FR-GYRO-4, FR-GYRO-5, FR-GYRO-6; US-44 AC1..AC4; D-941, D-943..D-945):
+   * `[ follow the phone ]` on this page. On a phone it is the sheet's own row after the view row (compact) and the
+   * rail's `View` group's second line (wide); without the sensor there is no row at all. Its tap asks inside the
+   * gesture; granted, the chart shows the window whatever the saved view is — the preference is not written — and
+   * the window's facing and tilt follow the readings with nothing drawn over the sky; turned off, the window stays
+   * where the phone last pointed. A refusal leaves it off with the one line under it. A drag on the sky ends
+   * following and hands the camera to the finger. The sky screen the view control used to open is gone: nothing
+   * renders `sky-screen` or `window-hold-up`, and `Esc` has three steps (above).
    */
-  const withPhone = (requestPermission?: () => Promise<'granted' | 'denied'>): void => {
-    vi.stubGlobal(
-      'DeviceOrientationEvent',
-      Object.assign(
-        function DeviceOrientationEvent() {
-          return undefined;
-        },
-        requestPermission ? { requestPermission } : {},
-      ),
-    );
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
-  };
-  /** A reading with a north in it: what the press waits for before it opens anything. */
-  const reading = (absolute: boolean): void => {
-    act(() => {
-      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute }));
-    });
-  };
-  /**
-   * R136 (FR-FLOW-15, V26-12): the screen's one door is `[ hold up to the sky ]`, which the window in the box offers
-   * beside its picker; the view option chooses the window and opens nothing. Real turns of the event loop for the
-   * window's chunk (`setTimeout` is not faked in this describe).
-   */
-  const holdUp = async (): Promise<void> => {
-    if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(windowOption());
-    // R144 (FR-TONIGHT-6, D-904): on compact the facing row — `[ hold up to the sky ]` with it — is behind the readout in the box's corner.
-    const readoutToggle = screen.queryByTestId('sky-readout-toggle');
-    if (readoutToggle !== null && readoutToggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(readoutToggle);
-    for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+  describe('[ follow the phone ] (FR-GYRO-1..6, US-44 AC1..AC4; D-943, D-944)', () => {
+    const withPhone = (requestPermission?: () => Promise<'granted' | 'denied'>): void => {
+      vi.stubGlobal(
+        'DeviceOrientationEvent',
+        Object.assign(
+          function DeviceOrientationEvent() {
+            return undefined;
+          },
+          requestPermission ? { requestPermission } : {},
+        ),
+      );
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    };
+    /** The phone's back toward `azDeg`, `altDeg` up, as the W3C event the window listens for. */
+    const reading = (azDeg: number, altDeg: number): void => {
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: (360 - azDeg) % 360, beta: 90 + altDeg, gamma: 0, absolute: true }));
       });
-    }
-    fireEvent.click(screen.getByTestId('window-hold-up'));
-  };
+    };
+    const flush = async (): Promise<void> => {
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    };
+    const windowDrawn = async (): Promise<void> => {
+      await waitFor(() => {
+        expect(document.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
+      });
+    };
+    const toggle = (): HTMLElement => screen.getByTestId('follow-toggle');
+    const windowRoot = (): HTMLElement => document.querySelector('[data-look-az]') as HTMLElement;
 
-  it.each(['polar', 'dome'] as const)('[ hold up to the sky ] mounts the screen over the window chosen from the %s at the page\'s instant, and its × gives the page back there (FR-FSC-1, FR-FSC-2, FR-FSC-8)', async (from) => {
-    withPhone();
-    withSky();
-    act(() => {
-      appStore.getState().setChartView(from);
+    beforeEach(() => {
+      resetOrientationAccess();
     });
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    // Somewhere other than now: FR-FSC-8's case, the pass the reader wants to watch through the phone before it happens.
-    fireEvent.click(screen.getByTestId('live-tap-next'));
-    expect(shownAt()).toBe(later.start.t - LEAD);
-
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
-    await holdUp();
-    // The tap arms the sensor; the reading is what opens the screen (F-42's lesson, D-350).
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    // R136 (D-876): the option chose the window as a view, saved, and the screen opens over it.
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    reading(true);
-    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: true });
-    const layer = screen.getByTestId('sky-screen');
-    expect(layer).toHaveAttribute('role', 'dialog');
-    expect(layer).toHaveAttribute('aria-modal', 'true');
-    // FR-FSC-1: none of the page is on it — the view control that opened it included, so the `×` is the way back.
-    for (const testid of ['live-side', 'live-track', 'live-taps', 'live-actions', 'live-headline']) expect(screen.queryByTestId(testid)).toBeNull();
-    expect(screen.queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
-
-    // FR-FSC-2: the `×` closes, and the page comes back as it was — the view it had, and the instant it was at.
-    const close = screen.getByRole('button', { name: en.chart.screenClose });
-    expect(close).toHaveTextContent('×');
-    fireEvent.click(close);
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-    expect(screen.getByTestId('live-track')).toBeInTheDocument();
-    expect(screen.getByTestId('live-taps')).toBeInTheDocument();
-    expect(shownAt()).toBe(later.start.t - LEAD);
-    // R64 (FR-WIN-6 as amended v1.3): the declination is the screen's readout line; the strip does not carry it any more.
-    expect(screen.queryByTestId('live-heading')).toBeNull();
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
-  });
-
-  /** FR-FSC-2 / D-321: `Esc` closes the screen before it can leave the page, and the next one leaves as it always did. */
-  it('closes the screen on Esc, and only then leaves the live page (FR-FSC-2)', async () => {
-    withPhone();
-    withSky();
-    const onLeave = vi.fn();
-    render(<LivePage link={null} onLeave={onLeave} />);
-    await holdUp();
-    reading(true);
-    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onLeave).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(appStore.getState().skyScreen).toBe(false);
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onLeave).toHaveBeenCalledTimes(1);
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
-  });
-
-  /** D-321: focus goes to the `×` on open and back to the control that opened it on close — a new element by then. */
-  it('moves focus to the × and back to [ hold up to the sky ] (FR-FSC-2)', async () => {
-    withPhone();
-    withSky();
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    await holdUp();
-    reading(true);
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: en.chart.screenClose }));
-    fireEvent.click(screen.getByRole('button', { name: en.chart.screenClose }));
-    // R136 (V26-12): back to `[ hold up to the sky ]`, the one control that opens the screen — R144 (D-904, review):
-    // on compact the facing row it stands in comes back open, since the page holds the picker's state while the
-    // layout is not mounted, so the focus lands on the control itself and not on the view option.
-    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
-    expect(document.activeElement).toBe(screen.getByTestId('window-hold-up'));
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
-  });
-
-  /**
-   * FR-FSC-5 (D-325): the toggle's saved state does not follow the reader onto
-   * the screen. The hook is what holds it off — no `computeAt` request leaves
-   * the page while following — so the screen cannot draw a dimmed mark even
-   * from a cache the page filled a moment earlier.
-   */
-  it('asks the worker for no hidden objects while the screen is up, whatever the toggle says (FR-FSC-5)', async () => {
-    withPhone();
-    withSky();
-    const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden: [], moon: MOON_FIXTURE }));
-    setLiveNowClient({ computeNow });
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    // R144 (D-905) → R150 (FR-GYRO-10): on compact the toggle is the satellites' heading row's.
-    fireEvent.click(screen.getByRole('button', { name: 'Hidden objects' }));
-    expect(computeNow).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      await Promise.resolve();
+    afterEach(() => {
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+      resetOrientationAccess();
     });
-    await holdUp();
-    reading(true);
-    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-    expect(appStore.getState().liveHidden).toBe(true);
-    // Nothing more was asked for, and the screen draws nothing dimmed.
-    expect(computeNow).toHaveBeenCalledTimes(1);
-    expect(document.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
-  });
 
-  /**
-   * R59 (FR-FOL-2): a relative-only device has no north to point the window at,
-   * so nothing opens: the note, the view where it was, and the control
-   * unpressed. R39's F-40 rule is gone with the dome's following — the control
-   * belongs to both drawn views now — but its shape survives here: the state
-   * says what the chart is doing and nothing else.
-   */
-  it('leaves the page alone with a note where the phone gives no heading, and drops the option for the session (FR-FOL-2, FR-WIN-4)', async () => {
-    withPhone();
-    withSky();
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    await holdUp();
-    reading(false);
-    expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
-    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
-    // FR-FOL-2: nothing opened, so the page is untouched — the layer is not there and the rows still are.
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('live-track')).toBeInTheDocument();
+    it('stands in the sheet as its own row after the view row on a phone, and nowhere without the sensor (FR-GYRO-1, FR-GYRO-6)', () => {
+      withSky();
+      media = stubMatchMedia(390, 844);
+      const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.queryByTestId('live-follow')).toBeNull();
+      expect(screen.queryByTestId('follow-toggle')).toBeNull();
+      expect(screen.queryByTestId('window-hold-up')).toBeNull();
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+      unmount();
 
-    // FR-WIN-4 as amended v2.5 (R121): the option stays — the presence test governs the sensor, never the view.
-    expect(
-      within(screen.getByRole('group', { name: en.chart.viewGroup }))
-        .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual(['Window', 'Polar', 'Dome']);
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
-  });
-
-  /** FR-FOL-2: a refusal opens nothing either — the note, the page as it was, and the control unpressed. */
-  it('leaves the page alone with a note when the permission is refused (FR-FOL-2)', async () => {
-    withPhone(() => Promise.resolve('denied'));
-    withSky();
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    await holdUp();
-    await act(async () => {
-      await Promise.resolve();
+      withPhone();
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const body = screen.getByTestId('sheet-body');
+      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites']);
+      expect(screen.getByTestId('live-follow')).toHaveAttribute('data-rhythm', 'group');
+      expect(within(screen.getByTestId('live-follow')).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByTestId('window-hold-up')).toBeNull();
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
     });
-    expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
-    expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('live-track')).toBeInTheDocument();
-    expect(appStore.getState().skyScreen).toBe(false);
-    // FR-FOL-2: a refusal keeps the option — the next tap asks again.
-    expect(windowOption()).toBeInTheDocument();
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+
+    it('on wide stands in the rail’s View group, after [x] stars, and not in a sheet (FR-GYRO-1, D-944)', () => {
+      withPhone();
+      withSky();
+      media = stubMatchMedia(1280, 800);
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const viewRow = screen.getByTestId('live-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
+      const follow = within(viewRow).getByTestId('follow-toggle');
+      expect(follow).toHaveTextContent(en.window.followToggle);
+      expect(within(viewRow).getByTestId('stars-toggle').compareDocumentPosition(follow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.queryByTestId('live-follow')).toBeNull();
+    });
+
+    it('asks inside the tap and, granted, shows the window following the phone without writing the view; off, the window stays where the phone pointed (FR-GYRO-2, FR-GYRO-5)', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('dome');
+      });
+      const frame = scriptedFrames();
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const chart = screen.getByTestId('sky-chart');
+      expect(chart).toHaveAttribute('data-view', 'dome');
+      expect(requestPermission).not.toHaveBeenCalled();
+
+      fireEvent.click(toggle());
+      // FR-WIN-4, FR-GYRO-2: the request is the gesture's, and nothing else asks.
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(chart).toHaveAttribute('data-view', 'window');
+      expect(chart).toHaveAttribute('data-follow', 'true');
+      expect(appStore.getState().chartView).toBe('dome');
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
+      await windowDrawn();
+      expect(windowRoot()).toHaveAttribute('data-follow', 'true');
+      // FR-GYRO-5 (D-957): nothing over the sky — the readout is not drawn — and the sheet's facing row goes with it while following.
+      expect(screen.queryByTestId('window-readout')).toBeNull();
+      expect(screen.queryByTestId('live-facing')).toBeNull();
+      expect(screen.queryByTestId('chart-view-note')).toBeNull();
+
+      // The phone's readings turn the window: 30° up, facing east.
+      reading(90, 30);
+      frame(16);
+      for (let i = 2; i <= 40; i += 1) frame(16 * i);
+      expect(windowRoot()).toHaveAttribute('data-state', 'on');
+      expect(windowRoot()).toHaveAttribute('data-look-alt', '30');
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+
+      // Off: the toggle asks nothing, the window stays the view, where the phone last pointed, and nothing is written.
+      fireEvent.click(toggle());
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(chart).toHaveAttribute('data-view', 'window');
+      expect(chart).not.toHaveAttribute('data-follow');
+      expect(windowRoot()).not.toHaveAttribute('data-follow');
+      expect(windowRoot()).toHaveAttribute('data-state', 'hand');
+      expect(windowRoot()).toHaveAttribute('data-look-alt', '30');
+      expect(screen.getByTestId('live-facing')).toBeInTheDocument();
+      expect(appStore.getState().chartView).toBe('dome');
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
+    });
+
+    it('a refusal leaves it off with the one line under it, and the page on its view (FR-GYRO-3)', async () => {
+      withPhone(() => Promise.resolve('denied'));
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('dome');
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      fireEvent.click(toggle());
+      await flush();
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(within(screen.getByTestId('live-follow')).getByTestId('follow-refused')).toHaveTextContent(en.window.followRefused);
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(screen.queryByTestId('chart-view-note')).toBeNull();
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+    });
+
+    it('a drag on the sky ends following and hands the camera to the finger (FR-GYRO-4)', async () => {
+      withPhone();
+      withSky();
+      media = stubMatchMedia(390, 844);
+      scriptedFrames();
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      fireEvent.click(toggle());
+      await flush();
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      await windowDrawn();
+      const box = document.querySelector('[data-follow="true"] [tabindex="0"]') as HTMLElement;
+      box.setPointerCapture = vi.fn();
+      box.releasePointerCapture = vi.fn();
+      fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
+      // D-942, D-955: past the tap's slop the page is told, and following is off before the drag moves anything.
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(screen.getByTestId('sky-chart')).not.toHaveAttribute('data-follow');
+      fireEvent.pointerUp(box, { pointerId: 1, clientX: 140, clientY: 100 });
+      expect(windowRoot()).toHaveAttribute('data-state', 'hand');
+    });
   });
 
   /** R33 (FR-LIVE-6, US-15 AC6, D-102): the toggle asks the worker for the dimmed set and draws it, minus what is already on an arc. */

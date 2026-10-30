@@ -92,45 +92,13 @@ export interface ChartFrameProps {
    */
   stacked?: boolean;
   /**
-   * FR-FSC-1, FR-FSC-3 (R62, D-322): the frame is a screen. The box is the
-   * host's whole size — no aspect, no floor, no full-bleed margins, nothing
-   * measured — and the rows around it become overlays over it: the `status`
-   * slot in the top-left corner, the `legend` slot as a strip along the bottom
-   * edge two rows high, both on `--screen-overlay`, and the `overlay` slot over
-   * both. There is no controls row, no stripe row and no side column, so
-   * `controls`, `stripe` and `aside` are not rendered.
-   */
-  screen?: boolean;
-  /**
-   * FR-FSC-1 (R62, D-322): the page's own children over everything — the follow
-   * screen's `×`. Only placed on a `screen`; the frame does not read it.
-   */
-  overlay?: ReactNode;
-  /**
-   * FR-GUT-1 (R79, D-450): the sky screen's compass gutter. On a `screen` it
-   * fills the bottom overlay slot the legend strip had — the strip is not
-   * rendered there sideways — and upright it is the last row. Ignored off a
-   * screen.
-   */
-  gutter?: ReactNode;
-  /**
-   * FR-GUT-7 (R79, D-451): the screen is held upright — the measured box
-   * taller than wide, which the window reads and the frame does not. The
-   * overlays become five rows: the readout (the `×` over its right end), the
-   * `headline`, the drawing as a band at most as tall as it is wide, the
-   * legend's two rows and the gutter. Ignored off a screen.
-   */
-  upright?: boolean;
-  /** FR-GUT-7 (R79): what stands between the readout and the band upright — the next-event block. Ignored sideways and off a screen. */
-  headline?: ReactNode;
-  /**
    * FR-WATCH-6 (R78, D-449): a bar over the bottom edge of the drawing, inside
-   * the box's own box, on `--screen-overlay` — the third use of the surface the
-   * sky screen's overlays and the list panel's mechanism already use. It is
-   * not a row of the frame, so the drawing does not resize when it appears:
-   * the short wide live page's scrub block. Not placed on a `screen`, whose
-   * bottom edge is the gutter's. A page that reaches the frame through a view
-   * hands it in by `ChartFrameSlots` instead; the prop wins.
+   * the box's own box, on `--screen-overlay` — the surface the list panel's
+   * mechanism already uses (and the sky screen's overlays did, until R152
+   * retired the screen, FR-GYRO-6). It is not a row of the frame, so the
+   * drawing does not resize when it appears: the short wide live page's scrub
+   * block. A page that reaches the frame through a view hands it in by
+   * `ChartFrameSlots` instead; the prop wins.
    */
   bottomOverlay?: ReactNode;
   /**
@@ -150,7 +118,7 @@ export interface ChartFrameProps {
    * slot — the facing readout — stands in the box's top-left corner on the
    * screen's overlay surface instead of in its row (on a wide `fill` frame
    * every view's slot stands there, D-834). Compact is unchanged: the box the
-   * dome has, the readout in its row. Ignored on a `screen`.
+   * dome has, the readout in its row.
    */
   handWindow?: boolean;
   className?: string;
@@ -160,21 +128,10 @@ export interface ChartFrameProps {
 }
 
 /**
- * R64 (FR-FSC-2, D-321): the id of the screen's status slot — the facing
- * readout — so the follow screen's `role="dialog"` can name itself with the
- * line the reader is looking at rather than with a label of its own. There is
- * at most one screen frame in the document (the live page renders one layer),
- * so a constant is unique; the slot is absent in the portrait state, where the
- * layer falls back to its `aria-label` (FR-FSC-4).
- */
-export const SCREEN_STATUS_ID = 'follow-screen-readout';
-
-/**
  * FR-LEG-7 (R71, D-387): the open legend panel's height, in rows of `--tap`.
- * Two — the same two the sky screen's strip is capped at (FR-FSC-3), and for
- * the same reason: two rows of a compact legend are two lines of text. It is a
- * *height* here and a maximum there, because what V14-5 asks for is that the
- * panel take the same room whatever it holds.
+ * Two, because two rows of a compact legend are two lines of text; it is a
+ * *height*, because what V14-5 asks for is that the panel take the same room
+ * whatever it holds.
  */
 export const LEGEND_OPEN_ROWS = 2;
 
@@ -182,7 +139,7 @@ export const LEGEND_OPEN_ROWS = 2;
  * FR-LEG-7 (R71, D-387): the open panel's id, so `[ list (n) ]` can name what
  * it opens (`aria-controls`). One frame on the page carries the panel — the
  * compact live page's, the only caller that passes `legendOpen` — so a
- * constant is unique, as `SCREEN_STATUS_ID` above is.
+ * constant is unique.
  */
 export const LEGEND_PANEL_ID = 'live-legend-panel';
 
@@ -199,8 +156,7 @@ export const ChartFrameSlots = createContext<ChartFrameSlotValues>({});
  * R123 (FR-SKY-3, FR-COMP-4, D-791, D-814): the page's `[ stars ]` reaches the
  * chart the same way, past the view. `readoutAction` stands at the end of the
  * readout row — the status slot in its own row (the landscape phone's, D-814)
- * — and is not placed where the slot is the box's corner or on a
- * screen; `viewAction` stands after the view control, wherever `SkyChart`
+ * — and is not placed where the slot is the box's corner; `viewAction` stands after the view control, wherever `SkyChart`
  * places the control (the pass detail's view row; the compact live page's).
  */
 export interface ChartFrameSlotValues extends Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'> {
@@ -208,20 +164,20 @@ export interface ChartFrameSlotValues extends Pick<ChartFrameProps, 'bottomOverl
   viewAction?: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, measureBox = false, bowl = false, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, measureBox = false, bowl = false, stacked = false, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   // D-789: the window in the box on wide — the readout in its corner; the guide's square takes the browser window's shape.
-  const windowShaped = handWindow && !screen && !compact;
+  const windowShaped = handWindow && !compact;
   // R133 (D-850): the compact dome's box is cut from the bowl — in the column (FR-FLOW-4), which a compact page wider
   // than tall still is; the landscape phone's box is its rail's (FR-WATCH-5, R136), so the page's shape is asked, not
   // the orientation.
   const pageShape = usePageShape();
-  const bowlBoxed = bowl && !screen && fill && compact && pageShape === 'portrait';
+  const bowlBoxed = bowl && fill && compact && pageShape === 'portrait';
   // D-834 (FR-SKY-2, V25-17): the status slot stands in the box's top-left corner on the wide live page (`fill`) for
   // every view — the dome's readout, the polar chart's convention line, the window's readout — so the row above
   // the box is the view control alone and stays one line; and on the guide's window (D-789). The compact rows and
   // the guide's other views keep the slot in its own row.
-  const cornerStatus = !screen && !compact && (fill || handWindow);
+  const cornerStatus = !compact && (fill || handWindow);
   const slots = useContext(ChartFrameSlots);
   const bar = bottomOverlay ?? slots.bottomOverlay;
   const hasBar = bar !== undefined && bar !== null;
@@ -245,8 +201,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   const hasLegend = legend !== undefined && legend !== null && legendOpen !== false;
   // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
   const isStacked = stacked && !hasAside;
-  // D-322: a screen measures nothing. The box is the host's, so neither the box fit nor the compact floor runs.
-  const boxed = !screen && fill && !compact && measureBox && (hasAside || isStacked);
+  const boxed = fill && !compact && measureBox && (hasAside || isStacked);
 
   /*
    * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the measured box. The frame is as tall as the page's
@@ -347,7 +302,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   // for it (an aspect would size the width from the height and feed the measurement its own answer).
   useLayoutEffect(() => {
     const frame = frameRef.current;
-    if (screen || !fill || !compact || !frame || typeof ResizeObserver === 'undefined') return;
+    if (!fill || !compact || !frame || typeof ResizeObserver === 'undefined') return;
     const measure = (entries: readonly ResizeObserverEntry[]): void => {
       if (bowlBoxed) {
         const width = boxRef.current?.getBoundingClientRect().width ?? 0;
@@ -366,71 +321,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
       frame.style.removeProperty('--chart-floor');
       frame.style.removeProperty('--chart-bowl-h');
     };
-  }, [fill, compact, screen, bowlBoxed]);
-
-  /*
-   * R62 (FR-FSC-1, FR-FSC-3, D-322): the screen. A frame of its own — not
-   * `.frame`, not `.fill` — so none of the rules above can reach it: it has no
-   * grid, no rows and no column, and the box is the host's whole size. Over the
-   * box, in this order and in this stacking order, the facing readout at the
-   * top-left, the legend strip along the bottom edge, and whatever the page
-   * puts over both. `aside` and `stripe` have nowhere to go here and are not
-   * rendered; neither is the controls row, since a screen has no controls
-   * (FR-FSC-1). A slot with nothing in it is left out rather than drawn empty:
-   * the two overlays carry a surface.
-   *
-   * R79 (FR-GUT-1, FR-GUT-7; D-450, D-451): sideways the bottom slot is the
-   * compass gutter and the legend strip is not rendered; which component fills
-   * the slot changed, how the overlay works did not. Upright — the window says
-   * so, from the box it measured — the same slots are five rows in this order:
-   * the readout, the headline, the drawing as a band, the legend's two rows and
-   * the gutter, with the `×` still over everything at the top right.
-   */
-  if (screen) {
-    const screenLegend = upright && hasLegend;
-    return (
-      <div className={[styles.shell, styles.shellFill].join(' ')}>
-        <div
-          className={[styles.screen, className].filter(Boolean).join(' ')}
-          ref={frameRef}
-          data-testid="chart-frame"
-          data-screen="true"
-          data-fill={fill}
-          data-legend={screenLegend}
-          data-orientation={upright ? 'portrait' : 'landscape'}
-        >
-          {status !== undefined && status !== null && (
-            <div className={styles.status} id={SCREEN_STATUS_ID} data-testid="chart-status" data-row="readout">
-              {status}
-            </div>
-          )}
-          {upright && headline !== undefined && headline !== null && (
-            <div className={styles.headline} data-testid="chart-headline" data-row="headline">
-              {headline}
-            </div>
-          )}
-          <div className={styles.drawing} data-testid="chart-box" data-row="band">
-            {children}
-          </div>
-          {screenLegend && (
-            <div className={styles.legend} data-testid="chart-legend-slot" data-row="legend">
-              {legend}
-            </div>
-          )}
-          {gutter !== undefined && gutter !== null && (
-            <div className={styles.gutter} data-testid="chart-gutter-slot" data-row="gutter">
-              {gutter}
-            </div>
-          )}
-          {overlay !== undefined && overlay !== null && (
-            <div className={styles.overlay} data-testid="chart-overlay">
-              {overlay}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  }, [fill, compact, bowlBoxed]);
 
   // The shell is the size container the frame's "beside" rule queries (D-232): a container query
   // answers for descendants, never for the container itself, so the frame needs a parent to ask.
@@ -452,7 +343,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         data-bottom-overlay={hasBar}
         data-box={boxed}
         data-stacked={isStacked}
-        data-hand-window={handWindow && !screen}
+        data-hand-window={handWindow}
         data-corner-status={cornerStatus}
         data-bowl={bowlBoxed}
       >

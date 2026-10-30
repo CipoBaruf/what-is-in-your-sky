@@ -18,6 +18,7 @@ import { appStore } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
 import { STARS_DEFAULT_TILT } from '../components/guide/skychart/window/camera';
+import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
 import { passesRunIn, StarsPage } from './Stars';
@@ -329,5 +330,85 @@ describe('<FieldList> (FR-STAR-7, FR-LEG-4)', () => {
 describe('the label hold (FR-STAR-7)', () => {
   it('is four seconds', () => {
     expect(STAR_LABEL_HOLD_S).toBe(4);
+  });
+});
+
+/**
+ * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6; US-44 AC1, AC2, AC4; D-943..D-945): `[ follow the phone ]` in the action
+ * slot where `[ hold up to the sky ]` stood (FR-STAR-5 withdrawn), on a phone; nothing without the sensor. Its tap
+ * asks inside the gesture and, granted, this page's own window takes the sensor; off, the hand has it back. The sky
+ * screen's stars inventory (R117) is gone with the screen.
+ */
+describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6)', () => {
+  const withPhone = (requestPermission?: () => Promise<'granted' | 'denied'>): void => {
+    vi.stubGlobal(
+      'DeviceOrientationEvent',
+      Object.assign(
+        function DeviceOrientationEvent() {
+          return undefined;
+        },
+        requestPermission ? { requestPermission } : {},
+      ),
+    );
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+  };
+  const flush = async (): Promise<void> => {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    resetOrientationAccess();
+  });
+
+  it('stands in the action slot after the hint on a phone, in both languages, and is absent without the sensor; no hold-up, no sky screen', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    const { unmount } = page();
+    expect(screen.getByTestId('stars-layout').querySelector('[data-slot="action"]')).toBeNull();
+    expect(screen.queryByTestId('follow-toggle')).toBeNull();
+    expect(screen.queryByTestId('stars-hold-up')).toBeNull();
+    unmount();
+
+    withPhone();
+    const { unmount: unmountEn } = page();
+    const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
+    expect(slots.slice(slots.indexOf('hint'), slots.indexOf('hint') + 3)).toEqual(['hint', 'action', 'layers']);
+    const action = screen.getByTestId('stars-layout').querySelector('[data-slot="action"]') as HTMLElement;
+    expect(within(action).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
+    expect(within(action).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByTestId('stars-hold-up')).toBeNull();
+    expect(screen.queryByTestId('window-hold-up')).toBeNull();
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
+    unmountEn();
+
+    page('es');
+    expect(screen.getByTestId('follow-toggle')).toHaveTextContent('seguir el teléfono');
+  });
+
+  it('asks inside the tap and, granted, the page’s window follows the phone; off, the hand has it back (FR-GYRO-2)', async () => {
+    const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+    withPhone(requestPermission);
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    const { container } = page();
+    const w = (): Element => container.querySelector('[data-look-az][data-fov]') as Element;
+    expect(w()).toHaveAttribute('data-state', 'hand');
+    fireEvent.click(screen.getByTestId('follow-toggle'));
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+    await flush();
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+    expect(w()).toHaveAttribute('data-follow', 'true');
+    // FR-GYRO-5: nothing over the drawing — the readout slot is empty while following.
+    expect(screen.queryByTestId('window-readout')).toBeNull();
+    fireEvent.click(screen.getByTestId('follow-toggle'));
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(w()).not.toHaveAttribute('data-follow');
+    expect(w()).toHaveAttribute('data-state', 'hand');
+    expect(screen.getByTestId('window-readout')).toBeInTheDocument();
   });
 });

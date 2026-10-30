@@ -136,36 +136,26 @@ describe('prefs slice', () => {
   });
 
   /**
-   * R66 (FR-FSC-1, FR-FSC-2, FR-WIN-4, FR-FOL-2; D-350, D-352): the screen is a
-   * session flag beside the preference — opening and closing it write nothing —
-   * and a window that cannot run here closes it, leaves the note beside the
-   * view control and, for a phone with no compass heading, takes the option off
-   * the control for the session.
+   * R66 (FR-WIN-4, FR-FOL-2; D-352) → R152 (FR-GYRO-6, D-945): the sky screen's flag is gone with the screen; what
+   * stays is the window's answer — a refusal leaves the note beside the view control and the option for another
+   * try; a phone with no north leaves the note and takes the sensor for the session; the next choice of a view
+   * clears the note. Nothing of it is written.
    */
-  it('opens and closes the sky screen without writing, and a failed window closes it with a note', () => {
+  it('keeps the window’s note and the lost sensor for the session, writing nothing', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: null, windowLost: false });
+    expect(store.getState()).toMatchObject({ windowNote: null, windowLost: false });
+    expect(store.getState()).not.toHaveProperty('skyScreen');
 
-    store.getState().openSkyScreen();
-    expect(store.getState()).toMatchObject({ skyScreen: true, chartView: 'polar' });
-    expect(stored(storage)).toEqual({ chartView: 'polar' });
-
-    store.getState().closeSkyScreen();
-    expect(store.getState()).toMatchObject({ skyScreen: false, chartView: 'polar' });
-    expect(stored(storage)).toEqual({ chartView: 'polar' });
-
-    // Refused: the screen closes, the note stands, the option stays for another try.
-    store.getState().openSkyScreen();
+    // Refused: the note stands, the option stays for another try.
     store.getState().dropWindowView('denied');
-    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: 'denied', windowLost: false, chartView: 'polar' });
+    expect(store.getState()).toMatchObject({ windowNote: 'denied', windowLost: false, chartView: 'polar' });
+    expect(stored(storage)).toEqual({ chartView: 'polar' });
 
-    // No north: the option is gone for the session, and the next choice clears the note.
-    store.getState().openSkyScreen();
-    expect(store.getState().windowNote).toBeNull();
+    // No north: the sensor is gone for the session, and the next choice clears the note.
     store.getState().dropWindowView('relative');
-    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: 'relative', windowLost: true });
+    expect(store.getState()).toMatchObject({ windowNote: 'relative', windowLost: true });
     store.getState().setChartView('dome');
     expect(store.getState()).toMatchObject({ windowNote: null, windowLost: true });
     expect(stored(storage)).toEqual({ chartView: 'dome' });
@@ -221,26 +211,13 @@ describe('prefs slice', () => {
     expect(stored(storage)).toEqual({ theme: 'night', liveHidden: false });
   });
 
-  /**
-   * R71 (FR-LEG-7, D-387): the compact live page's legend panel. Closed on a
-   * first visit — the box's floor (FR-COMP-5, FR-LEG-8) is measured with the
-   * list closed — remembered once the control is used, and closed again for a
-   * stored value that is not a boolean, which is no answer at all.
-   */
-  it('keeps the live legend closed until the control opens it, then remembers it, and falls back to closed on a corrupt value', () => {
+  /** R71 (FR-LEG-7, D-387) → R152: the `liveLegendOpen` pref is gone — the list is always open at the sheet's end (D-954) — and a stored key is ignored. */
+  it('ignores a stored liveLegendOpen, which nothing reads any more', () => {
     const storage = memoryStorage();
-    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(fresh.getState().liveLegendOpen).toBe(false);
-    expect(stored(storage)).toBeNull();
-    fresh.getState().setLiveLegendOpen(true);
-    expect(fresh.getState().liveLegendOpen).toBe(true);
-    expect(stored(storage)).toEqual({ liveLegendOpen: true });
-    // The reload: a new store over the same storage comes back open.
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().liveLegendOpen).toBe(true);
-    storage.map.set(PREFS_KEY, JSON.stringify({ liveLegendOpen: 'yes', locale: 'es' }));
-    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(corrupt.getState().liveLegendOpen).toBe(false);
-    expect(corrupt.getState().locale).toBe('es');
+    storage.map.set(PREFS_KEY, JSON.stringify({ liveLegendOpen: true, locale: 'es' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState()).not.toHaveProperty('liveLegendOpen');
+    expect(store.getState().locale).toBe('es');
   });
 
   /**

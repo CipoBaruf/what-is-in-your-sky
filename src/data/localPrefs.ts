@@ -55,8 +55,6 @@ interface Prefs {
   favourites?: Favourite[];
   /** R33 (FR-LIVE-6): whether the live page draws the hidden objects. Absent until the toggle is used; off by default. */
   liveHidden?: boolean;
-  /** R71 (FR-LEG-7, D-387): whether the compact live page's legend panel is open. Absent until `[ list (n) ]` is used; closed by default. */
-  liveLegendOpen?: boolean;
   /**
    * R98 (FR-FAINT-3, D-623): whether the pass list shows the faint passes.
    * Only `true` is read back — `false` is what an absent key already means,
@@ -102,8 +100,6 @@ const storedPrefsSchema = z.object({
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   theme: z.enum(['dark', 'night']).optional().catch(undefined),
   liveHidden: z.boolean().optional().catch(undefined),
-  // FR-LEG-7 (D-387): a stored value that is not a boolean is not an answer — the panel falls back to closed.
-  liveLegendOpen: z.boolean().optional().catch(undefined),
   // FR-FAINT-3 (D-623): absent, malformed or false all mean the default list; the field is never optional on read.
   showFaint: z.boolean().catch(false),
   // FR-SKY-3 (D-791): the same, the other way up — absent, malformed or true all mean the stars on.
@@ -137,7 +133,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, liveLegendOpen, showFaint, starsLayer, skyHintSeen, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, skyHintSeen, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -146,7 +142,6 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (locale) prefs.locale = locale;
         if (theme) prefs.theme = theme;
         if (liveHidden !== undefined) prefs.liveHidden = liveHidden;
-        if (liveLegendOpen !== undefined) prefs.liveLegendOpen = liveLegendOpen;
         // Only `true` is a choice (FR-FAINT-3); `false` is what an absent key already means, so the key stays out.
         if (showFaint) prefs.showFaint = true;
         // Only `false` is a choice (FR-SKY-3): the stars are on unless the toggle turned them off.

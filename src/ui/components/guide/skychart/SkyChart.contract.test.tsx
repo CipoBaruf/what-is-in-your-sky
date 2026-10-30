@@ -32,7 +32,6 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
 import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
-import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import { toPolar } from '../../../../lib/skyGeometry';
 import { formatClock } from '../../../../lib/timeFormat';
@@ -44,7 +43,7 @@ import { toRotY } from './dome/camera';
 import { anchorAt, projectToScreen, tickAnchors, type Tuple3 } from './dome/domeGeometry';
 import { HORIZON_R } from './polar/SkyPolar';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
-import type { SkyChartProps } from './SkyChart.types';
+import { PEAK_FACING_OPTIONS, type SkyChartProps } from './SkyChart.types';
 import { createHandCamera } from './window/camera';
 import { project, uprightRotation, WINDOW_FOV } from './window/projection';
 import type { SkyScene } from './window/scene';
@@ -134,61 +133,34 @@ function withoutPhone(): void {
 
 describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   /*
-   * R66 (FR-FSC-1, FR-WIN-5 as amended v1.3.1; V13-6, V13-8, D-352): the window
-   * is never a page's view any more — it is the sky screen's, and the only way
-   * to mount it is `screen`. So the contract is asserted on the window as the
-   * screen renders it, and on the other two as a page does; what the three
-   * still share — one geometry, one legend, the same anchors — is what this
-   * file is about, and none of it moves with the frame around it.
+   * R136 (FR-FLOW-14, D-876) → R152 (FR-GYRO-6, D-945): every view is a page's saved view, the window too — in the
+   * box under the hand camera, as the pass detail lays it out (`PEAK_FACING_OPTIONS`, so it opens facing the peak).
+   * The sky screen, which R66 had made the window's one mount, is gone, so the contract is asserted on the three
+   * views as a page draws them: one geometry, one legend, the same anchors, and none of it moves with the frame.
    */
-  const asScreen = view.id === 'window';
-  /*
-   * R79 (FR-LEG-2 as amended v2.0, FR-GUT-1, FR-GUT-7; D-451): sideways the
-   * screen's bottom edge is the compass gutter and the legend is not rendered
-   * there; upright it is two rows under the band. So the window's cases are a
-   * phone held upright — the screen's measured box 390 x 844, the size the
-   * captures use — which is the one place the screen still carries the legend
-   * this contract is about. (Before R79 they stubbed a landscape viewport, for
-   * the strip that stood along the bottom sideways.)
-   */
-  let media: { restore: () => void } | null = null;
   beforeAll(async () => {
-    if (asScreen) withPhone();
-    else if (view.id !== 'window') appStore.getState().setChartView(view.id);
-    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} {...(asScreen ? { screen: true } : {})} />);
+    appStore.getState().setChartView(view.id);
+    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} facingOptions={PEAK_FACING_OPTIONS} />);
     await waitFor(() => {
       expect(container.querySelector('[data-drawing]')).not.toBeNull();
     });
     unmount();
-    withoutPhone();
   });
   beforeEach(() => {
-    if (asScreen) {
-      withPhone();
-      stubResizeObserver(390, 844);
-      media = stubMatchMedia(390, 844);
-    } else if (view.id !== 'window') appStore.getState().setChartView(view.id);
+    appStore.getState().setChartView(view.id);
   });
   afterEach(() => {
-    media?.restore();
-    media = null;
     withoutPhone();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
 
-  const props = (extra: Partial<SkyChartProps> = {}): SkyChartProps => ({ passes: [pass], observer, highlightedPassId: pass.id, ...(asScreen ? { screen: true } : {}), ...extra });
+  const props = (extra: Partial<SkyChartProps> = {}): SkyChartProps => ({ passes: [pass], observer, highlightedPassId: pass.id, facingOptions: PEAK_FACING_OPTIONS, ...extra });
 
   it('mounts the chosen view in a figure whose caption is the guide sentence', () => {
     render(<SkyChart {...props()} />);
     const figure = screen.getByRole('figure');
     expect(figure).toHaveAttribute('data-view', view.id);
-    // D-322: a screen has no caption — the readout and the legend are its only words (FR-FSC-1).
-    if (asScreen) {
-      expect(figure.querySelector('figcaption')).toBeNull();
-      expect(screen.queryByTestId('guide-sentence')).toBeNull();
-      return;
-    }
     expect(within(figure).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(figure.querySelector('figcaption')).toContainElement(within(figure).getByTestId('guide-sentence'));
   });
@@ -293,11 +265,6 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
 
   it('captions the highlighted pass among several, and says so when there is none to draw', () => {
     const { rerender } = render(<SkyChart {...props({ passes: [other, pass] })} />);
-    if (asScreen) {
-      // The screen has no caption to carry either sentence; what it draws with no pass is an empty sky.
-      expect(screen.queryByTestId('guide-sentence')).toBeNull();
-      return;
-    }
     expect(screen.getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     rerender(<SkyChart {...props({ passes: [], highlightedPassId: null })} />);
     expect(screen.getByRole('figure')).toHaveTextContent('No pass to draw.');
@@ -668,10 +635,11 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
   /**
    * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8) and v2.5 (R121,
    * FR-SKY-2, D-789): every reader sees all three options, on every page — the
-   * presence test governs the sensor, never the view. Asked for a screen the
-   * chart is the window whatever the preference says.
+   * presence test governs the sensor, never the view. R152 (FR-GYRO-2, D-941):
+   * with `follow` set the chart is the window whatever the preference says,
+   * and the preference is not written.
    */
-  it('offers the window with or without a phone to point, and draws it as the screen when asked', async () => {
+  it('offers the window with or without a phone to point, and draws it following the phone when asked', async () => {
     appStore.getState().setChartView('dome');
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
@@ -685,11 +653,15 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
     expect(within(screen.getByRole('group', { name: 'Chart view' })).getAllByRole('button').map((button) => button.textContent)).toEqual(['Window', 'Polar', 'Dome']);
     unmountPage();
 
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} follow />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    expect(screen.getByRole('figure')).toHaveAttribute('data-follow', 'true');
     await waitFor(() => {
       expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
     });
+    expect(container.querySelector('[data-follow="true"][data-look-az]')).not.toBeNull();
+    expect(appStore.getState().chartView).toBe('dome');
+    expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
   });
 });
 

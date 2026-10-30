@@ -3,40 +3,30 @@ import { useStarsPageT } from '../../../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
-import { degrees, formatClockDuration, formatSignedDegrees } from '../../../../../lib/format';
-import { landmarkLine, landmarkNames } from '../../../../../lib/landmarkLine';
-import { SERIES_COUNT, seriesToken } from '../../../../../lib/legend';
-import { isNoEvent, nextEvent } from '../../../../../lib/nextEvent';
+import { degrees, formatSignedDegrees } from '../../../../../lib/format';
+import { SERIES_COUNT } from '../../../../../lib/legend';
 import { shortcutFor } from '../../../../../lib/shortcuts';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
-import { constellationName, starName } from '../../../../../lib/skyStars';
 import type { MoonState, PassPoint } from '../../../../../model';
-import { SEARCH_WINDOW_HOURS } from '../../../../../state/passWindow';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
-import { useScreenTurn } from '../../../screen/screenTurn';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
-import { NextEventBlock } from '../../../passes/NextEventBlock';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
-import { TextButton } from '../../../primitives/TextButton';
-import { useSkyScreen } from '../../../screen/useSkyScreen';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type SkyCamera } from './camera';
-import { CompassGutter } from './CompassGutter';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
-import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
-import { catalogNames, figureKey, namedReadout, StarField } from './StarField';
+import { figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
-import { useViewRotation, type HandPose } from './useViewRotation';
+import { useViewRotation } from './useViewRotation';
 
 /**
  * R47 (FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5; US-21; PLAN D-188, §8.10): the
@@ -76,44 +66,11 @@ import { useViewRotation, type HandPose } from './useViewRotation';
  * no compass heading, is reported through `onUnavailable`, and `SkyChart`
  * shows the note and leaves the dome as the view (FR-WIN-4).
  *
- * R63 (FR-FSC-1; US-21 AC11; D-323): on the sky screen — `props.screen` — the
- * window has no chrome of its own: the frame gets no `controls`, so neither
- * the view control the page handed down nor the hint is drawn, and the readout
- * stays the `status` slot the frame turns into an overlay.
- *
- * R73 (FR-FSC-4 as rewritten, FR-FSC-10, FR-FSC-11; US-21 AC12, AC15; D-425,
- * D-427, D-428, D-429): and it draws whatever the viewport is doing. R63's
- * portrait veil — `(orientation: landscape)` gating the whole picture, with
- * `status={null}` and `legend={null}` under it — is gone: a viewport whose
- * rotation is locked never becomes landscape, so on those phones the veil was
- * the whole screen with nothing behind it. The SVG, the readout and the legend
- * are drawn in both orientations, `ground` is `groundState` in both again
- * (D-323 had made it landscape-only so the veil could win), and upright the
- * picture is the portrait box's with one line of advice over it
- * (`turnAdvice`), which the ground notes outrank.
- *
- * Which way is up is the pose's, not the viewport's (FR-FSC-10): `screenTurn`
- * reads the quarter from the rotation the hook already smooths, the projection
- * is composed with that quarter instead of `screen.orientation.angle`, and the
- * layer is turned by the difference — which is nothing at all on a phone whose
- * rotation is not locked, where the two numbers are the same. `data-orientation`
- * is read from the measured box, which is what the reader is looking at, and
- * not from a media query, which under a rotation lock is not.
- *
- * R79 (FR-GUT-1..8, US-28; D-450, D-451): the screen's bottom edge is the
- * compass gutter (`CompassGutter`, from `gutter.ts`), which takes the legend
- * strip's slot sideways. Its facing is `look.azDeg`, the smoothed heading the
- * readout shows, and its marks are one per drawn pass at the bearing the arc
- * is drawn from. When no drawn pass crosses the field — no arc in the box and
- * no tick inside the bracket — one `role="status"` chip over the drawing names
- * the pass whose next event is soonest, the turn to it and the countdown
- * (FR-GUT-6); FR-FOL-5's ground notes outrank it. Upright (FR-GUT-7) the frame
- * lays the screen out as five rows — the readout, the next-event block with
- * the advice under its peak line, the band, the legend's two rows and the
- * gutter — and FR-FSC-11's `role="status"` advice line is gone. Upright is
- * read from the *screen's* measured box (a probe in the overlay slot), not
- * from the drawing's, since the band is capped square and would otherwise
- * decide its own orientation.
+ * R152 (FR-GYRO-6; D-945): the sky screen is gone, and with it the window's
+ * `screen` mode — the overlays, the compass gutter, the empty-field chip, the
+ * upright rows and the turn advice (R63, R73, R79). What the screen did that
+ * the page still wants — the sensor camera, FR-FSC-10's quarter and FR-FOL-5's
+ * ground notes — is the `follow` mode below.
  *
  * R113 (FR-STAR-4, FR-STAR-9, FR-STAR-11; D-750, D-751): the window is re-cut
  * for the stars without changing what it draws today. The rotation comes from
@@ -127,14 +84,13 @@ import { useViewRotation, type HandPose } from './useViewRotation';
  * `StarField` group, the one layer written outside render; without a scene
  * nothing is mounted and the tree is `v2.3.0`'s.
  *
- * R125 (FR-SKY-14; FR-WIN-1, FR-GUT-3, FR-STAR-4 as amended; D-798, D-820,
+ * R125 (FR-SKY-14; FR-WIN-1, FR-STAR-4 as amended; D-798, D-820,
  * D-821): the zoom. The field across the box's shorter side is `fovDeg` —
  * the hand camera's under the hand (page state: the slot keeps it through the
  * dome and back, as it keeps the facing), this window's own state under the
- * sensor, `WINDOW_FOV` on every page and every opening of the screen, never
+ * sensor, `WINDOW_FOV` at every mount, never
  * saved — and everything `WINDOW_FOV`
- * fed reads it: the projection's `view`, the placeholder, the ground state,
- * the gutter's bracket. One pointer handler on the box tracks the active
+ * fed reads it: the projection's `view`, the placeholder, the ground state. One pointer handler on the box tracks the active
  * pointers: one is FR-STAR-4's drag (under the hand), two are the pinch, which
  * scales the field by the inverse of the change in their distance, folded
  * into one move per animation frame like the drag; a native `wheel` listener
@@ -147,34 +103,23 @@ import { useViewRotation, type HandPose } from './useViewRotation';
  * following the phone, which is the sky screen's sensor path run in the page's
  * box. `useViewRotation` arms the sensor beside the hand camera and draws the
  * phone's pose from its first reading; the field is the hand's `fovDeg`, which
- * the pinch keeps writing. FR-FSC-10's quarter is read from the pose as on the
- * screen, the projection is composed with it, and the box's contents — the
- * drawing and the ground notes — are turned by the difference from the
- * browser's angle inside the box, sides swapped, as the screen's layer was.
- * Nothing is drawn over the drawing but the ground notes: no readout, no hint,
- * no chip. The box keeps the hand's focus and pointer handlers, and the finger
- * wins: a press that travels past the tap's slop, or one of FR-SKY-14's keys,
- * seeds the hand camera with the last pose (`poseAsHand`), calls
- * `onFollowEnd(pose)` and then moves the hand as it always did. Turning
- * following off from the page seeds the hand the same way.
+ * the pinch keeps writing. FR-FSC-10's quarter is read from the pose, the
+ * projection is composed with it, and the box's contents — the drawing and the
+ * ground notes — are turned by the difference from the browser's angle inside
+ * the box, sides swapped, as the screen's layer was (FR-FSC-10: which way is up
+ * is the pose's, not the viewport's; `useDeviceOrientation` folds the quarter
+ * with hysteresis, D-431). Nothing is drawn over the drawing but the ground
+ * notes: no readout, no hint. The box keeps the hand's focus and pointer
+ * handlers, and the finger wins: a press that travels past the tap's slop, or
+ * one of FR-SKY-14's keys, seeds the hand camera with the last pose
+ * (`poseAsHand`), calls `onFollowEnd(pose)` and then moves the hand as it
+ * always did. Turning following off from the page seeds the hand the same way.
+ * R152 (D-944): `follow` and `onFollowEnd` are `SkyChartProps`' now, since
+ * `SkyChart` passes them through from the page.
  */
 
-/** The window's props: `SkyChartProps`, which every view implements; `camera` is on it for the window alone. */
-export type SkyWindowProps = SkyChartProps & {
-  /**
-   * R151 (FR-GYRO-2, FR-GYRO-5; D-941): the page's own window follows the phone. With a hand camera, the sensor
-   * drives the facing and the tilt from its next reading, the field stays the hand's (the pinch writes it), the
-   * picture is turned upright to the reader inside the window's own box (FR-FSC-10), and nothing is drawn over it
-   * but FR-FOL-5's ground notes. The page owns it (D-943); `false` by default.
-   */
-  follow?: boolean;
-  /**
-   * R151 (FR-GYRO-4; D-942): the finger wins — called once, before anything moves, when a drag starts or one of
-   * FR-SKY-14's keys is pressed while following, with the pose the hand camera has just been given (where the
-   * phone last pointed). The page turns its follow state off. A pinch does not call it.
-   */
-  onFollowEnd?: (pose: HandPose) => void;
-};
+/** The window's props: `SkyChartProps`, which every view implements; `camera`, `follow` and `onFollowEnd` are on it for the window alone. */
+export type SkyWindowProps = SkyChartProps;
 
 /** The hand's stand-in for the placeholder: `useViewRotation` never reads its fallback under the hand. */
 const NO_PLACEHOLDER: Mat3 = [
@@ -241,20 +186,6 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
 }
 
 const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN_PX && p.x <= view.width + EDGE_MARGIN_PX && p.y >= -EDGE_MARGIN_PX && p.y <= view.height + EDGE_MARGIN_PX;
-const inBox = (p: Projected, view: View): boolean => p.front && p.x >= 0 && p.x <= view.width && p.y >= 0 && p.y <= view.height;
-
-/**
- * FR-GUT-6: whether any part of the arc the window draws for this pass is in
- * the box — the flown part up to `now` while the pass is `live`, the whole arc
- * otherwise, at the track's own samples.
- */
-function arcInBox(pass: ChartPass, m: Mat3, view: View, now: number | undefined): boolean {
-  const state = arcOf(pass);
-  if (state === 'hidden') return false;
-  const t = now ?? pass.end.t;
-  const drawn = state === 'live' ? cutTrack(pass, t) : pass.track;
-  return drawn.some((p) => inBox(project(m, p.azDeg, p.elDeg, view), view));
-}
 
 /** The attributes every positioned element carries: where it is, and whether it is in the box. */
 function placed(p: Projected, view: View): { transform: string; 'data-in-view': boolean; visibility?: 'hidden' } {
@@ -431,7 +362,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -454,15 +385,13 @@ export function SkyWindow(props: SkyWindowProps) {
   }, [ownNamed, onNameStar]);
   const namedStar = onNameStar === undefined ? ownNamed : givenNamed;
   const nameStar = onNameStar ?? setOwnNamed;
-  // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
-  const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
   const sp = useStarsPageT();
   const locale = useLocale();
   const compact = useLayoutMode() === 'compact';
   /*
    * FR-SKY-7 (D-790): the explained pass — the pass detail's one — and its peak where the page's picker offers
-   * `peak`. The pass detail's window opens facing it, on the page and on the screen before the first reading.
+   * `peak`. The pass detail's window opens facing it.
    */
   const explained = useMemo(() => passes.find((pass) => pass.id === highlightedPassId) ?? null, [passes, highlightedPassId]);
   const peak = facingOptions.includes('peak') && explained !== null ? explained.peak : null;
@@ -505,7 +434,7 @@ export function SkyWindow(props: SkyWindowProps) {
   }, [slotCamera]);
   const camera: SkyCamera = givenCamera ?? slotCamera ?? SENSOR_CAMERA;
   // FR-SKY-2: the window laid out in the page's box under the hand — the frame cuts the box and corners the readout.
-  const inBox = hand !== undefined && camera.source === 'hand' && !onScreen;
+  const inBox = hand !== undefined && camera.source === 'hand';
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
   const declinationDeg = useDeclination(observer);
 
@@ -530,9 +459,9 @@ export function SkyWindow(props: SkyWindowProps) {
   const followPhone = follow && handCamera !== null;
   const byHand = handCamera !== null && !followPhone;
   /*
-   * FR-SKY-14 (D-798, D-820): the field under the sensor — the screen's — is this window's own state, `WINDOW_FOV`
-   * at every mount (every opening of the screen opens at the default) and written only by the pinch below; under
-   * the hand the field is the camera's and this is not read. Neither reaches the prefs or the hash.
+   * FR-SKY-14 (D-798, D-820): the field under the sensor is this window's own state, `WINDOW_FOV` at every mount
+   * and written only by the pinch below; under the hand the field is the camera's and this is not read. Neither
+   * reaches the prefs or the hash.
    */
   const [sensorFov, setSensorFov] = useState(WINDOW_FOV);
   // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
@@ -540,9 +469,9 @@ export function SkyWindow(props: SkyWindowProps) {
   // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
   const placeholder = useMemo(() => {
     if (handCamera !== null) return NO_PLACEHOLDER;
-    // FR-SKY-7 (R121, D-790): opened from a pass detail — an explained pass and no facing of the caller's — the
-    // screen looks at the peak as `facePeak` says until the sensor's first reading, at the field shown (R125). The
-    // live page's screen, which names its facing, keeps D-241's placeholder.
+    // FR-SKY-7 (R121, D-790): an explained pass and no facing of the caller's — the window looks at the peak as
+    // `facePeak` says until the sensor's first reading, at the field shown (R125); a caller that names its facing
+    // keeps D-241's placeholder.
     if (explained !== null && initialFacingAzDeg === undefined) {
       const aim = facePeak(explained.peak, sensorFov);
       return uprightRotation(aim.azDeg, aim.altDeg);
@@ -561,19 +490,18 @@ export function SkyWindow(props: SkyWindowProps) {
   const screenAngleDeg = byHand ? 0 : orientation.screenAngleDeg;
 
   /*
-   * FR-FSC-10 (D-424, D-425, D-429): which way is up to the reader. On a screen — and, R151 (D-941), in a window
-   * following the phone — the projection is composed with the quarter read from the pose: on an unlocked phone that
-   * *is* the browser's angle, and on a locked one it is what the browser's angle would have been. Before the first
-   * reading there is no pose to read, so the browser's own angle stands (FR-FSC-10, "it starts at none"). Elsewhere
-   * the value is the browser's angle and nothing moves (D-425). The screen's layer is turned by the difference
-   * (`SkyScreen`); the following window turns its own box's contents by it (`turnDeg`), sides swapped for a quarter.
+   * FR-FSC-10 (D-424, D-425, D-429) → R151 (D-941): which way is up to the reader. In a window following the phone
+   * the projection is composed with the quarter read from the pose: on an unlocked phone that *is* the browser's
+   * angle, and on a locked one it is what the browser's angle would have been. Before the first reading there is
+   * no pose to read, so the browser's own angle stands (FR-FSC-10, "it starts at none"). Elsewhere the value is
+   * the browser's angle and nothing moves (D-425). The following window turns its own box's contents by the
+   * difference (`turnDeg`), sides swapped for a quarter.
    *
    * D-431: the fold itself is `useDeviceOrientation`'s, beside the rotation it folds — the hysteresis makes
    * each quarter depend on the one before it, and the frame that already eases the rotation is the one place
    * that can keep a previous value without a ref read in a render or a state set from an effect.
    */
-  const turnsWithPose = onScreen || followPhone;
-  const quarter: Quarter = turnsWithPose && orientation.rotation !== null ? orientation.quarter : nearestQuarter(screenAngleDeg);
+  const quarter: Quarter = followPhone && orientation.rotation !== null ? orientation.quarter : nearestQuarter(screenAngleDeg);
   const turnDeg = followPhone ? turnFor(quarter, screenAngleDeg) : 0;
   const sideways = Math.abs(turnDeg) === 90;
   // The drawing's own box: the measured one, its sides swapped while it is turned a quarter.
@@ -889,52 +817,17 @@ export function SkyWindow(props: SkyWindowProps) {
     move();
   };
 
-  /*
-   * R79 (FR-GUT-7, D-451): the screen's own box, for which way up the layout is. Upright the band is capped at as
-   * tall as it is wide, so the drawing's box cannot answer the question it would then be shaped by; a probe that
-   * fills the frame's overlay slot — the whole screen, in its layout box, before FR-FSC-10's turn — can. Null
-   * until measured, and off a screen, where the drawing's box is the answer as it was.
-   */
-  const probeRef = useRef<HTMLSpanElement>(null);
-  const [screenBox, setScreenBox] = useState<{ width: number; height: number } | null>(null);
-  useEffect(() => {
-    const probe = probeRef.current;
-    if (!onScreen || !probe || typeof ResizeObserver === 'undefined') return;
-    const observerOfScreen = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (rect && rect.width > 0 && rect.height > 0) setScreenBox({ width: Math.round(rect.width), height: Math.round(rect.height) });
-    });
-    observerOfScreen.observe(probe);
-    return () => {
-      observerOfScreen.disconnect();
-    };
-  }, [onScreen]);
-
-  // FR-FSC-10 (D-429): the screen's layer learns the quarter through the context; nowhere else is it reported.
-  const { report } = useScreenTurn();
-  useEffect(() => {
-    // One report per turn of the hand, and none at all off a screen, where `report` is the context's no-op.
-    if (onScreen) report(quarter);
-  }, [onScreen, quarter, report]);
-
   // FR-SKY-14: the field is the current one, so everything drawn from `view` — the scale, the drawable limit, the
-  // ground thresholds, the bracket — follows the zoom.
+  // ground thresholds — follows the zoom.
   const view: View = useMemo(
-    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: turnsWithPose ? quarter : screenAngleDeg }),
-    [fovDeg, drawWidth, drawHeight, turnsWithPose, quarter, screenAngleDeg],
+    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: followPhone ? quarter : screenAngleDeg }),
+    [fovDeg, drawWidth, drawHeight, followPhone, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
 
   const look = lookDirection(m);
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
-
-  // FR-FSC-4 as rewritten, FR-GUT-7 (D-427, D-451): the shape of the screen the reader is looking at, read from
-  // the box that was measured and not from `(orientation: landscape)`, which a rotation lock never answers true;
-  // the box, not the viewport, because FR-FSC-10 may have turned the layer under it. On a screen it is the
-  // screen's box (the probe), since upright the drawing is a band cut to the width.
-  const shape = onScreen && screenBox !== null ? screenBox : size;
-  const upright = shape.height > shape.width;
 
   // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
@@ -950,48 +843,6 @@ export function SkyWindow(props: SkyWindowProps) {
   const veilClip = ground === 'ground' ? groundClipPath(horizonProjected) : '';
   const veil = ground === 'buried' || veilClip !== '';
   const uid = useId().replaceAll(':', '');
-
-  /*
-   * FR-GUT-2..5 (D-450): the gutter's marks, one per drawn pass in legend order, at the bearing the arc is drawn
-   * from — where the satellite is while it is up, where it rises otherwise — in the arc's own colour token.
-   */
-  const facingDeg = look.azDeg;
-  const drawnPasses = useMemo(() => passes.map((pass, index) => ({ pass, index })).filter(({ pass }) => arcOf(pass) !== 'hidden'), [passes]);
-  // Not memoised: the facing is the sensor's and changes every frame the drawing does, and so does everything below.
-  const marks: GutterMark[] = onScreen
-    ? gutterMarks(
-        drawnPasses.map(({ pass, index }): GutterPass => ({
-          id: pass.id,
-          name: pass.name,
-          key: legendKeys[pass.id] ?? '',
-          color: colorBy === 'pass' ? seriesToken(index) : highlightedPassId !== null && highlightedPassId !== pass.id ? 'pass-dim' : 'pass',
-          bearingDeg: passBearing(pass, now),
-        })),
-        facingDeg,
-        view,
-      )
-    : [];
-
-  /*
-   * FR-GUT-6: the empty-field chip. The field is empty when no drawn pass crosses it — no tick inside the bracket
-   * and no part of any arc in the box. Then the one line names the pass whose next event is soonest (FR-FIRST-3's
-   * rule, `nextEvent`), the shorter turn to where it is or will rise, and the countdown from the shown instant
-   * (FR-FSC-8: the screen always has one); with nothing in the span it names no direction. The ground notes outrank
-   * it, so over the ground it is not drawn at all.
-   */
-  let chip: string | null = null;
-  // FR-STAR-5: the stars inventory has no pass to name, so no chip.
-  if (onScreen && inventory === 'passes' && now !== undefined && ground === 'sky' && !marks.some((mark) => mark.branch === 'in-bracket') && !drawnPasses.some(({ pass }) => arcInBox(pass, m, view, now))) {
-    const event = nextEvent(
-      drawnPasses.map(({ pass }) => pass),
-      now,
-    );
-    if (isNoEvent(event)) chip = t.window.emptySky;
-    else {
-      const turn = turnTo(passBearing(event.pass, now), facingDeg);
-      chip = t.window.emptyField({ name: event.pass.name, angle: degrees(turn.angleDeg), side: turn.side, kind: event.kind, countdown: formatClockDuration((event.at - now) / 1000) });
-    }
-  }
   const hatchId = `${uid}-hatch`;
   const clipId = `${uid}-ground`;
   const readoutId = `${uid}-readout`;
@@ -1056,23 +907,8 @@ export function SkyWindow(props: SkyWindowProps) {
   // `live`: the hand drives (always), or the sensor is on. FR-STAR-4, D-757: the hand points at true bearings and
   // has no declination to name, so its readout is the first line alone.
   // R116 (FR-STAR-7): the readout's second line is the named object's, "Canopus · mag −0.7 · 28° up · S" — under the
-  // hand and, since R127, on the screen too (FR-SKY-11: a tap's name takes the line while it holds).
+  // hand and under the sensor alike (FR-SKY-11: a tap's name takes the line while it holds).
   const namedLine = scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
-  /*
-   * R127 (FR-SKY-11, D-796): on the screen the second line is the landmark line while a pass is in the scene and
-   * none is tapped — the same formatter as the page's headline — and the declination line (FR-FSC-4) where the
-   * scene has no pass. Off a screen the line is the page's, under the pass's name.
-   */
-  const sceneLandmark = given?.landmark ?? null;
-  const sceneCatalog = scene?.stars?.catalog;
-  const landmarkText =
-    onScreen && sceneCatalog !== undefined && sceneLandmark !== null && passes.some((pass) => pass.id === sceneLandmark.passId)
-      ? landmarkLine(
-          sceneLandmark,
-          landmarkNames({ star: (i, lang) => starName(catalogNames(sceneCatalog), i, lang), constellation: (con, lang) => constellationName(catalogNames(sceneCatalog), con, lang) }, sceneCatalog.con, locale),
-          t.live,
-        )
-      : null;
   /*
    * FR-SKY-14 (D-798, D-822): while the field is not `WINDOW_FOV` the first line ends with ` · field 30°` (rounded
    * to 5°). The words are R123's string, `window.field`, which takes the degrees and carries its own separator, as
@@ -1091,13 +927,6 @@ export function SkyWindow(props: SkyWindowProps) {
           <br />
           <span className={styles.declination} data-testid="window-named" data-named={namedStar}>
             {namedLine}
-          </span>
-        </>
-      ) : landmarkText !== null ? (
-        <>
-          <br />
-          <span className={styles.declination} data-testid="window-landmark" data-landmark={sceneLandmark?.star?.index ?? ''}>
-            {landmarkText}
           </span>
         </>
       ) : (
@@ -1121,10 +950,10 @@ export function SkyWindow(props: SkyWindowProps) {
   const shown = followPhone ? null : status;
 
   /*
-   * FR-SKY-2 (D-789, D-790): the window in the page's box has the stars page's controls around it — the facing
-   * picker from the page's list and, where the device has a sensor as well (a tablet), `[ hold up to the sky ]`,
-   * which opens the screen as the stars page's does. In the rail where the page has one (the wide live page), in
-   * the frame's controls row otherwise (the pass detail, the compact pages), after the view control.
+   * FR-SKY-2 (D-789, D-790): the window in the page's box has the stars page's facing picker around it, from the
+   * page's list. In the rail where the page has one (the wide live page), in the frame's controls row otherwise
+   * (the pass detail, the compact pages), after the view control. R152 (FR-GYRO-6): `[ hold up to the sky ]`, which
+   * stood beside it, is gone; `[ follow the phone ]` is the page's own row (`FollowToggle`).
    */
   const railed = inBox && fill && aside !== undefined && aside !== null;
   /*
@@ -1144,15 +973,14 @@ export function SkyWindow(props: SkyWindowProps) {
       className={[styles.window, className].filter(Boolean).join(' ')}
       data-state={byHand ? 'hand' : state}
       data-ground={ground}
-      {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
       {...(inBox ? { 'data-in-box': 'true' } : {})}
       {...(followPhone ? { 'data-follow': 'true', 'data-turn': turnDeg } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
       data-fov={Math.round(fovDeg)}
     >
-      {!onScreen && readoutSlot.place(shown)}
-      {!onScreen && pickerSlot.place(facingRow)}
+      {readoutSlot.place(shown)}
+      {pickerSlot.place(facingRow)}
       <ChartFrame
         fill={fill}
         legend={legend}
@@ -1171,52 +999,15 @@ export function SkyWindow(props: SkyWindowProps) {
         {...(measureBox === undefined ? {} : { measureBox })}
         {...(stacked === undefined ? {} : { stacked })}
         {...(legendOpen === undefined ? {} : { legendOpen })}
-        /* D-322: the frame's screen mode is the window's to pass on — it is the window that renders the frame. Cast, like `screen` itself, so this compiles either side of R62. */
-        {...({ screen: onScreen } as { screen?: boolean })}
-        /* FR-FSC-1, D-321 (R64): the page's own children over the drawing — the follow screen's `×`. R62 put the
-           slot on `ChartFrameProps` and on `SkyChartProps`; this is the last link, and the window is what renders
-           the frame. Off a screen there is no overlay slot in the frame, so nothing changes for the pass detail. */
-        {...(overlay === undefined && !onScreen
-          ? {}
-          : {
-              overlay: (
-                <>
-                  {overlay}
-                  {/* R79 (D-451): the screen's own box, measured for which way up the layout is. */}
-                  {onScreen && <span className={styles.probe} ref={probeRef} aria-hidden="true" />}
-                </>
-              ),
-            })}
-        /* R79 (FR-GUT-1, FR-GUT-7; D-450, D-451): on a screen the bottom slot is the gutter, and upright the frame
-           lays out the rows around a band with the next-event block above it. */
-        {...(onScreen
-          ? {
-              gutter: <CompassGutter facingDeg={facingDeg} view={view} marks={marks} />,
-              upright,
-              headline: upright ? (
-                <div className={styles.headline} data-testid="window-headline">
-                  {/* FR-STAR-5: the stars inventory has no pass, so no next-event block — only the advice, which is about the picture. */}
-                  {inventory === 'passes' && <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} timeZone={observer.timeZone} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />}
-                  {/* FR-GUT-7 (D-451): the advice is secondary copy under the peak line, not a note over the picture. */}
-                  <p className={styles.advice} data-testid="window-turn-advice">
-                    {t.window.turnAdvice}
-                  </p>
-                </div>
-              ) : null,
-            }
-          : {})}
-        /* FR-FSC-1, D-323: the screen has no control row — neither the page's view control nor the hint. */
         controls={
-          onScreen ? undefined : (
-            <>
-              {controls}
-              {/* The hint is the sensor's ("hold the phone up"); the hand's box has its own hint in the box (below). */}
-              {handCamera === null && <p className={styles.hint}>{t.window.hint}</p>}
-              {!railed && !pickerSlot.inLayout && facingRow}
-            </>
-          )
+          <>
+            {controls}
+            {/* The hint is the sensor's ("hold the phone up"); the hand's box has its own hint in the box (below). */}
+            {handCamera === null && <p className={styles.hint}>{t.window.hint}</p>}
+            {!railed && !pickerSlot.inLayout && facingRow}
+          </>
         }
-        status={readoutSlot.inLayout && !onScreen ? null : shown}
+        status={readoutSlot.inLayout ? null : shown}
       >
         <div
           className={handCamera !== null ? [styles.box, styles.hand].join(' ') : styles.box}
@@ -1341,19 +1132,11 @@ export function SkyWindow(props: SkyWindowProps) {
                 {ground === 'buried' ? t.window.buried : t.window.ground}
               </p>
             )}
-            {/* FR-GUT-6: over an empty field, one line naming the next pass and the turn to it. The ground notes
-                above outrank it, so at most one line ever stands over the drawing. */}
-            {chip !== null && (
-              <p className={styles.chip} role="status" data-testid="window-chip">
-                {chip}
-              </p>
-            )}
           </div>
           {/* R132 (FR-FLOW-6, D-848): R121's hand hint in the box's corner is the layout's `SkyHint` under the picker now. */}
-          {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted
-              on the sky screen, and the tap that opened the screen is the tap that asked (FR-WIN-4, D-350), so
-              the gate had nothing left to guard: it was already suppressed on a screen (R64), and a screen is
-              now the only place a window is. `useDeviceOrientation` keeps `start` for the state machine. */}
+          {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The tap that turns following on
+              is the tap that asked (FR-WIN-4, FR-GYRO-2), so the gate has nothing to guard; `useDeviceOrientation`
+              keeps `start` for the state machine. */}
         </div>
       </ChartFrame>
     </div>
@@ -1361,18 +1144,13 @@ export function SkyWindow(props: SkyWindowProps) {
 }
 
 /**
- * FR-SKY-2 (D-789): the in-box window's facing row — the picker and, where the device has a sensor as well (a
- * tablet), `[ hold up to the sky ]`, which is `useSkyScreen.open()`. Its own component so the screen's store and
- * the presence test are read by the window in a page's box alone, not by the stars page's or the screen's.
+ * FR-SKY-2 (D-789): the in-box window's facing row — the picker from the page's list. R152 (FR-GYRO-6, D-944):
+ * `[ hold up to the sky ]` stood after it and is gone; the row keeps its test id for the specs that find the picker.
  */
 function HandFacingRow({ camera, options, peak, follow, prefix }: Pick<FacingPickerProps, 'camera' | 'options' | 'peak' | 'follow' | 'prefix'>) {
-  const sp = useStarsPageT();
-  // On a compact page without a sensor there is no way to the screen to offer.
-  const entry = useSkyScreen();
   return (
     <div className={styles.facingRow} data-testid="window-facing">
       <FacingPicker camera={camera} {...(options === undefined ? {} : { options })} {...(peak === undefined ? {} : { peak })} {...(follow === undefined ? {} : { follow })} {...(prefix === undefined ? {} : { prefix })} />
-      {entry.available && <TextButton label={sp.holdUp} onClick={entry.open} data-testid="window-hold-up" />}
     </div>
   );
 }

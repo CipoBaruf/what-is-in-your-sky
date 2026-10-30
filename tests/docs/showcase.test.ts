@@ -65,14 +65,11 @@ function specInstant(name: string, bases: Record<string, number>): number {
   const offset = Number(amount.replaceAll('_', '')) * (minutes ? 60_000 : 1);
   return sign === '+' ? baseT + offset : baseT - offset;
 }
-const TICK_MS = 10_000;
 const CAPTURE_INSTANTS: { what: string; t: number }[] = [
   { what: 'the capture CLOCK', t: SHOWCASE_NIGHT },
   { what: 'the capture SHOWN', t: SHOWCASE_SHOWN },
   { what: 'LEGEND_SHOWN', t: specInstant('LEGEND_SHOWN', { SHOWN: SHOWCASE_SHOWN }) },
-  { what: 'CHIP_SHOWN', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) },
-  // The chip is pinned a strip tick after its instant (`followScreen`).
-  { what: 'CHIP_SHOWN + TICK_MS', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) + TICK_MS },
+  // R152 (FR-GYRO-6, D-958): `CHIP_SHOWN`, the empty-field chip's instant, went with the sky screen's shots.
   // R135 (FR-FLOW-12): the doors' daylight state, the afternoon of the 6th.
   { what: 'DAYLIGHT', t: specInstant('DAYLIGHT', { CLOCK: SHOWCASE_NIGHT }) },
 ];
@@ -111,7 +108,7 @@ describe('the showcase night (FR-SHOW-9)', () => {
     expect(captureSeeds).toContain('export const CLOCK = SHOWCASE_NIGHT;');
     expect(captureSeeds).toContain('export const SHOWN = SHOWCASE_SHOWN;');
     expect(captureSeeds).toContain('export const SHOWN_PASS = BRIGHTEST_PASS.id;');
-    expect(captureSeeds).toContain('export const SHOWN_PASS_START = BRIGHTEST_PASS.start;');
+    // R152 (D-958): `SHOWN_PASS_START` went with the chip's shot, the one reader it had; the pass is still named by id.
     // No Paris import, by name or by `import *`, and the constant the set was shot at is gone from the seeds.
     for (const source of [captureSeeds, captureSpec]) {
       expect(source).not.toMatch(/import [^;]*\b(PARIS|PARIS_NIGHT)\b[^;]*from '\.\/observers'/);

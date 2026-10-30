@@ -6,6 +6,7 @@ import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
 import type { HandCamera, SkyCamera } from './window/camera';
 import type { SkyScene } from './window/scene';
+import type { HandPose } from './window/useViewRotation';
 
 /**
  * R121 (FR-STAR-3, FR-SKY-7; D-789, D-790): the facing picker's options. The
@@ -221,28 +222,24 @@ export interface SkyChartProps {
    */
   controls?: ReactNode;
   /**
-   * FR-FSC-1, FR-FSC-3 / D-322 (R62): the chart *is* the screen. The window is
-   * the view whatever `chartView` says, there is no caption, no view toggle and
-   * no controls row, `fill` is implied, and the frame drops the rails: the box
-   * is the host's whole size with the facing readout and the legend as overlays
-   * over the drawing. The dome and the polar chart never see it — the type
-   * allows it and `SkyChart` ignores it for them — so the three views draw the
-   * same geometry as before.
+   * R151, R152 (FR-GYRO-2, FR-GYRO-5; D-941): the page's own window follows the phone. While it is set `SkyChart`
+   * shows the window whatever `chartView` says, without writing it, and the window takes the sensor camera at the
+   * hand's field with nothing drawn over it but FR-FOL-5's ground notes. The page owns the state (D-943) and it is
+   * never saved; `false` by default. The dome and the polar chart never see it.
    */
-  screen?: boolean;
+  follow?: boolean;
+  /**
+   * R151 (FR-GYRO-4; D-942): the finger wins — the window calls it once, before anything moves, when a drag starts
+   * or one of FR-SKY-14's keys is pressed while following, with the pose the hand camera has just been given. The
+   * page turns its follow state off. A pinch does not call it.
+   */
+  onFollowEnd?: (pose: HandPose) => void;
   /**
    * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the legend's Moon line carries the phase and the
    * illumination. The compact live page alone passes it — that is the line its conditions line hands
    * them to — and FR-MOON-3 leaves the Now panel, the wide live page and every other legend unchanged.
    */
   moonPhase?: boolean;
-  /**
-   * FR-FSC-1 / D-322 (R62): the page's own children over everything on a
-   * `screen` — the follow screen's `×`. The chart neither builds this nor reads
-   * it: the frame places it in its overlay slot, above the drawing, the readout
-   * and the legend alike. Absent everywhere else.
-   */
-  overlay?: ReactNode;
   /**
    * FR-WIN-4 / D-240 (R47): a view that cannot stay mounted says why — the
    * window after a refused orientation permission (`denied`) or on a phone
@@ -265,18 +262,6 @@ export interface SkyChartProps {
    * they pass none. The passes stay on `passes`.
    */
   scene?: SkyScene;
-  /**
-   * FR-STAR-5 (R117, D-756): which of the sky screen's two inventories this
-   * chart is on. `'stars'` (opened from `#stars`) has no pass, so nothing that
-   * speaks of one is built: no legend rows, no empty-field chip (FR-GUT-6) and
-   * no next-event block upright (FR-GUT-7). Absent, or `'passes'`, the live
-   * page's and the pass detail's chart, unchanged.
-   *
-   * R126 (FR-SKY-6, D-794): the sky screen sets `'stars'` only where its
-   * scene carries no pass — the stars page with `[ passes ]` off. With the
-   * passes on, the stars page's screen is the passes inventory's.
-   */
-  inventory?: 'passes' | 'stars';
   /**
    * D-750 (R113): what drives the window's rotation. Absent, or
    * `SENSOR_CAMERA`, the phone's pose through `useDeviceOrientation`; a

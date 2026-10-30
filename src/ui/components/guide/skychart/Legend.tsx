@@ -5,7 +5,6 @@ import type { BodyLine, LegendRow } from '../../../../lib/legend';
 import { formatClock } from '../../../../lib/timeFormat';
 import { moonFacts } from '../../../../lib/moonPhrases';
 import type { Messages } from '../../../../i18n/messages';
-import { VisuallyHidden } from '../../primitives/VisuallyHidden';
 import { moonGlyph } from './bodies';
 import { LegendSwatch } from './LegendSwatch';
 import styles from './Legend.module.css';
@@ -54,18 +53,10 @@ export interface LegendProps {
    */
   lead?: { passId: string; node: ReactNode } | undefined;
   /**
-   * FR-FSC-3 / FR-LEG-2 as amended v1.3 (R62, D-322): the follow screen's
-   * strip. The rows are FR-LEG-3's short form — key, swatch, name, rise and end
-   * — on one line each, so the two rows the strip is allowed are two lines of
-   * text at 844 px and the drawing keeps the rest of the screen. The peak time
-   * is what goes: on a screen the picture is the peak.
-   */
-  screen?: boolean;
-  /**
    * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the Moon line carries the phase and the illumination.
    * The compact live page alone sets it, because that is the line its conditions line gives them to;
    * FR-MOON-3 leaves the Now panel and the wide live page unchanged, so everywhere else reads the
-   * plain line. R79's sky screen draws the legend too, and is not this page.
+   * plain line.
    */
   moonPhase?: boolean;
 }
@@ -101,7 +92,7 @@ const ENTRY_ROWS = { row: 2, line: 1 } as const;
 
 type TimeKey = 'rise' | 'peak' | 'end';
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false, moonPhase = false }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, moonPhase = false }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -109,30 +100,27 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   // The lead's row is the table itself, so it is not repeated as a button below it (FR-LEG-3).
   const listed = lead === undefined ? rows : rows.filter((row) => row.passId !== lead.passId);
   const inventory = useContext(LegendInventoryContext);
-  const clipped = inventory !== null && !screen && lead === undefined;
+  const clipped = inventory !== null && lead === undefined;
   const entryRows = [...(listed.length === 0 ? [ENTRY_ROWS.line] : listed.map(() => ENTRY_ROWS.row)), ...bodies.map(() => ENTRY_ROWS.line)];
   const clip = clipped ? inventory.clip(entryRows) : null;
   // FR-FLOW-13 (D-852, V26-13): each time is written with its word on the row's second line, the zone once after
   // the last — `rise 09:48:24 · peak 09:48:38 · end 09:49:02 UTC`. The separator closes the time before it, and a
-  // time never breaks inside, so a narrow column wraps between whole times and no line starts with `·` (D-863). The
-  // sky screen's one-line strip keeps its bare figures and says the words to a screen reader alone (R85, F-81),
-  // since its width is the name's.
+  // time never breaks inside, so a narrow column wraps between whole times and no line starts with `·` (D-863).
   const time = (key: TimeKey, ms: number | null, last: boolean): ReactNode => (
     <span className={styles.time}>
-      {screen ? <VisuallyHidden>{`${words[key]} `}</VisuallyHidden> : `${words[key]} `}
-      {screen || last ? clock(ms) : clock(ms).split(' ', 1)[0]}
-      {!screen && !last && ' · '}
+      {`${words[key]} `}
+      {last ? clock(ms) : clock(ms).split(' ', 1)[0]}
+      {!last && ' · '}
     </span>
   );
   const stateOf = (row: LegendRow): ReactNode =>
     (row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>;
   const list = (
     <ol
-      className={[styles.legend, screen ? styles.screen : undefined, clip !== null ? styles.clipped : undefined].filter(Boolean).join(' ')}
+      className={[styles.legend, clip !== null ? styles.clipped : undefined].filter(Boolean).join(' ')}
       aria-label={words.label}
       data-testid="chart-legend"
       data-lead={lead !== undefined}
-      data-screen={screen}
       {...(clip === null ? {} : { 'data-clip-rows': clip.rows, style: { ['--inventory-rows' as string]: String(clip.rows) } as CSSProperties })}
     >
       {lead !== undefined && (
@@ -141,9 +129,8 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
         </li>
       )}
       {/* FR-LEG-7 (R71): a legend with no rows says so, once, and says it live — the panel is two rows tall
-          whether or not the sky has anything in it. Never on the sky screen, whose strip is the drawing's own
-          bottom edge and stays empty (FR-FSC-3, out of scope), and never where a lead is the first row. */}
-      {!screen && lead === undefined && listed.length === 0 && (
+          whether or not the sky has anything in it; never where a lead is the first row. */}
+      {lead === undefined && listed.length === 0 && (
         <li className={[styles.item, styles.empty].join(' ')} data-testid="legend-empty">
           <span role="status">{words.empty}</span>
         </li>
@@ -173,16 +160,15 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
                   outside the name's text, so a name cut by an ellipsis never takes the state with it (D-863). */}
               <span className={styles.name}>
                 <span className={styles.nameText}>{row.name}</span>
-                {!screen && row.riseMs !== null && state !== false && <> {state}</>}
+                {row.riseMs !== null && state !== false && <> {state}</>}
               </span>
               {row.riseMs !== null && (
                 <span className={styles.times}>
                   {time('rise', row.riseMs, false)}
-                  {/* D-863: the short wide inventory keeps rise and end, as the strip and the dim rows do: its line
+                  {/* D-863: the short wide inventory keeps rise and end, as the dim rows do: its line
                       does not wrap, and three named times with a zone are wider than its rail. */}
-                  {lead === undefined && !screen && clip === null && time('peak', row.peakMs, false)}
+                  {lead === undefined && clip === null && time('peak', row.peakMs, false)}
                   {time('end', row.endMs, true)}
-                  {screen && state}
                 </span>
               )}
             </button>

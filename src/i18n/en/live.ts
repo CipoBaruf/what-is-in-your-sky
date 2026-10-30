@@ -131,7 +131,7 @@ export const live = {
      * R66 (V13-6): `follow`, `followShort`, `followRelative`, `followDenied`
      * and `followClose` are gone with the `[ follow phone ]` control. The two
      * notes are the window's own (`window.denied`, `window.relative`), beside
-     * the view control that now asks; the `×`'s name is `chart.screenClose`.
+     * the view control; R152 retired the screen and its `×` with it.
      */
     /**
      * R48 (FR-TRAJ-5, FR-COMP-4): the stepping row under the stripe, the six

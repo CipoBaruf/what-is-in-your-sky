@@ -160,6 +160,22 @@
   margin-left: auto;
 }
 
+/* R152 (FR-GYRO-1, FR-GYRO-10; D-944): `[ follow the phone ]` — in the sheet its own row after the view row, at
+   least a tap tall; in the wide rail's `View` group its second line, the whole row, with `[x] stars` kept at the
+   first line's end (the layout's rule puts the row's last child there, and the toggle is last now). */
+.followRow {
+  min-height: var(--tap);
+  align-content: center;
+}
+
+.followWide {
+  flex: 0 0 100%;
+}
+
+.viewEnd {
+  margin-left: auto;
+}
+
 /* The facing row (FR-FULL-4, D-923): the chart's readout with a button laid over it at the row's whole size — a
    target tall, named by the words (a button holds phrasing content only, the readout is a `p`) — and the picker
    under it while open, a row apart. On the dome the words stand alone. */

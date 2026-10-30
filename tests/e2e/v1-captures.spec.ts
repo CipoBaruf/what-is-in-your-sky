@@ -53,8 +53,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { closeSheet, domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSheet, openSkyScreen, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+import { CLOCK, DAY_MS, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
@@ -105,14 +105,6 @@ async function readyOrFolded(page: Page): Promise<void> {
 
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
 const LEGEND_SHOWN = SHOWN + 120_000;
-/**
- * R79 (FR-GUT-6): the chip's instant, where no facing has a pass in it and one is about to rise. P8: three minutes
- * before `SHOWN_PASS` rises — inside `ARC_LOOKAHEAD_MS`, so it is drawn `ahead` — and after the 07:04 pass has set,
- * so the field is empty in every direction but the one the chip names the turn to. (Over Paris it was eight minutes
- * before the ISS, where the sky had a pass in every direction at `SHOWN`.)
- */
-const CHIP_SHOWN = SHOWN_PASS_START - 3 * 60_000;
-
 /** Neuquén saved but not in use, Bariloche in use: the "in use" mark is on one row and not the other. Two screens seed them (R53: the settings page lists them too, FR-COMP-2). */
 const SAVED_PLACES = [
   { cellKey: '-38.93,-67.99', observer: NEUQUEN, addedAt: CLOCK - 2 * DAY_MS, lastUsedAt: CLOCK - 2 * DAY_MS },
@@ -161,7 +153,8 @@ async function settled(page: Page): Promise<void> {
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned', 'stars-screen', 'stars-passes-screen']);
+// R152 (FR-GYRO-6, D-958): the sky screen's shots, which filled this set, are retired; the stars page's touch widths stay below.
+const TOUCH = new Set<string>();
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
@@ -177,12 +170,6 @@ const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
 const PASSES = { en: 'passes', es: 'pases' } as const;
 const FACING = { en: 'Facing', es: 'Mirando' } as const;
 const FRAME_MS = 16;
-
-/** The two states R56 added to the window: `state` is how far below the horizon the phone points, in a square 60° box (R56's own numbers). */
-const GROUND_STATE: Record<'window-ground' | 'window-buried', { altDeg: number; state: 'ground' | 'buried' }> = {
-  'window-ground': { altDeg: -10, state: 'ground' },
-  'window-buried': { altDeg: -60, state: 'buried' },
-};
 
 /**
  * A page at `width` on the paused clock, with the preferences already in storage (`seedPage`) and the showcase
@@ -457,128 +444,6 @@ async function liveSheet(page: Page, width: CaptureWidth, theme: CaptureTheme, l
 }
 
 /**
- * R53 (FR-WIN-3): a reading from the phone — the W3C alpha for a back facing
- * `azDeg`, tilted `altDeg` up — and then one frame, which the installed clock
- * is holding. `sky-window.spec.ts` has the same two helpers; they are four
- * lines each and copying them keeps this file's clock discipline in one place.
- */
-async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
-  await page.evaluate(
-    ([alpha, beta]) => {
-      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha, beta, gamma: 0, absolute: true }));
-    },
-    [(360 - azDeg) % 360, 90 + altDeg] as [number, number],
-  );
-  await page.clock.runFor(FRAME_MS);
-}
-
-/** Frames until the FR-WIN-3 smoothing has settled on the last reading. */
-async function settle(page: Page): Promise<void> {
-  await page.clock.runFor(40 * FRAME_MS);
-}
-
-/**
- * R64 (FR-FSC-1, FR-FSC-7), R66 (V13-6): the sky screen, in the state its own
- * screen name carries. The route is the reader's: the live page, the view
- * control's "window", and the reading with a north in it that the tap waits for
- * (D-350) — the layer opens on that reading and not on the click.
- *
- * `sky` is turned to where the pass is, as `live-following` was: a picture with
- * an arc in it is worth more than an empty sky. The two ground states are swept
- * down the look's own azimuth.
- *
- * R73 (FR-FSC-4 as rewritten, FR-FSC-7 as amended, FR-FSC-10, FR-FSC-11):
- * `portrait` is the phone held upright, which since v1.4.1 is a picture and not
- * a note — the same aim as `sky`, in the portrait box, with the advice line
- * over it — and `turned` is the phone held sideways while the viewport stays
- * upright, which is what a rotation lock does: the pose says 90, the layer
- * turns, and the picture is landscape inside a portrait viewport.
- */
-type FollowState = 'sky' | 'ground' | 'buried' | 'portrait' | 'turned' | 'chip';
-
-async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
-  await stubCompass(page);
-  const shown = state === 'chip' ? CHIP_SHOWN : SHOWN;
-  await liveAt(page, width, theme, locale, shown);
-  // R136 (FR-FLOW-15): the view control's `Window` lays the window in the box, and the screen opens from its
-  // `[ hold up to the sky ]`, on the reading with a north in it that the tap waits for (D-350).
-  await openSkyScreen(page, locale);
-  // FR-FSC-1: none of the live page is under the layer any more — the rows are not rendered at all.
-  await expect(page.getByTestId('stripe-block')).toHaveCount(0);
-  await expect(page.getByTestId('sky-screen-close')).toBeVisible();
-  const drawing = page.locator('[data-look-az]');
-  await expect(drawing).toBeAttached();
-  /*
-   * R94 (FR-CAP-5, F-70; D-611): the poll that opened the layer ticked the clock 100 ms an iteration for as
-   * many iterations as the reading took to land, and the sweeps below run a fixed count of frames from
-   * wherever that left it — so the drawing's instant was a property of the run, and the arcs anti-aliased a
-   * pixel or two differently between two shots of the same file. The instant is pinned again after the
-   * sweep (F-48's rule), a tick on for the chip so its countdown is under way, and the state the sweep found
-   * is asserted after the pin, so the picture is of what was proved.
-   */
-  const pinned = (): Promise<void> => pinnedAt(page, state === 'chip' ? shown + TICK_MS : shown);
-  if (state === 'turned') {
-    /*
-     * The pose of a phone held sideways on a viewport that never reflows — a rotation lock. `gamma: -90` puts
-     * the room's up along the device's +X, which is its top to the reader's left and the browser's angle 90 on
-     * a phone that is free to turn; the extra 20° raises the look that far above the horizon, as `point` does
-     * for the upright poses. `alpha` is swept for the same reason `sky` sweeps the azimuth: a picture with an
-     * arc in it is worth more than an empty sky.
-     */
-    for (const alpha of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
-      await page.evaluate((a) => {
-        window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: a, beta: 0, gamma: -110, absolute: true }));
-      }, alpha);
-      await settle(page);
-      if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
-    }
-    await pinned();
-    await expect(page.locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
-    await expect(page.getByTestId('sky-screen')).toHaveAttribute('data-turn', '90');
-    await expect(drawing).toHaveAttribute('data-orientation', 'landscape');
-    await expect(drawing).toHaveAttribute('data-ground', 'sky');
-    await page.mouse.move(0, 0);
-    return;
-  }
-  if (state === 'sky' || state === 'portrait') {
-    // R79: turned until a pass is in the gutter's bracket, so the picture has an arc in it and the gutter a tick.
-    for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
-      await point(page, azDeg, 20);
-      await settle(page);
-      if ((await page.locator('[data-branch="in-bracket"]').count()) > 0) break;
-    }
-    await pinned();
-    await expect(page.locator('[data-branch="in-bracket"]').first()).toBeAttached();
-    await expect(drawing).toHaveAttribute('data-ground', 'sky');
-    // FR-GUT-7: upright, the advice is secondary copy under the countdown — which is what the portrait shot is of.
-    if (state === 'portrait') await expect(page.getByTestId('window-turn-advice')).toBeVisible();
-  } else if (state === 'chip') {
-    // R79 (FR-GUT-6): turned away from every pass, so the field is empty and the chip says which way to turn. The
-    // sweep is finer than the others' and looks low and high, as it had to over Paris's crowded sky.
-    search: for (const altDeg of [15, 45]) {
-      for (let azDeg = 0; azDeg < 360; azDeg += 10) {
-        await point(page, azDeg, altDeg);
-        await settle(page);
-        if ((await page.getByTestId('window-chip').count()) > 0) break search;
-      }
-    }
-    // A pass already up when the page computed its set starts at that instant, a fraction of a second after the
-    // shown one; a tick on (FR-VIS-5) it is under way, so the chip counts to its peak or its end, not "up in 0:00".
-    await pinned();
-    await expect(page.getByTestId('window-chip')).toBeVisible();
-    await expect(page.getByTestId('window-chip')).not.toContainText('0:00.');
-  } else {
-    // Down the look's own azimuth, so the sky the `ground` state still holds is the sky the reader was in.
-    const azDeg = Number(await drawing.getAttribute('data-look-az'));
-    await point(page, azDeg, GROUND_STATE[state === 'ground' ? 'window-ground' : 'window-buried'].altDeg);
-    await settle(page);
-    await pinned();
-    await expect(drawing).toHaveAttribute('data-ground', state);
-  }
-  await page.mouse.move(0, 0);
-}
-
-/**
  * R135 (FR-FLOW-1, FR-FLOW-12; D-843, D-860): the home's three doors, every line arrived. The Stars door's second
  * line and the wide lines are the `stars` chunk's, which the home prefetches on idle (`useDoorSky`); until it lands
  * a line is drawn empty at its height and marked `data-pending`, so the wait is for none left, ticking the paused
@@ -697,7 +562,6 @@ async function windowInTheBox(page: Page, scope: Locator, locale: CaptureLocale,
   // R132 (D-864): the view control is the layout's view row, outside the figure.
   await scope.locator('xpath=ancestor::*[@data-sky-layout][1]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
   await page.clock.runFor(1000);
-  await expect(page.getByTestId('sky-screen')).toHaveCount(0);
   const w = scope.locator('[data-look-az]');
   await expect(w).toHaveAttribute('data-state', 'hand');
   await starsDrawn(page, w, SHOWN_WINDOW_STAR);
@@ -854,54 +718,6 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /**
-   * R53 (FR-WIN-1..5): the sky window, on the same pass as the dome and the
-   * polar captures. `sky-window.spec.ts` is where the view is tested; here it
-   * only has to be aimed somewhere worth photographing, which is the peak of
-   * the pass the whole set is shot on.
-   *
-   * Aiming is two readings, as it is in that spec: the placeholder already
-   * points at the peak (D-241), and the second reading takes off the local
-   * declination the window applies (FR-WIN-3), so the look lands exactly where
-   * the placeholder promised rather than a couple of degrees beside it.
-   */
-  async window(page, width, theme, locale) {
-    await stubCompass(page);
-    await openChart(page, width, theme, locale, 'dome');
-    // R66 (V13-6, V13-9): the sky screen over the sheet, and the reading is what opens it (D-350). R136 (FR-FLOW-15):
-    // the option lays the window in the box, and the screen is its `[ hold up to the sky ]`.
-    await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
-    const holdUp = guide(page).getByTestId('window-hold-up');
-    await expect
-      .poll(async () => {
-        await page.clock.runFor(200);
-        return holdUp.count();
-      }, { timeout: 15_000 })
-      .toBe(1);
-    // Back on `SHOWN`, so the screen opens on the instant 2.5.0's route opened it on (F-48): the poll above ticked.
-    await pinnedAt(page, SHOWN);
-    await holdUp.click();
-    await page.evaluate(() => {
-      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
-    });
-    // The paused clock holds the lazy chunk's Suspense reveal (R32), as it does for the dome.
-    await page.clock.runFor(1000);
-    const layer = page.getByTestId('sky-screen');
-    await expect(layer).toHaveCount(1);
-    const drawing = layer.locator('[data-look-az]');
-    await expect(drawing).toBeAttached();
-    const aim = { az: Number(await drawing.getAttribute('data-look-az')), alt: Number(await drawing.getAttribute('data-look-alt')) };
-    await point(page, aim.az, aim.alt);
-    await settle(page);
-    await expect(drawing).toHaveAttribute('data-state', 'on');
-    // R128: read off the readout itself — since R127 its second line is the landmark's where there is one (FR-SKY-11),
-    // and `window-heading`, the true-north line, is drawn only where there is not.
-    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
-    await point(page, aim.az - declination, aim.alt);
-    await settle(page);
-    await expect(layer.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
-    await page.mouse.move(0, 0);
-  },
 
   /**
    * R60 (FR-FOL-5, R56): the window swept down out of the sky, at whichever of
@@ -1040,82 +856,14 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /** R64 (FR-FSC-1, FR-FSC-4, FR-FSC-7): the four states of the screen `[ follow phone ]` opens. */
-  async 'sky-screen-sky'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'sky');
-  },
-
-  /** R79 (FR-GUT-6, FR-GUT-8): the same screen turned away from every pass, with the chip over the gutter. */
-  async 'sky-screen-chip'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'chip');
-  },
-
-  async 'sky-screen-ground'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'ground');
-  },
-
-  async 'sky-screen-buried'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'buried');
-  },
-
-  async 'sky-screen-portrait'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'portrait');
-  },
-
-  /** R73 (FR-FSC-7 as amended, FR-FSC-10): the rotation-locked phone held sideways, with the layer turned. */
-  async 'sky-screen-turned'(page, width, theme, locale) {
-    await followScreen(page, width, theme, locale, 'turned');
-  },
-
   /**
-   * R118 (FR-STAR-3, D-786): the page as it opens. A touch phone at 360 and 390 has `[ hold up to the sky ]`
-   * on it (FR-WIN-4); a desk has the rail and `In this field` beside the box.
+   * R118 (FR-STAR-3, D-786): the page as it opens. A touch phone at 360 and 390 has `[ follow the phone ]`
+   * on it (FR-WIN-4; R152, FR-GYRO-1, in place of `[ hold up to the sky ]`); a desk has the rail and `In this field` beside the box.
    */
   async stars(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    if (isTouch('stars', width)) await expect(page.getByTestId('stars-hold-up')).toBeVisible();
+    if (isTouch('stars', width)) await expect(page.getByTestId('follow-toggle')).toBeVisible();
     else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
-  },
-
-  /**
-   * R118 (FR-STAR-5, D-786): the sky screen in the stars inventory, opened by the page's own control on a phone
-   * held sideways — the tap, then the reading with a north in it that the layer opens on (D-350) — and aimed
-   * south, 35° up, the facing the page opened on, so the screen is the page's sky held up.
-   */
-  async 'stars-screen'(page, width, theme, locale) {
-    await stubCompass(page);
-    await starsAt(page, width, theme, locale);
-    await page.getByTestId('stars-hold-up').click();
-    await expect
-      .poll(
-        async () => {
-          await heading(page, 270);
-          return page.getByTestId('sky-screen').count();
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(1);
-    // The paused clock holds the lazy chunk's Suspense reveal (R32).
-    await page.clock.runFor(1000);
-    const layer = page.getByTestId('sky-screen');
-    await expect(layer).toHaveAttribute('data-inventory', 'stars');
-    // The window's own listener mounts with the chunk, so the reading is repeated until it has had one (R73).
-    await expect
-      .poll(
-        async () => {
-          await point(page, 180, 35);
-          return layer.getByTestId('window-readout').count();
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(1);
-    await settle(page);
-    await pinnedAt(page, CLOCK);
-    await expect(layer.locator('[data-look-az]')).toHaveAttribute('data-ground', 'sky');
-    await expect(layer.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').first()).toBeAttached();
-    await expect(layer.getByTestId('window-heading')).toBeVisible();
-    await expect(layer.locator('[data-pass-id]')).toHaveCount(0);
-    await page.mouse.move(0, 0);
   },
 
   /**
@@ -1206,49 +954,6 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /**
-   * R128 (FR-SKY-6, FR-FSC-1 as amended v2.5; US-41 AC4): the screen `[ hold up to the sky ]` opens from the stars
-   * page with `[ passes ]` on, aimed at the point the page faced, 35° up — the stars and the pass together.
-   */
-  async 'stars-passes-screen'(page, width, theme, locale) {
-    await stubCompass(page);
-    const azDeg = await starsWithPasses(page, width, theme, locale);
-    await page.getByTestId('stars-hold-up').click();
-    await expect
-      .poll(
-        async () => {
-          await heading(page, 270);
-          return page.getByTestId('sky-screen').count();
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(1);
-    // The paused clock holds the lazy chunk's Suspense reveal (R32).
-    await page.clock.runFor(1000);
-    const layer = page.getByTestId('sky-screen');
-    await expect
-      .poll(
-        async () => {
-          await point(page, azDeg, 35);
-          return layer.getByTestId('window-readout').count();
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(1);
-    await settle(page);
-    // The reading is magnetic and the page faced a true azimuth: the second reading takes off the declination the
-    // window applies (FR-WIN-3), as the `window` route does, so the screen faces where the page faced.
-    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
-    await point(page, azDeg - declination, 35);
-    await settle(page);
-    await pinnedAt(page, SHOWN);
-    await expect(layer.locator('[data-look-az]')).toHaveAttribute('data-ground', 'sky');
-    await expect(layer.locator(`[data-drawing="window"] ${SHOWN_WINDOW_STAR}`).first()).toBeAttached();
-    await expect(layer.locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
-    // The gutter's tick in the bracket, as the screen's `what` says and `sky-screen-sky` asserts.
-    await expect(layer.locator('[data-branch="in-bracket"]').first()).toBeAttached();
-    await page.mouse.move(0, 0);
-  },
 };
 
 /**
@@ -1275,6 +980,8 @@ function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof cap
 }
 
 for (const screen of SCREENS) {
+  // R152 (FR-GYRO-6, D-958): a retired screen has no route; its files stay named until R153 takes them out of the set.
+  if (screen.retired) continue;
   // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
   // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
   const captures = captureSet().filter((capture) => capture.screen === screen);

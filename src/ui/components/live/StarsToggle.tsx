@@ -9,12 +9,11 @@ import { OptionToggle } from '../primitives/OptionToggle';
  * live page the chart's view row (`ChartFrameSlots`' `viewAction`; on the
  * landscape phone its readout row, `readoutAction`, D-814). An
  * `OptionToggle` standing alone, as the hidden-objects toggle is; the state is
- * the store's `starsLayer`, saved in the prefs, so the screen opened from the
- * page draws what the page drew (FR-FSC-1: the screen has no toggle of its
- * own). `inline` on a compact row, so its tap box does not make the row
- * taller.
+ * the store's `starsLayer`, saved in the prefs. `inline` on a compact row, so
+ * its tap box does not make the row taller; `className` for placement (R152:
+ * the wide rail's view row keeps it at the first line's end).
  */
-export function StarsToggle({ inline = false }: { inline?: boolean }) {
+export function StarsToggle({ inline = false, className }: { inline?: boolean; className?: string | undefined }) {
   const t = useT();
   const on = useAppStore((s) => s.starsLayer);
   const setStarsLayer = useAppStore((s) => s.setStarsLayer);
@@ -24,6 +23,7 @@ export function StarsToggle({ inline = false }: { inline?: boolean }) {
       pressed={on}
       alone
       inline={inline}
+      className={className}
       data-testid="stars-toggle"
       aria-label={t.live.starsToggleName}
       onPress={() => {

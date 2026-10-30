@@ -72,3 +72,10 @@
   color: var(--fg-dim);
   overflow-wrap: anywhere;
 }
+
+/* R152 (FR-GYRO-1, D-944): `[ follow the phone ]` in the layout's action slot, where `[ hold up to the sky ]` stood
+   (FR-FLOW-8's primary action) — one row at least `--tap` tall, the refusal line under it when there is one. */
+.follow {
+  min-height: var(--tap);
+  align-content: center;
+}

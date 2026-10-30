@@ -12,15 +12,6 @@ export type PassSort = 'chronological' | 'best';
  */
 export type ChartView = 'dome' | 'polar' | 'window';
 /**
- * FR-LEG-7 / D-387 (R71): whether the compact live page's legend panel is
- * open. The legend is behind the `[ list (n) ]` control there, so this is the
- * one thing about it the app remembers between visits; the wide page has no
- * such state, since the legend is always in the rail (FR-LEG-6). Closed until
- * the control is used: the box's floor (FR-COMP-5) is measured with the list
- * closed, so that is what a first visit gets. Persisted in `wiys:prefs:v1`.
- */
-export const DEFAULT_LIVE_LEGEND_OPEN = false;
-/**
  * FR-FAINT-3 / D-623 (R98): whether the pass list shows the passes fainter
  * than `FAINT_MAG` (FR-FAINT-1). Off until the count line's `[ show n faint ]`
  * is used — the default list is the one a reader could find with their eyes

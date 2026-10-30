@@ -18,8 +18,6 @@
 import { act, fireEvent, render, screen as rtl, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
-import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
-import { formatClock } from '../../../../lib/timeFormat';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
 import { en } from '../../../../i18n/en';
@@ -43,10 +41,16 @@ const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93
 const initial = appStore.getInitialState();
 
 /** D-175: a phone to point — the constructor and a touch screen — so the presence test passes. */
-function withPhone(): void {
-  vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
-    return undefined;
-  });
+function withPhone(requestPermission?: () => Promise<'granted' | 'denied'>): void {
+  vi.stubGlobal(
+    'DeviceOrientationEvent',
+    Object.assign(
+      function DeviceOrientationEvent() {
+        return undefined;
+      },
+      requestPermission ? { requestPermission } : {},
+    ),
+  );
   Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
 }
 
@@ -110,7 +114,6 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     expect(rtl.getByTestId('window-facing')).toBeInTheDocument();
     expect(rtl.queryByTestId('window-hand-hint')).toBeNull();
     expect(rtl.queryByTestId('window-hold-up')).toBeNull();
-    expect(appStore.getState().skyScreen).toBe(false);
     expect(appStore.getState().chartView).toBe('window');
     expect(savedChartView()).toBe('window');
     // On compact the frame is not window-shaped: the box the dome has, the readout in its row (D-789).
@@ -132,20 +135,6 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     });
   });
 
-  /** R136 (FR-FSC-2, V26-12): the screen opens from `[ hold up to the sky ]` alone, so closing it gives that control the focus. */
-  it('gives the focus back to [ hold up to the sky ] when the screen closes', async () => {
-    withPhone();
-    appStore.getState().setChartView('window');
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    const holdUp = await rtl.findByTestId('window-hold-up');
-    act(() => {
-      appStore.setState({ refocusWindow: true });
-    });
-    expect(holdUp).toHaveFocus();
-    expect(appStore.getState().refocusWindow).toBe(false);
-  });
-
-  /** R136 (FR-FLOW-14, D-876): with nothing saved a phone opens on the window and a desk on the dome; a saved view wins on both. */
   it('opens a fresh profile on the window on compact and on the dome on wide, and a saved view on both', async () => {
     const media = stubMatchMedia(390);
     try {
@@ -203,28 +192,6 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     }
   });
 
-  /** FR-SKY-2: a tablet — wide, with a sensor — gets the box and, in its controls, `[ hold up to the sky ]`, which is `useSkyScreen.open()`. */
-  it('on a wide device with a sensor offers [ hold up to the sky ] beside the picker, which opens the screen on the first reading', async () => {
-    const media = stubMatchMedia(WIDE_PX);
-    try {
-      withPhone();
-      appStore.getState().setChartView('window');
-      const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      await waitFor(() => {
-        expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
-      });
-      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
-      fireEvent.click(rtl.getByTestId('window-hold-up'));
-      expect(appStore.getState().skyScreen).toBe(false);
-      reading({ alpha: 30, absolute: true });
-      expect(appStore.getState().skyScreen).toBe(true);
-      expect(appStore.getState().chartView).toBe('window');
-    } finally {
-      media.restore();
-    }
-  });
-
-  /** FR-SKY-7 (D-790): the pass detail's window opens on the peak and its picker offers `peak` first, pressed. */
   it('with the pass detail’s options opens facing the peak, offers peak first, and peak brings the hand back after up', async () => {
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} facingOptions={PEAK_FACING_OPTIONS} />);
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
@@ -289,47 +256,53 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
    * other two — it asks for nothing and opens nothing — and the screen opens from `[ hold up to the sky ]` beside
    * the facing picker, through the permission and the one reading `useSkyScreen` waits for (F-42).
    */
-  it('opens no screen from the window option on a phone; [ hold up to the sky ] does', async () => {
-    withPhone();
+  /** R136 (FR-FLOW-14, FR-FLOW-15) → R152 (FR-GYRO-6): the option is a view and nothing else — it asks nothing and opens nothing, and the window has no `[ hold up to the sky ]` beside its picker. */
+  it('chooses the window as a view on a phone, asks nothing, opens nothing, and offers no hold-up', async () => {
+    const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+    withPhone(requestPermission);
     appStore.getState().setChartView('polar');
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
 
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
-    reading({ alpha: 30, absolute: true });
-    expect(appStore.getState().skyScreen).toBe(false);
     expect(savedChartView()).toBe('window');
+    expect(requestPermission).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-in-box', 'true');
     });
-    fireEvent.click(rtl.getByTestId('window-hold-up'));
-    // Armed, not open: the reading is what decides (F-42).
-    expect(appStore.getState().skyScreen).toBe(false);
-    reading({ alpha: 30, absolute: true });
-    expect(appStore.getState().skyScreen).toBe(true);
+    expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    expect(rtl.queryByTestId('window-hold-up')).toBeNull();
+    expect(rtl.queryByTestId('sky-screen')).toBeNull();
+    expect(rtl.getByRole('figure')).not.toHaveAttribute('data-follow');
     expect(appStore.getState().chartView).toBe('window');
   });
 
   /**
-   * FR-FOL-2: a phone whose readings carry no north opens nothing and says so beside the control. R121 (FR-WIN-4
-   * as amended v2.5): it keeps the option — the presence test governs the sensor alone — and the window stays in
-   * the box under the hand; choosing a view clears the note.
+   * FR-FOL-2, FR-WIN-4 as amended v2.5 (R121) → R152 (FR-GYRO-2): a phone whose readings carry no north says so
+   * beside the control once the window follows it, keeps the option — the presence test governs the sensor alone —
+   * and the window stays in the box; choosing a view clears the note.
    */
-  it('shows the note and keeps the option where the readings carry no north', async () => {
+  it('shows the note and keeps the option where the readings carry no north while following', async () => {
     withPhone();
     appStore.getState().setChartView('window');
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    const { container, rerender } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} follow />);
     await waitFor(() => {
-      expect(rtl.getByTestId('window-hold-up')).toBeInTheDocument();
+      expect(container.querySelector('[data-follow="true"]')).not.toBeNull();
     });
 
-    fireEvent.click(rtl.getByTestId('window-hold-up'));
+    // The hook reads a reading on the next frame (D-431): a frame that runs at once, so the answer lands inside the act.
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback): number => {
+      callback(16);
+      return 1;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (): void => undefined);
     reading({ alpha: 30, absolute: false });
-    expect(appStore.getState().skyScreen).toBe(false);
     expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This device is not reporting which way it faces.');
     expect(options()).toEqual(['Window', 'Polar', 'Dome']);
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
-    expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    expect(appStore.getState().windowLost).toBe(true);
 
+    rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
     expect(rtl.queryByTestId('chart-view-note')).toBeNull();
     expect(savedChartView()).toBe('dome');
@@ -344,61 +317,7 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   });
 });
 
-describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
-  /**
-   * `viewFor` is not consulted, so neither the saved preference nor the
-   * presence test decides anything: the page asked for the screen, and the
-   * screen is the window. Nothing is written on the way either — the follow
-   * screen is not a view the reader picked (FR-WIN-5 as amended v1.2).
-   */
-  it('is the window whatever the preference says, with no caption, no toggle and no controls', async () => {
-    appStore.getState().setChartView('polar');
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);
-
-    const figure = rtl.getByRole('figure');
-    expect(figure).toHaveAttribute('data-view', 'window');
-    expect(figure).toHaveAttribute('data-screen', 'true');
-    expect(figure.querySelector('figcaption')).toBeNull();
-    expect(rtl.queryByRole('group', { name: 'Chart view' })).toBeNull();
-    expect(rtl.queryByTestId('guide-sentence')).toBeNull();
-    await waitFor(() => {
-      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
-    });
-    // Nor in the frame's controls row, where `fill` would otherwise have put the toggle (D-269).
-    expect(rtl.queryByRole('group', { name: 'Chart view' })).toBeNull();
-    expect(appStore.getState().chartView).toBe('polar');
-    expect(savedChartView()).toBe('polar');
-  });
-
-  /**
-   * FR-FSC-3, FR-LEG-2 as amended v1.3: the strip's rows are FR-LEG-3's short
-   * form, so a row is one line and the two rows the strip is allowed are two
-   * lines of text. The peak is what goes — on a screen the picture is the peak.
-   */
-  it('gives the legend the short rows its two rows can hold', async () => {
-    // R79 (FR-GUT-7, FR-LEG-2 as amended v2.0): sideways the screen's bottom edge is the gutter and there is no
-    // legend; upright it is two rows under the band. So the screen's measured box is a phone held upright.
-    stubResizeObserver(390, 844);
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);
-    await waitFor(() => {
-      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
-    });
-    vi.unstubAllGlobals();
-    const clock = (ms: number): string => formatClock(ms, observer.timeZone, 'en');
-    const list = rtl.getByTestId('chart-legend');
-    expect(list).toHaveAttribute('data-screen', 'true');
-    const row = within(list).getByRole('button', { name: /./ });
-    expect(row.textContent).toContain(clock(pass.start.t));
-    expect(row.textContent).toContain(clock(pass.end.t));
-    expect(row.textContent).not.toContain(clock(pass.peak.t));
-
-    // The same chart off a screen keeps the three times FR-LEG-3 asks for elsewhere.
-    const plain = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    const plainList = within(plain.container).getByTestId('chart-legend');
-    expect(plainList).toHaveAttribute('data-screen', 'false');
-    expect(within(plainList).getByRole('button', { name: /./ }).textContent).toContain(clock(pass.peak.t).split(' ', 1)[0]);
-  });
-
+describe('the legend’s Moon line (FR-MOON-3 as amended v2.0)', () => {
   /**
    * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and the illumination are the *compact* live page's,
    * which is the only caller of `moonPhase`. FR-MOON-3 leaves the Now panel and the wide live page unchanged,
@@ -415,17 +334,5 @@ describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
     expect(plainLine).not.toHaveTextContent('72 %');
     expect(plainLine).not.toHaveTextContent(en.moon.phase.waningGibbous);
     expect(plainLine?.textContent).toMatch(/Moon · az /);
-  });
-
-  /** The rails belong to the live page's box, and a screen has no box to hang them off (D-322). */
-  it('drops an aside and a stripe the page hands it anyway', async () => {
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen aside={<p>rail</p>} stripe={<p>stripe</p>} />);
-    await waitFor(() => {
-      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
-    });
-    expect(rtl.queryByTestId('chart-stripe')).toBeNull();
-    expect(rtl.queryByTestId('chart-aside')).toBeNull();
-    expect(rtl.queryByText('rail')).toBeNull();
-    expect(rtl.queryByText('stripe')).toBeNull();
   });
 });

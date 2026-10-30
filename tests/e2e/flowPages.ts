@@ -1,10 +1,10 @@
 /**
  * R134 (FR-FLOW-10, FR-FLOW-11; D-851): the five pages `rhythm.spec.ts` and `targets.spec.ts` measure at 390 × 844 —
- * the home, the live page, the stars page, the pass detail and the settings page — and the sky screen, each opened
+ * the home, the live page, the stars page, the pass detail and the settings page — each opened
  * the way R132's `sky-layout.spec.ts` opens them and returned as the root to measure under.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, openSheet, openSkyScreen, seedStoredRun, stubCompass, T } from './liveHelpers';
+import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 export const PHONE = { width: 390, height: 844 };
@@ -98,13 +98,4 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       return page.locator('body');
     }
   }
-}
-
-/** The sky screen, upright on a phone, opened from the live page's view control with a compass reading. */
-export async function openSkyScreenPage(page: Page, locale: Locale): Promise<Locator> {
-  await stubCompass(page);
-  await homeAt(page, T, locale);
-  await page.getByTestId('live-link').click();
-  await domeDrawn(page);
-  return openSkyScreen(page, locale);
 }

@@ -33,7 +33,6 @@ The vertical scale, each step a share of the row, so what sits between two block
 | `--space-4` | `calc(1.5 * var(--row))` | 36 px |
 | `--space-5` | `calc(2 * var(--row))` | 48 px, = --tap |
 | `--space-block` | `1.2rem` |  |
-| `--gutter` | `28px` |  |
 
 ### Type
 
