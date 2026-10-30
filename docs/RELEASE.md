@@ -1980,7 +1980,11 @@ No wide file and no other page moves. The sky screen's files were not re-shot (a
 route answers the card with `[ see now ]` (D-937), as 2.7.0's tapped `now`, so its chip stays
 the one 2.7.0 drew, and `captures.yml` is where that is read.
 
-**Two runs of the 68 files** (FR-CAP-5), off one plain build: _(see the Done note of R149)_.
+**Two runs of the 68 files** (FR-CAP-5), off one plain build: 63 byte-identical, and 5 of the
+new sheet files a few pixels apart at a channel step of at most 2 — `v1-live-sheet-390-night-en`
+(23), `v1-live-sheet-844-dark-es` (7), `v1-live-sheet-list-390-night-{en,es}` (29 each) and
+`v1-live-sheet-list-844-dark-es` (10): F-99's edges, not a state. Every `live-watching`,
+`live-scrubbing`, `legend` and `live-tonight` file agreed byte for byte.
 
 **What is committed.** The 48 changed and the 20 new files as this container shot them;
 every other file stays as it was on `main` (this container's renderer differs from the Mac
