@@ -42,6 +42,23 @@ export function openingJump(passes: readonly PassTimes[], now: EpochMs, span: Sp
   return start === null ? null : lead(start, now);
 }
 
+/**
+ * R146 (FR-FULL-10, D-925): what the compact live page does on opening, now that it asks before it jumps. `up`: a
+ * visible pass is up at `now`, so no card and real time; `ask`: the card, naming `pass` — the first visible pass
+ * rising later in the span — and `at`, the instant `[ see next pass ]` lands on, which is `openingJump`'s so the
+ * two cannot differ; `advise`: no visible pass in the span, the card's one-button form. Generic over the pass so
+ * the card gets the caller's own pass back, name and all; the caller filters the hidden ones, as for `openingJump`.
+ */
+export type OpeningChoice<P extends PassTimes = PassTimes> = { kind: 'up' } | { kind: 'ask'; pass: P; at: EpochMs } | { kind: 'advise' };
+
+export function openingChoice<P extends PassTimes>(passes: readonly P[], now: EpochMs, span: Span): OpeningChoice<P> {
+  const at = openingJump(passes, now, span);
+  if (at === null) return passes.some((pass) => passUp(pass, now)) ? { kind: 'up' } : { kind: 'advise' };
+  const start = firstStart(passes, (s) => s > now && s <= span.end);
+  const pass = passes.find((p) => p.start.t === start);
+  return pass === undefined ? { kind: 'advise' } : { kind: 'ask', pass, at };
+}
+
 export interface TonightTarget {
   t: EpochMs;
   /** True when the target is a pass (play it); false when tonight has none and the target is the night's start, paused. */

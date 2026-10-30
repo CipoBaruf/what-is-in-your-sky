@@ -67,6 +67,8 @@ import { formatDate } from '../../src/lib/timeFormat';
 import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
 import { chipRows, contextRows, tapsRows } from './tonightRows';
+import { openingChoice } from '../../src/lib/tonightJump';
+import { OpeningCard } from '../../src/ui/components/live/OpeningCard';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
 const BUDGET = 36;
@@ -800,5 +802,81 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
 
   it('the strings, with their cells', () => {
     expect(all.map((row) => `${row.name} | ${row.text} | ${String(row.text.length)} chars | ${String(row.cells)} cells`)).toMatchSnapshot();
+  });
+});
+
+/**
+ * R146 (FR-FULL-10, FR-FULL-8, PLAN §9.10): the opening card's lines and button rows, rendered from `OpeningCard` in
+ * both languages and both forms — the sentence at the body size, the pass line and the no-pass sentence at `--small`
+ * (0.875 a character, as `tonightRows.ts` counts the context line), the button rows by `cells.ts` with the brackets
+ * `TextButton` draws. The pass line is at its longest: a rise 23 h 59 min away, `Tiangong` for the name, which is
+ * the part that ellipsises. Every line is within 36 cells and inside 390 px on the widest font. At 360 px two
+ * Spanish rows are past the 33 cells that width has — the no-pass sentence, 41 characters in the spec's words
+ * (35.88 cells at `--small`), and `[ ver próximo pase ] [ ver ahora ]`, 34 — so there the sentence wraps and the
+ * second button goes under the first (D-930); this pins both so they cannot grow unnoticed.
+ */
+describe.each(LOCALES)('FR-FULL-10: the opening card’s lines and buttons in %s', (locale: Locale) => {
+  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  const atSmall = (text: string): number => Math.round(text.length * (14 / 16) * 100) / 100;
+  const NOW = Date.UTC(2026, 9, 30, 17, 35);
+  const span = { start: NOW, end: NOW + 24 * 3_600_000 };
+  const rise = NOW + (23 * 60 + 59) * 60_000;
+  const tiangong = { name: 'Tiangong', start: { t: rise }, end: { t: rise + 5 * 60_000 } };
+
+  type Counted = [name: string, text: string, cells: number];
+
+  /** Each line and row the card draws, rendered: the ask form, then the advice. */
+  const measured = (): Counted[] => {
+    const out: Counted[] = [];
+    for (const passes of [[tiangong], []]) {
+      const choice = openingChoice(passes, NOW, span);
+      if (choice.kind === 'up') throw new Error('nothing is up: the card is drawn');
+      const view = render(createElement(I18nProvider, { locale, children: createElement(OpeningCard, { choice, now: NOW, timeZone: 'UTC', onNext: noop, onNow: noop }) }));
+      const card = screen.getByTestId('live-card');
+      const labels = within(card).getAllByRole('button');
+      const actions = labels[0]?.parentElement as Element;
+      // Written as drawn; the count is `cells.ts`'s, the brackets read off `TextButton.module.css`.
+      const buttons = (name: string): Counted => [name, labels.map((b) => `[ ${b.textContent ?? ''} ]`).join(' '), rowCells(actions, table)];
+      const sentence = card.querySelector('p')?.textContent ?? '';
+      if (choice.kind === 'ask') {
+        const line = screen.getByTestId('live-card-pass').textContent ?? '';
+        out.push(['ask: the sentence', sentence, sentence.length], ['ask: the pass line', line, atSmall(line)], buttons('ask: the buttons'));
+      } else {
+        out.push(['advise: the sentence', sentence, atSmall(sentence)], buttons('advise: the button'));
+      }
+      view.unmount();
+    }
+    return out;
+  };
+
+  /** The Done note's numbers. */
+  const EXPECTED: Record<Locale, Counted[]> = {
+    en: [
+      ['ask: the sentence', 'Nothing visible up now.', 23],
+      ['ask: the pass line', 'Tiangong · 17:34 · in 23 h 59 min', 28.88],
+      ['ask: the buttons', '[ see next pass ] [ see now ]', 29],
+      ['advise: the sentence', 'No visible pass in the next 24 h.', 28.88],
+      ['advise: the button', '[ see the sky now ]', 19],
+    ],
+    es: [
+      ['ask: the sentence', 'Nada visible ahora.', 19],
+      ['ask: the pass line', 'Tiangong · 17:34 · en 23 h 59 min', 28.88],
+      ['ask: the buttons', '[ ver próximo pase ] [ ver ahora ]', 34],
+      ['advise: the sentence', 'Ningún pase visible en las próximas 24 h.', 35.88],
+      ['advise: the button', '[ ver el cielo ahora ]', 22],
+    ],
+  };
+  /** The two Spanish rows past 360 px (D-930). */
+  const PAST_360 = new Set(['ask: the buttons', 'advise: the sentence']);
+
+  it('every line and button row, rendered, with its cells', () => {
+    expect(measured()).toEqual(EXPECTED[locale]);
+  });
+
+  it.each(EXPECTED[locale].map((row) => [row[0], row] as const))('%s: within 36 cells, inside 390 px, and 360 px but for the two pinned', (name, [, text, cells]) => {
+    expect(cells, text).toBeLessThanOrEqual(BUDGET);
+    expect(cells, `${text} at 390 px`).toBeLessThanOrEqual(rowCellsAt(390));
+    if (locale === 'es' && PAST_360.has(name)) expect(cells, `${text} at 360 px`).toBeGreaterThan(rowCellsAt(360));
+    else expect(cells, `${text} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
   });
 });

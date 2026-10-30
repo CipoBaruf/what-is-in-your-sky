@@ -129,5 +129,18 @@ export const live: typeof EnLive = {
       noneSpan: 'Ningún pase visible en 24 h',
       noneTonight: 'Ningún pase visible esta noche',
     },
+    /**
+     * R146 (FR-FULL-10, FR-FULL-8): la tarjeta sobre el cielo. `Tiangong · 21:47 · en 4 h 12 min` a `--small`;
+     * `Ningún pase visible en las próximas 24 h.` son 41 caracteres, también a `--small` (35,9 celdas, D-930).
+     */
+    opening: {
+      nothingUp: 'Nada visible ahora.',
+      noPass: 'Ningún pase visible en las próximas 24 h.',
+      separator: ' · ',
+      passWhen: (p) => `${p.time} · ${p.chip}`,
+      seeNext: 'ver próximo pase',
+      seeNow: 'ver ahora',
+      seeSkyNow: 'ver el cielo ahora',
+    },
   },
 };
