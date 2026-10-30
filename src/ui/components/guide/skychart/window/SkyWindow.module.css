@@ -18,21 +18,26 @@
   touch-action: none;
 }
 
-/* R151 (FR-FSC-10, FR-GYRO-2; D-941): the following window's turn, inside its own box. Unturned it is no box at
-   all, so the drawing and the notes lay out against `.box` as they always did. Turned — the pose's quarter is not
-   the browser's — it is the box's centre, sized by the window to the box with its sides swapped for a quarter
-   (inline, from what was measured), and rotated by the difference, as the sky screen's layer was. */
-.turn {
+/* R151 (FR-FSC-10, FR-GYRO-2; D-941, D-956): the following window's turn, inside its own box. The notes over the
+   drawing sit in `.notes`, which is no box at all unturned, so they lay out against `.box` as they always did.
+   Turned — the pose's quarter is not the browser's — the drawing and `.notes` are each the box's centre, sized by
+   the window to the box with its sides swapped for a quarter (inline, from what was measured), and rotated by the
+   difference, as the sky screen's layer was. */
+.notes {
   display: contents;
 }
 
-.turn[data-turn]:not([data-turn='0']) {
+.turned {
   position: absolute;
   top: 50%;
   left: 50%;
-  display: block;
   transform: translate(-50%, -50%) rotate(var(--window-turn));
   transform-origin: center;
+}
+
+.notes.turned {
+  display: block;
+  pointer-events: none;
 }
 
 .svg {

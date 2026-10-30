@@ -184,31 +184,40 @@ describe('<SkyWindow follow> (FR-GYRO-2, FR-GYRO-4, FR-GYRO-5)', () => {
     const frame = scriptedFrames();
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container, rerender } = follow(camera);
-    const turn = (): HTMLElement => container.querySelector('[data-turn]') as HTMLElement;
-    const svg = (): Element => container.querySelector('[data-drawing="window"]') as Element;
+    const turn = (): Element | null => container.querySelector('[data-turn]');
+    const svg = (): SVGSVGElement => container.querySelector('[data-drawing="window"]') as SVGSVGElement;
+    // The notes over the drawing turn with it: the wrapper after the SVG, in the box.
+    const notes = (): HTMLElement => svg().nextElementSibling as HTMLElement;
     // Before a reading the browser's angle stands: nothing turns, and the drawing is the box's.
+    expect(turn()).toBe(root(container));
     expect(turn()).toHaveAttribute('data-turn', '0');
     expect(svg()).toHaveAttribute('viewBox', '0 0 390 844');
+    expect(svg().getAttribute('style')).toBeNull();
 
     // The phone held sideways, its top to the reader's left, on a viewport that stayed upright (a rotation lock).
     reading({ alpha: 0, beta: 0, gamma: -90 });
     frame();
     settle(frame);
     expect(turn()).toHaveAttribute('data-turn', '90');
-    expect(turn().style.width).toBe('844px');
-    expect(turn().style.height).toBe('390px');
-    expect(turn().style.getPropertyValue('--window-turn')).toBe('90deg');
-    // The drawing is laid out wide, as the reader sees it, and the notes turn with it.
+    // The drawing is laid out wide, as the reader sees it, at the box's centre, turned a quarter; the notes with it.
     expect(svg()).toHaveAttribute('viewBox', '0 0 844 390');
-    expect(turn()).toContainElement(svg() as HTMLElement);
+    for (const turned of [svg(), notes()]) {
+      expect(turned.style.width).toBe('844px');
+      expect(turned.style.height).toBe('390px');
+      expect(turned.style.getPropertyValue('--window-turn')).toBe('90deg');
+    }
+    // The SVG is still the box's own child: the stars page and the specs find the box as its parent.
+    expect(svg().parentElement).toHaveAttribute('tabindex', '0');
 
     // Back upright, and nothing turns.
     reading(aim(120, 20));
     frame();
     settle(frame);
     expect(turn()).toHaveAttribute('data-turn', '0');
-    expect(turn().style.width).toBe('');
-    expect(turn().style.getPropertyValue('--window-turn')).toBe('');
+    for (const unturned of [svg(), notes()]) {
+      expect(unturned.style.width).toBe('');
+      expect(unturned.style.getPropertyValue('--window-turn')).toBe('');
+    }
 
     // Off, there is no turn at all: the hand's view is laid out upright on the box.
     rerender({ follow: false });
