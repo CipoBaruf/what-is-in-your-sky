@@ -800,6 +800,8 @@ export function SkyWindow(props: SkyWindowProps) {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setDragging(false);
+    // R151: a press that ended short of the slop while following moved nothing, and leaves nothing for the next one.
+    if (followPhone && !followEndedRef.current) pendingRef.current = null;
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
     const active = dragRef.current;
