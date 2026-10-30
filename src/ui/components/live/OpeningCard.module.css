@@ -1,0 +1,58 @@
+/* R146 (FR-FULL-10, D-925): the opening card — a block on `--screen-overlay` with a hairline edge, as wide as its
+   longest line and no wider than what holds it. Where it stands over the box (centred, above `[ controls ]`) is the
+   overlay's, R148's; this file draws the card and places its rows. `--screen-overlay` is the overlay's when the card
+   is inside one, and otherwise the same surface spelt out (the raised surface at `--screen-overlay-alpha`, as
+   ChartFrame's overlays write it). */
+.card {
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  padding: var(--space-2) var(--cell);
+  border: var(--border);
+  background: var(--screen-overlay, color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent));
+  color: var(--fg);
+}
+
+/* "Nothing visible up now." at the body size; the no-pass sentence is 41 characters in Spanish, so it is set at
+   `--small` (35.9 cells) to keep 36 (D-930). A sentence may wrap where a width holds less than its line. */
+.sentence {
+  margin: 0;
+  line-height: var(--row);
+}
+
+.small {
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+/* The pass line: one line at `--small` in the dim ink, the name the part that gives way (cut with an ellipsis), so
+   the rise time and the chip always show whole — the context line's rule (ShownTime.module.css). */
+.passLine {
+  display: flex;
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tail {
+  flex: none;
+  white-space: pre;
+}
+
+/* The buttons, a cell apart, each a `.target` (FR-FLOW-11); the row wraps rather than overflow a width under its
+   cells (the Spanish ask row is 34, one past 360 px: D-930). */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--cell);
+  margin-block-start: var(--space-1);
+}
