@@ -8,7 +8,7 @@ import { TextButton } from '../primitives/TextButton';
 import styles from './OpeningCard.module.css';
 
 /** A visible pass as the card names it: its times and its satellite's name (a `Pass` is one). */
-export type CardPass = PassTimes & { name: string };
+type CardPass = PassTimes & { name: string };
 
 /** The two choices that draw a card: `up` draws none (FR-FULL-10's first case). */
 export type CardChoice = Exclude<OpeningChoice<CardPass>, { kind: 'up' }>;
