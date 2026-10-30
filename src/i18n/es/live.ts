@@ -33,40 +33,23 @@ export const live: typeof EnLive = {
     loadingElements: 'Cargando los elementos orbitales…',
     failedInstead: 'Mientras tanto no hay un cielo guardado para dibujar.',
     strip: 'Condiciones del cielo',
-    timeLabel: 'Hora',
     skyLabel: 'Cielo',
     cloudLabel: 'Nubes',
     countLabel: 'Arriba',
-    countSpoken: 'Satélites',
     moonLabel: 'Luna',
     sky: { day: 'de día', 'bright-twilight': 'crepúsculo claro', dark: 'oscuro' },
-    /**
-     * R77 (FR-WATCH-3, FR-COMP-4): la línea compacta en 36 celdas con sus palabras más largas —
-     * `21:14:32 crepúsculo limpio 12 arriba` son 36. "Limpio" y "tapado" y no "despejado" y "cubierto":
-     * con "crepúsculo" al lado, esas dos se pasaban por tres celdas. Sin pronóstico, `s/d` (FR-WX-5).
-     */
-    skyShort: { day: 'día', 'bright-twilight': 'crepúsculo', dark: 'oscuro' },
-    cloudWord: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 's/d' },
-    /** R85 (FR-COMP-7): `s/d` se lee "sin datos". */
+    /** R85 (FR-COMP-7): `S/d` se lee "sin datos"; desde R145, el de la línea de contexto (`context.cloudWord`). */
     cloudSpoken: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 'sin datos' },
-    upCount: (count) => `${String(count)} arriba`,
     pending: '…',
     moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
     /**
-     * R77 (FR-WATCH-1, FR-WATCH-2): "fijado" y "fijar" son la misma palabra, el estado y la acción que lo
-     * pone; `[ ir al vivo ]` cabe en la fila compacta de 36 celdas junto a `[ ] Ocultos Compartir` (V20-8),
-     * donde "volver al vivo" se pasaba por cuatro.
+     * R77 (FR-WATCH-1, FR-WATCH-2): "fijado" es el estado; `[ ir al vivo ]` cabía en la fila compacta de 36 celdas
+     * junto a `[ ] Ocultos Compartir` (V20-8), donde "volver al vivo" se pasaba por cuatro. R145 (FR-TONIGHT-6): la
+     * fila compacta ya no está, y `[ fijar ]` y `[ vivo ]` se fueron con ella.
      */
     state: { live: 'en vivo', held: 'fijado' },
-    scrub: 'fijar',
     scrubWide: 'recorrer la noche',
     backToLive: 'ir al vivo',
-    /**
-     * R85 (FR-COMP-7, D-549): con `[ Compartir ]` otra vez entre corchetes, la fila compacta del estado fijado es
-     * `[ vivo ] [ ] Ocultos [ Compartir ]`, 34 celdas; `[ ir al vivo ]` la llevaba a 41. El nombre accesible sigue
-     * siendo "ir al vivo", que contiene la palabra.
-     */
-    backToLiveShort: 'vivo',
     /** R101 (FR-JUMP-1): `[ ver este pase ]`, que fija la página en la salida del pase que nombra el titular. */
     seeThisPass: 'ver este pase',
     seeThisPassName: (name) => `Ver este pase: ${name}, fijado en su salida`,

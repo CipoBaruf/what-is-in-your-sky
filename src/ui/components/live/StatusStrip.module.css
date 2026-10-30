@@ -32,27 +32,16 @@
   color: var(--fg);
 }
 
-/* Wide: `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon …` — the separator
-   before every field but the first, and a field wraps whole where it can. */
-.strip[data-compact='false'] .field + .field::before {
+/* `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon …` — the separator
+   before every field but the first, and a field wraps whole where it can.
+   R145: the compact line and its `data-compact` went with FR-TONIGHT-6. */
+.strip .field + .field::before {
   content: ' · ';
   color: var(--fg-dim);
 }
 
-.strip[data-compact='false'] .value {
+.strip .value {
   overflow-wrap: anywhere;
-}
-
-/* Compact: `21:14:32 dark clear 3 up` on one line of at most 36 cells
-   (`tests/styles/controlRows.test.ts`), one cell between the fields and the
-   labels spoken. Nothing wraps: the budget is the row's. */
-.strip[data-compact='true'] {
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.strip[data-compact='true'] .field + .field::before {
-  content: ' ';
 }
 
 /* The cloud word takes the verdict's colour where it has one, as the badge's does (FR-X-5: the word says it too). */

@@ -30,6 +30,9 @@ import styles from './PlaybackControls.module.css';
  * are one `ToggleGroup` in its `tight` and `check` marks, and the
  * hidden-objects toggle is an `OptionToggle` standing alone; this file keeps
  * its names, its copy and its test ids, and its own bracket CSS is gone.
+ *
+ * R145 (FR-TONIGHT-6): the playback row is wide's alone — the compact page plays from
+ * `TimeTaps` at the automatic rate — so R48's glyphs and bracketed speeds left it.
  */
 export interface PlaybackControlsProps {
   playing: boolean;
@@ -41,7 +44,6 @@ export interface PlaybackControlsProps {
 
 export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: PlaybackControlsProps) {
   const t = useT();
-  const compact = useLayoutMode() === 'compact';
   const playWord = playing ? t.live.pause : t.live.play;
   const speeds = (
     <ToggleGroup
@@ -52,27 +54,26 @@ export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: P
         const next = Number(value);
         if (isSpeed(next)) onSpeed(next);
       }}
-      {...(compact ? { mark: 'tight' as const } : { gap: 'none' as const })}
+      gap="none"
     />
   );
   return (
-    <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls" data-compact={compact}>
-      <TextButton label={compact ? (playing ? t.live.pauseShort : t.live.playShort) : playWord} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay} />
+    <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls">
+      <TextButton label={playWord} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay} />
       {speeds}
     </div>
   );
 }
 
 /**
- * R77 (FR-WATCH-1 a, D-446): `[ scrub ]` — `[ scrub the night ]` on wide — the
- * way into the scrubbing state from watching. It is FR-LIVE-5's pause at now:
- * the page holds the instant of the tap, so the first frame held is the last
- * one watched.
+ * R77 (FR-WATCH-1 a, D-446): `[ scrub the night ]`, the way into the scrubbing
+ * state from watching. It is FR-LIVE-5's pause at now: the page holds the
+ * instant of the tap, so the first frame held is the last one watched. Wide's
+ * alone since R145: FR-TONIGHT-6 took compact's `[ scrub ]` off the page.
  */
 export function ScrubButton({ onScrub }: { onScrub: () => void }) {
   const t = useT();
-  const compact = useLayoutMode() === 'compact';
-  return <TextButton label={compact ? t.live.scrub : t.live.scrubWide} data-testid="live-scrub" onClick={onScrub} />;
+  return <TextButton label={t.live.scrubWide} data-testid="live-scrub" onClick={onScrub} />;
 }
 
 /**
@@ -81,18 +82,18 @@ export function ScrubButton({ onScrub }: { onScrub: () => void }) {
  * advances on the tick again, and the scrub block goes away with the state.
  * It keeps the old control's test id, since it is the same action.
  *
- * R85 (FR-COMP-7, D-549): `short` on the compact actions row, where Share has
- * its brackets back — `[ live ]`, named by the whole phrase, which contains it.
+ * R145 (FR-TONIGHT-6): wide's alone — the compact page's `now` tap is `TimeTaps`'s,
+ * and R85's short `[ live ]` went with the compact actions row that held it.
  */
-export function BackToLive({ onNow, short = false }: { onNow: () => void; short?: boolean }) {
+export function BackToLive({ onNow }: { onNow: () => void }) {
   const t = useT();
-  return <TextButton label={short ? t.live.backToLiveShort : t.live.backToLive} data-testid="live-now" onClick={onNow} {...(short ? { 'aria-label': t.live.backToLive } : {})} />;
+  return <TextButton label={t.live.backToLive} data-testid="live-now" onClick={onNow} />;
 }
 
 /**
  * FR-LIVE-6's toggle: a pressed button that reads `[x]` like the other text
- * toggles (FR-X-5). R48: on the actions row, one word on compact ("Hidden")
- * under the full accessible name.
+ * toggles (FR-X-5). R48: one word on compact ("Hidden") under the full
+ * accessible name — in the list panel's head since R144 (D-905).
  */
 export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
   const t = useT();
