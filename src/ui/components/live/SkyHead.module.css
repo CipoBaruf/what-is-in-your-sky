@@ -1,0 +1,39 @@
+/* R147 (FR-FULL-2; D-920): the head over the sky — `[ ← ]` then the shown time and its chip, one row on the sky
+   screen's overlay surface (`--screen-overlay`: the raised surface at `--screen-overlay-alpha`, stated here in the
+   same words as `ChartFrame.module.css`'s, so text over the darkest sky still clears 4.5 : 1).
+
+   The row is only as wide as its content and at most its container less `--space-3` on each side; the page puts it
+   in the box's top-left corner (R148). `ShownTime` sets the sizes — the time at `--text-heading`, the chip at
+   `--small` — and the row cuts its paragraph with an ellipsis, which falls on the chip, the paragraph's end, so the
+   row never wraps. */
+.head {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  display: flex;
+  align-items: center;
+  gap: 0 var(--cell);
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 2 * var(--space-3));
+  /* Half a cell each side: at 390 px the English head's longest form (34.5 cells) and this padding are the 35.5
+     cells the box less `--space-3` each side holds on the widest font (`sheetRows.test.ts`). */
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+}
+
+.back {
+  flex: none;
+}
+
+/* F-100 (D-642), as the header has it: the ring of a focused Back sits flush round its text. */
+.back:focus-visible {
+  --focus-offset: 0;
+}
+
+.time {
+  min-inline-size: 0;
+}
+
+.time > p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
