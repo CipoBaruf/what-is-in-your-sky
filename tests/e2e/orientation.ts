@@ -12,7 +12,8 @@
  * Chrome's `deviceorientationabsolute`, with the W3C `alpha` and `absolute: true`, where the window has it; the
  * plain `deviceorientation` elsewhere, as iOS sends it, with `webkitCompassHeading` (the reading's own, or
  * `360 − alpha`) and a compass accuracy of 10°, so it is a reading and not iOS's settling. The timer is the page's
- * `setInterval`, so under `page.clock` the readings arrive as the spec runs the clock.
+ * `setInterval`, so under `page.clock` the readings arrive as the spec runs the clock. R152: the browser's own
+ * (trusted) orientation events are stopped before the app sees them, as `stubCompass` stopped them for the screen.
  */
 import type { Page } from '@playwright/test';
 
@@ -43,6 +44,19 @@ export async function stubOrientation(page: Page, { answer, readings, intervalMs
       w.__orientationReadings = [...readings];
       w.__orientationNext = 0;
       w.__orientationAsks = 0;
+      // Chromium on a desk fires one `deviceorientation` of its own, every angle `null`, when a listener is added
+      // — the app would read it as a phone with no north (FR-WIN-4) and leave its note. The browser's own events
+      // are trusted and the stub's are not, so a capturing listener ahead of the app's stops the trusted ones
+      // (`liveHelpers.ts`'s `stubCompass`, which the retired screen specs used for the same reason).
+      for (const name of ['deviceorientationabsolute', 'deviceorientation']) {
+        window.addEventListener(
+          name,
+          (event) => {
+            if (event.isTrusted) event.stopImmediatePropagation();
+          },
+          true,
+        );
+      }
       const ctor = w.DeviceOrientationEvent;
       if (ctor === undefined) return;
       let timer: number | null = null;

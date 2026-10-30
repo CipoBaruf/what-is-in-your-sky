@@ -108,7 +108,7 @@ describe('the showcase night (FR-SHOW-9)', () => {
     expect(captureSeeds).toContain('export const CLOCK = SHOWCASE_NIGHT;');
     expect(captureSeeds).toContain('export const SHOWN = SHOWCASE_SHOWN;');
     expect(captureSeeds).toContain('export const SHOWN_PASS = BRIGHTEST_PASS.id;');
-    expect(captureSeeds).toContain('export const SHOWN_PASS_START = BRIGHTEST_PASS.start;');
+    // R152 (D-958): `SHOWN_PASS_START` went with the chip's shot, the one reader it had; the pass is still named by id.
     // No Paris import, by name or by `import *`, and the constant the set was shot at is gone from the seeds.
     for (const source of [captureSeeds, captureSpec]) {
       expect(source).not.toMatch(/import [^;]*\b(PARIS|PARIS_NIGHT)\b[^;]*from '\.\/observers'/);

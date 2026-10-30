@@ -1106,7 +1106,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             {followToggle}
           </div>
         )}
-        {facing}
+        {/* R152 (FR-GYRO-5, D-957): while following the facing row is not drawn — its readout is not (nothing describes the
+            sensor's view) and a pick by hand would fight the sensor; it is back, where the phone last pointed, when following ends. */}
+        {!following && facing}
         {actions}
         <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
           <div className={styles.satellitesHead} data-testid="live-satellites-head">

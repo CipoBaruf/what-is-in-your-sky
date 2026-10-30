@@ -1859,8 +1859,10 @@ describe('<LivePage>', () => {
       expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
       await windowDrawn();
       expect(windowRoot()).toHaveAttribute('data-follow', 'true');
-      // FR-GYRO-5: nothing over the sky — the readout is not drawn, so the sheet's facing words are empty.
+      // FR-GYRO-5 (D-957): nothing over the sky — the readout is not drawn — and the sheet's facing row goes with it while following.
       expect(screen.queryByTestId('window-readout')).toBeNull();
+      expect(screen.queryByTestId('live-facing')).toBeNull();
+      expect(screen.queryByTestId('chart-view-note')).toBeNull();
 
       // The phone's readings turn the window: 30° up, facing east.
       reading(90, 30);
@@ -1880,6 +1882,7 @@ describe('<LivePage>', () => {
       expect(windowRoot()).not.toHaveAttribute('data-follow');
       expect(windowRoot()).toHaveAttribute('data-state', 'hand');
       expect(windowRoot()).toHaveAttribute('data-look-alt', '30');
+      expect(screen.getByTestId('live-facing')).toBeInTheDocument();
       expect(appStore.getState().chartView).toBe('dome');
       expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
     });

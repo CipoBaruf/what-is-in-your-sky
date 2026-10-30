@@ -153,6 +153,9 @@ for (const size of SIZES) {
           await expect(page.getByTestId('window-turn-advice')).toHaveCount(0);
           await expect(page.getByTestId('compass-gutter')).toHaveCount(0);
           await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+          await expect(page.getByTestId('chart-view-note')).toHaveCount(0);
+          // D-957: the live sheet's facing row goes while following and is back when it ends.
+          if (which === 'live') await expect(page.getByTestId('live-facing')).toHaveCount(0);
 
           // The phone turned: the window follows to the new pose.
           await setReadings(page, [aimedAt(200, 50)]);
@@ -166,6 +169,7 @@ for (const size of SIZES) {
           await expect(w).not.toHaveAttribute('data-follow', 'true');
           await expect(w).toHaveAttribute('data-state', 'hand');
           expect((await look(w)).alt).toBe(50);
+          if (which === 'live') await expect(page.getByTestId('live-facing')).toBeVisible();
           if (chart) {
             await expect(chart).toHaveAttribute('data-view', 'window');
             await expect(chart).not.toHaveAttribute('data-follow', 'true');
