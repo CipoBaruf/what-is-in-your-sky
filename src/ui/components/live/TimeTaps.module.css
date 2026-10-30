@@ -12,7 +12,11 @@
   line-height: var(--row);
 }
 
-/* The play glyph stands in one cell of text; its `.target` floor is the hit area round it, centred. */
+/* The play glyph stands in one cell of text; its `.target` floor is the hit area round it, centred. R149 (D-939):
+   the floor's overhang left of the glyph hangs into the gutter (the sheet's two cells, wider than the half floor),
+   so the glyph is the row's first cell and the row is its 33 cells again: inside the sheet at 360 px in Spanish
+   the 44 px floor counted whole had pushed `[ ahora ]`'s last bracket out of the body. */
 .play {
+  margin-inline-start: calc((var(--cell) - var(--target)) / 2);
   text-align: center;
 }

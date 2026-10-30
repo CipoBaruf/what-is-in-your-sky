@@ -2014,21 +2014,22 @@ sheet loses its last `]` (`[ noche ][ próximo ][ ahora`), where 2.7.0's page fi
 ### 21.2 The budget (FR-FULL-9, D-178, D-938)
 
 `npm run bundle:budget` on the branch, gzip level 9, beside `b664585` (2.7.0) built on the same
-machine, both plain (`VITE_MOON_LORE` unset). **Two rows are past what FR-FULL-9 allows**, and
-R149 re-sets neither (D-938): `live` is `OVER` its 15, and `main` is 803 bytes over 2.7.0
-against `FULL_MAIN_KB`'s 512, and 43 bytes past 180 KiB, which the script's one decimal prints
-as `180` `ok`. The budget column is `scripts/bundle-budget.ts`'s rows;
+machine, both plain (`VITE_MOON_LORE` unset). Two rows were past what FR-FULL-9 first allowed
+(D-938): `live` over its 15, and `main` 803 bytes over 2.7.0 against `FULL_MAIN_KB`'s 512, and
+43 bytes past 180 KiB, which the script's one decimal prints as `180` `ok`. The owner accepted
+the measure (V28-9, D-940): FR-FULL-9 is amended, `live` re-set to 20 by D-178 (× 1.1 is 16.8),
+`FULL_MAIN_KB` to 1.0, and `main`'s 180 ceiling kept. The budget column is `scripts/bundle-budget.ts`'s rows;
 `tests/docs/accuracy.test.ts` checks it against them:
 
 | Chunk | gzip KB | Budget KB | `b664585` | Change |
 |---|---|---|---|---|
-| main | **180.0** | 180 | 179.3 | **+803 bytes** (`FULL_MAIN_KB` is 512) |
+| main | **180.0** | 180 | 179.3 | **+803 bytes** (`FULL_MAIN_KB` is 1,024 as amended) |
 | chart (`SkyDome`) | 97.1 | 110 | 97.1 | +4 bytes |
 | worker | 36.1 | 40 | 36.1 | 0 |
 | stars | 26.7 | 30 | 26.7 | −2 bytes |
 | astronomy (`astronomy` + `skyBodies`) | 24.1 | 30 | 24.1 | 0 |
 | window (`SkyWindow`) | 26.7 | 30 | 26.7 | +8 bytes |
-| live | **15.3** | 15 | 13.3 | **+2,062 bytes** |
+| live | **15.3** | 20 | 13.3 | **+2,062 bytes** |
 | service worker | 5.0 | 10 | 5.0 | 0 |
 | settings | 1.1 | 10 | 1.1 | +1 byte |
 
@@ -2040,7 +2041,7 @@ detail share, so Rollup keeps it in `main`; `live` by `ControlsSheet`, `SkyHead`
 `OpeningCard` and the card's effect, which only the lazy `Live.tsx` imports. The few-byte
 moves elsewhere are the chunk hashes' names and Rollup's ordering, not code.
 
-- [ ] §21.4's first item is decided, and the release PR carries the table as it then stands.
+- [x] §21.4's first item is decided (V28-9), and the release PR carries the table as it now stands.
 
 ### 21.3 What R149 removed (FR-FULL-8, FR-FLOW-17's rule)
 
@@ -2059,12 +2060,13 @@ The comments that named the compact top row, its mark and its status are correct
 
 ### 21.4 What the owner decides on this release
 
-- [ ] **The budget** (§21.2, D-938): `live` is 15.3 KB against FR-FULL-9's 15, and `main` grew
-      803 bytes against `FULL_MAIN_KB`'s 512 and stands 43 bytes past 180 KiB. Either amend
-      FR-FULL-9 to the measure (as V27-9 did for 2.7.0: `live` × 1.1 is 16.8, so 20 by D-178;
-      `FULL_MAIN_KB` to 1.0 and the 180 ceiling the owner's), or a task takes `SkyViewLayout`'s
-      `full` form out of `main` and trims about 300 bytes from `live` before the tag.
-- [ ] **The Spanish taps at 360 px** (§21.1): the sheet's taps row loses its last `]`.
+- [x] **The budget** (§21.2, D-938): `live` was 15.3 KB against FR-FULL-9's 15, and `main` grew
+      803 bytes against `FULL_MAIN_KB`'s 512 and stands 43 bytes past 180 KiB. Decided
+      2026-10-30 (V28-9, D-940): FR-FULL-9 amended to the measure, `live` 20 by D-178,
+      `FULL_MAIN_KB` 1.0, the 180 ceiling kept.
+- [x] **The Spanish taps at 360 px** (§21.1): the sheet's taps row lost its last `]`. Fixed
+      before the release on the owner's answer (D-939): the play glyph's 44 px floor hangs into
+      the sheet's gutter, so the row is its 33 cells again.
 - [ ] **F-99** stays open with §21.1's 11 files.
 
 ### 21.5 The release itself — `v2.8.0`
