@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, openSkyScreen, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -33,20 +33,16 @@ test.describe('the live page', () => {
     const box = await page.getByTestId('live-page').boundingBox();
     expect(Math.round(box?.height ?? 0)).toBe(844);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
-    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
-    // R92 (FR-A11Y-1): the banner is the page's own top row. R129 (D-845): the row is the one header, told its page.
-    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'live');
+    // R148 (FR-FULL-1, FR-FULL-2): the full form — the box is the viewport, and the banner is the head over its top-left.
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     await expect(page.getByRole('banner')).toHaveCount(1);
-    await expect(page.getByRole('banner').getByTestId('live-top-row')).toBeVisible();
-    // The dome is the whole width inside the two cells of side padding, and most of the height.
+    await expect(page.getByRole('banner').getByTestId('live-head')).toBeVisible();
     const dome = await page.getByTestId('live-dome').boundingBox();
-    expect(dome?.width).toBeGreaterThan(390 - 4 * 9.6 - 1);
-    // R33 (D-172): the stripe and the playback row took their share; 300 px is what the portrait dome keeps, and R34's landscape is the phone's real answer.
-    expect(dome?.height).toBeGreaterThan(300);
-    // R34 (FR-LIVE-7): portrait still stacks — the timeline (the track, the taps) is under the dome, not beside it (`live-landscape.spec.ts` is the other case).
-    const side = await page.getByTestId('live-layout').locator('[data-slot="timeline"]').boundingBox();
-    expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
-    expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
+    expect(Math.round(dome?.width ?? 0)).toBe(390);
+    expect(Math.round(dome?.height ?? 0)).toBe(844);
+    // FR-FULL-4: the timeline (the track, the taps) and the view row are the sheet's, over the sky.
+    await openSheet(page);
+    await expect(page.getByTestId('live-sheet').getByTestId('live-timeline')).toBeVisible();
     // R121 (FR-WIN-4 as amended v2.5): no touch screen in this profile, and the control offers all three views all the same.
     await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
 
@@ -74,7 +70,9 @@ test.describe('the live page', () => {
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 
-    // Esc returns to the home page, with the same observer and no hash.
+    // Esc returns to the home page, with the same observer and no hash (R148: the sheet closes first, D-927).
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
@@ -96,8 +94,8 @@ test.describe('the live page', () => {
     await savedDome(page);
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=${new Date(peak).toISOString().replace('.000Z', 'Z')}`);
 
-    // The observer came out of the link: rounded label, no saved location involved (a fresh context has none).
-    await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
+    // The observer came out of the link: rounded label, no saved location involved (a fresh context has none). R148: the place is the sheet's head's.
+    await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's: the headline is the held `HH:MM` with its offset (FR-TONIGHT-7), and FR-TONIGHT-1 never jumps from a link's `t`.
     await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC (tonight · )?in (<1|\\d+) min$`));
@@ -107,7 +105,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('context-line')).toContainText('ISS');
     await stripFilled(page);
     // Real time was not touched by the link.
-    await page.keyboard.press('Escape');
+    await leaveLive(page);
     // R81: the Now panel's `as of` is gone with it; the Satellites door (R130) counts from real time, ten seconds into the pass.
     await expect(page.getByTestId('door-satellites-line').first()).toHaveText(`Up now · peaks in ${formatClockDuration((golden().peak - T) / 1000)}`, { timeout: 60_000 });
     // R52 (FR-COMP-3): the home screen names the observer in its summary line; the form that holds it is on `#settings`.
@@ -117,7 +115,7 @@ test.describe('the live page', () => {
     // navigation stays in the document; the reload is what makes it a fresh arrival on the link.)
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=soon`);
     await page.reload();
-    await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
+    await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     // Real time: the installed clock, not the link — and the ISS up at it, so FR-TONIGHT-1's jump stays on now.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
@@ -186,6 +184,8 @@ test.describe('the live page with the sky screen open upright', () => {
       const chart = page.getByTestId('sky-chart');
       await expect(chart).toHaveAttribute('data-view', 'dome');
       await expect(page.getByTestId('live-heading')).toHaveCount(0);
+      // R148 (FR-FULL-4): the track and the view control are the sheet's.
+      await openSheet(page);
       await expect(page.getByTestId('live-track')).toBeVisible();
       await expect(page.getByTestId('sky-screen')).toHaveCount(0);
 
@@ -240,10 +240,15 @@ for (const width of [390, 1280] as const) {
      * is under the box on the phone and beside it at every wide width, which `live-rail.spec.ts` measures.
      */
     const box = await page.getByTestId('chart-box').boundingBox();
-    // R132 (FR-FLOW-4): on the phone the timeline is under the box (R144); on wide the rail's head stands beside it.
-    const side = await (width === 390 ? page.getByTestId('live-layout').locator('[data-slot="timeline"]') : page.getByTestId('live-rail-head')).boundingBox();
-    if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
-    else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
+    // R148 (FR-FULL-1, FR-FULL-4): on the phone the box is the viewport and the timeline is the sheet's; on wide the rail's head stands beside the box.
+    if (width === 390) {
+      expect(Math.round(box?.width ?? 0)).toBe(390);
+      await openSheet(page);
+      await expect(page.getByTestId('live-sheet').getByTestId('live-timeline')).toBeVisible();
+    } else {
+      const side = await page.getByTestId('live-rail-head').boundingBox();
+      expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
+    }
     await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
@@ -265,8 +270,12 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ahora$/);
   await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
   await expect(page.getByTestId('context-line')).not.toContainText(/peaks|sets|fades/);
+  // R148 (FR-FULL-2, FR-FULL-4): the taps and the share action are the sheet's; the page's name is the hidden `h1`.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^en vivo · /);
+  await expect(page.getByRole('button', { name: '[ controles ]', exact: true })).toBeVisible();
+  await openSheet(page);
   await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶', 'noche', 'próximo', 'ahora']);
-  await expect(page.getByTestId('header-page')).toHaveText('en vivo');
+  await expect(page.getByRole('button', { name: '[ cerrar ]', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });
 });

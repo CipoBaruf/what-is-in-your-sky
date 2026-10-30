@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, enterScrubbing, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
+import { domeDrawn, enterScrubbing, homeAt, leaveLive, openSheet, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 
@@ -86,32 +86,25 @@ test.describe('the live page on a landscape phone', () => {
     const pageBox = await page.getByTestId('live-page').boundingBox();
     expect(pageBox?.height).toBe(LANDSCAPE.height);
 
+    // R148 (FR-FULL-1, FR-FULL-4): the box is the whole viewport; the head stands over its top-left and the sheet
+    // (opened by `enterScrubbing`) is a side panel at the right, with the context line and the track in it, in order.
     const dome = await page.getByTestId('live-dome').boundingBox();
-    const side = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
-    // R48 (D-246): the return control's 48 px hit box overhangs its 24 px row, so the row is what is measured.
-    const back = await page.getByTestId('live-top-row').boundingBox();
+    const side = await page.getByTestId('live-sheet').boundingBox();
+    const head = await page.getByTestId('live-head').boundingBox();
     const track = await page.getByTestId('live-track').boundingBox();
-    const headline = await page.getByTestId('live-headline').boundingBox();
     const context = await page.getByTestId('live-context').boundingBox();
-    if (!dome || !side || !back || !track || !headline || !context) throw new Error('the live page is not laid out');
-    // The top row is one line across the top; under it the dome is the left two fifths and the
-    // side column the right three (D-173). The dome keeps every row under the top one: about
-    // 324 px against portrait's 300 (D-172).
-    expect(dome.y).toBeGreaterThanOrEqual(back.y + back.height - 1);
-    expect(side.y).toBeGreaterThanOrEqual(back.y + back.height - 1);
-    expect(dome.x + dome.width).toBeLessThanOrEqual(side.x + 1);
-    expect(dome.width).toBeGreaterThan(280);
-    expect(dome.height).toBeGreaterThan(150);
-    // R144 (FR-TONIGHT-6, FR-FLOW-15): the headline, the context line and the track are all in the rail, in that order,
-    // and the headline with its context is on the screen — the rail is what the layout is for.
-    expect(track.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-    expect(headline.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-    expect(context.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
+    if (!dome || !side || !head || !track || !context) throw new Error('the live page is not laid out');
+    expect(Math.round(dome.width)).toBe(LANDSCAPE.width);
+    expect(Math.round(dome.height)).toBe(LANDSCAPE.height);
+    expect(head.y).toBeLessThan(LANDSCAPE.height / 4);
+    expect(head.x).toBeLessThan(side.x);
+    expect(side.x + side.width).toBeLessThanOrEqual(LANDSCAPE.width + 1);
+    expect(Math.round(side.height)).toBe(LANDSCAPE.height);
+    expect(track.x).toBeGreaterThanOrEqual(side.x - 1);
+    expect(context.x).toBeGreaterThanOrEqual(side.x - 1);
     expect(track.y).toBeGreaterThan(context.y + context.height - 1);
-    expect(context.y + context.height).toBeLessThanOrEqual(LANDSCAPE.height);
     for (const id of ['shown-time', 'context-line']) await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
-    // The side column may scroll itself where its content wraps past the viewport; the page never does.
-    expect(side.y + side.height).toBeLessThanOrEqual(LANDSCAPE.height + 1);
+    // The sheet's body may scroll itself where its rows wrap past the viewport; the page never does.
 
     // The wake lock: asked on entry, released when hidden, asked again when visible, released on leaving.
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-wake-lock', 'held');
@@ -122,8 +115,7 @@ test.describe('the live page on a landscape phone', () => {
     await setVisibility(page, 'visible');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-wake-lock', 'held');
     expect(await wakeLog(page)).toEqual(['request:screen', 'release', 'request:screen']);
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('live-page')).toHaveCount(0);
+    await leaveLive(page);
     expect(await wakeLog(page)).toEqual(['request:screen', 'release', 'request:screen', 'release']);
   });
 
@@ -152,15 +144,14 @@ test.describe('the live page on a landscape phone', () => {
       await page.clock.runFor(500);
       const pane = await page.getByTestId('live-dome').boundingBox();
       const box = await page.getByTestId('chart-box').boundingBox();
-      const side = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
       const label = `${String(size.width)} x ${String(size.height)}`;
-      if (!pane || !box || !side) throw new Error(`the live page is not laid out at ${label}`);
-      // Inside its pane on both edges, and clear of the column beside it.
+      if (!pane || !box) throw new Error(`the live page is not laid out at ${label}`);
+      // R148 (FR-FULL-1): the box is the pane, and the pane the viewport, at every landscape size.
       expect(box.x, label).toBeGreaterThanOrEqual(pane.x - 0.5);
       expect(box.x + box.width, label).toBeLessThanOrEqual(pane.x + pane.width + 0.5);
-      expect(box.x + box.width, label).toBeLessThanOrEqual(side.x + 0.5);
-      // And still worth having: the box is most of the pane it is in.
-      expect(box.width, label).toBeGreaterThan(pane.width * 0.9);
+      expect(box.x + box.width, label).toBeLessThanOrEqual(size.width + 0.5);
+      expect(Math.round(box.width), label).toBe(size.width);
+      expect(Math.round(box.height), label).toBe(size.height);
     }
   });
 
@@ -175,6 +166,8 @@ test.describe('the live page on a landscape phone', () => {
 
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
     await liveLandscape(page, 'es', true);
+    // R148 (FR-FULL-4): the share action, the chip and the taps are the sheet's.
+    await openSheet(page);
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
     // R144 (FR-TONIGHT-7): the chip and the taps in Spanish.
     await expect(page.getByTestId('shown-chip')).toHaveText('ahora');
@@ -193,11 +186,13 @@ test.describe('the live page on a portrait phone with a compass', () => {
    */
   test('captures portrait on a phone: three view options, two actions on one row, and the box inside its pane', async ({ page }) => {
     await liveLandscape(page, 'en', true);
+    // R148 (FR-FULL-4): the view row, the actions and the taps are the sheet's.
+    await openSheet(page);
     const toggle = page.getByRole('group', { name: 'Chart view' });
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
     await page.screenshot({ path: 'docs/screenshots/r66-live-390-views-dark-en.png' });
     // R59 (D-300, F-55): the dome keeps no floor here — what is asserted is that the box stays inside its pane.
-    // `live-compact.spec.ts` is where the fit itself is measured, row by row, at both phone heights.
+    // `live-full.spec.ts` is where the box is measured against the viewport.
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);

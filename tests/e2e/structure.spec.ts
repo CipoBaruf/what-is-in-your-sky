@@ -51,8 +51,8 @@ const home = async (page: Page): Promise<void> => {
 const openGuide = (page: Page, nth = 0) => page.getByRole('button', { name: /Open guide|Abrir la guía/ }).nth(nth);
 /** The guide's way out: the sheet's `← Back to the list` on a phone, the panel's `×` on a desk. */
 const closeGuide = (page: Page) => page.locator('[role="dialog"][data-pass-id] button').first().or(page.getByTestId('guide-panel').getByRole('button', { name: 'Close the guide' }));
-/** The live page's Back control, found the way the parent commit's page can be (the `live-back` test id is R92's). */
-const liveBack = (page: Page) => page.getByTestId('live-top-row').getByRole('button').first();
+/** The live page's Back control: R148's head over the sky carries it with its `live-back` test id. */
+const liveBack = (page: Page) => page.getByTestId('live-back');
 const focused = (page: Page): Promise<string> =>
   page.evaluate(() => {
     const active = document.activeElement;
@@ -160,7 +160,11 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
 
     await page.getByTestId('live-link').focus();
     await page.keyboard.press('Enter');
-    await expect.poll(() => focused(page)).toBe('live-back');
+    // R148 (FR-FULL-10): nothing is up at the seed's instant, so the card asks and takes the focus; `Esc` answers it
+    // (focus to `[ controls ]`), and the next `Esc` leaves the page to the control that opened it (FR-A11Y-4).
+    await expect.poll(() => focused(page)).toBe('live-card-next');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => focused(page)).toBe('live-controls');
     await page.keyboard.press('Escape');
     await home(page);
     await expect.poll(() => focused(page)).toBe('live-link');
@@ -313,6 +317,15 @@ for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 4
     });
     await domeDrawn(page);
     const back = page.getByTestId('live-back');
+    // R148 (FR-FULL-10): on compact nothing is up at the seed's instant, so the card asks and takes the focus; `Esc`
+    // answers it, and the Back control is reached by the keyboard, so the ring is still the keyboard's (F-100).
+    const card = page.getByTestId('live-card');
+    if ((await card.count()) > 0) {
+      await expect(card.getByTestId('live-card-next')).toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('live-controls')).toBeFocused();
+      await back.focus();
+    }
     await expect(back).toBeFocused();
     expect(await back.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
     const boxes = (): Promise<number[][]> =>

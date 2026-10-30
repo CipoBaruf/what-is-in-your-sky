@@ -42,9 +42,10 @@ async function openLive(page: Page): Promise<void> {
    * so two loads would draw two instants. `[ now ]` brings it back to the fixed clock and keeps it there for the
    * visit: both loads then draw the same instant, and what differs is the resize alone.
    */
+  // R148 (FR-FULL-10): the page asks with a card instead of jumping; `[ see now ]` keeps it on the fixed clock.
   if ((await page.getByTestId('live-taps').count()) > 0) {
-    await expect.poll(() => page.getByTestId('live-play').getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
-    await page.getByTestId('live-tap-now').click();
+    await expect.poll(() => page.getByTestId('live-card').count(), { timeout: 15_000 }).toBe(1);
+    await page.getByTestId('live-card-now').click();
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
   }
 }

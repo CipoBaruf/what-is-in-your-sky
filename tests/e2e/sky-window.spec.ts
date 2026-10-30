@@ -29,7 +29,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { bandUnderBox, SPACE_3_PX, stubCompass } from './liveHelpers';
+import { bandUnderBox, openSheet, SPACE_3_PX, stubCompass } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -575,19 +575,23 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await expect(again).toHaveAttribute('data-view', 'window');
   });
 
-  test('lays the window out in the box by hand on the live page, the picker in the controls row', async ({ page }) => {
+  test('lays the window out in the box by hand on the live page, the picker in the sheet’s facing row', async ({ page }) => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     await openLive(page);
     const chart = page.getByTestId('sky-chart');
+    // R148 (FR-FULL-4): the view control is the sheet's; the card over the sky is answered first.
+    const card = page.getByTestId('live-card');
+    if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+    await openSheet(page);
     await page.getByTestId('live-layout').getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     await expect(chart).toHaveAttribute('data-view', 'window');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(chart.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
-    // R144 (FR-TONIGHT-6, D-904): on the compact live page the facing row opens from the readout in the box's corner.
-    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]')).toHaveCount(0);
+    // R148 (FR-FULL-4, D-923): the facing row opens from the readout in the sheet.
+    await expect(page.getByTestId('live-facing-picker')).toHaveCount(0);
     await page.getByTestId('sky-readout-toggle').click();
-    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').getByTestId('window-facing')).toBeVisible();
+    await expect(page.getByTestId('live-facing-picker').getByTestId('window-facing')).toBeVisible();
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-live-390-window-dark-en.png` });
   });

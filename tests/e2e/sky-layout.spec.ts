@@ -22,8 +22,8 @@
  *   the shown instant, and opens no screen.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE } from '../../src/lib/layout';
-import { seedStoredRun } from './liveHelpers';
+import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE, SHEET_SIDE_SHARE } from '../../src/lib/layout';
+import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -80,9 +80,9 @@ function expectStacked(slots: { name: string; box: Box }[]): void {
 const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack;
 const intersects = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-/** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. */
+/** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
-  const row = layout.locator('[data-slot="viewRow"]');
+  const row = (await layout.getAttribute('data-testid')) === 'live-view-row' ? layout : layout.locator('[data-slot="viewRow"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
   const stars = await box(row.getByRole('button', { name: WORDS[locale].stars }));
   expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
@@ -187,38 +187,57 @@ for (const locale of LOCALES) {
      * the drawing slot, and the picker row is on the page only while the readout holds it open; the timeline (the
      * track and the taps) stands between the hint and the action.
      */
-    test('the live page lays its slots out top to bottom in every view, the readout in the box’s corner, the view row one line, the hint off the drawing', async ({ page }) => {
+    /**
+     * R148 (FR-FULL-1, FR-FULL-3, FR-FULL-4; D-919, D-923): the compact live page is the full form — the drawing, the
+     * overlay and the sheet are its slots, the drawing the viewport; the sheet holds FR-FULL-4's rows in order in
+     * every view, the view row one line; the hint stands over the box at its bottom-left; the facing row's readout
+     * opens the picker under it in the sheet on the window and the polar chart, and stands alone on the dome.
+     */
+    test('the live page is the full form in every view: the drawing the viewport, the sheet’s rows in order, the hint over the box, the readout opening the picker in the sheet', async ({ page }) => {
       const layout = await openLive(page, locale);
-      await expect(layout).toHaveAttribute('data-shape', 'column');
-      await expect(layout).toHaveAttribute('data-readout', 'corner');
+      await expect(layout).toHaveAttribute('data-shape', 'full');
+      await expect(layout).toHaveAttribute('data-readout', 'sheet');
+      const card = page.getByTestId('live-card');
+      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+      await openSheet(page);
       for (const view of VIEWS) {
         await chooseView(page, layout, locale, view);
         const slots = await slotBoxes(layout);
-        const names = slots.map((slot) => slot.name);
-        // The polar chart has no drag, so it has no hint and no hint slot (D-864).
-        expect(names.includes('hint'), view).toBe(view !== 'polar');
-        // The readout's button is inside the drawing slot, so it reads after it; no picker row until the readout is tapped.
-        expect(names.filter((name) => name !== 'hint'), view).toEqual(['answer', 'viewRow', 'drawing', 'readout', 'timeline', 'action', 'list']);
-        if (names.includes('hint')) expect(names.indexOf('hint'), view).toBe(names.indexOf('readout') + 1);
-        expectStacked(slots.filter((slot) => slot.name !== 'readout'));
-        await expectViewRowOneLine(layout, locale);
-        await expectHintOffTheDrawing(layout);
-        // The readout inside the drawing's box, at its top-left corner (FR-TONIGHT-6).
-        const readout = slots.find((slot) => slot.name === 'readout');
+        expect(slots.map((slot) => slot.name), view).toEqual(['drawing', 'overlay', 'sheet']);
         const drawing = slots.find((slot) => slot.name === 'drawing');
-        if (!readout || !drawing) throw new Error('no readout or drawing');
-        expect(readout.box.y).toBeGreaterThanOrEqual(drawing.box.y - 1);
-        expect(readout.box.x).toBeGreaterThanOrEqual(drawing.box.x - 1);
-        expect(readout.box.y + readout.box.height).toBeLessThan(drawing.box.y + drawing.box.height / 3);
-        // A tap on it opens the picker directly under the drawing (the window and the polar chart have one; the dome's row is empty), a second tap closes it.
+        if (!drawing) throw new Error('no drawing');
+        expect(Math.round(drawing.box.width), view).toBe(PHONE.width);
+        expect(Math.round(drawing.box.height), view).toBe(PHONE.height);
+        // The polar chart has no drag, so it has no hint (D-864); the others' stands over the box, at its bottom-left.
+        const hint = layout.getByTestId('sky-hint');
+        expect(await hint.count(), view).toBe(view === 'polar' ? 0 : 1);
+        if (view !== 'polar') {
+          const hintBox = await box(hint);
+          expect(inside(hintBox, drawing.box), `${view}: the hint over the box`).toBe(true);
+          expect(hintBox.y).toBeGreaterThan(drawing.box.y + drawing.box.height / 2);
+          expect(hintBox.x).toBeLessThan(drawing.box.x + drawing.box.width / 4);
+        }
+        // The sheet's rows in FR-FULL-4's order, the view row one line.
+        const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
+        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
+        await expectViewRowOneLine(page.getByTestId('live-view-row'), locale);
+        // The facing row: the readout as a button on the window and the polar chart, which have a picker — a tap opens
+        // it directly under the readout, a second tap closes it; the dome's readout stands alone.
         const toggle = layout.getByTestId('sky-readout-toggle');
+        if (view === 'dome') {
+          expect(await toggle.count(), view).toBe(0);
+          await expect(page.getByTestId('live-facing').getByTestId('dome-readout')).toBeVisible();
+          continue;
+        }
         await toggle.click();
         await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        const opened = (await slotBoxes(layout)).map((slot) => slot.name);
-        expect(opened.indexOf('picker'), view).toBe(opened.indexOf('readout') + 1);
+        const picker = page.getByTestId('live-facing-picker');
+        await expect(picker).toBeVisible();
+        const toggleBox = await box(toggle);
+        expect((await box(picker)).y, view).toBeGreaterThanOrEqual(toggleBox.y + toggleBox.height - 1);
         await toggle.click();
         await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        await expect(layout.locator('[data-slot="picker"]')).toHaveCount(0);
+        await expect(picker).toHaveCount(0);
       }
     });
 
@@ -414,13 +433,25 @@ for (const viewport of TURNED) {
     test.describe(`FR-FLOW-15 on the turned phone, ${String(viewport.width)} × ${String(viewport.height)}, ${locale}`, () => {
       test.use({ viewport, hasTouch: false });
 
-      test('the live page: the window at the left at its share and full height, the rail in order, no page scroll', async ({ page }) => {
+      test('the live page: the full form, the window the whole viewport, the side sheet at its share with the view row inside it, no page scroll', async ({ page }) => {
+        // R148 (FR-FULL-1, FR-FULL-4): the landscape phone's live page is the full form, the sheet a side panel.
         const layout = await openLive(page, locale);
         await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-        await expectTurned(page, layout, viewport);
-        // The rail is 25 to 33 cells beside a drawing at its share, under the view row's 30 and 35 (FR-FLOW-4), so
-        // `[x] stars` may take a second line here; nothing is lost: both stand inside the rail's row.
-        const row = layout.locator('[data-slot="viewRow"]');
+        await expect(layout).toHaveAttribute('data-shape', 'full');
+        const drawing = await box(layout.locator('[data-slot="drawing"]'));
+        expect(Math.round(drawing.width)).toBe(viewport.width);
+        expect(Math.round(drawing.height)).toBe(viewport.height);
+        expect(await pageScrolls(layout)).toEqual([]);
+        const card = page.getByTestId('live-card');
+        if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+        await openSheet(page);
+        await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
+        const sheet = await box(page.getByTestId('live-sheet'));
+        expect(sheet.width).toBeGreaterThanOrEqual(SHEET_SIDE_SHARE * viewport.width - 1);
+        expect(Math.round(sheet.height)).toBe(viewport.height);
+        // The sheet is 25 to 33 cells wide, under the view row's 30 and 35 (FR-FLOW-4), so `[x] stars` may take a
+        // second line here; nothing is lost: both stand inside the row, inside the sheet.
+        const row = page.getByTestId('live-view-row');
         const rowBox = await box(row);
         for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
           await expect(part).toBeVisible();
@@ -428,7 +459,7 @@ for (const viewport of TURNED) {
           expect(inside(partBox, rowBox), 'inside the view row').toBe(true);
           expect(partBox.x + partBox.width).toBeLessThanOrEqual(viewport.width);
         }
-        await expectHintOffTheDrawing(layout);
+        expect(await pageScrolls(layout)).toEqual([]);
       });
 
       test('the stars page: the drawing at the left at its share and full height, the rail in order, no page scroll', async ({ page }) => {
@@ -480,13 +511,17 @@ test.describe('FR-FLOW-15: the turn', () => {
 
   test('turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera and the shown instant and opens no screen', async ({ page }) => {
     const layout = await openLive(page, 'en');
-    await expect(layout).toHaveAttribute('data-shape', 'column');
-    // R144 (FR-TONIGHT-1): nothing visible is up at the seed's instant, so the page jumps to the next rise and plays;
-    // the pause holds the instant the turn must keep, and the turn keeps it paused (FR-FLOW-15).
+    await expect(layout).toHaveAttribute('data-shape', 'full');
+    // R148 (FR-FULL-10): nothing visible is up at the seed's instant, so the card asks; `[ see next pass ]` lands on the
+    // next rise and plays; the pause holds the instant the turn must keep, and the turn keeps it paused (FR-FLOW-15).
+    await expect.poll(() => page.getByTestId('live-card').count(), { timeout: 15_000 }).toBe(1);
+    await page.getByTestId('live-card-next').click();
     const play = page.getByTestId('live-play');
     await expect.poll(() => play.getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
+    await openSheet(page);
     await play.click();
     await expect(play).toHaveAttribute('data-playing', 'false');
+    await closeSheet(page);
     // A facing of the reader's own, so the turn has something to lose.
     const drawing = await box(layout.locator('[data-slot="drawing"]'));
     await page.mouse.move(drawing.x + drawing.width / 2, drawing.y + drawing.height / 2);
@@ -506,9 +541,10 @@ test.describe('FR-FLOW-15: the turn', () => {
     const shown = (await instant.getAttribute('datetime')) ?? '';
     expect(shown).not.toBe('');
     expect(before.every((value) => value !== null)).toBe(true);
+    // R148 (D-919): the full form in both shapes; the sheet's form is what the turn changes.
     const turns = [
-      { viewport: { width: 844, height: 390 }, shape: 'rail' },
-      { viewport: PHONE, shape: 'column' },
+      { viewport: { width: 844, height: 390 }, shape: 'full' },
+      { viewport: PHONE, shape: 'full' },
     ];
     for (const { viewport, shape } of turns) {
       await page.setViewportSize(viewport);

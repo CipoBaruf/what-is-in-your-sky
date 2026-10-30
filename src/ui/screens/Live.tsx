@@ -114,14 +114,21 @@ import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type 
  * **Tonight on the phone (R144: FR-TONIGHT-1, 2, 4, 6, 9; FR-WATCH-1..5 as
  * amended v2.7; D-898, D-901, D-902, D-904, D-905).** On compact the two states
  * are still a fact read from `t`, but the page renders one inventory in both:
- * the shown time with its chip, the context line, the view row, the drawing
- * with the facing readout in its corner, the time track, the three taps and
- * `[ list (n) ] Share`. A `#live` with no `t` waits for the stored run's passes
- * and decides once: a visible pass up now keeps real time; otherwise the page
- * jumps to the first visible rise in the span, a minute early, and plays at the
- * automatic rate to the night's end — paused under reduced motion, never after
- * `now` (`stayOnNow`, in memory) and never when the reader moved first. Wide
- * is R77's page, untouched.
+ * the shown time with its chip, the context line, the view row, the time
+ * track, the three taps and `[ list (n) ] Share`. Wide is R77's page, untouched.
+ *
+ * **The full sky (R148: FR-FULL-1..7, FR-FULL-10; D-919..D-928, D-934..D-936).**
+ * On compact the page is the layout's `full` form: the box is the screen, the
+ * head (`[ ← ]` and the shown time) is the banner fixed over its top-left, and
+ * `[ controls ]` at the bottom-right opens a sheet over the sky with the
+ * context line, the track and the taps, the view row, the facing row and the
+ * actions with the list panel. A `#live` with no `t` waits for the stored run's
+ * passes and decides once: a visible pass up now keeps real time; otherwise a
+ * card over the sky asks — `[ see next pass ]` lands a minute before the first
+ * visible rise and plays (paused under reduced motion), `[ see now ]` stays —
+ * and never when the reader moved first. A tap on the sky closes the open
+ * sheet, a drag turns the camera; `Esc` takes the screen, the card, the sheet
+ * and then the page, in that order.
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */

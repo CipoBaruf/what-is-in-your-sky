@@ -547,9 +547,21 @@ export async function setThemeByKey(page: Page, theme: 'dark' | 'night'): Promis
   await expect(html).toHaveAttribute('data-theme', theme);
 }
 
+/**
+ * R148 (FR-FULL-5, FR-FULL-10, D-927): leaves the live page with `Esc`. On compact `Esc` answers the card first and
+ * closes the sheet second, so the page is left as a reader leaves it: the card answered, the sheet closed, then `Esc`.
+ */
+export async function leaveLive(page: Page): Promise<void> {
+  const card = page.getByTestId('live-card');
+  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+  await closeSheet(page);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('live-page')).toHaveCount(0);
+}
+
 /** Leaves the live page for the home one, sets the theme there and comes back with the dome drawn. */
 export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
-  await page.keyboard.press('Escape');
+  await leaveLive(page);
   await expect(page.getByRole('banner')).toBeVisible();
   await setThemeOnHome(page, locale, theme);
   await page.getByTestId('live-link').click();
@@ -653,8 +665,9 @@ export async function shownOnTrack(page: Page): Promise<number> {
  * wants an exact instant asks for one away from the ticks.
  */
 export async function pressTrackAt(page: Page, t: number): Promise<void> {
-  const bar = trackBar(page);
   // R148 (FR-FULL-4): the track is the sheet's, whose body scrolls; a tap further down the sheet leaves it scrolled.
+  await openSheet(page);
+  const bar = trackBar(page);
   await bar.scrollIntoViewIfNeeded();
   const span = { start: Number(await bar.getAttribute('aria-valuemin')), end: Number(await bar.getAttribute('aria-valuemax')) };
   const box = await bar.boundingBox();

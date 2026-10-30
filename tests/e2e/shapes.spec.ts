@@ -34,8 +34,8 @@
  * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
-import { compactBowlBoxPx, DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
+import { COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
 import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, reenterLiveWithTheme, seedStoredRun, stripFilled } from './liveHelpers';
 
@@ -157,8 +157,6 @@ const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_
  * (FR-LEG-8) and R101's `[ see this pass ]` on the headline, which is how `openLive` leaves the page. The compact
  * rows outside these two rules keep `FLOOR_ALLOWANCE`'s: 360 × 640 and 844 × 501 are the compact page's own.
  */
-const COMPACT_BOX_SQUARE_FROM_PX = 844;
-const COMPACT_SHORT_PHONE = '390x667';
 
 /**
  * R71: the stripe block's width from which its time row — the clock readout and the six playback controls —
@@ -473,6 +471,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const found = await rects(liveRows(page));
       dropParts(found, 'time row', ['time readout']);
       dropParts(found, 'strip', STRIP_FIELDS);
+      // R148 (FR-FULL-1, FR-FULL-4): on compact the box is the screen and every row stands over it, in the sheet
+      // (hidden while the sheet is closed, `rects` skips it) — so the rows are held clear of one another, not of the box.
+      if (width < WIDE_MIN_PX) found.delete('chart box');
       // R132 (D-842, D-864): on wide the rail's list is the row that gives, scrolling inside its slot (FR-DESK-2), so
       // the strip's and the legend's own boxes can reach past the slot's edge: what counts is the part the slot shows.
       if (width >= WIDE_MIN_PX) {
@@ -486,17 +487,15 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
           else found.delete(name);
         }
       }
-      // R144 (FR-FLOW-15, FR-TONIGHT-6): on the landscape phone the layout is the rail's scroll box, and a key on the
-      // track (how a spec holds the instant) scrolls the rail to it, so a row above it is clipped under the top row.
-      // What counts is the part of each rail row the layout shows.
-      if (width < WIDE_MIN_PX && width > height) {
-        const layout = await page.getByTestId('live-layout').boundingBox();
-        const drawing = await page.getByTestId('live-layout').locator('[data-slot="drawing"]').boundingBox();
-        if (layout && drawing) {
+      // R148 (FR-FULL-4): on compact the sheet's body scrolls inside the sheet, and a key on the track (how a spec
+      // holds the instant) scrolls it to the track, so a row above it is clipped under the sheet's head. What counts
+      // is the part of each row the sheet's body shows.
+      if (width < WIDE_MIN_PX) {
+        const body = await page.getByTestId('sheet-body').boundingBox();
+        if (body) {
           for (const [name, rect] of [...found.entries()]) {
-            if (rect.x < drawing.x + drawing.width) continue;
-            const top = Math.max(rect.y, layout.y);
-            const bottom = Math.min(rect.y + rect.height, layout.y + layout.height);
+            const top = Math.max(rect.y, body.y);
+            const bottom = Math.min(rect.y + rect.height, body.y + body.height);
             if (bottom - top > 1) found.set(name, { ...rect, y: top, height: bottom - top });
             else found.delete(name);
           }
@@ -541,13 +540,14 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // tablets: 578 × 577 scrubbing at 768 × 1024), and the short phone's floor while watching. R133 (FR-FLOW-9,
       // D-850): the square is the bowl's box now — its drawn height at the box's width plus the slack above and
       // below, 337 at 390 px — in both states, since the column scrolls past it (R132); the short phone's floor stands.
-      const capped = box.width < width;
-      if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX && (state === 'watching' || !capped)) {
-        const bowl = compactBowlBoxPx(box.width);
-        expect(Math.abs(box.height - bowl), `${at}: the compact box is ${fmt(box)}, not the bowl's ${String(bowl)} px (FR-FLOW-9)`).toBeLessThanOrEqual(1);
-      }
-      if (label(size) === COMPACT_SHORT_PHONE && state === 'watching') {
-        expect(box.height, `${at}: the short phone's box is ${fmt(box)}, under COMPACT_BOX_MIN_SHORT_PX (FR-COMP-5)`).toBeGreaterThanOrEqual(COMPACT_BOX_MIN_SHORT_PX);
+      // R148 (FR-FULL-1, FR-TONIGHT-9 as amended v2.8): on compact the box is the viewport, in both states, at every
+      // compact row — the phones, the landscape phone, the boundaries and the tablets alike; the bowl's cut and the
+      // short phone's floor were the column's (R133, R144), and the column is gone from the live page.
+      if (width < WIDE_MIN_PX) {
+        expect(Math.round(box.width), `${at}: the compact box is ${fmt(box)}, not the viewport's width (FR-FULL-1)`).toBe(width);
+        expect(Math.round(box.height), `${at}: the compact box is ${fmt(box)}, not the viewport's height (FR-FULL-1)`).toBe(height);
+        expect(Math.round(box.x), at).toBe(0);
+        expect(Math.round(box.y), at).toBe(0);
       }
       expect(ink.layers.length, `${at}: no drawing in the box`).toBeGreaterThan(0);
       expect(ink.extent.x, `${at}: the drawing starts inside the box`).toBeGreaterThanOrEqual(box.x - 1);
@@ -597,16 +597,13 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const at = label(size);
       await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-compact', String(compact));
       const dome = await page.getByTestId('live-dome').boundingBox();
-      // R77: on wide the side column is laid out inside the frame's rail (`display: contents`), so it has no box of its own.
-      // R132 (D-864): the rows beside or under the dome are the layout's slots — the answer at the rail's top, the list under the box.
-      const side = compact ? await page.getByTestId('live-layout').locator(landscape ? '[data-slot="answer"]' : '[data-slot="list"]').boundingBox() : { x: 0, y: 0, width: 0, height: 0 };
-      if (!dome || !side) throw new Error(`${at}: the live page is not laid out`);
-      if (landscape) {
-        // The landscape phone: the side column beside the dome, on the right.
-        expect(side.x, `${at}: the side column stands beside the dome`).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-      } else if (compact) {
-        // The portrait stack: the side column under the dome.
-        expect(side.y, `${at}: the side column stands under the dome`).toBeGreaterThanOrEqual(dome.y + dome.height - 1);
+      if (!dome) throw new Error(`${at}: the live page is not laid out`);
+      if (compact) {
+        // R148 (FR-FULL-1, FR-FULL-4): the compact page is the full form in both shapes — the dome is the viewport,
+        // and the sheet is a bottom sheet on the portrait stack and a side panel on the landscape phone.
+        expect(Math.round(dome.width), `${at}: the dome is the viewport`).toBe(width);
+        expect(Math.round(dome.height), `${at}: the dome is the viewport`).toBe(height);
+        await expect(page.getByTestId('live-sheet'), at).toHaveAttribute('data-form', landscape ? 'side' : 'bottom');
       } else {
         // Wide: the desktop layout, whatever the height — the box cut to the dome's shape, no landscape tracks (F-65).
         await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
@@ -833,15 +830,13 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         if (state === 'scrubbing') await enterScrubbing(page);
         const { box } = await settled(page);
         const where = `${at} live ${state}`;
-        expect(box.width, `${where}: the box is ${String(Math.round(box.width))} px wide in a ${String(Math.round(column))} px column`).toBeLessThanOrEqual(column + 1);
-        expect(box.x, `${where}: the box starts inside the column`).toBeGreaterThanOrEqual(livePage.x - 1);
-        expect(box.x + box.width, `${where}: the box ends inside the column`).toBeLessThanOrEqual(livePage.x + livePage.width + 1);
+        // R148 (FR-FULL-1, V28-1): the compact live page is the full form on the tablet too — the box is the viewport,
+        // not the column (FR-TAB-2's box in the column was the column form's), and the page does not scroll either way.
+        expect(Math.round(box.width), `${where}: the box is ${String(Math.round(box.width))} px wide, not the viewport's`).toBe(width);
+        expect(Math.round(box.height), `${where}: the box is ${String(Math.round(box.height))} px tall, not the viewport's`).toBe(height);
         const scrolled = await scroll(page);
-        // R132 (FR-FLOW-4, D-864): the compact column scrolls past its box; sideways it never does.
         expect(scrolled.scrollWidth, `${where}: the live page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
-        // R133 (FR-FLOW-9, D-850): the column's box is the bowl's at its width, in both states (it was its own width while watching, FR-TAB-2).
-        const bowl = compactBowlBoxPx(box.width);
-        expect(Math.abs(box.height - bowl), `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide, not the bowl's ${String(bowl)}`).toBeLessThanOrEqual(1);
+        expect(scrolled.scrollHeight, `${where}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
       }
       await backToLive(page);
     }
