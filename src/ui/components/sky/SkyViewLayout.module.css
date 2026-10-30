@@ -170,16 +170,6 @@
   min-height: var(--target);
   min-width: var(--target);
   max-width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  appearance: none;
 }
 
 .cornerLabel {
@@ -187,6 +177,22 @@
   min-width: 0;
   padding: var(--space-1);
   background: var(--sky-corner-surface);
+}
+
+/* The button is laid over the words at the corner's whole size, so the hit area is the corner's and a tap on the
+   words is a tap on it; it is empty, named by them (a button holds phrasing content only, the readout is a `p`). */
+.cornerHit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
 }
 
 /* The chart's readout is a paragraph at the live readout's size; in the corner it is `--small` (FR-TONIGHT-6). */

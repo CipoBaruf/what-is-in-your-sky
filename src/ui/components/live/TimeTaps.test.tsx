@@ -2,7 +2,8 @@
 /**
  * R144 (FR-TONIGHT-4, D-901): the three taps and the play control — the four controls in their order with the
  * catalog's words in both languages, each a `.target`; the play glyph named by its word and switching with the
- * state; each tap calling its handler; `next` and `now` disabled where FR-TONIGHT-4 says. What each tap lands on
+ * state; each tap calling its handler; `next` and `now` disabled where FR-TONIGHT-4 says, and `tonight` with no night
+ * to land in. What each tap lands on
  * is `lib/tonightJump.ts`'s (its own test) wired by `Live.tsx` (`Live.test.tsx`).
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -22,7 +23,7 @@ const mount = (locale: Locale, over: Partial<TimeTapsProps> = {}) => {
   const fns = handlers();
   const utils = render(
     <I18nProvider locale={locale}>
-      <TimeTaps playing={false} nextDisabled={false} nowDisabled={false} {...fns} {...over} />
+      <TimeTaps playing={false} tonightDisabled={false} nextDisabled={false} nowDisabled={false} {...fns} {...over} />
     </I18nProvider>,
   );
   return { ...utils, ...fns, row: screen.getByTestId('live-taps') };
@@ -84,5 +85,14 @@ describe('<TimeTaps> (FR-TONIGHT-4)', () => {
     fireEvent.click(now);
     expect(onNext).not.toHaveBeenCalled();
     expect(onNow).not.toHaveBeenCalled();
+  });
+
+  it('disables tonight with no night in the bands, and a tap on it does nothing', () => {
+    const { onTonight } = mount('en', { tonightDisabled: true });
+    const tonight = screen.getByTestId('live-tap-tonight');
+    expect(tonight).toBeDisabled();
+    expect(screen.getByTestId('live-tap-next')).toBeEnabled();
+    fireEvent.click(tonight);
+    expect(onTonight).not.toHaveBeenCalled();
   });
 });

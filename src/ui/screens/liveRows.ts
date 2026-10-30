@@ -54,7 +54,6 @@ export type LiveRow =
   | 'taps'
   | 'conditions'
   | 'overview'
-  | 'overview-labels'
   | 'stripe'
   | 'steps'
   | 'playback'
@@ -79,7 +78,6 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   taps: 'live-taps',
   conditions: 'status-strip',
   overview: 'overview-row',
-  'overview-labels': 'overview-labels',
   stripe: 'time-stripe',
   steps: 'step-controls',
   playback: 'playback-row',

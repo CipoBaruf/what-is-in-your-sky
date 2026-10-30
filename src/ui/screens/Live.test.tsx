@@ -21,6 +21,7 @@ import { en } from '../../i18n/en';
 import { I18nProvider } from '../../i18n/useT';
 import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant, type LiveLink } from '../../lib/shareLinks';
+import { formatClock } from '../../lib/timeFormat';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
@@ -1249,6 +1250,44 @@ describe('<LivePage>', () => {
   });
 
   /**
+   * R144 review (FR-TONIGHT-3, FR-TONIGHT-7): on real time the headline reads a 1 s clock and the page a 10 s tick.
+   * The track's value text says what the headline says, and `▶` plays from the second on screen — not from the tick
+   * before it, which would move the shown instant back by up to ten seconds.
+   */
+  it('on compact speaks the headline’s second in the track’s value text, and ▶ from real time plays from it', () => {
+    scriptedFrames();
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    // The ISS is up at T: the page stays on real time.
+    expect(chip()).toHaveAttribute('data-kind', 'now');
+    act(() => {
+      vi.advanceTimersByTime(7_000);
+    });
+    const second = formatClock(T + 7_000, null, 'en');
+    expect(screen.getByTestId('shown-time')).toHaveTextContent(second.split(' ')[0] ?? '');
+    expect(track().getAttribute('aria-valuetext')).toContain(second);
+    // The 10 s tick has not moved: the page's own instant is still T.
+    expect(shownAt()).toBe(T);
+    fireEvent.click(screen.getByTestId('live-play'));
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
+    expect(shownAt()).toBe(T + 7_000);
+  });
+
+  /** R144 review (FR-TONIGHT-4): `[ tonight ]` has nowhere to land before the bands arrive, and is disabled until they do. */
+  it('on compact disables [ tonight ] until the bands hold a night, as next and now are disabled', async () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const tonight = (): HTMLElement => screen.getByTestId('live-tap-tonight');
+    expect(tonight()).toBeDisabled();
+    for (let i = 0; i < 500 && tonight().hasAttribute('disabled'); i += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    expect(tonight()).toBeEnabled();
+  });
+
+  /**
    * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-9 a; D-448, D-449): the two short shapes, each rendering `rowsFor`'s
    * short inventory. The landscape phone is a media query away. The short wide window is a measurement away:
    * jsdom lays nothing out, so the frame's own rect is stubbed to the 384 px a 1200 × 450 page leaves it, and
@@ -1583,11 +1622,11 @@ describe('<LivePage>', () => {
     reading(true);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: en.chart.screenClose }));
     fireEvent.click(screen.getByRole('button', { name: en.chart.screenClose }));
-    // R136 (V26-12): back to `[ hold up to the sky ]`, the one control that opens the screen — R144 (D-904): on compact
-    // the facing row it stands in is behind the readout again once the page is back, so the focus lands on the
-    // chart's next stop, the view control's window option (`SkyChart`'s rule).
-    expect(screen.queryByTestId('window-hold-up')).toBeNull();
-    expect(document.activeElement).toBe(windowOption());
+    // R136 (V26-12): back to `[ hold up to the sky ]`, the one control that opens the screen — R144 (D-904, review):
+    // on compact the facing row it stands in comes back open, since the page holds the picker's state while the
+    // layout is not mounted, so the focus lands on the control itself and not on the view option.
+    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
+    expect(document.activeElement).toBe(screen.getByTestId('window-hold-up'));
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 

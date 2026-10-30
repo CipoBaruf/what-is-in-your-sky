@@ -1,5 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react';
 
+/** FR-MARK-5: the one query the app asks about the reader's motion — the mark's bead, and the live page's jump (FR-TONIGHT-1). */
+export const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+
 /**
  * R61 (D-319): whether a media query matches, as `useLayoutMode` reads
  * `WIDE_QUERY` — a `matchMedia` listener that fires on the crossing and not on

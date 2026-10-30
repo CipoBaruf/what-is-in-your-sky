@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows, ROW_PX, scrubPlacement, type LiveFold, type PageShape, type ScrubPlacement } from '../../lib/layout';
@@ -31,7 +31,7 @@ import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
 import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
-import { INDICATOR_MARK_PX, StateIndicator, StateMark } from '../components/live/StateIndicator';
+import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StarsToggle } from '../components/live/StarsToggle';
@@ -40,7 +40,7 @@ import { StripeOverview } from '../components/live/StripeOverview';
 import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { TimeTaps } from '../components/live/TimeTaps';
-import { TimeTrack } from '../components/live/TimeTrack';
+import { TimeTrack, type TimeTrackProps } from '../components/live/TimeTrack';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePageShape } from '../components/live/usePageShape';
 import { usePlayback } from '../components/live/usePlayback';
@@ -54,6 +54,7 @@ import { SkyScreen } from '../components/screen/SkyScreen';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
+import { REDUCED_MOTION, useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { requestPlace } from './home/placeRequest';
@@ -432,12 +433,33 @@ function useJumpFitsOnPath(active: boolean, headlineRef: RefObject<HTMLDivElemen
 }
 
 /**
- * R144 (FR-TONIGHT-7, D-911): the compact headline, with the 1 s clock `ShownTime` reads its seconds from while `t`
- * is real time. The clock is this leaf's, so the page re-renders on its 10 s tick and the frames alone.
+ * R144 (FR-TONIGHT-7, D-911): the 1 s clock `ShownTime` reads its seconds from while `t` is real time. One clock for
+ * the page, so the headline, the track's value text and `▶` from real time (`usePlayback`'s `realFrom`, through
+ * `clockRef`) all read the same second. A provider of its own: its tick re-renders the readers below and not the
+ * page, which hands it its children already made, so the page re-renders on its 10 s tick and the frames alone.
  */
-function Headline(props: Omit<ShownTimeProps, 'clock'>) {
+const SecondClockContext = createContext<EpochMs>(0);
+
+function SecondClock({ clockRef, children }: { clockRef: RefObject<EpochMs>; children: ReactNode }) {
   const clock = useNow(1_000);
+  useLayoutEffect(() => {
+    clockRef.current = clock;
+  }, [clock, clockRef]);
+  return <SecondClockContext.Provider value={clock}>{children}</SecondClockContext.Provider>;
+}
+
+/** The compact headline on the page's 1 s clock. */
+function Headline(props: Omit<ShownTimeProps, 'clock'>) {
+  const clock = useContext(SecondClockContext);
   return <ShownTime {...props} clock={clock} />;
+}
+
+/** The time track, its value text the headline's words on the same 1 s clock (FR-TONIGHT-3, D-900). */
+function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'> & { shownTime: Omit<ShownTimeProps, 'clock'> }) {
+  const m = useT();
+  const locale = useLocale();
+  const clock = useContext(SecondClockContext);
+  return <TimeTrack {...props} valueText={shownTimeText(m, locale, { ...shownTime, clock })} />;
 }
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
@@ -488,7 +510,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * in (`nightEnd`, over the stripe's bands). Wide keeps the chosen speed and the span's end.
    */
   const nightEndRule = useCallback((from: EpochMs) => nightEnd(bands, from), [bands]);
-  const playback = usePlayback({ span, realNow: now, initial, ...(compact ? { speed: 'auto' as const, passes, end: nightEndRule } : {}) });
+  // R144 (FR-TONIGHT-7): `▶` from real time starts at the second the headline shows, not at the 10 s tick before it.
+  const clockRef = useRef<EpochMs>(now);
+  const readClock = useCallback(() => clockRef.current, []);
+  const playback = usePlayback({ span, realNow: now, initial, ...(compact ? { speed: 'auto' as const, passes, end: nightEndRule, realFrom: readClock } : {}) });
+  // The members are each `usePlayback`'s own callbacks; the object around them is new every render (R144 review).
+  const { scrub, play, pause, toNow, readerWrote } = playback;
   const shown = playback.t;
   /*
    * R144 (FR-TONIGHT-1, FR-TONIGHT-2; D-898): the jump — one effect, compact only, decided once when the passes arrive.
@@ -502,16 +529,15 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const setStayOnNow = useAppStore((s) => s.setStayOnNow);
   const jumpDecided = useRef(false);
   const hasPasses = passes.length > 0;
+  const reducedMotion = useMediaQuery(REDUCED_MOTION);
   useEffect(() => {
     if (!hasPasses || jumpDecided.current) return;
     jumpDecided.current = true;
-    if (!compact || (link?.t ?? null) !== null || stayOnNow || playback.readerWrote.current) return;
+    if (!compact || (link?.t ?? null) !== null || stayOnNow || readerWrote.current) return;
     const instant = openingJump(passes, now, span);
     if (instant === null) return;
-    playback.scrub(instant, 'page');
-    // Without `matchMedia` (jsdom, a server) nothing asked for less motion, as `useMediaQuery` reads it.
-    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduced) playback.play('page');
+    scrub(instant, 'page');
+    if (!reducedMotion) play('page');
     // D-898: the decision is taken once, on the first render with passes; what it reads is what that render has.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPasses]);
@@ -571,6 +597,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    */
   const screenOpen = useAppStore((s) => s.skyScreen);
   const closeScreen = useAppStore((s) => s.closeSkyScreen);
+  /*
+   * R144 (FR-FSC-2, D-914): the corner picker's open state is the page's, not the layout's, since the layout is not
+   * mounted while the screen is up: the screen is opened from `[ hold up to the sky ]` inside the open picker, and
+   * the `×` gives focus back to that control, which is only there if the row comes back open.
+   */
+  const [pickerOpen, setPickerOpen] = useState(false);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
   // FR-FSC-5 (D-325): held off the sky screen at the hook — while it is up the worker is not asked at all, so
   // no `computeAt` message leaves the page and there is nothing dimmed for the screen to draw even by accident.
@@ -620,9 +652,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const shareName = scrubbing ? t.live.shareMoment : t.live.share;
   // R77 (FR-WATCH-1 a, D-446): `[ scrub ]` is the pause at now — the instant of the tap, which is the one on screen.
   const scrubHere = useCallback(() => {
-    playback.pause();
-    playback.scrub(shown);
-  }, [playback, shown]);
+    pause();
+    scrub(shown);
+  }, [pause, scrub, shown]);
   /*
    * R76 (FR-FIRST-3) and R77 (FR-WATCH-2, V20-18): the watching headline is the home page's next-event block,
    * from the same stored run the drawing uses, at real time — the passes of the coming 24 h, so "no pass" says 24.
@@ -635,7 +667,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   // R144 (FR-TONIGHT-6): the compact top row — the mark without its word, then the page's name; the place follows.
   const topStatus = compact ? (
     <span className={styles.topStatus}>
-      <StateMark held={scrubbing} />
+      <StateIndicator held={scrubbing} word={false} />
       <span className={styles.pageName} data-testid="header-page">
         {t.header.pages.live}
       </span>
@@ -698,7 +730,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
     </div>
   ) : null;
-  // R144: the overview's end labels (`overview-labels`) were the compact watching page's, which is gone; no list holds the id now.
   const stripe = has('stripe') ? <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} /> : null;
   const steps = has('steps') ? <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} /> : null;
   const conditions = has('conditions') ? <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} /> : null;
@@ -712,27 +743,29 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const night = useMemo(() => tonightBand(bands, now), [bands, now]);
   const seek = useCallback(
     (at: EpochMs) => {
-      playback.pause();
-      playback.scrub(at);
+      pause();
+      scrub(at);
     },
-    [playback],
+    [pause, scrub],
   );
   const onTonight = useCallback(() => {
     const target = tonightTarget(bands, passes, now, shown, span);
     if (target === null) return;
-    playback.scrub(target.t);
-    if (target.play) playback.play();
-    else playback.pause();
-  }, [bands, passes, now, shown, span, playback]);
+    scrub(target.t);
+    if (target.play) play();
+    else pause();
+  }, [bands, passes, now, shown, span, scrub, play, pause]);
   const withTaps = rows.has('taps');
+  // `tonight` has nowhere to land with no night in the bands (none yet, or a polar summer): disabled, as `next` and `now` are.
+  const noTonight = useMemo(() => withTaps && tonightTarget(bands, passes, now, now, span) === null, [withTaps, bands, passes, now, span]);
   const nextAt = useMemo(() => (withTaps ? nextTarget(passes, shown) : null), [withTaps, passes, shown]);
   const onNext = useCallback(() => {
-    if (nextAt !== null) playback.scrub(nextAt);
-  }, [nextAt, playback]);
+    if (nextAt !== null) scrub(nextAt);
+  }, [nextAt, scrub]);
   const onNow = useCallback(() => {
-    playback.toNow();
+    toNow();
     setStayOnNow(true);
-  }, [playback, setStayOnNow]);
+  }, [toNow, setStayOnNow]);
   const shownTimeProps = { t: shown, realTime: playback.realTime, now, night, timeZone: observer.timeZone };
   const shownHeadline = has('headline') ? (
     <div data-testid="live-headline">
@@ -746,12 +779,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   ) : null;
   const track = has('track') ? (
     <div className={styles.trackRow} data-testid="live-track" data-rhythm="row">
-      <TimeTrack span={span} bands={bands} passes={passes} t={shown} onSeek={seek} leadMs={TONIGHT_LEAD_MS} timeZone={observer.timeZone} valueText={shownTimeText(t, locale, { ...shownTimeProps, clock: now })} />
+      <ClockedTrack span={span} bands={bands} passes={passes} t={shown} onSeek={seek} leadMs={TONIGHT_LEAD_MS} timeZone={observer.timeZone} shownTime={shownTimeProps} />
     </div>
   ) : null;
   const taps = has('taps') ? (
     <div className={styles.tapsRow} data-rhythm="row">
-      <TimeTaps playing={playback.playing} onPlay={playback.play} onPause={playback.pause} onTonight={onTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={onNow} nowDisabled={playback.realTime} />
+      <TimeTaps playing={playback.playing} onPlay={play} onPause={pause} onTonight={onTonight} tonightDisabled={noTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={onNow} nowDisabled={playback.realTime} />
     </div>
   ) : null;
   /*
@@ -809,9 +842,11 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   );
   const top = <TopRow place={observer.label} indicator={topStatus} screenOpen={screenOpen} onLeave={onLeave} />;
   const page = (children: ReactNode): ReactNode => (
-    <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} shape={shape} top={top}>
-      {children}
-    </Page>
+    <SecondClock clockRef={clockRef}>
+      <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} shape={shape} top={top}>
+        {children}
+      </Page>
+    </SecondClock>
   );
   // FR-FLOW-6: the hint's view is the chart's — the saved view, else the window on a phone and the dome on a desk (D-876).
   const hintView = defaultChartView(mode, chartView);
@@ -906,6 +941,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       data-testid="live-layout"
       fill
       readoutIn={compact ? 'corner' : 'row'}
+      pickerOpen={pickerOpen}
+      onPickerOpen={setPickerOpen}
       roomKey={compact ? String(legendOpen) : undefined}
       answer={answer}
       viewRow={viewRow}

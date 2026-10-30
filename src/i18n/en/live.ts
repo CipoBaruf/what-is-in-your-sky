@@ -107,9 +107,6 @@ export const live = {
     seeThisPassName: (name: string) => `See this pass: ${name}, held at its rise`,
     /** R77 (FR-WATCH-2, FR-TRAJ-4): the held instant's offset from real time — `+33 min`, `−1 h 05 min`. */
     heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) => `${p.sign}${offsetSpan(p)}`,
-    /** R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels, one text row under it on compact. */
-    overviewStart: 'now',
-    overviewEnd: '+24 h',
     /**
      * FR-SHARE-1's live form: the same button as the pass's, with the page's own words. R77 (FR-WATCH-8): on
      * wide the name says what the link carries — the sky while watching, the moment while scrubbing.

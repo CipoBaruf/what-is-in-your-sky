@@ -280,8 +280,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".live.openFromNow:string",
   ".live.openShort:string",
   ".live.overview:string",
-  ".live.overviewEnd:string",
-  ".live.overviewStart:string",
   ".live.pause:string",
   ".live.pauseShort:string",
   ".live.pending:string",

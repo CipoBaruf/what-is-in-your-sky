@@ -108,6 +108,14 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   /** R144 (FR-TONIGHT-6, D-904): the readout in the box's corner as the picker's toggle — the compact live page alone passes `'corner'`. */
   readoutIn?: SkyViewReadoutPlace | undefined;
   /**
+   * R144 (FR-FSC-2): the corner picker's open state, held by the page where the layout does not outlive what it
+   * opens — the live page unmounts the layout while the sky screen is up, and closing the screen has to find the
+   * facing row open with `[ hold up to the sky ]` in it, for its focus to come back to. Without it the layout holds
+   * its own.
+   */
+  pickerOpen?: boolean | undefined;
+  onPickerOpen?: ((open: boolean) => void) | undefined;
+  /**
    * R144 (FR-TONIGHT-9): a value that changes when a slot's content changes height on the reader's tap — the live
    * page's list opening — so a `fill` column re-measures the drawing's room in that commit, before the paint, and
    * not a frame later from the resize observer (the page would scroll for that frame, or keep the open list's room).
@@ -131,7 +139,7 @@ const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
 const PICK = '[role="group"] button, [role="radiogroup"] [role="radio"], [role="listbox"] [role="option"]';
 
-export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -139,8 +147,14 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   const shape: SkyViewShape = mode === 'wide' ? wide : pageShape === 'landscape-phone' ? 'rail' : 'column';
   // R144 (D-904): the corner readout is the column's device; the rail form has its own corner and its picker row.
   const corner = readoutIn === 'corner' && shape === 'column';
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const pickerOpen = heldOpen ?? ownOpen;
+  const setPickerOpen = (open: boolean): void => {
+    if (heldOpen === undefined) setOwnOpen(open);
+    onPickerOpen?.(open);
+  };
   const pickerId = useId();
+  const readoutLabelId = useId();
   const [targets, setTargets] = useState<Partial<Record<ChartSlotName, HTMLElement>>>({});
   const register = useCallback((name: ChartSlotName, element: HTMLElement | null) => {
     setTargets((was) => {
@@ -305,15 +319,15 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   };
   /*
    * R144 (FR-TONIGHT-6, D-904): the readout in the box's corner, a button that opens the picker slot under the
-   * drawing. The chart still portals its readout into the page's `SkyViewChartSlot`, which stands inside the
-   * button; the picker's slot is rendered only while open, so the chart places its facing row there on the tap and
-   * nowhere before it (FR-WATCH-7: nothing but the reader's tap changes the rows). A pick — any control inside the
-   * open row — closes it, as does a second tap on the readout.
+   * drawing. The chart still portals its readout into the page's `SkyViewChartSlot`, which stands in the corner
+   * under the button; the picker's slot is rendered only while open, so the chart places its facing row there on the
+   * tap and nowhere before it (FR-WATCH-7: nothing but the reader's tap changes the rows). A pick — one of the open
+   * row's options — closes it, as does a second tap on the readout.
    *
    * The chart portals both parts in, and React bubbles a portal's events through the tree that rendered it (the
-   * chart, in the drawing slot), not through the DOM: a tap on the readout's text never reaches the button's own
-   * handler, and a pick in the facing row never reaches the picker slot's. The drawing slot is the one element both
-   * paths pass — the button is its child, the chart its other child — so the toggle and the close are its handler,
+   * chart, in the drawing slot), not through the DOM: a pick in the facing row never reaches the picker slot's own
+   * handler. The drawing slot is the one element both paths pass — the corner is its child, the chart its other
+   * child — so the toggle and the close are its handler,
    * read off the DOM target. The picker slot keeps its own for a part a page puts there itself. A pick is one of
    * the row's options — a control in its group — so `[ hold up to the sky ]` beside the points opens the screen and
    * leaves the row as it was (its focus comes back to it, FR-FSC-2).
@@ -324,22 +338,30 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   };
   const onDrawingClick = (event: MouseEvent<HTMLElement>): void => {
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest('button[data-readout="corner"]')) setPickerOpen((was) => !was);
+    // The corner, not only its button: a tap that lands on the words (a test's, or a browser's under the button) is the same tap.
+    if (target?.closest('[data-slot="readout"][data-readout="corner"]')) setPickerOpen(!pickerOpen);
     else closeOnPick(event);
   };
+  /*
+   * A button holds phrasing content only, and the chart's readout is a paragraph in a slot's `div`: so the words stand
+   * in the corner's own block, and the button is laid over them at the corner's whole size, empty and named by them
+   * (`aria-labelledby`). The words are hidden from assistive technology, which reads them once, as the button's name.
+   */
   const cornerReadout =
     corner && given('readout') ? (
-      <button
-        type="button"
-        className={styles.cornerReadout}
-        data-slot="readout"
-        data-readout="corner"
-        data-testid="sky-readout-toggle"
-        aria-expanded={pickerOpen}
-        {...(pickerOpen ? { 'aria-controls': pickerId } : {})}
-      >
-        <span className={styles.cornerLabel}>{slots.readout}</span>
-      </button>
+      <div className={styles.cornerReadout} data-slot="readout" data-readout="corner">
+        <div className={styles.cornerLabel} id={readoutLabelId} aria-hidden="true">
+          {slots.readout}
+        </div>
+        <button
+          type="button"
+          className={styles.cornerHit}
+          data-testid="sky-readout-toggle"
+          aria-labelledby={readoutLabelId}
+          aria-expanded={pickerOpen}
+          {...(pickerOpen ? { 'aria-controls': pickerId } : {})}
+        />
+      </div>
     ) : null;
   const slot = (name: SkyViewSlotName): ReactNode => {
     const node = slots[name];

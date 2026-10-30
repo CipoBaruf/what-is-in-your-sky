@@ -10,7 +10,7 @@ import { COMPACT_ROWS, inventoryClip, jumpFitsOnPath, jumpPlacement, LIVE_ROW_TE
 const TIMELINE: readonly LiveRow[] = ['time-row', 'stripe', 'steps', 'playback'];
 
 /** R144 (FR-TONIGHT-6, D-902): what left the compact page — none of these is in its list in either state or shape. */
-const GONE_FROM_COMPACT: readonly LiveRow[] = ['indicator', 'clock', 'time-row', 'next-event', 'conditions', 'overview', 'overview-labels', 'stripe', 'steps', 'playback', 'back-to-live', 'scrub', 'hidden'];
+const GONE_FROM_COMPACT: readonly LiveRow[] = ['indicator', 'clock', 'time-row', 'next-event', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'back-to-live', 'scrub', 'hidden'];
 
 describe('rowsFor (FR-WATCH-4)', () => {
   /** R144 (FR-TONIGHT-6, FR-WATCH-4 as amended v2.7; D-902): one compact inventory, in both states and both shapes. */

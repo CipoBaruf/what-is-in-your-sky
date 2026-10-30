@@ -168,12 +168,16 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     expect(slots()).toEqual(['answer', 'viewRow', 'drawing', 'readout', 'hint', 'timeline', 'action', 'layers', 'list', 'foot']);
     const toggle = screen.getByTestId('sky-readout-toggle');
     expect(toggle.tagName).toBe('BUTTON');
-    expect(toggle.closest('[data-slot="drawing"]')).not.toBeNull();
-    expect(toggle).toHaveAttribute('data-slot', 'readout');
-    expect(toggle).not.toHaveAttribute('data-rhythm');
+    const corner = toggle.closest<HTMLElement>('[data-slot="readout"]');
+    expect(corner?.closest('[data-slot="drawing"]')).not.toBeNull();
+    expect(corner).not.toHaveAttribute('data-rhythm');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    // The chart's readout lands inside the button; its picker lands nowhere while the slot is not on the page.
-    expect(toggle.querySelector('[data-placed="readout"]')).toHaveTextContent('Facing N');
+    // The chart's readout lands in the corner beside the button, which holds no content of its own — a button holds
+    // phrasing content only and the readout is a paragraph — and is named by the readout's words.
+    expect(corner?.querySelector('[data-placed="readout"]')).toHaveTextContent('Facing N');
+    expect(toggle.childNodes).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Facing N' })).toBe(toggle);
+    // Its picker lands nowhere while the slot is not on the page.
     expect(layout.querySelector('[data-placed="picker"]')).toBeNull();
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
@@ -235,6 +239,26 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     fireEvent.click(screen.getByTestId('sky-readout-toggle'));
     fireEvent.click(screen.getByRole('button', { name: 'hold up' }));
     expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  /** R144 (FR-FSC-2): the page can hold the open state, so a layout mounted again (the sky screen closed) opens as it was left. */
+  it('with readoutIn corner and a held pickerOpen asks the page to toggle, and a new layout opens as the page says', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    const asked: boolean[] = [];
+    const layout = (open: boolean) => (
+      <I18nProvider locale="en">
+        <SkyViewLayout data-testid="layout" readoutIn="corner" pickerOpen={open} onPickerOpen={(next) => asked.push(next)} readout={<p>Facing N</p>} drawing={<div>box</div>} picker={<div>row</div>} />
+      </I18nProvider>
+    );
+    const { unmount } = render(layout(false));
+    fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    expect(asked).toEqual([true]);
+    // Held: nothing opens until the page says so.
+    expect(screen.getByTestId('layout').querySelector('[data-slot="picker"]')).toBeNull();
+    unmount();
+    render(layout(true));
+    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('layout').querySelector('[data-slot="picker"]')).toHaveTextContent('row');
   });
 
   /**

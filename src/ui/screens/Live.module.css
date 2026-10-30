@@ -1,10 +1,10 @@
-/* R32 (FR-LIVE-1): the live page. R132 (FR-FLOW-4, FR-FLOW-6; D-842): the page is the top row and, under it,
-   `SkyViewLayout` — the column on a portrait phone (the headline, the view row, the readout, the box, the facing
-   row, the hint, the actions, the legend and the conditions, then the stripe block while scrubbing), the box
-   beside the rail on wide and on the landscape phone. The layout owns the order and the gaps; this file lays out
-   the page's own rows — the headline, the conditions, the stripe block, the actions, the rail's head and foot —
-   and the page's two heights: one viewport high wherever there is a rail, a column that scrolls past the box on
-   the portrait phone. Two cells of side padding, like the frame the rest of the app draws in. `minmax(0, 1fr)`
+/* R32 (FR-LIVE-1): the live page. R132 (FR-FLOW-4, FR-FLOW-6; D-842) → R144 (FR-TONIGHT-6, FR-TONIGHT-9): the page
+   is the top row and, under it, `SkyViewLayout` — the column on a portrait phone (the shown time and the context
+   line, the view row, the box with the readout in its corner, the facing row on tap, the hint, the track and the
+   taps, the actions, the list), the box beside the rail on wide and on the landscape phone. The layout owns the
+   order and the gaps; this file lays out the page's own rows — the headline, the conditions, the stripe block, the
+   track and the taps, the actions, the rail's head and foot — and the page's one height: one viewport high in every
+   shape, the portrait column included, which no longer scrolls past its box. Two cells of side padding, like the frame the rest of the app draws in. `minmax(0, 1fr)`
    tracks throughout, so a row wider than the phone cannot widen the page (R71, `tests/e2e/narrow.spec.ts`).
 
    R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is `usePageShape`'s and the mode `useLayoutMode`'s, both
@@ -269,16 +269,6 @@
 .page[data-compact='true'] .headline [data-testid='next-event-time'] {
   font-size: 1.25rem;
   line-height: var(--row);
-}
-
-/* R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels on compact, `now` at the left and `+24 h` at the right. */
-.overviewLabels {
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--small);
-  line-height: var(--row);
-  color: var(--fg-dim);
 }
 
 /* R77 (FR-WATCH-4, FR-WATCH-5) → R132: the rail's head is the layout's `answer` — the indicator with the clock or

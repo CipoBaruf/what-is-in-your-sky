@@ -13,7 +13,8 @@ import styles from './TimeTaps.module.css';
  * keeps the rows' worth (FR-TONIGHT-9: 280 px at 390 × 667 asks for it).
  * Pure display: the page owns the instant and decides what each
  * tap lands on (`lib/tonightJump.ts`, D-897); `next` is disabled at the span's
- * last pass and `now` while `t` is real time, as FR-TONIGHT-4 says.
+ * last pass and `now` while `t` is real time, as FR-TONIGHT-4 says, and
+ * `tonight` while the bands hold no night to land in (none yet, or none at all).
  * `PlaybackControls` stays for wide.
  */
 export interface TimeTapsProps {
@@ -22,6 +23,8 @@ export interface TimeTapsProps {
   onPause: () => void;
   /** `tonight`: the first visible pass of tonight's night, or its start (FR-TONIGHT-4). */
   onTonight: () => void;
+  /** No night in the bands (not loaded, or a polar summer): `tonight` is disabled. */
+  tonightDisabled: boolean;
   /** `next`: the first visible pass rising after the shown instant. */
   onNext: () => void;
   /** No pass after the shown instant: `next` is disabled. */
@@ -32,12 +35,12 @@ export interface TimeTapsProps {
   nowDisabled: boolean;
 }
 
-export function TimeTaps({ playing, onPlay, onPause, onTonight, onNext, nextDisabled, onNow, nowDisabled }: TimeTapsProps) {
+export function TimeTaps({ playing, onPlay, onPause, onTonight, tonightDisabled, onNext, nextDisabled, onNow, nowDisabled }: TimeTapsProps) {
   const t = useT();
   return (
     <div className={styles.taps} role="group" aria-label={t.live.taps} data-testid="live-taps">
       <TextButton bare inline label={playing ? t.live.pauseShort : t.live.playShort} aria-label={playing ? t.live.pause : t.live.play} className={`${styles.play} target`} data-testid="live-play" data-playing={playing} onClick={playing ? onPause : onPlay} />
-      <TextButton inline label={t.live.tap.tonight} className="target" data-testid="live-tap-tonight" onClick={onTonight} />
+      <TextButton inline label={t.live.tap.tonight} className="target" data-testid="live-tap-tonight" disabled={tonightDisabled} onClick={onTonight} />
       <TextButton inline label={t.live.tap.next} className="target" data-testid="live-tap-next" disabled={nextDisabled} onClick={onNext} />
       <TextButton inline label={t.live.tap.now} className="target" data-testid="live-tap-now" disabled={nowDisabled} onClick={onNow} />
     </div>
