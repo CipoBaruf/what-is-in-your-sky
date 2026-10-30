@@ -253,7 +253,7 @@ for (const locale of LOCALES) {
   test.describe(`the swipe at 390 × 844, ${locale}`, () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-    test('40 px snaps back, 80 px closes, a short fast flick closes, and so does the × (FR-GYRO-8)', async ({ page }) => {
+    test('the × closes, 40 px snaps back, 80 px closes, a short fast flick closes (FR-GYRO-8)', async ({ page }) => {
       expect(40).toBeLessThan(SHEET_SWIPE_CLOSE_PX);
       expect(80).toBeGreaterThan(SHEET_SWIPE_CLOSE_PX);
       // Slow: 4 px every 30 ms is about 0.13 px/ms, well under the flick's speed.
@@ -261,6 +261,16 @@ for (const locale of LOCALES) {
       await openLive(page, locale, 'polar');
       await page.getByTestId('live-card-now').click();
       const sheet = page.getByTestId('live-sheet');
+      // The `×` first: a tap right after the protocol's instant flick is swallowed by the browser's own tap
+      // suppression after a fling, which is the browser's and not the page's.
+      await openSheet(page);
+      const close = page.getByRole('button', { name: locale === 'en' ? 'Close controls' : 'Cerrar controles' });
+      const closeBox = await close.boundingBox();
+      expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(43.5);
+      expect(closeBox?.height ?? 0).toBeGreaterThanOrEqual(43.5);
+      await expect(close).toHaveText('×');
+      await close.tap();
+      await expect(sheet).toHaveAttribute('data-open', 'false');
       await openSheet(page);
       const before = await box(page, 'live-sheet');
       await touchDrag(page, 40, 10, 30);
@@ -272,14 +282,6 @@ for (const locale of LOCALES) {
       await expect(page.getByTestId('live-controls')).toBeFocused();
       await openSheet(page);
       await touchDrag(page, 30, 1, 0);
-      await expect(sheet).toHaveAttribute('data-open', 'false');
-      await openSheet(page);
-      const close = page.getByRole('button', { name: locale === 'en' ? 'Close controls' : 'Cerrar controles' });
-      const closeBox = await close.boundingBox();
-      expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(43.5);
-      expect(closeBox?.height ?? 0).toBeGreaterThanOrEqual(43.5);
-      await expect(close).toHaveText('×');
-      await close.tap();
       await expect(sheet).toHaveAttribute('data-open', 'false');
     });
   });
