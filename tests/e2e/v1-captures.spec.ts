@@ -54,7 +54,7 @@ import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/windo
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
 import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, railToTop, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+import { closeSheet, domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSheet, openSkyScreen, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
@@ -338,7 +338,9 @@ async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, 
   // The place is asserted after the drawing, not before: the route is lazy, and its Suspense
   // reveal is one of the timers the paused clock is holding until `liveDrawn` ticks it.
   const view = await liveDrawn(page);
-  await expect(page.getByTestId('live-place')).toHaveText(BARILOCHE.label);
+  // R149 (FR-FULL-2, FR-FULL-4): on compact the place is the sheet head's, in the tree with the sheet closed (D-932).
+  const place = (await page.getByTestId('live-place').count()) > 0 ? page.getByTestId('live-place') : page.getByTestId('sheet-place');
+  await expect(place).toHaveText(BARILOCHE.label);
   if ((await page.getByTestId('time-track').count()) > 0) {
     await expect(page.getByTestId('time-track').locator('[data-pass-tick]').first()).toBeAttached({ timeout: 30_000 });
     await page.clock.runFor(200);
@@ -363,17 +365,21 @@ async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, 
 async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
   const view = await liveOpened(page, width, theme, locale, shown, prefs);
   /*
-   * R145 (FR-TONIGHT-1, D-898): with nothing up at `shown` the compact page jumps to the next pass and plays
-   * (`CHIP_SHOWN`, six minutes before it). Every capture here is of its own instant, so the reader's `[ now ]`
-   * brings the page back and keeps it there for the visit — which is how the sky screen's chip is still the
-   * one 2.6.1 drew. `stayOnNow` is in memory only, so it cannot be seeded before the page opens: `liveOpened`
-   * waits for the jump's decision instead, and the tap comes after it, never in a race with it.
+   * R149 (FR-FULL-10, D-937): with nothing visible up at `shown` the compact page asks with the card once the stored
+   * run's passes are known. Every capture here is of its own instant, so the reader's `[ see now ]` answers it and
+   * keeps real time — which is how the sky screen's chip is still the one 2.7.0 drew, as R145's `[ now ]` was. The
+   * card is asked on every visit and never saved, so it cannot be seeded away: `liveOpened` waits for the decision
+   * (the track's pass ticks), the clock ticks once more, and the answer comes after it, never in a race with it.
    */
-  const chip = page.getByTestId('shown-chip');
-  if ((await chip.count()) > 0 && (await chip.getAttribute('data-kind')) !== 'now') {
-    await page.getByTestId('live-tap-now').click();
-    await expect(chip).toHaveAttribute('data-kind', 'now');
+  await page.clock.runFor(200);
+  const card = page.getByTestId('live-card');
+  if ((await card.count()) > 0) {
+    await card.getByTestId('live-card-now').click();
+    await expect(card).toHaveCount(0);
+    await blurFocus(page);
   }
+  const chip = page.getByTestId('shown-chip');
+  if ((await chip.count()) > 0) await expect(chip).toHaveAttribute('data-kind', 'now');
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
@@ -392,31 +398,60 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   await page.mouse.move(0, 0);
 }
 
-/** R145 (FR-TONIGHT-1, FR-TONIGHT-7): the chip of the jumped page, in both languages (`i18n/{en,es}/live.ts`'s `chip`). */
-const TONIGHT_CHIP = { en: /^tonight · in \d+ h \d+ min$/, es: /^esta noche · en \d+ h \d+ min$/ } as const;
+/** R149 (FR-FULL-10): the card's pass line, in both languages (`i18n/{en,es}/live.ts`'s card words): the name, the rise and the chip. */
+const CARD_PASS = / · \d\d:\d\d · (in|en) \d+ h \d\d min$/;
 
 /**
- * R145 (FR-TONIGHT-1, FR-TONIGHT-2, US-42 AC1): v2.7's opening state — the phone opens `#live` at `DAYLIGHT`, with
- * nothing up and the evening's first pass ahead, and the page has jumped to that pass's rise less the lead. The
- * reader asked for less motion (`prefers-reduced-motion: reduce`), so it landed paused and the picture is one
- * instant, not a frame of the play: the shown time, the chip `tonight · in …`, the track's thumb on the pass.
+ * R149 (FR-FULL-10, US-43 AC5): v2.8's opening state on the phone — `#live` opened at `DAYLIGHT`, with nothing up and
+ * the evening's first pass ahead, so the page stays on real time and asks with the card over the sky: "Nothing
+ * visible up now", the pass line, `[ see next pass ]` and `[ see now ]`. Nothing plays and nothing has moved, so the
+ * picture is the instant the reader opened; the real clock is put back on `DAYLIGHT` so the card's chip reads the
+ * same minute in every run. The focus is where the card put it, on `[ see next pass ]`, as the reader finds it.
  */
-async function liveJumped(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+async function liveCard(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
   const view = await liveOpened(page, width, theme, locale, DAYLIGHT);
-  const chip = page.getByTestId('shown-chip');
-  await expect(chip).toHaveAttribute('data-kind', 'ahead');
-  await expect(chip).toHaveText(TONIGHT_CHIP[locale]);
-  // Paused: the play tap offers `▶`, not `❚❚`.
-  await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+  const card = page.getByTestId('live-card');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await card.count()) > 0 ? card.getAttribute('data-kind') : null;
+    }, { timeout: 30_000 })
+    .toBe('ask');
+  await expect(card.getByTestId('live-card-pass')).toHaveText(CARD_PASS);
+  await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
   await stripFilled(page);
-  if (view === 'window') await expect(page.getByTestId('sky-chart').locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached({ timeout: 30_000 });
+  if (view === 'window') await expect(page.getByTestId('sky-chart').locator('[data-look-az]').first()).toBeAttached({ timeout: 30_000 });
   await page.clock.runFor(1000);
-  // F-48: the real clock back on `DAYLIGHT`, so the chip's offset is the same minute in every run; the held instant does not move.
-  const held = await shownOnTrack(page);
   await pinnedAt(page, DAYLIGHT);
-  expect(await shownOnTrack(page)).toBe(held);
-  await expect(chip).toHaveText(TONIGHT_CHIP[locale]);
+  await expect(card).toHaveAttribute('data-kind', 'ask');
+  await expect(card.getByTestId('live-card-pass')).toHaveText(CARD_PASS);
+  await expect(page.getByTestId('shown-time')).toContainText(localHhmmss(DAYLIGHT));
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * R149 (FR-FULL-4, FR-FULL-9): the compact live page at `SHOWN` with `[ controls ]` pressed — the sheet over the
+ * bottom of the sky (the side at 844 × 390) with its head, the context line, the track and the taps, the view row,
+ * the facing row, `[ list (n) ]` and Share — and, with `list`, `[ list (n) ]` pressed too, the list open inside the
+ * sheet's body and the body scrolled to it. The sky behind is the same box as `live-watching`'s (FR-FULL-1: nothing resizes it).
+ */
+async function liveSheet(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, list: boolean): Promise<void> {
+  await liveAt(page, width, theme, locale);
+  await openSheet(page);
+  if (list) {
+    const toggle = page.getByTestId('live-legend-toggle');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('chart-legend').locator('button[data-pass-id]').first()).toBeVisible();
+  }
+  // The sheet's body at its top, where the reader's eye starts — or, with the list, scrolled to its end, where the
+  // list the reader just opened stands (the body scrolls and the page does not, FR-FULL-4).
+  await page.getByTestId('sheet-body').evaluate((body, end) => {
+    body.scrollTop = end ? body.scrollHeight : 0;
+  }, list);
+  await page.clock.runFor(1000);
+  await pinnedAt(page, SHOWN);
+  await expect(page.getByTestId('shown-time')).toContainText(localHhmmss(SHOWN));
   await blurFocus(page);
   await page.mouse.move(0, 0);
 }
@@ -955,9 +990,17 @@ const REACH: Record<string, Reach> = {
     await liveAt(page, width, theme, locale);
   },
 
-  /** R145 (FR-TONIGHT-1, FR-TONIGHT-2): the phone's live page as it opens in the day, jumped to tonight's first pass and paused. */
+  /** R149 (FR-FULL-10): the phone's live page as it opens in the day — the sky at real time and the card asking. */
   async 'live-tonight'(page, width, theme, locale) {
-    await liveJumped(page, width, theme, locale);
+    await liveCard(page, width, theme, locale);
+  },
+
+  /** R149 (FR-FULL-9): the sheet open over the sky, and the sheet with the list open. */
+  async 'live-sheet'(page, width, theme, locale) {
+    await liveSheet(page, width, theme, locale, false);
+  },
+  async 'live-sheet-list'(page, width, theme, locale) {
+    await liveSheet(page, width, theme, locale, true);
   },
 
   /**
@@ -974,17 +1017,18 @@ const REACH: Record<string, Reach> = {
     /*
      * R145 (FR-TONIGHT-4, FR-TONIGHT-6): on compact the page has one inventory in both states, so the scrubbing
      * picture is the watching one held and moved off real time by the reader's `next` — the first visible pass
-     * rising after `SHOWN`, one minute before it, held: the mark says `held`, the chip the offset, the thumb on
-     * the pass's tick. The held instant is the pass's, not the clock's, so it is the same in every run.
+     * rising after `SHOWN`, one minute before it, held: the chip the offset, the thumb on the pass's tick. The held
+     * instant is the pass's, not the clock's, so it is the same in every run. R149 (FR-FULL-4, FR-FULL-9): the
+     * track and the taps are the sheet's, which `enterScrubbing` opened; the picture is the sky with the sheet
+     * closed again by its `[ close ]`, the head's time and chip off real time.
      */
     if ((await page.getByTestId('live-track').count()) > 0) {
-      for (const row of ['live-headline', 'live-context', 'live-track', 'live-taps']) await expect(page.getByTestId(row)).toBeVisible();
+      for (const row of ['live-context', 'live-track', 'live-taps']) await expect(page.getByTestId(row)).toBeVisible();
       await page.getByTestId('live-tap-next').click();
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
       expect(await shownOnTrack(page)).toBeGreaterThan(SHOWN + TICK_MS);
+      await closeSheet(page);
       await page.clock.runFor(1000);
-      // The tap is below the landscape rail's fold, so the click scrolled it as `enterScrubbing`'s key did.
-      await railToTop(page);
       await blurFocus(page);
       await page.mouse.move(0, 0);
       return;
