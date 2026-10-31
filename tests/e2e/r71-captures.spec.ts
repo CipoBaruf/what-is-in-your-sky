@@ -3,7 +3,8 @@
  *
  * Three sets, and each one is a picture of a rule the task states:
  *
- *   - the compact live page with the list **closed** and with it **open**, at
+ *   - the compact live page with the list **closed** and with it **open** (since R150, the sheet closed and the
+ *     sheet open at its satellites; R153), at
  *     390 × 844 and 390 × 667, in both themes and both languages (FR-LEG-7).
  *     Closed is where FR-COMP-5's floor is measured (FR-LEG-8) and open is the
  *     two-`--tap` panel, so the pair shows what the reader's tap costs the box;
@@ -24,11 +25,9 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { domeDrawn, homeAt, setThemeOnHome, stripFilled, T } from './liveHelpers';
+import { domeDrawn, homeAt, NINE_DAYS_ON, openSheet, recomputeEnded, seedStoredRun, setThemeOnHome, stripFilled, T } from './liveHelpers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
-
-const LIST = { en: /^list \(\d+\)$/, es: /^lista \(\d+\)$/ } as const;
 
 /** The live page at a size, a theme and a language, drawn and settled. */
 async function openLive(page: Page, width: number, height: number, theme: 'dark' | 'night', locale: 'en' | 'es'): Promise<void> {
@@ -41,6 +40,20 @@ async function openLive(page: Page, width: number, height: number, theme: 'dark'
   await stripFilled(page);
 }
 
+/**
+ * R153 (FR-GYRO-10, FR-FULL-4): since R150 the compact list has no `[ list (n) ]` to press — the satellites are open
+ * at the end of the controls sheet, two `--tap` rows scrolling inside themselves as R71 made them. So "closed" is the
+ * sky with the sheet closed and "open" is the sheet open, scrolled to its satellites; the sky never gives them room
+ * (FR-FULL-1), so the box is not compared.
+ */
+async function satellitesOpen(page: Page): Promise<void> {
+  await openSheet(page);
+  await page.getByTestId('live-satellites').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('chart-legend-slot')).toBeVisible();
+  await page.clock.runFor(300);
+  await page.mouse.move(0, 0);
+}
+
 for (const [width, height] of [
   [390, 844],
   [390, 667],
@@ -49,18 +62,11 @@ for (const [width, height] of [
     for (const locale of ['en', 'es'] as const) {
       test(`the compact live page at ${String(width)} × ${String(height)}, ${theme}, ${locale}: the list closed and open`, async ({ page }) => {
         await openLive(page, width, height, theme, locale);
-        const control = page.getByTestId('live-legend-toggle');
-        await expect(control).toHaveText(LIST[locale]);
-        await expect(control).toHaveAttribute('aria-expanded', 'false');
-        await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
-        const closed = await page.getByTestId('chart-box').boundingBox();
         await page.screenshot({ path: `${CAPTURE_DIR}/r71-live-${String(width)}x${String(height)}-closed-${theme}-${locale}.png` });
 
-        await control.click();
-        await expect(control).toHaveAttribute('aria-expanded', 'true');
+        await satellitesOpen(page);
         const panel = await page.getByTestId('chart-legend-slot').boundingBox();
         expect(panel?.height, 'the open panel is two tap rows').toBeCloseTo(96, 0);
-        expect(closed?.height ?? 0, 'and the box is what gives them').toBeGreaterThanOrEqual((await page.getByTestId('chart-box').boundingBox())?.height ?? 0);
         await page.screenshot({ path: `${CAPTURE_DIR}/r71-live-${String(width)}x${String(height)}-open-${theme}-${locale}.png` });
       });
     }
@@ -68,24 +74,32 @@ for (const [width, height] of [
 }
 
 /**
- * The empty panel. The instant is found rather than assumed: the overview row
- * carries the whole 24 h, and pressing along it moves the shown instant until
- * the control says `list (0)` — the sky between two passes, which is most of a
- * day. Then the panel is still two rows and says what it holds.
+ * The empty panel. R153: the instant is the day's — the stored run at midday, nothing visible up, so the page asks with its
+ * card (FR-FULL-10) and `[ see now ]` keeps real time — where the satellites count none and the panel is still two
+ * rows saying what it holds.
  */
 test('the compact live page at 390 × 844: the empty list', async ({ page }) => {
-  await openLive(page, 390, 844, 'dark', 'en');
-  await page.getByTestId('live-legend-toggle').click();
-  const overview = await page.getByTestId('stripe-overview').boundingBox();
-  if (!overview) throw new Error('no overview row');
-  for (const fraction of [0.5, 0.6, 0.4, 0.7, 0.3, 0.8, 0.2, 0.9]) {
-    await page.mouse.move(overview.x + overview.width * fraction, overview.y + overview.height / 2);
-    await page.mouse.down();
-    await page.mouse.up();
-    await page.clock.runFor(600);
-    if ((await page.getByTestId('live-legend-toggle').textContent()) === 'list (0)') break;
-  }
-  await expect(page.getByTestId('live-legend-toggle')).toHaveText('list (0)');
+  const midday = NINE_DAYS_ON + 12 * 3_600_000;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedStoredRun(page, { locale: 'en', settled: true });
+  await page.clock.setFixedTime(midday);
+  await page.reload();
+  await recomputeEnded(page);
+  await page.clock.install({ time: midday });
+  await page.clock.pauseAt(midday + 1_000);
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
+  await domeDrawn(page);
+  const card = page.getByTestId('live-card');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return card.count();
+    }, { timeout: 30_000 })
+    .toBe(1);
+  await card.getByTestId('live-card-now').click();
+  await satellitesOpen(page);
   await expect(page.getByTestId('legend-empty')).toHaveText('nothing up right now');
   const panel = await page.getByTestId('chart-legend-slot').boundingBox();
   expect(panel?.height, 'an empty panel is two tap rows like any other').toBeCloseTo(96, 0);
@@ -105,9 +119,8 @@ for (const [width, height] of [
     const rail = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
     if (!box || !rail) throw new Error('the page is not laid out');
     expect(rail.x, 'the rail is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
-    // …with the legend over it in the same column, and no `[ list (n) ]` control anywhere: this page has no list to open.
+    // …with the legend over it in the same column, as on every page since R150.
     expect((await page.getByTestId('chart-legend').boundingBox())?.x ?? 0).toBeGreaterThanOrEqual(box.x + box.width - 1);
-    await expect(page.getByTestId('live-legend-toggle')).toHaveCount(0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r71-live-${String(width)}x${String(height)}-dark-en.png` });
   });
 }

@@ -59,6 +59,7 @@ import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSh
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
 import { BARILOCHE, FIXTURE_DATE, NEUQUEN } from './observers';
+import { aimedAt, setReadings, stubOrientation } from './orientation';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
 const localHhmmss = (t: number): string =>
@@ -154,7 +155,9 @@ async function settled(page: Page): Promise<void> {
  * `test.use` of their own and the rest of the set must not have it.
  */
 // R152 (FR-GYRO-6, D-958): the sky screen's shots, which filled this set, are retired; the stars page's touch widths stay below.
-const TOUCH = new Set<string>();
+// R153 (FR-GYRO-9): the compact live sheet is a phone's, so it is shot on one — its `[ follow the phone ]` row is drawn only
+// where the presence test passes (D-957) — and so is the live page following.
+const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'live-following', 'stars-following']);
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
@@ -162,7 +165,8 @@ const TOUCH = new Set<string>();
  * 1280 and 1920, where it is not. So touch is a property of the capture, not only of the screen.
  * R135 (FR-FLOW-15): the page at 844 × 390 is the same phone turned, so it has touch too.
  */
-const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844));
+const isTouch = (screen: string, width: CaptureWidth): boolean =>
+  TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844)) || (screen === 'legend' && VIEWPORTS[width].width <= 390);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
@@ -418,19 +422,17 @@ async function liveCard(page: Page, width: CaptureWidth, theme: CaptureTheme, lo
 
 /**
  * R149 (FR-FULL-4, FR-FULL-9): the compact live page at `SHOWN` with `[ controls ]` pressed — the sheet over the
- * bottom of the sky (the side at 844 × 390) with its head, the context line, the track and the taps, the view row,
- * the facing row, `[ list (n) ]` and Share — and, with `list`, `[ list (n) ]` pressed too, the list open inside the
- * sheet's body and the body scrolled to it. The sky behind is the same box as `live-watching`'s (FR-FULL-1: nothing resizes it).
+ * bottom of the sky with its head and its body — and, with `list`, the body scrolled to its end, where the list
+ * stands. The sky behind is the same box as `live-watching`'s (FR-FULL-1: nothing resizes it).
+ * R153 (FR-GYRO-7, FR-GYRO-10, FR-GYRO-11): a bottom sheet in both shapes, the `×` at its head, the view row
+ * `[Window] Polar Dome`, `[ follow the phone ]` after it on this touch phone, and the satellites open at its end with
+ * no `[ list (n) ]` to press — so `list` only scrolls to them.
  */
 async function liveSheet(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, list: boolean): Promise<void> {
   await liveAt(page, width, theme, locale);
   await openSheet(page);
-  if (list) {
-    const toggle = page.getByTestId('live-legend-toggle');
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('chart-legend').locator('button[data-pass-id]').first()).toBeVisible();
-  }
+  await expect(page.getByTestId('follow-toggle')).toBeVisible();
+  if (list) await expect(page.getByTestId('chart-legend').locator('button[data-pass-id]').first()).toBeAttached();
   // The sheet's body at its top, where the reader's eye starts — or, with the list, scrolled to its end, where the
   // list the reader just opened stands (the body scrolls and the page does not, FR-FULL-4).
   await page.getByTestId('sheet-body').evaluate((body, end) => {
@@ -441,6 +443,29 @@ async function liveSheet(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await expect(page.getByTestId('shown-time')).toContainText(localHhmmss(SHOWN));
   await blurFocus(page);
   await page.mouse.move(0, 0);
+}
+
+/**
+ * R153 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, FR-GYRO-9): `[ follow the phone ]` tapped under `stubOrientation` (D-946),
+ * the readings aimed where the window already looks, so the page keeps its picture's field and the file shows what
+ * following changes: the window is the phone's, with no readout over it. Waits for the window to follow and settle
+ * on the reading, then takes the focus ring off the toggle.
+ */
+async function followed(page: Page, scope: Locator): Promise<void> {
+  const w = scope.locator('[data-look-az][data-fov]');
+  await expect(w).toHaveAttribute('data-look-alt', /\d/);
+  const az = Math.round(Number(await w.getAttribute('data-look-az')));
+  const alt = Math.round(Number(await w.getAttribute('data-look-alt')));
+  await setReadings(page, [aimedAt(az, alt)]);
+  await page.getByTestId('follow-toggle').click();
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(100);
+      return [await w.getAttribute('data-follow'), await w.getAttribute('data-look-az'), await w.getAttribute('data-look-alt')];
+    }, { timeout: 30_000 })
+    .toEqual(['true', String(az), String(alt)]);
+  await expect(page.getByTestId('window-readout')).toHaveCount(0);
+  await blurFocus(page);
 }
 
 /**
@@ -820,6 +845,22 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
+   * R153 (FR-GYRO-9; US-44 AC1, AC2): the live page following — the toggle tapped in the sheet, the sheet closed by
+   * its `×`, and the sky the phone's window at the set's instant.
+   */
+  async 'live-following'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    await openSheet(page);
+    await followed(page, page.getByTestId('sky-chart'));
+    await closeSheet(page);
+    await pinnedAt(page, SHOWN);
+    await expect(page.getByTestId('shown-time')).toContainText(localHhmmss(SHOWN));
+    await expect(page.getByTestId('sky-chart').locator('[data-look-az][data-fov]')).toHaveAttribute('data-follow', 'true');
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
    * `live-scrubbing` is the same page one `[ scrub ]` on. The instant is held at
    * `SHOWN`, which is where the page already was, so the pair of pictures
    * differs by the state and by nothing else — which is what makes them
@@ -864,6 +905,14 @@ const REACH: Record<string, Reach> = {
     await starsAt(page, width, theme, locale);
     if (isTouch('stars', width)) await expect(page.getByTestId('follow-toggle')).toBeVisible();
     else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
+  },
+
+  /** R153 (FR-GYRO-9; US-44 AC1): the stars page as `stars` opens it at 390, `[ follow the phone ]` on, aimed where it faced. */
+  async 'stars-following'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await followed(page, page.getByTestId('stars-sky'));
+    await pinnedAt(page, CLOCK);
+    await page.mouse.move(0, 0);
   },
 
   /**
@@ -969,6 +1018,9 @@ function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof cap
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
   for (const { width, theme, locale, view, file } of captures) {
     test(`${screen.name} at ${String(width)} px${view ? ' (view)' : ''}, ${theme}, ${locale}`, async ({ page }) => {
+      // R153 (FR-GYRO-9, D-946): a touch capture brings its own motion permission, granting and reading nothing until a
+      // capture that follows sets its readings — and the desk browser's own all-`null` event never reaches the page.
+      if (isTouch(screen.name, width)) await stubOrientation(page, { answer: 'granted', readings: [] });
       await reach(page, width, theme, locale, view);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
@@ -980,8 +1032,6 @@ function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof cap
 }
 
 for (const screen of SCREENS) {
-  // R152 (FR-GYRO-6, D-958): a retired screen has no route; its files stay named until R153 takes them out of the set.
-  if (screen.retired) continue;
   // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
   // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
   const captures = captureSet().filter((capture) => capture.screen === screen);

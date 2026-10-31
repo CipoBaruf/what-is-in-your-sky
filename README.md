@@ -7,7 +7,7 @@ turned by hand or held up to the sky. It runs in the browser, with no backend an
 
 **Live:** <https://inyoursky.app>
 
-![Three screens: a phone showing the sky over you with the pass that is up among the stars, following it, a phone turned sideways held up at the sky with the stars and a pass in it, and a laptop showing a pass among the stars it crosses, with when it starts, how high it climbs and how bright it gets](docs/readme/hero.png)
+![Three screens: a phone showing the sky over you with the pass that is up among the stars, following it, a phone turned sideways showing tonight's stars and constellations with the controls beside them, and a laptop showing a pass among the stars it crosses, with when it starts, how high it climbs and how bright it gets](docs/readme/hero.png)
 
 It was built spec-driven, and mostly not by hand. Every line traces to a numbered
 requirement in `SPEC.md`, and each slice in `TASKS.md` was one Claude Code session. The

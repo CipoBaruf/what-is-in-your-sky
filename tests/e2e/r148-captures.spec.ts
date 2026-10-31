@@ -70,8 +70,9 @@ for (const locale of ['en', 'es'] as const) {
     await landed(page);
     await page.screenshot({ path: `${CAPTURE_DIR}/r148-live-390-closed-dark-${locale}.png` });
     await openSheet(page);
-    await page.getByTestId('live-legend-toggle').click();
-    await expect(page.getByTestId('live-list-head')).toBeVisible();
+    // R153 (FR-GYRO-10): the satellites are open at the sheet's end, with no `[ list (n) ]` to press (R150).
+    await page.getByTestId('live-satellites').scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('live-satellites-head')).toBeVisible();
     await page.clock.runFor(300);
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r148-live-390-sheet-dark-${locale}.png` });

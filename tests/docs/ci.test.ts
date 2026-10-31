@@ -147,7 +147,8 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // R149 (FR-FULL-9, D-937): the sheet's two screens put it back on `SHOWN` after opening the sheet and the list.
     // R152 (FR-GYRO-6, D-958): the pass detail's sky screen and the stars page's screen with `[ passes ]` are retired,
     // and the two waits that were theirs went with their routes.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(6);
+    // R153 (FR-GYRO-9): the live page following puts it back on `SHOWN` after the window has settled on the reading.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(7);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });

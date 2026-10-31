@@ -63,8 +63,9 @@ export interface Source {
  *
  * Three answers to the three things a reader wants in the first ten seconds:
  * what the sky over them looks like (the live page on a standing phone, the
- * tile the eye lands on first), what the app is for outdoors (the sky screen,
- * held up, which is what the whole v1.3 phase was for), and what it actually
+ * tile the eye lands on first), what the app is for outdoors (the stars page
+ * on a phone turned sideways since R153; the sky screen held up until v2.9
+ * retired it), and what it actually
  * shows you (the laptop's pass detail on the window since R128: the pass's arc
  * under the stars it crosses, faced to its peak, with its time, peak and
  * brightness in the card beside it — v2.5's one sky, FR-SKY-9).
@@ -85,8 +86,10 @@ export const SOURCES = [
     slot: 'main',
   },
   {
-    file: 'v1-sky-screen-sky-844-dark-en.png',
-    caption: 'Held up at the sky, on a phone turned sideways',
+    // R153 (FR-GYRO-6, FR-GYRO-9; PLAN D-960): v2.9 retires the sky screen this tile was, so the phone turned is the
+    // stars page now — the constellations over the place, the facing row and the layers in the rail beside them.
+    file: 'v1-stars-844-dark-en.png',
+    caption: 'The stars tonight, on a phone turned sideways',
     w: 844,
     h: 390,
     slot: 'stack',
