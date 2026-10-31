@@ -2195,7 +2195,7 @@ of their cases pass.
 `npm run bundle:budget` on the branch, gzip level 9, beside `c996ba3` (2.8.0) built on the same
 machine, both plain (`VITE_MOON_LORE` unset). FR-GYRO-9 says no row may grow, since retiring the
 screen takes its code out of the live, stars and detail chunks. One row grew: `live`, by 349
-bytes. R153 changes no code and no budget for it (D-961); it is the owner's (§22.4). The budget
+bytes. R153 changed no code and no budget for it (D-961); the owner accepted the measure (V29-10): FR-GYRO-9 is amended, and `live` stays inside its budget of 20. The budget
 column is `scripts/bundle-budget.ts`'s rows; `tests/docs/accuracy.test.ts` checks it against them:
 
 | Chunk | gzip KB | Budget KB | `c996ba3` | Change |
@@ -2234,10 +2234,10 @@ took out is the capture set's: the nine retired screens and their `retired` mark
 
 ### 22.4 What the owner decides on this release
 
-- [ ] **The budget** (§22.2, D-961): `live` is 15.6 KB against 2.8.0's 15.3 (+349 bytes, inside
-      its budget of 20), where FR-GYRO-9 says no row may grow. Either amend FR-GYRO-9 to the
-      measure (`live` × 1.1 is 17.2, so D-178 keeps 20, and nothing in the script moves), or a
-      `live` task trims about 350 bytes from the sheet.
+- [x] **The budget** (§22.2, D-961): `live` is 15.6 KB against 2.8.0's 15.3 (+349 bytes, inside
+      its budget of 20), where FR-GYRO-9 said no row may grow. Decided 2026-10-31 (V29-10):
+      FR-GYRO-9 amended to the measure; `live` × 1.1 is 17.2, so D-178 keeps 20 and nothing in
+      the script moves.
 - [ ] **The hero's second tile** (D-960): `v1-stars-844-dark-en`, the stars page on the phone
       turned, in the retired screen's place; and upload the new social preview (FR-PUB-11).
 - [ ] **F-99** stays open with §22.1's noise files.
