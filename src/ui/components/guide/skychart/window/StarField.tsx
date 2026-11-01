@@ -157,9 +157,8 @@ let deepLoaded: DeepCatalog | undefined;
 /** The deep stars rotated per positions object: a frame or a tick on the live page rebuilds the field, not the instant. */
 const deepByPositions = new WeakMap<StarFieldData['positions'], PreparedDeep>();
 const hazeByPositions = new WeakMap<StarFieldData['positions'], PreparedHaze>();
-/** FR-LOOK-9: the pool's size, and its keys made once. */
-const DEEP_POOL_SIZE = DEEP_NODE_POOL;
-const DEEP_POOL_KEYS: readonly number[] = Array.from({ length: DEEP_POOL_SIZE }, (_, k) => k);
+/** FR-LOOK-9: the pool's keys, made once. */
+const DEEP_POOL_KEYS: readonly number[] = Array.from({ length: DEEP_NODE_POOL }, (_, k) => k);
 /** The compass names' sizes, the window stylesheet's `.compass` and `.compassMajor`. */
 const COMPASS_PX = { major: 15, minor: 12 };
 
@@ -698,6 +697,8 @@ function Dot({ mark, ...rest }: { mark: Mark } & Record<`data-${string}`, string
 
 export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits, lineHits, landmark = null }: StarFieldProps) {
   const group = useRef<SVGGElement>(null);
+  /** FR-LOOK-9: which deep star each pool node holds, kept across effects so a tick rewrites a node's dot only when its star changes. */
+  const held = useRef<Int32Array | null>(null);
   const clipId = `${useId().replaceAll(':', '')}-sky`;
   const locale = useLocale();
   // R127 (D-832): the names are the language's, so the prepared names follow it.
@@ -714,6 +715,11 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const wantsDeep = field.layers.stars && deepWanted(view.fovDeg);
   useEffect(() => {
     if (deep !== null || !wantsDeep) return;
+    // Another field on the page (or this one's earlier life) has it already: take it now, not on the next idle.
+    if (deepLoaded !== undefined) {
+      setDeep(deepLoaded);
+      return;
+    }
     let live = true;
     const cancel = whenIdle(() => {
       void loadDeepChunk().then(
@@ -749,7 +755,8 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
     let placedSet = '';
     // FR-LOOK-9: the field's row — the faintest drawn and the faintest named — for this view's `fov`.
     const detail = fieldDetail(view.fovDeg);
-    const held = new Int32Array(DEEP_POOL_SIZE).fill(-1);
+    held.current ??= new Int32Array(DEEP_NODE_POOL).fill(-1);
+    const holds = held.current;
     return subscribe((rotation) => {
       const g = group.current;
       if (!g) return;
@@ -763,9 +770,9 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
         drawHaze(nodes, rotation, view, field.layers.stars ? prepared.haze : null);
         // FR-LOOK-9, FR-STAR-13: the deep stars to the row's magnitude, at full night, after the bright marks in the collision walk.
         const deepDrawn = preparedDeep !== null && field.layers.stars && tint === 'deep' ? deepFrame(rotation, view, preparedDeep, detail.magLimit, frame.drawn.filter((q): q is Point => q !== null)) : [];
-        drawDeep(nodes, held, deepDrawn, preparedDeep);
+        drawDeep(nodes, holds, deepDrawn, preparedDeep);
       } else {
-        drawDeep(nodes, held, [], preparedDeep);
+        drawDeep(nodes, holds, [], preparedDeep);
       }
       // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were,
       // or the drawn set changed under a smaller move (the ground buried or not, a mark in or out of the box).

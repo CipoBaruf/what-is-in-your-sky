@@ -7,34 +7,21 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { MILKY_WAY_BANDS_DEG, MILKY_WAY_STRENGTH } from '../../../../../data/stars/constants';
 import milkyWayJson from '../../../../../data/stars/milkyWay.json';
-import { bandHalfWidthDeg, GALACTIC_POLE, galacticOf, HAZE_ALPHAS, hazeOpacity, hazePaths, MILKY_WAY_CORE, prepareHaze } from './milkyWay';
+import { bandHalfWidthDeg, GALACTIC_POLE, galacticOf, galacticToEquatorial, HAZE_ALPHAS, hazeOpacity, hazePaths, MILKY_WAY_CORE, prepareHaze } from './milkyWay';
 import { rotationMatrix, uprightRotation, WINDOW_FOV, type Mat3, type View } from './projection';
 import { equatorialVector, horizonOf } from './skyFrame';
 
 const view: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 };
-/** The build script's constants, read from its source: the script runs under node and this file under jsdom, so it is not imported. */
-const build = readFileSync('scripts/build-stars.ts', 'utf8');
-const BUILD_POLE = /GALACTIC_POLE = \{ raDeg: ([\d.]+), decDeg: ([\d.]+), lNcpDeg: ([\d.]+) \}/.exec(build);
-const BUILD_CORE = /MILKY_WAY_CORE = \{ widenDeg: ([\d.]+), scaleDeg: ([\d.]+) \}/.exec(build);
-const RAD = Math.PI / 180;
-/** The build's `galacticToEquatorial`, for the round trip. */
-function galacticToEquatorial(lDeg: number, bDeg: number): { raDeg: number; decDeg: number } {
-  const { raDeg: raGp, decDeg: decGp, lNcpDeg } = GALACTIC_POLE;
-  const b = bDeg * RAD;
-  const dl = (lNcpDeg - lDeg) * RAD;
-  const sinDec = Math.sin(b) * Math.sin(decGp * RAD) + Math.cos(b) * Math.cos(decGp * RAD) * Math.cos(dl);
-  const y = Math.cos(b) * Math.sin(dl);
-  const x = Math.sin(b) * Math.cos(decGp * RAD) - Math.cos(b) * Math.sin(decGp * RAD) * Math.cos(dl);
-  const ra = (((raGp + Math.atan2(y, x) / RAD) % 360) + 360) % 360;
-  return { raDeg: ra, decDeg: Math.asin(Math.max(-1, Math.min(1, sinDec))) / RAD };
-}
 /** The horizon frame as the equatorial one: azimuth from +y through +x, so a star's place is a plain function of its coordinates. */
 const IDENTITY: Mat3 = [
   [1, 0, 0],
   [0, 1, 0],
   [0, 0, 1],
 ];
-
+/** The build script's constants, read from its source: the script runs under node and this file under jsdom, so it is not imported. */
+const build = readFileSync('scripts/build-stars.ts', 'utf8');
+const BUILD_POLE = /GALACTIC_POLE = \{ raDeg: ([\d.]+), decDeg: ([\d.]+), lNcpDeg: ([\d.]+) \}/.exec(build);
+const BUILD_CORE = /MILKY_WAY_CORE = \{ widenDeg: ([\d.]+), scaleDeg: ([\d.]+) \}/.exec(build);
 describe('the galactic frame', () => {
   it('is the build’s, and inverts galacticToEquatorial', () => {
     expect(BUILD_POLE?.slice(1, 4).map(Number)).toEqual([GALACTIC_POLE.raDeg, GALACTIC_POLE.decDeg, GALACTIC_POLE.lNcpDeg]);
@@ -84,6 +71,9 @@ describe('the haze (FR-LOOK-3)', () => {
     ]);
     expect(haze.rings[0]?.azDeg[0]).toBeCloseTo(h.azDeg, 9);
     expect(haze.rings[0]?.altDeg[0]).toBeCloseTo(h.altDeg, 9);
+    // The two probes are two points of the plane, opposite directions, off the seam.
+    expect(haze.probes).toHaveLength(2);
+    expect(haze.probes[0]?.v.map((n, i) => n + (haze.probes[1]?.v[i] ?? 0))).toEqual([expect.closeTo(0, 9), expect.closeTo(0, 9), expect.closeTo(0, 9)]);
   });
 
   it('draws three closed paths at the bands’ alphas, each against the box only where the antipode is inside the band', () => {

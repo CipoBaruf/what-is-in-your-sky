@@ -107,7 +107,11 @@ for (const field of FIELDS) {
   const box = await sky.boundingBox();
   if (!box) throw new Error('the drawing has no box');
   // R155: everything on means the deep stars too — the chunk has landed and the pool holds stars — and the haze's three bands are drawn.
+  // Turned to SW 35° up, as `window-zoom.spec.ts` is, where the 20° field still holds named stars (Ara's) on the fixture night.
   const w = page.getByTestId('stars-sky').locator('[data-look-az]');
+  await w.locator('div[data-dragging]').focus();
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
+  await expect(w).toHaveAttribute('data-look-az', '225');
   await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
   if (field.fovDeg !== 60) {
     await pinch(sky, 40, (40 * 60) / field.fovDeg);

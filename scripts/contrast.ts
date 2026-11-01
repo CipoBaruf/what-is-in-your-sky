@@ -7,6 +7,7 @@
  * numbers cannot drift. Run: `npx tsx scripts/contrast.ts`.
  */
 import { readFileSync } from 'node:fs';
+import { HORIZON_STRENGTH } from '../src/data/stars/constants';
 
 export const TOKENS_PATH = 'src/ui/styles/tokens.css';
 export const TEXT_TOKENS = ['fg', 'fg-dim', 'accent', 'danger', 'ok', 'warn'] as const;
@@ -79,8 +80,8 @@ export const CHART_SKY_TOKENS = ['chart-sky-deep', 'chart-sky-twilight', 'chart-
  * `--bg`, which no star stands on any more.
  */
 export const CHART_STAR_TONE_TOKENS = ['chart-star-blue', 'chart-star-yellow', 'chart-star-orange'] as const;
-/** FR-LOOK-1: the band's alpha at the horizon, `HORIZON_STRENGTH` (0.6) × 0.5 — the sheet's copy, held to `data/stars/constants.ts` by the tokens test. */
-export const BAND_ALPHA_AT_HORIZON = 0.3;
+/** FR-LOOK-1: the band's alpha at the horizon, `HORIZON_STRENGTH` × 0.5 (`data/stars/constants.ts`), the lightest value the band reaches. */
+export const BAND_ALPHA_AT_HORIZON = HORIZON_STRENGTH * 0.5;
 
 /** The themes `tokens.css` defines, and the selector each is written under (D-84). */
 export const THEMES = ['dark', 'night'] as const;

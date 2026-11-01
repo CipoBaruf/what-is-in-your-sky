@@ -1,6 +1,6 @@
 import { MOON_DISC_PX } from '../../../../../data/stars/constants';
 import type { MoonState } from '../../../../../model';
-import { project, skyVector, type Mat3, type SkyPoint, type View } from './projection';
+import { EDGE_MARGIN_PX, project, skyVector, type Mat3, type SkyPoint, type View } from './projection';
 import styles from './SkyWindow.module.css';
 
 /**
@@ -79,7 +79,8 @@ export function MoonDisc({ moon, limb, m, view }: MoonDiscProps) {
   const toward = limb === null ? null : project(m, limb.azDeg, limb.elDeg, view);
   const angle = toward === null ? -90 : limbAngleDeg(at, toward);
   const r = MOON_DISC_PX / 2;
-  const inView = at.front && at.x >= -r && at.x <= view.width + r && at.y >= -r && at.y <= view.height + r;
+  // In view by the window's own rule for a positioned marker (`inFrame`): the margin every marker leaves the frame by.
+  const inView = at.front && at.x >= -EDGE_MARGIN_PX && at.x <= view.width + EDGE_MARGIN_PX && at.y >= -EDGE_MARGIN_PX && at.y <= view.height + EDGE_MARGIN_PX;
   return (
     <g data-body="moon" data-phase={moon.phase} data-lit={moon.illuminatedFraction.toFixed(2)} data-limb={Math.round(angle)} transform={`translate(${at.x.toFixed(1)} ${at.y.toFixed(1)})`} data-in-view={inView} {...(inView ? {} : { visibility: 'hidden' as const })}>
       <circle className={styles.moonDark} data-marker="moon" r={r} />

@@ -1,5 +1,5 @@
 import { HORIZON_BAND_DEG, HORIZON_STRENGTH } from '../../../../../data/stars/constants';
-import { groundClipPath, lookDirection, project, ring, type Mat3, type View } from './projection';
+import { groundClipPath, lookDirection, project, ring, type Mat3, type Projected, type View } from './projection';
 
 /**
  * R155 (FR-LOOK-1, FR-LOOK-2; V210-7; PLAN D-974): the sky surface and the
@@ -65,22 +65,37 @@ export interface BandStrip {
 
 const fmt = (n: number): string => n.toFixed(1);
 
+/** Whether (`x`, `y`) is inside the polygon of `points` (the samples `groundClipPath` keeps), by the ray cast the tests use. */
+export function insidePolygon(points: readonly Projected[], x: number, y: number): boolean {
+  const kept = points.filter((p) => p.offAxisDeg <= 179.5 && Number.isFinite(p.x) && Number.isFinite(p.y));
+  let inside = false;
+  for (let i = 0, j = kept.length - 1; i < kept.length; j = i, i += 1) {
+    const a = kept[i];
+    const b = kept[j];
+    if (!a || !b) continue;
+    if (a.y > y !== b.y > y && x < a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y)) inside = !inside;
+  }
+  return inside;
+}
+
 /** The alpha of strip `k` (0 at the horizon): a linear fade measured at the strip's middle. */
 export const stripOpacity = (k: number): number => Math.round(BAND_ALPHA_AT_HORIZON * (1 - (k + 0.5) / HORIZON_BAND_STEPS) * 1000) / 1000;
 
 /** The band for one rotation: `HORIZON_BAND_STEPS` strips, lowest first. */
 export function horizonBand(rotation: Mat3, view: View): BandStrip[] {
-  const images = RINGS.map((points) => groundClipPath(points.map((p) => project(rotation, p.azDeg, p.elDeg, view))));
+  const projected = RINGS.map((points) => points.map((p) => project(rotation, p.azDeg, p.elDeg, view)));
+  const images = projected.map(groundClipPath);
   const box = `M0 0H${fmt(view.width)}V${fmt(view.height)}H0Z`;
-  // The antipode of the look direction is at the opposite azimuth and the negated altitude.
-  const antipodeAlt = -lookDirection(rotation).altDeg;
+  const look = lookDirection(rotation);
   const stripDeg = HORIZON_BAND_DEG / HORIZON_BAND_STEPS;
   const strips: BandStrip[] = [];
   for (let k = 0; k < HORIZON_BAND_STEPS; k += 1) {
-    const lower = images[k] ?? '';
-    const upper = images[k + 1] ?? '';
-    const flipped = antipodeAlt > k * stripDeg && antipodeAlt < (k + 1) * stripDeg;
-    strips.push({ d: `${flipped ? box : ''}${lower}${upper}`, opacity: stripOpacity(k) });
+    const lower = projected[k] ?? [];
+    const upper = projected[k + 1] ?? [];
+    // A point of the strip on the look's azimuth: at least 90° from the antipode, so its image is finite and near.
+    const probe = project(rotation, look.azDeg, (k + 0.5) * stripDeg, view);
+    const flipped = insidePolygon(lower, probe.x, probe.y) === insidePolygon(upper, probe.x, probe.y);
+    strips.push({ d: `${flipped ? box : ''}${images[k] ?? ''}${images[k + 1] ?? ''}`, opacity: stripOpacity(k) });
   }
   return strips;
 }

@@ -154,7 +154,7 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
     expect(CHART_SKY_TOKENS).toEqual(['chart-sky-deep', 'chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow', 'chart-haze']);
     expect(BAND_ALPHA_AT_HORIZON).toBe(HORIZON_STRENGTH * 0.5);
     const lightest = bandLightest(tokens);
-    expect(lightest).toBe(composite(token(theme, 'chart-horizon-glow'), token(theme, 'chart-sky-deep'), 0.3));
+    expect(lightest).toBe(composite(token(theme, 'chart-horizon-glow'), token(theme, 'chart-sky-deep'), BAND_ALPHA_AT_HORIZON));
     const tones = ['chart-star', ...CHART_STAR_TONE_TOKENS];
     for (const tone of tones) {
       expect(contrastRatio(token(theme, tone), token(theme, 'chart-sky-deep')), `${tone} on the deep sky`).toBeGreaterThanOrEqual(3);

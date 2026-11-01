@@ -1,6 +1,6 @@
 import { DEEP_NODE_POOL } from '../../../../../data/stars/constants';
 import type { DeepCatalog } from '../../../../../data/stars/deepChunk';
-import { drawableDeg, project, type Mat3, type View } from './projection';
+import { drawableDeg, lookDirection, project, skyVector, type Mat3, type View } from './projection';
 import { applyFrame, equatorialVector, horizonOf } from './skyFrame';
 import { collide, dotOpacity, dotRadiusPx, toneToken, type Point, type ToneToken } from './starGlyphs';
 
@@ -63,7 +63,7 @@ export function prepareDeep(deep: DeepCatalog, frame: Mat3): PreparedDeep {
     opacity[i] = dotOpacity(mag);
     tone.push(toneToken(deep.bv[i]));
   }
-  return { size: n, mag: Float32Array.from(deep.mag), x, y, z, azDeg, altDeg, r, opacity, tone };
+  return { size: n, mag: deep.mag, x, y, z, azDeg, altDeg, r, opacity, tone };
 }
 
 /** How far into the (sorted) catalogue the stars to `magLimit` reach: one past the last at the limit or brighter. */
@@ -96,13 +96,9 @@ const EDGE_PX = 3;
 export function deepFrame(rotation: Mat3, view: View, deep: PreparedDeep, magLimit: number, kept: readonly Point[], pool = DEEP_NODE_POOL): DeepDrawn[] {
   const reach = reachOf(deep.mag, magLimit);
   if (reach === 0 || pool <= 0) return [];
-  // The look direction as an earth-frame vector: a star whose angle from it is past the drawable field is skipped before any projection.
-  const look = (() => {
-    const lx = -rotation[0][2];
-    const ly = -rotation[1][2];
-    const lz = -rotation[2][2];
-    return [lx, ly, lz] as const;
-  })();
+  // The look direction as an earth-frame vector (`lookDirection`'s, before its angles): a star whose angle from it is past the drawable field is skipped before any projection.
+  const centre = lookDirection(rotation);
+  const look = skyVector(centre.azDeg, centre.altDeg);
   const limit = drawableDeg(view);
   const cosLimit = Math.cos(Math.min(limit, 150) * (Math.PI / 180));
   const candidates: DeepDrawn[] = [];

@@ -19,6 +19,7 @@ import { resetOrientationAccess } from './orientationAccess';
 import { project, uprightRotation, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import { bloomRadiusPx } from './bloom';
+import { galacticToEquatorial } from './milkyWay';
 import { SkyWindow } from './SkyWindow';
 import { COLLISION_PX, dotRadiusPx } from './starGlyphs';
 
@@ -93,6 +94,8 @@ function encloses(d: string, x: number, y: number): boolean {
 }
 
 const BOX = 'M0 0H390.0V390.0H0Z';
+/** A test ring of the galactic plane is sampled every 15° of longitude: coarse enough to read, fine enough that its chords stay inside the band. */
+const LONGITUDES = Array.from({ length: 24 }, (_, k) => k * 15);
 
 function mount(layers = field.layers) {
   const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
@@ -353,8 +356,8 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
   it('draws the Milky Way’s three bands under the figures and over the surface, clipped to the sky, and none without an outline', () => {
     const { container } = mount();
     expect(container.querySelectorAll('[data-milky-way] > path')).toHaveLength(0);
-    // Three rings of four points round the sky, as `milkyWay.json` lays its rings out, in J2000 degrees.
-    const ring = (dec: number): number[][] => [0, 90, 180, 270].map((ra) => [ra, dec]).concat([0, 90, 180, 270].map((ra) => [ra, -dec]).reverse());
+    // Three rings of the galactic plane, as `milkyWay.json` lays them out (along +b, back along −b), sampled every 15° of longitude.
+    const ring = (b: number): number[][] => LONGITUDES.map((l) => galacticToEquatorial(l, b)).concat(LONGITUDES.map((l) => galacticToEquatorial(l, -b)).reverse()).map(({ raDeg, decDeg }) => [raDeg, decDeg]);
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const outline = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: { ...field, catalog: { ...field.catalog, ra: [0, 90, 180, 270, 45, 135, 225, 315, 10], dec: [35, 35, 35, 35, 10, 10, 10, 10, -40], milkyWay: [ring(12), ring(7), ring(3)] } } }} />);
     const haze = outline.container.querySelector('[data-milky-way]') as SVGGElement;
@@ -421,7 +424,7 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
    * sheet's and React's business; this file is about the geometry and the attributes.
    */
   it('draws the look as the committed SVG', async () => {
-    const ring = (dec: number): number[][] => [0, 90, 180, 270].map((ra) => [ra, dec]).concat([0, 90, 180, 270].map((ra) => [ra, -dec]).reverse());
+    const ring = (b: number): number[][] => LONGITUDES.map((l) => galacticToEquatorial(l, b)).concat(LONGITUDES.map((l) => galacticToEquatorial(l, -b)).reverse()).map(({ raDeg, decDeg }) => [raDeg, decDeg]);
     const camera = createHandCamera({ azDeg: 180, altDeg: 20 });
     const scene = { stars: { ...field, catalog: { ...field.catalog, ra: [0, 90, 180, 270, 45, 135, 225, 315, 10], dec: [35, 35, 35, 35, 10, 10, 10, 10, -40], bv: [-0.2, 0.1, 0.6, 1.2, 0.3, 0.5, 0.9, 0.0, 0.7], milkyWay: [ring(12), ring(7), ring(3)] }, positions: { ...field.positions, sunAltDeg: -12 } } };
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={scene} sun={{ t: 0, azDeg: 250, altDeg: -12 }} moon={{ t: 0, phaseAngleDeg: 300, illuminatedFraction: 0.28, phase: 'waningCrescent', azDeg: 200, elDeg: 30, eclipticLonDeg: 0 }} />);
