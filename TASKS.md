@@ -4440,7 +4440,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
     - The Done note gives the door's and the times row's cell counts in both languages and the theme's two sides of `THEME_AUTO_SUN_DEG`.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
 
-- [ ] **R157 — The overlay: `FollowControl` beside `[ controls ]`, the corner readout slot, the touch hint, `hintFitsBeside` over labels, the wake lock on two pages, the compact live captures marked touch**
+- [x] **R157 — The overlay: `FollowControl` beside `[ controls ]`, the corner readout slot, the touch hint, `hintFitsBeside` over labels, the wake lock on two pages, the compact live captures marked touch**
   - **Lane:** live
   - **Model:** opus
   - **Review:** opus
@@ -4458,6 +4458,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
     - `FollowControl.test.tsx`, `Live.test.tsx`, `SkyViewLayout.test.tsx`, `SkyHint.test.tsx`, `useWakeLock`'s test, `sheetRows.test.ts` pass.
     - `live-full`, `targets` and `rhythm` green at the compact sizes in both languages; the hint node's `scrollWidth` equals its `clientWidth` at 360 and 390.
     - The Done note gives the bottom row's cell counts in both languages and the readout's longest line.
+  - *Done:* as written, plus D-980 (the bottom row is `ControlsSheet`'s `beside` + `[ controls ]`, `live-bottom-row`; the corner readout and the sheet's facing row take turns for the chart's one readout portal, the corner on the window and the dome only, its second line the sheet's; `--sky-head-w` from the head; `liveRows.ts` gains `follow` and `readout`; the hint's row above starts at `--tap`; `v1-captures.spec.ts` reads `touch`, which D-966 said it already did — one clause; the marked screens are `live-watching`, `live-scrubbing`, `live-tonight`, `live-sheet`, `live-sheet-list`, `live-following` and `legend`; the PNGs are R161's) and D-981 (the Spanish touch line, 43 characters and 362 px, fits no 360 or 390 px box on one row, so it breaks between its clauses, cut to the wider — a spec amendment is proposed; at 360 × 640 the overlay share asserts FR-FULL-3's sum with the readout, 0.111 in the Spanish window, since `[ follow ]` takes it to 0.123). `FollowControl` has no stylesheet (it is placed by the row); the stars page's and the pass detail's wake-lock component tests are R159's, with those pages' tests; the hook's test covers on, off and a visibility change while off. **Bottom row:** `[ follow ] [ controls ]` 23 cells, `[ seguir ] [ controles ]` 24 (`sheetRows.test.ts`; bare while not following, 19 and 20). **Readout's longest line:** a three-letter point, a three-digit azimuth and a signed two-digit altitude — "Hacia el NNO (337°) · −15° de altura", 36 characters (English "Facing NNW (337°) · up −15°", 27); at 360 × 780 and 390 × 844 the drawn line was "Hacia el S (184°) · 20° de altura", cut by its ellipsis to 84 and 114 px beside the head (English 100 and 130 px). **Hint:** English 244 × 20 px, Spanish 185 × 40 px (two clause lines), `scrollWidth` = `clientWidth` at both sizes. **Overlay share** with the readout and `[ follow ]`: at most 0.098 in English and 0.111 in Spanish at 390 × 667, 0.088 at 390 × 844.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
 
 ### Wave 2

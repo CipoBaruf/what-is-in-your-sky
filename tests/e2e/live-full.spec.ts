@@ -7,6 +7,12 @@
  * viewport's height, its body scrolls where its rows are taller than that, and the page never scrolls. The numbers
  * are the Done note's.
  *
+ * R157 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-5; US-45 AC3..AC5; D-964..D-966, D-981): on a touch phone at 360 × 780 and
+ * 390 × 844 in both languages, the bottom row holds `[ follow ]` then `[ controls ]`, each a target, on one baseline at
+ * the box's bottom-right; the facing readout is one line in the box's top-right corner, clear of the head; and the
+ * touch hint is drawn whole — its node's `scrollWidth` equals its `clientWidth`, no clause cut — in the row above the
+ * two controls. The overlay's share counts the readout, and `[ follow ]` at the sizes FR-FULL-3 names.
+ *
  * R150 (FR-GYRO-7, FR-GYRO-8, FR-GYRO-10; US-44 AC5, AC6): at 844 × 390 the sheet is the same bottom sheet — its
  * bottom edge on the viewport's, the full width, at most `SHEET_MAX_SHARE` of the height, its body scrolling; the
  * sheet ends with "Satellites (n)", `n` the drawn passes the open list holds, inside the scrolling body; and touch
@@ -20,6 +26,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FULL_OVERLAY_MAX_SHARE, SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../src/lib/layout';
 import { closeSheet, domeDrawn, openSheet, seedStoredRun, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
+import { aimedAt, stubOrientation } from './orientation';
 
 const SIZES = [
   [390, 844],
@@ -119,6 +126,13 @@ async function touchDrag(page: Page, dy: number, steps: number, stepMs: number):
   await cdp.detach();
 }
 
+/** R157 (FR-PHONE-4): the corner readout's drawn line — its paragraph, the surface — and not the target-tall row it is centred in. */
+async function lineBox(page: Page, testId: string): Promise<Box> {
+  const found = await page.getByTestId(testId).locator('p').first().boundingBox();
+  if (!found) throw new Error(`${testId} has no line`);
+  return found;
+}
+
 const scrolls = (page: Page): Promise<boolean> => page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1 || document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
 
 for (const locale of LOCALES) {
@@ -150,10 +164,17 @@ for (const locale of LOCALES) {
           const hint = page.getByTestId('sky-hint');
           if ((await hint.count()) > 0) parts.push(await box(page, 'sky-hint'));
           else expect(view, 'only the polar chart has no hint').toBe('polar');
-          const covered = parts.reduce((sum, part) => sum + part.width * part.height, 0);
-          const share = covered / (width * height);
+          // R157 (FR-PHONE-4): the corner readout's line counts with the three. (FR-PHONE-3) `[ follow ]` on the bottom row —
+          // this is a touch phone — counts too at the two sizes FR-FULL-3 names; at 360 × 640 the Spanish window's five
+          // parts come to 0.123, so there the sum is the spec's own, the three and the readout (D-981).
+          const readout = view === 'polar' ? [] : [await lineBox(page, 'sky-corner-readout')];
+          const follow = await box(page, 'live-follow-control');
+          const area = (list: Box[]): number => list.reduce((sum, part) => sum + part.width * part.height, 0);
+          const share = area([...parts, ...readout]) / (width * height);
+          const withFollow = area([...parts, ...readout, follow]) / (width * height);
           expect(share, `the overlay covers ${share.toFixed(3)} of the box`).toBeLessThanOrEqual(FULL_OVERLAY_MAX_SHARE);
-          test.info().annotations.push({ type: 'overlay', description: `${locale} ${view} ${String(width)}×${String(height)}: ${share.toFixed(3)} of the box` });
+          if (height !== 640) expect(withFollow, `the overlay with [ follow ] covers ${withFollow.toFixed(3)} of the box`).toBeLessThanOrEqual(FULL_OVERLAY_MAX_SHARE);
+          test.info().annotations.push({ type: 'overlay', description: `${locale} ${view} ${String(width)}×${String(height)}: ${share.toFixed(3)} of the box, ${withFollow.toFixed(3)} with [ follow ]` });
           // The head at the top-left, the button at the bottom-right, each inside the box; the hint at the bottom-left.
           const [head, controls] = parts;
           if (!head || !controls) throw new Error('no head or controls');
@@ -208,6 +229,68 @@ for (const locale of LOCALES) {
           expect(await box(page, 'chart-box')).toEqual(chart);
         });
       }
+    });
+  }
+
+  for (const [width, height] of [
+    [360, 780],
+    [390, 844],
+  ] as const) {
+    test.describe(`FR-PHONE at ${String(width)} × ${String(height)}, ${locale}`, () => {
+      test.use({ viewport: { width, height }, hasTouch: true });
+
+      test('the bottom row’s two controls, the readout in the corner and the touch hint whole above them (FR-PHONE-3, FR-PHONE-4, FR-PHONE-5)', async ({ page }) => {
+        // The specs' own motion permission (D-946): granted on the tap, a reading where the window already looks.
+        await stubOrientation(page, { answer: 'granted', readings: [aimedAt(0, 30)] });
+        await openLive(page, locale, 'window');
+        await page.getByTestId('live-card-now').click();
+        // FR-PHONE-3: `[ follow ]` then `[ controls ]`, one row at the box's bottom-right, each at least 44 × 44.
+        const row = page.getByTestId('live-bottom-row');
+        expect(await row.evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')))).toEqual(['live-follow-control', 'live-controls']);
+        const follow = await box(page, 'live-follow-control');
+        const controls = await box(page, 'live-controls');
+        await expect(page.getByTestId('live-follow-control')).toHaveText(locale === 'en' ? 'follow' : 'seguir');
+        await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+        for (const part of [follow, controls]) {
+          expect(part.width).toBeGreaterThanOrEqual(43.5);
+          expect(part.height).toBeGreaterThanOrEqual(43.5);
+          expect(part.y + part.height).toBeLessThanOrEqual(height + 0.5);
+          expect(part.y + part.height).toBeGreaterThan(height - 60);
+        }
+        expect(Math.abs(follow.y - controls.y), 'one row').toBeLessThanOrEqual(1);
+        expect(follow.x + follow.width, 'follow before controls').toBeLessThanOrEqual(controls.x + 0.5);
+        expect(controls.x + controls.width).toBeLessThanOrEqual(width + 0.5);
+
+        // FR-PHONE-4: the readout, one line in the box's top-right corner, clear of the head.
+        const head = await box(page, 'live-head');
+        const readout = await lineBox(page, 'sky-corner-readout');
+        await expect(page.getByTestId('sky-corner-readout')).toHaveText(locale === 'en' ? /^Facing / : /^Hacia /);
+        expect(readout.height, 'one line').toBeLessThanOrEqual(21);
+        expect(readout.y).toBeLessThan(head.y + head.height);
+        expect(readout.x, 'clear of the head').toBeGreaterThanOrEqual(head.x + head.width);
+        expect(readout.x + readout.width).toBeLessThanOrEqual(width + 0.5);
+        expect(readout.x + readout.width).toBeGreaterThan(width - 40);
+        const readoutText = (await page.getByTestId('sky-corner-readout').textContent()) ?? '';
+        test.info().annotations.push({ type: 'readout', description: `${locale} ${String(width)}×${String(height)}: "${readoutText}" in ${String(Math.round(readout.width))} px` });
+
+        // FR-PHONE-5: the touch hint, two clauses, drawn whole above the two controls.
+        const hint = page.getByTestId('sky-hint');
+        await expect(hint).toHaveAttribute('data-pointer', 'coarse');
+        await expect(hint).toHaveText(locale === 'en' ? 'Drag to look · pinch to zoom' : 'Arrastrá para mirar · pellizcá para acercar');
+        const fits = await hint.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflow: getComputedStyle(el).textOverflow }));
+        expect(fits.scrollWidth, 'no clause cut').toBe(fits.clientWidth);
+        expect(fits.overflow).not.toBe('ellipsis');
+        const hintBox = await box(page, 'sky-hint');
+        expect(hintBox.y + hintBox.height, 'above the row').toBeLessThanOrEqual(Math.min(follow.y, controls.y) + 0.5);
+        expect(hintBox.x + hintBox.width).toBeLessThanOrEqual(width + 0.5);
+        test.info().annotations.push({ type: 'hint', description: `${locale} ${String(width)}×${String(height)}: ${String(Math.round(hintBox.width))} × ${String(Math.round(hintBox.height))}` });
+
+        // Following: the readout goes, the row stays (FR-GYRO-5 as amended).
+        await page.getByTestId('live-follow-control').click();
+        await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.getByTestId('sky-corner-readout')).toHaveCount(0);
+        await expect(page.getByTestId('live-controls')).toBeVisible();
+      });
     });
   }
 

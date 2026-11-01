@@ -125,7 +125,8 @@
 }
 
 .hintArea[data-beside='false'] {
-  inset-block-end: var(--target);
+  /* R157: the row's controls are `--tap` tall (`.target`'s box), so the row above starts there and not at `--target`. */
+  inset-block-end: var(--tap);
 }
 
 .hintArea > p {

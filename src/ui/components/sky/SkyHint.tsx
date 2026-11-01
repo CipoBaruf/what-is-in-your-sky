@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { HINT_TOUCH_CLAUSES } from '../../../lib/layout';
@@ -30,6 +30,12 @@ export interface SkyHintProps {
   view: ChartView;
   /** FR-SKY-13: the highlighted pass's legend key on the live page, `null` or absent where there is none to follow. */
   followKey?: string | null;
+  /**
+   * R157 (FR-PHONE-5, D-981): the compact live page's overlay — the line is drawn whole and never cut, so where it is
+   * wider than its room (the Spanish touch line at 360 and 390 px) it breaks between its clauses into two lines, and
+   * the surface is cut to the wider of them rather than to the row, so the two lines cover no more sky than they need.
+   */
+  fit?: boolean;
 }
 
 const SEPARATOR = ' · ';
@@ -65,12 +71,46 @@ export function useSkyHintLine(view: ChartView, followKey: string | null = null)
   return { text: skyHintLine(t.window.skyHint, view, pointer, { follow: followKey }), pointer };
 }
 
-export function SkyHint({ view, followKey = null }: SkyHintProps) {
+export function SkyHint({ view, followKey = null, fit = false }: SkyHintProps) {
   const line = useSkyHintLine(view, followKey);
+  const ref = useRef<HTMLParagraphElement>(null);
+  const text = line?.text ?? null;
+  /*
+   * R157 (D-981): whether the line, laid out at its natural width, takes more than one row — measured with the mark off,
+   * then the mark set, so `width: min-content` (each clause unbroken) cuts the surface to the wider clause. Again on a
+   * resize of the viewport, which is what changes the room; never on the line's own size, which the mark changes.
+   */
+  useLayoutEffect(() => {
+    const p = ref.current;
+    if (!fit || p === null) return;
+    const measure = (): void => {
+      p.removeAttribute('data-wrapped');
+      const row = parseFloat(getComputedStyle(p).lineHeight);
+      if (Number.isFinite(row) && row > 0 && p.getBoundingClientRect().height > row * 1.5) p.setAttribute('data-wrapped', '');
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, [fit, text]);
   if (line === null) return null;
+  const clauses = line.text.split(SEPARATOR);
   return (
-    <p className={styles.hint} data-testid="sky-hint" data-pointer={line.pointer}>
-      {line.text}
+    <p ref={ref} className={styles.hint} data-testid="sky-hint" data-pointer={line.pointer} {...(fit ? { 'data-fit': '' } : {})}>
+      {fit
+        ? clauses.map((clause, i) =>
+            i < clauses.length - 1 ? (
+              <Fragment key={clause}>
+                <span className={styles.clause}>{`${clause}${SEPARATOR.trimEnd()}`}</span>{' '}
+              </Fragment>
+            ) : (
+              <span key={clause} className={styles.clause}>
+                {clause}
+              </span>
+            ),
+          )
+        : line.text}
     </p>
   );
 }

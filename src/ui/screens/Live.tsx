@@ -1118,7 +1118,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         )}
         {hintLine !== null && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
-            <SkyHint view={hintView} followKey={followKey} />
+            <SkyHint view={hintView} followKey={followKey} fit />
           </div>
         )}
       </>
