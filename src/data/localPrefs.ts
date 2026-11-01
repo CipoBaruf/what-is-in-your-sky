@@ -76,6 +76,12 @@ interface Prefs {
    * is not a boolean reads as absent (`.catch(false)`).
    */
   skyHintSeen?: boolean;
+  /**
+   * R159 (FR-PHONE-2, D-962): the reader once granted the motion request, so a later visit opens following-armed.
+   * Only `true` is read back — `false` is what an absent key already means, and a value that is not a boolean reads
+   * as absent (`.catch(false)`).
+   */
+  followGranted?: boolean;
   /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
   installHintDismissed?: boolean;
   /** FR-OFF-6 as amended (D-272): how many times "Not now" has been pressed. Absent until the first. */
@@ -107,6 +113,8 @@ const storedPrefsSchema = z.object({
   starsLayer: z.boolean().catch(true),
   // FR-FLOW-6 (D-848): absent, malformed or false all mean the hint has not been seen.
   skyHintSeen: z.boolean().catch(false),
+  // FR-PHONE-2 (D-962): absent, malformed or false all mean no saved grant.
+  followGranted: z.boolean().catch(false),
   // `.catch(null)` per item, not on the array: a malformed favourite becomes a hole that is
   // filtered out, where a schema on the array alone would drop all eight for one bad entry.
   favourites: z
@@ -134,7 +142,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, skyHintSeen, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -149,6 +157,8 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!starsLayer) prefs.starsLayer = false;
         // Only `true` is a choice (FR-FLOW-6): the hint shows until the first gesture.
         if (skyHintSeen) prefs.skyHintSeen = true;
+        // Only `true` is a grant (FR-PHONE-2): a refusal clears the key, and no grant is what an absent key means.
+        if (followGranted) prefs.followGranted = true;
         // The limit is applied on read too, so a hand-edited or half-written list is still eight at most.
         if (favourites) {
           const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));

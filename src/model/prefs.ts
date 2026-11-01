@@ -34,6 +34,14 @@ export const DEFAULT_STARS_LAYER = true;
  * again for a stored value that is not a boolean. Persisted in `wiys:prefs:v1`.
  */
 export const DEFAULT_SKY_HINT_SEEN = false;
+/**
+ * FR-PHONE-2 / D-962 (R159): whether the reader has once granted the motion request a browser asks for (iOS). The
+ * live page, the stars page and the pass detail then open following-armed: the first touch on the sky asks inside
+ * the gesture. Written `true` on a grant from the follow toggle or the control, cleared on a refusal; a refusal never
+ * writes it. False until the first grant, and false again for a stored value that is not a boolean. Persisted in
+ * `wiys:prefs:v1`.
+ */
+export const DEFAULT_FOLLOW_GRANTED = false;
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */
