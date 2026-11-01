@@ -41,6 +41,17 @@ interface StarCatalog {
   dec: ArrayLike<number>;
   /** Visual magnitude. */
   mag: ArrayLike<number>;
+  /**
+   * R155 (FR-LOOK-5, D-977): the B−V colour index to 0.1, the build's 0.2 where the record has none. Optional: a
+   * catalogue written by hand (a test's) without it draws every star white.
+   */
+  bv?: ArrayLike<number>;
+  /**
+   * R155 (FR-LOOK-3, D-983): the Milky Way's outline, `milkyWay.json`'s three closed rings of `[ra, dec]` in J2000
+   * degrees, outermost first — the `stars` chunk's data, carried with the catalogue so the window draws the haze
+   * through the scene and the file stays in that chunk. Optional: without it no haze is drawn.
+   */
+  milkyWay?: readonly (readonly (readonly number[])[])[];
   /** The IAU proper name, or `""`. */
   name: readonly string[];
   /** The Bayer or Flamsteed designation, or the HR number. */
@@ -75,6 +86,12 @@ interface StarPositions {
   altDeg: ArrayLike<number>;
   azDeg: ArrayLike<number>;
   planets: readonly PlanetPosition[];
+  /**
+   * R155 (FR-LOOK-2, FR-STAR-13): the Sun's geometric altitude at the same instant, degrees — what `starsAt`
+   * already carries beside the positions and what the twilight tint and the deep stars' step read. Optional: a
+   * field without it is drawn as full night.
+   */
+  sunAltDeg?: number;
 }
 
 /** FR-STAR-3's four layer switches, as the page's toggles hold them. */

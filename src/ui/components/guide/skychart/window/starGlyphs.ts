@@ -1,3 +1,4 @@
+import { BLOOM_MAG, BV_TONES, DEEP_MAG_LIMIT, DOT_RADIUS_PX, STAR_DOT_MAG, STAR_MAG_LIMIT, STAR_SIZES_PX, type StarTone } from '../../../../../data/stars/constants';
 import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
 
 /**
@@ -5,24 +6,34 @@ import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
  * the collision rule and the hit test — the star field's pure rules, with no
  * DOM in them, so one table test holds all three.
  *
- * The **ladder** turns a magnitude into a glyph, a size and a tone, each a
- * name in the sheet: V ≤ 0.5 `*` at `--chart-text-18`; ≤ 1.5 `*` at
- * `--chart-text-15`; ≤ 2.5 `+` at `--chart-text-12`, these three in
- * `--chart-star`; ≤ 3.5 `.` in `--chart-star-dim`; ≤ 4.5 `.` in
- * `--chart-star-faint` (V24-14's three sizes and three tones). A planet is `@`
- * in `--chart-planet` at the size its magnitude at the shown instant earns on
- * the same rungs. The glyph is the magnitude and `@` is the planet, so the
- * reading survives monochrome (FR-X-5).
+ * R155 (FR-LOOK-4, FR-LOOK-5, FR-LOOK-6; V210-8, V210-10; PLAN D-974, D-982):
+ * the window's ladder is **marks** now, `markFor(mag, bv)`: V ≤
+ * `STAR_DOT_MAG` a `*` character at `STAR_SIZES_PX` by rung; fainter, a round
+ * dot of `DOT_RADIUS_PX` by magnitude, continuous, at a `fill-opacity` that
+ * falls from 0.7 at `STAR_MAG_LIMIT` to 0.3 at `DEEP_MAG_LIMIT`; every mark in
+ * one of four tones from its B−V index (`BV_TONES`, white where there is
+ * none); a planet `@` at the `*` sizes by its magnitude, never a dot. The
+ * glyph or the dot and its size carry the magnitude and `@` says planet, so
+ * the reading survives monochrome (FR-X-5).
  *
- * The **collision** rule keeps the brighter of any two glyphs whose centres
+ * The **rungs** below (`rungFor`, `planetRungFor`, `LADDER`) are v2.4.1's
+ * ladder of characters — `*`, `+` and `.` in three greys — which the polar
+ * chart still draws until R158 moves it onto the marks; `RUNG_MAX_MAG`'s five
+ * bounds are theirs and the twilight steps' (`lib/skyStars.ts`), and the
+ * three top bounds are the marks' `*` sizes too. The old ladder leaves with
+ * R158's re-baseline and not before, so the chart lane's snapshot is not
+ * moved by the window lane.
+ *
+ * The **collision** rule keeps the brighter of any two marks whose centres
  * fall within half the small size of each other, so a close pair never prints
  * as a smudge; the same distance is the gap a figure line leaves at each star
- * (D-754). The **hit test** finds the nearest drawn glyph within `--tap` / 4
+ * (D-754). The **hit test** finds the nearest drawn mark within `--tap` / 4
  * of a point, or none — there is no hit node per star (FR-STAR-9).
  *
  * No px length outside the sheet (FR-DS-2): `SIZE_PX` carries the chart text
  * tokens' values under their names and `HIT_RADIUS_PX` is `--tap` / 4;
- * `starGlyphs.test.ts` reads `tokens.css` and holds both to it.
+ * `starGlyphs.test.ts` reads `tokens.css` and holds both to it. The marks'
+ * sizes are SPEC §4.53's own constants (`data/stars/constants.ts`, R154).
  */
 
 export type StarGlyph = '*' | '+' | '.' | '@';
@@ -85,6 +96,84 @@ export const GLYPH_SIZES: readonly (readonly [StarGlyph, SizeToken])[] = [
   ['@', 'chart-text-15'],
   ['@', 'chart-text-12'],
 ];
+
+// --- R155: the window's marks (FR-LOOK-4, FR-LOOK-5) ---------------------------
+
+/** The four star tones' tokens (FR-LOOK-5, FR-DS-8 as amended): the white is `--chart-star`, unchanged. */
+export type ToneToken = 'chart-star' | 'chart-star-blue' | 'chart-star-yellow' | 'chart-star-orange';
+const TONE_TOKENS: Readonly<Record<StarTone, ToneToken>> = { blue: 'chart-star-blue', white: 'chart-star', yellow: 'chart-star-yellow', orange: 'chart-star-orange' };
+
+/** The tone for a B−V index by `BV_TONES`' rows: the first whose `below` the index is under; no index (or none a number) is white. */
+export function toneFor(bv: number | undefined): StarTone {
+  if (bv === undefined || Number.isNaN(bv)) return 'white';
+  return BV_TONES.find((row) => bv < row.below)?.tone ?? 'orange';
+}
+
+/** The tone's token name, for `data-tone` and the sheet. */
+export const toneToken = (bv: number | undefined): ToneToken => TONE_TOKENS[toneFor(bv)];
+
+/** A `*` (or a planet's `@`) at one of the three sizes, px. */
+export interface CharMark {
+  kind: 'char';
+  glyph: '*' | '@';
+  px: number;
+  tone: ToneToken | 'chart-planet';
+}
+
+/** A round dot: its radius and its tone, and the opacity a deep star fades at. */
+export interface DotMark {
+  kind: 'dot';
+  r: number;
+  tone: ToneToken;
+  opacity: number;
+}
+
+export type Mark = CharMark | DotMark;
+
+/** The `*` size for a magnitude by `STAR_SIZES_PX`, or `null` past `STAR_DOT_MAG`, where a star is a dot. */
+export function starSizePx(mag: number): number | null {
+  if (!(mag <= STAR_DOT_MAG)) return null;
+  return STAR_SIZES_PX.find((row) => mag <= row.maxMag)?.px ?? STAR_SIZES_PX[STAR_SIZES_PX.length - 1]?.px ?? 0;
+}
+
+const clamp01 = (t: number): number => Math.max(0, Math.min(1, t));
+
+/** FR-LOOK-4: the dot's radius, linear in magnitude from `DOT_RADIUS_PX.bright` at `STAR_DOT_MAG` to `.faint` at `DEEP_MAG_LIMIT`, held at the ends. */
+export function dotRadiusPx(mag: number): number {
+  const t = clamp01((mag - STAR_DOT_MAG) / (DEEP_MAG_LIMIT - STAR_DOT_MAG));
+  return Math.round((DOT_RADIUS_PX.bright + (DOT_RADIUS_PX.faint - DOT_RADIUS_PX.bright) * t) * 100) / 100;
+}
+
+/** The opacity a dot fades at past `STAR_MAG_LIMIT`: 0.7 there to 0.3 at `DEEP_MAG_LIMIT`, 1 for every bright-catalogue star. */
+export const DOT_OPACITY = { atLimit: 0.7, atDeep: 0.3 } as const;
+export function dotOpacity(mag: number): number {
+  if (!(mag > STAR_MAG_LIMIT)) return 1;
+  const t = clamp01((mag - STAR_MAG_LIMIT) / (DEEP_MAG_LIMIT - STAR_MAG_LIMIT));
+  return Math.round((DOT_OPACITY.atLimit + (DOT_OPACITY.atDeep - DOT_OPACITY.atLimit) * t) * 100) / 100;
+}
+
+/** A star's mark by its magnitude and its B−V index (FR-LOOK-4, FR-LOOK-5). A magnitude that is not a number is the faintest dot. */
+export function markFor(mag: number, bv?: number): Mark {
+  const px = starSizePx(mag);
+  const tone = toneToken(bv);
+  if (px !== null) return { kind: 'char', glyph: '*', px, tone };
+  const m = Number.isNaN(mag) ? DEEP_MAG_LIMIT : mag;
+  return { kind: 'dot', r: dotRadiusPx(m), tone, opacity: dotOpacity(m) };
+}
+
+/** A planet's mark: `@` in `--chart-planet` at the `*` size its magnitude earns, the smallest past `STAR_DOT_MAG`; never a dot (FR-LOOK-4). */
+export function planetMarkFor(mag: number): CharMark {
+  return { kind: 'char', glyph: '@', px: starSizePx(mag) ?? STAR_SIZES_PX[STAR_SIZES_PX.length - 1]?.px ?? 0, tone: 'chart-planet' };
+}
+
+/** FR-LOOK-6: whether a star or a planet at `mag` carries a bloom. */
+export const bloomed = (mag: number): boolean => mag < BLOOM_MAG;
+
+/** Every glyph × px the marks can draw, for the ink offsets to measure once (D-752): `*` and `@` at each of `STAR_SIZES_PX`. */
+export const MARK_GLYPH_SIZES: readonly (readonly [StarGlyph, number])[] = STAR_SIZES_PX.flatMap((row): (readonly [StarGlyph, number])[] => [
+  ['*', row.px],
+  ['@', row.px],
+]);
 
 export interface Point {
   x: number;

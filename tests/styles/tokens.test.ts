@@ -10,7 +10,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ICON_TONES } from '../../scripts/build-mark';
-import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
+import { HORIZON_STRENGTH } from '../../src/data/stars/constants';
+import { BAND_ALPHA_AT_HORIZON, bandLightest, CHART_MARK_TOKENS, CHART_SKY_TOKENS, CHART_STAR_TONE_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, composite, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
 
 const css = readFileSync(TOKENS_PATH, 'utf8');
 /** The header comment wraps, so the prose assertions read it as one line. */
@@ -136,6 +137,38 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
   it('has every chart text token at ≥ 4.5 : 1 on the page ground', () => {
     for (const text of CHART_TEXT_TOKENS) expect(contrastRatio(token(theme, text), token(theme, 'bg')), text).toBeGreaterThanOrEqual(4.5);
   });
+
+  /**
+   * FR-LOOK-1, FR-LOOK-2, FR-LOOK-5, FR-DS-8 as amended v2.10 (R155): the sky
+   * surface sits under the page ground (≤ 1.1 : 1), the day and twilight tints
+   * and the glow are surfaces too (under 1.5 : 1, as the dome's), the haze is
+   * a tone the bands draw at a few hundredths of alpha, and every star tone —
+   * the white and the three from B−V — keeps 3 : 1 against the deep sky and
+   * against the lightest sky a star stands on, the glow at the band's alpha
+   * over it. In night mode the four tones differ in lightness only.
+   */
+  it('has the sky surfaces under the page ground and every star tone at ≥ 3 : 1 on the deep sky and on the band’s lightest value (FR-LOOK-1, FR-LOOK-5)', () => {
+    const tokens = byTheme.get(theme) ?? new Map<string, string>();
+    expect(contrastRatio(token(theme, 'chart-sky-deep'), token(theme, 'bg'))).toBeLessThanOrEqual(1.1);
+    for (const sky of ['chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow']) expect(contrastRatio(token(theme, sky), token(theme, 'bg')), sky).toBeLessThan(1.5);
+    expect(CHART_SKY_TOKENS).toEqual(['chart-sky-deep', 'chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow', 'chart-haze']);
+    expect(BAND_ALPHA_AT_HORIZON).toBe(HORIZON_STRENGTH * 0.5);
+    const lightest = bandLightest(tokens);
+    expect(lightest).toBe(composite(token(theme, 'chart-horizon-glow'), token(theme, 'chart-sky-deep'), 0.3));
+    const tones = ['chart-star', ...CHART_STAR_TONE_TOKENS];
+    for (const tone of tones) {
+      expect(contrastRatio(token(theme, tone), token(theme, 'chart-sky-deep')), `${tone} on the deep sky`).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(token(theme, tone), lightest), `${tone} on the band`).toBeGreaterThanOrEqual(3);
+    }
+    if (theme === 'night') {
+      const hues = tones.map((tone) => hue(token(theme, tone)));
+      expect(Math.max(...hues) - Math.min(...hues), 'one hue').toBeLessThanOrEqual(5);
+      expect(new Set(tones.map((tone) => contrastRatio(token(theme, tone), token(theme, 'chart-sky-deep')).toFixed(1))).size, 'four lightnesses').toBe(4);
+    } else {
+      // The dark theme's blue and orange are apart in hue, so the tone reads; low in saturation, so size still carries magnitude (FR-X-5).
+      expect(Math.abs(hue(token(theme, 'chart-star-blue')) - hue(token(theme, 'chart-star-orange')))).toBeGreaterThan(90);
+    }
+  });
 });
 
 describe('tokens.css themes', () => {
@@ -195,6 +228,13 @@ describe('tokens.css documentation', () => {
       for (const theme of THEMES) {
         const expected = ratio(theme, chart, 'bg');
         expect(css, `--${chart} (${theme}) should be documented as ${expected} : 1`).toContain(`--${chart}: ${token(theme, chart)}; /* ${expected} : 1`);
+      }
+    }
+    // R155: the look's tokens are measured on the deep sky, the surface they are drawn on, and documented so.
+    for (const chart of [...CHART_SKY_TOKENS, ...CHART_STAR_TONE_TOKENS]) {
+      for (const theme of THEMES) {
+        const expected = ratio(theme, chart, 'chart-sky-deep');
+        expect(css, `--${chart} (${theme}) should be documented as ${expected} : 1 on the deep sky`).toContain(`--${chart}: ${token(theme, chart)}; /* ${expected} : 1`);
       }
     }
   });

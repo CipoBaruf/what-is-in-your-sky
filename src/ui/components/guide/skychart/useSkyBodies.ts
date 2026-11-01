@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SkyBodies } from '../../../../lib/skyBodies';
 import type { EpochMs, MoonState, Observer, SkyState } from '../../../../model';
 import type { SkyChartProps } from './SkyChart.types';
+import { skyVector, type SkyPoint } from './window/projection';
 
 /**
  * FR-DOME-6 (R22): the Sun and the Moon at the instant the chart is showing.
@@ -33,6 +34,30 @@ function loadSkyBodies(): Promise<Evaluate> {
     },
   );
   return pending;
+}
+
+/** How far from the Moon the limb point is taken, degrees: near enough that the projection is the direction at the Moon. */
+const LIMB_STEP_DEG = 1;
+
+/**
+ * R155 (FR-LOOK-7, D-974): the bright limb's direction as a point on the sky — a degree from the Moon along the
+ * great circle toward the Sun, where the lit side faces. The views project it beside the Moon and read the
+ * direction between the two on the plane (`MoonDisc.tsx`), so one rule serves the window and the whole sky
+ * whatever their projection. `null` when the two are the same or opposite directions, which never happens.
+ */
+export function brightLimbPoint(moon: Pick<SkyPoint, 'azDeg' | 'elDeg'>, sun: { azDeg: number; altDeg: number }): SkyPoint | null {
+  const m = skyVector(moon.azDeg, moon.elDeg);
+  const s = skyVector(sun.azDeg, sun.altDeg);
+  const along = m[0] * s[0] + m[1] * s[1] + m[2] * s[2];
+  const t: [number, number, number] = [s[0] - along * m[0], s[1] - along * m[1], s[2] - along * m[2]];
+  const n = Math.hypot(t[0], t[1], t[2]);
+  if (n < 1e-9) return null;
+  const rad = (LIMB_STEP_DEG * Math.PI) / 180;
+  const c = Math.cos(rad);
+  const k = Math.sin(rad) / n;
+  const p: [number, number, number] = [c * m[0] + k * t[0], c * m[1] + k * t[1], c * m[2] + k * t[2]];
+  const az = (Math.atan2(p[0], p[1]) * 180) / Math.PI;
+  return { azDeg: ((az % 360) + 360) % 360, elDeg: (Math.asin(Math.max(-1, Math.min(1, p[2]))) * 180) / Math.PI };
 }
 
 export interface ChartBodies {
