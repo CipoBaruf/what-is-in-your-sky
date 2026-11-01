@@ -410,6 +410,22 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 30 }, // R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
+/**
+ * R154 (FR-LOOK-8, PLAN D-973, D-976): a row a phase adds before its release
+ * has measured it. `BUDGETS` is the last release's table, row for row
+ * (`tests/docs/accuracy.test.ts` holds `docs/RELEASE.md`'s to it); a row here
+ * is measured and printed the same way, and the phase's release task moves it
+ * into `BUDGETS` with its measure and into the release table with it (R161,
+ * D-178).
+ */
+export const PHASE_BUDGETS: readonly Budget[] = [
+  // R154 (FR-LOOK-8, D-973, D-976): the deep catalogue, `src/data/stars/deep.json` through `deepChunk.ts`, at DEEP_BUDGET_KB (60) until the release re-sets it by D-178. Rollup names a lazily imported JSON module's chunk after the file, so the file is `deep-*.js` and the row is `stars-deep`. 41.8 measured on the R154 branch with a temporary importer; no committed module imports `deepChunk.ts` until R155's window does, so until then the row prints the missing-chunk warning.
+  { name: 'stars-deep', match: (file) => /^deep-.*\.js$/.test(file), limitKb: 60 },
+];
+
+/** Every row the script measures: the release's and the phase's. */
+const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];
+
 export interface ChunkSize {
   file: string;
   budget: string | null;
@@ -442,7 +458,7 @@ function scripts(distDir: string): { file: string; path: string }[] {
 
 export function measure(distDir = DIST): ChunkSize[] {
   const mainFile = mainChunkFile(readFileSync(join(distDir, 'index.html'), 'utf8'));
-  const files = scripts(distDir).map(({ file, path }) => ({ file, path, budget: BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null, gzipBytes: gzipSync(readFileSync(path), { level: 9 }).length }));
+  const files = scripts(distDir).map(({ file, path }) => ({ file, path, budget: ALL_BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null, gzipBytes: gzipSync(readFileSync(path), { level: 9 }).length }));
   // R115 (D-749): a row that matches more than one file (the astronomy row's two) is held to its limit by their total.
   const totals = new Map<string, number>();
   for (const { budget, gzipBytes } of files) if (budget) totals.set(budget.name, (totals.get(budget.name) ?? 0) + gzipBytes);
@@ -458,14 +474,14 @@ export function measure(distDir = DIST): ChunkSize[] {
 
 function main(): void {
   const sizes = measure();
-  const missing = BUDGETS.filter((budget) => !sizes.some((size) => size.budget === budget.name));
+  const missing = ALL_BUDGETS.filter((budget) => !sizes.some((size) => size.budget === budget.name));
   console.log('Bundle budgets (PLAN §11), gzipped:');
   console.table(sizes.map(({ file, budget, rawKb, gzipKb, judgedKb, limitKb, over }) => ({ chunk: budget ?? '(lazy, unbudgeted)', file, 'raw KB': rawKb, 'gzip KB': gzipKb, 'judged KB': limitKb === null ? '' : judgedKb, 'budget KB': limitKb ?? '', status: over ? 'OVER' : limitKb === null ? '' : 'ok' })));
   // A row held by its total warns once, with the total and its files; a `per: 'each'` row warns per file.
   const warned = new Set<string>();
   for (const size of sizes.filter((s) => s.over)) {
     const row = sizes.filter((s) => s.budget === size.budget);
-    const each = BUDGETS.find((b) => b.name === size.budget)?.per === 'each';
+    const each = ALL_BUDGETS.find((b) => b.name === size.budget)?.per === 'each';
     if (each) console.log(`::warning::${String(size.budget)} chunk ${size.file} is ${String(size.judgedKb)} KB gzipped, over the ${String(size.limitKb)} KB budget (PLAN §11)`);
     else if (!warned.has(String(size.budget))) {
       warned.add(String(size.budget));

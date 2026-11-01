@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildCatalog, buildStars, gzippedBytes, parseNamesEs, SNAP_MAX_DEG } from '../../scripts/build-stars';
+import { BV_BLANK, buildCatalog, GALACTIC_POLE, buildMilkyWay, buildStars, galacticToEquatorial, gzippedBytes, MILKY_WAY_CORE, MILKY_WAY_STEP_DEG, parseNamesEs, SNAP_MAX_DEG } from '../../scripts/build-stars';
 import { DATA_RULE, dataNotices } from '../../scripts/third-party-notices';
 import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
 import { CONSTELLATION_NAMES } from '../../src/data/stars/constellations';
-import { STAR_MAG_LIMIT } from '../../src/data/stars/constants';
+import { DEEP_MAG_LIMIT, MILKY_WAY_BANDS_DEG, STAR_MAG_LIMIT } from '../../src/data/stars/constants';
+import { parseDeepCatalog } from '../../src/data/stars/deepChunk';
 import { constellationName, figureName, starName } from '../../src/lib/skyStars';
 
 /**
@@ -51,7 +52,7 @@ describe('the star catalogue', () => {
     const mags = [...catalog.mag];
     expect(mags.filter((m) => m <= STAR_MAG_LIMIT)).toHaveLength(904);
     expect(mags.filter((m) => m > STAR_MAG_LIMIT)).toHaveLength(129);
-    for (const column of [catalog.ra, catalog.dec, catalog.mag, catalog.name, catalog.desig, catalog.con]) expect(column).toHaveLength(catalog.size);
+    for (const column of [catalog.ra, catalog.dec, catalog.mag, catalog.bv, catalog.name, catalog.desig, catalog.con]) expect(column).toHaveLength(catalog.size);
   });
 
   it('keeps a star fainter than the limit only when a figure ends on it', () => {
@@ -117,6 +118,132 @@ describe('the star catalogue', () => {
 
   it('is at most 22 KB gzipped', () => {
     expect(gzippedBytes(text)).toBeLessThanOrEqual(22 * 1024);
+  });
+
+  // R154 (FR-LOOK-5, D-973, D-977): the B−V column, in tenths, 0.6 where the record has none.
+  it('carries B−V for every star in tenths, five blanks written as 0.6', () => {
+    const json = JSON.parse(text) as { bv: number[] };
+    expect(json.bv).toHaveLength(catalog.size);
+    for (const bv of json.bv) expect(Number.isInteger(bv)).toBe(true);
+    expect(built.report.bvBlank).toBe(5);
+    expect(BV_BLANK).toBe(6);
+    expect(catalog.bv[catalog.name.indexOf('Sirius')]).toBeCloseTo(0.0, 5); // 0.00 in the record
+    expect(catalog.bv[catalog.name.indexOf('Betelgeuse')]).toBeCloseTo(1.9, 5); // 1.85, half up
+    expect(catalog.bv[catalog.name.indexOf('Rigel')]).toBeCloseTo(-0.0, 5); // −0.03
+    expect(catalog.bv[catalog.name.indexOf('Spica')]).toBeCloseTo(-0.2, 5); // −0.23
+    expect(Math.min(...catalog.bv)).toBeGreaterThanOrEqual(-0.4);
+    expect(Math.max(...catalog.bv)).toBeLessThanOrEqual(4);
+    expect(Object.is(catalog.bv[catalog.name.indexOf('Rigel')], -0)).toBe(false);
+  });
+});
+
+/**
+ * R154 (FR-LOOK-8, D-973, D-977): the deep catalogue — every Yale star past
+ * `STAR_MAG_LIMIT` to `DEEP_MAG_LIMIT` that `catalog.json` does not already
+ * hold as a figure's endpoint, as integer columns, brightest first.
+ */
+describe('the deep catalogue', () => {
+  const deepText = readFileSync(new URL('../../src/data/stars/deep.json', import.meta.url), 'utf8');
+  const json = JSON.parse(deepText) as { ra: number[]; dec: number[]; mag: number[]; bv: number[] };
+  const deep = parseDeepCatalog(json);
+
+  it('is what the build writes from data-src/stars/, byte for byte', () => {
+    expect(built.deepText).toBe(deepText);
+  });
+
+  it('has 7373 stars in four integer columns and nothing else, 239 with B−V blank', () => {
+    expect(Object.keys(json)).toEqual(['ra', 'dec', 'mag', 'bv']);
+    expect(deep.size).toBe(7373);
+    expect(built.report.deepStars).toBe(7373);
+    expect(built.report.deepBvBlank).toBe(239);
+    for (const column of Object.values(json)) {
+      expect(column).toHaveLength(7373);
+      for (const n of column) expect(Number.isInteger(n)).toBe(true);
+    }
+  });
+
+  it('holds each Yale star to DEEP_MAG_LIMIT once across the two files', () => {
+    const brightToDeepLimit = [...catalog.mag].filter((m) => m <= DEEP_MAG_LIMIT).length;
+    // 9096 records with a position; 7500 at 4.5 < V ≤ 6.5, of which 127 are figure endpoints already in catalog.json.
+    expect(brightToDeepLimit).toBe(904 + 127);
+    expect(deep.size + brightToDeepLimit).toBe(8404);
+    const bright = new Set(Array.from({ length: catalog.size }, (_, i) => `${String(Math.round((catalog.ra[i] ?? 0) * 100) % 36_000)} ${String(Math.round((catalog.dec[i] ?? 0) * 100))}`));
+    // The fainter components of 14 doubles share their bright component's position to 0.01°: separate records, kept.
+    const shared = json.ra.filter((ra, i) => bright.has(`${String(ra)} ${String(json.dec[i])}`));
+    expect(shared).toHaveLength(14);
+  });
+
+  it(`is sorted by magnitude and spans ${String(STAR_MAG_LIMIT)} < V ≤ ${String(DEEP_MAG_LIMIT)} to 0.1`, () => {
+    expect(json.mag[0]).toBe(45); // 4.51–4.54 written to 0.1
+    expect(json.mag.at(-1)).toBe(65);
+    for (let i = 1; i < deep.size; i += 1) expect(json.mag[i] ?? NaN).toBeGreaterThanOrEqual(json.mag[i - 1] ?? NaN);
+    for (const m of deep.mag) {
+      expect(m).toBeGreaterThanOrEqual(4.5);
+      expect(m).toBeLessThanOrEqual(DEEP_MAG_LIMIT);
+    }
+  });
+
+  it('keeps positions in range to 0.01° and B−V to 0.1', () => {
+    for (const ra of json.ra) expect(ra >= 0 && ra < 36_000).toBe(true);
+    for (const dec of json.dec) expect(dec >= -9000 && dec <= 9000).toBe(true);
+    for (const bv of json.bv) expect(bv >= -5 && bv <= 40).toBe(true);
+    expect(deep.ra[0]).toBeCloseTo((json.ra[0] ?? NaN) / 100, 9);
+    expect(deep.bv[0]).toBeCloseTo((json.bv[0] ?? NaN) / 10, 6);
+  });
+
+  it(`is at most ${String(45)} KB gzipped, under the stars-deep row's 60`, () => {
+    expect(gzippedBytes(deepText)).toBeLessThanOrEqual(45 * 1024);
+  });
+});
+
+/** R154 (FR-LOOK-3, D-973, D-977): the galactic plane's outline. */
+describe('the Milky Way outline', () => {
+  const mwText = readFileSync(new URL('../../src/data/stars/milkyWay.json', import.meta.url), 'utf8');
+  const mw = JSON.parse(mwText) as { bands: [number, number][][] };
+
+  it('is what the build writes, byte for byte', () => {
+    expect(built.milkyWayText).toBe(mwText);
+  });
+
+  it('is three closed rings, outermost first, 366 points in all, at most 2 KB gzipped', () => {
+    expect(Object.keys(mw)).toEqual(['bands']);
+    expect(mw.bands).toHaveLength(MILKY_WAY_BANDS_DEG.length);
+    const perEdge = 360 / MILKY_WAY_STEP_DEG + 1;
+    for (const ring of mw.bands) expect(ring).toHaveLength(2 * perEdge);
+    expect(mw.bands.flat()).toHaveLength(366);
+    expect(gzippedBytes(mwText)).toBeLessThanOrEqual(2 * 1024);
+    for (const [ra, dec] of mw.bands.flat()) {
+      expect(ra >= 0 && ra < 360).toBe(true);
+      expect(Math.abs(dec)).toBeLessThanOrEqual(90);
+    }
+  });
+
+  it('converts from the IAU 1958 frame: the centre, the poles and the anticentre where they belong', () => {
+    const centre = galacticToEquatorial(0, 0);
+    expect(centre.raDeg).toBeCloseTo(266.405, 2);
+    expect(centre.decDeg).toBeCloseTo(-28.936, 2);
+    const pole = galacticToEquatorial(0, 90);
+    expect(pole.raDeg).toBeCloseTo(192.859, 2);
+    expect(pole.decDeg).toBeCloseTo(27.128, 2);
+    const anticentre = galacticToEquatorial(180, 0);
+    expect(anticentre.raDeg).toBeCloseTo(86.405, 2);
+    expect(anticentre.decDeg).toBeCloseTo(28.936, 2);
+    expect(galacticToEquatorial(GALACTIC_POLE.lNcpDeg, GALACTIC_POLE.decDeg).decDeg).toBeCloseTo(90, 3); // the celestial pole
+  });
+
+  it('widens each band toward the core and seams the ring at the anticentre', () => {
+    const wide = buildMilkyWay([5]).bands[0] ?? [];
+    const half = wide.length / 2;
+    // The ring's first and last points are the anticentre's two edges; its middle edge points the core's.
+    const first = wide[0] ?? [0, 0];
+    const last = wide.at(-1) ?? [0, 0];
+    const sep = (a: [number, number], b: [number, number]): number =>
+      (Math.acos(Math.min(1, Math.sin((a[1] * Math.PI) / 180) * Math.sin((b[1] * Math.PI) / 180) + Math.cos((a[1] * Math.PI) / 180) * Math.cos((b[1] * Math.PI) / 180) * Math.cos(((a[0] - b[0]) * Math.PI) / 180))) * 180) / Math.PI;
+    const anticentreWidth = sep(first, last);
+    const core = (half - 1) / 2; // l = 360°, half way along each edge
+    const coreWidth = sep(wide[core] ?? [0, 0], wide[half + core] ?? [0, 0]);
+    expect(anticentreWidth).toBeCloseTo(10, 0);
+    expect(coreWidth).toBeCloseTo(10 + 2 * MILKY_WAY_CORE.widenDeg, 0);
   });
 });
 
