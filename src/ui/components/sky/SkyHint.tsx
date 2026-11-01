@@ -78,7 +78,8 @@ export function SkyHint({ view, followKey = null, fit = false }: SkyHintProps) {
   /*
    * R157 (D-981): whether the line, laid out at its natural width, takes more than one row — measured with the mark off,
    * then the mark set, so `width: min-content` (each clause unbroken) cuts the surface to the wider clause. Again on a
-   * resize of the viewport, which is what changes the room; never on the line's own size, which the mark changes.
+   * resize of the viewport, which is what changes the room, and once the fonts are ready; never on the line's own size,
+   * which the mark changes.
    */
   useLayoutEffect(() => {
     const p = ref.current;
@@ -89,8 +90,14 @@ export function SkyHint({ view, followKey = null, fit = false }: SkyHintProps) {
       if (Number.isFinite(row) && row > 0 && p.getBoundingClientRect().height > row * 1.5) p.setAttribute('data-wrapped', '');
     };
     measure();
+    // The stack is the device's own monospace, but a face that arrives late measures differently: again once fonts are in.
+    let live = true;
+    void document.fonts?.ready.then(() => {
+      if (live) measure();
+    });
     window.addEventListener('resize', measure);
     return () => {
+      live = false;
       window.removeEventListener('resize', measure);
     };
   }, [fit, text]);

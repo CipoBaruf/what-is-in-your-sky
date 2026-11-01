@@ -941,9 +941,13 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   /*
    * R157 (FR-PHONE-4, D-965): the head's width, written as `--sky-head-w` on the full layout's root, so the corner
    * readout ends in its ellipsis before it meets the head; by a resize observer and no render, since the head's chip
-   * changes with the clock.
+   * changes with the clock. The observer is held here and let go when the root is: `SkyViewLayout` calls the page's
+   * ref from its own and does not hand back a ref callback's cleanup.
    */
+  const headObserver = useRef<ResizeObserver | null>(null);
   const headRoom = useCallback((root: HTMLDivElement | null) => {
+    headObserver.current?.disconnect();
+    headObserver.current = null;
     if (!root || typeof ResizeObserver === 'undefined') return;
     const head = document.querySelector<HTMLElement>('[data-testid="live-head"]');
     if (!head) return;
@@ -953,10 +957,15 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     write();
     const observer = new ResizeObserver(write);
     observer.observe(head);
-    return () => {
-      observer.disconnect();
-    };
+    headObserver.current = observer;
   }, []);
+  useEffect(
+    () => () => {
+      headObserver.current?.disconnect();
+      headObserver.current = null;
+    },
+    [],
+  );
   const facingLabelId = useId();
   const facingPickerId = useId();
   const hasPicker = hintView !== 'dome';

@@ -8,8 +8,6 @@ export interface FollowControlProps {
   on: boolean;
   /** The page's state setter, the one `FollowToggle` calls: `true` after a grant, `false` when turned off. */
   onChange: (on: boolean) => void;
-  /** Placement only (D-704). */
-  className?: string | undefined;
 }
 
 /**
@@ -24,7 +22,7 @@ export interface FollowControlProps {
  * how to allow it (FR-GYRO-3) — nothing is drawn over the sky for it (FR-GYRO-5). Turning it off asks nothing.
  * R159 moves the state into `useFollow`; this control's props are what it hands on.
  */
-export function FollowControl({ on, onChange, className }: FollowControlProps) {
+export function FollowControl({ on, onChange }: FollowControlProps) {
   const t = useT();
   if (!orientationApiPresent()) return null;
   const press = (): void => {
@@ -37,5 +35,5 @@ export function FollowControl({ on, onChange, className }: FollowControlProps) {
       if (answer === 'granted') onChange(true);
     });
   };
-  return <TextButton label={t.sheet.follow} pressed={on} onClick={press} className={['target', className].filter(Boolean).join(' ')} data-testid="live-follow-control" />;
+  return <TextButton label={t.sheet.follow} pressed={on} onClick={press} className="target" data-testid="live-follow-control" />;
 }

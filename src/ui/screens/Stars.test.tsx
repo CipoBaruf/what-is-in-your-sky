@@ -339,6 +339,22 @@ describe('the label hold (FR-STAR-7)', () => {
  * asks inside the gesture and, granted, this page's own window takes the sensor; off, the hand has it back. The sky
  * screen's stars inventory (R117) is gone with the screen.
  */
+/** R157 (FR-PHONE-6): a Screen Wake Lock whose requests and releases the test can count. */
+function stubWakeLock(): { request: ReturnType<typeof vi.fn>; released: () => number } {
+  let released = 0;
+  const request = vi.fn(() =>
+    Promise.resolve({
+      release: () => {
+        released += 1;
+        return Promise.resolve();
+      },
+      addEventListener: () => undefined,
+    }),
+  );
+  Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
+  return { request, released: () => released };
+}
+
 describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6)', () => {
   const withPhone = (requestPermission?: () => Promise<'granted' | 'denied'>): void => {
     vi.stubGlobal(
@@ -410,5 +426,24 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     expect(w()).not.toHaveAttribute('data-follow');
     expect(w()).toHaveAttribute('data-state', 'hand');
     expect(screen.getByTestId('window-readout')).toBeInTheDocument();
+  });
+
+  it('holds the screen awake while following and lets it go when following ends (FR-PHONE-6, D-967)', async () => {
+    const lock = stubWakeLock();
+    withPhone(() => Promise.resolve('granted'));
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    page();
+    await flush();
+    expect(lock.request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('follow-toggle'));
+    await flush();
+    expect(lock.request).toHaveBeenCalledTimes(1);
+    expect(lock.request).toHaveBeenCalledWith('screen');
+    fireEvent.click(screen.getByTestId('follow-toggle'));
+    await flush();
+    expect(lock.released()).toBe(1);
+    expect(lock.request).toHaveBeenCalledTimes(1);
+    Reflect.deleteProperty(navigator, 'wakeLock');
   });
 });
