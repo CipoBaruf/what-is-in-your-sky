@@ -1,0 +1,23 @@
+/* R159 (FR-GYRO-3, D-987): the refusal's line for the overlay's `[ follow ]`. The bottom row stands on the box's bottom
+   edge and is the line's containing block (`position: absolute`), so the line takes the row above it, at the row's
+   right end — the box's right margin — as wide as the box less its two margins, broken balanced rather than cut. The
+   overlay surface is painted behind each row of words and not the block (`.rows`, cloned per row), so the line covers
+   its words and no more of the sky: FR-FULL-3's share holds with it in both languages. Not a control: the pointer goes
+   through it to the sky. */
+.refused {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: 100%;
+  inline-size: max-content;
+  max-inline-size: calc(100vw - 2 * var(--space-3) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  margin: 0;
+  text-align: end;
+  text-wrap: balance;
+  pointer-events: none;
+}
+
+.rows {
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  box-decoration-break: clone;
+}

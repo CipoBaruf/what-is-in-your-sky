@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
@@ -26,11 +26,11 @@ import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
-import { orientationApiPresent } from '../components/live/compassHeading';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { FollowToggle } from '../components/sky/FollowToggle';
+import { useFollow } from '../components/sky/useFollow';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
@@ -153,19 +153,18 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   }, [starSource, pass, lat, lon, locale]);
   /*
    * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this guide's window follows the phone — page
-   * state, off on every open and never saved. The toggle turns it on after the grant, in the `action` slot where
+   * state, the page's `useFollow()` (R159, FR-PHONE-1, FR-PHONE-2, D-962): on at mount where nothing has to be asked,
+   * armed by a saved grant so the first touch on the sky asks (`onFirstTouch`), off otherwise. The toggle turns it on after the grant, in the `action` slot where
    * `[ hold up to the sky ]` stood (FR-FLOW-8's primary action); the window turns it off when a drag or a box key
    * takes the sky back (`onFollowEnd`). Drawn only where the sensor is (FR-WIN-4's presence test, asked once at
    * mount). R66's sky screen over the sheet is gone (FR-GYRO-6, D-945).
    */
-  const [following, setFollowing] = useState(false);
-  const endFollow = useCallback(() => {
-    setFollowing(false);
-  }, []);
+  const follow = useFollow();
+  const following = follow.on;
+  const sensor = follow.sensor;
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
   useWakeLock(following);
-  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
-  const action = sensor ? <FollowToggle on={following} onChange={setFollowing} className={styles.follow} /> : null;
+  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
   // Focus in on open, back to the opener on close. Once, on open: crossing
   // the breakpoint swaps the shell around the same guide and must not take
   // the reader's focus away from wherever they had put it. R50 (F-8): a
@@ -236,7 +235,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       chartHand={chartHand}
       facingOptions={PEAK_FACING_OPTIONS}
       follow={following}
-      onFollowEnd={endFollow}
+      onFollowEnd={follow.onFollowEnd}
       legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
     />
   );
@@ -257,6 +256,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   );
   const layout = (answer: ReactNode, wide: 'rail' | 'panel') => (
     <SkyViewLayout
+      onFirstTouch={follow.firstTouch}
       wide={wide}
       describedBy={proseId}
       labelledBy={headingId}
