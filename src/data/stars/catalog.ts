@@ -6,7 +6,7 @@ import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from './constellations
  * FR-STAR-1 (R112, D-748): the star catalogue, read once from the committed
  * build output `catalog.json` (`npm run build:stars`) and handed out as typed
  * arrays in catalogue order — brightest first. Star `i` is `ra[i]`, `dec[i]`,
- * `mag[i]`, `name[i]`, `nameEs[i]`, `desig[i]`, `con[i]`; a figure's segments
+ * `mag[i]`, `bv[i]`, `name[i]`, `nameEs[i]`, `desig[i]`, `con[i]`; a figure's segments
  * are pairs of those indices.
  *
  * Positions are J2000 degrees with no proper motion; `lib/skyStars.ts` turns
@@ -22,6 +22,8 @@ interface CatalogFile {
   ra: number[];
   dec: number[];
   mag: number[];
+  /** B−V in tenths (R154, D-973). */
+  bv: number[];
   name: string[];
   nameEs: string[];
   desig: string[];
@@ -47,8 +49,8 @@ const sameKeys = (table: Readonly<Record<string, unknown>>, latin: Readonly<Reco
   return Object.keys(table).length === keys.length && keys.every((k) => Object.hasOwn(table, k));
 };
 const catalogSchema = z
-  .object({ ra: column, dec: column, mag: column, name: column, nameEs: column, desig: column, con: column, figures: column, figuresEs: z.record(z.string(), names), wholeEs: z.record(z.string(), z.string()) })
-  .refine((c) => [c.dec, c.mag, c.name, c.nameEs, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star')
+  .object({ ra: column, dec: column, mag: column, bv: column, name: column, nameEs: column, desig: column, con: column, figures: column, figuresEs: z.record(z.string(), names), wholeEs: z.record(z.string(), z.string()) })
+  .refine((c) => [c.dec, c.mag, c.bv, c.name, c.nameEs, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star')
   .refine((c) => sameKeys(c.figuresEs, CONSTELLATION_NAMES) && Object.entries(CONSTELLATION_NAMES).every(([con, latin]) => c.figuresEs[con]?.length === latin.length), 'figuresEs names every part CONSTELLATION_NAMES does')
   .refine((c) => sameKeys(c.wholeEs, CONSTELLATION_WHOLE_NAMES) && Object.values(c.wholeEs).every((n) => n !== ''), 'wholeEs names every whole CONSTELLATION_WHOLE_NAMES does');
 
@@ -68,6 +70,8 @@ export interface StarCatalog {
   dec: Float64Array;
   /** Visual magnitude. */
   mag: Float32Array;
+  /** B−V colour index to 0.1, 0.2 (white) where the Yale record has none (R154, FR-LOOK-5, D-977). */
+  bv: Float32Array;
   /** IAU proper name, or `''`. */
   name: readonly string[];
   /** Spanish name where `names-es.tsv` has one, or `''` (D-832). */
@@ -92,6 +96,7 @@ export function parseStarCatalog(json: unknown): StarCatalog {
     ra: Float64Array.from(c.ra),
     dec: Float64Array.from(c.dec),
     mag: Float32Array.from(c.mag),
+    bv: Float32Array.from(c.bv, (tenths) => tenths / 10),
     name: Object.freeze(c.name),
     nameEs: Object.freeze(c.nameEs),
     desig: Object.freeze(c.desig),
