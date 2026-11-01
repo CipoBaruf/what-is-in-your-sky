@@ -17,18 +17,30 @@
  *
  * Positions are J2000 with no proper motion, as the fixtures were captured
  * (`tests/fixtures/stars/README.md`).
+ *
+ * R154 (FR-LOOK-3, FR-LOOK-5, FR-LOOK-8, PLAN D-973, D-977): two more files
+ * beside it, from the same run. `catalog.json` gains `bv`, the B−V colour
+ * index in tenths. `deep.json` is every other Yale star to `DEEP_MAG_LIMIT` —
+ * the stars fainter than `STAR_MAG_LIMIT` that `catalog.json` does not already
+ * hold as a figure's endpoint, so the two files hold each star once — as
+ * integer columns, brightest first. `milkyWay.json` is the outline of the
+ * galactic plane: one closed ring per half-width of `MILKY_WAY_BANDS_DEG`,
+ * converted to J2000 once from the IAU 1958 pole and node below, from no
+ * image. The test asserts all three byte for byte.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { Constellation } from 'astronomy-engine';
-import { STAR_MAG_LIMIT } from '../src/data/stars/constants';
+import { DEEP_MAG_LIMIT, MILKY_WAY_BANDS_DEG, STAR_MAG_LIMIT } from '../src/data/stars/constants';
 import { CONSTELLATION_NAMES } from '../src/data/stars/constellations';
 import { angularDistanceDeg } from '../src/lib/skyGeometry';
 
 const SRC = fileURLToPath(new URL('../data-src/stars/', import.meta.url));
 const OUT = fileURLToPath(new URL('../src/data/stars/catalog.json', import.meta.url));
+const DEEP_OUT = fileURLToPath(new URL('../src/data/stars/deep.json', import.meta.url));
+const MILKY_WAY_OUT = fileURLToPath(new URL('../src/data/stars/milkyWay.json', import.meta.url));
 
 /**
  * The farthest a figure's point may sit from the star it snaps to, degrees.
@@ -44,6 +56,8 @@ interface BscRecord {
   ra: number;
   dec: number;
   mag: number;
+  /** B−V in tenths, or `null` where the record leaves it blank. */
+  bv: number | null;
   desig: string;
   con: string;
 }
@@ -60,6 +74,8 @@ export interface CatalogOut {
   ra: number[];
   dec: number[];
   mag: number[];
+  /** B−V in tenths, `BV_BLANK` where the record has none (D-973, D-977). */
+  bv: number[];
   name: string[];
   /** The Spanish name where `names-es.tsv` has a row for the star, else `''` (D-832). */
   nameEs: string[];
@@ -130,6 +146,29 @@ export function parseNamesEs(text: string, starNames: readonly string[]): NamesE
   return { stars, figures: ordered, whole };
 }
 
+/**
+ * `deep.json`'s shape (D-973): integers, `ra` and `dec` in 0.01°, `mag` and
+ * `bv` in 0.1, sorted by magnitude so a prefix is the brightest n.
+ */
+export interface DeepOut {
+  ra: number[];
+  dec: number[];
+  mag: number[];
+  bv: number[];
+}
+
+/** `milkyWay.json`'s shape (D-973): one closed ring of `[ra, dec]` degrees per band, outermost first. */
+export interface MilkyWayOut {
+  bands: [number, number][][];
+}
+
+/**
+ * The B−V written for a record that leaves it blank, in tenths: 0.2, the
+ * middle of `BV_TONES`' white row, because FR-LOOK-5 draws a star with no
+ * index white. The task's 0.6 would draw it yellow-white (D-977).
+ */
+export const BV_BLANK = 2;
+
 export interface BuildReport {
   records: number;
   stars: number;
@@ -148,6 +187,12 @@ export interface BuildReport {
   duplicateSegments: number;
   /** Widest distance from a figure's endpoint to the star it snapped to, degrees. */
   worstSnapDeg: number;
+  /** Stars in `catalog.json` whose record has no B−V, written as `BV_BLANK`. */
+  bvBlank: number;
+  /** Stars in `deep.json`. */
+  deepStars: number;
+  /** Stars in `deep.json` whose record has no B−V, written as `BV_BLANK`. */
+  deepBvBlank: number;
 }
 
 /** Great-circle separation of two RA/Dec points, degrees (the dome's helper: RA as azimuth, Dec as elevation). */
@@ -157,7 +202,8 @@ const separationDeg = (ra1: number, dec1: number, ra2: number, dec2: number): nu
 /**
  * The Yale catalogue's fixed-width records (CDS V/50 `ReadMe`: bytes 1-4 HR,
  * 5-7 Flamsteed, 8-11 Bayer, 12-14 constellation, 26-31 HD, 76-90 the J2000
- * position, 103-107 V). The 14 records with no position are skipped.
+ * position, 103-107 V, 110-114 B−V). The 14 records with no position are
+ * skipped. B−V is read in hundredths and kept in tenths (D-973).
  */
 function parseBsc(text: string): BscRecord[] {
   const out: BscRecord[] = [];
@@ -166,6 +212,8 @@ function parseBsc(text: string): BscRecord[] {
     const mag = Number.parseFloat(line.slice(102, 107));
     if (!Number.isFinite(mag)) continue;
     const hr = Number(line.slice(0, 4));
+    const bvText = line.slice(109, 114).trim();
+    const bv = bvText === '' ? null : tenths(Number.parseFloat(bvText));
     const ra = (Number(line.slice(75, 77)) + Number(line.slice(77, 79)) / 60 + Number(line.slice(79, 83)) / 3600) * 15;
     const sign = line[83] === '-' ? -1 : 1;
     const dec = sign * (Number(line.slice(84, 86)) + Number(line.slice(86, 88)) / 60 + Number(line.slice(88, 90)) / 3600);
@@ -175,7 +223,7 @@ function parseBsc(text: string): BscRecord[] {
     // read off the IAU boundaries, which agree with every one the catalogue does name.
     const con = line.slice(11, 14).trim() || Constellation(ra / 15, dec).symbol;
     const desig = bayer !== '' ? `${bayer} ${con}` : flamsteed !== '' ? `${flamsteed} ${con}` : `HR ${String(hr)}`;
-    out.push({ hr, hd: Number(line.slice(25, 31)), ra, dec, mag, desig, con });
+    out.push({ hr, hd: Number(line.slice(25, 31)), ra, dec, mag, bv, desig, con });
   }
   return out;
 }
@@ -206,6 +254,9 @@ interface LinesFile {
 
 const round = (n: number, places: number): number => Math.round(n * 10 ** places) / 10 ** places;
 
+/** A value the Yale file gives to 0.01, in integer tenths, half up and never −0 (D-973). */
+const tenths = (n: number): number => Math.round(Math.round(n * 100) / 10) + 0;
+
 /** The catalogue from the three sources' text. Pure, so the test can run it into memory. */
 export function buildCatalog(
   bscText: string,
@@ -213,7 +264,8 @@ export function buildCatalog(
   linesJson: string,
   namesEsText: string,
   magLimit = STAR_MAG_LIMIT,
-): { catalog: CatalogOut; report: BuildReport } {
+  deepLimit = DEEP_MAG_LIMIT,
+): { catalog: CatalogOut; deep: DeepOut; report: BuildReport } {
   const records = parseBsc(bscText);
   const { names, collisions: nameCollisions } = parseIauNames(iauText);
   const lines = JSON.parse(linesJson) as LinesFile;
@@ -325,6 +377,7 @@ export function buildCatalog(
     ra: kept.map(({ r }) => round(r.ra, 3)),
     dec: kept.map(({ r }) => round(r.dec, 3)),
     mag: kept.map(({ r }) => round(r.mag, 2)),
+    bv: kept.map(({ r }) => r.bv ?? BV_BLANK),
     name: nameColumn,
     nameEs: nameColumn.map((n) => es.stars.get(n) ?? ''),
     desig: kept.map(({ r }) => r.desig),
@@ -334,8 +387,26 @@ export function buildCatalog(
     wholeEs: es.whole,
   };
 
+  // The deep stars: every record past the limit to `deepLimit` that the catalogue does not already hold
+  // (a figure's endpoint), in the catalogue's order — by magnitude, equal ones in HR order (D-977).
+  const deepRecords = records
+    .filter((r, i) => r.mag > magLimit && r.mag <= deepLimit && !indexOf.has(i))
+    .sort((a, b) => a.mag - b.mag);
+  const centi = (deg: number, wrap: number): number => {
+    const n = Math.round(deg * 100);
+    return wrap > 0 ? n % wrap : n;
+  };
+  const deep: DeepOut = {
+    ra: deepRecords.map((r) => centi(r.ra, 36_000)),
+    dec: deepRecords.map((r) => centi(r.dec, 0)),
+    // 4.51–4.54 would round to 4.5, the bright limit itself; they are written 4.6 so every deep star stays past it (D-977).
+    mag: deepRecords.map((r) => Math.max(tenths(r.mag), tenths(magLimit) + 1)),
+    bv: deepRecords.map((r) => r.bv ?? BV_BLANK),
+  };
+
   return {
     catalog,
+    deep,
     report: {
       records: records.length,
       stars: kept.length,
@@ -349,32 +420,103 @@ export function buildCatalog(
       namesCarried,
       duplicateSegments,
       worstSnapDeg,
+      bvBlank: kept.filter(({ r }) => r.bv === null).length,
+      deepStars: deepRecords.length,
+      deepBvBlank: deepRecords.filter((r) => r.bv === null).length,
     },
   };
 }
 
+/**
+ * The IAU 1958 galactic frame in J2000 (Blaauw et al. 1960, precessed): the
+ * north galactic pole's right ascension and declination, and the galactic
+ * longitude of the north celestial pole, degrees.
+ */
+export const GALACTIC_POLE = { raDeg: 192.85948, decDeg: 27.12825, lNcpDeg: 122.93192 } as const;
+
+/**
+ * The outline's longitude step, degrees. FR-LOOK-3 asks for 3° and for about
+ * 360 points in all at ≤ 2 KB gzipped; three bands of two edges at 3° are 726
+ * points and 3.4 KB, so the step is 6° — 366 points, 1.7 KB — and the two
+ * numbers the file is pinned by hold (D-977).
+ */
+export const MILKY_WAY_STEP_DEG = 6;
+
+/**
+ * The core's widening: each band's half-width grows by `widenDeg` ×
+ * exp(−(l / `scaleDeg`)²), l the longitude from the galactic centre, so the
+ * bulge at Sagittarius reads widest (FR-LOOK-3).
+ */
+export const MILKY_WAY_CORE = { widenDeg: 3, scaleDeg: 55 } as const;
+
+const RAD = Math.PI / 180;
+
+/** Galactic longitude and latitude to J2000 right ascension and declination, degrees. */
+export function galacticToEquatorial(lDeg: number, bDeg: number): { raDeg: number; decDeg: number } {
+  const { raDeg: raGp, decDeg: decGp, lNcpDeg } = GALACTIC_POLE;
+  const b = bDeg * RAD;
+  const dl = (lNcpDeg - lDeg) * RAD;
+  const sinDec = Math.sin(b) * Math.sin(decGp * RAD) + Math.cos(b) * Math.cos(decGp * RAD) * Math.cos(dl);
+  const y = Math.cos(b) * Math.sin(dl);
+  const x = Math.sin(b) * Math.cos(decGp * RAD) - Math.cos(b) * Math.sin(decGp * RAD) * Math.cos(dl);
+  const ra = (((raGp + Math.atan2(y, x) / RAD) % 360) + 360) % 360;
+  return { raDeg: ra, decDeg: Math.asin(Math.max(-1, Math.min(1, sinDec))) / RAD };
+}
+
+/**
+ * The galactic plane's outline (FR-LOOK-3, D-973): for each half-width, the
+ * band between latitude +b and −b as one closed ring — along +b every
+ * `MILKY_WAY_STEP_DEG` of longitude once round, then back along −b. The ring
+ * starts and ends at the anticentre (l = 180°), the plane's faintest part, so
+ * its seam is a zero-width cut there and not through the core. Points are
+ * written to 0.1°, which the haze does not need finer than.
+ */
+export function buildMilkyWay(bandsDeg: readonly number[] = MILKY_WAY_BANDS_DEG): MilkyWayOut {
+  const steps = 360 / MILKY_WAY_STEP_DEG;
+  const longitudes = Array.from({ length: steps + 1 }, (_, k) => 180 + k * MILKY_WAY_STEP_DEG);
+  const fromCentre = (l: number): number => ((((l + 180) % 360) + 360) % 360) - 180;
+  const point = (l: number, b: number): [number, number] => {
+    const { raDeg, decDeg } = galacticToEquatorial(l, b);
+    return [round(raDeg, 1) % 360, round(decDeg, 1)];
+  };
+  return {
+    bands: bandsDeg.map((half) => {
+      const width = (l: number): number => half + MILKY_WAY_CORE.widenDeg * Math.exp(-((fromCentre(l) / MILKY_WAY_CORE.scaleDeg) ** 2));
+      return [...longitudes.map((l) => point(l, width(l))), ...[...longitudes].reverse().map((l) => point(l, -width(l)))];
+    }),
+  };
+}
+
 /** The file's text: one field per line, so a diff says which column moved. */
-export function serialize(catalog: CatalogOut): string {
+export function serialize(catalog: CatalogOut | DeepOut): string {
   const fields = Object.entries(catalog).map(([key, value]) => `${JSON.stringify(key)}:${JSON.stringify(value)}`);
   return `{\n${fields.join(',\n')}\n}\n`;
 }
 
-/** The catalogue built from `data-src/stars/`, as the file's text and the report. */
-export function buildStars(srcDir = SRC): { text: string; report: BuildReport } {
+/** `milkyWay.json`'s text: one ring per line. */
+export function serializeMilkyWay(milkyWay: MilkyWayOut): string {
+  return `{"bands":[\n${milkyWay.bands.map((ring) => JSON.stringify(ring)).join(',\n')}\n]}\n`;
+}
+
+/** The three files built from `data-src/stars/`, as their text, and the report. */
+export function buildStars(srcDir = SRC): { text: string; deepText: string; milkyWayText: string; report: BuildReport } {
   const bsc = gunzipSync(readFileSync(resolve(srcDir, 'bsc5-catalog.gz'))).toString('latin1');
   const iau = readFileSync(resolve(srcDir, 'iau-csn.txt'), 'utf8');
   const lines = readFileSync(resolve(srcDir, 'd3-celestial-constellations.lines.json'), 'utf8');
   const namesEs = readFileSync(resolve(srcDir, 'names-es.tsv'), 'utf8');
-  const { catalog, report } = buildCatalog(bsc, iau, lines, namesEs);
-  return { text: serialize(catalog), report };
+  const { catalog, deep, report } = buildCatalog(bsc, iau, lines, namesEs);
+  return { text: serialize(catalog), deepText: serialize(deep), milkyWayText: serializeMilkyWay(buildMilkyWay()), report };
 }
 
 /** The gzipped size of the file, bytes, at the level a static host serves. */
 export const gzippedBytes = (text: string): number => gzipSync(text, { level: 9 }).length;
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { text, report } = buildStars();
+  const { text, deepText, milkyWayText, report } = buildStars();
   writeFileSync(OUT, text, 'utf8');
+  writeFileSync(DEEP_OUT, deepText, 'utf8');
+  writeFileSync(MILKY_WAY_OUT, milkyWayText, 'utf8');
+  const points = (JSON.parse(milkyWayText) as MilkyWayOut).bands.reduce((n, ring) => n + ring.length, 0);
   const kb = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
   console.log(
     [
@@ -384,7 +526,14 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(
       `figures: ${String(report.duplicateSegments)} duplicate segments dropped`,
       `names: ${String(report.names)} (${String(report.nameCollisions)} WGSN lines on an HD already named, the first kept; ${String(report.namesCarried)} carried to a double's kept component)`,
       `names-es.tsv: ${String(report.namesEs)} stars with a Spanish name, every figure part and split constellation named`,
+      `bv: ${String(report.bvBlank)} blank, written as ${String(BV_BLANK / 10)}`,
       `size: ${kb(Buffer.byteLength(text))} raw, ${kb(gzippedBytes(text))} gzipped`,
+      `${DEEP_OUT}`,
+      `stars: ${String(report.deepStars)} at ${String(STAR_MAG_LIMIT)} < V ≤ ${String(DEEP_MAG_LIMIT)} not already in the catalogue; bv: ${String(report.deepBvBlank)} blank`,
+      `size: ${kb(Buffer.byteLength(deepText))} raw, ${kb(gzippedBytes(deepText))} gzipped`,
+      `${MILKY_WAY_OUT}`,
+      `rings: ${String(MILKY_WAY_BANDS_DEG.length)}, ${String(points)} points`,
+      `size: ${kb(Buffer.byteLength(milkyWayText))} raw, ${kb(gzippedBytes(milkyWayText))} gzipped`,
     ].join('\n'),
   );
 }
