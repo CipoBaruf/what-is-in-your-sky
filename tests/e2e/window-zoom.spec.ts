@@ -31,7 +31,7 @@ const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', '
 const READOUT = /^Facing [NESW]{1,3} \(\d+°\) · up -?\d+°( · field \d+°)?$/;
 
 /** `sky-window.spec.ts`'s opening: the saved view in the prefs, the elements from the fixtures, the clock paused. */
-async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window' }): Promise<Locator> {
+async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window'; starsLayer?: boolean }): Promise<Locator> {
   await page.setViewportSize(DESK);
   await page.addInitScript(
     ([key, value]: [string, string]) => {
@@ -81,6 +81,21 @@ async function openStars(page: Page): Promise<Locator> {
   await expect(w).toHaveAttribute('data-state', 'hand');
   return w;
 }
+
+/** R155 (FR-LOOK-8 as amended): the two star chunks' requests, in order — `Stars-*.js` (the catalogue) and `deep-*.js` (`stars-deep`, D-976). */
+function watchStarChunks(page: Page): string[] {
+  const seen: string[] = [];
+  page.on('request', (request) => {
+    const name = /\/(Stars|deep)-[^/]*\.js$/.exec(request.url())?.[1];
+    if (name) seen.push(name);
+  });
+  return seen;
+}
+
+/** R155 (FR-LOOK-9): every star the window draws this frame — the bright marks and the deep pool's dots. */
+const drawnStars = (w: Locator): Locator => w.locator('[data-layer="stars"] [data-marks] > [data-star]:not([visibility="hidden"]), [data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
+/** A Bayer or Flamsteed designation, which a star with no proper name is named by at the deeper rows (`Alp Sco`, `61 Cyg`). */
+const DESIGNATION = /^(?:[A-Z][a-z]{2}\d?|\d+) [A-Z][A-Za-z]{2}$|^HR \d+$/;
 
 /** The window's box under the hand: the one `div` with the drag state (the stripe's overview is an `svg` with one too). */
 const box = (w: Locator): Locator => w.locator('div[data-dragging]');
@@ -183,6 +198,32 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
   });
 });
 
+test.describe('the deep chunk on the live page (R155, FR-LOOK-8 as amended)', () => {
+  test.use({ viewport: DESK, hasTouch: false });
+
+  test('with [ ] stars the chunk is never requested; turning the stars on requests it once, after the stars chunk', async ({ page }) => {
+    const chunks = watchStarChunks(page);
+    const w = await openLiveWindow(page, { observer: PARIS, chartView: 'window', starsLayer: false });
+    await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    // The stars chunk is prefetched on idle with the layer off (D-791); the deep one is not, since no field draws stars.
+    await page.clock.runFor(6_000);
+    await expect.poll(() => chunks.filter((name) => name === 'Stars').length).toBe(1);
+    expect(chunks).not.toContain('deep');
+    await page.getByTestId('stars-toggle').click();
+    await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
+    await expect(w.locator('[data-layer="stars"]')).toBeAttached();
+    await page.clock.runFor(6_000);
+    await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
+    expect(chunks).toEqual(['Stars', 'deep']);
+    // Once per visit: a second field (the dome and back) asks for nothing again.
+    const toggle = page.getByRole('group', { name: 'Chart view' });
+    await toggle.getByRole('button', { name: 'Dome' }).click();
+    await toggle.getByRole('button', { name: 'Window' }).click();
+    await page.clock.runFor(6_000);
+    expect(chunks).toEqual(['Stars', 'deep']);
+  });
+});
+
 test.describe('zoom on the stars page', () => {
   test.use({ viewport: DESK, hasTouch: false });
 
@@ -229,6 +270,40 @@ test.describe('zoom on the stars page', () => {
 
 test.describe('zoom on a compact page without a sensor', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /**
+   * R155 (FR-LOOK-8 as amended, FR-LOOK-9; US-47 AC5): detail follows the field. At 60° the window draws the
+   * bright catalogue and the deep stars to 5.3; a pinch to 20° draws to 6.5 and names to 3.2, so a designation
+   * stands beside a star with no proper name. The deep chunk is requested once, after the stars chunk.
+   */
+  test('a pinch from 60° to 20° brings in the deep stars and names a designation, with the deep chunk requested once after stars', async ({ page }) => {
+    const chunks = watchStarChunks(page);
+    const w = await openStars(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(w).toHaveAttribute('data-fov', '60');
+    // Turned to SW 35° up, where Ara's three bright stars with no proper name stand on the fixture night (Alp, Bet and Zet Ara, V 2.8–3.1).
+    await box(w).focus();
+    for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
+    await expect(w).toHaveAttribute('data-look-az', '225');
+    await expect(w).toHaveAttribute('data-look-alt', '35');
+    await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
+    expect(chunks).toEqual(['Stars', 'deep']);
+    const deep = w.locator('[data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
+    await expect.poll(() => deep.count()).toBeGreaterThan(0);
+    const at60 = await drawnStars(w).count();
+    const deepAt60 = await deep.count();
+    const names60 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
+    expect(names60.filter((name) => DESIGNATION.test(name))).toEqual([]);
+    await pinch(box(w), 40, 120);
+    await expect(w).toHaveAttribute('data-fov', '20');
+    const at20 = await drawnStars(w).count();
+    const deepAt20 = await deep.count();
+    expect(deepAt20).toBeGreaterThan(0);
+    const names20 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
+    console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
+    expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
+    expect(chunks).toEqual(['Stars', 'deep']);
+  });
 
   test('the pinch narrows the stars page’s box on a phone-sized window', async ({ page }) => {
     const w = await openStars(page);

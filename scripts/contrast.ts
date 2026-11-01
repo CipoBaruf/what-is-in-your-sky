@@ -7,6 +7,7 @@
  * numbers cannot drift. Run: `npx tsx scripts/contrast.ts`.
  */
 import { readFileSync } from 'node:fs';
+import { HORIZON_STRENGTH } from '../src/data/stars/constants';
 
 export const TOKENS_PATH = 'src/ui/styles/tokens.css';
 export const TEXT_TOKENS = ['fg', 'fg-dim', 'accent', 'danger', 'ok', 'warn'] as const;
@@ -60,6 +61,27 @@ export const CHART_TEXT_TOKENS = ['chart-figure-name'] as const;
  * dome palette names every other chart mark and none of these.
  */
 export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-figure', 'chart-planet'] as const;
+/**
+ * FR-DS-8 as amended v2.10 (R155; FR-LOOK-1, FR-LOOK-2, FR-LOOK-3): the window's
+ * sky surfaces — the night sky, the twilight and the day tints, the horizon
+ * band's glow — and the Milky Way's haze. Surfaces, not marks: the sky sits
+ * barely under the page ground (FR-LOOK-1: `chart-sky-deep` ≤ 1.1 : 1 on
+ * `--bg`) and the rest are drawn at a fraction of their alpha. Listed apart
+ * from the dome's two surfaces, which the dome's palette test ties to its
+ * meanings.
+ */
+export const CHART_SKY_TOKENS = ['chart-sky-deep', 'chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow', 'chart-haze'] as const;
+/**
+ * FR-DS-8 as amended v2.10 (R155; FR-LOOK-5): the three star tones beside
+ * `--chart-star`'s white, from the B−V index. Marks on the sky surface: each
+ * is held ≥ 3 : 1 on `--chart-sky-deep` and on the band's lightest value,
+ * `--chart-horizon-glow` at `HORIZON_STRENGTH` × 0.5 over it (`bandLightest`),
+ * in both themes, and the four together are measured there rather than on
+ * `--bg`, which no star stands on any more.
+ */
+export const CHART_STAR_TONE_TOKENS = ['chart-star-blue', 'chart-star-yellow', 'chart-star-orange'] as const;
+/** FR-LOOK-1: the band's alpha at the horizon, `HORIZON_STRENGTH` × 0.5 (`data/stars/constants.ts`), the lightest value the band reaches. */
+export const BAND_ALPHA_AT_HORIZON = HORIZON_STRENGTH * 0.5;
 
 /** The themes `tokens.css` defines, and the selector each is written under (D-84). */
 export const THEMES = ['dark', 'night'] as const;
@@ -127,6 +149,20 @@ export function readSections(css: string): SheetSection[] {
   const names = sections.map((section) => section.name);
   if (names.join(' ') !== SECTIONS.join(' ')) throw new Error(`${TOKENS_PATH}: sections are ${names.join(', ')}; expected ${SECTIONS.join(', ')}`);
   return sections;
+}
+
+/** `fg` composited over `bg` at `alpha`, as a `#rrggbb`: the lightest value a band or a haze reaches. */
+export function composite(fg: string, bg: string, alpha: number): string {
+  const part = (hex: string, i: number): number => Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+  return `#${[0, 1, 2].map((i) => Math.round(part(fg, i) * alpha + part(bg, i) * (1 - alpha)).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** FR-LOOK-1: the lightest sky a star stands on — the horizon glow at the band's alpha over the deep sky. */
+export function bandLightest(tokens: Map<string, string>): string {
+  const glow = tokens.get('chart-horizon-glow');
+  const deep = tokens.get('chart-sky-deep');
+  if (!glow || !deep) throw new Error(`no --chart-horizon-glow or --chart-sky-deep in ${TOKENS_PATH}`);
+  return composite(glow, deep, BAND_ALPHA_AT_HORIZON);
 }
 
 function channel(c: number): number {
@@ -201,6 +237,12 @@ if (process.argv[1]?.endsWith('contrast.ts')) {
   console.log('\nFR-DS-8 as amended: chart text, on each theme’s --bg (4.5 : 1 is the bar).');
   for (const chart of CHART_TEXT_TOKENS) {
     console.log(row(chart, (theme) => `${get(theme, chart)}  ${contrastRatio(get(theme, chart), get(theme, 'bg')).toFixed(2)} : 1`, ['bg']));
+  }
+
+  console.log('\nFR-LOOK-1, FR-LOOK-5 (v2.10): the sky surfaces on each theme’s --bg, and the four star tones on --chart-sky-deep and on the band’s lightest value (3 : 1 is the bar).');
+  for (const sky of CHART_SKY_TOKENS) console.log(row(sky, (theme) => `${get(theme, sky)}  ${contrastRatio(get(theme, sky), get(theme, 'bg')).toFixed(2)} : 1`, ['bg']));
+  for (const tone of ['chart-star', ...CHART_STAR_TONE_TOKENS]) {
+    console.log(row(tone, (theme) => `${get(theme, tone)}  ${contrastRatio(get(theme, tone), get(theme, 'chart-sky-deep')).toFixed(2)} / ${contrastRatio(get(theme, tone), bandLightest(byTheme.get(theme) ?? new Map())).toFixed(2)} : 1`, ['bg']));
   }
 
   const offHue = [...(byTheme.get('night') ?? [])].filter(([, value]) => !isRedHue(value));

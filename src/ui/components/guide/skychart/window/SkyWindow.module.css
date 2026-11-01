@@ -77,6 +77,38 @@
   stroke: none;
 }
 
+/* R155 (FR-LOOK-1, FR-LOOK-2, FR-LOOK-3; D-974): the sky surface under
+   everything, in the step's tone; the horizon band's strips in the glow, each
+   at its own alpha (an attribute, the strip's own); the haze's three bands in
+   one tone at theirs. */
+.surface {
+  stroke: none;
+}
+
+.surface[data-tint='deep'] {
+  fill: var(--chart-sky-deep);
+}
+
+.surface[data-tint='twilight'] {
+  fill: var(--chart-sky-twilight);
+}
+
+.surface[data-tint='day'] {
+  fill: var(--chart-sky-day);
+}
+
+.band path {
+  fill: var(--chart-horizon-glow);
+  fill-rule: evenodd;
+  stroke: none;
+}
+
+.haze path {
+  fill: var(--chart-haze);
+  fill-rule: evenodd;
+  stroke: none;
+}
+
 .figures line {
   fill: none;
   stroke: var(--chart-figure);
@@ -298,10 +330,16 @@
   stroke-linecap: round;
 }
 
-.moon {
-  fill: none;
+/* R155 (FR-LOOK-7): the Moon's disc — the dark part in the deep sky's tone with a hairline rim, the lit part filled. */
+.moonDark {
+  fill: var(--chart-sky-deep);
   stroke: var(--chart-moon);
-  stroke-width: 2;
+  stroke-width: var(--chart-hairline);
+}
+
+.moonLit {
+  fill: var(--chart-moon);
+  stroke: none;
 }
 
 /* FR-LIVE-6 (R33): an object up but not worth looking for — hollow, thin, dim. */

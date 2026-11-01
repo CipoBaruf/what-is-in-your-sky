@@ -1,6 +1,7 @@
 import { z } from '../zod';
 import catalogJson from './catalog.json';
 import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from './constellations';
+import milkyWayJson from './milkyWay.json';
 
 /**
  * FR-STAR-1 (R112, D-748): the star catalogue, read once from the committed
@@ -85,10 +86,16 @@ export interface StarCatalog {
   figureNames: Readonly<Record<'en' | 'es', Readonly<Record<string, readonly string[]>>>>;
   /** Each language's name of a constellation drawn in more than one part, whole (`Ser`). */
   wholeNames: Readonly<Record<'en' | 'es', Readonly<Record<string, string>>>>;
+  /**
+   * R155 (FR-LOOK-3, D-983): the Milky Way's outline beside the catalogue — `milkyWay.json`'s three closed rings of
+   * `[ra, dec]` in J2000 degrees, outermost first — so it rides with the catalogue into the scene and stays this
+   * chunk's data (FR-LOOK-12), not the window's.
+   */
+  milkyWay: readonly (readonly (readonly number[])[])[];
 }
 
-/** The file's JSON, its shape checked, as typed arrays. */
-export function parseStarCatalog(json: unknown): StarCatalog {
+/** The file's JSON, its shape checked, as typed arrays; the outline is `milkyWay.json`'s unless a test hands one in. */
+export function parseStarCatalog(json: unknown, milkyWay: readonly (readonly (readonly number[])[])[] = milkyWayJson.bands): StarCatalog {
   catalogSchema.parse(json);
   const c = json as CatalogFile;
   return Object.freeze({
@@ -104,6 +111,7 @@ export function parseStarCatalog(json: unknown): StarCatalog {
     figures: Object.freeze(c.figures.map((f) => Object.freeze({ con: f.con, part: f.part, segments: Uint16Array.from(f.segments.flat()) }))),
     figureNames: Object.freeze({ en: CONSTELLATION_NAMES, es: Object.freeze(c.figuresEs) }),
     wholeNames: Object.freeze({ en: CONSTELLATION_WHOLE_NAMES, es: Object.freeze(c.wholeEs) }),
+    milkyWay,
   });
 }
 

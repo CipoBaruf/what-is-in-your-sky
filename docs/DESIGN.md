@@ -132,6 +132,14 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `--chart-planet` | `#f2c27a` | `#ff9a70` | 11.69 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 9.89 : 1 on `--bg` (reserved for the stars, FR-DS-8) | a planet, gold against the stars' white |
 | `--chart-star-faint` | `#626d7a` | `#a24a40` | 3.65 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 3.51 : 1 on `--bg` (reserved for the stars, FR-DS-8) | the faintest rung, V ≤ 4.5 |
 | `--chart-figure-name` | `#7a8591` | `#c4544a` | 5.12 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | 4.61 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | a constellation's name, text |
+| `--chart-sky-deep` | `#06080d` | `#060101` | 1.04 : 1 on `--bg` | 1.01 : 1 on `--bg` | the sky surface at night, 1.04 : 1 on --bg |
+| `--chart-sky-twilight` | `#111826` | `#120505` | 1.08 : 1 on `--bg` | 1.03 : 1 on `--bg` | the surface with the Sun between 0° and −6° |
+| `--chart-sky-day` | `#1a2230` | `#1e0a08` | 1.20 : 1 on `--bg` | 1.08 : 1 on `--bg` | the surface with the Sun up |
+| `--chart-horizon-glow` | `#1c2535` | `#1e0a08` | 1.25 : 1 on `--bg` | 1.08 : 1 on `--bg` | the horizon band, at HORIZON_STRENGTH × 0.5 |
+| `--chart-haze` | `#7f93b0` | `#8a2e26` | 6.13 : 1 on `--bg` | 2.44 : 1 on `--bg` | the Milky Way's haze, at its bands' alphas |
+| `--chart-star-blue` | `#c9d6f7` | `#ffd6ca` | 13.22 : 1 on `--bg` | 15.38 : 1 on `--bg` | a star of B−V < 0.0, blue-white |
+| `--chart-star-yellow` | `#f2eedc` | `#f5a68f` | 16.51 : 1 on `--bg` | 10.50 : 1 on `--bg` | a star of B−V 0.4 to 0.8, yellow-white |
+| `--chart-star-orange` | `#f1c39d` | `#e58f76` | 11.93 : 1 on `--bg` | 8.33 : 1 on `--bg` | a star of B−V ≥ 0.8, orange |
 | `--chart-series-1` | `#8ec5ff` | `#ff5c4a` | 10.60 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 6.73 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
 | `--chart-series-2` | `#ffb86c` | `#ffa07a` | 11.28 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 10.33 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
 | `--chart-series-3` | `#8fd694` | `#e0433a` | 11.18 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 4.92 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |

@@ -15,6 +15,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { pinch } from './windowZoom';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -88,9 +89,16 @@ test.describe.configure({ mode: 'serial' });
 
 // As the dome's and the live page's: a measurement, not a CI gate. A GitHub runner under a 4x throttle draws 7-17 updates/s where a desk machine draws 52 (PR #190's run 40102419274); the number is read on a desk or a phone.
 test.skip(process.env['DOME_PERF'] !== '1', 'measurement, not a gate: run with DOME_PERF=1');
-test.use({ viewport: { width: 390, height: 844 } });
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width under a 4x CPU throttle (FR-STAR-9)', async ({ page }) => {
+/** The window's field across the shorter side, in degrees, as `projection.ts` bounds it: the default and the narrowest (FR-SKY-14). */
+const FIELDS = [
+  { name: 'WINDOW_FOV', fovDeg: 60 },
+  { name: 'WINDOW_FOV_MIN_DEG', fovDeg: 20 },
+] as const;
+
+for (const field of FIELDS) {
+  test(`with every layer on at ${field.name} (${String(field.fovDeg)}°), a drag draws at ≥ 30 updates/s at the phone width under a 4x CPU throttle (FR-STAR-9, FR-LOOK-11)`, async ({ page }) => {
   await openStars(page);
   // Every layer on: the page's default, asserted rather than assumed.
   for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
@@ -98,6 +106,19 @@ test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width u
   await sky.scrollIntoViewIfNeeded();
   const box = await sky.boundingBox();
   if (!box) throw new Error('the drawing has no box');
+  // R155: everything on means the deep stars too — the chunk has landed and the pool holds stars — and the haze's three bands are drawn.
+  // Turned to SW 35° up, as `window-zoom.spec.ts` is, where the 20° field still holds named stars (Ara's) on the fixture night.
+  const w = page.getByTestId('stars-sky').locator('[data-look-az]');
+  await w.locator('div[data-dragging]').focus();
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
+  await expect(w).toHaveAttribute('data-look-az', '225');
+  await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
+  if (field.fovDeg !== 60) {
+    await pinch(sky, 40, (40 * 60) / field.fovDeg);
+    await expect(w).toHaveAttribute('data-fov', String(field.fovDeg));
+  }
+  await expect.poll(() => w.locator('[data-deep-pool] > circle:not([visibility="hidden"])').count()).toBeGreaterThan(0);
+  await expect(w.locator('[data-milky-way] > path').first()).toHaveAttribute('d', /^M/);
   // The names are drawn: a figure's spaced capitals and at least one star's name are in the field.
   await expect(page.locator('[data-figure-name][visibility="visible"]').first()).toBeAttached();
   await expect(page.locator('[data-star-name][visibility="visible"]').first()).toBeAttached();
@@ -120,6 +141,8 @@ test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width u
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   await cdp.detach();
 
-  console.log(`[FR-STAR-9] 390 px, every layer on, ${String(THROTTLE)}x CPU: ${sample.updatesPerSecond.toFixed(1)} updates/s over ${String(sample.frames)} frames, longest frame ${sample.longestFrameGapMs.toFixed(0)} ms`);
+  const deepDrawn = await w.locator('[data-deep-pool] > circle:not([visibility="hidden"])').count();
+  console.log(`[FR-STAR-9] 390 px, every layer on at ${String(field.fovDeg)}° (${String(deepDrawn)} deep stars drawn), ${String(THROTTLE)}x CPU: ${sample.updatesPerSecond.toFixed(1)} updates/s over ${String(sample.frames)} frames, longest frame ${sample.longestFrameGapMs.toFixed(0)} ms`);
   expect(sample.updatesPerSecond).toBeGreaterThanOrEqual(TARGET_PER_SECOND);
-});
+  });
+}
