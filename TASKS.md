@@ -46,6 +46,8 @@
 | Scope (v2.8) | Spec Phase 2q "the full sky": **R146–R149** in the `## v2.8 tasks` block below, four tasks in three waves of two, one and one, lanes `data`, `ui`, `live` and `docs`, `fable` on R148 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Inputs (v2.9) | `SPEC.md` v2.9, `PLAN.md` v0.17 (Decision Log V29-1..V29-9 and Decisions D-941..D-952, with §16.28 treated as fixed) |
 | Scope (v2.9) | Spec Phase 2r "follow the phone": **R150–R153** in the `## v2.9 tasks` block below, four tasks in three waves of two, one and one, lanes `live`, `window` and `docs`, `fable` on R152 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
+| Inputs (v2.10) | `SPEC.md` v2.10, `PLAN.md` v0.18 (Decision Log V210-1..V210-11 and Decisions D-962..D-975, with §16.29 treated as fixed) |
+| Scope (v2.10) | Spec Phase 2s "the phone first": **R154–R161** in the `## v2.10 tasks` block below, eight tasks in five waves of three, two, one, one and one, lanes `data`, `ui`, `live`, `window`, `chart` and `docs`, `fable` on R155 and R160 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; the waves built around the account's limits (D-975); no tag |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -4385,3 +4387,216 @@ What every session reads, named in each task as "the phase set": SPEC §4.51 who
 | FR-GYRO-11 | R150 |
 
 Waves (for the sanity check): **wave 1** R150 (live) + R151 (window) — **wave 2** R152 (live) — **wave 3** R153 (docs). R150 and R151 share no file.
+
+## v2.10 tasks
+
+Draft, cut 2026-11-01 from `SPEC.md` v2.10 and `PLAN.md` v0.18. Spec Phase 2s, "the phone first": on a phone the page's own sky follows the phone by default — from the first reading where no permission is needed, and from a saved grant asked inside the first touch on iOS — with `[ follow ]` beside `[ controls ]` and the facing readout on the sky while the finger has it; the whole sky with every star is one tap or one pinch away on every page that draws stars, the polar chart drawing the figures and the names with the window's field outlined on it; the home's doors come first, the pass detail's times are one row, the theme can follow the dark; and the window's sky is drawn with a surface, a horizon band, a twilight tint, the Milky Way as a haze, `*` to magnitude 2.5 and dots below it, four tones from B−V, a bloom, the Moon's phase, and detail that follows the field from a second catalogue chunk (FR-PHONE-1..16, FR-LOOK-1..12, US-45..US-48, V210-1..V210-11). The phase ends with `2.10.0` on `main`; the tag and the deploy are the owner's.
+
+Delivery is PLAN §16 with §16.29: eight tasks in five waves of three, two, one, one and one, `Model: fable` on R155 and R160 and `opus` on the rest, every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto` — every pull request merges itself on CI green and a clean review, with no owner gate in the phase. The waves are built around the account's limits (D-975): no wave holds more than one `fable` task and a wave with one holds at most two tasks; the driver's wait-and-resume is on and nothing is started with `--no-wait`; the owner reads `/usage` before wave 2 and wave 4, and a task the weekly Fable limit stops is finished on `opus` by `--task <id> --model opus`.
+
+Decision block (§16.2), reserved in PLAN §16.29: **R154 D-976..D-977, R156 D-978..D-979, R157 D-980..D-981, R155 D-982..D-985, R159 D-986..D-987, R158 D-988..D-989, R160 D-990..D-992, R161 D-993..D-994**. D-962..D-975 are the plan's.
+
+What every session reads, named in each task as "the phase set": SPEC §4.52 and §4.53 whole (FR-PHONE-1..16, FR-LOOK-1..12 and their constants tables), US-45..US-48, §9 Phase 2s, §12 V210-1..V210-11; SPEC §4.51 (FR-GYRO-*, as amended), §4.47 (FR-SKY-1, FR-SKY-4, FR-SKY-14 as amended) and §4.46 (FR-STAR-1, FR-STAR-6, FR-STAR-9 as amended) for what moves; PLAN §2.45, §2.46, §9.12 and §16.29; `docs/DESIGN.md` for the tokens and the primitives by name.
+
+### Wave 1
+
+- [ ] **R154 — The data: `bv` in the catalogue, `deep.json` and `milkyWay.json` from the build step, `deepChunk.ts`, `fieldDetail.ts`, the look's constants**
+  - **Lane:** data
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); SPEC FR-STAR-1, FR-STAR-9, FR-OFF-1, FR-THEME-1 as amended; PLAN D-748, D-749, D-759, D-962, D-972, D-973, D-974 (the constants and `fieldDetail`), §5's v2.10 additions, §11's v0.18 note; `scripts/build-stars.ts`; `data-src/stars/{bsc5-ReadMe.txt,README.md}`; `src/data/stars/{catalog.json,constants.ts}`; `src/ui/screens/starsChunk.ts` (the lazy-import shape); `tests/data/starCatalog.test.ts`; `scripts/bundle-budget.ts`; `vite.config.ts` (the precache comment).
+  - **Goal:** everything the drawings and the pages of this phase read is built, committed, pinned and budgeted, with no drawing changed: a reader sees nothing new yet, and `npm run build:stars` produces the three files byte for byte.
+  - **Satisfies:** FR-LOOK-8 (the file, the chunk, the budget row); FR-LOOK-3 (the outline file); FR-LOOK-5 (the `bv` column); FR-LOOK-9 (`fieldDetail.ts`, pure); FR-LOOK-10 (the constants module); FR-STAR-1 and FR-STAR-9 as amended.
+  - **Scope (PLAN D-962, D-972, D-973, D-974):** `build-stars.ts` reads B−V from the Yale records (bytes 110–114, 0.6 where blank, written to 0.1) into `catalog.json`'s new `bv` column, writes `deep.json` (every Yale star with 4.5 < V ≤ `DEEP_MAG_LIMIT` as integer columns `ra`, `dec` in 0.01°, `mag`, `bv` in 0.1, sorted by magnitude) and `milkyWay.json` (three closed rings of `[ra, dec]` at `MILKY_WAY_BANDS_DEG` with the core widening, from the IAU 1958 pole and node written in the script, ≤ 2 KB gzipped); `src/data/stars/deepChunk.ts` lazy-imports `deep.json` so Rollup emits `stars-deep-*.js`; `fieldDetail.ts` returns the `FIELD_DETAIL_STEPS` row for a `fov`; the look's constants (`DEEP_MAG_LIMIT`, `FIELD_DETAIL_STEPS`, `DEEP_NODE_POOL`, `STAR_DOT_MAG`, `DOT_RADIUS_PX`, `STAR_SIZES_PX`, `BV_TONES`, `BLOOM_MAG`, `BLOOM_RADIUS_PX`, the three strengths, `HORIZON_BAND_DEG`, `MILKY_WAY_BANDS_DEG`, `MOON_DISC_PX`) in `data/stars/constants.ts`, each with its rationale comment (the phase's five other constants live beside their one reader: `HINT_TOUCH_CLAUSES` with `hintFitsBeside` in R157, `DETAIL_TIMES_CELLS` and `THEME_AUTO_SUN_DEG` in R156, `FOLLOW_DEFAULT` in R159, `PINCH_HANDOFF_RATIO` in R160 — so no two wave-1 tasks name one file); `starCatalog.test.ts` pins the three files' counts and sizes; `bundle-budget.ts` gains the `stars-deep` row at `DEEP_BUDGET_KB`.
+  - **Touches outside the lane:** `scripts/bundle-budget.ts` (the one row).
+  - **Out of scope:** any drawing (R155, R158); any page (R156, R157, R159, R160); the prefs fields (`theme: 'auto'` is R156's, `followGranted` R159's); the settings page and `resolveTheme` (R156); the release (R161).
+  - **Done when:**
+    - `npm run build:stars` is a no-op on the committed files; `tests/data/starCatalog.test.ts`, `fieldDetail.test.ts` and `tests/docs` pass.
+    - `npm run build && npm run bundle:budget` prints the `stars-deep` row under `DEEP_BUDGET_KB` and no other row moved.
+    - The Done note gives the three files' star or point counts and gzipped sizes, and the `bv` column's blank count.
+    - `npm test`, lint, typecheck and `npm run check:dead` green.
+
+- [ ] **R156 — The pages: the home's doors first and the folded line, the third door renamed, the pass detail's times on one row, the theme by the clock**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); SPEC FR-FLOW-1, FR-FLOW-2, FR-FLOW-7, FR-SET-1, FR-THEME-1, FR-NIGHT-4 as amended, FR-X-2 (why the footer stays); PLAN D-843, D-849, D-536, D-972; `src/ui/screens/Home.tsx`; `src/ui/screens/home/{doorLines.ts,doorLines.test.ts,HomeDoors.tsx,HomeDoors.test.tsx}`; `src/ui/components/location/WherePlace.{tsx,test.tsx}`; `src/ui/components/guide/TimesRow.{tsx,module.css}`; `src/ui/screens/PassDetail.tsx` (the head); `src/lib/format.ts`; `src/ui/styles/theme.ts`; `src/ui/Shell.tsx`; `src/ui/screens/Settings.tsx`; `src/model/prefs.ts`; `src/state/slices/prefs.{ts,test.ts}`; `src/i18n/{en,es}/{ui,chart,home}.ts`; `tests/styles/controlRows.test.ts`; `tests/e2e/{settings,sky-layout,rhythm,targets}.spec.ts`.
+  - **Goal:** at 390 × 844 the home opens on its three doors with a ready Where folded under them, the third door reads "Live sky", the pass detail's chart is on the first screen at 390 × 667 with its times on one row, and a reader who picks Auto sees the app turn red at civil dusk without a reload.
+  - **Satisfies:** FR-PHONE-12, FR-PHONE-13, FR-PHONE-14, FR-PHONE-15; FR-FLOW-1, FR-FLOW-2, FR-FLOW-7, FR-SET-1, FR-THEME-1 as amended; US-48 AC1–AC4.
+  - **Scope (PLAN D-972):** `Home.tsx`'s compact order (`HomeDoors` before `WherePlace`); `WherePlace`'s folded second line `[ details ]` alone when ready, the full line on any fault; `doorLines.both` → `doorLines.live` with the two fixed lines and the state line (test id `door-live`); `TimesRow`'s `compact` form from `formatTimesRow(pass, lang)` within `DETAIL_TIMES_CELLS` (declared in `lib/format.ts` beside it, with its rationale), the shadow case, the zone on the head's date line; `Theme` admitting `'auto'` and `THEMES` listing three in `model/prefs.ts`, read and written by the prefs slice; the settings row within 36 cells; `theme.ts`'s `resolveTheme(pref, sunAltDeg | null)` with `THEME_AUTO_SUN_DEG` declared beside it at first paint from the saved observer and on the shell's ten-second tick, writing `data-theme` only on change; the strings in both catalogs; the tests of §9.12's last bullet, `controlRows.test.ts` for the door, the times row and the Theme row.
+  - **Touches outside the lane:** `src/ui/screens/PassDetail.tsx` (the head's date line only), `src/ui/Shell.tsx` (the tick's one call), `src/model/prefs.ts` and `src/state/slices/prefs.*` (the theme's three values only; `followGranted` is R159's, in a later wave), `src/i18n/**`.
+  - **Out of scope:** the live page (R157, R159); the stars page (R160); the whole sky; the captures (R161).
+  - **Done when:**
+    - `HomeDoors.test.tsx`, `doorLines.test.ts`, `WherePlace.test.tsx`, `TimesRow.test.tsx`, `theme.test.ts`, `prefs.test.ts`, `controlRows.test.ts` pass.
+    - `settings.spec.ts` fits at 390 × 844 in Spanish; `sky-layout.spec.ts` asserts the doors' bottom edge ≤ 420 px at 390 × 844 and the detail's drawing top ≤ 480 px at 390 × 667, both languages; `rhythm` and `targets` green.
+    - The Done note gives the door's and the times row's cell counts in both languages and the theme's two sides of `THEME_AUTO_SUN_DEG`.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+- [ ] **R157 — The overlay: `FollowControl` beside `[ controls ]`, the corner readout slot, the touch hint, `hintFitsBeside` over labels, the wake lock on two pages, the compact live captures marked touch**
+  - **Lane:** live
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); SPEC FR-FULL-2, FR-FULL-3, FR-FLOW-5, FR-FLOW-6, FR-TONIGHT-6, FR-LIVE-7, FR-GYRO-5 as amended, FR-CAP-5; PLAN D-920, D-924, D-848, D-943, D-957, D-960, D-964..D-967; `src/ui/screens/{Live.tsx,Live.module.css,Live.test.tsx,liveRows.ts}`; `src/ui/components/sky/{SkyViewLayout.*,SkyHint.*,FollowToggle.tsx}`; `src/ui/components/live/useWakeLock.ts`; `src/ui/screens/{Stars,PassDetail}.tsx`; `src/lib/layout.ts` (`hintFitsBeside`); `src/i18n/{en,es}/{sheet,window}.ts`; `tests/styles/sheetRows.test.ts`; `tests/e2e/{captureSet.ts,live-full.spec.ts,targets.spec.ts}`; `docs/DESIGN.md` (`TextButton`'s `pressed`).
+  - **Goal:** on the compact live page `[ follow ]` stands beside `[ controls ]` and agrees with the sheet's toggle, the facing readout is in the box's corner while the finger has the sky, the hint reads whole at 360 and 390 px on a touch pointer, and the stars page and the pass detail keep the screen awake while following.
+  - **Satisfies:** FR-PHONE-3, FR-PHONE-4, FR-PHONE-5, FR-PHONE-6; FR-FULL-3, FR-FLOW-6, FR-TONIGHT-6, FR-LIVE-7, FR-GYRO-5 as amended; US-45 AC3–AC5.
+  - **Scope (PLAN D-964..D-967):** `components/live/FollowControl.{tsx,module.css,test.tsx}` — a `TextButton` with `pressed`, `aria-pressed`, `t.sheet.follow`, rendered before `[ controls ]` where `orientationApiPresent()`, driving the page's existing follow state (R159 moves that state into `useFollow`; this task wires the control to `Live.tsx`'s `useState` as it stands); `SkyViewLayout`'s `full` form gains the `readout` overlay slot top-right, filled while not following; `skyHintLine(pointer, { follow })` with two clauses on `coarse` and the strings; `hintFitsBeside(text, labels: string[])` and `HINT_TOUCH_CLAUSES` beside it in `lib/layout.ts`; `useWakeLock(follow)` in `Stars.tsx` and `PassDetail.tsx`; `captureSet.ts`'s compact live screens at 360 and 390 marked `touch: true` (the files are re-shot by R161); the tests of §9.12's first two bullets as far as the overlay goes; `live-full.spec.ts` asserts the row's two controls, the readout's corner and the hint without ellipsis at 360 × 780 and 390 × 844.
+  - **Touches outside the lane:** `src/ui/components/sky/{SkyViewLayout,SkyHint}.*`, `src/ui/screens/{Stars,PassDetail}.tsx` (one hook call each), `src/lib/layout.ts` (this task alone touches it in wave 1), `src/i18n/**`, `tests/e2e/captureSet.ts`.
+  - **Out of scope:** following by default and the saved grant (R159); the whole sky (R158, R160); the captures' re-shoot (R161).
+  - **Done when:**
+    - `FollowControl.test.tsx`, `Live.test.tsx`, `SkyViewLayout.test.tsx`, `SkyHint.test.tsx`, `useWakeLock`'s test, `sheetRows.test.ts` pass.
+    - `live-full`, `targets` and `rhythm` green at the compact sizes in both languages; the hint node's `scrollWidth` equals its `clientWidth` at 360 and 390.
+    - The Done note gives the bottom row's cell counts in both languages and the readout's longest line.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 2
+
+- [ ] **R155 — The look: the surface, the band, the tint, the haze, the ladder with dots and tones, the bloom, the Moon's disc, the deep pool and detail by field, the eight tokens, the snapshots, `stars-perf`**
+  - **Lane:** window
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R154
+  - **Reads:** the phase set (above); SPEC FR-STAR-6, FR-STAR-9, FR-STAR-13, FR-SKY-14, FR-DOME-6, FR-DS-8, FR-X-5 as amended; PLAN D-751..D-755, D-798, D-973, D-974; `src/ui/components/guide/skychart/window/{StarField.tsx,starGlyphs.ts,starGlyphs.module.css,starGlyphs.test.ts,inkOffsets.ts,starLabels.ts,SkyWindow.tsx,projection.ts}` and their tests; `src/ui/components/guide/skychart/{starScene.ts,useSkyBodies.ts,useSkyScene.ts}`; `src/data/stars/{constants.ts,deepChunk.ts,catalog.json}` (R154's); `src/ui/styles/tokens.css`; `scripts/contrast.ts`; `tests/styles/tokens.test.ts`; `docs/DESIGN.md`; `tests/e2e/{stars-perf,window-zoom,live-perf}.spec.ts`; the mockup's boards at https://claude.ai/artifact/TXAALKGuVwJSMSj8awG637 are the spec's reference and not an input the session fetches.
+  - **Goal:** the window's sky at night is a surface with a horizon band, the Milky Way a haze, Antares orange and Spica blue-white with a bloom, every star a `*` or a dot sized by magnitude, the Moon a crescent when it is one, and a pinch from 60° to 20° brings in stars to 6.5 and names to 3.2 — at 30 updates/s or better with everything on.
+  - **Satisfies:** FR-LOOK-1, FR-LOOK-2, FR-LOOK-3, FR-LOOK-4, FR-LOOK-5, FR-LOOK-6, FR-LOOK-7, FR-LOOK-9, FR-LOOK-11; FR-LOOK-8 (the chunk's load by `fov`); FR-STAR-6, FR-SKY-14, FR-DOME-6, FR-DS-8 as amended; US-47 AC1–AC5.
+  - **Scope (PLAN D-974):** `starGlyphs.ts` rewritten — a rung is `{ kind: 'char', glyph: '*', size } | { kind: 'dot', r }` with `tone` from `bv` and `opacity` from magnitude, the collision and the hit test counting a dot's radius as its ink; `skySurface.ts` (pure: the surface, the band's path from the altitude ring's image, the tint step from the Sun's altitude); `milkyWay.ts` (the three rings projected and clipped, no filter); `bloom.ts` (six gradient ids, the radii); `MoonDisc.tsx` (the lit limb from the fraction and the limb angle `useSkyBodies` carries, the dark part in `--chart-sky-deep`); `deepField.ts` (the pool of `DEEP_NODE_POOL` `<circle>` nodes filled brightest-first by ref on the rotation channel, the chunk asked for on the first `fov` under the first row that needs it); `StarField.tsx` composing surface, band, haze, bloom, figures, stars, names in FR-STAR-6's order, the names to the field's row; the eight tokens with night values in `tokens.css` and `contrast.ts`'s pairs; `docs/DESIGN.md` regenerated; the snapshots re-baselined once; `stars-perf.spec.ts` at `WINDOW_FOV` and `WINDOW_FOV_MIN_DEG` with everything on, and the `<pattern>` fallback for the haze if it fails there (D-974); `window-zoom.spec.ts` counts the stars at 60° and 20° and finds a designation at 20°; a network assertion that `stars-deep` is not requested at `WINDOW_FOV`.
+  - **Touches outside the lane:** `src/ui/components/guide/skychart/{starScene,useSkyBodies,useSkyScene}.ts` (the tint step and the limb angle), `src/ui/styles/tokens.css`, `scripts/contrast.ts`, `docs/DESIGN.md`.
+  - **Out of scope:** the polar chart (R158); any page; the handoff (R160); the constants' values (R154's; FR-LOOK-10 is the owner's).
+  - **Done when:**
+    - `starGlyphs.test.ts`, `skySurface.test.ts`, `milkyWay.test.ts`, `bloom`'s test, `MoonDisc.test.tsx`, `deepField.test.ts`, `StarField`'s and `SkyWindow`'s tests, `tokens.test.ts` and `design.test.ts` pass.
+    - `stars-perf.spec.ts` ≥ 30 updates/s at both fields with everything on; `live-perf.spec.ts` unchanged; `window-zoom.spec.ts` green.
+    - The Done note gives the rates at both fields, the drawn-star counts at 60° and 20° on the fixture night, every token's two contrasts, and whether the haze needed the `<pattern>` fallback.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+- [ ] **R159 — Following by default: `useFollow`, the first-touch listener, the saved grant, the three pages on the hook, `follow.spec.ts`**
+  - **Lane:** live
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R154, R157
+  - **Reads:** the phase set (above); SPEC FR-GYRO-1..5 as amended, FR-WIN-4, FR-FLOW-14, FR-FULL-10, FR-SKY-7; PLAN D-175, D-240, D-941..D-946, D-955, D-957, D-962, D-963; `src/ui/components/sky/{FollowToggle.tsx,FollowToggle.test.tsx,SkyViewLayout.tsx}`; `src/ui/components/live/FollowControl.tsx` (R157's); `src/ui/components/guide/skychart/window/{orientationAccess.ts,useDeviceOrientation.ts}`; `src/ui/components/live/compassHeading.ts`; `src/ui/screens/{Live,Stars,PassDetail}.{tsx,test.tsx}`; `src/model/prefs.ts`; `src/state/slices/prefs.{ts,test.ts}`; `tests/e2e/{orientation.ts,follow.spec.ts}`.
+  - **Goal:** on an Android phone the three pages follow the phone from their first reading with no tap; on an iPhone, once allowed, later visits follow from the first touch on the sky; a drag still hands the sky to the finger, and the toggle and the control agree everywhere.
+  - **Satisfies:** FR-PHONE-1, FR-PHONE-2; FR-GYRO-1, FR-GYRO-2 as amended; US-45 AC1, AC2.
+  - **Scope (PLAN D-962, D-963):** `Prefs.followGranted` (default `false`) in `model/prefs.ts`, read and written by the prefs slice; `components/sky/useFollow.ts` — `{ on, armed, turnOn, turnOff, onFollowEnd, refused }` with `FOLLOW_DEFAULT` declared beside it, `on` at mount where `permissionRequest()` is `null`, `armed` where `followGranted`, `turnOn` asking inside the handler and writing or clearing the pref; the capture-phase `pointerdown` listener on the chart box in `SkyViewLayout` while `armed`, removed after one use; `FollowToggle` and `FollowControl` reading the hook; the three pages on it (the card of FR-FULL-10 over a following sky, the pass detail's opening facing replaced at the first reading); `follow.spec.ts` with `stubOrientation` at 390 × 844 and 844 × 390: no request → following at mount; a saved grant → one request on the first touch, following after; a refusal → off, the line, the pref cleared; a drag ending it on each page.
+  - **Touches outside the lane:** `src/ui/screens/{Stars,PassDetail}.*`, `src/ui/components/sky/**`, `src/model/prefs.ts`, `src/state/slices/prefs.*` (the one field).
+  - **Out of scope:** the overlay's control and readout (R157); the whole sky (R160); the captures (R161).
+  - **Done when:**
+    - `useFollow.test.ts`, `prefs.test.ts`, `FollowToggle.test.tsx`, `FollowControl.test.tsx`, the three pages' tests and `SkyViewLayout.test.tsx` pass; the request count is exactly one per visit in every case.
+    - `follow.spec.ts` green at both sizes in both languages on the three pages.
+    - The Done note gives the follow states tested per page and the pref's writes and clears.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 3
+
+- [ ] **R158 — The whole sky's chart: the polar row of the layer table, the figures, the names and their default by width, the surface and the band, the Moon's disc, `fieldOutline`, the polar snapshot**
+  - **Lane:** chart
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R155
+  - **Reads:** the phase set (above); SPEC FR-SKY-1, FR-SKY-4, FR-SKY-11, FR-GUIDE-2b, FR-GUIDE-4 as amended, OQ-43, OQ-51; PLAN D-754, D-755, D-792, D-796, D-968, D-969; `src/ui/components/guide/skychart/{layers.ts,layers.test.ts}`; `src/ui/components/guide/skychart/polar/{SkyPolar.tsx,SkyPolar.test.tsx}` and `__snapshots__/SkyPolar.live.svg`; `src/ui/components/guide/skychart/window/{starGlyphs.ts,starLabels.ts,skySurface.ts,milkyWay.ts,bloom.ts,MoonDisc.tsx,projection.ts}` (R155's, read only); `src/data/stars/constellations.ts`; `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`.
+  - **Goal:** the polar chart is a star map: every star to 4.5 on the new ladder, the figures as hairlines with the gap, the names where `names` is on, the surface and the band inside the rim, the Moon with its phase, and a thin outline of the window's field wherever the page has a camera — the same in every view row that offers the polar chart.
+  - **Satisfies:** FR-PHONE-8, FR-PHONE-9 (the chart's half), FR-PHONE-11; FR-LOOK-1, FR-LOOK-3, FR-LOOK-6, FR-LOOK-7 on the chart; FR-SKY-1, FR-SKY-4 as amended; US-46 AC2, AC5.
+  - **Scope (PLAN D-968, D-969):** `layers.ts`'s polar row gains `figures`, `names`, `fieldOutline` and the window's new layers at the chart's unit; `SkyPolar.tsx` draws the figures from `constellations.ts` through its projection with the gap and the clip, the glyphs from `starGlyphs.ts` with the dot's radius scaled by the unit, the names through `starLabels.ts` with the unit as the cell, compass first, the surface and the band inside the horizon ring, the haze's three rings, the bloom and the Moon's disc; the names' value comes in as a layer value (the stars page decides the compact default, R160); `polar/fieldOutline.ts` — `fieldOutline(pose, view, polar): string`, 12 samples a side through the window's inverse projection and the polar projection, the part under the horizon dropped — drawn in `--chart-compass` at `--chart-hairline` by ref on the rotation channel when a camera is passed, else absent; the looking-up / map toggle turns everything with the stars; the contract test's star case holds with figures; the snapshot re-baselined once; the dome's files untouched.
+  - **Touches outside the lane:** none beyond reading R155's modules.
+  - **Out of scope:** the stars page's view row and the handoff (R160); the pages; the captures (R161).
+  - **Done when:**
+    - `layers.test.ts`, `SkyPolar.test.tsx` (the figures, the names on and off, the outline at three poses), `fieldOutline.test.ts` and `SkyChart.contract.test.tsx` pass; the snapshot is re-baselined exactly once.
+    - `live-perf.spec.ts`'s polar drag not below 2.9.0's measure by more than a tenth with the figures and names on.
+    - The Done note gives the drawn-star and figure counts on the fixture night and the outline's path at the three poses.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 4
+
+- [ ] **R160 — The whole sky on the pages: the stars page's view row and local view, `In this field` for the whole sky, the pinch handoff both ways, `heldView`, the outline wired to the camera, `whole-sky.spec.ts`**
+  - **Lane:** window
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R158, R159
+  - **Reads:** the phase set (above); SPEC FR-STAR-3, FR-STAR-7, FR-FLOW-4, FR-FLOW-8, FR-SKY-2, FR-SKY-14, FR-GYRO-11 as amended; PLAN D-324, D-798, D-876, D-957, D-968..D-971; `src/ui/screens/{Stars.tsx,Stars.test.tsx,Stars.module.css}`; `src/ui/screens/stars/{FieldList.tsx,field.ts,source.ts}`; `src/ui/components/guide/skychart/{SkyChart.tsx,SkyChart.test.tsx,useChartHand.ts}`; `src/ui/components/guide/skychart/window/SkyWindow.tsx` (the pinch); `src/ui/components/guide/skychart/polar/{SkyPolar.tsx,fieldOutline.ts}` (R158's); `src/ui/components/sky/{SkyViewLayout.tsx,useFollow.ts}`; `src/i18n/{en,es}/chart.ts`; `tests/styles/controlRows.test.ts`; `tests/e2e/{window-zoom.spec.ts,orientation.ts}`.
+  - **Goal:** on the stars page `[Window] Whole sky` is one tap, the whole sky shows every star with or without the passes and the field outline moving with the phone or the finger, and a pinch past the window's widest field opens the whole sky while a pinch on it returns to the window facing the spot under the fingers — on the stars page, the live page and the pass detail.
+  - **Satisfies:** FR-PHONE-7, FR-PHONE-9 (the pages' half), FR-PHONE-10; FR-STAR-3, FR-FLOW-8, FR-SKY-14 as amended; US-46 AC1, AC3, AC4.
+  - **Scope (PLAN D-970, D-971):** `Stars.tsx` renders `SkyChart` with `views={['window', 'polar']}` and a local, unsaved `view`, the row in `SkyViewLayout`'s `viewRow` slot as a bracket-mark `ToggleGroup` (`t.chart.views.window`, the new `t.chart.views.wholeSky`), the names' compact default from `useLayoutMode()` overridden by `[x] names`, `In this field` reading the whole sky's twelve brightest; `SkyWindow`'s `onFieldHandoff` on a pinch's release past `WINDOW_FOV_MAX_DEG` by `PINCH_HANDOFF_RATIO` (declared in `lib/layout.ts` with its rationale); `SkyPolar`'s two-pointer handler and `onFieldHandoff(aim)` from the midpoint's inverse projection; `SkyChart`'s `heldView` (D-957's hold generalised) and, on the return, `HandCamera.open` at the aim with `WINDOW_FOV_MAX_DEG`; the outline fed the camera's pose on every page that offers the polar chart; the strings; `controlRows.test.ts` for the view row; `whole-sky.spec.ts` at 390 × 844 and 1280 × 800 per §9.12's third bullet, the handoff by synthetic pinches with the facing within 1° of the midpoint's.
+  - **Touches outside the lane:** `src/ui/screens/Stars.*`, `src/ui/screens/stars/**`, `src/ui/components/guide/skychart/{SkyChart.tsx,polar/SkyPolar.tsx}` (the handoff handler and the camera prop only), `src/lib/layout.ts` (one constant), `src/i18n/**`.
+  - **Out of scope:** the chart's drawing (R158); the look (R155); the captures (R161).
+  - **Done when:**
+    - `Stars.test.tsx`, `FieldList`'s test, `SkyChart.test.tsx`, `SkyWindow`'s and `SkyPolar`'s handoff tests, `controlRows.test.ts` pass.
+    - `whole-sky.spec.ts` green at both sizes in both languages; `window-zoom.spec.ts` green with the handoff cases (past each end, and stopping at the end).
+    - The Done note gives the view row's cell counts, the handoff thresholds as measured, and the facing error after the return.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 5
+
+- [ ] **R161 — The capture set and 2.10.0: the moved captures, the new screens, the budget rows, `package.json` 2.10.0, `docs/RELEASE.md` §23 with the phone run, no tag**
+  - **Lane:** docs
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R156, R160
+  - **Reads:** the phase set (above); SPEC FR-PHONE-16, FR-LOOK-10, FR-LOOK-12, FR-CAP-5, OQ-52; PLAN D-178, D-960, D-961, D-966, D-975; `docs/RELEASE.md` §22; `tests/e2e/{captureSet.ts,v1-captures.spec.ts,orientation.ts}`; `scripts/bundle-budget.ts`; `scripts/readme-hero.ts`.
+  - **Goal:** the capture set shows the phone first — the bottom row with `[ follow ]`, the corner readout, the touch hint, following on, the stars page's `Whole sky` with the outline, the home's doors first, the times row, the third theme, and the window's new sky at 60° and 20° in both themes — and `main` reads 2.10.0 ready for the owner's phone run and tag.
+  - **Satisfies:** FR-PHONE-16, FR-LOOK-12; §9 Phase 2s's release items.
+  - **Scope:** re-shoot every named move (the compact live captures as touch pages under `stubOrientation`, the stars page at every width, every polar capture, the home at every width, the compact pass detail, the settings page, every window capture with stars on); add the stars page's whole sky at 390 and 1280 px with `[ passes ]` off and on, the field outline while following at 390 px, the pass detail at 390 × 667, the live page's window at civil twilight, and the stars page at 20° at 390 px, both themes and languages; list the moves against FR-PHONE-16 and FR-LOOK-12 and FR-CAP-5's diff against 2.9.0; the budget table re-set by D-178 with the `stars-deep` row; `package.json` 2.10.0; RELEASE §23 with the owner's phone run written as a checklist (Android at once, iOS first allow then first touch, `[ follow ]`, `Whole sky` and the outline, the pinch across, the doors, Auto at dusk, and in the dark on the OLED screen the surface, the haze, the bloom and the colours at 60° and 20° with the rate), the note that FR-LOOK-10's constants are final after it, and the strings no reader uses removed (FR-FLOW-17's rule).
+  - **Out of scope:** any behaviour change; the tag and the deploy; re-setting FR-LOOK-10's constants (the owner's row).
+  - **Done when:**
+    - FR-CAP-5's diff against 2.9.0 lists only the named moves and additions, and two runs agree but for F-99's noise.
+    - `npm run bundle:budget` and `npm run check:dead` green; the dome's captures byte-identical.
+    - The Done note lists the changed and added files, the budget rows against 2.9.0, and "tag the squash merge of this PR".
+
+### Requirement coverage (v2.10)
+
+| Requirement | Task |
+|---|---|
+| FR-PHONE-1 | R159 |
+| FR-PHONE-2 | R159 |
+| FR-PHONE-3 | R157 |
+| FR-PHONE-4 | R157 |
+| FR-PHONE-5 | R157 |
+| FR-PHONE-6 | R157 |
+| FR-PHONE-7 | R160 |
+| FR-PHONE-8 | R158 |
+| FR-PHONE-9 | R158 (the chart), R160 (the pages) |
+| FR-PHONE-10 | R160 |
+| FR-PHONE-11 | R158 |
+| FR-PHONE-12 | R156 |
+| FR-PHONE-13 | R156 |
+| FR-PHONE-14 | R156 |
+| FR-PHONE-15 | R156 |
+| FR-PHONE-16 | R157 (the captures marked), R161 |
+| FR-LOOK-1 | R155, R158 (the chart) |
+| FR-LOOK-2 | R155 |
+| FR-LOOK-3 | R154 (the file), R155, R158 (the chart) |
+| FR-LOOK-4 | R155 |
+| FR-LOOK-5 | R154 (the column), R155 |
+| FR-LOOK-6 | R155, R158 (the chart) |
+| FR-LOOK-7 | R155, R158 (the chart) |
+| FR-LOOK-8 | R154 (the file, the chunk, the row), R155 (the load) |
+| FR-LOOK-9 | R154 (`fieldDetail.ts`), R155 |
+| FR-LOOK-10 | R154 (the constants); the owner's row |
+| FR-LOOK-11 | R155, R158 (the polar rate) |
+| FR-LOOK-12 | R155 (the tokens, the guide), R161 |
+
+Waves (for the sanity check): **wave 1** R154 (data) + R156 (ui) + R157 (live) — **wave 2** R155 (window) + R159 (live) — **wave 3** R158 (chart) — **wave 4** R160 (window) — **wave 5** R161 (docs). No two tasks in one wave name the same shared file: in wave 1 R154 stays in `data/`, `scripts/` and `tests/data/` plus one `bundle-budget.ts` row, R157 alone touches `lib/layout.ts`, and R156 alone touches `prefs.ts` (R159 adds `followGranted` to it in wave 2); R155 and R159 share nothing. Every wave holds at most one `fable` task, and the two that do hold at most two tasks (D-975).
