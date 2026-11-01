@@ -148,6 +148,49 @@ describe('useFollow (FR-PHONE-1, FR-PHONE-2; D-962)', () => {
     setItem.mockRestore();
   });
 
+  it('leaves it off when the grant answers after the reader turned it off or a drag took the sky (the last word stands)', async () => {
+    let answer: (value: PhoneAnswer) => void = () => undefined;
+    withPhone(() => new Promise<PhoneAnswer>((resolve) => (answer = resolve)));
+    const { result } = renderHook(() => useFollow());
+    act(() => {
+      result.current.turnOn();
+    });
+    act(() => {
+      result.current.onFollowEnd();
+    });
+    answer('granted');
+    await flush();
+    expect(result.current.on).toBe(false);
+    // The grant is the reader's all the same: saved, and the next press follows.
+    expect(saved()).toBe(true);
+  });
+
+  it('starts on, asking nothing, where this page session has already been granted and the grant is saved (iOS answers from memory)', async () => {
+    const request = vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('granted');
+    withPhone(request);
+    const first = renderHook(() => useFollow());
+    act(() => {
+      first.result.current.turnOn();
+    });
+    await flush();
+    first.unmount();
+    const next = renderHook(() => useFollow());
+    expect(next.result.current).toMatchObject({ on: true, armed: false });
+    expect(next.result.current.firstTouch).toBeUndefined();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands SkyViewLayout its first touch only while armed', () => {
+    withPhone(() => Promise.resolve('granted'));
+    appStore.getState().setFollowGranted(true);
+    const { result } = renderHook(() => useFollow());
+    expect(result.current.firstTouch).toBe(result.current.turnOn);
+    act(() => {
+      result.current.turnOn();
+    });
+    expect(result.current.firstTouch).toBeUndefined();
+  });
+
   it('turns off without asking, and a grant where no request exists saves nothing (Android needs no grant)', async () => {
     withPhone();
     const { result } = renderHook(() => useFollow());

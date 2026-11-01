@@ -241,6 +241,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(requestPermission).toHaveBeenCalledTimes(1);
       await flush();
       expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.pointerDown(sky(), { pointerId: 2, pointerType: 'touch' });
       fireEvent.pointerUp(sky(), { pointerId: 2, pointerType: 'touch' });
       expect(requestPermission).toHaveBeenCalledTimes(1);
       unmount();
@@ -248,6 +249,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       resetOrientationAccess();
       requestPermission.mockResolvedValue('denied');
       detail();
+      fireEvent.pointerDown(sky(), { pointerId: 1, pointerType: 'touch' });
       fireEvent.pointerUp(sky(), { pointerId: 1, pointerType: 'touch' });
       await flush();
       expect(requestPermission).toHaveBeenCalledTimes(2);

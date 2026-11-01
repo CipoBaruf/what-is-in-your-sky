@@ -2139,6 +2139,12 @@ describe('<LivePage>', () => {
       expect(line).toHaveTextContent(en.window.followRefused);
       // D-987: the line takes the hint's row, so the hint steps aside while it stands.
       expect(within(overlay).queryByTestId('sky-hint')).toBeNull();
+      // With the sheet open the toggle's line is the one drawn: one `role="status"` line in the page at a time.
+      fireEvent.click(screen.getByTestId('live-controls'));
+      expect(screen.queryByTestId('live-follow-refused')).toBeNull();
+      expect(screen.getAllByRole('status').filter((el) => el.textContent === en.window.followRefused)).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('sheet-close'));
+      expect(screen.getByTestId('live-follow-refused')).toBeInTheDocument();
       // The next press of either control takes it away, and asks again.
       fireEvent.click(screen.getByTestId('live-follow-control'));
       expect(screen.queryByTestId('live-follow-refused')).toBeNull();

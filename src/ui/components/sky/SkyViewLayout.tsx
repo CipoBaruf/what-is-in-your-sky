@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { LANDSCAPE_DRAWING_MIN_SHARE } from '../../../lib/layout';
+import { HIT_RADIUS_PX } from '../guide/skychart/window/starGlyphs';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { usePageShape } from '../live/usePageShape';
@@ -141,9 +142,9 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
    */
   roomKey?: string | undefined;
   /**
-   * R159 (FR-PHONE-2, D-963, D-986): while given, the reader's first touch on the sky calls it inside the gesture —
-   * the page's `useFollow().turnOn` while a saved grant has it armed. One capture-phase listener on the drawing slot,
-   * removed after its one use; the touch itself goes on to the sky as it would.
+   * R159 (FR-PHONE-2, D-963, D-986): while given, the lift of the reader's first tap on the sky calls it inside the
+   * gesture — the page's `useFollow().firstTouch` while a saved grant has it armed. Capture-phase listeners on the
+   * drawing slot, removed after their one use; a drag or a pinch leaves them armed, and the touch goes on to the sky.
    */
   onFirstTouch?: (() => void) | undefined;
   className?: string | undefined;
@@ -241,11 +242,15 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
 
   /*
    * R159 (FR-PHONE-2, D-963, D-986): the first touch asks. While the page passes `onFirstTouch` (a saved grant, nothing
-   * asked yet this visit), one capture-phase listener on the drawing slot calls it inside the gesture and removes
-   * itself, so the request is made exactly once whatever the touch becomes — a tap, a drag, a pinch — and the touch
-   * goes on to the sky untouched. It listens for the press's `pointerup`, not its `pointerdown`: WebKit grants the
-   * motion request only inside an activating gesture, and for a touch that is the lift (`touchend`), not the press.
-   * The slot is the one the shape draws, so a turn of the phone that swaps the form re-installs it there.
+   * asked yet this visit), capture-phase listeners on the drawing slot watch the touches on the sky and, at the lift
+   * of the first one that is a tap — one pointer, never further than a tap's slop (`HIT_RADIUS_PX`, D-955) from where
+   * it went down — call it inside that event and go. The touch itself goes on to the sky untouched, a tap naming a
+   * star as it would. A drag or a pinch is the finger taking the sky, which FR-GYRO-4 would end following for anyway,
+   * so it asks nothing and the page stays armed for the next tap. The lift and not the press, and a tap and not a
+   * drag, because WebKit grants the motion request only inside user activation: for a touch that is the lift of a
+   * tap, so a request made at the press, or at a drag's lift, could be refused by the browser and read as the
+   * reader's refusal, clearing the very grant FR-PHONE-2 saves. The slot is the one the shape draws, so a turn of the
+   * phone that swaps the form re-installs them there.
    */
   const firstTouch = useRef(onFirstTouch);
   useLayoutEffect(() => {
@@ -255,14 +260,43 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
   useEffect(() => {
     const drawing = rootRef.current?.querySelector<HTMLElement>('[data-slot="drawing"]');
     if (!armed || !drawing) return;
-    const onLift = (): void => {
-      drawing.removeEventListener('pointerup', onLift, true);
+    const down = new Map<number, { x: number; y: number }>();
+    let spoiled = false;
+    const strays = (event: PointerEvent): boolean => {
+      const at = down.get(event.pointerId);
+      return at === undefined || Math.hypot(event.clientX - at.x, event.clientY - at.y) > HIT_RADIUS_PX;
+    };
+    const onDown = (event: PointerEvent): void => {
+      if (down.size > 0) spoiled = true;
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    };
+    const onMove = (event: PointerEvent): void => {
+      if (down.has(event.pointerId) && strays(event)) spoiled = true;
+    };
+    const onLift = (event: PointerEvent): void => {
+      const tap = !spoiled && !strays(event);
+      down.delete(event.pointerId);
+      if (down.size > 0) return;
+      spoiled = false;
+      if (!tap) return;
+      remove();
       firstTouch.current?.();
     };
-    drawing.addEventListener('pointerup', onLift, true);
-    return () => {
-      drawing.removeEventListener('pointerup', onLift, true);
+    const onCancel = (event: PointerEvent): void => {
+      down.delete(event.pointerId);
+      spoiled = down.size > 0;
     };
+    const listeners = [
+      ['pointerdown', onDown],
+      ['pointermove', onMove],
+      ['pointerup', onLift],
+      ['pointercancel', onCancel],
+    ] as const;
+    const remove = (): void => {
+      for (const [name, listener] of listeners) drawing.removeEventListener(name, listener, true);
+    };
+    for (const [name, listener] of listeners) drawing.addEventListener(name, listener, true);
+    return remove;
   }, [armed, shape]);
 
   /*

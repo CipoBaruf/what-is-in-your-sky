@@ -7,6 +7,11 @@ import styles from './FollowControl.module.css';
 export interface FollowControlProps {
   /** The page's `useFollow()` — the same state and presses the sheet's `FollowToggle` has. */
   follow: Follow;
+  /**
+   * Whether this control draws the refusal's line: the live page says no while its sheet is open, where the toggle's
+   * line stands visible, so the page has one `role="status"` line at a time.
+   */
+  showRefusal?: boolean;
 }
 
 /**
@@ -20,15 +25,16 @@ export interface FollowControlProps {
  * this control, the toggle or the first touch on the sky — draws the hook's one `role="status"` line here as the
  * toggle draws it under itself: the row stands on the box's bottom edge, so the line stands on the row above it, at
  * the box's right margin, and goes on the next press of either control. While it stands the page draws no hint, whose
- * row it takes.
+ * row it takes; while the sheet is open the toggle's line is the one drawn (`showRefusal`), the closed sheet being
+ * inert, so one line is in the page at a time.
  */
-export function FollowControl({ follow }: FollowControlProps) {
+export function FollowControl({ follow, showRefusal = true }: FollowControlProps) {
   const t = useT();
   if (!follow.sensor) return null;
   return (
     <>
       <TextButton label={t.sheet.follow} pressed={follow.on} onClick={follow.on ? follow.turnOff : follow.turnOn} className="target" data-testid="live-follow-control" />
-      {follow.refused && (
+      {follow.refused && showRefusal && (
         <Line role="status" size="small" className={styles.refused} data-testid="live-follow-refused">
           <span className={styles.rows}>{t.window.followRefused}</span>
         </Line>

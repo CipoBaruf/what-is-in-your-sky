@@ -256,7 +256,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   );
   const layout = (answer: ReactNode, wide: 'rail' | 'panel') => (
     <SkyViewLayout
-      onFirstTouch={follow.armed ? follow.turnOn : undefined}
+      onFirstTouch={follow.firstTouch}
       wide={wide}
       describedBy={proseId}
       labelledBy={headingId}

@@ -411,6 +411,35 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
    * on the lift, before the sky's own handler and without stopping it; nothing outside the drawing counts; the
    * listener goes with its use and with the prop, and stands in the drawing slot of whichever form is drawn.
    */
+  it('asks nothing for a drag or a pinch, and stays armed for the tap after them (D-986)', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    const first = vi.fn();
+    render(<SkyViewLayout data-testid="layout" form="full" onFirstTouch={first} drawing={<div data-testid="box">box</div>} />);
+    const box = screen.getByTestId('box');
+    // A drag: past the tap's slop, lifted where it ended.
+    fireEvent.pointerDown(box, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 1, clientX: 140, clientY: 100 });
+    // A drag that comes back to where it started is still a drag.
+    fireEvent.pointerDown(box, { pointerId: 2, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 2, clientX: 160, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 2, clientX: 100, clientY: 100 });
+    // A pinch: two fingers, still, lifted one after the other.
+    fireEvent.pointerDown(box, { pointerId: 3, clientX: 100, clientY: 100 });
+    fireEvent.pointerDown(box, { pointerId: 4, clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 3, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 4, clientX: 200, clientY: 100 });
+    // A cancelled touch.
+    fireEvent.pointerDown(box, { pointerId: 5, clientX: 100, clientY: 100 });
+    fireEvent.pointerCancel(box, { pointerId: 5 });
+    expect(first).not.toHaveBeenCalled();
+    // A tap, a few pixels of wobble inside the slop.
+    fireEvent.pointerDown(box, { pointerId: 6, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 6, clientX: 104, clientY: 103 });
+    fireEvent.pointerUp(box, { pointerId: 6, clientX: 104, clientY: 103 });
+    expect(first).toHaveBeenCalledTimes(1);
+  });
+
   it('calls onFirstTouch once, inside the first touch’s lift on the drawing, letting the touch through, in the full form and the column', () => {
     for (const form of ['full', undefined] as const) {
       media = stubMatchMedia(COMPACT_PX);
@@ -430,6 +459,7 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
       fireEvent.pointerUp(box, { pointerId: 2 });
       expect(first).toHaveBeenCalledTimes(1);
       expect(order).toEqual(['first', 'sky']);
+      fireEvent.pointerDown(box, { pointerId: 3 });
       fireEvent.pointerUp(box, { pointerId: 3 });
       expect(first).toHaveBeenCalledTimes(1);
       // Without the prop there is no listener at all.

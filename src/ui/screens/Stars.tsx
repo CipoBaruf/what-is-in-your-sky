@@ -367,7 +367,7 @@ function StarsSky({ observer }: { observer: Observer }) {
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <SkyViewLayout
-          onFirstTouch={follow.armed ? follow.turnOn : undefined}
+          onFirstTouch={follow.firstTouch}
           className={styles.skyLayout}
           data-testid="stars-layout"
           answer={<StarsHeading observer={observer} now={now} />}

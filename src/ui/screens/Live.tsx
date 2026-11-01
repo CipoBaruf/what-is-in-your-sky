@@ -506,7 +506,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   const sensor = follow.sensor;
   const followToggle = sensor ? <FollowToggle follow={follow} /> : null;
   // R157 (FR-PHONE-3, D-964): `[ follow ]` before `[ controls ]` on the overlay's bottom row, the same state as the sheet's toggle.
-  const followControl = sensor ? <FollowControl follow={follow} /> : null;
+  const followControl = sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null;
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -1166,7 +1166,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         fill
         form="full"
         readoutIn="sheet"
-        onFirstTouch={follow.armed ? follow.turnOn : undefined}
+        onFirstTouch={follow.firstTouch}
         drawing={drawing}
         overlay={overlay}
         {...(cornerReadout ? { readout: <SkyViewChartSlot name="readout" /> } : {})}
@@ -1180,7 +1180,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       data-testid="live-layout"
       fill
       readoutIn="row"
-      onFirstTouch={follow.armed ? follow.turnOn : undefined}
+      onFirstTouch={follow.firstTouch}
       pickerOpen={pickerOpen}
       onPickerOpen={setPickerOpen}
       answer={answer}
