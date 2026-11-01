@@ -30,7 +30,7 @@ export function FollowControl({ follow }: FollowControlProps) {
       <TextButton label={t.sheet.follow} pressed={follow.on} onClick={follow.on ? follow.turnOff : follow.turnOn} className="target" data-testid="live-follow-control" />
       {follow.refused && (
         <Line role="status" size="small" className={styles.refused} data-testid="live-follow-refused">
-          {t.window.followRefused}
+          <span className={styles.rows}>{t.window.followRefused}</span>
         </Line>
       )}
     </>
