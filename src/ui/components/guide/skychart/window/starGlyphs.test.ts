@@ -4,10 +4,13 @@
  * rule and the hit test; and the module's two px numbers held to the sheet —
  * `SIZE_PX` to the chart text tokens and `HIT_RADIUS_PX` to `--tap` / 4 — so
  * no length is written outside `tokens.css` without a test that reads it.
+ * R155: the rungs are the polar chart's until R158 (D-982); the window's marks
+ * have their own table at the end.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { collide, COLLISION_PX, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, SMALL_SIZE, type ColourToken, type Rung, type SizeToken } from './starGlyphs';
+import { STAR_SIZES_PX } from '../../../../../data/stars/constants';
+import { bloomed, collide, COLLISION_PX, DOT_OPACITY, dotOpacity, dotRadiusPx, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, magnitudeOrder, MARK_GLYPH_SIZES, markFor, planetMarkFor, planetRungFor, rungFor, SIZE_PX, SMALL_SIZE, toneFor, toneToken, type ColourToken, type Rung, type SizeToken } from './starGlyphs';
 
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
 
@@ -157,5 +160,86 @@ describe('the hit test (FR-STAR-6, FR-STAR-9)', () => {
   it('never returns a hidden glyph', () => {
     expect(hitTest([null, null], 0, 0)).toBeNull();
     expect(hitTest([{ x: 0, y: 0 }, null], 0, 0, 1)).toBe(0);
+  });
+});
+
+/**
+ * R155 (FR-LOOK-4, FR-LOOK-5, FR-LOOK-6; V210-8, V210-10; D-982): the
+ * window's marks — `*` at `STAR_SIZES_PX` to `STAR_DOT_MAG`, dots sized by
+ * magnitude below it, the tone from B−V, the deep stars' opacity, a planet
+ * never a dot — and the sheet's rules for the three new tones.
+ */
+describe('the marks (FR-LOOK-4, FR-LOOK-5)', () => {
+  it.each([
+    [-1.46, 0.0, { kind: 'char', glyph: '*', px: 20, tone: 'chart-star' }], // Sirius: B−V 0.00 is the white row's first value
+    [0.5, -0.23, { kind: 'char', glyph: '*', px: 20, tone: 'chart-star-blue' }],
+    [0.51, 0.65, { kind: 'char', glyph: '*', px: 16, tone: 'chart-star-yellow' }],
+    [1.5, 1.83, { kind: 'char', glyph: '*', px: 16, tone: 'chart-star-orange' }], // Antares' index
+    [1.51, 0.2, { kind: 'char', glyph: '*', px: 13, tone: 'chart-star' }],
+    [2.5, 0.39, { kind: 'char', glyph: '*', px: 13, tone: 'chart-star' }],
+    [2.51, 0.4, { kind: 'dot', r: 2.4, tone: 'chart-star-yellow', opacity: 1 }],
+    [3.5, 0.8, { kind: 'dot', r: 1.95, tone: 'chart-star-orange', opacity: 1 }],
+    [4.5, undefined, { kind: 'dot', r: 1.5, tone: 'chart-star', opacity: 1 }],
+    [4.6, Number.NaN, { kind: 'dot', r: 1.46, tone: 'chart-star', opacity: 0.68 }],
+    [5.5, 0.1, { kind: 'dot', r: 1.05, tone: 'chart-star', opacity: 0.5 }],
+    [6.5, 2.5, { kind: 'dot', r: 0.6, tone: 'chart-star-orange', opacity: 0.3 }],
+    [7, -1, { kind: 'dot', r: 0.6, tone: 'chart-star-blue', opacity: 0.3 }],
+  ])('V %s at B−V %s', (mag, bv, expected) => {
+    expect(markFor(mag, bv)).toEqual(expected);
+  });
+
+  it('is continuous in the dot and never the same dot on two rungs, from 2.4 px at 2.5 to 0.6 px at 6.5, with the opacity from 0.7 at 4.5 to 0.3', () => {
+    expect(dotRadiusPx(2.5)).toBe(2.4);
+    expect(dotRadiusPx(6.5)).toBe(0.6);
+    expect(dotRadiusPx(4.5)).toBe(1.5);
+    expect(dotRadiusPx(3)).toBeGreaterThan(dotRadiusPx(4));
+    expect(dotOpacity(4.5)).toBe(1);
+    expect(dotOpacity(4.5001)).toBeCloseTo(DOT_OPACITY.atLimit, 2);
+    expect(dotOpacity(5.5)).toBe(0.5);
+    expect(dotOpacity(6.5)).toBe(DOT_OPACITY.atDeep);
+    expect(markFor(Number.NaN)).toEqual({ kind: 'dot', r: 0.6, tone: 'chart-star', opacity: 0.3 });
+  });
+
+  it('takes the tone from BV_TONES’ rows, white where the index is missing', () => {
+    expect(toneFor(-0.01)).toBe('blue');
+    expect(toneFor(0)).toBe('white');
+    expect(toneFor(0.39)).toBe('white');
+    expect(toneFor(0.4)).toBe('yellow');
+    expect(toneFor(0.79)).toBe('yellow');
+    expect(toneFor(0.8)).toBe('orange');
+    expect(toneFor(undefined)).toBe('white');
+    expect(toneToken(1.2)).toBe('chart-star-orange');
+    expect(toneToken(undefined)).toBe('chart-star');
+  });
+
+  it.each([
+    [-4.1, 20], // Venus
+    [0.5, 20],
+    [0.7, 16], // Saturn, often
+    [1.5, 16],
+    [1.8, 13], // Mars at its faintest
+    [5.5, 13], // never a dot
+  ])('a planet at V %s is `@` in --chart-planet at %s px', (mag, px) => {
+    expect(planetMarkFor(mag)).toEqual({ kind: 'char', glyph: '@', px, tone: 'chart-planet' });
+  });
+
+  it('blooms a star or a planet brighter than BLOOM_MAG and lists every * and @ size for the ink offsets', () => {
+    expect(bloomed(1.79)).toBe(true);
+    expect(bloomed(1.8)).toBe(false);
+    expect(MARK_GLYPH_SIZES).toEqual([
+      ['*', 20],
+      ['@', 20],
+      ['*', 16],
+      ['@', 16],
+      ['*', 13],
+      ['@', 13],
+    ]);
+    expect(STAR_SIZES_PX.map((row) => row.px)).toEqual([20, 16, 13]);
+  });
+
+  it('styles the three tones and the five bloom gradients from the token of the same name in the one sheet', () => {
+    const sheet = readFileSync('src/ui/components/guide/skychart/window/starGlyphs.module.css', 'utf8');
+    for (const tone of ['chart-star-blue', 'chart-star-yellow', 'chart-star-orange']) expect(sheet).toContain(`.glyphs [data-tone='${tone}'] {\n  fill: var(--${tone});\n}`);
+    for (const tone of ['chart-star', 'chart-star-blue', 'chart-star-yellow', 'chart-star-orange', 'chart-planet']) expect(sheet).toContain(`.glyphs [data-bloom-tone='${tone}'] stop {\n  stop-color: var(--${tone});\n}`);
   });
 });

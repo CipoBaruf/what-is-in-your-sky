@@ -40,3 +40,4 @@ describe('useSkyBodies (F-1)', () => {
     second.unmount();
   });
 });
+
