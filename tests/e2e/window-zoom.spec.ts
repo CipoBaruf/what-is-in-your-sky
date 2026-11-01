@@ -303,7 +303,6 @@ test.describe('zoom on a compact page without a sensor', () => {
     console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
     expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
     expect(chunks).toEqual(['Stars', 'deep']);
-    await page.screenshot({ path: `${CAPTURE_DIR}/r155-stars-390-window-20-dark-en.png` });
   });
 
   test('the pinch narrows the stars page’s box on a phone-sized window', async ({ page }) => {
