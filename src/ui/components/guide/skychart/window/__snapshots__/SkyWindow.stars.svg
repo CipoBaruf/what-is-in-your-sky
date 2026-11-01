@@ -1,0 +1,1338 @@
+<g data-layer="stars" data-stars="9" data-planets="3" data-tint="deep" data-deep="0" visibility="visible">
+<defs>
+<clipPath id="…">
+<path data-sky-clip="true" clip-rule="evenodd" d="M195.0 -3932.3 L-222.2 -3891.0 L-616.0 -3771.7 L-967.2 -3586.9 L-1263.3 -3353.9 L-1499.4 -3091.6 L-1676.6 -2816.6 L-1800.7 -2542.6 L-1879.2 -2279.0 L-1920.6 -2031.9 L-1932.8 -1804.5 L-1922.7 -1597.7 L-1896.2 -1411.4 L-1857.8 -1244.5 L-1811.2 -1095.5 L-1759.2 -962.7 L-1703.9 -844.3 L-1646.8 -738.9 L-1589.0 -644.8 L-1531.5 -560.8 L-1474.8 -485.6 L-1419.2 -418.2 L-1365.1 -357.5 L-1312.6 -302.9 L-1261.9 -253.7 L-1212.9 -209.0 L-1165.7 -168.6 L-1120.2 -131.8 L-1076.4 -98.3 L-1034.3 -67.7 L-993.8 -39.7 L-954.8 -14.1 L-917.3 9.5 L-881.1 31.1 L-846.3 51.1 L-812.7 69.6 L-780.4 86.6 L-749.1 102.4 L-718.9 117.1 L-689.7 130.7 L-661.4 143.4 L-634.1 155.1 L-607.6 166.1 L-581.9 176.4 L-557.0 186.0 L-532.7 195.0 L-509.2 203.4 L-486.3 211.3 L-464.0 218.7 L-442.3 225.6 L-421.2 232.2 L-400.5 238.3 L-380.3 244.1 L-360.6 249.5 L-341.4 254.6 L-322.5 259.4 L-304.1 264.0 L-286.0 268.2 L-268.3 272.3 L-250.9 276.1 L-233.8 279.7 L-217.0 283.1 L-200.5 286.2 L-184.3 289.2 L-168.3 292.1 L-152.6 294.7 L-137.0 297.3 L-121.7 299.6 L-106.6 301.8 L-91.7 303.9 L-77.0 305.9 L-62.4 307.7 L-48.0 309.4 L-33.7 311.0 L-19.6 312.5 L-5.6 313.8 L8.3 315.1 L22.0 316.3 L35.7 317.4 L49.3 318.3 L62.8 319.2 L76.2 320.0 L89.6 320.7 L102.9 321.3 L116.2 321.9 L129.4 322.3 L142.5 322.7 L155.7 323.0 L168.8 323.2 L181.9 323.3 L195.0 323.3 L208.1 323.3 L221.2 323.2 L234.3 323.0 L247.5 322.7 L260.6 322.3 L273.8 321.9 L287.1 321.3 L300.4 320.7 L313.8 320.0 L327.2 319.2 L340.7 318.3 L354.3 317.4 L368.0 316.3 L381.7 315.1 L395.6 313.8 L409.6 312.5 L423.7 311.0 L438.0 309.4 L452.4 307.7 L467.0 305.9 L481.7 303.9 L496.6 301.8 L511.7 299.6 L527.0 297.3 L542.6 294.7 L558.3 292.1 L574.3 289.2 L590.5 286.2 L607.0 283.1 L623.8 279.7 L640.9 276.1 L658.3 272.3 L676.0 268.2 L694.1 264.0 L712.5 259.4 L731.4 254.6 L750.6 249.5 L770.3 244.1 L790.5 238.3 L811.2 232.2 L832.3 225.6 L854.0 218.7 L876.3 211.3 L899.2 203.4 L922.7 195.0 L947.0 186.0 L971.9 176.4 L997.6 166.1 L1024.1 155.1 L1051.4 143.4 L1079.7 130.7 L1108.9 117.1 L1139.1 102.4 L1170.4 86.6 L1202.7 69.6 L1236.3 51.1 L1271.1 31.1 L1307.3 9.5 L1344.8 -14.1 L1383.8 -39.7 L1424.3 -67.7 L1466.4 -98.3 L1510.2 -131.8 L1555.7 -168.6 L1602.9 -209.0 L1651.9 -253.7 L1702.6 -302.9 L1755.1 -357.5 L1809.2 -418.2 L1864.8 -485.6 L1921.5 -560.8 L1979.0 -644.8 L2036.8 -738.9 L2093.9 -844.3 L2149.2 -962.7 L2201.2 -1095.5 L2247.8 -1244.5 L2286.2 -1411.4 L2312.7 -1597.7 L2322.8 -1804.5 L2310.6 -2031.9 L2269.2 -2279.0 L2190.7 -2542.6 L2066.6 -2816.6 L1889.4 -3091.6 L1653.3 -3353.9 L1357.2 -3586.9 L1006.0 -3771.7 L612.2 -3891.0 L195.0 -3932.3 Z">
+</path>
+</clipPath>
+<radialGradient id="…" data-bloom-tone="chart-star">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="…" data-bloom-tone="chart-star-blue">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="…" data-bloom-tone="chart-star-yellow">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="…" data-bloom-tone="chart-star-orange">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="…" data-bloom-tone="chart-planet">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+</defs>
+<rect data-sky-surface="true" data-tint="deep" x="0" y="0" width="390" height="390">
+</rect>
+<path data-ground-fill="true" fill-rule="evenodd" d="M0 0H390.0V390.0H0ZM195.0 -3932.3 L-222.2 -3891.0 L-616.0 -3771.7 L-967.2 -3586.9 L-1263.3 -3353.9 L-1499.4 -3091.6 L-1676.6 -2816.6 L-1800.7 -2542.6 L-1879.2 -2279.0 L-1920.6 -2031.9 L-1932.8 -1804.5 L-1922.7 -1597.7 L-1896.2 -1411.4 L-1857.8 -1244.5 L-1811.2 -1095.5 L-1759.2 -962.7 L-1703.9 -844.3 L-1646.8 -738.9 L-1589.0 -644.8 L-1531.5 -560.8 L-1474.8 -485.6 L-1419.2 -418.2 L-1365.1 -357.5 L-1312.6 -302.9 L-1261.9 -253.7 L-1212.9 -209.0 L-1165.7 -168.6 L-1120.2 -131.8 L-1076.4 -98.3 L-1034.3 -67.7 L-993.8 -39.7 L-954.8 -14.1 L-917.3 9.5 L-881.1 31.1 L-846.3 51.1 L-812.7 69.6 L-780.4 86.6 L-749.1 102.4 L-718.9 117.1 L-689.7 130.7 L-661.4 143.4 L-634.1 155.1 L-607.6 166.1 L-581.9 176.4 L-557.0 186.0 L-532.7 195.0 L-509.2 203.4 L-486.3 211.3 L-464.0 218.7 L-442.3 225.6 L-421.2 232.2 L-400.5 238.3 L-380.3 244.1 L-360.6 249.5 L-341.4 254.6 L-322.5 259.4 L-304.1 264.0 L-286.0 268.2 L-268.3 272.3 L-250.9 276.1 L-233.8 279.7 L-217.0 283.1 L-200.5 286.2 L-184.3 289.2 L-168.3 292.1 L-152.6 294.7 L-137.0 297.3 L-121.7 299.6 L-106.6 301.8 L-91.7 303.9 L-77.0 305.9 L-62.4 307.7 L-48.0 309.4 L-33.7 311.0 L-19.6 312.5 L-5.6 313.8 L8.3 315.1 L22.0 316.3 L35.7 317.4 L49.3 318.3 L62.8 319.2 L76.2 320.0 L89.6 320.7 L102.9 321.3 L116.2 321.9 L129.4 322.3 L142.5 322.7 L155.7 323.0 L168.8 323.2 L181.9 323.3 L195.0 323.3 L208.1 323.3 L221.2 323.2 L234.3 323.0 L247.5 322.7 L260.6 322.3 L273.8 321.9 L287.1 321.3 L300.4 320.7 L313.8 320.0 L327.2 319.2 L340.7 318.3 L354.3 317.4 L368.0 316.3 L381.7 315.1 L395.6 313.8 L409.6 312.5 L423.7 311.0 L438.0 309.4 L452.4 307.7 L467.0 305.9 L481.7 303.9 L496.6 301.8 L511.7 299.6 L527.0 297.3 L542.6 294.7 L558.3 292.1 L574.3 289.2 L590.5 286.2 L607.0 283.1 L623.8 279.7 L640.9 276.1 L658.3 272.3 L676.0 268.2 L694.1 264.0 L712.5 259.4 L731.4 254.6 L750.6 249.5 L770.3 244.1 L790.5 238.3 L811.2 232.2 L832.3 225.6 L854.0 218.7 L876.3 211.3 L899.2 203.4 L922.7 195.0 L947.0 186.0 L971.9 176.4 L997.6 166.1 L1024.1 155.1 L1051.4 143.4 L1079.7 130.7 L1108.9 117.1 L1139.1 102.4 L1170.4 86.6 L1202.7 69.6 L1236.3 51.1 L1271.1 31.1 L1307.3 9.5 L1344.8 -14.1 L1383.8 -39.7 L1424.3 -67.7 L1466.4 -98.3 L1510.2 -131.8 L1555.7 -168.6 L1602.9 -209.0 L1651.9 -253.7 L1702.6 -302.9 L1755.1 -357.5 L1809.2 -418.2 L1864.8 -485.6 L1921.5 -560.8 L1979.0 -644.8 L2036.8 -738.9 L2093.9 -844.3 L2149.2 -962.7 L2201.2 -1095.5 L2247.8 -1244.5 L2286.2 -1411.4 L2312.7 -1597.7 L2322.8 -1804.5 L2310.6 -2031.9 L2269.2 -2279.0 L2190.7 -2542.6 L2066.6 -2816.6 L1889.4 -3091.6 L1653.3 -3353.9 L1357.2 -3586.9 L1006.0 -3771.7 L612.2 -3891.0 L195.0 -3932.3 Z">
+</path>
+<g data-horizon-band="true">
+<path data-band-strip="0" fill-opacity="0.27" d="M195.0 -3932.3 L-423.4 -3840.4 L-967.2 -3586.9 L-1388.9 -3225.3 L-1676.6 -2816.6 L-1845.1 -2409.1 L-1920.6 -2031.9 L-1930.2 -1698.5 L-1896.2 -1411.4 L-1835.3 -1167.9 L-1759.2 -962.7 L-1675.4 -790.1 L-1589.0 -644.8 L-1503.0 -522.2 L-1419.2 -418.2 L-1338.7 -329.5 L-1261.9 -253.7 L-1189.1 -188.3 L-1120.2 -131.8 L-1055.2 -82.7 L-993.8 -39.7 L-935.9 -2.1 L-881.1 31.1 L-829.4 60.5 L-780.4 86.6 L-733.9 109.9 L-689.7 130.7 L-647.7 149.4 L-607.6 166.1 L-569.3 181.3 L-532.7 195.0 L-497.7 207.4 L-464.0 218.7 L-431.7 228.9 L-400.5 238.3 L-370.4 246.8 L-341.4 254.6 L-313.3 261.7 L-286.0 268.2 L-259.5 274.2 L-233.8 279.7 L-208.7 284.7 L-184.3 289.2 L-160.4 293.4 L-137.0 297.3 L-114.2 300.7 L-91.7 303.9 L-69.7 306.8 L-48.0 309.4 L-26.7 311.7 L-5.6 313.8 L15.2 315.7 L35.7 317.4 L56.1 318.8 L76.2 320.0 L96.3 321.0 L116.2 321.9 L136.0 322.5 L155.7 323.0 L175.4 323.2 L195.0 323.3 L214.6 323.2 L234.3 323.0 L254.0 322.5 L273.8 321.9 L293.7 321.0 L313.8 320.0 L333.9 318.8 L354.3 317.4 L374.8 315.7 L395.6 313.8 L416.7 311.7 L438.0 309.4 L459.7 306.8 L481.7 303.9 L504.2 300.7 L527.0 297.3 L550.4 293.4 L574.3 289.2 L598.7 284.7 L623.8 279.7 L649.5 274.2 L676.0 268.2 L703.3 261.7 L731.4 254.6 L760.4 246.8 L790.5 238.3 L821.7 228.9 L854.0 218.7 L887.7 207.4 L922.7 195.0 L959.3 181.3 L997.6 166.1 L1037.7 149.4 L1079.7 130.7 L1123.9 109.9 L1170.4 86.6 L1219.4 60.5 L1271.1 31.1 L1325.9 -2.1 L1383.8 -39.7 L1445.2 -82.7 L1510.2 -131.8 L1579.1 -188.3 L1651.9 -253.7 L1728.7 -329.5 L1809.2 -418.2 L1893.0 -522.2 L1979.0 -644.8 L2065.4 -790.1 L2149.2 -962.7 L2225.3 -1167.9 L2286.2 -1411.4 L2320.2 -1698.5 L2310.6 -2031.9 L2235.1 -2409.1 L2066.6 -2816.6 L1778.9 -3225.3 L1357.2 -3586.9 L813.4 -3840.4 L195.0 -3932.3 ZM195.0 -3382.0 L-275.8 -3320.8 L-702.6 -3148.7 L-1053.7 -2894.5 L-1316.0 -2594.2 L-1492.4 -2280.0 L-1595.6 -1975.2 L-1641.4 -1693.6 L-1645.3 -1441.5 L-1620.1 -1220.3 L-1575.7 -1028.4 L-1519.3 -862.9 L-1456.1 -720.6 L-1389.6 -598.3 L-1322.2 -493.0 L-1255.2 -402.0 L-1189.9 -323.3 L-1126.6 -254.8 L-1065.8 -195.1 L-1007.6 -142.7 L-952.1 -96.7 L-899.1 -56.1 L-848.5 -20.2 L-800.4 11.8 L-754.5 40.3 L-710.8 65.8 L-669.0 88.7 L-629.0 109.3 L-590.8 127.8 L-554.1 144.6 L-519.0 159.8 L-485.2 173.6 L-452.7 186.2 L-421.3 197.7 L-391.0 208.1 L-361.8 217.6 L-333.5 226.4 L-306.0 234.3 L-279.4 241.7 L-253.5 248.4 L-228.2 254.5 L-203.6 260.1 L-179.6 265.3 L-156.1 270.0 L-133.2 274.3 L-110.6 278.2 L-88.5 281.8 L-66.8 285.1 L-45.4 288.0 L-24.3 290.7 L-3.5 293.0 L17.0 295.2 L37.4 297.0 L57.5 298.6 L77.4 300.0 L97.3 301.2 L116.9 302.1 L136.5 302.8 L156.1 303.4 L175.5 303.7 L195.0 303.8 L214.5 303.7 L233.9 303.4 L253.5 302.8 L273.1 302.1 L292.7 301.2 L312.6 300.0 L332.5 298.6 L352.6 297.0 L373.0 295.2 L393.5 293.0 L414.3 290.7 L435.4 288.0 L456.8 285.1 L478.5 281.8 L500.6 278.2 L523.2 274.3 L546.1 270.0 L569.6 265.3 L593.6 260.1 L618.2 254.5 L643.5 248.4 L669.4 241.7 L696.0 234.3 L723.5 226.4 L751.8 217.6 L781.0 208.1 L811.3 197.7 L842.7 186.2 L875.2 173.6 L909.0 159.8 L944.1 144.6 L980.8 127.8 L1019.0 109.3 L1059.0 88.7 L1100.8 65.8 L1144.5 40.3 L1190.4 11.8 L1238.5 -20.2 L1289.1 -56.1 L1342.1 -96.7 L1397.6 -142.7 L1455.8 -195.1 L1516.6 -254.8 L1579.9 -323.3 L1645.2 -402.0 L1712.2 -493.0 L1779.6 -598.3 L1846.1 -720.6 L1909.3 -862.9 L1965.7 -1028.4 L2010.1 -1220.3 L2035.3 -1441.5 L2031.4 -1693.6 L1985.6 -1975.2 L1882.4 -2280.0 L1706.0 -2594.2 L1443.7 -2894.5 L1092.6 -3148.7 L665.8 -3320.8 L195.0 -3382.0 Z">
+</path>
+<path data-band-strip="1" fill-opacity="0.21" d="M195.0 -3382.0 L-275.8 -3320.8 L-702.6 -3148.7 L-1053.7 -2894.5 L-1316.0 -2594.2 L-1492.4 -2280.0 L-1595.6 -1975.2 L-1641.4 -1693.6 L-1645.3 -1441.5 L-1620.1 -1220.3 L-1575.7 -1028.4 L-1519.3 -862.9 L-1456.1 -720.6 L-1389.6 -598.3 L-1322.2 -493.0 L-1255.2 -402.0 L-1189.9 -323.3 L-1126.6 -254.8 L-1065.8 -195.1 L-1007.6 -142.7 L-952.1 -96.7 L-899.1 -56.1 L-848.5 -20.2 L-800.4 11.8 L-754.5 40.3 L-710.8 65.8 L-669.0 88.7 L-629.0 109.3 L-590.8 127.8 L-554.1 144.6 L-519.0 159.8 L-485.2 173.6 L-452.7 186.2 L-421.3 197.7 L-391.0 208.1 L-361.8 217.6 L-333.5 226.4 L-306.0 234.3 L-279.4 241.7 L-253.5 248.4 L-228.2 254.5 L-203.6 260.1 L-179.6 265.3 L-156.1 270.0 L-133.2 274.3 L-110.6 278.2 L-88.5 281.8 L-66.8 285.1 L-45.4 288.0 L-24.3 290.7 L-3.5 293.0 L17.0 295.2 L37.4 297.0 L57.5 298.6 L77.4 300.0 L97.3 301.2 L116.9 302.1 L136.5 302.8 L156.1 303.4 L175.5 303.7 L195.0 303.8 L214.5 303.7 L233.9 303.4 L253.5 302.8 L273.1 302.1 L292.7 301.2 L312.6 300.0 L332.5 298.6 L352.6 297.0 L373.0 295.2 L393.5 293.0 L414.3 290.7 L435.4 288.0 L456.8 285.1 L478.5 281.8 L500.6 278.2 L523.2 274.3 L546.1 270.0 L569.6 265.3 L593.6 260.1 L618.2 254.5 L643.5 248.4 L669.4 241.7 L696.0 234.3 L723.5 226.4 L751.8 217.6 L781.0 208.1 L811.3 197.7 L842.7 186.2 L875.2 173.6 L909.0 159.8 L944.1 144.6 L980.8 127.8 L1019.0 109.3 L1059.0 88.7 L1100.8 65.8 L1144.5 40.3 L1190.4 11.8 L1238.5 -20.2 L1289.1 -56.1 L1342.1 -96.7 L1397.6 -142.7 L1455.8 -195.1 L1516.6 -254.8 L1579.9 -323.3 L1645.2 -402.0 L1712.2 -493.0 L1779.6 -598.3 L1846.1 -720.6 L1909.3 -862.9 L1965.7 -1028.4 L2010.1 -1220.3 L2035.3 -1441.5 L2031.4 -1693.6 L1985.6 -1975.2 L1882.4 -2280.0 L1706.0 -2594.2 L1443.7 -2894.5 L1092.6 -3148.7 L665.8 -3320.8 L195.0 -3382.0 ZM195.0 -2957.2 L-174.6 -2914.5 L-516.5 -2792.7 L-809.5 -2608.4 L-1042.2 -2383.5 L-1212.9 -2139.4 L-1327.0 -1893.6 L-1393.5 -1658.2 L-1422.5 -1440.3 L-1423.1 -1243.2 L-1403.3 -1067.6 L-1369.4 -912.6 L-1326.0 -776.6 L-1276.8 -657.6 L-1224.2 -553.6 L-1170.0 -462.5 L-1115.5 -382.8 L-1061.6 -312.7 L-1008.7 -251.1 L-957.3 -196.6 L-907.6 -148.5 L-859.6 -105.7 L-813.5 -67.6 L-769.1 -33.6 L-726.5 -3.1 L-685.6 24.3 L-646.3 48.9 L-608.6 71.1 L-572.3 91.2 L-537.4 109.4 L-503.8 126.0 L-471.4 141.0 L-440.1 154.8 L-409.8 167.3 L-380.5 178.7 L-352.2 189.2 L-324.7 198.8 L-298.0 207.6 L-272.0 215.6 L-246.7 223.0 L-222.0 229.8 L-197.9 236.0 L-174.4 241.7 L-151.4 246.9 L-128.8 251.7 L-106.7 256.0 L-84.9 260.0 L-63.5 263.6 L-42.4 266.9 L-21.6 269.8 L-1.1 272.4 L19.1 274.8 L39.2 276.9 L59.1 278.6 L78.8 280.2 L98.4 281.5 L117.8 282.5 L137.2 283.3 L156.5 283.9 L175.8 284.2 L195.0 284.4 L214.2 284.2 L233.5 283.9 L252.8 283.3 L272.2 282.5 L291.6 281.5 L311.2 280.2 L330.9 278.6 L350.8 276.9 L370.9 274.8 L391.1 272.4 L411.6 269.8 L432.4 266.9 L453.5 263.6 L474.9 260.0 L496.7 256.0 L518.8 251.7 L541.4 246.9 L564.4 241.7 L587.9 236.0 L612.0 229.8 L636.7 223.0 L662.0 215.6 L688.0 207.6 L714.7 198.8 L742.2 189.2 L770.5 178.7 L799.8 167.3 L830.1 154.8 L861.4 141.0 L893.8 126.0 L927.4 109.4 L962.3 91.2 L998.6 71.1 L1036.3 48.9 L1075.6 24.3 L1116.5 -3.1 L1159.1 -33.6 L1203.5 -67.6 L1249.6 -105.7 L1297.6 -148.5 L1347.3 -196.6 L1398.7 -251.1 L1451.6 -312.7 L1505.5 -382.8 L1560.0 -462.5 L1614.2 -553.6 L1666.8 -657.6 L1716.0 -776.6 L1759.4 -912.6 L1793.3 -1067.6 L1813.1 -1243.2 L1812.5 -1440.3 L1783.5 -1658.2 L1717.0 -1893.6 L1602.9 -2139.4 L1432.2 -2383.5 L1199.5 -2608.4 L906.5 -2792.7 L564.6 -2914.5 L195.0 -2957.2 Z">
+</path>
+<path data-band-strip="2" fill-opacity="0.15" d="M195.0 -2957.2 L-174.6 -2914.5 L-516.5 -2792.7 L-809.5 -2608.4 L-1042.2 -2383.5 L-1212.9 -2139.4 L-1327.0 -1893.6 L-1393.5 -1658.2 L-1422.5 -1440.3 L-1423.1 -1243.2 L-1403.3 -1067.6 L-1369.4 -912.6 L-1326.0 -776.6 L-1276.8 -657.6 L-1224.2 -553.6 L-1170.0 -462.5 L-1115.5 -382.8 L-1061.6 -312.7 L-1008.7 -251.1 L-957.3 -196.6 L-907.6 -148.5 L-859.6 -105.7 L-813.5 -67.6 L-769.1 -33.6 L-726.5 -3.1 L-685.6 24.3 L-646.3 48.9 L-608.6 71.1 L-572.3 91.2 L-537.4 109.4 L-503.8 126.0 L-471.4 141.0 L-440.1 154.8 L-409.8 167.3 L-380.5 178.7 L-352.2 189.2 L-324.7 198.8 L-298.0 207.6 L-272.0 215.6 L-246.7 223.0 L-222.0 229.8 L-197.9 236.0 L-174.4 241.7 L-151.4 246.9 L-128.8 251.7 L-106.7 256.0 L-84.9 260.0 L-63.5 263.6 L-42.4 266.9 L-21.6 269.8 L-1.1 272.4 L19.1 274.8 L39.2 276.9 L59.1 278.6 L78.8 280.2 L98.4 281.5 L117.8 282.5 L137.2 283.3 L156.5 283.9 L175.8 284.2 L195.0 284.4 L214.2 284.2 L233.5 283.9 L252.8 283.3 L272.2 282.5 L291.6 281.5 L311.2 280.2 L330.9 278.6 L350.8 276.9 L370.9 274.8 L391.1 272.4 L411.6 269.8 L432.4 266.9 L453.5 263.6 L474.9 260.0 L496.7 256.0 L518.8 251.7 L541.4 246.9 L564.4 241.7 L587.9 236.0 L612.0 229.8 L636.7 223.0 L662.0 215.6 L688.0 207.6 L714.7 198.8 L742.2 189.2 L770.5 178.7 L799.8 167.3 L830.1 154.8 L861.4 141.0 L893.8 126.0 L927.4 109.4 L962.3 91.2 L998.6 71.1 L1036.3 48.9 L1075.6 24.3 L1116.5 -3.1 L1159.1 -33.6 L1203.5 -67.6 L1249.6 -105.7 L1297.6 -148.5 L1347.3 -196.6 L1398.7 -251.1 L1451.6 -312.7 L1505.5 -382.8 L1560.0 -462.5 L1614.2 -553.6 L1666.8 -657.6 L1716.0 -776.6 L1759.4 -912.6 L1793.3 -1067.6 L1813.1 -1243.2 L1812.5 -1440.3 L1783.5 -1658.2 L1717.0 -1893.6 L1602.9 -2139.4 L1432.2 -2383.5 L1199.5 -2608.4 L906.5 -2792.7 L564.6 -2914.5 L195.0 -2957.2 ZM195.0 -2619.0 L-102.0 -2588.1 L-380.9 -2499.0 L-626.9 -2361.8 L-831.0 -2190.3 L-989.9 -1998.8 L-1105.4 -1800.2 L-1182.3 -1604.2 L-1226.8 -1417.5 L-1245.5 -1244.2 L-1244.2 -1085.9 L-1228.0 -943.3 L-1201.0 -815.7 L-1166.6 -702.1 L-1127.2 -601.3 L-1084.5 -511.9 L-1040.2 -432.7 L-995.0 -362.5 L-949.8 -300.1 L-905.0 -244.5 L-861.1 -195.0 L-818.1 -150.8 L-776.4 -111.2 L-735.9 -75.6 L-696.6 -43.6 L-658.7 -14.8 L-622.0 11.3 L-586.6 34.9 L-552.4 56.3 L-519.3 75.7 L-487.3 93.5 L-456.3 109.6 L-426.3 124.4 L-397.3 137.8 L-369.1 150.2 L-341.7 161.5 L-315.0 171.9 L-289.1 181.4 L-263.9 190.1 L-239.2 198.1 L-215.2 205.5 L-191.7 212.3 L-168.7 218.5 L-146.1 224.1 L-124.0 229.3 L-102.3 234.1 L-80.9 238.4 L-59.9 242.4 L-39.2 245.9 L-18.7 249.2 L1.5 252.0 L21.5 254.6 L41.2 256.9 L60.8 258.8 L80.3 260.5 L99.6 261.9 L118.8 263.1 L137.9 263.9 L157.0 264.6 L176.0 264.9 L195.0 265.1 L214.0 264.9 L233.0 264.6 L252.1 263.9 L271.2 263.1 L290.4 261.9 L309.7 260.5 L329.2 258.8 L348.8 256.9 L368.5 254.6 L388.5 252.0 L408.7 249.2 L429.2 245.9 L449.9 242.4 L470.9 238.4 L492.3 234.1 L514.0 229.3 L536.1 224.1 L558.7 218.5 L581.7 212.3 L605.2 205.5 L629.2 198.1 L653.9 190.1 L679.1 181.4 L705.0 171.9 L731.7 161.5 L759.1 150.2 L787.3 137.8 L816.3 124.4 L846.3 109.6 L877.3 93.5 L909.3 75.7 L942.4 56.3 L976.6 34.9 L1012.0 11.3 L1048.7 -14.8 L1086.6 -43.6 L1125.9 -75.6 L1166.4 -111.2 L1208.1 -150.8 L1251.1 -195.0 L1295.0 -244.5 L1339.8 -300.1 L1385.0 -362.5 L1430.2 -432.7 L1474.5 -511.9 L1517.2 -601.3 L1556.6 -702.1 L1591.0 -815.7 L1618.0 -943.3 L1634.2 -1085.9 L1635.5 -1244.2 L1616.8 -1417.5 L1572.3 -1604.2 L1495.4 -1800.2 L1379.9 -1998.8 L1221.0 -2190.3 L1016.9 -2361.8 L770.9 -2499.0 L492.0 -2588.1 L195.0 -2619.0 Z">
+</path>
+<path data-band-strip="3" fill-opacity="0.09" d="M195.0 -2619.0 L-102.0 -2588.1 L-380.9 -2499.0 L-626.9 -2361.8 L-831.0 -2190.3 L-989.9 -1998.8 L-1105.4 -1800.2 L-1182.3 -1604.2 L-1226.8 -1417.5 L-1245.5 -1244.2 L-1244.2 -1085.9 L-1228.0 -943.3 L-1201.0 -815.7 L-1166.6 -702.1 L-1127.2 -601.3 L-1084.5 -511.9 L-1040.2 -432.7 L-995.0 -362.5 L-949.8 -300.1 L-905.0 -244.5 L-861.1 -195.0 L-818.1 -150.8 L-776.4 -111.2 L-735.9 -75.6 L-696.6 -43.6 L-658.7 -14.8 L-622.0 11.3 L-586.6 34.9 L-552.4 56.3 L-519.3 75.7 L-487.3 93.5 L-456.3 109.6 L-426.3 124.4 L-397.3 137.8 L-369.1 150.2 L-341.7 161.5 L-315.0 171.9 L-289.1 181.4 L-263.9 190.1 L-239.2 198.1 L-215.2 205.5 L-191.7 212.3 L-168.7 218.5 L-146.1 224.1 L-124.0 229.3 L-102.3 234.1 L-80.9 238.4 L-59.9 242.4 L-39.2 245.9 L-18.7 249.2 L1.5 252.0 L21.5 254.6 L41.2 256.9 L60.8 258.8 L80.3 260.5 L99.6 261.9 L118.8 263.1 L137.9 263.9 L157.0 264.6 L176.0 264.9 L195.0 265.1 L214.0 264.9 L233.0 264.6 L252.1 263.9 L271.2 263.1 L290.4 261.9 L309.7 260.5 L329.2 258.8 L348.8 256.9 L368.5 254.6 L388.5 252.0 L408.7 249.2 L429.2 245.9 L449.9 242.4 L470.9 238.4 L492.3 234.1 L514.0 229.3 L536.1 224.1 L558.7 218.5 L581.7 212.3 L605.2 205.5 L629.2 198.1 L653.9 190.1 L679.1 181.4 L705.0 171.9 L731.7 161.5 L759.1 150.2 L787.3 137.8 L816.3 124.4 L846.3 109.6 L877.3 93.5 L909.3 75.7 L942.4 56.3 L976.6 34.9 L1012.0 11.3 L1048.7 -14.8 L1086.6 -43.6 L1125.9 -75.6 L1166.4 -111.2 L1208.1 -150.8 L1251.1 -195.0 L1295.0 -244.5 L1339.8 -300.1 L1385.0 -362.5 L1430.2 -432.7 L1474.5 -511.9 L1517.2 -601.3 L1556.6 -702.1 L1591.0 -815.7 L1618.0 -943.3 L1634.2 -1085.9 L1635.5 -1244.2 L1616.8 -1417.5 L1572.3 -1604.2 L1495.4 -1800.2 L1379.9 -1998.8 L1221.0 -2190.3 L1016.9 -2361.8 L770.9 -2499.0 L492.0 -2588.1 L195.0 -2619.0 ZM195.0 -2343.0 L-48.2 -2319.9 L-279.0 -2253.1 L-487.1 -2148.7 L-665.3 -2015.7 L-810.3 -1864.0 L-922.0 -1702.7 L-1002.7 -1539.6 L-1056.1 -1380.5 L-1086.7 -1229.3 L-1098.8 -1088.3 L-1096.3 -958.6 L-1082.6 -840.6 L-1060.6 -733.8 L-1032.5 -637.7 L-1000.1 -551.4 L-964.9 -474.0 L-927.9 -404.6 L-889.9 -342.4 L-851.5 -286.7 L-813.1 -236.6 L-775.1 -191.5 L-737.7 -150.9 L-701.0 -114.3 L-665.2 -81.2 L-630.2 -51.3 L-596.2 -24.1 L-563.2 0.6 L-531.1 23.1 L-499.9 43.6 L-469.6 62.3 L-440.2 79.3 L-411.5 95.0 L-383.7 109.3 L-356.6 122.5 L-330.3 134.5 L-304.6 145.6 L-279.5 155.8 L-255.0 165.1 L-231.1 173.7 L-207.7 181.6 L-184.8 188.9 L-162.4 195.6 L-140.4 201.7 L-118.7 207.3 L-97.5 212.4 L-76.5 217.1 L-55.9 221.3 L-35.6 225.2 L-15.5 228.7 L4.4 231.8 L24.0 234.5 L43.5 237.0 L62.8 239.1 L81.9 240.9 L100.9 242.5 L119.9 243.7 L138.7 244.7 L157.5 245.3 L176.3 245.8 L195.0 245.9 L213.7 245.8 L232.5 245.3 L251.3 244.7 L270.1 243.7 L289.1 242.5 L308.1 240.9 L327.2 239.1 L346.5 237.0 L366.0 234.5 L385.6 231.8 L405.5 228.7 L425.6 225.2 L445.9 221.3 L466.5 217.1 L487.5 212.4 L508.7 207.3 L530.4 201.7 L552.4 195.6 L574.8 188.9 L597.7 181.6 L621.1 173.7 L645.0 165.1 L669.5 155.8 L694.6 145.6 L720.3 134.5 L746.6 122.5 L773.7 109.3 L801.5 95.0 L830.2 79.3 L859.6 62.3 L889.9 43.6 L921.1 23.1 L953.2 0.6 L986.2 -24.1 L1020.2 -51.3 L1055.2 -81.2 L1091.0 -114.3 L1127.7 -150.9 L1165.1 -191.5 L1203.1 -236.6 L1241.5 -286.7 L1279.9 -342.4 L1317.9 -404.6 L1354.9 -474.0 L1390.1 -551.4 L1422.5 -637.7 L1450.6 -733.8 L1472.6 -840.6 L1486.3 -958.6 L1488.8 -1088.3 L1476.7 -1229.3 L1446.1 -1380.5 L1392.7 -1539.6 L1312.0 -1702.7 L1200.3 -1864.0 L1055.3 -2015.7 L877.1 -2148.7 L669.0 -2253.1 L438.2 -2319.9 L195.0 -2343.0 Z">
+</path>
+<path data-band-strip="4" fill-opacity="0.03" d="M195.0 -2343.0 L-48.2 -2319.9 L-279.0 -2253.1 L-487.1 -2148.7 L-665.3 -2015.7 L-810.3 -1864.0 L-922.0 -1702.7 L-1002.7 -1539.6 L-1056.1 -1380.5 L-1086.7 -1229.3 L-1098.8 -1088.3 L-1096.3 -958.6 L-1082.6 -840.6 L-1060.6 -733.8 L-1032.5 -637.7 L-1000.1 -551.4 L-964.9 -474.0 L-927.9 -404.6 L-889.9 -342.4 L-851.5 -286.7 L-813.1 -236.6 L-775.1 -191.5 L-737.7 -150.9 L-701.0 -114.3 L-665.2 -81.2 L-630.2 -51.3 L-596.2 -24.1 L-563.2 0.6 L-531.1 23.1 L-499.9 43.6 L-469.6 62.3 L-440.2 79.3 L-411.5 95.0 L-383.7 109.3 L-356.6 122.5 L-330.3 134.5 L-304.6 145.6 L-279.5 155.8 L-255.0 165.1 L-231.1 173.7 L-207.7 181.6 L-184.8 188.9 L-162.4 195.6 L-140.4 201.7 L-118.7 207.3 L-97.5 212.4 L-76.5 217.1 L-55.9 221.3 L-35.6 225.2 L-15.5 228.7 L4.4 231.8 L24.0 234.5 L43.5 237.0 L62.8 239.1 L81.9 240.9 L100.9 242.5 L119.9 243.7 L138.7 244.7 L157.5 245.3 L176.3 245.8 L195.0 245.9 L213.7 245.8 L232.5 245.3 L251.3 244.7 L270.1 243.7 L289.1 242.5 L308.1 240.9 L327.2 239.1 L346.5 237.0 L366.0 234.5 L385.6 231.8 L405.5 228.7 L425.6 225.2 L445.9 221.3 L466.5 217.1 L487.5 212.4 L508.7 207.3 L530.4 201.7 L552.4 195.6 L574.8 188.9 L597.7 181.6 L621.1 173.7 L645.0 165.1 L669.5 155.8 L694.6 145.6 L720.3 134.5 L746.6 122.5 L773.7 109.3 L801.5 95.0 L830.2 79.3 L859.6 62.3 L889.9 43.6 L921.1 23.1 L953.2 0.6 L986.2 -24.1 L1020.2 -51.3 L1055.2 -81.2 L1091.0 -114.3 L1127.7 -150.9 L1165.1 -191.5 L1203.1 -236.6 L1241.5 -286.7 L1279.9 -342.4 L1317.9 -404.6 L1354.9 -474.0 L1390.1 -551.4 L1422.5 -637.7 L1450.6 -733.8 L1472.6 -840.6 L1486.3 -958.6 L1488.8 -1088.3 L1476.7 -1229.3 L1446.1 -1380.5 L1392.7 -1539.6 L1312.0 -1702.7 L1200.3 -1864.0 L1055.3 -2015.7 L877.1 -2148.7 L669.0 -2253.1 L438.2 -2319.9 L195.0 -2343.0 ZM195.0 -2113.1 L-7.0 -2095.6 L-200.4 -2044.3 L-377.7 -1963.4 L-533.3 -1858.8 L-664.1 -1737.4 L-769.3 -1605.7 L-849.7 -1469.8 L-907.6 -1334.5 L-945.7 -1203.3 L-967.1 -1078.6 L-974.8 -961.9 L-971.5 -853.9 L-959.7 -754.7 L-941.2 -664.1 L-917.7 -581.8 L-890.7 -507.2 L-861.0 -439.6 L-829.7 -378.5 L-797.2 -323.3 L-764.2 -273.3 L-730.9 -228.0 L-697.7 -187.0 L-664.8 -149.8 L-632.4 -116.0 L-600.5 -85.3 L-569.2 -57.3 L-538.5 -31.7 L-508.6 -8.4 L-479.3 12.9 L-450.8 32.4 L-422.9 50.3 L-395.8 66.7 L-369.2 81.7 L-343.3 95.6 L-318.1 108.3 L-293.3 120.0 L-269.2 130.8 L-245.5 140.7 L-222.4 149.8 L-199.7 158.2 L-177.5 165.9 L-155.6 173.0 L-134.1 179.5 L-113.0 185.5 L-92.3 191.0 L-71.8 195.9 L-51.6 200.5 L-31.7 204.6 L-12.0 208.3 L7.5 211.7 L26.8 214.6 L45.9 217.2 L64.9 219.5 L83.7 221.5 L102.4 223.1 L121.0 224.4 L139.6 225.5 L158.1 226.2 L176.6 226.6 L195.0 226.8 L213.4 226.6 L231.9 226.2 L250.4 225.5 L269.0 224.4 L287.6 223.1 L306.3 221.5 L325.1 219.5 L344.1 217.2 L363.2 214.6 L382.5 211.7 L402.0 208.3 L421.7 204.6 L441.6 200.5 L461.8 195.9 L482.3 191.0 L503.0 185.5 L524.1 179.5 L545.6 173.0 L567.5 165.9 L589.7 158.2 L612.4 149.8 L635.5 140.7 L659.2 130.8 L683.3 120.0 L708.1 108.3 L733.3 95.6 L759.2 81.7 L785.8 66.7 L812.9 50.3 L840.8 32.4 L869.3 12.9 L898.6 -8.4 L928.5 -31.7 L959.2 -57.3 L990.5 -85.3 L1022.4 -116.0 L1054.8 -149.8 L1087.7 -187.0 L1120.9 -228.0 L1154.2 -273.3 L1187.2 -323.3 L1219.7 -378.5 L1251.0 -439.6 L1280.7 -507.2 L1307.7 -581.8 L1331.2 -664.1 L1349.7 -754.7 L1361.5 -853.9 L1364.8 -961.9 L1357.1 -1078.6 L1335.7 -1203.3 L1297.6 -1334.5 L1239.7 -1469.8 L1159.3 -1605.7 L1054.1 -1737.4 L923.3 -1858.8 L767.7 -1963.4 L590.4 -2044.3 L397.0 -2095.6 L195.0 -2113.1 Z">
+</path>
+</g>
+<g data-milky-way="true" clip-path="url(#…)">
+<path data-haze-band="0" fill-opacity="0.018" d="M67.8 176.1 L-87.3 -581.6 L2063.7 -320.4 L546.7 586.8 L414.0 797.4 L4269.0 801.6 L-476.9 -553.6 L-68.4 267.6 Z">
+</path>
+<path data-haze-band="1" fill-opacity="0.024" d="M40.1 193.9 L-161.3 -590.4 L2350.0 -284.8 L525.7 631.1 L448.7 754.3 L3614.0 219.4 L-389.6 -576.1 L-39.2 247.1 Z">
+</path>
+<path data-haze-band="2" fill-opacity="0.03" d="M17.8 208.6 L-223.5 -592.7 L2630.8 -224.3 L506.5 666.5 L473.6 719.3 L3165.7 -32.4 L-321.6 -587.0 L-16.2 231.4 Z">
+</path>
+</g>
+<g data-blooms="true">
+<circle data-bloom="0" r="21.5" fill="url(#…)" visibility="visible" cx="195.0" cy="99.2">
+</circle>
+<circle data-bloom="1" r="14" fill="url(#…)" visibility="visible" cx="195.0" cy="66.7">
+</circle>
+<circle data-bloom="9" data-planet-bloom="Jupiter" r="30.5" fill="url(#…)" visibility="visible" cx="245.2" cy="64.4">
+</circle>
+<circle data-bloom="10" data-planet-bloom="Mars" r="13" fill="url(#…)" visibility="hidden">
+</circle>
+<circle data-bloom="11" data-planet-bloom="Saturn" r="15.5" fill="url(#…)" visibility="visible" cx="147.9" cy="31.4">
+</circle>
+</g>
+<g data-figures="true" clip-path="url(#…)">
+<line data-figure="0" visibility="visible" x1="195.0" y1="93.2" x2="195.0" y2="72.7">
+</line>
+<line data-figure="0" visibility="hidden">
+</line>
+<line data-figure="0" visibility="visible" x1="195.0" y1="201.0" x2="195.0" y2="350.3">
+</line>
+<line data-figure="0" visibility="hidden">
+</line>
+</g>
+<g data-deep-pool="true">
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+<circle data-tone="chart-star" r="0" visibility="hidden">
+</circle>
+</g>
+<g data-marks="true">
+<text data-glyph="*" data-px="20" data-tone="chart-star-blue" font-size="20" dx="0" dy="0" visibility="visible" data-star="0" x="195.0" y="99.2">*</text>
+<text data-glyph="*" data-px="16" data-tone="chart-star" font-size="16" dx="0" dy="0" visibility="visible" data-star="1" x="195.0" y="66.7">*</text>
+<text data-glyph="*" data-px="13" data-tone="chart-star-yellow" font-size="13" dx="0" dy="0" visibility="visible" data-star="2" x="221.5" y="98.7">*</text>
+<text data-glyph="*" data-px="13" data-tone="chart-star-orange" font-size="13" dx="0" dy="0" visibility="visible" data-star="3" x="195.0" y="195.0">*</text>
+<circle data-tone="chart-star" r="2.17" visibility="hidden" data-star="4">
+</circle>
+<circle data-tone="chart-star-yellow" r="1.73" visibility="hidden" data-star="5">
+</circle>
+<circle data-tone="chart-star-orange" r="1.63" visibility="hidden" data-star="6">
+</circle>
+<circle data-tone="chart-star" r="1.55" visibility="visible" data-star="7" cx="168.5" cy="98.7">
+</circle>
+<circle data-tone="chart-star-yellow" r="1.5" visibility="hidden" data-star="8">
+</circle>
+</g>
+<g data-planet-marks="true">
+<text data-glyph="@" data-px="20" data-tone="chart-planet" font-size="20" dx="0" dy="0" visibility="visible" data-planet="Jupiter" x="245.2" y="64.4">@</text>
+<text data-glyph="@" data-px="16" data-tone="chart-planet" font-size="16" dx="0" dy="0" visibility="hidden" data-planet="Mars">@</text>
+<text data-glyph="@" data-px="16" data-tone="chart-planet" font-size="16" dx="0" dy="0" visibility="visible" data-planet="Saturn" x="147.9" y="31.4">@</text>
+</g>
+<circle data-landmark-ring="" r="13" visibility="hidden">
+</circle>
+<g data-names="true" visibility="hidden" display="none">
+<text data-star-name="0" visibility="hidden">A</text>
+<text data-star-name="1" visibility="hidden">B</text>
+<text data-star-name="2" visibility="hidden">C</text>
+<text data-star-name="3" visibility="hidden">D</text>
+<text data-star-name="4" visibility="hidden">E</text>
+<text data-figure-name="0" data-con="Ori" visibility="hidden">
+</text>
+</g>
+<text data-landmark-name="" visibility="hidden">
+</text>
+<text data-star-label="true" data-labelled="" visibility="hidden">
+</text>
+</g>
+<g data-body="moon" data-phase="waningCrescent" data-lit="0.28" data-limb="25" transform="translate(306.4 123.0)" data-in-view="true">
+<circle data-marker="moon" r="5">
+</circle>
+<path data-moon-lit="true" d="M0 -5.00A5.00 5.00 0 0 1 0 5.00A2.20 5.00 0 0 0 0 -5.00Z" transform="rotate(24.9)">
+</path>
+</g>

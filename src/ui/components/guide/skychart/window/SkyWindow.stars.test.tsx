@@ -18,8 +18,9 @@ import { createHandCamera } from './camera';
 import { resetOrientationAccess } from './orientationAccess';
 import { project, uprightRotation, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
+import { bloomRadiusPx } from './bloom';
 import { SkyWindow } from './SkyWindow';
-import { COLLISION_PX } from './starGlyphs';
+import { COLLISION_PX, dotRadiusPx } from './starGlyphs';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -72,10 +73,12 @@ const at = (azDeg: number, altDeg: number, facing = 180, tilt = 35): { x: number
   const p = project(uprightRotation(facing, tilt), azDeg, altDeg, view);
   return { x: p.x, y: p.y };
 };
-const star = (container: HTMLElement, i: number): SVGTextElement => container.querySelector(`[data-star="${String(i)}"]`) as SVGTextElement;
+const star = (container: HTMLElement, i: number): SVGElement => container.querySelector(`[data-marks] > [data-star="${String(i)}"]`) as SVGElement;
 const planet = (container: HTMLElement, body: string): SVGTextElement => container.querySelector(`[data-planet="${body}"]`) as SVGTextElement;
 const lines = (container: HTMLElement): SVGLineElement[] => [...container.querySelectorAll<SVGLineElement>('[data-figures] > line')];
 const num = (el: Element, name: string): number => Number(el.getAttribute(name));
+/** R155: a `*` is placed by `x`/`y`, a dot (a `<circle>`) by `cx`/`cy`. */
+const pos = (el: Element): { x: number; y: number } => (el.tagName === 'circle' ? { x: num(el, 'cx'), y: num(el, 'cy') } : { x: num(el, 'x'), y: num(el, 'y') });
 
 /** Is the point inside the closed `M … L … Z` polygon? A ray cast to the right (`SkyWindow.test.tsx`'s, R56). */
 function encloses(d: string, x: number, y: number): boolean {
@@ -106,36 +109,41 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
     vi.unstubAllGlobals();
   });
 
-  it('makes one node per star, per planet and per segment, in the ladder’s glyph, size and tone, the ink shift on each, under the horizon and the rings', () => {
+  it('makes one node per star, per planet and per segment, in the marks’ glyph or dot, size and tone, the ink shift on each `*`, under the horizon and the rings', () => {
     const { container } = mount();
     const group = container.querySelector('[data-layer="stars"]') as SVGGElement;
-    // R127: the landmark's ring (a circle) over the marks, and its name node before the tap's label.
-    expect([...group.children].map((child) => `${child.tagName}${child.getAttribute('data-figures') !== null ? '.figures' : ''}`)).toEqual(['defs', 'path', 'g.figures', 'g', 'g', 'circle', 'g', 'text', 'text']);
+    // R127: the landmark's ring (a circle) over the marks, and its name node before the tap's label. R155 (FR-STAR-6 as amended v2.10): the surface, the ground, the band, the haze, the bloom, the figures, the deep pool, the marks, the planets.
+    const named = (child: Element): string => ['data-figures', 'data-sky-surface', 'data-horizon-band', 'data-milky-way', 'data-blooms', 'data-deep-pool', 'data-marks', 'data-planet-marks', 'data-names'].find((name) => child.hasAttribute(name))?.slice(5) ?? '';
+    expect([...group.children].map((child) => `${child.tagName}${named(child) ? `.${named(child)}` : ''}`)).toEqual(['defs', 'rect.sky-surface', 'path', 'g.horizon-band', 'g.milky-way', 'g.blooms', 'g.figures', 'g.deep-pool', 'g.marks', 'g.planet-marks', 'circle', 'g.names', 'text', 'text']);
     expect(group.compareDocumentPosition(container.querySelector('[data-horizon]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    const marks = [...container.querySelectorAll<SVGTextElement>('[data-marks] > text')];
+    // FR-LOOK-4: `*` at 20, 16 and 13 px to V 2.5, a dot of the magnitude's radius below it; FR-LOOK-5: a catalogue with no B−V is white.
+    const marks = [...container.querySelectorAll<SVGElement>('[data-marks] > *')];
     expect(marks).toHaveLength(9);
-    expect(marks.map((node) => [node.textContent, node.getAttribute('data-size'), node.getAttribute('data-tone')])).toEqual([
-      ['*', 'chart-text-18', 'chart-star'],
-      ['*', 'chart-text-15', 'chart-star'],
-      ['+', 'chart-text-12', 'chart-star'],
-      ['+', 'chart-text-12', 'chart-star'],
-      ['.', 'chart-text-12', 'chart-star-dim'],
-      ['.', 'chart-text-12', 'chart-star-faint'],
-      ['.', 'chart-text-12', 'chart-star-faint'],
-      ['.', 'chart-text-12', 'chart-star-faint'],
-      ['.', 'chart-text-12', 'chart-star-faint'],
+    expect(marks.map((node) => [node.tagName, node.textContent, node.getAttribute('data-px') ?? node.getAttribute('r'), node.getAttribute('data-tone')])).toEqual([
+      ['text', '*', '20', 'chart-star'],
+      ['text', '*', '16', 'chart-star'],
+      ['text', '*', '13', 'chart-star'],
+      ['text', '*', '13', 'chart-star'],
+      ['circle', '', String(dotRadiusPx(3.0)), 'chart-star'],
+      ['circle', '', String(dotRadiusPx(4.0)), 'chart-star'],
+      ['circle', '', String(dotRadiusPx(4.2)), 'chart-star'],
+      ['circle', '', String(dotRadiusPx(4.4)), 'chart-star'],
+      ['circle', '', String(dotRadiusPx(4.5)), 'chart-star'],
     ]);
+    for (const node of marks.filter((node) => node.tagName === 'text')) expect(node).toHaveAttribute('font-size', node.getAttribute('data-px') ?? '');
+    // A bright-catalogue dot is at full opacity: the fade is the deep pool's.
+    for (const node of marks.filter((node) => node.tagName === 'circle')) expect(node).not.toHaveAttribute('fill-opacity');
     const planets = [...container.querySelectorAll<SVGTextElement>('[data-planet-marks] > text')];
-    expect(planets.map((node) => [node.getAttribute('data-planet'), node.textContent, node.getAttribute('data-size'), node.getAttribute('data-tone')])).toEqual([
-      ['Jupiter', '@', 'chart-text-18', 'chart-planet'],
-      ['Mars', '@', 'chart-text-15', 'chart-planet'],
-      ['Saturn', '@', 'chart-text-15', 'chart-planet'],
+    expect(planets.map((node) => [node.getAttribute('data-planet'), node.textContent, node.getAttribute('data-px'), node.getAttribute('data-tone')])).toEqual([
+      ['Jupiter', '@', '20', 'chart-planet'],
+      ['Mars', '@', '16', 'chart-planet'],
+      ['Saturn', '@', '16', 'chart-planet'],
     ]);
-    // R122 (D-813): the size and the tone are the shared sheet's, keyed by `data-size` and `data-tone` under the group's class; a glyph carries no class of its own.
+    // R122 (D-813): the tone is the shared sheet's, keyed by `data-tone` under the group's class; a mark carries no class of its own.
     expect(container.querySelector('[data-layer="stars"]')?.classList).toHaveLength(2);
-    for (const node of [...marks, ...planets]) {
-      expect(node.classList).toHaveLength(0);
+    for (const node of [...marks, ...planets]) expect(node.classList).toHaveLength(0);
+    for (const node of [...marks.filter((node) => node.tagName === 'text'), ...planets]) {
       // D-752: jsdom has no text metrics, so every ink shift is 0 — written as an attribute all the same, so the measured ones land in the same place.
       expect(node).toHaveAttribute('dx', '0');
       expect(node).toHaveAttribute('dy', '0');
@@ -163,8 +171,8 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
       const node = star(container, i);
       const p = at(az, alt);
       expect(node, `star ${String(i)}`).toHaveAttribute('visibility', 'visible');
-      expect(num(node, 'x'), `star ${String(i)} x`).toBeCloseTo(p.x, 1);
-      expect(num(node, 'y'), `star ${String(i)} y`).toBeCloseTo(p.y, 1);
+      expect(pos(node).x, `star ${String(i)} x`).toBeCloseTo(p.x, 1);
+      expect(pos(node).y, `star ${String(i)} y`).toBeCloseTo(p.y, 1);
     }
     expect(star(container, 0)).toHaveAttribute('x', '195.0');
     expect(star(container, 0)).toHaveAttribute('y', '195.0');
@@ -268,7 +276,7 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
       const p = at(az, 35, 210, 35);
       expect(p.x).toBeGreaterThanOrEqual(-9);
       expect(star(container, i), `star ${String(i)}`).toHaveAttribute('visibility', 'visible');
-      expect(num(star(container, i), 'x')).toBeCloseTo(p.x, 1);
+      expect(pos(star(container, i)).x).toBeCloseTo(p.x, 1);
     }
     // Two more: facing 240°. Star 0 is 60° of azimuth off and past the box's left edge, with its margin of half the top size (9 px).
     fireEvent.keyDown(box, { key: 'ArrowRight' });
@@ -283,11 +291,15 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
     expect(container.querySelector('[data-marks]')).toHaveAttribute('visibility', 'hidden');
     expect(container.querySelector('[data-figures]')).toHaveAttribute('visibility', 'hidden');
     expect(container.querySelector('[data-planet-marks]')).toHaveAttribute('visibility', 'hidden');
-    expect(container.querySelectorAll('[data-marks] > text')).toHaveLength(9);
+    expect(container.querySelectorAll('[data-marks] > *')).toHaveLength(9);
     expect(lines(container)).toHaveLength(4);
     expect(container.querySelectorAll('[data-planet-marks] > text')).toHaveLength(3);
-    // The ground still has its floor: the scene carries stars whatever the layers say.
+    // The ground still has its floor: the scene carries stars whatever the layers say. R155: so do the surface and the band; the haze and the pool go with the stars.
     expect(container.querySelector('[data-ground-fill]')?.getAttribute('d')).not.toBe('');
+    expect(container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'deep');
+    expect(container.querySelector('[data-horizon-band]')).not.toHaveAttribute('display');
+    expect(container.querySelector('[data-milky-way]')).toHaveAttribute('display', 'none');
+    expect(container.querySelector('[data-deep-pool]')).toHaveAttribute('display', 'none');
 
     // Planets alone: with no star drawn, Mars no longer has a brighter neighbour and is drawn.
     const alone = mount({ stars: false, figures: false, planets: true, names: false });
@@ -308,11 +320,119 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
 
   });
 
+  /** R155 (FR-LOOK-1, FR-LOOK-2): the surface in the step's tone at the three altitudes, and the band's five strips written per rotation. */
+  it('fills the box with the sky surface in the Sun’s step and draws the horizon band in five strips', () => {
+    const { container, box } = mount();
+    const surface = container.querySelector('[data-sky-surface]') as SVGRectElement;
+    expect(surface).toHaveAttribute('width', '390');
+    expect(surface).toHaveAttribute('height', '390');
+    expect(surface).toHaveAttribute('data-tint', 'deep');
+    expect(surface.compareDocumentPosition(container.querySelector('[data-ground-fill]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const strips = [...container.querySelectorAll<SVGPathElement>('[data-horizon-band] > path')];
+    expect(strips).toHaveLength(5);
+    expect(strips.map((node) => node.getAttribute('fill-opacity'))).toEqual(['0.27', '0.21', '0.15', '0.09', '0.03']);
+    // At S 35° up the horizon is out of the box, but the rings' closed images are drawn all the same (the SVG clips them).
+    for (const strip of strips) expect(strip.getAttribute('d')).toMatch(/^M-?[\d.]+ -?[\d.]+ L/);
+    // Tilted to 20° the band is in the lower part of the box, and every strip is rewritten.
+    const before = strips.map((node) => node.getAttribute('d'));
+    for (let i = 0; i < 3; i += 1) fireEvent.keyDown(box, { key: 'ArrowDown' });
+    expect(strips.map((node) => node.getAttribute('d'))).not.toEqual(before);
+    expect(encloses((strips[0]?.getAttribute('d') ?? '').split('Z')[0] ?? '', 195, at(180, 1, 180, 20).y)).not.toBe(encloses((strips[0]?.getAttribute('d') ?? '').split('Z')[1] ?? '', 195, at(180, 1, 180, 20).y));
+
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const tinted = (sunAltDeg: number) => <SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: { ...field, positions: { ...field.positions, sunAltDeg } } }} />;
+    const twilight = render(tinted(-3));
+    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
+    twilight.rerender(tinted(2));
+    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'day');
+    twilight.rerender(tinted(-6));
+    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'deep');
+  });
+
+  /** R155 (FR-LOOK-3): the haze's three bands, from the outline the catalogue carries, clipped to the sky side; none without an outline. */
+  it('draws the Milky Way’s three bands under the figures and over the surface, clipped to the sky, and none without an outline', () => {
+    const { container } = mount();
+    expect(container.querySelectorAll('[data-milky-way] > path')).toHaveLength(0);
+    // Three rings of four points round the sky, as `milkyWay.json` lays its rings out, in J2000 degrees.
+    const ring = (dec: number): number[][] => [0, 90, 180, 270].map((ra) => [ra, dec]).concat([0, 90, 180, 270].map((ra) => [ra, -dec]).reverse());
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const outline = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: { ...field, catalog: { ...field.catalog, ra: [0, 90, 180, 270, 45, 135, 225, 315, 10], dec: [35, 35, 35, 35, 10, 10, 10, 10, -40], milkyWay: [ring(12), ring(7), ring(3)] } } }} />);
+    const haze = outline.container.querySelector('[data-milky-way]') as SVGGElement;
+    const paths = [...haze.querySelectorAll<SVGPathElement>('path')];
+    expect(paths).toHaveLength(3);
+    expect(paths.map((node) => node.getAttribute('fill-opacity'))).toEqual(['0.018', '0.024', '0.03']);
+    for (const node of paths) expect(node.getAttribute('d')).toMatch(/^(M0 0H390\.0V390\.0H0Z)?M-?[\d.]+ -?[\d.]+ L/);
+    expect(haze.getAttribute('clip-path')).toBe(outline.container.querySelector('[data-figures]')?.getAttribute('clip-path'));
+    expect(haze.compareDocumentPosition(outline.container.querySelector('[data-figures]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((outline.container.querySelector('[data-sky-surface]') as Element).compareDocumentPosition(haze) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /** R155 (FR-LOOK-6): one bloom per star and planet brighter than BLOOM_MAG, where its mark is drawn and only then. */
+  it('blooms the two stars and the planets brighter than 1.8 under the figures, each where its mark is, hidden with it', () => {
+    const { container } = mount();
+    const blooms = [...container.querySelectorAll<SVGCircleElement>('[data-blooms] > circle')];
+    // Stars −0.5 and 1.0; the three planets' nodes, Mars at 1.2 bloomed, Jupiter at −2.3, Saturn at 0.7.
+    expect(blooms.map((node) => node.getAttribute('data-bloom'))).toEqual(['0', '1', '9', '10', '11']);
+    expect(blooms.map((node) => node.getAttribute('r'))).toEqual([bloomRadiusPx(-0.5), bloomRadiusPx(1), bloomRadiusPx(-2.3), bloomRadiusPx(1.2), bloomRadiusPx(0.7)].map(String));
+    for (const node of blooms) expect(node.getAttribute('fill')).toMatch(/^url\(#.+-bloom-chart-(star|planet)\)$/);
+    expect(blooms[3]?.getAttribute('fill')).toMatch(/chart-planet\)$/);
+    expect(container.querySelectorAll('radialGradient')).toHaveLength(5);
+    expect(container.querySelectorAll('[data-bloom-tone] > stop')).toHaveLength(15);
+    // Written per rotation beside the marks: star 0 and 1 drawn, Jupiter and Saturn drawn, Mars hidden by the collision walk.
+    expect(blooms[0]).toHaveAttribute('visibility', 'visible');
+    expect(num(blooms[0] as Element, 'cx')).toBeCloseTo(195, 1);
+    expect(blooms[1]).toHaveAttribute('visibility', 'visible');
+    expect(num(blooms[1] as Element, 'cy')).toBeCloseTo(at(180, 40).y, 1);
+    expect(blooms[2]).toHaveAttribute('visibility', 'visible');
+    expect(blooms[3]).toHaveAttribute('visibility', 'hidden');
+    expect(blooms[4]).toHaveAttribute('visibility', 'visible');
+    const drawn = [...container.querySelectorAll('[data-blooms] > circle[visibility="visible"]')].length;
+    expect(drawn).toBe(4);
+    const group = container.querySelector('[data-blooms]') as Element;
+    expect(group.compareDocumentPosition(container.querySelector('[data-figures]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /** R155 (FR-LOOK-9): the pool exists once, hidden until the chunk lands. */
+  it('makes the deep pool once, hidden, and none of it carries a star identity', () => {
+    const { container } = mount();
+    const pool = [...container.querySelectorAll<SVGCircleElement>('[data-deep-pool] > circle')];
+    expect(pool).toHaveLength(600);
+    for (const node of pool.slice(0, 5)) {
+      expect(node).toHaveAttribute('visibility', 'hidden');
+      expect(node).not.toHaveAttribute('data-star');
+    }
+    expect(container.querySelector('[data-layer="stars"]')).toHaveAttribute('data-deep', '0');
+    expect(container.querySelectorAll('[data-drawing] [data-star]')).toHaveLength(9);
+  });
+
   it('draws nothing of the field in a window whose scene has no stars (FR-STAR-11)', () => {
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: null }} />);
     expect(container.querySelector('[data-layer="stars"]')).toBeNull();
     expect(container.querySelector('[data-ground-fill]')).toBeNull();
+    expect(container.querySelector('[data-sky-surface]')).toBeNull();
     expect(container.querySelectorAll('clipPath')).toHaveLength(0);
+  });
+
+  /**
+   * R155 (FR-LOOK-1, FR-LOOK-3, FR-LOOK-4, FR-LOOK-6, FR-LOOK-7): the window's snapshot — the field's group as drawn
+   * for the fixture above at S 35° up with a Milky Way outline and a bright-catalogue B−V column, and the Moon's
+   * disc beside it, reviewed in the PR and regenerated deliberately. Class names and the ids are dropped: the
+   * sheet's and React's business; this file is about the geometry and the attributes.
+   */
+  it('draws the look as the committed SVG', async () => {
+    const ring = (dec: number): number[][] => [0, 90, 180, 270].map((ra) => [ra, dec]).concat([0, 90, 180, 270].map((ra) => [ra, -dec]).reverse());
+    const camera = createHandCamera({ azDeg: 180, altDeg: 20 });
+    const scene = { stars: { ...field, catalog: { ...field.catalog, ra: [0, 90, 180, 270, 45, 135, 225, 315, 10], dec: [35, 35, 35, 35, 10, 10, 10, 10, -40], bv: [-0.2, 0.1, 0.6, 1.2, 0.3, 0.5, 0.9, 0.0, 0.7], milkyWay: [ring(12), ring(7), ring(3)] }, positions: { ...field.positions, sunAltDeg: -12 } } };
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={scene} sun={{ t: 0, azDeg: 250, altDeg: -12 }} moon={{ t: 0, phaseAngleDeg: 300, illuminatedFraction: 0.28, phase: 'waningCrescent', azDeg: 200, elDeg: 30, eclipticLonDeg: 0 }} />);
+    const group = container.querySelector('[data-layer="stars"]');
+    const moon = container.querySelector('[data-body="moon"]');
+    if (!group || !moon) throw new Error('no field or no Moon');
+    const markup = `${group.outerHTML}\n${moon.outerHTML}`
+      .replace(/ class="[^"]*"/g, '')
+      .replace(/ id="[^"]*"/g, ' id="…"')
+      .replace(/url\(#[^)]*\)/g, 'url(#…)')
+      .replace(/></g, '>\n<');
+    await expect(markup).toMatchFileSnapshot('./__snapshots__/SkyWindow.stars.svg');
   });
 });

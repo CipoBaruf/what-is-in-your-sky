@@ -121,7 +121,7 @@ export interface CharMark {
 }
 
 /** A round dot: its radius and its tone, and the opacity a deep star fades at. */
-export interface DotMark {
+interface DotMark {
   kind: 'dot';
   r: number;
   tone: ToneToken;
@@ -131,7 +131,7 @@ export interface DotMark {
 export type Mark = CharMark | DotMark;
 
 /** The `*` size for a magnitude by `STAR_SIZES_PX`, or `null` past `STAR_DOT_MAG`, where a star is a dot. */
-export function starSizePx(mag: number): number | null {
+function starSizePx(mag: number): number | null {
   if (!(mag <= STAR_DOT_MAG)) return null;
   return STAR_SIZES_PX.find((row) => mag <= row.maxMag)?.px ?? STAR_SIZES_PX[STAR_SIZES_PX.length - 1]?.px ?? 0;
 }

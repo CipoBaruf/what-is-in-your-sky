@@ -60,7 +60,7 @@ export function bandHalfWidthDeg(k: number, lDeg: number): number {
 }
 
 /** One ring at the instant: every point's azimuth and altitude. */
-export interface HazeRing {
+interface HazeRing {
   azDeg: Float64Array;
   altDeg: Float64Array;
 }

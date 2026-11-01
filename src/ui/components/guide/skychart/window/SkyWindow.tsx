@@ -8,11 +8,12 @@ import { SERIES_COUNT } from '../../../../../lib/legend';
 import { shortcutFor } from '../../../../../lib/shortcuts';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
-import type { MoonState, PassPoint } from '../../../../../model';
+import type { PassPoint } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
+import { brightLimbPoint } from '../useSkyBodies';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
@@ -24,6 +25,7 @@ import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, g
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
+import { MoonDisc } from './MoonDisc';
 import { figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
 import { useViewRotation } from './useViewRotation';
@@ -332,15 +334,6 @@ function SunGlow({ sun, m, view, limitDeg }: { sun: SunState; m: Mat3; view: Vie
   return (
     <g data-body="sun">
       <path className={styles.glow} d={pathFrom(points, limitDeg)} strokeWidth={fmt(height * pixelsPerDegree(view))} opacity={fmt(0.3 + 0.5 * strength)} />
-    </g>
-  );
-}
-
-/** FR-DOME-6: the Moon's disc where it is; its phase and name are a legend line (R45). */
-function MoonMarker({ moon, m, view }: { moon: MoonState; m: Mat3; view: View }) {
-  return (
-    <g data-body="moon">
-      <circle className={styles.moon} data-marker="moon" r="7" {...placed(project(m, moon.azDeg, moon.elDeg, view), view)} />
     </g>
   );
 }
@@ -1108,7 +1101,8 @@ export function SkyWindow(props: SkyWindowProps) {
                 {hidden.map((marker) => (
                   <HiddenPoint key={marker.id} marker={marker} m={m} view={view} legendKey={legendKeys[marker.id]} />
                 ))}
-                {moon && moonVisible(moon) && <MoonMarker moon={moon} m={m} view={view} />}
+                {/* FR-LOOK-7 (R155): the Moon's disc with its phase, the lit limb toward the Sun; its name is a legend line (R45). */}
+                {moon && moonVisible(moon) && <MoonDisc moon={moon} limb={sun ? brightLimbPoint(moon, sun) : null} m={m} view={view} />}
               </>
             )}
             {/* FR-FOL-5: the hatch over the ground — clipped to the horizon while some sky is left, the whole box once none is. */}

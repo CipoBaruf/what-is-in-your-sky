@@ -1,5 +1,7 @@
-import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { DEEP_NODE_POOL, FIELD_DETAIL_STEPS, STAR_MAG_LIMIT } from '../../../../../data/stars/constants';
 import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../data/stars/constellations';
+import { loadDeepChunk, type DeepCatalog } from '../../../../../data/stars/deepChunk';
 import { useLocale } from '../../../../../i18n/useT';
 import { useStarsPageT, type StarsPageMessages } from '../../../../../i18n/starsPageT';
 import { compassPoint } from '../../../../../lib/compass';
@@ -7,13 +9,20 @@ import { degrees } from '../../../../../lib/format';
 import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
-import { inkMeasured, inkOffset, inkOffsetsReady } from './inkOffsets';
+import { whenIdle } from '../../../../screens/whenIdle';
+import { BLOOM_STOPS, BLOOM_TONES, bloomGradientId, bloomRadiusPx } from './bloom';
+import { deepFrame, prepareDeep, type DeepDrawn, type PreparedDeep } from './deepField';
+import { fieldDetail } from './fieldDetail';
+import { inkMeasured, inkOffsetPx, inkOffsetsReady } from './inkOffsets';
+import { hazeOpacity, hazePaths, prepareHaze, type PreparedHaze } from './milkyWay';
 import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, skyVector, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
+import { skyFrameOf } from './skyFrame';
+import { HORIZON_BAND_STEPS, horizonBand, stripOpacity, tintStep, type TintStep } from './skySurface';
 import styles from './SkyWindow.module.css';
-import { collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
+import { bloomed, collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, markFor, planetMarkFor, SIZE_PX, type CharMark, type Mark, type Point, type StarGlyph } from './starGlyphs';
 import glyphStyles from './starGlyphs.module.css';
-import { placeLabels, textWidth, type Box, type FigureLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
+import { ADVANCE_EM, placeLabels, textWidth, type Box, type FigureLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
 import type { RotationListener } from './useViewRotation';
 
 /**
@@ -139,24 +148,40 @@ const EDGE_PX = SIZE_PX['chart-text-18'] / 2;
 const SEGMENT_MARGIN_DEG = 15;
 /** The gap a figure line keeps from the glyph at each end, and the least a segment may measure to be drawn at all. */
 const GAP_PX = COLLISION_PX;
-/** FR-STAR-6: the star names are the IAU proper names of the stars this bright or brighter. */
-const NAMED_MAG = 1.5;
+/** FR-LOOK-9: the name nodes exist for every star to the faintest named magnitude any field row names; each frame draws them to its own row's. */
+const MAX_NAMED_MAG = Math.max(...FIELD_DETAIL_STEPS.map(([, , nameMag]) => nameMag));
+/** FR-LOOK-8 as amended: the chunk is fetched once the field's row draws past the bright catalogue — every field of 75° or under. */
+const deepWanted = (fovDeg: number): boolean => fieldDetail(fovDeg).magLimit > STAR_MAG_LIMIT;
+/** The deep catalogue once loaded, for a field mounted after it to read at once. */
+let deepLoaded: DeepCatalog | undefined;
+/** The deep stars rotated per positions object: a frame or a tick on the live page rebuilds the field, not the instant. */
+const deepByPositions = new WeakMap<StarFieldData['positions'], PreparedDeep>();
+const hazeByPositions = new WeakMap<StarFieldData['positions'], PreparedHaze>();
+/** FR-LOOK-9: the pool's size, and its keys made once. */
+const DEEP_POOL_SIZE = DEEP_NODE_POOL;
+const DEEP_POOL_KEYS: readonly number[] = Array.from({ length: DEEP_POOL_SIZE }, (_, k) => k);
 /** The compass names' sizes, the window stylesheet's `.compass` and `.compassMajor`. */
 const COMPASS_PX = { major: 15, minor: 12 };
 
 /** What a field needs computed once per props and not per frame. */
 export interface Prepared {
-  /** Each star's rung, in catalogue order. */
-  rungs: readonly Rung[];
-  /** Each planet's rung at its magnitude now. */
-  planetRungs: readonly Rung[];
+  /** Each star's mark, in catalogue order (FR-LOOK-4, FR-LOOK-5). */
+  marks: readonly Mark[];
+  /** Each planet's mark at its magnitude now. */
+  planetMarks: readonly CharMark[];
+  /** The stars that carry a bloom, a prefix of the catalogue (FR-LOOK-6). */
+  bloomStars: readonly number[];
+  /** The instant's equatorial-to-horizon rotation read back from the positions, or `null` where the catalogue is too small to give one. */
+  frame: Mat3 | null;
+  /** The haze's rings at the instant, where the catalogue carries the outline and the frame is known. */
+  haze: PreparedHaze | null;
   /** Every segment as a pair of star indices, in the order the line nodes are rendered. */
   segments: readonly (readonly [number, number])[];
   /** Each figure's segments, as `[first, end)` into `segments`. */
   figureRanges: readonly (readonly [number, number])[];
   /** Each figure's name in the reader's language (D-832). */
   figureNames: readonly string[];
-  /** The stars that may be named, brightest first: V ≤ 1.5 with a proper name. */
+  /** The stars that may be named, brightest first: every star to `MAX_NAMED_MAG` (the frame cuts to its row's). */
   nameStars: readonly number[];
   /** Each named star's name in the reader's language, by catalogue index. */
   starNames: ReadonlyMap<number, string>;
@@ -168,9 +193,23 @@ export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
   const { catalog, positions } = field;
   const names = catalogNames(catalog);
   const n = catalog.mag.length;
-  const rungs: Rung[] = [];
-  for (let i = 0; i < n; i += 1) rungs.push(rungFor(catalog.mag[i] ?? 0));
-  const planetRungs = positions.planets.map((planet) => planetRungFor(planet.mag));
+  const marks: Mark[] = [];
+  const bloomStars: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const m = catalog.mag[i] ?? 0;
+    marks.push(markFor(m, catalog.bv?.[i]));
+    if (bloomed(m)) bloomStars.push(i);
+  }
+  const planetMarks = positions.planets.map((planet) => planetMarkFor(planet.mag));
+  const frame = skyFrameOf(catalog, positions);
+  let haze: PreparedHaze | null = null;
+  if (frame !== null && catalog.milkyWay !== undefined) {
+    haze = hazeByPositions.get(positions) ?? null;
+    if (haze === null) {
+      haze = prepareHaze(catalog.milkyWay, frame);
+      hazeByPositions.set(positions, haze);
+    }
+  }
   const segments = catalog.figures.flatMap((figure) => figure.segments);
   let at = 0;
   const figureRanges = catalog.figures.map((figure): readonly [number, number] => {
@@ -181,13 +220,18 @@ export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
   const figureNames = catalog.figures.map((figure) => figureLabelName(names, figure.con, figure.part, lang));
   const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
   const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
-  const nameStars = order.filter((k) => k < n && mag(k) <= NAMED_MAG && (catalog.name[k] ?? '') !== '');
+  // FR-LOOK-9: by designation where the star has no proper name (`starName` falls back to it).
+  const nameStars = order.filter((k) => k < n && mag(k) <= MAX_NAMED_MAG);
   const starNames = new Map(nameStars.map((i) => [i, starName(names, i, lang)]));
-  return { rungs, planetRungs, segments, figureRanges, figureNames, nameStars, starNames, order };
+  return { marks, planetMarks, bloomStars, frame, haze, segments, figureRanges, figureNames, nameStars, starNames, order };
 }
 
-/** The size, in px, the glyph of object `k` (`namedStar`'s index space) is drawn at. */
-const sizeOf = (prepared: Prepared, n: number, k: number): number => SIZE_PX[(k < n ? prepared.rungs[k] : prepared.planetRungs[k - n])?.sizeToken ?? 'chart-text-12'];
+/** The size, in px, the mark of object `k` (`namedStar`'s index space) is drawn at: a `*`'s size, or a dot's ink as the cell it fills (FR-LOOK-4: the radius counts as its ink). */
+function sizeOf(prepared: Prepared, n: number, k: number): number {
+  const mark = k < n ? prepared.marks[k] : prepared.planetMarks[k - n];
+  if (!mark) return SIZE_PX['chart-text-12'];
+  return mark.kind === 'char' ? mark.px : (2 * mark.r) / ADVANCE_EM;
+}
 
 /** The figure a drawn segment belongs to, by `prepare`'s ranges, or `null` past them. */
 function figureOf(prepared: Prepared, segment: number): number | null {
@@ -389,7 +433,7 @@ function drawnKey(frame: FieldFrame): string {
  * middle of its drawn segment, so its label stands beside the line as a
  * star's beside its glyph.
  */
-export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null, landmark: number | null = null, lang?: Locale): LabelInput {
+export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null, landmark: number | null = null, lang?: Locale, nameMag: number = MAX_NAMED_MAG): LabelInput {
   const { catalog, positions, layers } = field;
   const n = catalog.mag.length;
   const marks: LabelMark[] = [];
@@ -429,7 +473,9 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
   const stars: MarkLabel[] = [];
   const figures: FigureLabel[] = [];
   if (layers.names) {
+    // FR-LOOK-9: named to the field's row — the stars are brightest first, so the first past the row ends the walk.
     for (const i of prepared.nameStars) {
+      if ((catalog.mag[i] ?? 0) > nameMag) break;
       const mark = markOf.get(i);
       if (mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '' });
     }
@@ -458,8 +504,13 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
 interface Nodes {
   clip: SVGPathElement | null;
   ground: SVGPathElement | null;
+  /** R155: the band's strips, the haze's bands, the bloom circles by object (`namedStar`'s index space) and the deep pool. */
+  band: SVGPathElement[];
+  haze: SVGPathElement[];
+  blooms: Map<number, SVGCircleElement>;
+  deep: SVGCircleElement[];
   lines: SVGLineElement[];
-  stars: SVGTextElement[];
+  stars: (SVGTextElement | SVGCircleElement)[];
   planets: SVGTextElement[];
   starNames: Map<number, SVGTextElement>;
   figureNames: SVGTextElement[];
@@ -472,8 +523,12 @@ interface Nodes {
 const collect = (group: SVGGElement): Nodes => ({
   clip: group.querySelector<SVGPathElement>('[data-sky-clip]'),
   ground: group.querySelector<SVGPathElement>('[data-ground-fill]'),
+  band: [...group.querySelectorAll<SVGPathElement>('[data-horizon-band] > path')],
+  haze: [...group.querySelectorAll<SVGPathElement>('[data-milky-way] > path')],
+  blooms: new Map([...group.querySelectorAll<SVGCircleElement>('[data-bloom]')].map((node) => [Number(node.dataset['bloom']), node])),
+  deep: [...group.querySelectorAll<SVGCircleElement>('[data-deep-pool] > circle')],
   lines: [...group.querySelectorAll<SVGLineElement>('[data-figures] > line')],
-  stars: [...group.querySelectorAll<SVGTextElement>('[data-marks] > text')],
+  stars: [...group.querySelectorAll<SVGTextElement | SVGCircleElement>('[data-marks] > *')],
   planets: [...group.querySelectorAll<SVGTextElement>('[data-planet-marks] > text')],
   starNames: new Map([...group.querySelectorAll<SVGTextElement>('[data-star-name]')].map((node) => [Number(node.dataset.starName), node])),
   figureNames: [...group.querySelectorAll<SVGTextElement>('[data-figure-name]')],
@@ -513,16 +568,23 @@ function drawField(group: SVGGElement, nodes: Nodes, frame: FieldFrame, field: S
 
   const { catalog, positions, layers } = field;
   const n = catalog.mag.length;
+  // A `<text>` is placed by `x`/`y`, a `<circle>` (a dot, a bloom) by `cx`/`cy`.
   const write = (node: SVGElement | undefined, p: Point | null | undefined): void => {
     if (!node) return;
     const show = p !== null && p !== undefined;
     setShown(node, show);
     if (!show) return;
-    node.setAttribute('x', fmt(p.x));
-    node.setAttribute('y', fmt(p.y));
+    const circle = node.tagName === 'circle';
+    node.setAttribute(circle ? 'cx' : 'x', fmt(p.x));
+    node.setAttribute(circle ? 'cy' : 'y', fmt(p.y));
   };
   if (layers.stars) for (let i = 0; i < n; i += 1) write(nodes.stars[i], frame.drawn[i]);
   if (layers.planets) positions.planets.forEach((_, k) => write(nodes.planets[k], frame.drawn[n + k]));
+  // FR-LOOK-6: a bloom goes where its mark is drawn, and only then; a planet's while its magnitude earns one.
+  for (const [k, node] of nodes.blooms) {
+    const on = k < n ? layers.stars : layers.planets && bloomed(positions.planets[k - n]?.mag ?? Number.POSITIVE_INFINITY);
+    write(node, on ? frame.drawn[k] : null);
+  }
   if (nodes.ring) {
     setShown(nodes.ring, ring !== null);
     if (ring) {
@@ -540,6 +602,43 @@ function drawField(group: SVGGElement, nodes: Nodes, frame: FieldFrame, field: S
     node.setAttribute('y1', fmt(line.y1));
     node.setAttribute('x2', fmt(line.x2));
     node.setAttribute('y2', fmt(line.y2));
+  });
+}
+
+/** FR-LOOK-1: the band's strips for this rotation. */
+function drawBand(nodes: Nodes, rotation: Mat3, view: View): void {
+  if (nodes.band.length === 0) return;
+  const strips = horizonBand(rotation, view);
+  strips.forEach((strip, k) => nodes.band[k]?.setAttribute('d', strip.d));
+}
+
+/** FR-LOOK-3: the haze's three bands for this rotation; with none prepared, nothing drawn. */
+function drawHaze(nodes: Nodes, rotation: Mat3, view: View, haze: PreparedHaze | null): void {
+  if (nodes.haze.length === 0) return;
+  const paths = haze === null ? [] : hazePaths(rotation, view, haze);
+  nodes.haze.forEach((node, k) => node.setAttribute('d', paths[k]?.d ?? ''));
+}
+
+/**
+ * FR-LOOK-9: the pool's write — node `k` takes the `k`-th drawn deep star; its dot (radius, opacity, tone) is
+ * written only when the star it holds changes, its place every frame, and the rest of the pool is hidden.
+ */
+function drawDeep(nodes: Nodes, held: Int32Array, drawn: readonly DeepDrawn[], deep: PreparedDeep | null): void {
+  nodes.deep.forEach((node, k) => {
+    const star = drawn[k];
+    if (!star || deep === null) {
+      setShown(node, false);
+      return;
+    }
+    if (held[k] !== star.index) {
+      held[k] = star.index;
+      node.setAttribute('r', String(deep.r[star.index] ?? 0));
+      node.setAttribute('fill-opacity', String(deep.opacity[star.index] ?? 1));
+      node.setAttribute('data-tone', deep.tone[star.index] ?? 'chart-star');
+    }
+    node.setAttribute('cx', fmt(star.x));
+    node.setAttribute('cy', fmt(star.y));
+    setShown(node, true);
   });
 }
 
@@ -574,20 +673,27 @@ function drawNames(nodes: Nodes, input: LabelInput | null): void {
 function applyInk(group: SVGGElement): void {
   for (const node of group.querySelectorAll<SVGTextElement>('text[data-glyph]')) {
     const glyph = node.getAttribute('data-glyph') as StarGlyph;
-    const size = node.getAttribute('data-size') as SizeToken;
-    const { dx, dy } = inkOffset(glyph, size);
+    const px = Number(node.getAttribute('data-px'));
+    const { dx, dy } = inkOffsetPx(glyph, px);
     node.setAttribute('dx', String(dx));
     node.setAttribute('dy', String(dy));
   }
 }
 
-function Glyph({ rung, ...rest }: { rung: Rung } & Record<`data-${string}`, string | number>) {
-  const { dx, dy } = inkOffset(rung.glyph, rung.sizeToken);
+/** A `*` or an `@`: the size is the mark's own px (SPEC §4.53's `STAR_SIZES_PX`, no chart text token), the tone the sheet's by `data-tone`. */
+function Glyph({ mark, ...rest }: { mark: CharMark } & Record<`data-${string}`, string | number>) {
+  const { dx, dy } = inkOffsetPx(mark.glyph, mark.px);
   return (
-    <text data-glyph={rung.glyph} data-size={rung.sizeToken} data-tone={rung.colourToken} dx={dx} dy={dy} visibility="hidden" {...rest}>
-      {rung.glyph}
+    <text data-glyph={mark.glyph} data-px={mark.px} data-tone={mark.tone} fontSize={mark.px} dx={dx} dy={dy} visibility="hidden" {...rest}>
+      {mark.glyph}
     </text>
   );
+}
+
+/** FR-LOOK-4: a dot, its radius the magnitude's and its opacity 1 for every bright-catalogue star (the deep ones fade in the pool). */
+function Dot({ mark, ...rest }: { mark: Mark } & Record<`data-${string}`, string | number>) {
+  if (mark.kind === 'char') return <Glyph mark={mark} {...rest} />;
+  return <circle data-tone={mark.tone} r={mark.r} {...(mark.opacity === 1 ? {} : { fillOpacity: mark.opacity })} visibility="hidden" {...rest} />;
 }
 
 export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits, lineHits, landmark = null }: StarFieldProps) {
@@ -599,6 +705,40 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const measuredAtRender = inkMeasured();
   const p = useStarsPageT();
   const label = labelled === null ? null : labelText(field, prepared, labelled, p, locale);
+  const gradientId = `${useId().replaceAll(':', '')}`;
+  // FR-LOOK-2: the surface's step from the Sun's altitude the positions carry; the deep stars draw at full night only (FR-STAR-13).
+  const tint: TintStep = tintStep(field.positions.sunAltDeg);
+
+  // FR-LOOK-8 as amended (D-983): the deep chunk, once, on idle, the first time the field draws stars at 75° or under.
+  const [deep, setDeep] = useState<DeepCatalog | null>(() => deepLoaded ?? null);
+  const wantsDeep = field.layers.stars && deepWanted(view.fovDeg);
+  useEffect(() => {
+    if (deep !== null || !wantsDeep) return;
+    let live = true;
+    const cancel = whenIdle(() => {
+      void loadDeepChunk().then(
+        (loaded) => {
+          deepLoaded = loaded;
+          if (live) setDeep(loaded);
+        },
+        () => {
+          // A chunk that will not load leaves the bright catalogue alone, which the field draws; the next mount asks again.
+        },
+      );
+    });
+    return () => {
+      live = false;
+      cancel();
+    };
+  }, [deep, wantsDeep]);
+  const preparedDeep = useMemo((): PreparedDeep | null => {
+    if (deep === null || prepared.frame === null) return null;
+    const known = deepByPositions.get(field.positions);
+    if (known) return known;
+    const made = prepareDeep(deep, prepared.frame);
+    deepByPositions.set(field.positions, made);
+    return made;
+  }, [deep, prepared.frame, field.positions]);
 
   // A layout effect, like the publisher's: the subscription is in place before the window's first publish of
   // this commit reaches the list, and a late mount is given the current rotation by `subscribe` itself. The
@@ -607,6 +747,9 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
     let nodes: Nodes | null = null;
     let placedAt: Mat3 | null = null;
     let placedSet = '';
+    // FR-LOOK-9: the field's row — the faintest drawn and the faintest named — for this view's `fov`.
+    const detail = fieldDetail(view.fovDeg);
+    const held = new Int32Array(DEEP_POOL_SIZE).fill(-1);
     return subscribe((rotation) => {
       const g = group.current;
       if (!g) return;
@@ -615,15 +758,24 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       drawField(g, nodes, frame, field, ringAt(frame, view, field, landmark));
       if (hits) hits.current = frame.drawn;
       if (lineHits) lineHits.current = frame.hitLines;
+      if (frame.state !== 'buried') {
+        drawBand(nodes, rotation, view);
+        drawHaze(nodes, rotation, view, field.layers.stars ? prepared.haze : null);
+        // FR-LOOK-9, FR-STAR-13: the deep stars to the row's magnitude, at full night, after the bright marks in the collision walk.
+        const deepDrawn = preparedDeep !== null && field.layers.stars && tint === 'deep' ? deepFrame(rotation, view, preparedDeep, detail.magLimit, frame.drawn.filter((q): q is Point => q !== null)) : [];
+        drawDeep(nodes, held, deepDrawn, preparedDeep);
+      } else {
+        drawDeep(nodes, held, [], preparedDeep);
+      }
       // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were,
       // or the drawn set changed under a smaller move (the ground buried or not, a mark in or out of the box).
       const drawnSet = drawnKey(frame);
       if (placedAt !== null && drawnSet === placedSet && converged(placedAt, rotation)) return;
       placedAt = rotation;
       placedSet = drawnSet;
-      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale));
+      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale, detail.nameMag));
     });
-  }, [subscribe, view, field, prepared, labelled, label, hits, lineHits, landmark, locale]);
+  }, [subscribe, view, field, prepared, preparedDeep, tint, labelled, label, hits, lineHits, landmark, locale]);
 
   // D-752: the offsets are measured once, after the fonts are ready. Nodes made before that carry 0 and are
   // written once when the measurement lands; nodes made after it carry the measured values from their render.
@@ -641,25 +793,65 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const { catalog, positions, layers } = field;
   // A layer that is off is `display: none`, not only `hidden`: its children carry the `visible` the last frame wrote, which would override an inherited `hidden`.
   const hidden = (on: boolean): { visibility?: 'hidden'; display?: 'none' } => (on ? {} : { visibility: 'hidden', display: 'none' });
+  const n = catalog.mag.length;
   return (
-    <g ref={group} className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars" data-stars={catalog.mag.length} data-planets={positions.planets.length}>
+    <g ref={group} className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars" data-stars={n} data-planets={positions.planets.length} data-tint={tint} data-deep={preparedDeep === null ? 0 : preparedDeep.size}>
       <defs>
         <clipPath id={clipId}>
           <path data-sky-clip clipRule="evenodd" d="" />
         </clipPath>
+        {/* FR-LOOK-6: one gradient per tone and one for the planets, the colour the sheet's by `data-bloom-tone`. */}
+        {BLOOM_TONES.map((tone) => (
+          <radialGradient key={tone} id={bloomGradientId(gradientId, tone)} data-bloom-tone={tone}>
+            {BLOOM_STOPS.map((stop) => (
+              <stop key={stop.offset} offset={stop.offset} stopOpacity={stop.alpha} />
+            ))}
+          </radialGradient>
+        ))}
       </defs>
+      {/* FR-LOOK-1, FR-LOOK-2: the surface under everything, in the step's tone. */}
+      <rect className={styles.surface} data-sky-surface data-tint={tint} x="0" y="0" width={view.width} height={view.height} />
       <path className={styles.ground} data-ground-fill fillRule="evenodd" d="" />
+      {/* FR-LOOK-1: the band, five strips written per rotation, each at its own alpha. */}
+      <g className={styles.band} data-horizon-band>
+        {Array.from({ length: HORIZON_BAND_STEPS }, (_, k) => (
+          <path key={k} data-band-strip={k} fillOpacity={stripOpacity(k)} d="" />
+        ))}
+      </g>
+      {/* FR-LOOK-3: the haze, three bands clipped to the sky side, off with the stars. */}
+      <g className={styles.haze} data-milky-way clipPath={`url(#${clipId})`} {...hidden(layers.stars)}>
+        {prepared.haze === null
+          ? null
+          : prepared.haze.rings.map((_, k) => (
+              <path key={k} data-haze-band={k} fillOpacity={hazeOpacity(k)} d="" />
+            ))}
+      </g>
+      {/* FR-LOOK-6: the bloom under the figures and over the haze: the bright stars', then the planets'. */}
+      <g data-blooms>
+        {prepared.bloomStars.map((i) => (
+          <circle key={i} data-bloom={i} r={bloomRadiusPx(catalog.mag[i] ?? 0)} fill={`url(#${bloomGradientId(gradientId, prepared.marks[i]?.tone ?? 'chart-star')})`} visibility="hidden" />
+        ))}
+        {positions.planets.map((planet, k) => (
+          <circle key={planet.body} data-bloom={n + k} data-planet-bloom={planet.body} r={bloomRadiusPx(planet.mag)} fill={`url(#${bloomGradientId(gradientId, 'chart-planet')})`} visibility="hidden" />
+        ))}
+      </g>
       <g className={styles.figures} data-figures clipPath={`url(#${clipId})`} {...hidden(layers.figures)}>
         {catalog.figures.flatMap((figure, f) => figure.segments.map((_, s) => <line key={`${String(f)}-${String(s)}`} data-figure={f} visibility="hidden" />))}
       </g>
+      {/* FR-LOOK-9: the deep pool, `DEEP_NODE_POOL` circles made once and written by ref; under the bright marks. */}
+      <g data-deep-pool {...hidden(layers.stars)}>
+        {DEEP_POOL_KEYS.map((k) => (
+          <circle key={k} data-tone="chart-star" r="0" visibility="hidden" />
+        ))}
+      </g>
       <g data-marks {...hidden(layers.stars)}>
-        {prepared.rungs.map((rung, i) => (
-          <Glyph key={i} rung={rung} data-star={i} />
+        {prepared.marks.map((mark, i) => (
+          <Dot key={i} mark={mark} data-star={i} />
         ))}
       </g>
       <g data-planet-marks {...hidden(layers.planets)}>
         {positions.planets.map((planet, k) => (
-          <Glyph key={planet.body} rung={prepared.planetRungs[k] ?? planetRungFor(planet.mag)} data-planet={planet.body} />
+          <Glyph key={planet.body} mark={prepared.planetMarks[k] ?? planetMarkFor(planet.mag)} data-planet={planet.body} />
         ))}
       </g>
       {/* R127 (FR-SKY-11): the landmark's ring over the marks, written per rotation like them; its name is placed with the names below. */}
