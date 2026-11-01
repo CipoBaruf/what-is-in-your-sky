@@ -4400,7 +4400,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
 
 ### Wave 1
 
-- [ ] **R154 — The data: `bv` in the catalogue, `deep.json` and `milkyWay.json` from the build step, `deepChunk.ts`, `fieldDetail.ts`, the look's constants**
+- [x] **R154 — The data: `bv` in the catalogue, `deep.json` and `milkyWay.json` from the build step, `deepChunk.ts`, `fieldDetail.ts`, the look's constants**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
@@ -4419,6 +4419,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
     - `npm run build && npm run bundle:budget` prints the `stars-deep` row under `DEEP_BUDGET_KB` and no other row moved.
     - The Done note gives the three files' star or point counts and gzipped sizes, and the `bv` column's blank count.
     - `npm test`, lint, typecheck and `npm run check:dead` green.
+  - *Done:* as written, plus D-976 and D-977. **The files** (`npm run build:stars` rewrites all three byte for byte, `starCatalog.test.ts` asserts it): `catalog.json` 1,033 stars as before, 20.7 KB gzipped (was 19.8), its new `bv` column in tenths with 5 blanks written as 0.6; `deep.json` 7,373 stars — the 7,500 Yale records at 4.5 < V ≤ 6.5 less the 127 figure endpoints `catalog.json` already holds, so each star is in one file (D-977) — 41.6 KB gzipped, 239 blank B−V; `milkyWay.json` three rings, 366 points, 1.7 KB gzipped, sampled every 6° rather than 3° so the spec's "about 360 points" and "≤ 2 KB" both hold (D-977). **The chunk:** Rollup names it `deep-*.js`, so the `stars-deep` row matches that; no committed module imports `deepChunk.ts` until R155's window, so `bundle:budget` on this branch prints the row's missing-chunk warning — with a temporary importer it printed `stars-deep` at 41.8 KB against 60. The row is in `PHASE_BUDGETS`, not `BUDGETS`, because `tests/docs/accuracy.test.ts` ties `BUDGETS` to RELEASE §22.2's 2.9.0 table; R161 moves it (D-976). `stars` grew 834 bytes (the `bv` column, 26.0 → 26.9 KB, inside 30); `main` and `window` moved by 3 and 1 bytes of hash noise. **The modules:** `constants.ts` holds the fifteen constants with their rationale and `constants.test.ts` pins them (the three strengths too, FR-LOOK-10); `fieldDetail.ts` (pure, 14 tests) takes the first row whose `aboveDeg` the field exceeds; `deepChunk.ts` loads once, drops a failure and parses the integer columns; `catalog.ts` exposes `bv`. **For R155:** `WINDOW_FOV` (60°) falls in the 5.3 row, which needs the deep chunk, so FR-LOOK-8's "not requested at `WINDOW_FOV`" cannot hold as the steps stand; and a blank B−V of 0.6 draws yellow-white where FR-LOOK-5 says white (D-977).
 
 - [ ] **R156 — The pages: the home's doors first and the folded line, the third door renamed, the pass detail's times on one row, the theme by the clock**
   - **Lane:** ui
