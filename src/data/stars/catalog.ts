@@ -70,7 +70,7 @@ export interface StarCatalog {
   dec: Float64Array;
   /** Visual magnitude. */
   mag: Float32Array;
-  /** B−V colour index to 0.1, 0.6 where the Yale record has none (R154, FR-LOOK-5, D-977). */
+  /** B−V colour index to 0.1, 0.2 (white) where the Yale record has none (R154, FR-LOOK-5, D-977). */
   bv: Float32Array;
   /** IAU proper name, or `''`. */
   name: readonly string[];

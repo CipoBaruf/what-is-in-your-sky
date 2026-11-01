@@ -4,7 +4,7 @@ import { BV_BLANK, buildCatalog, GALACTIC_POLE, buildMilkyWay, buildStars, galac
 import { DATA_RULE, dataNotices } from '../../scripts/third-party-notices';
 import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
 import { CONSTELLATION_NAMES } from '../../src/data/stars/constellations';
-import { DEEP_MAG_LIMIT, MILKY_WAY_BANDS_DEG, STAR_MAG_LIMIT } from '../../src/data/stars/constants';
+import { BV_TONES, DEEP_MAG_LIMIT, MILKY_WAY_BANDS_DEG, STAR_MAG_LIMIT } from '../../src/data/stars/constants';
 import { parseDeepCatalog } from '../../src/data/stars/deepChunk';
 import { constellationName, figureName, starName } from '../../src/lib/skyStars';
 
@@ -120,13 +120,15 @@ describe('the star catalogue', () => {
     expect(gzippedBytes(text)).toBeLessThanOrEqual(22 * 1024);
   });
 
-  // R154 (FR-LOOK-5, D-973, D-977): the B−V column, in tenths, 0.6 where the record has none.
-  it('carries B−V for every star in tenths, five blanks written as 0.6', () => {
+  // R154 (FR-LOOK-5, D-973, D-977): the B−V column, in tenths, 0.2 (white) where the record has none.
+  it('carries B−V for every star in tenths, five blanks written as 0.2', () => {
     const json = JSON.parse(text) as { bv: number[] };
     expect(json.bv).toHaveLength(catalog.size);
     for (const bv of json.bv) expect(Number.isInteger(bv)).toBe(true);
     expect(built.report.bvBlank).toBe(5);
-    expect(BV_BLANK).toBe(6);
+    expect(BV_BLANK).toBe(2);
+    const white = BV_TONES.find(({ below }) => BV_BLANK / 10 < below)?.tone;
+    expect(white).toBe('white');
     expect(catalog.bv[catalog.name.indexOf('Sirius')]).toBeCloseTo(0.0, 5); // 0.00 in the record
     expect(catalog.bv[catalog.name.indexOf('Betelgeuse')]).toBeCloseTo(1.9, 5); // 1.85, half up
     expect(catalog.bv[catalog.name.indexOf('Rigel')]).toBeCloseTo(-0.0, 5); // −0.03
@@ -174,11 +176,11 @@ describe('the deep catalogue', () => {
   });
 
   it(`is sorted by magnitude and spans ${String(STAR_MAG_LIMIT)} < V ≤ ${String(DEEP_MAG_LIMIT)} to 0.1`, () => {
-    expect(json.mag[0]).toBe(45); // 4.51–4.54 written to 0.1
+    expect(json.mag[0]).toBe(46); // 4.51–4.54 written 4.6, never the bright limit itself
     expect(json.mag.at(-1)).toBe(65);
     for (let i = 1; i < deep.size; i += 1) expect(json.mag[i] ?? NaN).toBeGreaterThanOrEqual(json.mag[i - 1] ?? NaN);
     for (const m of deep.mag) {
-      expect(m).toBeGreaterThanOrEqual(4.5);
+      expect(m).toBeGreaterThan(STAR_MAG_LIMIT);
       expect(m).toBeLessThanOrEqual(DEEP_MAG_LIMIT);
     }
   });

@@ -29,8 +29,18 @@ describe('deepChunk', () => {
     expect(loadDeepChunk()).toBe(first);
     const deep = await first;
     expect(deep.size).toBe(7373);
-    expect(deep.mag[0]).toBeCloseTo(4.5, 5);
+    expect(deep.mag[0]).toBeCloseTo(4.6, 5);
     expect(await loadDeepChunk()).toBe(deep);
+  });
+
+  it('does not keep a file that fails to parse either: the next call tries again', async () => {
+    vi.doMock('./deep.json', () => ({ default: { ra: [1, 2], dec: [1], mag: [50], bv: [6] } }));
+    const { loadDeepChunk } = await import('./deepChunk');
+    const first = loadDeepChunk();
+    await expect(first).rejects.toThrow(/one entry per star/);
+    const second = loadDeepChunk();
+    expect(second).not.toBe(first);
+    await expect(second).rejects.toThrow(/one entry per star/);
   });
 
   it('does not keep a failed load, so the next call fetches again', async () => {

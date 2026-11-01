@@ -163,11 +163,11 @@ export interface MilkyWayOut {
 }
 
 /**
- * The B−V written for a record that leaves it blank, in tenths: 0.6, the mean
- * index of the catalogue's stars to `DEEP_MAG_LIMIT` (0.61), so a blank draws
- * as the typical star rather than at either end of the tones (D-977).
+ * The B−V written for a record that leaves it blank, in tenths: 0.2, the
+ * middle of `BV_TONES`' white row, because FR-LOOK-5 draws a star with no
+ * index white. The task's 0.6 would draw it yellow-white (D-977).
  */
-export const BV_BLANK = 6;
+export const BV_BLANK = 2;
 
 export interface BuildReport {
   records: number;
@@ -213,7 +213,7 @@ function parseBsc(text: string): BscRecord[] {
     if (!Number.isFinite(mag)) continue;
     const hr = Number(line.slice(0, 4));
     const bvText = line.slice(109, 114).trim();
-    const bv = bvText === '' ? null : Math.round(Math.round(Number.parseFloat(bvText) * 100) / 10) + 0; // `+ 0`: no −0 in the file
+    const bv = bvText === '' ? null : tenths(Number.parseFloat(bvText));
     const ra = (Number(line.slice(75, 77)) + Number(line.slice(77, 79)) / 60 + Number(line.slice(79, 83)) / 3600) * 15;
     const sign = line[83] === '-' ? -1 : 1;
     const dec = sign * (Number(line.slice(84, 86)) + Number(line.slice(86, 88)) / 60 + Number(line.slice(88, 90)) / 3600);
@@ -253,6 +253,9 @@ interface LinesFile {
 }
 
 const round = (n: number, places: number): number => Math.round(n * 10 ** places) / 10 ** places;
+
+/** A value the Yale file gives to 0.01, in integer tenths, half up and never −0 (D-973). */
+const tenths = (n: number): number => Math.round(Math.round(n * 100) / 10) + 0;
 
 /** The catalogue from the three sources' text. Pure, so the test can run it into memory. */
 export function buildCatalog(
@@ -396,7 +399,8 @@ export function buildCatalog(
   const deep: DeepOut = {
     ra: deepRecords.map((r) => centi(r.ra, 36_000)),
     dec: deepRecords.map((r) => centi(r.dec, 0)),
-    mag: deepRecords.map((r) => Math.round(Math.round(r.mag * 100) / 10)),
+    // 4.51–4.54 would round to 4.5, the bright limit itself; they are written 4.6 so every deep star stays past it (D-977).
+    mag: deepRecords.map((r) => Math.max(tenths(r.mag), tenths(magLimit) + 1)),
     bv: deepRecords.map((r) => r.bv ?? BV_BLANK),
   };
 

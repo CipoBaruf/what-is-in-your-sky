@@ -32,7 +32,7 @@ export interface DeepCatalog {
   dec: Float64Array;
   /** Visual magnitude, to 0.1. */
   mag: Float32Array;
-  /** B−V colour index, to 0.1; 0.6 where the Yale record has none. */
+  /** B−V colour index, to 0.1; 0.2 (white) where the Yale record has none. */
   bv: Float32Array;
 }
 
@@ -53,12 +53,11 @@ let chunk: Promise<DeepCatalog> | undefined;
 
 /** Fetch the `stars-deep` chunk once and parse it; later calls return the same promise, and a rejection is not kept. */
 export function loadDeepChunk(): Promise<DeepCatalog> {
-  chunk ??= import('./deep.json').then(
-    (module) => parseDeepCatalog(module.default),
-    (reason: unknown) => {
+  chunk ??= import('./deep.json')
+    .then((module) => parseDeepCatalog(module.default))
+    .catch((reason: unknown) => {
       chunk = undefined;
       throw reason;
-    },
-  );
+    });
   return chunk;
 }
