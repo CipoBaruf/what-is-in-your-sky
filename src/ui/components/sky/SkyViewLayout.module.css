@@ -256,6 +256,40 @@
   z-index: var(--z-sheet);
 }
 
+/* R157 (FR-PHONE-4, D-965): the facing readout in the box's top-right corner while the finger has the sky — one line
+   at `--small` on the overlay surface, on the head's row (a target tall, the line centred in it), and never wider than
+   the box less `--space-3` each side, the head (`--sky-head-w`, written by the page) and a cell between them: past
+   that the line ends in its ellipsis. The readout's second line (the declination, a named star) is the sheet's. Not a
+   control: the pointer goes through it to the sky. */
+.fullReadout {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-3);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  max-inline-size: max(0px, calc(100% - 2 * var(--space-3) - var(--sky-head-w, 0px) - var(--cell)));
+  pointer-events: none;
+}
+
+.fullReadout :global(p) {
+  overflow: hidden;
+  margin: 0;
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fullReadout :global(p br),
+.fullReadout :global(p br ~ *) {
+  display: none;
+}
+
 .layout[data-shape='full'] .fullDrawing :global([data-testid='chart-frame'] > [data-testid='chart-box']) {
   height: 100%;
   min-height: 0;

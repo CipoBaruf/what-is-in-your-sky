@@ -42,6 +42,9 @@ import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
  * open; the page renders the sheet's rows in both states (the sheet stays
  * mounted, `inert` while closed, D-932), so "present" is "in the DOM and not
  * under `inert`". The top row, the mark and the headline have left compact.
+ *
+ * R157 (FR-PHONE-3, FR-PHONE-4; D-964, D-965): the overlay gains `[ follow ]` before `[ controls ]` on the bottom
+ * row and the facing readout in the box's top-right corner, each on its own condition.
  */
 export type { LiveState };
 export type LiveShape = 'tall' | 'short';
@@ -55,6 +58,8 @@ export type LiveRow =
   | 'top-row'
   | 'head'
   | 'controls'
+  | 'follow'
+  | 'readout'
   | 'hint'
   | 'card'
   | 'indicator'
@@ -85,6 +90,8 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   'top-row': 'live-top-row',
   head: 'live-head',
   controls: 'live-controls',
+  follow: 'live-follow-control',
+  readout: 'sky-corner-readout',
   hint: 'sky-hint',
   card: 'live-card',
   indicator: 'live-indicator',
@@ -118,10 +125,14 @@ export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
  * `[ controls ]` always, the hint until `skyHintSeen` and the card while it asks (`COMPACT_CONDITIONAL`: the test
  * checks those two by their own conditions).
  */
-export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', 'hint', 'card'];
+export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', 'follow', 'readout', 'hint', 'card'];
 
-/** The overlay rows that are there on their own condition, not in every render: the hint and the card. */
-export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['hint', 'card'];
+/**
+ * The overlay rows that are there on their own condition, not in every render: the hint and the card; R157
+ * (FR-PHONE-3, FR-PHONE-4; D-964, D-965) `[ follow ]` where the phone has the sensor, and the corner readout while
+ * not following, with the sheet closed, on a view with a facing.
+ */
+export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hint', 'card'];
 
 /**
  * R148 (FR-FULL-4, D-923, D-928) and R150 (FR-GYRO-10, D-949): the sheet's rows, in FR-GYRO-10's order — the

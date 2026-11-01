@@ -107,9 +107,11 @@
   pointer-events: auto;
 }
 
-/* The hint (FR-FULL-3, D-924): one line at the box's bottom-left, on `[ controls ]`'s row — a target tall, the line
-   centred in it — where both fit in 36 cells, and in the row above it otherwise. Not a control: the pointer goes
-   through it to the sky. */
+/* The hint (FR-FULL-3, D-924): one line at the box's bottom-left, on the bottom row — a target tall, the line
+   centred in it — where it and the row's controls fit in 36 cells, and in the row above it otherwise. Not a control:
+   the pointer goes through it to the sky. R157 (FR-PHONE-5, D-981): drawn whole, never cut — a line wider than the
+   box less its margins (the Spanish touch line, 43 characters, at 360 and 390 px) takes a second row, balanced,
+   rather than an ellipsis. */
 .hintArea {
   position: absolute;
   inset-inline-start: var(--space-3);
@@ -128,19 +130,21 @@
 
 .hintArea > p {
   --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
-  overflow: hidden;
   padding-inline: calc(var(--cell) / 2);
   background: var(--screen-overlay);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-wrap: balance;
 }
 
-/* `[ controls ]` (FR-FULL-3): the box's bottom-right, inside the safe area, on the overlay surface. */
+/* `[ controls ]` (FR-FULL-3): the box's bottom-right, inside the safe area, on the overlay surface. R157 (FR-PHONE-3,
+   D-964): the bottom row — `[ follow ]` before it where the phone has the sensor, a cell between them, one surface. */
 .controls {
   --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
   position: absolute;
   inset-inline-end: var(--space-3);
   inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0 var(--cell);
   background: var(--screen-overlay);
   pointer-events: auto;
 }

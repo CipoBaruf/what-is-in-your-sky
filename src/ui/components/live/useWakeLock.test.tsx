@@ -4,6 +4,9 @@
  * when it shows, released on unmount; a refusal is reported and asked again
  * on the next visibility change; and with no API at all, `absent` and no
  * listener.
+ *
+ * R157 (FR-PHONE-6, D-967): the stars page and the pass detail hold it by `useWakeLock(following)` — requested when
+ * following goes on, released when it goes off, nothing asked on a visibility change while it is off.
  */
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -134,5 +137,26 @@ describe('useWakeLock (FR-LIVE-7)', () => {
     expect(api.request).toHaveBeenCalledTimes(1);
     await flush();
     expect(screen.getByTestId('wake')).toHaveTextContent('held');
+  });
+
+  it('follows the follow state: held while on, released when it goes off, nothing asked while off, held again (FR-PHONE-6)', async () => {
+    const api = fakeWakeLock();
+    const { rerender, unmount } = render(<Probe enabled={false} />);
+    rerender(<Probe enabled />);
+    await flush();
+    expect(screen.getByTestId('wake')).toHaveTextContent('held');
+    rerender(<Probe enabled={false} />);
+    expect(api.sentinels[0]?.released).toBe(true);
+    expect(screen.getByTestId('wake')).toHaveTextContent('released');
+    setVisibility('hidden');
+    setVisibility('visible');
+    await flush();
+    expect(api.request).toHaveBeenCalledTimes(1);
+    rerender(<Probe enabled />);
+    await flush();
+    expect(api.request).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('wake')).toHaveTextContent('held');
+    unmount();
+    expect(api.sentinels[1]?.released).toBe(true);
   });
 });

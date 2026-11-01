@@ -28,6 +28,7 @@ import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { ControlsSheet } from '../components/live/ControlsSheet';
+import { FollowControl } from '../components/live/FollowControl';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
@@ -504,6 +505,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   }, []);
   const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
   const followToggle = sensor ? <FollowToggle on={following} onChange={setFollowing} /> : null;
+  // R157 (FR-PHONE-3, D-964): `[ follow ]` before `[ controls ]` on the overlay's bottom row, the same state as the sheet's toggle.
+  const followControl = sensor ? <FollowControl on={following} onChange={setFollowing} /> : null;
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -918,9 +921,16 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   const hintShown = useSkyHintShown(hintView);
   const highlightedId = highlighted?.id ?? null;
   const followKey = useMemo(() => (highlightedId === null ? null : (legendKeys(legendRowsNow)[highlightedId] ?? null)), [legendRowsNow, highlightedId]);
-  // R148 (FR-FULL-3, D-924): the hint's line, for where it stands beside `[ controls ]`.
+  // R148 (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): the hint's line, for where it stands beside the bottom row's controls.
   const hintLine = useSkyHintLine(hintView, followKey);
-  const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, t.sheet.controls);
+  const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, sensor ? [t.sheet.follow, t.sheet.controls] : [t.sheet.controls]);
+  /*
+   * R157 (FR-PHONE-4, D-965): while the finger has the sky — not following — and the sheet is closed, the chart's
+   * facing readout stands in the box's top-right corner; with the sheet open it is the facing row's, as before. The
+   * chart portals it into one place, so the two places take turns. The polar chart's readout is its convention, not a
+   * facing, and stays in the sheet.
+   */
+  const cornerReadout = compact && !following && !sheetOpen && hintView !== 'polar';
   /*
    * R148 (FR-FULL-4, D-923): the facing row in the sheet — the chart's readout as a button that opens the picker under
    * it, D-904's corner moved into the sheet. The chart portals both parts into the page's slots; the picker's slot is
@@ -928,6 +938,25 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * it. A pick — one of the row's options — closes it, read off the DOM, since a portal's events bubble through the
    * chart's tree and not through this row (D-904). On the dome, which has no picker, the readout stands alone.
    */
+  /*
+   * R157 (FR-PHONE-4, D-965): the head's width, written as `--sky-head-w` on the full layout's root, so the corner
+   * readout ends in its ellipsis before it meets the head; by a resize observer and no render, since the head's chip
+   * changes with the clock.
+   */
+  const headRoom = useCallback((root: HTMLDivElement | null) => {
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const head = document.querySelector<HTMLElement>('[data-testid="live-head"]');
+    if (!head) return;
+    const write = (): void => {
+      root.style.setProperty('--sky-head-w', `${String(Math.ceil(head.getBoundingClientRect().width))}px`);
+    };
+    write();
+    const observer = new ResizeObserver(write);
+    observer.observe(head);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   const facingLabelId = useId();
   const facingPickerId = useId();
   const hasPicker = hintView !== 'dome';
@@ -945,7 +974,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     <div className={styles.facing} data-testid="live-facing" data-rhythm="group">
       <div className={styles.facingReadout}>
         <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
-          <SkyViewChartSlot name="readout" />
+          {!cornerReadout && <SkyViewChartSlot name="readout" />}
         </div>
         {hasPicker && (
           <button
@@ -1095,7 +1124,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       </>
     );
     const sheet = (
-      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} className={styles.controls}>
+      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={followControl} className={styles.controls}>
         {context}
         {timeline}
         <div className={styles.viewRow} data-testid="live-view-row" data-rhythm="group">
@@ -1119,7 +1148,20 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         </section>
       </ControlsSheet>
     );
-    return page(<SkyViewLayout className={styles.layout} data-testid="live-layout" fill form="full" readoutIn="sheet" drawing={drawing} overlay={overlay} sheet={sheet} />);
+    return page(
+      <SkyViewLayout
+        ref={headRoom}
+        className={styles.layout}
+        data-testid="live-layout"
+        fill
+        form="full"
+        readoutIn="sheet"
+        drawing={drawing}
+        overlay={overlay}
+        {...(cornerReadout ? { readout: <SkyViewChartSlot name="readout" /> } : {})}
+        sheet={sheet}
+      />,
+    );
   }
   return page(
     <SkyViewLayout

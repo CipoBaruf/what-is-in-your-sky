@@ -1195,7 +1195,7 @@ describe('<LivePage>', () => {
    * until `skyHintSeen`, the hint — on the window, which has one — and nothing else reachable over the sky; the hint
    * stands in the row above the button, since the window's three clauses never fit beside it (D-924).
    */
-  it('with the sheet closed renders the box, the head, [ controls ] and the hint over the sky, the hint above the button where it does not fit beside (FR-FULL-3, D-924)', () => {
+  it('with the sheet closed renders the box, the head, [ controls ], the corner readout and the hint over the sky, the hint above the button where it does not fit beside (FR-FULL-3, D-924; FR-PHONE-4)', async () => {
     withSky();
     act(() => {
       appStore.getState().setChartView('window');
@@ -1212,7 +1212,11 @@ describe('<LivePage>', () => {
       const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
       return found !== null && found.closest('[inert]') === null;
     });
-    expect(reachable.sort()).toEqual(['box', 'controls', 'head', 'hint'].sort());
+    // R157 (FR-PHONE-4): the finger has the sky (no sensor here, so nothing follows), and the facing readout is in the corner.
+    expect(reachable.sort()).toEqual(['box', 'controls', 'head', 'hint', 'readout'].sort());
+    await waitFor(() => {
+      expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^(Facing|Following) /);
+    });
     // The dome's drag clause fits beside the button in English (`hintFitsBeside`: 35.75 cells with a mouse).
     act(() => {
       appStore.getState().setChartView('dome');
@@ -1885,6 +1889,108 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('live-facing')).toBeInTheDocument();
       expect(appStore.getState().chartView).toBe('dome');
       expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
+    });
+
+    /**
+     * R157 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-5; US-45 AC3..AC5; D-964..D-966): `[ follow ]` before `[ controls ]` on the
+     * overlay's bottom row, the same state as the sheet's toggle either way round; the facing readout in the box's
+     * corner while the finger has the sky, gone while following and handed to the sheet's facing row while it is open;
+     * the touch hint's two clauses, in the row above the two controls.
+     */
+    it('puts [ follow ] before [ controls ] on the bottom row, agreeing with the sheet’s toggle both ways (FR-PHONE-3)', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('window');
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const row = screen.getByTestId('live-bottom-row');
+      const control = within(row).getByTestId('live-follow-control');
+      expect([...row.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-follow-control', 'live-controls']);
+      expect(control).toHaveTextContent(en.sheet.follow);
+      expect(control).toHaveAttribute('aria-pressed', 'false');
+      expect(control.closest('[inert]')).toBeNull();
+      // The control turns it on, inside the tap; the sheet's toggle shows it.
+      fireEvent.click(control);
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(control).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-follow', 'true');
+      // The sheet's toggle turns it off; the control shows it.
+      fireEvent.click(toggle());
+      expect(control).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('sky-chart')).not.toHaveAttribute('data-follow');
+      // And the other way: the toggle on, the control off.
+      fireEvent.click(toggle());
+      await flush();
+      expect(control).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(control);
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(requestPermission).toHaveBeenCalledTimes(2);
+    });
+
+    it('draws the facing readout in the box’s corner while not following, none while following, and the sheet’s facing row with the sheet open (FR-PHONE-4, FR-GYRO-5)', async () => {
+      withPhone(() => Promise.resolve('granted'));
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('window');
+      });
+      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+      const overlay = container.querySelector('[data-slot="overlay"]') as HTMLElement;
+      await waitFor(() => {
+        // The window's readout's first line: the facing key follows the highlighted pass (FR-SKY-13).
+        expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^Following A$/);
+      });
+      expect(within(screen.getByTestId('live-facing')).queryByTestId('window-readout')).toBeNull();
+      // Following: nothing over the sky but the head and the bottom row.
+      fireEvent.click(screen.getByTestId('live-follow-control'));
+      await flush();
+      expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+      expect(screen.queryByTestId('window-readout')).toBeNull();
+      // Off again: the corner is back.
+      fireEvent.click(screen.getByTestId('live-follow-control'));
+      expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^(Facing|Following) /);
+      // The sheet open: the readout is the facing row's, as before, and the corner is empty.
+      fireEvent.click(screen.getByTestId('live-controls'));
+      expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+      expect(screen.getByTestId('live-facing')).toHaveTextContent(/(Facing|Following) /);
+      fireEvent.click(screen.getByTestId('sheet-close'));
+      expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^(Facing|Following) /);
+      // The polar chart's readout is its convention, not a facing: no corner.
+      act(() => {
+        appStore.getState().setChartView('polar');
+      });
+      expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+    });
+
+    it('words the touch hint in two clauses and stands it above [ follow ] [ controls ], in both languages (FR-PHONE-5)', () => {
+      withPhone();
+      withSky();
+      act(() => {
+        appStore.getState().setChartView('window');
+        appStore.getState().setSkyHintSeen(false);
+      });
+      media = stubMatchMedia(390, 844);
+      media.setCoarsePointer(true);
+      const { container, unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+      const hint = within(container.querySelector('[data-slot="overlay"]') as HTMLElement).getByTestId('sky-hint');
+      // The ISS is up and highlighted: the follow clause takes the zoom clause's place, never three.
+      expect(hint).toHaveTextContent(/^Drag to look · tap A to follow$/);
+      expect(hint.parentElement).toHaveAttribute('data-beside', 'false');
+      unmount();
+      const again = render(
+        <I18nProvider locale="es">
+          <LivePage link={null} onLeave={() => undefined} />
+        </I18nProvider>,
+      );
+      const es = within(again.container.querySelector('[data-slot="overlay"]') as HTMLElement).getByTestId('sky-hint');
+      expect(es).toHaveTextContent(/^Arrastrá para mirar · tocá A para seguir$/);
+      expect(es.parentElement).toHaveAttribute('data-beside', 'false');
+      expect(screen.getByTestId('live-follow-control')).toHaveTextContent('seguir');
     });
 
     it('a refusal leaves it off with the one line under it, and the page on its view (FR-GYRO-3)', async () => {

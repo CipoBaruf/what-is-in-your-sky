@@ -148,7 +148,8 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
 interface SkyViewContextValue {
   shape: SkyViewShape;
   targets: Partial<Record<ChartSlotName, HTMLElement>>;
-  register: (name: ChartSlotName, element: HTMLElement | null) => void;
+  /** `previous`, with `null`: the element going, so a slot that leaves after another took its name removes nothing (R157). */
+  register: (name: ChartSlotName, element: HTMLElement | null, previous?: HTMLElement | null) => void;
   describedBy: string | undefined;
   labelledBy: string | undefined;
 }
@@ -176,9 +177,12 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
   const pickerId = useId();
   const readoutLabelId = useId();
   const [targets, setTargets] = useState<Partial<Record<ChartSlotName, HTMLElement>>>({});
-  const register = useCallback((name: ChartSlotName, element: HTMLElement | null) => {
+  const register = useCallback((name: ChartSlotName, element: HTMLElement | null, previous: HTMLElement | null = null) => {
     setTargets((was) => {
       if ((was[name] ?? null) === element) return was;
+      // R157 (D-965): the readout's place moves between the box's corner and the sheet's facing row; the one leaving
+      // may be detached after the one arriving registered, and must not take the new target with it.
+      if (element === null && previous !== null && was[name] !== previous) return was;
       const { [name]: _gone, ...rest } = was;
       return element === null ? rest : { ...rest, [name]: element };
     });
@@ -415,7 +419,9 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
    * R148 (FR-FULL-1, FR-FULL-6; D-919): the full form. The drawing slot stands in a wrapper fixed to the viewport
    * (`inset: 0`, `100dvh`, padded by the safe-area insets), and over it the `overlay` slot at `--z-raised` and the
    * `sheet` slot at `--z-sheet`, both letting the pointer through to the sky where they hold nothing. No other slot
-   * is rendered: the page passes their contents to its sheet. The box's size depends on the wrapper alone, which
+   * is rendered: the page passes their contents to its sheet. R157 (FR-PHONE-4, D-965): but `readout`, which stands
+   * in the overlay at the box's top-right, one line at `--small` on `--screen-overlay`, cut with an ellipsis before
+   * the head — the page writes the head's width as `--sky-head-w` on the layout's root — while the page fills it. The box's size depends on the wrapper alone, which
    * depends on the viewport alone, so nothing on the page can resize the sky.
    */
   if (shape === 'full') {
@@ -429,6 +435,11 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
             {given('overlay') && (
               <div className={styles.overlay} data-slot="overlay">
                 {slots.overlay}
+                {given('readout') && (
+                  <div className={styles.fullReadout} data-slot="readout" data-testid="sky-corner-readout">
+                    {slots.readout}
+                  </div>
+                )}
               </div>
             )}
             {given('sheet') && (
@@ -469,9 +480,12 @@ export function SkyViewChartSlot({ name }: { name: ChartSlotName }) {
   const layout = useContext(SkyViewContext);
   if (layout === null) throw new Error('SkyViewChartSlot must be rendered inside SkyViewLayout');
   const { register } = layout;
+  const placed = useRef<HTMLDivElement | null>(null);
   const setElement = useCallback(
     (element: HTMLDivElement | null) => {
-      register(name, element);
+      const previous = placed.current;
+      placed.current = element;
+      register(name, element, previous);
     },
     [register, name],
   );

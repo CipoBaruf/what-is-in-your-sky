@@ -44,7 +44,6 @@ const all = (locale: Locale = 'en', wide?: 'rail' | 'panel', extra: Partial<SkyV
     <I18nProvider locale={locale}>
       <SkyViewLayout
         {...(wide === undefined ? {} : { wide })}
-        {...extra}
         data-testid="layout"
         answer={<h1>answer</h1>}
         viewRow={
@@ -69,6 +68,7 @@ const all = (locale: Locale = 'en', wide?: 'rail' | 'panel', extra: Partial<SkyV
         layers={<p>layers</p>}
         list={<SkyViewChartSlot name="list" />}
         foot={<p>foot</p>}
+        {...extra}
       />
     </I18nProvider>,
   );
@@ -321,7 +321,7 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
    */
   it('with form full renders the drawing, the overlay and the sheet and nothing else, in both compact shapes, and the rail on wide', () => {
     media = stubMatchMedia(COMPACT_PX);
-    all('en', undefined, { form: 'full', readoutIn: 'sheet', overlay: <p>over</p>, sheet: <SkyViewChartSlot name="readout" /> });
+    all('en', undefined, { form: 'full', readoutIn: 'sheet', overlay: <p>over</p>, readout: undefined, sheet: <SkyViewChartSlot name="readout" /> });
     const layout = screen.getByTestId('layout');
     expect(layout).toHaveAttribute('data-shape', 'full');
     expect(layout).toHaveAttribute('data-readout', 'sheet');
@@ -338,7 +338,7 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     cleanup();
     media.restore();
     media = stubMatchMedia(844, 390);
-    all('en', undefined, { form: 'full', overlay: <p>over</p> });
+    all('en', undefined, { form: 'full', overlay: <p>over</p>, readout: undefined });
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'full');
     expect(slots()).toEqual(['drawing', 'overlay']);
     cleanup();
@@ -348,6 +348,41 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'rail');
     expect(slots()).toEqual([...SLOT_ORDER]);
     expect(screen.queryByText('over')).toBeNull();
+  });
+
+  /**
+   * R157 (FR-PHONE-4, D-965): the full form's `readout` slot stands in the overlay, after what the page put there, and
+   * the chart's readout lands in it; the page takes it away (following, or the sheet open) and hands the readout to
+   * the sheet's facing row, and the readout follows — whichever order the two places' refs are detached and attached.
+   */
+  it('with form full puts the readout slot in the overlay, and the chart’s readout follows it to the sheet and back', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    const view = (corner: boolean) => (
+      <I18nProvider locale="en">
+        <SkyViewLayout
+          data-testid="layout"
+          form="full"
+          readoutIn="sheet"
+          drawing={<Part name="readout" text="Facing N" />}
+          overlay={<p>over</p>}
+          {...(corner ? { readout: <SkyViewChartSlot name="readout" /> } : {})}
+          sheet={<div data-testid="facing-row">{!corner && <SkyViewChartSlot name="readout" />}</div>}
+        />
+      </I18nProvider>
+    );
+    const { rerender } = render(view(true));
+    expect(slots()).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
+    const corner = screen.getByTestId('sky-corner-readout');
+    expect(corner.parentElement).toHaveAttribute('data-slot', 'overlay');
+    expect(corner).toHaveTextContent('Facing N');
+    expect(corner).not.toHaveAttribute('data-rhythm');
+    expect(screen.getByTestId('facing-row')).toBeEmptyDOMElement();
+    rerender(view(false));
+    expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+    expect(screen.getByTestId('facing-row')).toHaveTextContent('Facing N');
+    rerender(view(true));
+    expect(screen.getByTestId('sky-corner-readout')).toHaveTextContent('Facing N');
+    expect(screen.getByTestId('facing-row')).toBeEmptyDOMElement();
   });
 
   /**

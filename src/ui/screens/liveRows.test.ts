@@ -22,12 +22,12 @@ describe('rowsFor (FR-WATCH-4)', () => {
    * sheet closed, the overlay and the sheet with it open — the same in both states and both shapes.
    */
   it('compact: the box, the head, [ controls ], the hint and the card over the sky; the sheet’s rows in FR-FULL-4’s order with the sheet open — the same list watching and scrubbing, tall and short', () => {
-    expect(COMPACT_OVERLAY).toEqual(['box', 'head', 'controls', 'hint', 'card']);
+    expect(COMPACT_OVERLAY).toEqual(['box', 'head', 'controls', 'follow', 'readout', 'hint', 'card']);
     // R150 (FR-GYRO-10, D-949): `list` (the button) is gone; the satellites, open, are the sheet's last row.
     expect(COMPACT_SHEET).toEqual(['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites']);
     expect(COMPACT_SHEET.at(-1)).toBe('satellites');
     expect(LIVE_ROWS).not.toContain('list');
-    expect(COMPACT_CONDITIONAL).toEqual(['hint', 'card']);
+    expect(COMPACT_CONDITIONAL).toEqual(['follow', 'readout', 'hint', 'card']);
     for (const row of COMPACT_CONDITIONAL) expect(COMPACT_OVERLAY).toContain(row);
     for (const shape of ['tall', 'short'] as const) {
       expect(rowsFor('watching', 'compact', shape, false)).toEqual(COMPACT_OVERLAY);

@@ -166,7 +166,9 @@ const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'live-following'
  * R135 (FR-FLOW-15): the page at 844 × 390 is the same phone turned, so it has touch too.
  */
 const isTouch = (screen: string, width: CaptureWidth): boolean =>
-  TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844)) || (screen === 'legend' && VIEWPORTS[width].width <= 390);
+  TOUCH.has(screen) ||
+  // R157 (FR-PHONE-5, D-966): a screen marked `touch` is a touch phone at its compact widths.
+  (SCREENS.find((candidate) => candidate.name === screen)?.touch === true && VIEWPORTS[width].width <= 390) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844)) || (screen === 'legend' && VIEWPORTS[width].width <= 390);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
