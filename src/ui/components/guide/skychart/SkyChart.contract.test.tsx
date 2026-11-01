@@ -288,13 +288,15 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     });
     const drawn = [...container.querySelectorAll('[data-drawing] [data-star]')].filter((el) => el.getAttribute('visibility') !== 'hidden');
     const planets = container.querySelectorAll('[data-drawing] [data-planet]');
-    expect(drawn.map((el) => el.getAttribute('data-star'))).toEqual(view.id === 'dome' ? ['0'] : ['0', '1']);
+    // The polar chart draws its dots as one path per tone naming the stars it holds (R158, D-989).
+    const dotted = [...container.querySelectorAll('[data-drawing] path[data-dots]')].flatMap((path) => (path.getAttribute('data-stars') ?? '').split(' ').filter(Boolean));
+    expect([...drawn.map((el) => el.getAttribute('data-star')), ...dotted]).toEqual(view.id === 'dome' ? ['0'] : ['0', '1']);
     expect(planets).toHaveLength(1);
     const star = container.querySelector('[data-drawing] [data-star="0"]') as Element;
     const planet = planets[0] as Element;
     expect(planet).toHaveAttribute('data-planet', PLANET.body);
     // The figures and the names are the table's rows: the window and the polar chart draw the line and the star's name, the dome neither.
-    const lines = [...container.querySelectorAll('[data-drawing] line[data-figure]')].filter((el) => el.getAttribute('visibility') !== 'hidden');
+    const lines = [...container.querySelectorAll('[data-drawing] [data-figure]')].filter((el) => el.getAttribute('visibility') !== 'hidden');
     expect(lines).toHaveLength(view.id === 'dome' ? 0 : 1);
     if (view.id === 'dome') expect(container.querySelector('[data-drawing] [data-star-name]')).toBeNull();
     else expect(container.querySelector('[data-drawing] [data-star-name="0"]')).toHaveTextContent('Star');

@@ -14,6 +14,16 @@
  * R123 (FR-SKY-3, FR-SKY-8, D-791): measured with `[ stars ]` on, its default —
  * the page rotates the catalogue once per shown instant for the scene, so at
  * 3600× that work is inside every frame counted here.
+ *
+ * R158 (FR-LOOK-11, FR-PHONE-8): the polar chart's measure — the same
+ * playback with the polar view shown, counting the frames in which the star
+ * layer's marks moved (the stars, the figures and the haze move with the
+ * shown instant, so every tick re-places the whole sky; the rest of the
+ * drawing — the arcs, the markers — is not this measure's). The chart has no
+ * drag of its own; this is the playback FR-LOOK-11 calls its drag, and the
+ * number is held against 2.9.0's on the same box, with the figures on. The
+ * live page's scene has no `names` row (FR-LEG-1 as amended), so the names'
+ * placement is not in it; it runs once per instant on the stars page.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { ha, stubNetwork, T, withSettings } from './liveHelpers';
@@ -34,9 +44,10 @@ declare global {
   }
 }
 
-function installCounter(): void {
-  const drawing = document.querySelector('[data-drawing="dome"]');
-  if (!drawing) throw new Error('no dome');
+function installCounter(view: 'dome' | 'polar' = 'dome'): void {
+  // R158: on the polar chart the star layer's group, whose marks move with every re-placement of the whole sky.
+  const drawing = document.querySelector(view === 'polar' ? '[data-drawing="polar"] [data-layer="stars"]' : '[data-drawing="dome"]');
+  if (!drawing) throw new Error(`no ${view}`);
   let dirty = false;
   let rasterFrames = 0;
   let frames = 0;
@@ -46,7 +57,8 @@ function installCounter(): void {
   const observer = new MutationObserver(() => {
     dirty = true;
   });
-  drawing.querySelectorAll('pre.glyph-output').forEach((pre) => observer.observe(pre, { characterData: true, childList: true, subtree: true }));
+  if (view === 'polar') observer.observe(drawing, { attributes: true, attributeFilter: ['transform'], childList: true, subtree: true });
+  else drawing.querySelectorAll('pre.glyph-output').forEach((pre) => observer.observe(pre, { characterData: true, childList: true, subtree: true }));
   let raf = requestAnimationFrame(function tick(t: number) {
     if (last) longestGap = Math.max(longestGap, t - last);
     last = t;
@@ -84,8 +96,8 @@ async function openLive(page: Page): Promise<void> {
   await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
 }
 
-async function measure(page: Page): Promise<Sample & { cols: number }> {
-  const cols = await page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
+async function measure(page: Page, view: 'dome' | 'polar' = 'dome'): Promise<Sample & { cols: number }> {
+  const cols = view === 'polar' ? 0 : await page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
   // R123: since v2.0 (FR-WATCH-1) the speeds are the scrubbing state's; `[ scrub ]` holds the instant and shows them.
   // R144 (FR-TONIGHT-5): on compact the rate is automatic (60× near a pass, 600× between) and the play control is the taps row's.
   const compact = (await page.getByTestId('live-scrub').count()) === 0;
@@ -95,7 +107,7 @@ async function measure(page: Page): Promise<Sample & { cols: number }> {
   }
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
-  await page.evaluate(installCounter);
+  await page.evaluate(installCounter, view);
   await page.getByRole('button', { name: 'Play' }).click();
   await page.waitForTimeout(PLAY_SECONDS * 1000);
   const sample = await page.evaluate(() => window.__livePerf?.stop() ?? { rasterPerSecond: 0, longestFrameGapMs: 0, frames: 0 });
@@ -120,5 +132,22 @@ test('playback at 3600× at the desktop width is measured and reported', async (
   await openLive(page);
   const result = await measure(page);
   console.log(`[FR-LIVE-5] 1280 px, ${String(result.cols)} cols, ${String(THROTTLE)}x CPU, 3600×: ${result.rasterPerSecond.toFixed(1)}/s, longest frame ${result.longestFrameGapMs.toFixed(0)} ms, ${String(result.frames)} frames`);
+  expect(result.frames).toBeGreaterThan(0);
+});
+
+/** R158 (FR-LOOK-11): the polar view at the desktop width, where the scrub's 3600× is a button; reported against 2.9.0's. */
+test('playback at 3600× on the polar chart at the desktop width is measured and reported', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openLive(page);
+  await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Polar' }).click();
+  const drawing = page.locator('[data-drawing="polar"]');
+  await expect(drawing.locator('[data-layer="stars"] [data-star]').first()).toBeAttached({ timeout: 30_000 });
+  // The `*` marks carry `data-star`; the dots are one path per tone naming theirs (D-989).
+  const chars = await drawing.locator('[data-layer="stars"] [data-star]').count();
+  const dots = await drawing.locator('[data-layer="stars"] path[data-dots]').evaluateAll((els) => els.reduce((n, el) => n + (el.getAttribute('data-stars') ?? '').split(' ').filter(Boolean).length, 0));
+  const stars = chars + dots;
+  const lines = await drawing.locator('[data-figures] [data-figure]').evaluateAll((els) => els.reduce((n, el) => n + Number(el.getAttribute('data-segments') ?? 1), 0));
+  const result = await measure(page, 'polar');
+  console.log(`[FR-LOOK-11] polar, 1280 px, ${String(stars)} stars, ${String(lines)} figure lines, ${String(THROTTLE)}x CPU, 3600×: ${result.rasterPerSecond.toFixed(1)}/s, longest frame ${result.longestFrameGapMs.toFixed(0)} ms, ${String(result.frames)} frames`);
   expect(result.frames).toBeGreaterThan(0);
 });

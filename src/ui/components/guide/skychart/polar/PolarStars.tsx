@@ -132,32 +132,58 @@ function galacticOfVector(v: readonly [number, number, number]): { lDeg: number;
   return galacticOf(((ra % 360) + 360) % 360, dec);
 }
 
-/** A box round the whole drawing, for a band drawn as the plane outside its curve. */
-const OUTSIDE = 'M-125 -125H125V125H-125Z';
+/** The horizon's disc as a closed path, for a band drawn as the sky outside its curve. */
+const disc = (r: number): string => `M${fmt(r)} 0A${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(-r)} 0A${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(r)} 0Z`;
+
+/** A point held inside the horizon's radius: one under the horizon is put on the ring, along its own azimuth. */
+function onSky(p: Point, r: number): Point {
+  const d = Math.hypot(p.x, p.y);
+  return d <= r ? p : { x: (p.x * r) / d, y: (p.y * r) / d };
+}
+
+/** Where the segment from `a` (inside the ring) toward `b` (outside it) meets the ring of radius `r`. */
+function toRing(a: Point, b: Point, r: number): Point {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const qa = dx * dx + dy * dy;
+  const qb = 2 * (a.x * dx + a.y * dy);
+  const qc = a.x * a.x + a.y * a.y - r * r;
+  const t = qa === 0 ? 0 : (-qb + Math.sqrt(Math.max(0, qb * qb - 4 * qa * qc))) / (2 * qa);
+  return { x: a.x + t * dx, y: a.y + t * dy };
+}
 
 /**
  * FR-LOOK-3 on the chart: each ring of the outline through the chart's projection, closed. The polar projection is
  * azimuthal from the zenith and finite everywhere but at the nadir, whose image is the circle at twice the horizon's
  * radius: a band holding the nadir is the plane *outside* its drawn curve (D-770's rule with the nadir for the
- * antipode), so that band is drawn against a box round the drawing under `evenodd`. The horizon's clip keeps the sky.
+ * antipode), so that band is drawn against the horizon's disc under `evenodd`. The sky is kept with no clip path
+ * (D-989: a clip costs the chart's playback a paint per update): a point under the horizon is put on the ring along
+ * its own azimuth, so the part of a band below it folds onto the ring and the fill stops there.
  */
-function hazePaths(haze: PreparedHaze, orientation: ChartOrientation, project: Project): { d: string; opacity: number }[] {
+function hazePaths(haze: PreparedHaze, orientation: ChartOrientation, project: Project, horizonR: number): { d: string; opacity: number }[] {
   const nadir = nadirs.get(haze);
   return haze.rings.map((ring, k) => {
     let d = '';
     for (let i = 0; i < ring.azDeg.length; i += 1) {
-      const p = project({ azDeg: ring.azDeg[i] ?? 0, elDeg: ring.altDeg[i] ?? 0 }, orientation);
+      const p = onSky(project({ azDeg: ring.azDeg[i] ?? 0, elDeg: ring.altDeg[i] ?? 0 }, orientation), horizonR);
       d += `${d ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
     }
     if (d === '') return { d, opacity: hazeOpacity(k) };
     const flipped = nadir !== undefined && Math.abs(nadir.bDeg) < bandHalfWidthDeg(k, nadir.lDeg);
-    return { d: `${flipped ? OUTSIDE : ''}${d}Z`, opacity: hazeOpacity(k) };
+    return { d: `${flipped ? disc(horizonR) : ''}${d}Z`, opacity: hazeOpacity(k) };
   });
 }
 
 interface Drawing {
   marks: PlacedMark[];
   lines: (LabelSegment & { figure: number })[];
+  /**
+   * D-989: the dots drawn as one path per tone, each dot a circle of two arcs, with the stars it holds in
+   * `data-stars` — the whole sky draws about 180 of them, and as nodes they were most of a playback tick's render.
+   */
+  dotPaths: { tone: string; d: string; stars: number[] }[];
+  /** The lines drawn as one path per figure: a render writes one `d` per figure and not four numbers per segment (D-989). */
+  figurePaths: { figure: number; segments: number; d: string }[];
   haze: { d: string; opacity: number }[];
   labels: PlacedLabel[];
 }
@@ -165,11 +191,11 @@ interface Drawing {
 /**
  * The whole drawing, placed once per catalogue, instant, switch set, convention and language: the marks
  * (`starsFor`'s bodies on the marks, brightest first, then the collision walk), the figure lines (D-754's gap at
- * each end (D-989: the end's own half cell), a segment shorter than its two gaps or with both ends under the horizon dropped; the horizon's clip keeps
+ * each end (D-989: the end's own half cell), a segment shorter than its two gaps or with both ends under the horizon dropped, one end under it cut at the ring; the horizon's ring keeps
  * the sky side), the haze, and the names through `starLabels.ts` with the compass's boxes first (D-755), the box
  * being the viewBox shifted to start at 0.
  */
-function place(field: StarField, whole: StarField, orientation: ChartOrientation, project: Project, compass: readonly Box[], half: number, lang: Locale): Drawing {
+function place(field: StarField, whole: StarField, orientation: ChartOrientation, project: Project, compass: readonly Box[], half: number, horizonR: number, lang: Locale): Drawing {
   const { catalog, positions, layers } = field;
   const bodies = starsFor('polar', field);
   const ordered = magnitudeOrder(bodies.map((body) => body.mag))
@@ -197,7 +223,12 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
         if (!(length >= gapA + gapB)) continue;
         const ux = (pb.x - pa.x) / length;
         const uy = (pb.y - pa.y) / length;
-        lines.push({ figure: f, x1: pa.x + ux * gapA, y1: pa.y + uy * gapA, x2: pb.x - ux * gapB, y2: pb.y - uy * gapB });
+        // One end under the horizon: the line stops at the ring (no clip path, D-989).
+        let start: Point = { x: pa.x + ux * gapA, y: pa.y + uy * gapA };
+        let end: Point = { x: pb.x - ux * gapB, y: pb.y - uy * gapB };
+        if (Math.hypot(start.x, start.y) > horizonR) start = toRing(end, start, horizonR);
+        else if (Math.hypot(end.x, end.y) > horizonR) end = toRing(start, end, horizonR);
+        lines.push({ figure: f, x1: start.x, y1: start.y, x2: end.x, y2: end.y });
         count += 1;
         if (aAlt >= 0) ends.add(a);
         if (bAlt >= 0) ends.add(b);
@@ -213,7 +244,7 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
 
   const haze = layers.stars && drawsLayer('polar', 'haze') ? (() => {
     const prepared = hazeOf(whole.catalog, whole.positions);
-    return prepared === null ? [] : hazePaths(prepared, orientation, project);
+    return prepared === null ? [] : hazePaths(prepared, orientation, project, horizonR);
   })() : [];
 
   let labels: PlacedLabel[] = [];
@@ -236,7 +267,28 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
       lang,
     }).map((label) => ({ ...label, x: label.x - half, y: label.y - half }));
   }
-  return { marks, lines, haze, labels };
+  const figurePaths: Drawing['figurePaths'] = [];
+  for (const s of lines) {
+    const last = figurePaths.at(-1);
+    const piece = `M${fmt(s.x1)} ${fmt(s.y1)}L${fmt(s.x2)} ${fmt(s.y2)}`;
+    if (last?.figure === s.figure) {
+      last.d += piece;
+      last.segments += 1;
+    } else figurePaths.push({ figure: s.figure, segments: 1, d: piece });
+  }
+  const byTone = new Map<string, { tone: string; d: string; stars: number[] }>();
+  for (const { mark, p, star } of marks) {
+    if (mark.kind !== 'dot' || star === undefined) continue;
+    let path = byTone.get(mark.tone);
+    if (!path) {
+      path = { tone: mark.tone, d: '', stars: [] };
+      byTone.set(mark.tone, path);
+    }
+    const r = fmt(mark.r);
+    path.d += `M${fmt(p.x - mark.r)} ${fmt(p.y)}a${r} ${r} 0 1 0 ${fmt(2 * mark.r)} 0a${r} ${r} 0 1 0 ${fmt(-2 * mark.r)} 0`;
+    path.stars.push(star);
+  }
+  return { marks, lines, figurePaths, dotPaths: [...byTone.values()], haze, labels };
 }
 
 interface PolarStarsProps {
@@ -255,7 +307,7 @@ interface PolarStarsProps {
   compass: readonly Box[];
   /** Half the viewBox's side, user units: the placement's box is the viewBox shifted to start at 0. */
   half: number;
-  /** The horizon's radius, user units: the clip the haze and the figures are drawn under. */
+  /** The horizon's radius, user units: the ring the haze and the figures stop at. */
   horizonR: number;
   /** R127 (FR-SKY-11, D-796): the landmark star to ring, a catalogue index (`layers.ts`'s `landmarkFor`), or `null`. */
   landmark?: number | null;
@@ -265,11 +317,11 @@ interface PolarStarsProps {
  * R122 (FR-SKY-4, D-792, D-813), rewritten by R158 (FR-PHONE-8; D-968): the scene's stars to `POLAR_STAR_MAG` (4.5)
  * and the planets on the window's marks (FR-LOOK-4, FR-LOOK-5: `*` to 2.5, a dot below, four tones from B−V, `@`
  * for a planet), with, in FR-STAR-6's order under the grid and the arcs: the haze (FR-LOOK-3), the bloom under the
- * brightest (FR-LOOK-6, the five gradients defined once), the figures as hairlines in `--chart-figure` with the gap,
+ * brightest (FR-LOOK-6, the five gradients defined once), the figures as hairlines in `--chart-figure` with the gap (one path per figure, a sub-path per segment),
  * the marks, the landmark's ring, and the names where `names` is on — the proper names to 1.5 and the figures' in
- * spaced capitals, by FR-STAR-6's placement at the chart's unit. Each mark keeps R119's anchor, `data-star` or
- * `data-planet` with the `translate`, which the contract test reads; a `*` or `@` is a `<text>` whose ink is moved
- * onto the point by the measured offsets, a dot a `<circle>`.
+ * spaced capitals, by FR-STAR-6's placement at the chart's unit. A `*` or `@` keeps R119's anchor, `data-star` or
+ * `data-planet` with the `translate`, which the contract test reads, a `<text>` whose ink is moved onto the point by
+ * the measured offsets; the dots are one path per tone, a circle each, naming the stars they hold (D-989).
  *
  * The props are the scene's parts, not the scene, and the drawing is memoised on them: a page that rebuilds the
  * scene around the same positions neither places nor renders the group again.
@@ -280,8 +332,8 @@ export const PolarStars = memo(function PolarStars({ catalog, positions, stars, 
     const whole: StarField = { catalog, positions, layers: { stars, figures, planets, names } };
     // FR-SKY-1: what the table leaves this chart of the scene — since R158 the star layer whole, to `POLAR_STAR_MAG`.
     const field = sceneFor('polar', { stars: whole })?.stars;
-    return field ? place(field, whole, orientation, project, compass, half, lang) : null;
-  }, [catalog, positions, stars, figures, planets, names, orientation, project, compass, half, lang]);
+    return field ? place(field, whole, orientation, project, compass, half, horizonR, lang) : null;
+  }, [catalog, positions, stars, figures, planets, names, orientation, project, compass, half, horizonR, lang]);
   const [, setMeasured] = useState(inkMeasured);
   useEffect(() => {
     if (inkMeasured()) return;
@@ -297,14 +349,10 @@ export const PolarStars = memo(function PolarStars({ catalog, positions, stars, 
   if (!drawing) return null;
   const ringAlt = landmark === null ? undefined : positions.altDeg[landmark];
   const ring = landmark !== null && stars && ringAlt !== undefined && ringAlt >= 0 ? project({ azDeg: positions.azDeg[landmark] ?? 0, elDeg: ringAlt }, orientation) : null;
-  const clip = `url(#${id}-horizon)`;
   const blooms = drawsLayer('polar', 'bloom') ? drawing.marks.filter((m) => bloomed(m.mag)) : [];
   return (
     <g className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars">
       <defs>
-        <clipPath id={`${id}-horizon`}>
-          <circle r={fmt(horizonR)} />
-        </clipPath>
         {/* FR-LOOK-6: one gradient per tone and one for the planets, the colour the sheet's by `data-bloom-tone`. */}
         {blooms.length > 0 &&
           BLOOM_TONES.map((tone) => (
@@ -316,7 +364,7 @@ export const PolarStars = memo(function PolarStars({ catalog, positions, stars, 
           ))}
       </defs>
       {drawing.haze.length > 0 && (
-        <g className={styles.haze} data-milky-way clipPath={clip}>
+        <g className={styles.haze} data-milky-way>
           {drawing.haze.map((band, k) => (
             <path key={k} data-haze-band={k} fillOpacity={band.opacity} d={band.d} />
           ))}
@@ -329,16 +377,19 @@ export const PolarStars = memo(function PolarStars({ catalog, positions, stars, 
           ))}
         </g>
       )}
-      {drawing.lines.length > 0 && (
-        <g className={styles.figures} data-figures clipPath={clip}>
-          {drawing.lines.map((s, k) => (
-            <line key={k} data-figure={s.figure} x1={fmt(s.x1)} y1={fmt(s.y1)} x2={fmt(s.x2)} y2={fmt(s.y2)} />
+      {drawing.figurePaths.length > 0 && (
+        <g className={styles.figures} data-figures>
+          {drawing.figurePaths.map(({ figure, segments, d }) => (
+            <path key={figure} data-figure={figure} data-segments={segments} d={d} />
           ))}
         </g>
       )}
+      {drawing.dotPaths.map(({ tone, d, stars: held }) => (
+        <path key={tone} data-dots={tone} data-tone={tone} data-stars={held.join(' ')} d={d} />
+      ))}
       {drawing.marks.map(({ key, star, planet, mark, p }) => {
+        if (mark.kind === 'dot') return null;
         const anchor = { ...(star === undefined ? {} : { 'data-star': star }), ...(planet === undefined ? {} : { 'data-planet': planet }) };
-        if (mark.kind === 'dot') return <circle key={key} {...anchor} data-dot r={mark.r} data-tone={mark.tone} transform={at(p)} />;
         const { dx, dy } = inkOffsetPx(mark.glyph, mark.px);
         return (
           <text key={key} {...anchor} data-glyph={mark.glyph} data-px={mark.px} fontSize={mark.px} data-tone={mark.tone} dx={dx} dy={dy} transform={at(p)}>

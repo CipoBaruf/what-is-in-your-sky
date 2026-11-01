@@ -21,10 +21,6 @@
 </g>
 <g data-layer="stars">
 <defs>
-<clipPath id="_r_0_-horizon">
-<circle r="100.00">
-</circle>
-</clipPath>
 <radialGradient id="_r_0_-bloom-chart-star" data-bloom-tone="chart-star">
 <stop offset="0" stop-opacity="0.224">
 </stop>
@@ -76,22 +72,20 @@
 <circle data-bloom="Mars" r="12" fill="url(#_r_0_-bloom-chart-planet)" transform="translate(-69.28 40.00)">
 </circle>
 </g>
-<g data-figures="true" clip-path="url(#_r_0_-horizon)">
-<line data-figure="0" x1="-7.41" y1="37.69" x2="34.57" y2="45.89">
-</line>
-<line data-figure="0" x1="-9.92" y1="31.59" x2="18.04" y2="-9.35">
-</line>
+<g data-figures="true">
+<path data-figure="0" data-segments="2" d="M-7.41 37.69L34.57 45.89M-9.92 31.59L18.04 -9.35">
+</path>
 </g>
+<path data-dots="chart-star-yellow" data-tone="chart-star-yellow" data-stars="4" d="M17.12 -11.11a2.13 2.13 0 1 0 4.26 0a2.13 2.13 0 1 0 -4.26 0">
+</path>
+<path data-dots="chart-star" data-tone="chart-star" data-stars="5" d="M-51.63 -0.00a1.63 1.63 0 1 0 3.26 0a1.63 1.63 0 1 0 -3.26 0">
+</path>
 <text data-planet="Venus" data-glyph="@" data-px="20" font-size="20" data-tone="chart-planet" dx="0" dy="0" transform="translate(86.34 -7.55)">@</text>
 <text data-star="0" data-glyph="*" data-px="20" font-size="20" data-tone="chart-star" dx="0" dy="0" transform="translate(-13.30 36.54)">*</text>
 <text data-star="1" data-glyph="*" data-px="16" font-size="16" data-tone="chart-star-orange" dx="0" dy="0" transform="translate(39.28 46.81)">*</text>
 <text data-planet="Mars" data-glyph="@" data-px="16" font-size="16" data-tone="chart-planet" dx="0" dy="0" transform="translate(-69.28 40.00)">@</text>
 <text data-star="2" data-glyph="*" data-px="13" font-size="13" data-tone="chart-star-blue" dx="0" dy="0" transform="translate(-24.70 -67.87)">*</text>
 <text data-planet="Jupiter" data-glyph="@" data-px="13" font-size="13" data-tone="chart-planet" dx="0" dy="0" transform="translate(-9.62 -5.56)">@</text>
-<circle data-star="4" data-dot="true" r="2.13" data-tone="chart-star-yellow" transform="translate(19.25 -11.11)">
-</circle>
-<circle data-star="5" data-dot="true" r="1.63" data-tone="chart-star" transform="translate(-50.00 -0.00)">
-</circle>
 <g data-names="true">
 <text data-star-name="0" x="-13.30" y="52.14">Canopus</text>
 <text data-star-name="1" x="72.88" y="46.81">Antares</text>

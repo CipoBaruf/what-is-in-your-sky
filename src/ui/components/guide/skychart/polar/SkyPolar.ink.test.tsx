@@ -82,10 +82,9 @@ describe('<SkyPolar> glyph ink and placement (D-813)', () => {
     expect(planet()).toHaveAttribute('data-glyph', '@');
     expect(planet()).toHaveAttribute('dx', '0.3');
     expect(planet()).toHaveAttribute('dy', '-1.9');
-    // The V 3.5 star is a dot: a circle on its point, with no offset.
-    expect(star(2)?.tagName).toBe('circle');
-    expect(star(2)).not.toHaveAttribute('dx');
-    expect(star(2)).not.toHaveAttribute('dy');
+    // The V 3.5 star is a dot: a circle in its tone's path (D-989), centred on its point, with no offset.
+    expect(star(2)).toBeNull();
+    expect(container.querySelector('path[data-dots]')).toHaveAttribute('data-stars', '2');
   });
 
   it('places again for new positions or a new orientation, not for a scene rebuilt around the same positions', async () => {

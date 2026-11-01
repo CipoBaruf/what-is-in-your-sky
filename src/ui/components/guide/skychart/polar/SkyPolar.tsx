@@ -72,15 +72,17 @@ const at = ({ x, y }: Xy): string => `translate(${fmt(x)} ${fmt(y)})`;
  * stars, so it loads beside that one and the ladder, the collision rule and
  * the ink offsets stay out of `main`, shared with the window's chunk.
  */
-const PolarStars = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarStars })));
+/** R158: one loader for the chunk's four components, so the build writes one preload list and not four (`main` pays for each). */
+const polarChunk = (): Promise<typeof import('./PolarStars')> => import('./PolarStars');
+const PolarStars = lazy(() => polarChunk().then((module) => ({ default: module.PolarStars })));
 /**
  * R158 (FR-LOOK-1, FR-LOOK-7, FR-PHONE-9; D-968, D-969, D-988): the surface and the band, the Moon's disc and the
  * window's field are the same chunk's, so the window's pure modules they draw with stay out of `main`. The Moon
  * draws FR-DOME-6's marker until the chunk lands, so a chart that has no stars yet still shows where it is.
  */
-const PolarSky = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarSky })));
-const PolarMoon = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarMoon })));
-const PolarFieldOutline = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarFieldOutline })));
+const PolarSky = lazy(() => polarChunk().then((module) => ({ default: module.PolarSky })));
+const PolarMoon = lazy(() => polarChunk().then((module) => ({ default: module.PolarMoon })));
+const PolarFieldOutline = lazy(() => polarChunk().then((module) => ({ default: module.PolarFieldOutline })));
 /** The cardinal letters' size, user units (the sheet's `.cardinal`). */
 const CARDINAL_PX = 12;
 const LABEL_GAP = 10;

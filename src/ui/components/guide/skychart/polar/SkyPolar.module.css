@@ -263,7 +263,7 @@
    ring in the twilight step's tone; the band is five stroked annuli in the
    glow, each at its strip's alpha (an attribute, the strip's own); the haze's
    three bands in one tone at theirs; the figures hairlines in the figure
-   token. */
+   token, one path per figure. */
 .surface {
   stroke: none;
 }
@@ -291,7 +291,7 @@
   stroke: none;
 }
 
-.figures line {
+.figures path {
   fill: none;
   stroke: var(--chart-figure);
   stroke-width: var(--chart-hairline);

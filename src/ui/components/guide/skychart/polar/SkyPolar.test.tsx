@@ -110,6 +110,25 @@ const translateOf = (el: Element | null): { x: number; y: number } => {
   return { x: Number(m[1]), y: Number(m[2]) };
 };
 
+/** R158 (D-989): the dots as drawn — one path per tone, a circle of two arcs each, naming its stars in `data-stars`. */
+function dotsOf(container: HTMLElement): { star: number; x: number; y: number; r: number; tone: string }[] {
+  return [...container.querySelectorAll('[data-layer="stars"] path[data-dots]')].flatMap((path) => {
+    const stars = (path.getAttribute('data-stars') ?? '').split(' ').filter(Boolean).map(Number);
+    const tone = path.getAttribute('data-tone') ?? '';
+    return [...(path.getAttribute('d') ?? '').matchAll(/M(-?[\d.]+) (-?[\d.]+)a([\d.]+)/g)].map((m, k) => {
+      const r = Number(m[3]);
+      return { star: stars[k] ?? -1, x: Number(m[1]) + r, y: Number(m[2]), r, tone };
+    });
+  });
+}
+
+/** R158 (D-989): the figure segments as drawn — one path per figure, a sub-path `Mx1 y1Lx2 y2` per segment. */
+function segmentsOf(container: HTMLElement): { figure: number; x1: number; y1: number; x2: number; y2: number }[] {
+  return [...container.querySelectorAll('[data-layer="stars"] [data-figures] path[data-figure]')].flatMap((path) =>
+    [...(path.getAttribute('d') ?? '').matchAll(/M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({ figure: Number(path.getAttribute('data-figure')), x1: Number(m[1]), y1: Number(m[2]), x2: Number(m[3]), y2: Number(m[4]) })),
+  );
+}
+
 /** The (x, y) a marker's `translate(x y)` carries. */
 function markerAt(container: HTMLElement, marker: string): { x: number; y: number } {
   const el = container.querySelector(`[data-marker="${marker}"]`);
@@ -361,7 +380,8 @@ describe('<SkyPolar>', () => {
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} scene={scene} camera={camera} />);
     await settle();
-    expect(container.querySelectorAll('[data-layer="stars"] :is([data-star], [data-planet])')).toHaveLength(8);
+    expect(container.querySelectorAll('[data-layer="stars"] :is([data-star], [data-planet])')).toHaveLength(6);
+    expect(dotsOf(container).map((dot) => dot.star)).toEqual([4, 5]);
     expect(container.querySelector('[data-field-outline]')?.getAttribute('d')).toMatch(/^M.*Z$/);
     const svg = container.querySelector('svg');
     if (!svg) throw new Error('no drawing');
@@ -414,7 +434,7 @@ describe('<SkyPolar> stars', () => {
     window.localStorage.clear();
   });
 
-  /** The marks as drawn: a `*` or `@` is a `<text>`, a dot a `<circle>`; each carries `data-star` or `data-planet`. */
+  /** The `*` and `@` marks as drawn: each a `<text>` carrying `data-star` or `data-planet` (the dots are `dotsOf`'s). */
   const glyphs = (container: HTMLElement): Element[] => [...container.querySelectorAll('[data-layer="stars"] :is([data-star], [data-planet])')];
 
   it('draws each star to 4.5 on the marks — `*` to 2.5 by size, a dot below by radius, in its B−V tone — and each planet as @ at its magnitude’s size', async () => {
@@ -435,7 +455,7 @@ describe('<SkyPolar> stars', () => {
     );
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
     await settle();
-    const drawn = glyphs(container).map((el) => [el.getAttribute('data-star') ?? el.getAttribute('data-planet'), el.tagName, el.textContent || null, el.getAttribute('data-px') ?? el.getAttribute('r'), el.getAttribute('data-tone')]);
+    const drawn = glyphs(container).map((el) => [el.getAttribute('data-star') ?? el.getAttribute('data-planet'), el.tagName, el.textContent, el.getAttribute('data-px'), el.getAttribute('data-tone')]);
     // Brightest first; the V 4.6 star (a hand catalogue's: the app's stops at 4.5) is past POLAR_STAR_MAG and not drawn.
     expect(POLAR_STAR_MAG).toBe(4.5);
     expect(drawn).toEqual([
@@ -445,8 +465,11 @@ describe('<SkyPolar> stars', () => {
       ['Mars', 'text', '@', '16', 'chart-planet'],
       ['2', 'text', '*', '13', 'chart-star-orange'],
       ['Jupiter', 'text', '@', '13', 'chart-planet'],
-      ['3', 'circle', null, '2.17', 'chart-star'],
-      ['4', 'circle', null, '1.5', 'chart-star'],
+    ]);
+    // Past 2.5 a dot by its radius, in one path per tone (D-989).
+    expect(dotsOf(container).map(({ star, r, tone }) => [star, r, tone])).toEqual([
+      [3, 2.17, 'chart-star'],
+      [4, 1.5, 'chart-star'],
     ]);
     // A `*` and an `@` carry their px as the font size, in user units (D-812); the tone is the shared sheet's by `data-tone`.
     expect(container.querySelector('[data-star="0"]')).toHaveAttribute('font-size', '20');
@@ -465,9 +488,11 @@ describe('<SkyPolar> stars', () => {
     ]);
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
     await settle();
-    expect(glyphs(container)).toHaveLength(2);
+    expect(glyphs(container)).toHaveLength(1);
     expectAt(translateOf(container.querySelector('[data-star="0"]')), expected({ t: 0, azDeg: 100, elDeg: 20 } as PassPoint, orientation));
-    expectAt(translateOf(container.querySelector('[data-star="2"]')), expected({ t: 0, azDeg: 300, elDeg: 40 } as PassPoint, orientation));
+    const dots = dotsOf(container);
+    expect(dots.map((dot) => dot.star)).toEqual([2]);
+    expectAt(dots[0] ?? { x: Number.NaN, y: Number.NaN }, expected({ t: 0, azDeg: 300, elDeg: 40 } as PassPoint, orientation));
   });
 
   /** R127 (FR-SKY-11, D-796): the landmark's ring at the star's own point, dashed in the star tone, with the stars; none without a landmark or under the horizon. */
@@ -506,7 +531,7 @@ describe('<SkyPolar> stars', () => {
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
     await settle();
     const x = (): number => translateOf(container.querySelector('[data-star="0"]')).x;
-    const lineX = (): number => Number(container.querySelector('[data-figures] line')?.getAttribute('x1'));
+    const lineX = (): number => segmentsOf(container)[0]?.x1 ?? Number.NaN;
     const nameX = (): number => Number(container.querySelector('[data-star-name="0"]')?.getAttribute('x'));
     expect(x()).toBeLessThan(0);
     expect(lineX()).toBeLessThan(0);
@@ -553,22 +578,23 @@ describe('<SkyPolar> stars', () => {
     ];
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars, [], { figures })} />);
     await settle();
-    const lines = [...container.querySelectorAll('[data-layer="stars"] [data-figures] line')];
-    expect(lines.map((line) => line.getAttribute('data-figure'))).toEqual(['0', '0']);
-    const group = container.querySelector('[data-figures]');
-    expect(group?.getAttribute('clip-path')).toMatch(/^url\(#.+-horizon\)$/);
+    const lines = segmentsOf(container);
+    expect(lines.map((line) => line.figure)).toEqual([0, 0]);
+    // One path for the figure, a sub-path per segment.
+    expect(container.querySelectorAll('[data-figures] path')).toHaveLength(1);
+    expect(container.querySelector('[data-figures] path')).toHaveAttribute('data-segments', '2');
     // The gap (D-989): each end short of its star by the mark's half cell — 0.3 em of the `*` at 16 and at 13.
     const a = expected({ t: 0, azDeg: 90, elDeg: 30 } as PassPoint, 'looking-up');
     const b = expected({ t: 0, azDeg: 90, elDeg: 50 } as PassPoint, 'looking-up');
-    const first = lines[0];
-    expect(Math.hypot(Number(first?.getAttribute('x1')) - a.x, Number(first?.getAttribute('y1')) - a.y)).toBeCloseTo(0.3 * 16, 1);
-    expect(Math.hypot(Number(first?.getAttribute('x2')) - b.x, Number(first?.getAttribute('y2')) - b.y)).toBeCloseTo(0.3 * 13, 1);
-    // To a dot the gap is its radius: the segment to the V 3.5 star ends 1.95 units short of it.
-    const c = expected({ t: 0, azDeg: 90, elDeg: -10 } as PassPoint, 'looking-up');
-    const second = lines[1];
-    expect(Math.hypot(Number(second?.getAttribute('x2')) - c.x, Number(second?.getAttribute('y2')) - c.y)).toBeCloseTo(1.95, 1);
+    const first = lines[0] ?? { x1: 0, y1: 0, x2: 0, y2: 0 };
+    expect(Math.hypot(first.x1 - a.x, first.y1 - a.y)).toBeCloseTo(0.3 * 16, 1);
+    expect(Math.hypot(first.x2 - b.x, first.y2 - b.y)).toBeCloseTo(0.3 * 13, 1);
+    // The segment to the V 3.5 star under the horizon stops at the horizon's ring, with no clip path (D-989).
+    const second = lines[1] ?? { x1: 0, y1: 0, x2: 0, y2: 0 };
+    expect(Math.hypot(second.x2, second.y2)).toBeCloseTo(HORIZON_R, 1);
+    expect(container.querySelector('clipPath')).toBeNull();
     const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
-    expect(css).toContain('.figures line {\n  fill: none;\n  stroke: var(--chart-figure);\n  stroke-width: var(--chart-hairline);\n}');
+    expect(css).toContain('.figures path {\n  fill: none;\n  stroke: var(--chart-figure);\n  stroke-width: var(--chart-hairline);\n}');
     rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars, [], { figures, layers: { figures: false } })} />);
     expect(container.querySelector('[data-figures]')).toBeNull();
   });
@@ -595,7 +621,7 @@ describe('<SkyPolar> stars', () => {
     expect(Math.hypot(Number(rigel?.getAttribute('x')) - at.x, Number(rigel?.getAttribute('y')) - at.y)).toBeLessThan(40);
     rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars, [], { figures, layers: { names: false } })} />);
     expect(container.querySelector('[data-names]')).toBeNull();
-    expect(container.querySelectorAll('[data-figures] line').length).toBeGreaterThan(0);
+    expect(segmentsOf(container).length).toBeGreaterThan(0);
   });
 
   it('draws the surface and the band under the glow and the grid, the stars under the grid and the arcs, and nothing without a scene or with the layers off', async () => {
@@ -651,11 +677,14 @@ describe('<SkyPolar> stars', () => {
     const scene = realScene(pass.peak.t);
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
     await settle();
-    const haze = container.querySelector('[data-milky-way]');
-    expect(haze?.getAttribute('clip-path')).toMatch(/^url\(#.+-horizon\)$/);
     const bands = [...container.querySelectorAll('[data-milky-way] path')];
     expect(bands).toHaveLength(3);
-    for (const band of bands) expect(band.getAttribute('d')).toMatch(/^M.*Z$/);
+    // Each band closed and inside the horizon's ring — a point under the horizon is put on it, so no clip path (D-989).
+    for (const band of bands) {
+      const d = band.getAttribute('d') ?? '';
+      expect(d).toMatch(/^M.*Z$/);
+      for (const m of d.replace(/A[^A-Z]*/g, '').matchAll(/(-?[\d.]+) (-?[\d.]+)/g)) expect(Math.hypot(Number(m[1]), Number(m[2]))).toBeLessThanOrEqual(HORIZON_R + 0.1);
+    }
     expect(bands.map((band) => Number(band.getAttribute('fill-opacity')))).toEqual([0.018, 0.024, 0.03]);
     const field = scene.stars as StarField;
     const bright = glyphs(container).filter((el) => {
@@ -678,17 +707,17 @@ describe('<SkyPolar> stars', () => {
     const field = scene.stars;
     if (!field) throw new Error('no field');
     const drawn = glyphs(container);
-    const stars = drawn.filter((el) => el.hasAttribute('data-star'));
-    const lines = container.querySelectorAll('[data-figures] line');
-    const figuresDrawn = new Set([...lines].map((line) => line.getAttribute('data-figure')));
+    const chars = drawn.filter((el) => el.hasAttribute('data-star')).map((el) => ({ star: Number(el.getAttribute('data-star')), ...translateOf(el) }));
+    const stars = [...chars, ...dotsOf(container)];
+    const lines = segmentsOf(container);
+    const figuresDrawn = new Set(lines.map((line) => line.figure));
     // R158's Done note reads these: the fixture night (Neuquén at the golden pass's peak).
-    console.info(`R158 fixture night: ${String(stars.length)} stars, ${String(drawn.length - stars.length)} planets, ${String(lines.length)} figure lines in ${String(figuresDrawn.size)} figures, ${String(container.querySelectorAll('[data-names] text').length)} names`);
+    console.info(`R158 fixture night: ${String(stars.length)} stars (${String(chars.length)} as *), ${String(drawn.length - chars.length)} planets, ${String(lines.length)} figure lines in ${String(figuresDrawn.size)} figures, ${String(container.querySelectorAll('[data-names] text').length)} names`);
     expect(stars.length).toBeGreaterThan(150);
     expect(figuresDrawn.size).toBeGreaterThan(20);
     expect(container.querySelectorAll('[data-figure-name]').length).toBeGreaterThan(0);
-    const points = drawn.map((el) => translateOf(el));
-    for (const el of stars) {
-      const i = Number(el.getAttribute('data-star'));
+    const points = [...stars, ...drawn.filter((el) => el.hasAttribute('data-planet')).map((el) => translateOf(el))];
+    for (const { star: i } of stars) {
       expect(field.catalog.mag[i]).toBeLessThanOrEqual(POLAR_STAR_MAG);
       expect(field.positions.altDeg[i]).toBeGreaterThanOrEqual(0);
     }
