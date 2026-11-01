@@ -1,3 +1,4 @@
+import { STAR_MAG_LIMIT } from '../../../../data/stars/constants';
 import { cutCatalog, prefix } from './catalogCut';
 import type { SkyScene, StarField } from './window/scene';
 
@@ -6,11 +7,22 @@ import type { SkyScene, StarField } from './window/scene';
  * each view takes from the one scene a page builds (`useSkyScene`). A view
  * filters the scene through `sceneFor` and has no condition of its own: the
  * window draws every layer; the polar chart the passes, the bodies, the
- * planets and the stars to `POLAR_STAR_MAG`, no figures and no names (OQ-43);
+ * planets and the stars to `POLAR_STAR_MAG`, no figures and no names (OQ-43;
+ * R158 below gives it the figures and the names);
  * the dome the passes, the bodies, the planets as dots and the stars to
  * `DOME_STAR_MAG`, no figures and no names. The landmark's ring (FR-SKY-11) is
  * every view's; its name rides with the `names` layer, which only the window
  * draws (the dome's font holds no letters, the polar disc no room).
+ *
+ * R158 (FR-PHONE-8, FR-PHONE-9, FR-SKY-1 and FR-SKY-4 as amended; PLAN D-968,
+ * D-969): the polar chart's row is the star layer whole — the stars to
+ * `STAR_MAG_LIMIT`, the figures, the names where `names` is on (the page
+ * decides its default, R160) — with the window's look at the chart's unit (the
+ * surface and the band, the haze, the bloom, the Moon's disc) and the window's
+ * field outline where the page has a camera. The window gains the look's rows
+ * and not the outline (it is the field). The dome's row does not move
+ * (FR-PHONE-11). The landmark's name stays the window's: the polar chart names
+ * stars through `names` like any other, and its ring is the mark (FR-SKY-11).
  *
  * Pure: no React, no DOM, no clock. The passes and the bodies are rows of the
  * table but stay on their own props (`passes`, `sun`, `moon`): the table says
@@ -19,16 +31,21 @@ import type { SkyScene, StarField } from './window/scene';
 
 export type SkyView = 'dome' | 'polar' | 'window';
 
-export type Layer = 'passes' | 'bodies' | 'stars' | 'figures' | 'planets' | 'names' | 'landmark';
+/**
+ * The table's rows. R158: `surface` is the sky surface with its horizon band and twilight tint (FR-LOOK-1, FR-LOOK-2),
+ * `haze` the Milky Way (FR-LOOK-3), `bloom` the glow under the brightest (FR-LOOK-6), `moonDisc` the Moon with its
+ * phase (FR-LOOK-7; a view without it draws FR-DOME-6's marker), `fieldOutline` the window's field (FR-PHONE-9).
+ */
+export type Layer = 'passes' | 'bodies' | 'stars' | 'figures' | 'planets' | 'names' | 'landmark' | 'surface' | 'haze' | 'bloom' | 'moonDisc' | 'fieldOutline';
 
-/** The faintest star the polar chart draws (FR-SKY-1, FR-SKY-4). */
-export const POLAR_STAR_MAG = 3.5;
+/** The faintest star the polar chart draws (FR-SKY-4 as amended, FR-PHONE-8): the catalogue's own limit since v2.10, 3.5 before. */
+export const POLAR_STAR_MAG = STAR_MAG_LIMIT;
 /** The faintest star the dome draws (FR-SKY-1, FR-SKY-5). */
 export const DOME_STAR_MAG = 1.5;
 
 export const LAYERS: Record<SkyView, readonly Layer[]> = {
-  window: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark'],
-  polar: ['passes', 'bodies', 'stars', 'planets', 'landmark'],
+  window: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc'],
+  polar: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'],
   dome: ['passes', 'bodies', 'stars', 'planets', 'landmark'],
 };
 

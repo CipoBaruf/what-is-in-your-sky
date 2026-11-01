@@ -7,7 +7,7 @@ import type { SkyLandmark, SkyScene, StarField } from './window/scene';
  * names every layer one way or the other, the caps are the spec's, and
  * `sceneFor` applies the table to a scene without a view deciding anything.
  */
-const EVERY_LAYER: readonly Layer[] = ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark'];
+const EVERY_LAYER: readonly Layer[] = ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'];
 const VIEWS: readonly SkyView[] = ['dome', 'polar', 'window'];
 
 /** Four stars in magnitude order (D-748) and one planet; star 3 is below the horizon. */
@@ -37,17 +37,21 @@ describe('the layer table (FR-SKY-1, D-788)', () => {
     expect(Object.keys(LAYERS).sort()).toEqual([...VIEWS].sort());
   });
 
-  it('gives the window every layer, the polar chart and the dome the passes, the bodies, the stars, the planets and the landmark, and neither the figures nor the names', () => {
-    expect([...LAYERS.window].sort()).toEqual([...EVERY_LAYER].sort());
-    for (const view of ['polar', 'dome'] as const) {
-      expect([...LAYERS[view]].sort()).toEqual(['bodies', 'landmark', 'passes', 'planets', 'stars']);
-      expect(drawsLayer(view, 'figures')).toBe(false);
-      expect(drawsLayer(view, 'names')).toBe(false);
-    }
+  /** R158 (FR-PHONE-8, FR-PHONE-9, FR-SKY-1 as amended v2.10; D-968, D-969). */
+  it('gives the polar chart every layer — the star layer whole, the look, and the field outline — and the window every layer but the outline, which is its own field', () => {
+    expect([...LAYERS.polar].sort()).toEqual([...EVERY_LAYER].sort());
+    expect([...LAYERS.window].sort()).toEqual(EVERY_LAYER.filter((layer) => layer !== 'fieldOutline').sort());
+    for (const layer of ['figures', 'names', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'] as const) expect(drawsLayer('polar', layer)).toBe(true);
+    expect(drawsLayer('window', 'fieldOutline')).toBe(false);
   });
 
-  it('caps the polar chart at 3.5 and the dome at 1.5', () => {
-    expect(POLAR_STAR_MAG).toBe(3.5);
+  it('leaves the dome’s row as it was: the passes, the bodies, the stars, the planets and the landmark (FR-PHONE-11)', () => {
+    expect([...LAYERS.dome].sort()).toEqual(['bodies', 'landmark', 'passes', 'planets', 'stars']);
+    for (const layer of ['figures', 'names', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'] as const) expect(drawsLayer('dome', layer)).toBe(false);
+  });
+
+  it('caps the polar chart at the catalogue’s 4.5 and the dome at 1.5', () => {
+    expect(POLAR_STAR_MAG).toBe(4.5);
     expect(DOME_STAR_MAG).toBe(1.5);
   });
 });
@@ -97,18 +101,25 @@ describe('sceneFor (FR-SKY-1)', () => {
     const b = sceneFor('polar', next)?.stars;
     expect(b?.catalog.mag).toBe(a?.catalog.mag);
     expect(b?.catalog.name).toBe(a?.catalog.name);
-    expect(b?.positions.altDeg).toEqual([41, 31, 21]);
+    expect(b?.positions.altDeg).toEqual([41, 31, 21, -4]);
+    const c = sceneFor('dome', next)?.stars;
+    expect(sceneFor('dome', scene)?.stars?.catalog.mag).toBe(c?.catalog.mag);
   });
 
-  it('cuts the polar chart to the stars at 3.5 or brighter with the planets, no figures and no names', () => {
+  it('cuts the polar chart to the stars at 4.5 or brighter and keeps the planets, the figures and the names (R158)', () => {
     const polar = sceneFor('polar', scene)?.stars;
-    expect(polar?.catalog.mag).toEqual([-1.4, 1.5, 3.5]);
-    expect(polar?.catalog.name).toEqual(['Sirius', 'Adhara', 'C']);
-    expect(polar?.positions.altDeg).toEqual([40, 30, 20]);
-    expect(polar?.positions.azDeg).toEqual([90, 100, 110]);
+    expect(polar?.catalog.mag).toEqual([-1.4, 1.5, 3.5, 4.4]);
+    expect(polar?.catalog.name).toEqual(['Sirius', 'Adhara', 'C', 'D']);
+    expect(polar?.positions.altDeg).toEqual([40, 30, 20, -5]);
+    expect(polar?.positions.azDeg).toEqual([90, 100, 110, 120]);
     expect(polar?.positions.planets).toBe(field.positions.planets);
-    expect(polar?.catalog.figures).toEqual([]);
-    expect(polar?.layers).toEqual({ stars: true, figures: false, planets: true, names: false });
+    expect(polar?.catalog.figures).toBe(field.catalog.figures);
+    expect(polar?.layers).toEqual({ stars: true, figures: true, planets: true, names: true });
+    // A star past 4.5 (a hand-written catalogue's; the app's own stops there) is cut, and a switch the page turned off stays off.
+    const deep: SkyScene = { stars: { ...field, catalog: { ...field.catalog, mag: [-1.4, 1.5, 3.5, 4.6] }, layers: { ...field.layers, names: false } } };
+    const cut = sceneFor('polar', deep)?.stars;
+    expect(cut?.catalog.mag).toEqual([-1.4, 1.5, 3.5]);
+    expect(cut?.layers.names).toBe(false);
   });
 
   it('cuts the dome to the stars at 1.5 or brighter, and keeps a switch the page turned off', () => {
@@ -151,6 +162,7 @@ describe('starsFor (FR-SKY-1): the polar chart and the dome place by one rule', 
       { key: 'star-0', azDeg: 90, altDeg: 40, mag: -1.4, star: 0 },
       { key: 'star-1', azDeg: 100, altDeg: 30, mag: 1.5, star: 1 },
       { key: 'star-2', azDeg: 110, altDeg: 20, mag: 3.5, star: 2 },
+      // Star 3 (V 4.4) is within the cap and under the horizon.
       { key: 'planet-Venus', azDeg: 270, altDeg: 10, mag: -4, planet: 'Venus' },
     ]);
   });
