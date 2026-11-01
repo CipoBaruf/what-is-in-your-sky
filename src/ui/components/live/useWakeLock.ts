@@ -10,6 +10,10 @@ import { useEffect, useState } from 'react';
  * the browser refuses (a battery saver, an insecure context, a headless
  * browser) is `refused` and asked again on the next visibility change.
  *
+ * R157 (FR-PHONE-6, D-967): the stars page and the pass detail hold it too,
+ * as `useWakeLock(following)`: requested while following, released when it
+ * ends; the live page keeps its own rule.
+ *
  * The state is for tests and the page's `data-wake-lock`: the lock itself is
  * silent, with no indicator either way — a control that could only be read
  * as "the screen might sleep" is noise on a page held up at the sky.

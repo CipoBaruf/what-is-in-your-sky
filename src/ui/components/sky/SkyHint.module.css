@@ -5,3 +5,14 @@
   line-height: var(--small-row);
   color: var(--fg-dim);
 }
+
+/* R157 (FR-PHONE-5, D-981): on the compact live page's overlay the line breaks only between its clauses, each clause
+   whole, and once it has broken (`data-wrapped`, measured by `SkyHint`) its surface is the wider clause's, not the
+   row's. */
+.clause {
+  white-space: nowrap;
+}
+
+.hint[data-fit][data-wrapped] {
+  inline-size: min-content;
+}

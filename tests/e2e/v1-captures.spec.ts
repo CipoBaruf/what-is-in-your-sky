@@ -157,7 +157,9 @@ async function settled(page: Page): Promise<void> {
 // R152 (FR-GYRO-6, D-958): the sky screen's shots, which filled this set, are retired; the stars page's touch widths stay below.
 // R153 (FR-GYRO-9): the compact live sheet is a phone's, so it is shot on one — its `[ follow the phone ]` row is drawn only
 // where the presence test passes (D-957) — and so is the live page following.
-const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'live-following', 'stars-following']);
+// R157 (D-966, D-980): the compact live screens are marked `touch` in `captureSet.ts`; this set is what is touch at every
+// width — the sheet's files at 844 too — and `stars-following`, which is not a live screen.
+const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following']);
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
@@ -166,7 +168,10 @@ const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'live-following'
  * R135 (FR-FLOW-15): the page at 844 × 390 is the same phone turned, so it has touch too.
  */
 const isTouch = (screen: string, width: CaptureWidth): boolean =>
-  TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844)) || (screen === 'legend' && VIEWPORTS[width].width <= 390);
+  TOUCH.has(screen) ||
+  // R157 (FR-PHONE-5, D-966): a screen marked `touch` is a touch phone at its compact widths.
+  (SCREENS.find((candidate) => candidate.name === screen)?.touch === true && VIEWPORTS[width].width <= 390) ||
+  ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844));
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;

@@ -557,12 +557,21 @@ const BRACKET_CELLS = 4;
 const GAP_CELLS = 1;
 
 /**
- * R147 (FR-FULL-3, D-924): whether the sky hint, one line at `--small`, stands on the `[ controls ]` button's row at
- * the box's bottom (true) or in the row above it (false). They share the row when the hint, a cell of gap and the
- * bracketed button fit `ROW_BUDGET_CELLS`, counted as `controlRows.test.ts` counts a row: a character is a cell at the
- * body size and `14 / 16` of one at `--small`. `buttonLabel` is the words between the brackets.
+ * R157 (FR-PHONE-5, D-966): the hint's clauses on a touch pointer — the drag clause and then either the follow clause
+ * (a highlighted pass on the live page) or the zoom clause, never three. Two is what a phone's overlay row can carry
+ * beside the box's margins: the star clause FR-FLOW-6 had third is dropped on touch. `skyHintLine` cuts to it.
  */
-export function hintFitsBeside(text: string, buttonLabel: string): boolean {
-  const cells = text.length * SMALL_CELL + GAP_CELLS + BRACKET_CELLS + buttonLabel.length;
-  return cells <= ROW_BUDGET_CELLS;
+export const HINT_TOUCH_CLAUSES = 2;
+
+/**
+ * R147 (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): whether the sky hint, one line at `--small`, stands on the
+ * overlay's bottom row beside its controls (true) or in the row above it (false). They share the row when the hint,
+ * then a cell of gap and the bracketed label for each control, fit `ROW_BUDGET_CELLS`, counted as
+ * `controlRows.test.ts` counts a row: a character is a cell at the body size and `14 / 16` of one at `--small`.
+ * `labels` are the row's controls' words between their brackets — `[ follow ]` and `[ controls ]` where the phone has
+ * the sensor, `[ controls ]` alone where it has not.
+ */
+export function hintFitsBeside(text: string, labels: readonly string[]): boolean {
+  const controls = labels.reduce((sum, label) => sum + GAP_CELLS + BRACKET_CELLS + label.length, 0);
+  return text.length * SMALL_CELL + controls <= ROW_BUDGET_CELLS;
 }

@@ -95,6 +95,15 @@ for (const locale of LOCALES) {
           expect(await misses(root.getByTestId('follow'))).toEqual([]);
         });
       }
+
+      /** R157 (FR-PHONE-3, D-964): the live page's bottom row, `[ follow ]` before `[ controls ]`, each a 44 × 44 target over the sky. */
+      test('[ follow ] and [ controls ] on the live page’s bottom row are 44 × 44 targets', async ({ page }) => {
+        const root = await openFlowPage(page, 'live', locale, 'window');
+        const row = root.getByTestId('live-bottom-row');
+        await expect(row.getByTestId('live-follow-control')).toBeVisible();
+        await expect(row.getByTestId('live-controls')).toBeVisible();
+        expect(await misses(row)).toEqual([]);
+      });
     });
   });
 }

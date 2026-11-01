@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * R132 (FR-FLOW-6, D-848): the hand hint in the reader's terms — worded by the
- * pointer, the follow clause on a coarse pointer with a key, the drag clause
+ * pointer, the follow clause on a coarse pointer with a key (R157: in the zoom clause's place, two clauses on touch), the drag clause
  * alone on the dome and nothing on the polar chart (no drag, D-864), both languages, and gone for good
  * once a first gesture on any view sets `skyHintSeen` through
  * `useChartHand`'s slot.
@@ -13,7 +13,10 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { appStore } from '../../../state';
 import { useChartHand } from '../guide/skychart/useChartHand';
-import { SkyHint, useSkyHintShown, type SkyHintProps } from './SkyHint';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
+import { HINT_TOUCH_CLAUSES } from '../../../lib/layout';
+import { SkyHint, skyHintLine, useSkyHintShown, type SkyHintProps } from './SkyHint';
 
 let media: MatchMediaStub | null = null;
 const initial = appStore.getInitialState();
@@ -41,15 +44,16 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
     cleanup();
     media.setCoarsePointer(true);
     hint({ view: 'window' });
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag to look · pinch to zoom · tap a star');
+    // R157 (FR-PHONE-5): two clauses on touch, the star clause dropped.
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag to look · pinch to zoom$/);
     expect(screen.getByTestId('sky-hint')).toHaveAttribute('data-pointer', 'coarse');
   });
 
-  it('ends the coarse line with the follow clause where the live page names a key, and leaves the fine line alone (FR-SKY-13)', () => {
+  it('gives the follow clause the zoom clause’s place where the live page names a key, never three, and leaves the fine line alone (FR-SKY-13, FR-PHONE-5)', () => {
     media = stubMatchMedia(390);
     media.setCoarsePointer(true);
     hint({ view: 'window', followKey: 'A' });
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag to look · pinch to zoom · tap a star · tap A to follow');
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag to look · tap A to follow$/);
     cleanup();
     media.setCoarsePointer(false);
     hint({ view: 'window', followKey: 'A' });
@@ -75,11 +79,30 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
     media = stubMatchMedia(390);
     media.setCoarsePointer(true);
     hint({ view: 'window', followKey: 'B' }, 'es');
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Arrastrá para mirar · pellizcá para acercar · tocá una estrella · tocá B para seguir');
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá para mirar · tocá B para seguir$/);
+    cleanup();
+    hint({ view: 'window' }, 'es');
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá para mirar · pellizcá para acercar$/);
     cleanup();
     media.setCoarsePointer(false);
     hint({ view: 'dome' }, 'es');
     expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá o usá las flechas$/);
+  });
+
+  it('skyHintLine: at most HINT_TOUCH_CLAUSES clauses on touch, in both languages, for every view and follow (FR-PHONE-5, D-966)', () => {
+    for (const words of [en.window.skyHint, es.window.skyHint]) {
+      for (const view of ['window', 'dome'] as const) {
+        for (const follow of [null, 'A']) {
+          const line = skyHintLine(words, view, 'coarse', { follow });
+          expect(line.split(' · ').length, line).toBeLessThanOrEqual(HINT_TOUCH_CLAUSES);
+          expect(line.startsWith(words.drag.coarse)).toBe(true);
+          expect(line).not.toContain(words.star.coarse);
+        }
+      }
+      expect(skyHintLine(words, 'window', 'coarse', { follow: null })).toBe(`${words.drag.coarse} · ${words.zoom.coarse}`);
+      expect(skyHintLine(words, 'dome', 'coarse', { follow: null })).toBe(words.drag.coarse);
+      expect(skyHintLine(words, 'window', 'fine', { follow: 'A' })).toBe([words.drag.fine, words.zoom.fine, words.star.fine].join(' · '));
+    }
   });
 
   it('is gone for good after the first gesture on any view, which the slot reports and the prefs keep (D-848)', () => {

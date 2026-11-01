@@ -32,6 +32,7 @@ import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { orientationApiPresent } from '../components/live/compassHeading';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
+import { useWakeLock } from '../components/live/useWakeLock';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
@@ -312,6 +313,8 @@ function StarsSky({ observer }: { observer: Observer }) {
   const endFollow = useCallback(() => {
     setFollowing(false);
   }, []);
+  // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
+  useWakeLock(following);
   const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
 
   const toggle = (key: keyof StarField['layers']) => () => {

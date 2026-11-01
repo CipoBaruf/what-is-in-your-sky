@@ -28,6 +28,7 @@ import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { orientationApiPresent } from '../components/live/compassHeading';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
+import { useWakeLock } from '../components/live/useWakeLock';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
@@ -160,6 +161,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const endFollow = useCallback(() => {
     setFollowing(false);
   }, []);
+  // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
+  useWakeLock(following);
   const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
   const action = sensor ? <FollowToggle on={following} onChange={setFollowing} className={styles.follow} /> : null;
   // Focus in on open, back to the opener on close. Once, on open: crossing

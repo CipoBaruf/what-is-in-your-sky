@@ -26,6 +26,22 @@ const clearHash = (): void => {
   window.history.replaceState(null, '', window.location.pathname);
 };
 
+/** R157 (FR-PHONE-6): a Screen Wake Lock whose requests and releases the test can count. */
+function stubWakeLock(): { request: ReturnType<typeof vi.fn>; released: () => number } {
+  let released = 0;
+  const request = vi.fn(() =>
+    Promise.resolve({
+      release: () => {
+        released += 1;
+        return Promise.resolve();
+      },
+      addEventListener: () => undefined,
+    }),
+  );
+  Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
+  return { request, released: () => released };
+}
+
 describe('<PassDetail> (US-6, FR-X-5)', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
@@ -193,6 +209,24 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(figure).not.toHaveAttribute('data-follow');
       expect(appStore.getState().chartView).toBe('dome');
       expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
+    });
+
+    it('holds the screen awake while following and lets it go when following ends (FR-PHONE-6, D-967)', async () => {
+      const lock = stubWakeLock();
+      withPhone(() => Promise.resolve('granted'));
+      appStore.getState().setChartView('dome');
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      await flush();
+      expect(lock.request).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('follow-toggle'));
+      await flush();
+      expect(lock.request).toHaveBeenCalledTimes(1);
+      expect(lock.request).toHaveBeenCalledWith('screen');
+      fireEvent.click(screen.getByTestId('follow-toggle'));
+      await flush();
+      expect(lock.released()).toBe(1);
+      expect(lock.request).toHaveBeenCalledTimes(1);
+      Reflect.deleteProperty(navigator, 'wakeLock');
     });
   });
 
