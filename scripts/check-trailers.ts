@@ -31,7 +31,7 @@ import { resolve } from 'node:path';
  * rather than rewrite `main` (D-372): that commit joins the history FR-PUB-7
  * reports, and every commit after it is checked as before.
  */
-export const BASELINE = '3492466';
+export const BASELINE = '668be0d';
 
 /**
  * The trailers that may not appear. All three are the shapes an agent adds to
