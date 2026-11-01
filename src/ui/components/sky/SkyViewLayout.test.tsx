@@ -406,6 +406,42 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     expect(clicks).toHaveBeenCalledTimes(3);
   });
 
+  /**
+   * R159 (FR-PHONE-2, D-963, D-986): while the page passes `onFirstTouch`, the first touch on the drawing calls it once,
+   * on the lift, before the sky's own handler and without stopping it; nothing outside the drawing counts; the
+   * listener goes with its use and with the prop, and stands in the drawing slot of whichever form is drawn.
+   */
+  it('calls onFirstTouch once, inside the first touch’s lift on the drawing, letting the touch through, in the full form and the column', () => {
+    for (const form of ['full', undefined] as const) {
+      media = stubMatchMedia(COMPACT_PX);
+      const first = vi.fn();
+      const order: string[] = [];
+      const { rerender, unmount } = render(
+        <SkyViewLayout data-testid="layout" {...(form ? { form } : {})} onFirstTouch={() => (first(), order.push('first'))} drawing={<div data-testid="box">box</div>} overlay={<button type="button" data-testid="over" />} />,
+      );
+      const box = screen.getByTestId('box');
+      box.addEventListener('pointerup', () => order.push('sky'));
+      if (form) {
+        fireEvent.pointerUp(screen.getByTestId('over'), { pointerId: 1 });
+        expect(first).not.toHaveBeenCalled();
+      }
+      fireEvent.pointerDown(box, { pointerId: 2 });
+      expect(first).not.toHaveBeenCalled();
+      fireEvent.pointerUp(box, { pointerId: 2 });
+      expect(first).toHaveBeenCalledTimes(1);
+      expect(order).toEqual(['first', 'sky']);
+      fireEvent.pointerUp(box, { pointerId: 3 });
+      expect(first).toHaveBeenCalledTimes(1);
+      // Without the prop there is no listener at all.
+      rerender(<SkyViewLayout data-testid="layout" {...(form ? { form } : {})} drawing={<div data-testid="box">box</div>} overlay={<button type="button" data-testid="over" />} />);
+      fireEvent.pointerUp(screen.getByTestId('box'), { pointerId: 4 });
+      expect(first).toHaveBeenCalledTimes(1);
+      unmount();
+      media.restore();
+      media = null;
+    }
+  });
+
   /** R144 (FR-TONIGHT-9): a filling column writes the room its rows leave the drawing; a column that grows with its rows writes nothing. */
   it('measures --sky-drawing-room on a fill column from its height less the other slots, and not elsewhere', () => {
     media = stubMatchMedia(COMPACT_PX);

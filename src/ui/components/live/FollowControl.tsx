@@ -1,13 +1,12 @@
 import { useT } from '../../../i18n/useT';
-import { requestOrientationAccess } from '../guide/skychart/window/orientationAccess';
+import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
-import { orientationApiPresent } from './compassHeading';
+import type { Follow } from '../sky/useFollow';
+import styles from './FollowControl.module.css';
 
 export interface FollowControlProps {
-  /** Whether the page's window follows the phone now — the same state the sheet's `FollowToggle` shows. */
-  on: boolean;
-  /** The page's state setter, the one `FollowToggle` calls: `true` after a grant, `false` when turned off. */
-  onChange: (on: boolean) => void;
+  /** The page's `useFollow()` — the same state and presses the sheet's `FollowToggle` has. */
+  follow: Follow;
 }
 
 /**
@@ -15,25 +14,25 @@ export interface FollowControlProps {
  * `[ controls ]` on its bottom row — a `TextButton` with `pressed`: bracketed in the accent while following, bare and
  * dim while not, with `aria-pressed`, at least 44 × 44 px (`.target`).
  *
- * Drawn only where FR-WIN-4's presence test passes (`orientationApiPresent`), as the sheet's `[ ] follow the phone`
- * is; elsewhere it renders nothing. It drives the page's own follow state, the one the sheet's toggle drives, so the
- * two never disagree: turning it on asks for the sensor inside the click (`requestOrientationAccess`, D-175, D-240)
- * and calls `onChange(true)` on a grant; a refusal leaves it off, and the sheet's toggle carries the line that says
- * how to allow it (FR-GYRO-3) — nothing is drawn over the sky for it (FR-GYRO-5). Turning it off asks nothing.
- * R159 moves the state into `useFollow`; this control's props are what it hands on.
+ * Drawn only where FR-WIN-4's presence test passes (`follow.sensor`), as the sheet's `[ ] follow the phone` is;
+ * elsewhere it renders nothing. R159 (D-962, D-987): it reads the page's `useFollow()` and presses its `turnOn` /
+ * `turnOff`, the toggle's own two, so the two never disagree and share one press logic. A refusal (FR-GYRO-3) — from
+ * this control, the toggle or the first touch on the sky — draws the hook's one `role="status"` line here as the
+ * toggle draws it under itself: the row stands on the box's bottom edge, so the line stands on the row above it, at
+ * the box's right margin, and goes on the next press of either control. While it stands the page draws no hint, whose
+ * row it takes.
  */
-export function FollowControl({ on, onChange }: FollowControlProps) {
+export function FollowControl({ follow }: FollowControlProps) {
   const t = useT();
-  if (!orientationApiPresent()) return null;
-  const press = (): void => {
-    if (on) {
-      onChange(false);
-      return;
-    }
-    // Inside the click, before any await: the request is the gesture's (D-175).
-    void requestOrientationAccess().then((answer) => {
-      if (answer === 'granted') onChange(true);
-    });
-  };
-  return <TextButton label={t.sheet.follow} pressed={on} onClick={press} className="target" data-testid="live-follow-control" />;
+  if (!follow.sensor) return null;
+  return (
+    <>
+      <TextButton label={t.sheet.follow} pressed={follow.on} onClick={follow.on ? follow.turnOff : follow.turnOn} className="target" data-testid="live-follow-control" />
+      {follow.refused && (
+        <Line role="status" size="small" className={styles.refused} data-testid="live-follow-refused">
+          {t.window.followRefused}
+        </Line>
+      )}
+    </>
+  );
 }

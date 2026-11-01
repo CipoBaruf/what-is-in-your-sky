@@ -131,7 +131,7 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
     try {
       for (const on of [true, false]) {
-        inLocale(locale, createElement(ControlsSheet, { open: false, onOpenChange: () => undefined, place: null, beside: createElement(FollowControl, { on, onChange: () => undefined }) }));
+        inLocale(locale, createElement(ControlsSheet, { open: false, onOpenChange: () => undefined, place: null, beside: createElement(FollowControl, { follow: { sensor: true, on, armed: false, refused: false, turnOn: () => undefined, turnOff: () => undefined, onFollowEnd: () => undefined } }) }));
         const row = screen.getByTestId('live-bottom-row');
         const follow = on ? `[ ${t.sheet.follow} ]` : t.sheet.follow;
         expect(rowParts(row, table)).toEqual([on ? `####${t.sheet.follow}` : t.sheet.follow, `####${t.sheet.controls}`]);

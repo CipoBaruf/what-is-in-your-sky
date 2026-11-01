@@ -379,6 +379,64 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     vi.unstubAllGlobals();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     resetOrientationAccess();
+    window.localStorage.clear();
+  });
+  const windowRoot = (container: HTMLElement): Element => container.querySelector('[data-look-az][data-fov]') as Element;
+  const touch = (element: Element, pointerId = 1): void => {
+    fireEvent.pointerDown(element, { pointerId, pointerType: 'touch' });
+    fireEvent.pointerUp(element, { pointerId, pointerType: 'touch' });
+  };
+
+  /** R159 (FR-PHONE-1; US-45 AC1; D-962): where nothing has to be asked the page opens following; a drag hands the sky to the finger. */
+  it('opens following where nothing is asked, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', () => {
+    withPhone();
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    const { container } = page();
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+    expect(windowRoot(container)).toHaveAttribute('data-follow', 'true');
+    expect(screen.queryByTestId('window-readout')).toBeNull();
+    const box = container.querySelector('[data-follow="true"] [tabindex="0"]') as HTMLElement;
+    box.setPointerCapture = vi.fn();
+    box.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.pointerUp(box, { pointerId: 1, clientX: 140, clientY: 100 });
+    expect(windowRoot(container)).not.toHaveAttribute('data-follow');
+    expect(windowRoot(container)).toHaveAttribute('data-state', 'hand');
+  });
+
+  /** R159 (FR-PHONE-2; US-45 AC2; D-963, D-986): a saved grant arms the page; the first touch on the sky asks, once. */
+  it('with a saved grant asks nothing at load and once inside the first touch, then follows; a refusal clears the grant and shows the line', async () => {
+    const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+    withPhone(requestPermission);
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    appStore.getState().setFollowGranted(true);
+    const { container, unmount } = page();
+    expect(requestPermission).not.toHaveBeenCalled();
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    touch(screen.getByTestId('stars-sky'));
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+    await flush();
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+    expect(windowRoot(container)).toHaveAttribute('data-follow', 'true');
+    touch(screen.getByTestId('stars-sky'), 2);
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+    unmount();
+
+    // Next visit, the grant withdrawn in the browser's settings: refused, the grant cleared, the finger keeps the sky.
+    resetOrientationAccess();
+    requestPermission.mockResolvedValue('denied');
+    page();
+    touch(screen.getByTestId('stars-sky'));
+    await flush();
+    expect(requestPermission).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('follow-refused')).toHaveAttribute('role', 'status');
+    expect(appStore.getState().followGranted).toBe(false);
+    expect(window.localStorage.getItem('wiys:prefs:v1') ?? '').not.toContain('followGranted');
   });
 
   it('stands in the action slot after the hint on a phone, in both languages, and is absent without the sensor; no hold-up, no sky screen', () => {
@@ -390,7 +448,8 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     expect(screen.queryByTestId('stars-hold-up')).toBeNull();
     unmount();
 
-    withPhone();
+    // An iPhone's first visit: off until asked (FR-PHONE-2).
+    withPhone(() => Promise.resolve('granted'));
     const { unmount: unmountEn } = page();
     const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
     expect(slots.slice(slots.indexOf('hint'), slots.indexOf('hint') + 3)).toEqual(['hint', 'action', 'layers']);

@@ -140,6 +140,12 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
    * not a frame later from the resize observer (the page would scroll for that frame, or keep the open list's room).
    */
   roomKey?: string | undefined;
+  /**
+   * R159 (FR-PHONE-2, D-963, D-986): while given, the reader's first touch on the sky calls it inside the gesture —
+   * the page's `useFollow().turnOn` while a saved grant has it armed. One capture-phase listener on the drawing slot,
+   * removed after its one use; the touch itself goes on to the sky as it would.
+   */
+  onFirstTouch?: (() => void) | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -159,7 +165,7 @@ const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
 const PICK = PICK_SELECTOR;
 
-export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -232,6 +238,32 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
       root.style.removeProperty('--sky-drawing-h');
     };
   }, [shape]);
+
+  /*
+   * R159 (FR-PHONE-2, D-963, D-986): the first touch asks. While the page passes `onFirstTouch` (a saved grant, nothing
+   * asked yet this visit), one capture-phase listener on the drawing slot calls it inside the gesture and removes
+   * itself, so the request is made exactly once whatever the touch becomes — a tap, a drag, a pinch — and the touch
+   * goes on to the sky untouched. It listens for the press's `pointerup`, not its `pointerdown`: WebKit grants the
+   * motion request only inside an activating gesture, and for a touch that is the lift (`touchend`), not the press.
+   * The slot is the one the shape draws, so a turn of the phone that swaps the form re-installs it there.
+   */
+  const firstTouch = useRef(onFirstTouch);
+  useLayoutEffect(() => {
+    firstTouch.current = onFirstTouch;
+  });
+  const armed = onFirstTouch !== undefined;
+  useEffect(() => {
+    const drawing = rootRef.current?.querySelector<HTMLElement>('[data-slot="drawing"]');
+    if (!armed || !drawing) return;
+    const onLift = (): void => {
+      drawing.removeEventListener('pointerup', onLift, true);
+      firstTouch.current?.();
+    };
+    drawing.addEventListener('pointerup', onLift, true);
+    return () => {
+      drawing.removeEventListener('pointerup', onLift, true);
+    };
+  }, [armed, shape]);
 
   /*
    * R136 (FR-FLOW-15, D-877): the landscape phone's layout is one viewport high under the page's top row, and the

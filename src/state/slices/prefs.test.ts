@@ -265,6 +265,27 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  /** R159 (FR-PHONE-2, D-962): the grant is saved on a grant and cleared on a refusal; only `true` is stored. */
+  it('saves the follow grant across a reload, clears it by removing the key, and reads a malformed value as no grant', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().followGranted).toBe(false);
+    fresh.getState().setFollowGranted(true);
+    expect(fresh.getState().followGranted).toBe(true);
+    expect(stored(storage)).toEqual({ theme: 'night', followGranted: true });
+    const reloaded = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(reloaded.getState().followGranted).toBe(true);
+    reloaded.getState().setFollowGranted(false);
+    expect(reloaded.getState().followGranted).toBe(false);
+    expect(stored(storage)).toEqual({ theme: 'night' });
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().followGranted).toBe(false);
+    storage.map.set(PREFS_KEY, JSON.stringify({ followGranted: 'yes', locale: 'es' }));
+    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(corrupt.getState().followGranted).toBe(false);
+    expect(corrupt.getState().locale).toBe('es');
+  });
+
   /** R123 (FR-SKY-3, US-40 AC1, D-791): `[ stars ]` is on by default, and turning it off is remembered. */
   it('draws the stars until the toggle turns them off, remembers that across a reload, and reads a malformed value as on', () => {
     const storage = memoryStorage();

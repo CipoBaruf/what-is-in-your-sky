@@ -162,6 +162,99 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
       resetOrientationAccess();
     });
+    const detail = () => render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const windowRoot = (): HTMLElement | null => document.querySelector<HTMLElement>('[data-look-az]');
+    /** The phone's back toward `azDeg`, `altDeg` up, as the W3C event the window listens for. */
+    const reading = (azDeg: number, altDeg: number): void => {
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: (360 - azDeg) % 360, beta: 90 + altDeg, gamma: 0, absolute: true }));
+      });
+    };
+    /** A hand-driven `requestAnimationFrame`, so the sensor's smoothing runs on the test's frames. */
+    const scriptedFrames = (): ((wall: number) => void) => {
+      let next = 1;
+      const pending = new Map<number, FrameRequestCallback>();
+      vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback): number => {
+        pending.set(next, callback);
+        return next++;
+      });
+      vi.stubGlobal('cancelAnimationFrame', (id: number): void => {
+        pending.delete(id);
+      });
+      return (wall) => {
+        const callbacks = [...pending.values()];
+        pending.clear();
+        act(() => {
+          for (const callback of callbacks) callback(wall);
+        });
+      };
+    };
+
+    /**
+     * R159 (FR-PHONE-1, FR-FLOW-14; US-45 AC1; D-962): where nothing has to be asked the guide opens following, on the
+     * window whatever view is saved, and the opening facing (the peak, FR-SKY-7) is replaced by the pose at the first
+     * reading; a drag hands the sky to the finger.
+     */
+    it('opens following where nothing is asked, the peak facing replaced by the first reading, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
+      withPhone();
+      const frame = scriptedFrames();
+      appStore.getState().setChartView('dome');
+      detail();
+      const figure = screen.getByRole('figure', { name: 'ISS (Zarya)' });
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+      expect(figure).toHaveAttribute('data-view', 'window');
+      expect(figure).toHaveAttribute('data-follow', 'true');
+      expect(appStore.getState().chartView).toBe('dome');
+      await waitFor(() => {
+        expect(figure.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
+      });
+      // Before any reading the window faces the peak (FR-FLOW-14's "until the sensor's first reading").
+      const peakAz = windowRoot()?.getAttribute('data-look-az');
+      expect(Math.abs(Number(peakAz) - 180)).toBeGreaterThan(10);
+      reading(180, 30);
+      for (let i = 1; i <= 40; i += 1) frame(16 * i);
+      expect(windowRoot()).toHaveAttribute('data-state', 'on');
+      // The phone's pose, to the degree the declination at the observer moves a compass heading.
+      expect(Math.abs(Number(windowRoot()?.getAttribute('data-look-az')) - 180)).toBeLessThanOrEqual(2);
+      expect(windowRoot()).toHaveAttribute('data-look-alt', '30');
+      const box = figure.querySelector('[data-follow="true"] [tabindex="0"]') as HTMLElement;
+      box.setPointerCapture = vi.fn();
+      box.releasePointerCapture = vi.fn();
+      fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.pointerUp(box, { pointerId: 1, clientX: 140, clientY: 100 });
+      expect(figure).not.toHaveAttribute('data-follow');
+      expect(windowRoot()).toHaveAttribute('data-state', 'hand');
+    });
+
+    /** R159 (FR-PHONE-2; US-45 AC2; D-963, D-986): a saved grant arms the guide; the first touch on the sky asks, once. */
+    it('with a saved grant asks once inside the first touch on the sky and follows; a refusal clears the grant and shows the line', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      appStore.getState().setFollowGranted(true);
+      const { unmount } = detail();
+      expect(requestPermission).not.toHaveBeenCalled();
+      const sky = (): HTMLElement => screen.getByTestId('pass-layout').querySelector('[data-slot="drawing"]') as HTMLElement;
+      fireEvent.pointerDown(sky(), { pointerId: 1, pointerType: 'touch' });
+      fireEvent.pointerUp(sky(), { pointerId: 1, pointerType: 'touch' });
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.pointerUp(sky(), { pointerId: 2, pointerType: 'touch' });
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      unmount();
+
+      resetOrientationAccess();
+      requestPermission.mockResolvedValue('denied');
+      detail();
+      fireEvent.pointerUp(sky(), { pointerId: 1, pointerType: 'touch' });
+      await flush();
+      expect(requestPermission).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('follow-refused')).toHaveAttribute('role', 'status');
+      expect(appStore.getState().followGranted).toBe(false);
+    });
 
     it('stands in the action slot on a phone, after the hint and before the prose, and is absent without the sensor; no sky screen, no hold-up', () => {
       appStore.getState().setChartView('dome');
@@ -171,7 +264,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(screen.queryByTestId('window-hold-up')).toBeNull();
       unmount();
 
-      withPhone();
+      // An iPhone's first visit: off until asked (FR-PHONE-2).
+      withPhone(() => Promise.resolve('granted'));
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
       const layout = screen.getByTestId('pass-layout');
       const action = layout.querySelector('[data-slot="action"]') as HTMLElement;
