@@ -13,11 +13,15 @@
  * The place and the chip are the parts that ellipsise, so each row also says how much of it the fixed part takes.
  * R146's card rows are `controlRows.test.ts`'s; this file is R147's own so the two tasks of wave 1 touch no file in
  * common (PLAN §16.27).
+ *
+ * R157 (FR-PHONE-3, D-964): the overlay's bottom row with its two controls, `[ follow ] [ controls ]` /
+ * `[ seguir ] [ controles ]` — 23 and 24 cells with `[ follow ]` pressed (its widest form), inside 36 and inside what
+ * 360 px holds; bare and dim while not following, so the row is narrower then and `[ controls ]` does not move.
  */
 import { resolve } from 'node:path';
 import { cleanup, render, screen } from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
@@ -26,6 +30,7 @@ import { tonightBand } from '../../src/lib/shownTime';
 import type { SkyBand } from '../../src/lib/timeStripe';
 import type { Locale } from '../../src/model';
 import { ControlsSheet } from '../../src/ui/components/live/ControlsSheet';
+import { FollowControl } from '../../src/ui/components/live/FollowControl';
 import type { ShownTimeProps } from '../../src/ui/components/live/ShownTime';
 import { SkyHead } from '../../src/ui/components/live/SkyHead';
 import { decorations, rowCells, rowParts } from './cells';
@@ -116,6 +121,31 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     expect(cells).toBe(`[ ${t.sheet.controls} ]`.length);
     expect(cells).toBe(locale === 'en' ? 12 : 13);
     expect(cells).toBeLessThanOrEqual(rowCellsAt(360));
+  });
+
+  it('the bottom row: [ follow ] before [ controls ], 23 cells in English and 24 in Spanish, inside 360 px (FR-PHONE-3)', () => {
+    // FR-WIN-4's presence test: a touch screen with the constructor.
+    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+      return undefined;
+    });
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    try {
+      for (const on of [true, false]) {
+        inLocale(locale, createElement(ControlsSheet, { open: false, onOpenChange: () => undefined, place: null, beside: createElement(FollowControl, { on, onChange: () => undefined }) }));
+        const row = screen.getByTestId('live-bottom-row');
+        const follow = on ? `[ ${t.sheet.follow} ]` : t.sheet.follow;
+        expect(rowParts(row, table)).toEqual([on ? `####${t.sheet.follow}` : t.sheet.follow, `####${t.sheet.controls}`]);
+        const cells = rowCells(row, table);
+        expect(cells).toBe(follow.length + 1 + `[ ${t.sheet.controls} ]`.length);
+        if (on) expect(cells).toBe(locale === 'en' ? 23 : 24);
+        expect(cells).toBeLessThanOrEqual(BUDGET);
+        expect(cells).toBeLessThanOrEqual(rowCellsAt(360));
+        cleanup();
+      }
+    } finally {
+      vi.unstubAllGlobals();
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    }
   });
 
   it('the sheet’s head row: a ten-letter place, [ settings ] and the ×, inside 360 px', () => {

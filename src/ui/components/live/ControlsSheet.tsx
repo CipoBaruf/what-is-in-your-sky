@@ -45,7 +45,13 @@ export interface ControlsSheetProps {
   place: string | null;
   /** The sheet's rows, in FR-FULL-4's order (the page's, R148). */
   children?: ReactNode;
-  /** Placement of `[ controls ]` only (D-704): the overlay's bottom-right corner is the page's. */
+  /**
+   * R157 (FR-PHONE-3, D-964): what stands before `[ controls ]` on the overlay's bottom row — the page's
+   * `[ follow ]` where the phone has the sensor. The row is one element, placed by `className`, in DOM order, so the
+   * focus order is the reading order.
+   */
+  beside?: ReactNode;
+  /** Placement of the bottom row only (D-704): the overlay's bottom-right corner is the page's. */
   className?: string | undefined;
 }
 
@@ -90,7 +96,7 @@ function firstFocusable(root: HTMLElement | null): HTMLElement | null {
   return root?.querySelector<HTMLElement>(FOCUSABLE) ?? null;
 }
 
-export function ControlsSheet({ open, onOpenChange, place, children, className }: ControlsSheetProps) {
+export function ControlsSheet({ open, onOpenChange, place, children, beside, className }: ControlsSheetProps) {
   const t = useT();
   const sheetId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -181,15 +187,10 @@ export function ControlsSheet({ open, onOpenChange, place, children, className }
 
   return (
     <>
-      <TextButton
-        ref={buttonRef}
-        label={t.sheet.controls}
-        aria-expanded={open}
-        aria-controls={sheetId}
-        className={['target', className].filter(Boolean).join(' ')}
-        onClick={toggle}
-        data-testid="live-controls"
-      />
+      <div className={className} data-testid="live-bottom-row">
+        {beside}
+        <TextButton ref={buttonRef} label={t.sheet.controls} aria-expanded={open} aria-controls={sheetId} className="target" onClick={toggle} data-testid="live-controls" />
+      </div>
       <section
         ref={sheetRef}
         id={sheetId}

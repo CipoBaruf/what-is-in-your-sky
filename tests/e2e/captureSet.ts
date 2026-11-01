@@ -249,6 +249,13 @@ export interface CaptureScreen {
    * the whole screen: every width and every variant gets its twin.
    */
   readonly view?: true;
+  /**
+   * R157 (FR-PHONE-5, D-966): the screen's compact widths, 360 and 390, are shot as a touch phone — a touch panel, a
+   * coarse pointer and the sensor's constructor — so the set shows the words and the controls a phone shows: the hint's
+   * two clauses, `[ follow ]` beside `[ controls ]`, the facing readout in the corner. The wide widths stay a desk's.
+   * `v1-captures.spec.ts` reads it.
+   */
+  readonly touch?: true;
 }
 
 /**
@@ -272,36 +279,42 @@ export const SCREENS: readonly CaptureScreen[] = [
   { name: 'settings', widths: [360, 390, 768, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it. 768 is the tablet, where the column is capped and centred (FR-TAB-3).' },
   { name: 'guide', widths: [360, 390, 768, 844, 1024, 1280], what: 'The night\'s brightest pass (Tiangong at 07:20 local, peak −2.1) open on the dome view, three minutes in, with the Sun and the Moon on the chart. The Moon-glare state D-179\'s Paris pass carried is absent: no pass on the showcase night is flagged with glare (D-684). Since v2.6 the head is the name, the countdown, the landmark line and the three times (FR-FLOW-7), above the view row, the drawing and its hint (FR-FLOW-4, FR-FLOW-6). At 768 it is the sheet inside the tablet\'s capped column (FR-TAB-3); at 844 × 390 the phone turned, the drawing left at full height and the rail beside it (FR-FLOW-15, R135); at 1024 it has the right column to itself (F-6).' },
   { name: 'polar', widths: [360, 390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
-  { name: 'legend', widths: [360, 390, 1280], what: 'The legend (FR-LEG-3): the live page with the hidden objects shown and one row activated so its arc is highlighted and the others dim (FR-LEG-4). At 360 and 390 the satellites open at the end of the controls sheet on a touch phone (FR-GYRO-10, R150, R153), in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have. On the showcase night the one drawn row is `up` beside the Sun and the Moon: the night\'s passes do not overlap, so no instant holds `soon` or `gone` beside it, and nothing hidden is above the horizon in the morning twilight, so the FR-LIVE-6 rows are absent too (FR-SHOW-9); the per-task captures that showed them keep pointing at them.' },
+  { name: 'legend', touch: true, widths: [360, 390, 1280], what: 'The legend (FR-LEG-3): the live page with the hidden objects shown and one row activated so its arc is highlighted and the others dim (FR-LEG-4). At 360 and 390 the satellites open at the end of the controls sheet on a touch phone (FR-GYRO-10, R150, R153), in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have. On the showcase night the one drawn row is `up` beside the Sun and the Moon: the night\'s passes do not overlap, so no instant holds `soon` or `gone` beside it, and nothing hidden is above the horizon in the morning twilight, so the FR-LIVE-6 rows are absent too (FR-SHOW-9); the per-task captures that showed them keep pointing at them.' },
   { name: 'favourites', widths: [360, 390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [360, 390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
   {
     name: 'live-watching',
+    touch: true,
     widths: [360, 390, 768, 844, 1024, 1200, 1280, 1920, 2560, 3840],
     what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the drawing and the actions — and no stripe, no step row and no playback row anywhere in the document. Since v2.6 a phone with nothing saved opens on the window (FR-FLOW-14, D-876), following the pass that is up (`openingFacing`), so the compact files — 360, 390, 768 and 844 — show the window and the wide ones the dome; at 844 × 390 it is the turned arrangement, the drawing left at full height and the rail beside it (FR-FLOW-15). 360 is the narrow phone (FR-CAP-2) and 768 the tablet upright (FR-TAB-3); 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
   },
   {
     name: 'live-scrubbing',
+    touch: true,
     widths: [360, 390, 768, 844, 1024, 1200, 1280, 1920, 2560, 3840],
     what: "The same page one `[ scrub ]` on (FR-WATCH-1 b, FR-WATCH-4): the bead held and warm beside `held`, the time row, the stripe's chunk with its 24 h overview, the stepping row and the playback row, and `[ back to live ]` at the head of the block. The pair with `live-watching` is what a reviewer reads the state split off: at 1200 × 450 the block is a bar inside the box (FR-WATCH-6) and the box's height is the same in both pictures (FR-WATCH-7), and at 844 × 390 it is in the rail with the dome column unmoved.",
   },
   {
     name: 'live-tonight',
+    touch: true,
     widths: [360, 390, 844],
     what: "The phone's live page as it opens in the day (FR-FULL-10, US-43 AC5; v2.7's jumped state until R149): `#live` opened at 13:00 local with nothing up, so the page stays on real time, nothing playing, and asks with the card over the sky — \"Nothing visible up now.\", the evening's first visible pass with its rise and chip, `[ see next pass ]` (focused) and `[ see now ]` — above `[ controls ]`, the head's back control and time at the top. At 844 × 390 the same phone turned, the card centred across the box. Compact only: wide never asks.",
   },
   {
     name: 'live-sheet',
+    touch: true,
     widths: [390, 844],
     what: "The compact live page at the set's instant with `[ controls ]` pressed (FR-FULL-4, FR-FULL-9): the sheet over the bottom of the sky with its head (the place, `[ settings ]`, the `×`) and its body — the context line, the track and the taps, the view row `[Window] Polar Dome  [x] stars` (FR-GYRO-11), `[ follow the phone ]` (this is a touch phone, FR-GYRO-1), the facing row, Share and the satellites open at its end (FR-GYRO-10); at 844 × 390 the same bottom sheet across the phone turned, `SHEET_MAX_SHARE` of its height (FR-GYRO-7). The sky behind it is `live-watching`'s box, unmoved (FR-FULL-1). The two sizes FR-FULL-9 names, not the 360 beside them.",
   },
   {
     name: 'live-sheet-list',
+    touch: true,
     widths: [390, 844],
     what: "The same sheet scrolled to its end (FR-FULL-4, FR-FULL-9, FR-GYRO-10): `Satellites (n)` and the list, open with no button to press since v2.9, the body scrolling and the page not, the sheet no taller than `SHEET_MAX_SHARE` of the height. The legend's own picture (`legend`, a row activated and the hidden rows on) is the same place in another state.",
   },
   {
     name: 'live-following',
+    touch: true,
     widths: [390],
     what: "The compact live page following the phone (FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, R152; US-44 AC1, AC2): `[ follow the phone ]` tapped in the sheet on a touch phone, the motion permission granted and the readings stubbed (D-946) aimed where the window already looked, then the sheet closed by its `×` — the sky is the window turned by the phone, with no readout, note or chip over it, `[ ← ]` and the shown time at the top and `[ controls ]` at the foot. FR-GYRO-9 names the one size, 390 × 844.",
   },

@@ -30,7 +30,8 @@ export const windowMessages = {
      * R132 (FR-FLOW-6, D-848): the hand hint under the facing picker (`SkyHint`), one line joined with ` · ` from
      * these clauses by the pointer — `coarse` a touch screen, `fine` a mouse. The window gets all three; the dome
      * and the polar chart the drag clause alone; the live page with a highlighted pass ends the coarse line with
-     * `follow` (FR-SKY-13). R121's `handHint` in the box's corner is gone with it.
+     * `follow` (FR-SKY-13). R121's `handHint` in the box's corner is gone with it. R157 (FR-PHONE-5): the coarse line
+     * is two clauses — `drag`, then `follow` where there is a key and `zoom` otherwise; `star` is the fine line's only.
      */
     skyHint: {
       drag: { coarse: 'Drag to look', fine: 'Drag or use the arrow keys' },
