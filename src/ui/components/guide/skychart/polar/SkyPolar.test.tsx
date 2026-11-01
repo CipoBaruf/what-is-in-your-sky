@@ -564,6 +564,10 @@ describe('<SkyPolar> stars', () => {
     const figures = [
       { con: 'Ori', part: '', segments: [[0, 1], [1, 2], [0, 3]] as (readonly [number, number])[] },
       { con: 'Cru', part: '', segments: [[4, 5]] as (readonly [number, number])[] },
+      // A star half a degree up and one under the horizon: the gap at the one up reaches past the ring, so no line.
+      { con: 'Lyr', part: '', segments: [[6, 7]] as (readonly [number, number])[] },
+      // An endpoint past the chart's cap (the catalogue keeps a figure's faint endpoints, FR-LOOK-8): a line, no mark.
+      { con: 'Cyg', part: '', segments: [[1, 8]] as (readonly [number, number])[] },
     ];
     const stars: HandStar[] = [
       { mag: 1, azDeg: 90, altDeg: 30 },
@@ -575,14 +579,20 @@ describe('<SkyPolar> stars', () => {
       // Both ends under the horizon: not drawn.
       { mag: 2, azDeg: 200, altDeg: -5 },
       { mag: 2.5, azDeg: 210, altDeg: -15 },
+      { mag: 1.2, azDeg: 300, altDeg: 0.5 },
+      { mag: 3, azDeg: 300, altDeg: -3 },
+      { mag: 4.8, azDeg: 60, altDeg: 60 },
     ];
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars, [], { figures })} />);
     await settle();
     const lines = segmentsOf(container);
-    expect(lines.map((line) => line.figure)).toEqual([0, 0]);
-    // One path for the figure, a sub-path per segment.
-    expect(container.querySelectorAll('[data-figures] path')).toHaveLength(1);
-    expect(container.querySelector('[data-figures] path')).toHaveAttribute('data-segments', '2');
+    expect(lines.map((line) => line.figure)).toEqual([0, 0, 3]);
+    // One path per figure, a sub-path per segment.
+    expect(container.querySelectorAll('[data-figures] path')).toHaveLength(2);
+    expect(container.querySelector('[data-figures] path[data-figure="0"]')).toHaveAttribute('data-segments', '2');
+    expect(container.querySelector('[data-star="8"]')).toBeNull();
+    expect(dotsOf(container).map((dot) => dot.star)).not.toContain(8);
+    for (const line of lines) for (const [x, y] of [[line.x1, line.y1], [line.x2, line.y2]] as const) expect(Math.hypot(x, y)).toBeLessThanOrEqual(HORIZON_R + 0.01);
     // The gap (D-989): each end short of its star by the mark's half cell — 0.3 em of the `*` at 16 and at 13.
     const a = expected({ t: 0, azDeg: 90, elDeg: 30 } as PassPoint, 'looking-up');
     const b = expected({ t: 0, azDeg: 90, elDeg: 50 } as PassPoint, 'looking-up');
@@ -740,7 +750,8 @@ describe('<SkyPolar> the Moon’s disc', () => {
 
   it('draws the Moon as a disc with its lit part turned toward the Sun’s side, in either convention, at toPolar of its place', async () => {
     const sun = { t: 0, azDeg: 90, altDeg: -20 };
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} moon={{ ...MOON_FIXTURE, illuminatedFraction: 0.28, phase: 'waningCrescent' }} sun={sun} />);
+    const scene = handScene([{ mag: 1, azDeg: 200, altDeg: 30 }]);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} moon={{ ...MOON_FIXTURE, illuminatedFraction: 0.28, phase: 'waningCrescent' }} sun={sun} scene={scene} />);
     await settle();
     const disc = container.querySelector('[data-body="moon"]');
     expect(disc).toHaveAttribute('data-lit', '0.28');
@@ -755,6 +766,13 @@ describe('<SkyPolar> the Moon’s disc', () => {
     expect(Math.abs(limb())).toBeLessThan(60);
     const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
     expect(css).toContain('.moonDark {\n  fill: var(--chart-sky-deep);');
+  });
+
+  it('keeps FR-DOME-6’s marker where the scene carries no stars, so the chart loads nothing for the Moon alone', async () => {
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} moon={MOON_FIXTURE} scene={{ stars: null }} />);
+    await settle();
+    expect(container.querySelector('[data-marker="moon"]')).toHaveAttribute('r', '4.5');
+    expect(container.querySelector('[data-moon-lit]')).toBeNull();
   });
 });
 

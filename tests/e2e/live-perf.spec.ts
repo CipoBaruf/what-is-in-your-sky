@@ -45,7 +45,7 @@ declare global {
 }
 
 function installCounter(view: 'dome' | 'polar' = 'dome'): void {
-  // R158: on the polar chart the star layer's group, whose marks move with every re-placement of the whole sky.
+  // R158: on the polar chart the star layer's group: its marks (`transform`) and its paths (`d`: the dots, the figures, the haze).
   const drawing = document.querySelector(view === 'polar' ? '[data-drawing="polar"] [data-layer="stars"]' : '[data-drawing="dome"]');
   if (!drawing) throw new Error(`no ${view}`);
   let dirty = false;
@@ -57,7 +57,7 @@ function installCounter(view: 'dome' | 'polar' = 'dome'): void {
   const observer = new MutationObserver(() => {
     dirty = true;
   });
-  if (view === 'polar') observer.observe(drawing, { attributes: true, attributeFilter: ['transform'], childList: true, subtree: true });
+  if (view === 'polar') observer.observe(drawing, { attributes: true, attributeFilter: ['transform', 'd'], childList: true, subtree: true });
   else drawing.querySelectorAll('pre.glyph-output').forEach((pre) => observer.observe(pre, { characterData: true, childList: true, subtree: true }));
   let raf = requestAnimationFrame(function tick(t: number) {
     if (last) longestGap = Math.max(longestGap, t - last);

@@ -427,10 +427,10 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
           <HiddenPoint key={marker.id} marker={marker} orientation={orientation} legendKey={legendKeys[marker.id]} />
         ))}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
-        {/* R158 (FR-LOOK-7): with its phase, by the table; FR-DOME-6's marker until the chunk lands. */}
+        {/* R158 (FR-LOOK-7): with its phase, by the table, where the scene carries stars (whose chunk draws it); FR-DOME-6's marker until it lands, and without stars. */}
         {moon &&
           moonVisible(moon) &&
-          (drawsLayer('polar', 'moonDisc') ? (
+          (field && drawsLayer('polar', 'moonDisc') ? (
             <Suspense fallback={<MoonMarker moon={moon} orientation={orientation} />}>
               <PolarMoon moon={moon} sun={sun ?? undefined} orientation={orientation} project={project} />
             </Suspense>

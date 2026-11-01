@@ -50,7 +50,10 @@ const NAME_MAG = FIELD_DETAIL_STEPS[0]?.[2] ?? 1.5;
 const fmt = (n: number): string => n.toFixed(2);
 const at = ({ x, y }: Point): string => `translate(${fmt(x)} ${fmt(y)})`;
 /** The radius, in user units, of the altitude ring at `elDeg`: the projection's own, so it is right in either convention. */
-const ringR = (project: Project, elDeg: number): number => Math.hypot(project({ azDeg: 0, elDeg }, 'map').x, project({ azDeg: 0, elDeg }, 'map').y);
+const ringR = (project: Project, elDeg: number): number => {
+  const p = project({ azDeg: 0, elDeg }, 'map');
+  return Math.hypot(p.x, p.y);
+};
 
 // --- The surface and the band (FR-LOOK-1, FR-LOOK-2) ----------------------------
 
@@ -160,7 +163,7 @@ function toRing(a: Point, b: Point, r: number): Point {
  * (D-989: a clip costs the chart's playback a paint per update): a point under the horizon is put on the ring along
  * its own azimuth, so the part of a band below it folds onto the ring and the fill stops there.
  */
-function hazePaths(haze: PreparedHaze, orientation: ChartOrientation, project: Project, horizonR: number): { d: string; opacity: number }[] {
+function polarHazePaths(haze: PreparedHaze, orientation: ChartOrientation, project: Project, horizonR: number): { d: string; opacity: number }[] {
   const nadir = nadirs.get(haze);
   return haze.rings.map((ring, k) => {
     let d = '';
@@ -196,7 +199,10 @@ interface Drawing {
  * being the viewBox shifted to start at 0.
  */
 function place(field: StarField, whole: StarField, orientation: ChartOrientation, project: Project, compass: readonly Box[], half: number, horizonR: number, lang: Locale): Drawing {
-  const { catalog, positions, layers } = field;
+  const { catalog, layers } = field;
+  // A figure's segments index the whole catalogue, whose last stars are figure endpoints past the cap (FR-LOOK-8):
+  // the lines read the whole one's positions and magnitudes, the marks the capped field's.
+  const { positions } = whole;
   const bodies = starsFor('polar', field);
   const ordered = magnitudeOrder(bodies.map((body) => body.mag))
     .flatMap((k) => bodies[k] ?? [])
@@ -218,16 +224,20 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
         const pa = project({ azDeg: positions.azDeg[a] ?? 0, elDeg: aAlt }, orientation);
         const pb = project({ azDeg: positions.azDeg[b] ?? 0, elDeg: bAlt }, orientation);
         const length = Math.hypot(pb.x - pa.x, pb.y - pa.y);
-        const gapA = gapOf(markFor(catalog.mag[a] ?? Number.NaN, catalog.bv?.[a]));
-        const gapB = gapOf(markFor(catalog.mag[b] ?? Number.NaN, catalog.bv?.[b]));
+        const gapA = gapOf(markFor(whole.catalog.mag[a] ?? Number.NaN, whole.catalog.bv?.[a]));
+        const gapB = gapOf(markFor(whole.catalog.mag[b] ?? Number.NaN, whole.catalog.bv?.[b]));
         if (!(length >= gapA + gapB)) continue;
         const ux = (pb.x - pa.x) / length;
         const uy = (pb.y - pa.y) / length;
-        // One end under the horizon: the line stops at the ring (no clip path, D-989).
+        // One end under the horizon: the line stops at the ring (no clip path, D-989); where the gap at the end that is
+        // up already reaches past the ring, nothing of the line is on the sky side and it is not drawn.
         let start: Point = { x: pa.x + ux * gapA, y: pa.y + uy * gapA };
         let end: Point = { x: pb.x - ux * gapB, y: pb.y - uy * gapB };
-        if (Math.hypot(start.x, start.y) > horizonR) start = toRing(end, start, horizonR);
-        else if (Math.hypot(end.x, end.y) > horizonR) end = toRing(start, end, horizonR);
+        const startOut = Math.hypot(start.x, start.y) > horizonR;
+        const endOut = Math.hypot(end.x, end.y) > horizonR;
+        if (startOut && endOut) continue;
+        if (startOut) start = toRing(end, start, horizonR);
+        else if (endOut) end = toRing(start, end, horizonR);
         lines.push({ figure: f, x1: start.x, y1: start.y, x2: end.x, y2: end.y });
         count += 1;
         if (aAlt >= 0) ends.add(a);
@@ -244,7 +254,7 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
 
   const haze = layers.stars && drawsLayer('polar', 'haze') ? (() => {
     const prepared = hazeOf(whole.catalog, whole.positions);
-    return prepared === null ? [] : hazePaths(prepared, orientation, project, horizonR);
+    return prepared === null ? [] : polarHazePaths(prepared, orientation, project, horizonR);
   })() : [];
 
   let labels: PlacedLabel[] = [];
@@ -451,7 +461,7 @@ interface PolarFieldOutlineProps {
  * FR-PHONE-9 (D-969, D-988): the window's field as a closed outline in `--chart-compass` at `--chart-hairline`,
  * written by ref on the camera's channel — every drag, key and zoom the camera takes moves it without a render of
  * the chart. The box is the frame's: the shape the window would draw in, read off the drawing's own box when it has
- * one (a square without, as in jsdom), at the camera's field.
+ * one (a square without, as in jsdom), at the camera's field, and drawn again when that box changes shape.
  */
 export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOutlineProps) {
   const path = useRef<SVGPathElement>(null);
@@ -468,7 +478,14 @@ export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOu
       node.setAttribute('d', fieldOutline(pose, view, (point) => project(point, orientation)));
     };
     write();
-    return camera.subscribe(write);
+    const unsubscribe = camera.subscribe(write);
+    // A box that changes shape (a phone turned, a desk window resized) redraws the outline without waiting for a move.
+    const resized = box && typeof ResizeObserver === 'function' ? new ResizeObserver(write) : null;
+    if (box) resized?.observe(box);
+    return () => {
+      unsubscribe();
+      resized?.disconnect();
+    };
   }, [camera, orientation, project]);
   return <path ref={path} className={styles.fieldOutline} data-field-outline d="" />;
 }
