@@ -13,7 +13,6 @@ import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
-import { brightLimbPoint } from '../useSkyBodies';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
@@ -25,7 +24,7 @@ import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, g
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
-import { MoonDisc } from './MoonDisc';
+import { brightLimbPoint, MoonDisc } from './MoonDisc';
 import { figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
 import { useViewRotation } from './useViewRotation';

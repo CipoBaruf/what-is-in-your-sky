@@ -95,7 +95,7 @@ function watchStarChunks(page: Page): string[] {
 /** R155 (FR-LOOK-9): every star the window draws this frame — the bright marks and the deep pool's dots. */
 const drawnStars = (w: Locator): Locator => w.locator('[data-layer="stars"] [data-marks] > [data-star]:not([visibility="hidden"]), [data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
 /** A Bayer or Flamsteed designation, which a star with no proper name is named by at the deeper rows (`Alp Sco`, `61 Cyg`). */
-const DESIGNATION = /^(?:[A-Z][a-z]{2}\d?|\d+) [A-Z][A-Za-z]{2}$/;
+const DESIGNATION = /^(?:[A-Z][a-z]{2}\d?|\d+) [A-Z][A-Za-z]{2}$|^HR \d+$/;
 
 /** The window's box under the hand: the one `div` with the drag state (the stripe's overview is an `svg` with one too). */
 const box = (w: Locator): Locator => w.locator('div[data-dragging]');
@@ -281,6 +281,11 @@ test.describe('zoom on a compact page without a sensor', () => {
     const w = await openStars(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(w).toHaveAttribute('data-fov', '60');
+    // Turned to SW 35° up, where Ara's three bright stars with no proper name stand on the fixture night (Alp, Bet and Zet Ara, V 2.8–3.1).
+    await box(w).focus();
+    for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
+    await expect(w).toHaveAttribute('data-look-az', '225');
+    await expect(w).toHaveAttribute('data-look-alt', '35');
     await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
     expect(chunks).toEqual(['Stars', 'deep']);
     const deep = w.locator('[data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
@@ -295,9 +300,9 @@ test.describe('zoom on a compact page without a sensor', () => {
     const deepAt20 = await deep.count();
     expect(deepAt20).toBeGreaterThan(0);
     const names20 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
+    console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
     expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
     expect(chunks).toEqual(['Stars', 'deep']);
-    console.log(`[FR-LOOK-9] 390 px, S 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 20°: ${names20.join(', ')}`);
     await page.screenshot({ path: `${CAPTURE_DIR}/r155-stars-390-window-20-dark-en.png` });
   });
 

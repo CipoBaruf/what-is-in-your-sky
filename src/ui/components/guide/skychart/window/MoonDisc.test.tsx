@@ -7,8 +7,7 @@ import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import { MOON_DISC_PX } from '../../../../../data/stars/constants';
-import { brightLimbPoint } from '../useSkyBodies';
-import { limbAngleDeg, litPath, MoonDisc } from './MoonDisc';
+import { brightLimbPoint, limbAngleDeg, litPath, MoonDisc } from './MoonDisc';
 import { project, uprightRotation, WINDOW_FOV, type View } from './projection';
 
 const view: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 };
@@ -91,7 +90,7 @@ describe('MoonDisc', () => {
   });
 });
 
-/** R155 (FR-LOOK-7, D-974): the bright limb's point, a degree from the Moon toward the Sun (`useSkyBodies.ts`). */
+/** R155 (FR-LOOK-7, D-974, D-985): the bright limb's point, a degree from the Moon toward the Sun. */
 describe('brightLimbPoint', () => {
   it('is a degree from the Moon along the great circle toward the Sun', () => {
     const below = brightLimbPoint({ azDeg: 180, elDeg: 30 }, { azDeg: 180, altDeg: -10 });
