@@ -1,5 +1,7 @@
 import { INTL_LOCALE } from '../i18n/locale';
-import type { Locale } from '../model';
+import type { EpochMs, Locale, Pass } from '../model';
+import { compassPoint } from './compass';
+import { formatDate, formatShortClock } from './timeFormat';
 
 /**
  * Number formatting shared by the pass card and the detail screen (R6 moved
@@ -66,4 +68,42 @@ export function formatClockDuration(seconds: number): string {
   const mm = String(m).padStart(2, '0');
   const ss = String(s).padStart(2, '0');
   return h > 0 ? `${String(h)}:${mm}:${ss}` : `${String(m)}:${ss}`;
+}
+
+/**
+ * R156 (FR-PHONE-14): the compact pass detail's one times row is within this many cells, in both languages. 36 is
+ * FR-COMP-4's compact row: the row stands at `--small` beside the head's margins, and the plain form —
+ * "07:20 → 07:23 at 48° NNE → 07:27", 32 cells at its longest (a three-letter point, a two-digit altitude) —
+ * leaves room for the shadow word, which takes the peak's "at" in exchange (D-978).
+ */
+export const DETAIL_TIMES_CELLS = 36;
+
+/** The times row's two words: the peak's "at" and the shadow entry's word after the end (`t.countdown.row`). */
+export interface TimesRowWords {
+  at: string;
+  shadow: string;
+}
+
+/**
+ * R156 (FR-PHONE-14, D-972, D-978): the rise, the peak with its altitude and direction, and the end as one line —
+ * "07:20 → 07:23 at 48° NNE → 07:27", or with a shadow entry "… → 07:27 shadow" — to the minute and with no zone,
+ * which the head's date line carries once (`formatDateZone`). A shadow entry's line drops the peak's "at": with the
+ * word after the end it is 37 cells in English even with a one-letter point, so keeping "at" where it happens to
+ * fit would make the same pass read two ways by its direction. Without it the longest shadow line (a
+ * three-letter point; an altitude is never more than two digits) is 36 cells and the longest plain one 32, so no line
+ * needs to give up anything else.
+ */
+export function formatTimesRow(pass: Pass, timeZone: string | null, locale: Locale, words: TimesRowWords): string {
+  const clock = (t: EpochMs): string => formatShortClock(t, timeZone, locale);
+  const shadow = pass.endReason === 'shadow' ? ` ${words.shadow}` : '';
+  const alt = degrees(pass.peak.elDeg);
+  const point = compassPoint(pass.peak.azDeg);
+  const peak = shadow === '' ? `${words.at} ${alt} ${point}` : `${alt} ${point}`;
+  return `${clock(pass.start.t)} → ${clock(pass.peak.t)} ${peak} → ${clock(pass.end.t)}${shadow}`;
+}
+
+/** R156 (FR-PHONE-14): the head's date line with the zone once — "2026-09-06 · GMT-3", or "· UTC" with no zone yet (F-27). */
+export function formatDateZone(t: EpochMs, timeZone: string | null, locale: Locale): string {
+  const zone = formatShortClock(t, timeZone, locale, true).split(' ').slice(1).join(' ');
+  return `${formatDate(t, timeZone, locale)} · ${zone}`;
 }

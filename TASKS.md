@@ -4420,7 +4420,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
     - The Done note gives the three files' star or point counts and gzipped sizes, and the `bv` column's blank count.
     - `npm test`, lint, typecheck and `npm run check:dead` green.
 
-- [ ] **R156 — The pages: the home's doors first and the folded line, the third door renamed, the pass detail's times on one row, the theme by the clock**
+- [x] **R156 — The pages: the home's doors first and the folded line, the third door renamed, the pass detail's times on one row, the theme by the clock**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -4438,6 +4438,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
     - `HomeDoors.test.tsx`, `doorLines.test.ts`, `WherePlace.test.tsx`, `TimesRow.test.tsx`, `theme.test.ts`, `prefs.test.ts`, `controlRows.test.ts` pass.
     - `settings.spec.ts` fits at 390 × 844 in Spanish; `sky-layout.spec.ts` asserts the doors' bottom edge ≤ 420 px at 390 × 844 and the detail's drawing top ≤ 480 px at 390 × 667, both languages; `rhythm` and `targets` green.
     - The Done note gives the door's and the times row's cell counts in both languages and the theme's two sides of `THEME_AUTO_SUN_DEG`.
+  - **Done:** the third door is "Live sky" 8 cells / "Cielo en vivo" 13, its second line "satellites and stars, now" 25 / "satélites y estrellas, ahora" 28, the state line under them as before (`door-live`); at 390 × 844 the doors' bottom edge is at 366 px in both languages. The times row is "07:20 → 07:23 at 48° NNE → 07:27" 32 cells / "07:20 → 07:23 a 48° NNE → 07:27" 31 at its longest, and a shadow entry's "07:20 → 07:23 48° NNE → 07:27 shadow" / "… sombra" 36 in both — the shadow form drops "at", since with it the line is 37–39 cells (D-978); the zone is on the header's date line ("2026-09-11 · GMT-3"), and at 390 × 667 the detail's drawing top is at 314 px in both languages. Auto: at −6.01° the root reads `night`, at −6° and above `dark`, with no place `dark`; the Sun is a closed form in `theme.ts`, 0.011° from `astronomy-engine` at worst, because `astronomy-engine` is the lazy `skyBodies` chunk and not `main` (D-979). The Theme row is 36 cells in both languages and one line at 390 px; the Spanish night label is "Noche", the spec's. Outside the lane by one line each, for D-979: `data/localPrefs.ts` (its theme enum dropped `auto` on reload), `main.tsx`, `App.tsx`, `spike/window/screen.tsx`; and `v1-captures.spec.ts`'s settled-list wait, which read the folded line's words, reads its `data-state` (D-978).
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
 
 - [ ] **R157 — The overlay: `FollowControl` beside `[ controls ]`, the corner readout slot, the touch hint, `hintFitsBeside` over labels, the wake lock on two pages, the compact live captures marked touch**

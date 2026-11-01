@@ -46,4 +46,13 @@
   margin-top: var(--space-1);
 }
 
+/* R156 (FR-PHONE-12, D-972): a ready status line is `[ details ]` alone, at the row's right end under `[ change ]`,
+   at `--small` on its row as the fault lines are. */
+.status {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  text-align: end;
+}
+
 /* The change control — a button that opens the group in place — is an inline `TextButton` (R104, D-704); nothing here draws on it. */

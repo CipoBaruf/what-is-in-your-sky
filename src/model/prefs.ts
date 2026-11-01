@@ -38,14 +38,18 @@ export const DEFAULT_SKY_HINT_SEEN = false;
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */
 export type Locale = 'en' | 'es';
-/** FR-THEME-1 / US-19 (R20): the palette, the default dark one or the red-on-black night one. Persisted in `wiys:prefs:v1` and applied as `data-theme` before the first render (D-70). */
-export type Theme = 'dark' | 'night';
 /**
- * The themes `tokens.css` defines, in the order the header switch offers
- * them. A value, not a type, because the switch has to enumerate them and the
- * store has to default to one, and both sit on opposite sides of PLAN §3's
- * layering — `src/model` is the layer both may import.
+ * FR-THEME-1 / US-19 (R20): the palette, the default dark one or the red-on-black night one. Persisted in
+ * `wiys:prefs:v1` and applied as `data-theme` before the first render (D-70). R156 (FR-PHONE-15, D-972): `auto` is
+ * the third value, the one that is not a palette — `ui/styles/theme.ts`'s `resolveTheme` turns it into one of the
+ * two by the Sun's altitude at the saved place, before first paint and on the shell's tick.
  */
-export const THEMES = ['dark', 'night'] as const;
+export type Theme = 'dark' | 'night' | 'auto';
+/**
+ * The themes the settings page's Theme row offers, in its order (`[x] Dark [ ] Night [ ] Auto`). A value, not a
+ * type, because the switch has to enumerate them, the stored prefs are checked against them and the store has to
+ * default to one, and those sit on opposite sides of PLAN §3's layering — `src/model` is the layer all may import.
+ */
+export const THEMES = ['dark', 'night', 'auto'] as const satisfies readonly Theme[];
 /** Dark until the switch is used: the night palette is a choice, never a guess from the device (FR-THEME-1). */
 export const DEFAULT_THEME: Theme = 'dark';

@@ -55,8 +55,8 @@ describe('<App> and the live route', () => {
     expect(screen.getByTestId('live-link')).toHaveTextContent('live');
     // R130: the next-event block and its `[ Open the live sky ]` left the home; the Both door opens #live.
     expect(screen.queryByTestId('now-live-link')).toBeNull();
-    expect(screen.getByTestId('door-both')).toHaveAttribute('href', '#live');
-    expect(screen.getByTestId('door-both')).toHaveTextContent(/^Both · live sky/);
+    expect(screen.getByTestId('door-live')).toHaveAttribute('href', '#live');
+    expect(screen.getByTestId('door-live')).toHaveTextContent(/^Live skysatellites and stars, now/);
   });
 
   it('mounts the live page, and nothing of the home page, under #live; leaving restores the home page', async () => {

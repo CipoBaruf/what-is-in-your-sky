@@ -26,3 +26,13 @@
 .peak {
   color: var(--fg-dim);
 }
+
+/* R156 (FR-PHONE-14, D-972): compact's one row at `--small`, in the dim ink of the cells' words, on one line —
+   `formatTimesRow` keeps it within 36 cells, so it never needs to wrap. */
+.line {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

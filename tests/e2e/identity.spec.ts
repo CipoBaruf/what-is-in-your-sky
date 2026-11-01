@@ -160,7 +160,12 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // R32/R52: the header's two links open the order, and no preference control is on this screen.
   // R76 (FR-FIRST-4): `[ change ]` is a button now — it opens the form in place rather than linking to #settings.
   // R92 (FR-A11Y-5): the skip link is the first stop, before the header.
-  expect(expected.slice(0, 4)).toEqual(['a:Skip to content', 'a:live', 'a:settings', 'button:change']);
+  // R156 (FR-PHONE-12): the three doors come before the Where reading on compact, so they follow the header and `[ change ]` follows them.
+  expect(expected.slice(0, 3)).toEqual(['a:Skip to content', 'a:live', 'a:settings']);
+  expect(expected.slice(3, 6).map((c) => c.split(':')[0])).toEqual(['a', 'a', 'a']);
+  expect(expected[4]).toMatch(/^a:Stars/);
+  expect(expected[5]).toMatch(/^a:Live sky/);
+  expect(expected[6]).toBe('button:change');
   expect(expected).not.toContain('input:place');
   expect(expected).not.toContain('button:English');
   expect(expected).toContain('button:Soonest');

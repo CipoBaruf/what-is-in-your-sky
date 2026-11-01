@@ -192,13 +192,14 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     vi.restoreAllMocks();
   });
 
-  it('folded: the place with [ change ] on its row, and "Ready offline · elements 4 d old · [ details ]"; the rest hidden', async () => {
+  it('folded and ready: the place with [ change ] on its row, and [ details ] alone under it (R156, FR-PHONE-12); the rest hidden', async () => {
     ready();
     const { container } = render(<Folded />);
     expect(screen.getByTestId('location-summary')).toHaveTextContent('Cipolletti (−38.93, −67.99)');
     expect(screen.getByTestId('location-summary').parentElement).toContainElement(screen.getByTestId('location-summary-change'));
     const status = screen.getByTestId('where-status');
-    expect(status).toHaveTextContent(/^Ready offline · elements 4 d old/);
+    expect(status).toHaveTextContent(/^details$/);
+    expect(status).toHaveAttribute('data-state', 'ready');
     expect(status).not.toHaveAttribute('data-fault');
     const details = screen.getByTestId('where-details');
     expect(status).toContainElement(details);
@@ -222,11 +223,22 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     expect(screen.getByTestId('group')).toBeVisible();
   });
 
-  it('Spanish: the status line in Spanish', () => {
+  it('Spanish: [ detalles ] alone', () => {
     ready();
     render(<Folded locale="es" />);
-    expect(screen.getByTestId('where-status')).toHaveTextContent(/^Listo sin red · elementos de 4 d/);
+    expect(screen.getByTestId('where-status')).toHaveTextContent(/^detalles$/);
     expect(screen.getByTestId('where-details')).toHaveTextContent('detalles');
+  });
+
+  it('before the readiness answers, [ details ] alone and pending, never a fault', () => {
+    act(() => {
+      appStore.setState({ observer, elements: fresh, passes: { ...initial.passes, status: 'computing', observer } });
+    });
+    render(<Folded />);
+    const status = screen.getByTestId('where-status');
+    expect(status).toHaveTextContent(/^details$/);
+    expect(status).toHaveAttribute('data-state', 'pending');
+    expect(status).not.toHaveAttribute('data-fault');
   });
 
   it('a not-ready state takes the line whole', () => {

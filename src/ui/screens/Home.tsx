@@ -53,8 +53,8 @@ import { WhenStep } from './home/WhenStep';
  * same components in the same order, without the dome.
  *
  * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): the three doors (`HomeDoors`)
- * stand under the Where reading on compact and in one row over the panes on
- * wide; the next event and the When pane's stars line are theirs now, and the
+ * stand over the Where reading on compact (R156, FR-PHONE-12, D-972) and in one
+ * row over the panes on wide; the next event and the When pane's stars line are theirs now, and the
  * Where pane's dome is gone, whose job the Both door does. On compact the Where
  * reading is two lines, the rest behind `[ details ]` (`WherePlace`'s `folded`).
  *
@@ -499,14 +499,15 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
     );
   }
   const ghosts = observer === null && mode === 'wide';
-  // R130 (FR-FLOW-1, D-843): the three doors — under the Where reading on compact, one row over the panes on wide.
+  // R130 (FR-FLOW-1, D-843): the three doors — one row over the panes on wide. R156 (FR-PHONE-12, D-972): on compact
+  // they come first too, before the Where reading, so the phone opens on the three ways in.
   const doors = observer && <HomeDoors observer={observer} selectedPassId={selectedPassId} {...(mode === 'wide' ? { className: styles.doors } : {})} />;
   return (
     <>
       {mode === 'wide' && doors}
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} />
         {mode !== 'wide' && doors}
+        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} />
         {ghosts && <GhostWhen />}
         {observer && <WhenReading observer={observer} MoonLore={MoonLore} selectedPassId={selectedPassId} />}
       </div>

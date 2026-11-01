@@ -1,6 +1,6 @@
 import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
-import { degrees } from '../../../lib/format';
+import { degrees, formatTimesRow } from '../../../lib/format';
 import { formatClock } from '../../../lib/timeFormat';
 import type { Pass } from '../../../model';
 import styles from './TimesRow.module.css';
@@ -17,14 +17,27 @@ import styles from './TimesRow.module.css';
 export interface TimesRowProps {
   pass: Pass;
   timeZone: string | null;
+  /**
+   * R156 (FR-PHONE-14, D-972): the compact form — one line at `--small`, "07:20 → 07:23 at 48° NNE → 07:27", within
+   * `DETAIL_TIMES_CELLS` (`formatTimesRow`), with no zone: the head's date line says it once. Wide keeps the cells.
+   */
+  compact?: boolean;
 }
 
 const CELLS = ['start', 'peak', 'end'] as const;
 const WORD = { start: 'rise', peak: 'peak', end: 'set' } as const;
 
-export function TimesRow({ pass, timeZone }: TimesRowProps) {
+export function TimesRow({ pass, timeZone, compact = false }: TimesRowProps) {
   const t = useT();
   const locale = useLocale();
+  if (compact) {
+    return (
+      // A group named as the cells' row is, so a screen reader says what the three times are before it reads them.
+      <p role="group" aria-label={t.countdown.steps} className={styles.line} data-testid="pass-times" data-form="row">
+        {formatTimesRow(pass, timeZone, locale, t.countdown.row)}
+      </p>
+    );
+  }
   return (
     <dl className={styles.row} data-testid="pass-times" aria-label={t.countdown.steps}>
       {CELLS.map((key) => (

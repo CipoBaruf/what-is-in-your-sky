@@ -18,6 +18,7 @@ import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
+import { themeAt } from './styles/theme';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -123,6 +124,16 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     expect(appStore.getState().theme).toBe('night');
     await userEvent.keyboard('n');
     expect(appStore.getState().theme).toBe('dark');
+  });
+
+  it('from Auto, n goes to the palette the screen is not showing (R156, D-979)', async () => {
+    withPasses();
+    appStore.setState({ theme: 'auto' });
+    render(<App />);
+    // Whatever the real clock makes of Auto at this place, the key swaps what is shown rather than landing on it again.
+    const shown = themeAt('auto', appStore.getState().observer, Date.now());
+    await userEvent.keyboard('n');
+    expect(appStore.getState().theme).toBe(shown === 'night' ? 'dark' : 'night');
   });
 
   it('opens the overlay with ?, makes the page behind it inert, and closes it with Esc', async () => {

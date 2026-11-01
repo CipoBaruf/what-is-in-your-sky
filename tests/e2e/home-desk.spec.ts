@@ -134,7 +134,7 @@ test.describe('FR-HOME-2: the next event is on screen', () => {
         await expect(page.getByTestId('next-event')).toHaveCount(0);
         const satellites = page.getByTestId('door-satellites');
         await expect(satellites).toBeInViewport({ ratio: 1 });
-        const doors = await Promise.all(['door-satellites', 'door-stars', 'door-both'].map((id) => box(page.getByTestId(id))));
+        const doors = await Promise.all(['door-satellites', 'door-stars', 'door-live'].map((id) => box(page.getByTestId(id))));
         const panes = await Promise.all(['reading-where', 'reading-when', 'list-column'].map((id) => box(page.getByTestId(id))));
         const top = Math.min(...panes.map((pane) => pane.y));
         for (const door of doors) {

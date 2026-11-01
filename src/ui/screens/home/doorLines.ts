@@ -33,7 +33,7 @@ export interface DoorSky {
   /** The brightest star or planet drawn above 0° now, named; `null` with nothing drawn (the Sun up). */
   brightest: { name: string; dir: CompassPoint } | null;
   moon: MoonNow | null;
-  /** The next event's pass's landmark (FR-SKY-11): the worded line, and the star alone for the Both door. */
+  /** The next event's pass's landmark (FR-SKY-11): the worded line, and the star alone for the Live sky door. */
   landmark: { line: string | null; star: { name: string; word: 'above' | 'below' | 'beside' } | null } | null;
 }
 
@@ -70,7 +70,8 @@ export interface Doors {
   /** `passId` is the next event's pass, whose detail the door opens; `null` opens the What reading in place. */
   satellites: Door & { passId: string | null };
   stars: Door;
-  both: Door;
+  /** R156 (FR-PHONE-13): "Live sky", its fixed line, then the state line; wide adds the hint. */
+  live: Door;
 }
 
 /** `text` with `name` cut (an ellipsis) until the line is within `DOOR_CELLS`; a line that fits is returned whole. */
@@ -119,18 +120,19 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
   const stars: Door = { title: words.stars.title, lines: [darkLine, brightLine], ...(moonLine === undefined ? {} : { wide: moonLine }) };
 
   const up = passes.filter((pass) => pass.start.t <= now && now < pass.end.t);
-  let bothLine: string;
+  let stateLine: string;
   if (up.length > 0) {
     // The landmark is the next event's pass's, so it is named only while that pass is one of those up.
     const highlightedUp = !isNoEvent(result) && result.kind !== 'rise';
     const star = highlightedUp ? (sky?.landmark?.star ?? null) : null;
-    const plain = words.both.up({ count: up.length, star: null });
-    const named = star === null ? plain : words.both.up({ count: up.length, star });
-    bothLine = [...named].length <= DOOR_CELLS ? named : plain;
+    const plain = words.live.up({ count: up.length, star: null });
+    const named = star === null ? plain : words.live.up({ count: up.length, star });
+    stateLine = [...named].length <= DOOR_CELLS ? named : plain;
   } else {
-    bothLine = !isNoEvent(result) && result.kind === 'rise' ? words.both.nothingNext(clock(result.at, true)) : words.both.nothing;
+    stateLine = !isNoEvent(result) && result.kind === 'rise' ? words.live.nothingNext(clock(result.at, true)) : words.live.nothing;
   }
-  const both: Door = { title: words.both.title, lines: [bothLine], wide: words.both.hint };
+  // R156 (FR-PHONE-13, D-972): the door's own fixed line first, so the name says what the page holds before the state does.
+  const live: Door = { title: words.live.title, lines: [words.live.line, stateLine], wide: words.live.hint };
 
-  return { satellites, stars, both };
+  return { satellites, stars, live };
 }

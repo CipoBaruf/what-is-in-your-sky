@@ -47,7 +47,7 @@ describe('<ThemeToggle>', () => {
     );
     const group = screen.getByRole('group', { name: 'Tema' });
     expect(within(group).getByRole('button', { name: 'Oscuro' })).toBeInTheDocument();
-    expect(within(group).getByRole('button', { name: 'Nocturno' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Noche' })).toBeInTheDocument();
   });
 });
 

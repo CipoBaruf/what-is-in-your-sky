@@ -30,8 +30,12 @@ import { resolve } from 'node:path';
  * commits were authored by that identity. The owner chose to move the line
  * rather than rewrite `main` (D-372): that commit joins the history FR-PUB-7
  * reports, and every commit after it is checked as before.
+ *
+ * Moved again on 2026-11-01, on the owner's answer during R156, to the squash merge of PR #238 (`668be0d`, SPEC
+ * v2.10), to which GitHub added the same trailer for the same reason. As before, that commit joins the reported
+ * history, and every open pull request after it is checked as before.
  */
-export const BASELINE = '3492466';
+export const BASELINE = '668be0d';
 
 /**
  * The trailers that may not appear. All three are the shapes an agent adds to

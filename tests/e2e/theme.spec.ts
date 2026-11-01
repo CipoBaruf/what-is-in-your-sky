@@ -9,7 +9,10 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { sunAltitudeDeg } from '../../src/physics/sun';
+import { THEME_AUTO_SUN_DEG } from '../../src/ui/styles/theme';
 import { withSettings } from './liveHelpers';
+import { NEUQUEN as NEUQUEN_OBSERVER } from './observers';
 
 interface HaFixture {
   capturedAt: string;
@@ -170,7 +173,7 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
   await page.screenshot({ path: 'test-results/r20-passes-390-dark-es.png', fullPage: true });
 
   await withSettings(page, async () => {
-    await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Nocturno' }).click();
+    await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Noche' }).click();
   });
   await expect(html).toHaveCSS('background-color', NIGHT_BG);
   await page.screenshot({ path: 'test-results/r20-passes-390-night-es.png', fullPage: true });
@@ -185,4 +188,37 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
   });
   await expect(html).toHaveCSS('background-color', DARK_BG);
   await page.screenshot({ path: 'test-results/r20-passes-390-dark-en.png', fullPage: true });
+});
+
+/**
+ * R156 (FR-PHONE-15, US-48 AC4): Auto follows the Sun at the saved place. An evening open a minute before civil dusk
+ * in Neuquén is dark, and the shell's tick turns it red without a reload once the Sun is below
+ * `THEME_AUTO_SUN_DEG`; a reload after dusk paints no dark frame first, since `auto` resolves before first paint.
+ */
+test('Auto turns the page red at civil dusk on the tick, and an evening reload paints no dark frame first', async ({ page }) => {
+  // The first 10 s step after 2026-11-01 21:00 UTC (18:00 in Neuquén) at which the Sun is below −6° there.
+  let dusk = Date.UTC(2026, 10, 1, 21, 0, 0);
+  while (sunAltitudeDeg(NEUQUEN_OBSERVER, dusk) >= THEME_AUTO_SUN_DEG) dusk += 10_000;
+  await page.route('https://celestrak.org/**', (route) => route.abort('failed'));
+  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
+  await page.clock.install({ time: dusk - 60_000 });
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    },
+    ['wiys:prefs:v1', JSON.stringify({ observer: NEUQUEN_OBSERVER, theme: 'auto', locale: 'en' })] as [string, string],
+  );
+  await page.goto('/');
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await page.clock.runFor(90_000);
+  await expect(html).toHaveAttribute('data-theme', 'night');
+  await expect(html).toHaveCSS('background-color', NIGHT_BG);
+
+  await recordFirstFrames(page);
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'night');
+  const frames = await firstFrames(page);
+  expect(frames.at(-1)?.theme).toBe('night');
+  for (const frame of frames) expect(frame.background).not.toBe(DARK_BG);
 });
