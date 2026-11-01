@@ -711,15 +711,12 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const tint: TintStep = tintStep(field.positions.sunAltDeg);
 
   // FR-LOOK-8 as amended (D-983): the deep chunk, once, on idle, the first time the field draws stars at 75° or under.
-  const [deep, setDeep] = useState<DeepCatalog | null>(() => deepLoaded ?? null);
+  const [fetched, setDeep] = useState<DeepCatalog | null>(() => deepLoaded ?? null);
   const wantsDeep = field.layers.stars && deepWanted(view.fovDeg);
+  // A chunk another field on the page loaded (or this one's earlier life) is taken at the render that wants it, not on the next idle.
+  const deep = fetched ?? (wantsDeep ? (deepLoaded ?? null) : null);
   useEffect(() => {
     if (deep !== null || !wantsDeep) return;
-    // Another field on the page (or this one's earlier life) has it already: take it now, not on the next idle.
-    if (deepLoaded !== undefined) {
-      setDeep(deepLoaded);
-      return;
-    }
     let live = true;
     const cancel = whenIdle(() => {
       void loadDeepChunk().then(
