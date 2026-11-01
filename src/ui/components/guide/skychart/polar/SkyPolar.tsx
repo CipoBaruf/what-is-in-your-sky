@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { useAppStore } from '../../../../../state';
 import { useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -9,7 +9,7 @@ import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
-import { landmarkFor } from '../layers';
+import { drawsLayer, landmarkFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
@@ -40,7 +40,9 @@ const ORIENTATIONS: readonly ChartOrientation[] = ['looking-up', 'map'];
 /** The horizon radius in user units; the viewBox leaves room for the labels outside it. */
 export const HORIZON_R = 100;
 const LABEL_R = 114;
-const VIEWBOX = '-125 -125 250 250';
+/** Half the viewBox's side, user units: room for the labels outside the horizon. */
+const VIEW_HALF = 125;
+const VIEWBOX = `${String(-VIEW_HALF)} ${String(-VIEW_HALF)} ${String(2 * VIEW_HALF)} ${String(2 * VIEW_HALF)}`;
 /** Resampling step along each arc (PLAN §8.3). */
 const ARC_STEP_DEG = 2;
 const CARDINALS: readonly { label: string; azDeg: number }[] = [
@@ -71,6 +73,16 @@ const at = ({ x, y }: Xy): string => `translate(${fmt(x)} ${fmt(y)})`;
  * the ink offsets stay out of `main`, shared with the window's chunk.
  */
 const PolarStars = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarStars })));
+/**
+ * R158 (FR-LOOK-1, FR-LOOK-7, FR-PHONE-9; D-968, D-969, D-988): the surface and the band, the Moon's disc and the
+ * window's field are the same chunk's, so the window's pure modules they draw with stay out of `main`. The Moon
+ * draws FR-DOME-6's marker until the chunk lands, so a chart that has no stars yet still shows where it is.
+ */
+const PolarSky = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarSky })));
+const PolarMoon = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarMoon })));
+const PolarFieldOutline = lazy(() => import('./PolarStars').then((module) => ({ default: module.PolarFieldOutline })));
+/** The cardinal letters' size, user units (the sheet's `.cardinal`). */
+const CARDINAL_PX = 12;
 const LABEL_GAP = 10;
 const LABEL_HEIGHT = 8;
 /** Label text is 9 px monospace in user units: about 0.6 em per character; labels must end inside the viewBox. */
@@ -291,11 +303,26 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, className }: SkyChartProps) {
+export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
   const field = scene?.stars;
+  /*
+   * R158 (FR-PHONE-9, D-969, D-988): the window's field is outlined wherever the page has a camera — the one it
+   * passes, or the hand camera the window left in the chart's slot — and is absent where it has none.
+   */
+  const fieldCamera = drawsLayer('polar', 'fieldOutline') ? (camera?.source === 'hand' ? camera : (hand?.get() ?? null)) : null;
+  /** D-755 (R158): the compass letters' boxes, the names' first obstacles, in user units — the letters are centred on their point. */
+  const compass = useMemo(
+    () =>
+      CARDINALS.map(({ label, azDeg }) => {
+        const p = project({ azDeg, elDeg: 0 }, orientation, LABEL_R);
+        const w = label.length * 0.6 * CARDINAL_PX;
+        return { x0: p.x - w / 2, y0: p.y - CARDINAL_PX / 2, x1: p.x + w / 2, y1: p.y + CARDINAL_PX / 2 };
+      }),
+    [orientation],
+  );
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
   /*
    * R132 (FR-FLOW-4, D-842): inside a `SkyViewLayout` the convention line is the page's `readout` slot's and the
@@ -331,12 +358,31 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         status={readoutSlot.inLayout ? null : convention}
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
+        {/* R158 (FR-LOOK-1, FR-LOOK-2): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
+        {field && drawsLayer('polar', 'surface') && (
+          <Suspense fallback={null}>
+            <PolarSky positions={field.positions} project={project} />
+          </Suspense>
+        )}
         {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
         {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
-        {/* FR-SKY-1, FR-SKY-4: the stars and the planets under the grid and the arcs, in SVG order. */}
+        {/* FR-SKY-1, FR-SKY-4, FR-PHONE-8: the star layer whole under the grid and the arcs, in SVG order. */}
         {field && (
           <Suspense fallback={null}>
-            <PolarStars catalog={field.catalog} positions={field.positions} stars={field.layers.stars} planets={field.layers.planets} orientation={orientation} project={project} at={at} landmark={landmarkFor('polar', scene)} />
+            <PolarStars
+              catalog={field.catalog}
+              positions={field.positions}
+              stars={field.layers.stars}
+              figures={field.layers.figures}
+              planets={field.layers.planets}
+              names={field.layers.names}
+              orientation={orientation}
+              project={project}
+              compass={compass}
+              half={VIEW_HALF}
+              horizonR={HORIZON_R}
+              landmark={landmarkFor('polar', scene)}
+            />
           </Suspense>
         )}
         <circle className={styles.horizon} r={HORIZON_R} />
@@ -356,6 +402,12 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
             </text>
           );
         })}
+        {/* R158 (FR-PHONE-9): the window's field, over the stars and under the arcs. */}
+        {fieldCamera && (
+          <Suspense fallback={null}>
+            <PolarFieldOutline camera={fieldCamera} orientation={orientation} project={project} />
+          </Suspense>
+        )}
         {passes.map((pass, index) => (
           <PassArc
             key={pass.id}
@@ -373,7 +425,16 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
           <HiddenPoint key={marker.id} marker={marker} orientation={orientation} legendKey={legendKeys[marker.id]} />
         ))}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
-        {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} />}
+        {/* R158 (FR-LOOK-7): with its phase, by the table; FR-DOME-6's marker until the chunk lands. */}
+        {moon &&
+          moonVisible(moon) &&
+          (drawsLayer('polar', 'moonDisc') ? (
+            <Suspense fallback={<MoonMarker moon={moon} orientation={orientation} />}>
+              <PolarMoon moon={moon} sun={sun ?? undefined} orientation={orientation} project={project} />
+            </Suspense>
+          ) : (
+            <MoonMarker moon={moon} orientation={orientation} />
+          ))}
       </svg>
       </ChartFrame>
     </div>
