@@ -10,9 +10,16 @@
  * back and turns the toggle off, that the refusal line reads in the page's language, and that nothing opens a sky
  * screen any more (FR-GYRO-6). It replaces `sky-screen.spec.ts` and `stars-screen.spec.ts`.
  *
+ * R159 (FR-PHONE-1, FR-PHONE-2; US-45 AC1, AC2; D-962, D-963, D-986, D-987): following by default, at both sizes in
+ * both languages on the three pages — with no request (`stubOrientation`'s `request: false`) the page follows from
+ * load with no tap, and a drag ends it; with a saved grant nothing is asked at load and the first touch on the sky
+ * asks once and follows; a refusal there leaves it off with the line and clears the grant. The cases above, which
+ * tap the toggle on a first visit, are an iPhone's first visit: the stub's request is there and nothing is saved.
+ *
  *   npx playwright test follow --project=chromium
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { FULL_OVERLAY_MAX_SHARE } from '../../src/lib/layout';
 import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { aimedAt, orientationAsks, setReadings, stubOrientation } from './orientation';
@@ -36,14 +43,14 @@ const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 
 /** A reader with a place and no stored run, which is all the stars page needs (`flowPages.ts`'s seed). */
-async function seedReader(page: Page, locale: Locale): Promise<void> {
+async function seedReader(page: Page, locale: Locale, prefs: Record<string, unknown> = {}): Promise<void> {
   await page.clock.setFixedTime(NINE_DAYS_ON);
   for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
   await page.addInitScript(
     ([key, value]: [string, string]) => {
       if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
     },
-    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN })] as [string, string],
+    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN, ...prefs })] as [string, string],
   );
 }
 
@@ -253,3 +260,145 @@ test.describe('the refusal and the finger, at 390 × 844', () => {
     });
   }
 });
+
+/**
+ * R159: each page as a reader opens it, the sheet closed, the card answered, `prefs` merged into the seed, the dome the
+ * saved view. Returns the page's layout and the element a touch on the sky lands on.
+ */
+async function openPlain(page: Page, which: Which, locale: Locale, prefs: Record<string, unknown> = {}): Promise<{ root: Locator; sky: Locator }> {
+  switch (which) {
+    case 'live': {
+      await seedStoredRun(page, { locale, settled: true, prefs: { chartView: 'dome', ...prefs } });
+      await page.goto('/#live');
+      await page.reload();
+      const root = page.getByTestId('live-layout');
+      await expect(root).toBeVisible({ timeout: 30_000 });
+      await expect(root.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      const card = page.getByTestId('live-card');
+      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+      return { root, sky: root.getByTestId('sky-chart') };
+    }
+    case 'stars': {
+      await seedReader(page, locale, prefs);
+      await page.goto('/#stars');
+      const root = page.getByTestId('stars-layout');
+      await expect(root.locator('[data-drawing="window"]')).toBeAttached();
+      return { root, sky: page.getByTestId('stars-sky') };
+    }
+    case 'detail': {
+      await seedStoredRun(page, { locale, settled: true, prefs: { chartView: 'dome', ...prefs } });
+      await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
+      const root = page.getByTestId('pass-layout');
+      await expect(root.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      return { root, sky: root.locator('[data-slot="drawing"]') };
+    }
+  }
+}
+
+/** One touch, a tap, on the sky's middle — a fifth of the way down on the live page, clear of the head and the bottom row. */
+async function touchSky(page: Page, which: Which, sky: Locator): Promise<void> {
+  await sky.scrollIntoViewIfNeeded();
+  const rect = (await sky.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+  await page.touchscreen.tap(rect.x + rect.width / 2, rect.y + rect.height * (which === 'live' ? 0.35 : 0.5));
+}
+
+/** The control a page shows the state on with the sheet closed: the overlay's `[ follow ]` on the live page, the toggle elsewhere. */
+const shownBy = (root: Locator, which: Which): Locator => root.getByTestId(which === 'live' ? 'live-follow-control' : 'follow-toggle');
+
+const grantSaved = async (page: Page): Promise<unknown> => (JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { followGranted?: unknown }).followGranted;
+
+for (const size of SIZES) {
+  for (const locale of LOCALES) {
+    test.describe(`following by default at ${String(size.width)} × ${String(size.height)}, ${locale} (R159)`, () => {
+      test.use({ viewport: { width: size.width, height: size.height }, hasTouch: true });
+
+      for (const which of PAGES) {
+        /** FR-PHONE-1 (US-45 AC1): no request, no tap — the page follows from load, and a drag hands the sky to the finger. */
+        test(`${which}: with no request it follows from load with no tap, the saved view untouched, and a drag ends it (FR-PHONE-1, FR-GYRO-4)`, async ({ page }) => {
+          await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)], request: false });
+          const { root } = await openPlain(page, which, locale);
+          const control = shownBy(root, which);
+          await expect(control).toHaveAttribute('aria-pressed', 'true');
+          const w = windowRoot(root);
+          await expect(w).toHaveAttribute('data-follow', 'true', { timeout: 15_000 });
+          await settledOn(w, 90, 30);
+          if (which !== 'stars') {
+            await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+            expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
+          }
+          expect(await grantSaved(page)).toBeUndefined();
+          await expect(page.getByTestId('window-readout')).toHaveCount(0);
+          await expect(page.getByTestId('sky-corner-readout')).toHaveCount(0);
+
+          const box = root.locator('[data-follow="true"] [tabindex="0"]');
+          await box.scrollIntoViewIfNeeded();
+          const rect = (await box.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+          const y = rect.y + rect.height * (which === 'live' ? 0.35 : 0.5);
+          const x = rect.x + rect.width / 2 - 30;
+          await page.mouse.move(x, y);
+          await page.mouse.down();
+          await page.mouse.move(x + 60, y, { steps: 4 });
+          await page.mouse.up();
+          await expect(control).toHaveAttribute('aria-pressed', 'false');
+          await expect(w).not.toHaveAttribute('data-follow', 'true');
+          await expect(w).toHaveAttribute('data-state', 'hand');
+        });
+
+        /** FR-PHONE-2 (US-45 AC2): a saved grant — nothing asked at load, one request inside the first touch, following after. */
+        test(`${which}: with a saved grant it asks nothing at load, asks once inside the first touch on the sky, and follows (FR-PHONE-2)`, async ({ page }) => {
+          await stubOrientation(page, { answer: 'granted', readings: [aimedAt(200, 40)] });
+          const { root, sky } = await openPlain(page, which, locale, { followGranted: true });
+          const control = shownBy(root, which);
+          await expect(control).toHaveAttribute('aria-pressed', 'false');
+          expect(await orientationAsks(page)).toBe(0);
+          await touchSky(page, which, sky);
+          await expect(control).toHaveAttribute('aria-pressed', 'true');
+          expect(await orientationAsks(page)).toBe(1);
+          const w = windowRoot(root);
+          await expect(w).toHaveAttribute('data-follow', 'true', { timeout: 15_000 });
+          await settledOn(w, 200, 40);
+          // A second touch asks nothing: the listener went with its one use.
+          await touchSky(page, which, sky);
+          expect(await orientationAsks(page)).toBe(1);
+          expect(await grantSaved(page)).toBe(true);
+        });
+
+        /** FR-PHONE-2, FR-GYRO-3: refused on the first touch — off, the one line, the grant cleared, the finger keeps the sky. */
+        test(`${which}: a refusal on the first touch leaves it off with the line and clears the saved grant (FR-PHONE-2, FR-GYRO-3)`, async ({ page }) => {
+          await stubOrientation(page, { answer: 'denied', readings: [aimedAt(200, 40)] });
+          const { root, sky } = await openPlain(page, which, locale, { followGranted: true });
+          await touchSky(page, which, sky);
+          await expect.poll(() => grantSaved(page)).toBeUndefined();
+          expect(await orientationAsks(page)).toBe(1);
+          const control = shownBy(root, which);
+          await expect(control).toHaveAttribute('aria-pressed', 'false');
+          const line = root.getByTestId(which === 'live' ? 'live-follow-refused' : 'follow-refused');
+          await expect(line).toHaveText(REFUSED[locale]);
+          await expect(line).toHaveAttribute('role', 'status');
+          await expect(line).toBeVisible();
+          // The finger keeps the sky: the stars page's window by hand, the other two on their saved dome.
+          if (which === 'stars') await expect(windowRoot(root)).toHaveAttribute('data-state', 'hand');
+          else await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+          await expect(root.locator('[data-follow="true"]')).toHaveCount(0);
+          if (which === 'live') {
+            // D-987: the line stands on the row above the bottom row, inside the box, and the overlay stays inside its share.
+            const lineBox = (await line.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+            const row = (await page.getByTestId('live-bottom-row').boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+            expect(lineBox.y + lineBox.height).toBeLessThanOrEqual(row.y + 0.5);
+            expect(lineBox.x).toBeGreaterThanOrEqual(0);
+            expect(lineBox.x + lineBox.width).toBeLessThanOrEqual(size.width + 0.5);
+            await expect(page.getByTestId('sky-hint')).toHaveCount(0);
+            // The head, the bottom row, the corner readout's line, and the refusal's rows — the surface is painted behind its words only.
+            const parts = await Promise.all(['live-head', 'live-bottom-row'].map(async (id) => (await page.getByTestId(id).boundingBox()) ?? { width: 0, height: 0 }));
+            const readout = page.getByTestId('sky-corner-readout').locator('p').first();
+            if ((await readout.count()) > 0) parts.push((await readout.boundingBox()) ?? { width: 0, height: 0 });
+            parts.push(...(await line.locator('span').last().evaluate((rows) => [...rows.getClientRects()].map((rect) => ({ width: rect.width, height: rect.height })))));
+            const share = parts.reduce((sum, part) => sum + part.width * part.height, 0) / (size.width * size.height);
+            test.info().annotations.push({ type: 'overlay', description: `${locale} ${String(size.width)}×${String(size.height)} refused: ${share.toFixed(3)} of the box` });
+            expect(share, `the overlay with the refusal covers ${share.toFixed(3)} of the box`).toBeLessThanOrEqual(FULL_OVERLAY_MAX_SHARE);
+          }
+        });
+      }
+    });
+  }
+}

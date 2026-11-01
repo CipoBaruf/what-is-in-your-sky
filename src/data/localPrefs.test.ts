@@ -196,6 +196,19 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ locale: 'es' });
   });
 
+  it('reads the follow grant only when it is true, and as absent when it is false, missing or malformed (R159, FR-PHONE-2, D-962)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', followGranted: true });
+    expect(prefs.read()).toEqual({ theme: 'night', followGranted: true });
+    prefs.write({ followGranted: false });
+    expect(prefs.read()).toEqual({});
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', followGranted: 'yes' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+  });
+
   it('reads at most eight places, newest use first, whatever the stored list says (R26, D-85)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);

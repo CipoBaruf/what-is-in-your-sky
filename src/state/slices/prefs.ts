@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STARS_LAYER, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
+import { DEFAULT_FOLLOW_GRANTED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STARS_LAYER, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -110,6 +110,13 @@ export interface PrefsSlice {
    */
   skyHintSeen: boolean;
   setSkyHintSeen: (skyHintSeen: boolean) => void;
+  /**
+   * R159 (FR-PHONE-2, D-962): the reader once granted the motion request a browser asks for. `useFollow` sets it on
+   * a grant from the toggle or the control and clears it on a refusal; while it is set a page opens following-armed.
+   * Only `true` is stored: clearing it removes the key.
+   */
+  followGranted: boolean;
+  setFollowGranted: (followGranted: boolean) => void;
   /** FR-FOL-2: the one line beside the view control after a refusal or a phone with no north; cleared by the next choice. */
   windowNote: 'denied' | 'relative' | null;
   /** FR-WIN-4: a phone that gives a relative heading only is not offered the window again this session. */
@@ -219,6 +226,12 @@ export const createPrefsSlice =
       setSkyHintSeen: (skyHintSeen) => {
         set({ skyHintSeen });
         deps.prefs.write({ ...deps.prefs.read(), skyHintSeen });
+      },
+      followGranted: deps.prefs.read().followGranted ?? DEFAULT_FOLLOW_GRANTED,
+      setFollowGranted: (followGranted) => {
+        set({ followGranted });
+        const { followGranted: _was, ...rest } = deps.prefs.read();
+        deps.prefs.write(followGranted ? { ...rest, followGranted: true } : rest);
       },
       windowNote: null,
       windowLost: false,

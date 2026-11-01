@@ -1,31 +1,25 @@
 // @vitest-environment jsdom
 /**
  * R151 (FR-GYRO-1, FR-GYRO-3, FR-GYRO-9; US-44 AC1, AC2; PLAN D-943, §9.11): `[ follow the phone ]` — absent without
- * the constructor or without touch points; a grant asks inside the click and calls `onChange(true)`; a refusal (or a
- * throwing request) leaves it off with the one `role="status"` line, which goes on the next click; turning it off
- * asks nothing; and the two lines in both languages.
+ * the constructor or without touch points; a grant asks inside the click and turns it on; a refusal (or a throwing
+ * request) leaves it off with the one `role="status"` line, which goes on the next click; turning it off asks
+ * nothing; and the two lines in both languages. R159 (D-962): the state is the page's `useFollow()`, so the toggle is
+ * tested in a page that holds one, with the overlay's control beside it where they must agree.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
+import { appStore } from '../../../state';
+import { northReading, undoPhone, withPhone as phone, type PhoneAnswer as Answer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
+import { FollowControl } from '../live/FollowControl';
 import { FollowToggle } from './FollowToggle';
+import { useFollow } from './useFollow';
 
-type Answer = 'granted' | 'denied';
-
-/** A touch screen with `DeviceOrientationEvent`, and iOS's request where one is given. */
-function withPhone(requestPermission?: () => Promise<Answer>, touchPoints = 5): void {
-  vi.stubGlobal(
-    'DeviceOrientationEvent',
-    Object.assign(
-      function DeviceOrientationEvent() {
-        return undefined;
-      },
-      requestPermission ? { requestPermission } : {},
-    ),
-  );
-  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: touchPoints });
+/** A phone that, unless `on` asks otherwise, opens with following off: the first visit's rule where a request exists. */
+function withPhone(requestPermission: () => Promise<Answer> = () => Promise.resolve('granted'), touchPoints = 5): void {
+  phone(requestPermission, touchPoints);
 }
 
 const flush = async (): Promise<void> => {
@@ -36,23 +30,53 @@ const flush = async (): Promise<void> => {
   });
 };
 
-function toggle(on: boolean, onChange: (on: boolean) => void, locale: Locale = 'en') {
-  return render(
+/** R159 (D-962): the page's one `useFollow()`, its state reported to `onChange` and handed to the toggle (and, with `both`, the overlay's control). */
+function Page({ onChange, both }: { onChange: (on: boolean) => void; both: boolean }) {
+  const follow = useFollow();
+  onChange(follow.on);
+  return (
+    <>
+      <FollowToggle follow={follow} />
+      {both && <FollowControl follow={follow} />}
+    </>
+  );
+}
+
+/**
+ * The toggle in a page whose state starts at `on`: off is the first visit with a request; on is a phone with no
+ * request (FR-PHONE-1), so tests that start on run where nothing is asked. `onChange` hears each state change.
+ */
+function toggle(on: boolean, onChange: (on: boolean) => void, locale: Locale = 'en', both = false) {
+  if (on) phone(undefined);
+  let last: boolean | null = null;
+  const report = (next: boolean): void => {
+    if (last !== null && next !== last) onChange(next);
+    last = next;
+  };
+  const rendered = render(
     <I18nProvider locale={locale}>
-      <FollowToggle on={on} onChange={onChange} />
+      <Page onChange={report} both={both} />
     </I18nProvider>,
   );
+  // FR-PHONE-1 (D-986): with no request the page follows from the first reading with a north.
+  if (on) {
+    northReading();
+    last = true;
+  }
+  return rendered;
 }
 
 describe('<FollowToggle> (FR-GYRO-1, FR-GYRO-3)', () => {
   beforeEach(() => {
     resetOrientationAccess();
+    appStore.setState({ followGranted: false });
   });
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    undoPhone();
     resetOrientationAccess();
+    localStorage.clear();
+    appStore.setState({ followGranted: false });
   });
 
   it('is absent without the constructor, and without touch points (FR-GYRO-1)', () => {
@@ -90,13 +114,17 @@ describe('<FollowToggle> (FR-GYRO-1, FR-GYRO-3)', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('turns on at once where no request exists (Android)', async () => {
-    withPhone();
+  it('is on at mount where no request exists (Android, FR-PHONE-1), and off and on again asks nothing', async () => {
     const onChange = vi.fn();
-    toggle(false, onChange);
-    fireEvent.click(screen.getByTestId('follow-toggle'));
+    toggle(true, onChange);
+    const button = screen.getByTestId('follow-toggle');
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(button);
+    expect(onChange).toHaveBeenLastCalledWith(false);
+    fireEvent.click(button);
     await flush();
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    expect(button).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('stays off with one status line when refused, and the line goes on the next click (FR-GYRO-3)', async () => {
@@ -131,16 +159,43 @@ describe('<FollowToggle> (FR-GYRO-1, FR-GYRO-3)', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('turns off without asking', () => {
+  it('turns off without asking', async () => {
     const requestPermission = vi.fn<() => Promise<Answer>>().mockResolvedValue('granted');
     withPhone(requestPermission);
     const onChange = vi.fn();
-    toggle(true, onChange);
+    toggle(false, onChange);
     const button = screen.getByTestId('follow-toggle');
+    fireEvent.click(button);
+    await flush();
     expect(button).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(button);
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(false);
-    expect(requestPermission).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith(false);
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+  });
+
+  /** R159 (FR-PHONE-3, D-962, D-987): the toggle and the overlay's control are one state, one press logic and one refusal line. */
+  it('agrees with the overlay’s [ follow ] both ways, and both draw the one refusal until either is pressed again', async () => {
+    const requestPermission = vi.fn<() => Promise<Answer>>().mockResolvedValue('denied');
+    withPhone(requestPermission);
+    toggle(false, vi.fn(), 'en', true);
+    const sheet = screen.getByTestId('follow-toggle');
+    const overlay = screen.getByTestId('live-follow-control');
+    fireEvent.click(overlay);
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+    await flush();
+    expect(screen.getByTestId('follow-refused')).toHaveAttribute('role', 'status');
+    expect(screen.getByTestId('live-follow-refused')).toHaveAttribute('role', 'status');
+    expect(sheet).toHaveAttribute('aria-pressed', 'false');
+    expect(overlay).toHaveAttribute('aria-pressed', 'false');
+    requestPermission.mockResolvedValueOnce('granted');
+    fireEvent.click(sheet);
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
+    await flush();
+    expect(sheet).toHaveAttribute('aria-pressed', 'true');
+    expect(overlay).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(overlay);
+    expect(sheet).toHaveAttribute('aria-pressed', 'false');
+    expect(requestPermission).toHaveBeenCalledTimes(2);
   });
 
   it('says both lines in Spanish (FR-GYRO-9)', async () => {

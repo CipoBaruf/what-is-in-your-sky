@@ -13,6 +13,7 @@
  *   - the two inert states, and the two ways back.
  */
 import { readFileSync } from 'node:fs';
+import { createRoot } from 'react-dom/client';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -151,6 +152,8 @@ describe('<LivePage>', () => {
     media = null;
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    // R159 (FR-PHONE-1): jsdom defines `DeviceOrientationEvent`, so touch points left behind would open the next page following.
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     setLiveNowClient(null);
     appStore.setState(initial, true);
     window.localStorage.clear();
@@ -471,9 +474,17 @@ describe('<LivePage>', () => {
    */
   it('offers all three views in the control on a phone, and draws the one the reader picked (FR-FSC-6 as amended v1.3.1)', () => {
     withSky();
-    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
-      return undefined;
-    });
+    // R159 (FR-PHONE-1): a phone with no request opens following, on the window; this is an iPhone's first visit,
+    // which asks before it follows and so opens on the saved view.
+    vi.stubGlobal(
+      'DeviceOrientationEvent',
+      Object.assign(
+        function DeviceOrientationEvent() {
+          return undefined;
+        },
+        { requestPermission: () => Promise.resolve('granted') },
+      ),
+    );
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
     appStore.getState().setChartView('dome');
     try {
@@ -872,9 +883,24 @@ describe('<LivePage>', () => {
   describe('the window in the box across the page’s charts (FR-SKY-2, D-789)', () => {
     const handBox = (): HTMLElement => document.querySelector<HTMLElement>('[data-state="hand"] [tabindex="0"]') as HTMLElement;
     const lookAz = (): string | null => document.querySelector('[data-look-az]')?.getAttribute('data-look-az') ?? null;
+    /*
+     * R159 (D-986): drawn, and its commit finished. The window is `SkyChart`'s lazy chunk, so it commits when the import
+     * resolves — outside `act`, inside `waitFor` — and that commit's passive effects, `useSyncExternalStore`'s
+     * subscription to the page's hand camera among them, wait for the scheduler's next task. Under load that task came
+     * after the test's next key, which moved a camera nobody listened to yet; the subscription then read the store and
+     * drew the step late, so `turned` was read one step behind. React runs pending passive effects before any render
+     * inside `act`, so an empty probe root rendered here runs them now.
+     */
     const windowDrawn = async (): Promise<void> => {
       await waitFor(() => {
         expect(document.querySelector('[data-drawing="window"]')).not.toBeNull();
+      });
+      const probe = createRoot(document.createElement('div'));
+      act(() => {
+        probe.render(null);
+      });
+      act(() => {
+        probe.unmount();
       });
     };
 
@@ -1803,6 +1829,7 @@ describe('<LivePage>', () => {
     afterEach(() => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
       resetOrientationAccess();
+      appStore.getState().setFollowGranted(false);
     });
 
     it('stands in the sheet as its own row after the view row on a phone, and nowhere without the sensor (FR-GYRO-1, FR-GYRO-6)', () => {
@@ -1815,7 +1842,8 @@ describe('<LivePage>', () => {
       expect(screen.queryByTestId('sky-screen')).toBeNull();
       unmount();
 
-      withPhone();
+      // An iPhone's first visit: off until asked (FR-PHONE-2), so the facing row stands too.
+      withPhone(() => Promise.resolve('granted'));
       render(<LivePage link={null} onLeave={() => undefined} />);
       const body = screen.getByTestId('sheet-body');
       expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites']);
@@ -2016,8 +2044,8 @@ describe('<LivePage>', () => {
       media = stubMatchMedia(390, 844);
       scriptedFrames();
       render(<LivePage link={null} onLeave={() => undefined} />);
-      fireEvent.click(toggle());
-      await flush();
+      // R159 (FR-PHONE-1, D-986): where nothing has to be asked the page follows from the first reading; no tap.
+      reading(90, 30);
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
       await windowDrawn();
       const box = document.querySelector('[data-follow="true"] [tabindex="0"]') as HTMLElement;
@@ -2031,6 +2059,102 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('sky-chart')).not.toHaveAttribute('data-follow');
       fireEvent.pointerUp(box, { pointerId: 1, clientX: 140, clientY: 100 });
       expect(windowRoot()).toHaveAttribute('data-state', 'hand');
+    });
+    /**
+     * R159 (FR-PHONE-1, FR-PHONE-2; US-45 AC1, AC2; D-962, D-963, D-986, D-987): following by default. Where nothing has
+     * to be asked the page opens following, the card of FR-FULL-10 standing over a sky that already follows; with a
+     * saved grant the first touch on the sky asks, once, and follows; a refusal there clears the grant, leaves the
+     * finger the sky, and puts the one line under the sheet's toggle and beside the overlay's control.
+     */
+    it('opens following where nothing is asked, the card standing over the sky, the view not written (FR-PHONE-1, FR-FULL-10)', async () => {
+      withPhone();
+      withSky([later, tomorrow]);
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('dome');
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-card')).toHaveAttribute('data-kind', 'ask');
+      // D-986: from the first reading with a north.
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      reading(90, 30);
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-follow', 'true');
+      await windowDrawn();
+      expect(appStore.getState().chartView).toBe('dome');
+      expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+    });
+
+    it('with a saved grant asks nothing at load, asks once inside the first touch on the sky, and follows (FR-PHONE-2)', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('window');
+        appStore.getState().setFollowGranted(true);
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(requestPermission).not.toHaveBeenCalled();
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      const sky = screen.getByTestId('sky-chart');
+      fireEvent.pointerDown(sky, { pointerId: 1, pointerType: 'touch' });
+      // D-986: the request is the lift's, WebKit's activating moment for a touch.
+      expect(requestPermission).not.toHaveBeenCalled();
+      fireEvent.pointerUp(sky, { pointerId: 1, pointerType: 'touch' });
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(sky).toHaveAttribute('data-follow', 'true');
+      // The listener went with its one use: a second touch asks nothing.
+      fireEvent.pointerDown(sky, { pointerId: 2, pointerType: 'touch' });
+      fireEvent.pointerUp(sky, { pointerId: 2, pointerType: 'touch' });
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      expect(appStore.getState().followGranted).toBe(true);
+    });
+
+    it('a refusal on the first touch clears the grant, keeps the finger, and draws the one line under the toggle and beside [ follow ] (FR-PHONE-2, FR-GYRO-3)', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('denied');
+      withPhone(requestPermission);
+      withSky();
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('window');
+        appStore.getState().setFollowGranted(true);
+        appStore.getState().setSkyHintSeen(false);
+      });
+      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+      const overlay = container.querySelector('[data-slot="overlay"]') as HTMLElement;
+      // A hint that is not marked seen by the touch itself: the page's own camera (D-848) marks it on the window's gesture.
+      const sky = screen.getByTestId('sky-chart');
+      fireEvent.pointerDown(sky, { pointerId: 1, pointerType: 'touch' });
+      fireEvent.pointerUp(sky, { pointerId: 1, pointerType: 'touch' });
+      await flush();
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      expect(appStore.getState().followGranted).toBe(false);
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).not.toHaveProperty('followGranted');
+      expect(sky).not.toHaveAttribute('data-follow');
+      expect(within(screen.getByTestId('live-follow')).getByTestId('follow-refused')).toHaveTextContent(en.window.followRefused);
+      const line = within(screen.getByTestId('live-bottom-row')).getByTestId('live-follow-refused');
+      expect(line).toHaveAttribute('role', 'status');
+      expect(line).toHaveTextContent(en.window.followRefused);
+      // D-987: the line takes the hint's row, so the hint steps aside while it stands.
+      expect(within(overlay).queryByTestId('sky-hint')).toBeNull();
+      // With the sheet open the toggle's line is the one drawn: one `role="status"` line in the page at a time.
+      fireEvent.click(screen.getByTestId('live-controls'));
+      expect(screen.queryByTestId('live-follow-refused')).toBeNull();
+      expect(screen.getAllByRole('status').filter((el) => el.textContent === en.window.followRefused)).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('sheet-close'));
+      expect(screen.getByTestId('live-follow-refused')).toBeInTheDocument();
+      // The next press of either control takes it away, and asks again.
+      fireEvent.click(screen.getByTestId('live-follow-control'));
+      expect(screen.queryByTestId('live-follow-refused')).toBeNull();
+      expect(screen.queryByTestId('follow-refused')).toBeNull();
+      expect(requestPermission).toHaveBeenCalledTimes(2);
+      await flush();
     });
   });
 

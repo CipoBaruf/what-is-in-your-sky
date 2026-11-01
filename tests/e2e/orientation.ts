@@ -14,6 +14,7 @@
  * `360 − alpha`) and a compass accuracy of 10°, so it is a reading and not iOS's settling. The timer is the page's
  * `setInterval`, so under `page.clock` the readings arrive as the spec runs the clock. R152: the browser's own
  * (trusted) orientation events are stopped before the app sees them, as `stubCompass` stopped them for the screen.
+ * R159: `request: false` is the phone with no request to make, where the pages follow from load (FR-PHONE-1).
  */
 import type { Page } from '@playwright/test';
 
@@ -32,14 +33,20 @@ export interface OrientationStub {
   readings: readonly OrientationReading[];
   /** The timer's period; 100 ms is iOS Chrome's ten readings a second (R38). */
   intervalMs?: number;
+  /**
+   * R159 (FR-PHONE-1): `false` is a phone with no motion request (Android): `requestPermission` is taken off the
+   * constructor — this Chromium defines it — and the readings flow from load, as a sensor does where nothing is asked.
+   * `answer` is then unused. Default `true`, iOS's.
+   */
+  request?: boolean;
 }
 
 /** The phone's back toward `azDeg`, `altDeg` up, held upright: the W3C alpha and beta for it. */
 export const aimedAt = (azDeg: number, altDeg: number): OrientationReading => ({ alpha: (360 - azDeg + 360) % 360, beta: 90 + altDeg, gamma: 0 });
 
-export async function stubOrientation(page: Page, { answer, readings, intervalMs = 100 }: OrientationStub): Promise<void> {
+export async function stubOrientation(page: Page, { answer, readings, intervalMs = 100, request = true }: OrientationStub): Promise<void> {
   await page.addInitScript(
-    ({ answer, readings, intervalMs }) => {
+    ({ answer, readings, intervalMs, request }) => {
       const w = window as unknown as Window & { __orientationReadings: OrientationReading[]; __orientationNext: number; __orientationAsks: number; DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } };
       w.__orientationReadings = [...readings];
       w.__orientationNext = 0;
@@ -73,13 +80,18 @@ export async function stubOrientation(page: Page, { answer, readings, intervalMs
         }
         window.dispatchEvent(event);
       };
+      if (!request) {
+        Object.defineProperty(ctor, 'requestPermission', { value: undefined, configurable: true, writable: true });
+        timer = window.setInterval(dispatch, intervalMs);
+        return;
+      }
       ctor.requestPermission = () => {
         w.__orientationAsks += 1;
         if (answer === 'granted' && timer === null) timer = window.setInterval(dispatch, intervalMs);
         return Promise.resolve(answer);
       };
     },
-    { answer, readings: [...readings], intervalMs },
+    { answer, readings: [...readings], intervalMs, request },
   );
 }
 

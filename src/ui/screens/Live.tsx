@@ -45,7 +45,6 @@ import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { TimeTaps } from '../components/live/TimeTaps';
 import { TimeTrack, type TimeTrackProps } from '../components/live/TimeTrack';
-import { orientationApiPresent } from '../components/live/compassHeading';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePageShape } from '../components/live/usePageShape';
 import { usePlayback } from '../components/live/usePlayback';
@@ -56,6 +55,7 @@ import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
 import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
 import { FollowToggle } from '../components/sky/FollowToggle';
+import { useFollow } from '../components/sky/useFollow';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
@@ -142,8 +142,9 @@ import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type 
  * D-943..D-945).** Where the phone has the sensor, `[ follow the phone ]`
  * stands in the sheet after the view row (compact) and in the rail's `View`
  * group (wide); on, the page's own window takes the sensor, and a drag or a
- * box key hands it back (`onFollowEnd`). The state is this page's, off on
- * every visit. The sky screen the view control used to open is gone, with the
+ * box key hands it back (`onFollowEnd`). The state is this page's
+ * `useFollow()` (R159, FR-PHONE-1, FR-PHONE-2): on at mount where nothing has
+ * to be asked, armed by a saved grant, off otherwise. The sky screen the view control used to open is gone, with the
  * `Esc` step and the inert top row it had.
  */
 export interface LivePageProps {
@@ -493,20 +494,19 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    */
   const chartHand = useChartHand();
   /*
-   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether the page's own window follows the phone. Page
-   * state, off on every visit and never saved; the toggle turns it on after the grant, and the window turns it off
-   * when the finger takes the sky back (`onFollowEnd`). The toggle is drawn only where the sensor is (`sensor`,
-   * FR-WIN-4's presence test, asked once at mount as `FollowToggle` itself asks it), so a page without one has no
-   * row for it at all.
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether the page's own window follows the phone. R159
+   * (FR-PHONE-1, FR-PHONE-2; D-962): the page's `useFollow()` — on at mount where nothing has to be asked, armed by a
+   * saved grant so the first touch on the sky asks (`onFirstTouch`), off otherwise; the sheet's toggle (and wide's)
+   * and the overlay's `[ follow ]` read it and press its `turnOn`/`turnOff`, and the window ends it when the finger
+   * takes the sky back (`onFollowEnd`). The controls are drawn only where the sensor is (`follow.sensor`, FR-WIN-4's
+   * presence test, asked once at mount), so a page without one has no row for them at all.
    */
-  const [following, setFollowing] = useState(false);
-  const endFollow = useCallback(() => {
-    setFollowing(false);
-  }, []);
-  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
-  const followToggle = sensor ? <FollowToggle on={following} onChange={setFollowing} /> : null;
+  const follow = useFollow();
+  const following = follow.on;
+  const sensor = follow.sensor;
+  const followToggle = sensor ? <FollowToggle follow={follow} /> : null;
   // R157 (FR-PHONE-3, D-964): `[ follow ]` before `[ controls ]` on the overlay's bottom row, the same state as the sheet's toggle.
-  const followControl = sensor ? <FollowControl on={following} onChange={setFollowing} /> : null;
+  const followControl = sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null;
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -1053,7 +1053,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     <>
       <SkyViewChartSlot name="control" />
       <StarsToggle {...(compact ? {} : { className: styles.viewEnd })} />
-      {!compact && sensor && <FollowToggle on={following} onChange={setFollowing} className={styles.followWide} />}
+      {!compact && sensor && <FollowToggle follow={follow} className={styles.followWide} />}
     </>
   );
   const list = (
@@ -1100,7 +1100,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             scene={scene}
             facingPassId={highlighted?.id ?? null}
             follow={following}
-            onFollowEnd={endFollow}
+            onFollowEnd={follow.onFollowEnd}
             {...(compact ? {} : { stacked: true, measureBox: true })}
           />
         </LegendInventoryContext.Provider>
@@ -1125,7 +1125,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             <OpeningCard choice={opening} now={now} timeZone={observer.timeZone} onNext={onCardNext} onNow={onCardNow} />
           </div>
         )}
-        {hintLine !== null && (
+        {/* R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint steps aside until the next press. */}
+        {hintLine !== null && !follow.refused && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
             <SkyHint view={hintView} followKey={followKey} fit />
           </div>
@@ -1165,6 +1166,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         fill
         form="full"
         readoutIn="sheet"
+        onFirstTouch={follow.firstTouch}
         drawing={drawing}
         overlay={overlay}
         {...(cornerReadout ? { readout: <SkyViewChartSlot name="readout" /> } : {})}
@@ -1178,6 +1180,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       data-testid="live-layout"
       fill
       readoutIn="row"
+      onFirstTouch={follow.firstTouch}
       pickerOpen={pickerOpen}
       onPickerOpen={setPickerOpen}
       answer={answer}

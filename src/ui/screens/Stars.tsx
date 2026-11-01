@@ -30,10 +30,10 @@ import { HOUR_MS, type Span } from '../../lib/timeStripe';
 import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
-import { orientationApiPresent } from '../components/live/compassHeading';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { FollowToggle } from '../components/sky/FollowToggle';
+import { useFollow } from '../components/sky/useFollow';
 import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './Stars.module.css';
@@ -303,19 +303,18 @@ function StarsSky({ observer }: { observer: Observer }) {
   }, []);
 
   /*
-   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this page's window follows the phone — page state,
-   * off on every open and never saved. The toggle turns it on after the grant; the window turns it off when a drag
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this page's window follows the phone.
+   * R159 (FR-PHONE-1, FR-PHONE-2; D-962): the page's `useFollow()` — on at mount where nothing has to be asked, armed by a
+   * saved grant so the first touch on the sky asks (`onFirstTouch`), off otherwise. The toggle turns it on after the grant; the window turns it off when a drag
    * or a box key takes the sky back (`onFollowEnd`), the hand camera seeded where the phone last pointed. The row is
    * drawn only where the sensor is (FR-WIN-4's presence test, asked once at mount), in the `action` slot where
    * `[ hold up to the sky ]` stood.
    */
-  const [following, setFollowing] = useState(false);
-  const endFollow = useCallback(() => {
-    setFollowing(false);
-  }, []);
+  const follow = useFollow();
+  const following = follow.on;
+  const sensor = follow.sensor;
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
   useWakeLock(following);
-  const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
 
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
@@ -336,7 +335,7 @@ function StarsSky({ observer }: { observer: Observer }) {
    * rows, then `In this field`. On wide the layout is the box and the rail, in the same order; the box is cut here,
    * as before, and written on the layout's root.
    */
-  const action = sensor ? <FollowToggle on={following} onChange={setFollowing} className={styles.follow} /> : null;
+  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
   const layerRows = (
     <section aria-labelledby={layersId} className={styles.block}>
       <SectionHeading id={layersId} visuallyHidden={!wide}>
@@ -368,6 +367,7 @@ function StarsSky({ observer }: { observer: Observer }) {
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <SkyViewLayout
+          onFirstTouch={follow.firstTouch}
           className={styles.skyLayout}
           data-testid="stars-layout"
           answer={<StarsHeading observer={observer} now={now} />}
@@ -376,7 +376,7 @@ function StarsSky({ observer }: { observer: Observer }) {
             // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
             // tap all begin with a pointer down in the box, caught here before the window's own handlers.
             <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
-              <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={endFollow} />
+              <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} />
             </div>
           }
           // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
