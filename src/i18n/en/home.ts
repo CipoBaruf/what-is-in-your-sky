@@ -41,8 +41,10 @@ export const home = {
       /** Wide's third line: the Moon's lit part and its next set, or its next rise while it is down. */
       moon: (p: { pct: string; event: 'sets' | 'rises'; time: string }) => `Moon ${p.pct} % · ${p.event} ${p.time}`,
     },
-    both: {
-      title: 'Both · live sky',
+    /** R156 (FR-PHONE-13, D-972): the third door, renamed from "Both · live sky", with a fixed second line before the state line. */
+    live: {
+      title: 'Live sky',
+      line: 'satellites and stars, now',
       /** `1 up now, beside Mintaka`: the passes up now and the highlighted pass's landmark star. */
       up: (p: { count: number; star: { name: string; word: keyof typeof landmarkWord } | null }) => `${String(p.count)} up now${p.star === null ? '' : `, ${landmarkWord[p.star.word]} ${p.star.name}`}`,
       nothingNext: (time: string) => `Nothing up now · next ${time}`,
@@ -50,11 +52,5 @@ export const home = {
       /** Wide's third line. */
       hint: 'Stars under the arcs, drag to look',
     },
-  },
-  /** FR-FLOW-2 (D-844): the compact Where's second line, when nothing is wrong. */
-  whereFold: {
-    ready: (age: string) => `Ready offline · elements ${age} old`,
-    /** Before the readiness line has an answer, or with no elements loaded yet: the age alone, or nothing. */
-    elements: (age: string) => `Elements ${age} old`,
   },
 };

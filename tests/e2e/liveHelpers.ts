@@ -34,7 +34,7 @@ export const T = golden().start + 10_000;
 
 export const LABEL = {
   en: { coords: 'Coordinates · e.g. -38.93, -67.99', live: 'Live sky', fromNow: 'Watch the sky live', back: '← Back', backCompact: 'Back', theme: 'Theme', night: 'Night', dark: 'Dark', passes: 'Upcoming passes' },
-  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', backCompact: 'Volver', theme: 'Tema', night: 'Nocturno', dark: 'Oscuro', passes: 'Próximos pases' },
+  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', backCompact: 'Volver', theme: 'Tema', night: 'Noche', dark: 'Oscuro', passes: 'Próximos pases' },
 } as const;
 
 /** The pass list's status line once the window has been searched, in either language. */

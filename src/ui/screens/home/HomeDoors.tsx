@@ -15,17 +15,17 @@ import { useDoorSky } from './useDoorSky';
 import { useNight } from './useNight';
 
 /**
- * R130 (FR-FLOW-1, D-843): the home's three doors — Satellites, Stars, Both —
+ * R130 (FR-FLOW-1, D-843): the home's three doors — Satellites, Stars, Live sky (R156, FR-PHONE-13) —
  * in that fixed order, each one link over the whole of a ruled box (`Card`'s
  * `a`), its title in `--fg` and its answer lines at `--small` (`doorLines`).
- * Full width and stacked on compact, under the Where reading; on wide one row
+ * Full width and stacked on compact, over the Where reading (R156, FR-PHONE-12); on wide one row
  * of three equal boxes over the panes, each with one more line.
  *
  * The Satellites door opens the next event's pass (`#pass=<id>`, the hash the
  * cards open), or with no visible pass in the span the What reading: its
  * `#what` is the reading's own id, so a new tab or a copied link lands on it,
  * and a plain click opens it in place — the page scrolls to it and its heading
- * takes the focus, and the hash is not touched. The Stars door opens `#stars`, the Both door `#live`, where the
+ * takes the focus, and the hash is not touched. The Stars door opens `#stars`, the Live sky door `#live`, where the
  * saved `starsLayer` is the live page's own.
  */
 export interface HomeDoorsProps {
@@ -89,7 +89,7 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
       <ul aria-label={t.doors.region} className={styles.list}>
         <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: openWhat } : {})} />
         <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" />
-        <DoorBox door={doors.both} href="#live" wide={wide} testId="door-both" />
+        <DoorBox door={doors.live} href="#live" wide={wide} testId="door-live" />
       </ul>
     </div>
   );

@@ -205,7 +205,7 @@ test('the list is as tall as the shell and no taller, with a pass open and witho
   await listSettled(page);
   // FR-FIRST-11 as amended v2.6 (R130): the Where pane has no dome at any width; the Both door does its job.
   await expect(page.getByTestId('reading-where').getByTestId('where-dome')).toHaveCount(0);
-  await expect(page.getByTestId('door-both')).toHaveAttribute('href', '#live');
+  await expect(page.getByTestId('door-live')).toHaveAttribute('href', '#live');
   // The one-line cards (FR-FIRST-10) leave tonight alone shorter than a laptop's list: every night open, as a
   // reader planning the three would have them, is the list this is about.
   const closed = page.locator('[data-testid="night-toggle"][aria-expanded="false"]');

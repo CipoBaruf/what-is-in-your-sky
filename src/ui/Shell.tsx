@@ -3,6 +3,7 @@ import { useT } from '../i18n/useT';
 import { followHash } from '../state';
 import { VisuallyHidden } from './components/primitives/VisuallyHidden';
 import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
+import { useThemeTick } from './styles/useThemeTick';
 
 /**
  * R92 (FR-A11Y-1, FR-A11Y-3..5, FR-ROUTE-2; D-529, D-531..D-533; F-71): the one
@@ -80,6 +81,9 @@ function focusOn(target: HTMLElement): void {
 export function Shell({ chrome, routeKey, title, banner, footer, mainProps, beforeMain, after, children }: ShellProps) {
   const t = useT();
   const main = useRef<HTMLElement>(null);
+
+  // R156 (FR-PHONE-15, D-972): the theme on the saved preference, and with Auto on the Sun at the saved place, every tick.
+  useThemeTick();
 
   // The one route listener (D-533): the store follows the hash. R152 (FR-GYRO-6): the sky screen it closed first is gone.
   useEffect(

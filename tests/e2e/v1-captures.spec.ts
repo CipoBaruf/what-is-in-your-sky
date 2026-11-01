@@ -82,12 +82,11 @@ test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CA
  * what it does not hold).
  */
 /**
- * R135 (FR-FLOW-2, D-844): the folded Where's ready line, in both languages (`i18n/{en,es}/home.ts`'s `whereFold`).
- * On the compact home the readiness line is inside the folded Where's closed panel and not in the document, so the
- * "finished run stored" signal `captureSeeds.ts`'s wait reads is this line's `Ready offline` instead — the same
- * readiness, worded for the fold, which says `Elements … old` until it has an answer.
+ * R135 (FR-FLOW-2, D-844): on the compact home the readiness line is inside the folded Where's closed panel and not
+ * in the document, so the "finished run stored" signal `captureSeeds.ts`'s wait reads is the folded line's instead.
+ * R156 (FR-PHONE-12, D-972): a ready line is `[ details ]` alone, so the signal is its `data-state="ready"` — the same
+ * readiness, which reads `pending` until it has an answer.
  */
-const WHERE_READY = /^(Ready offline · |Listo sin red · )/;
 
 /**
  * The list, settled (`captureSeeds.ts`'s `listSettled`), on either home: the readiness line where it is drawn, the
@@ -97,11 +96,11 @@ async function listSettled(page: Page): Promise<void> {
   await settledList(page, readyOrFolded);
 }
 
-/** The finished run stored: the readiness line where it is drawn, else the folded Where's `Ready offline` line. */
+/** The finished run stored: the readiness line where it is drawn, else the folded Where's ready line. */
 async function readyOrFolded(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
   if ((await page.getByTestId('where-status').count()) === 0) await readinessShown(page);
-  else await expect(page.getByTestId('where-status')).toHaveText(WHERE_READY, { timeout: 60_000 });
+  else await expect(page.getByTestId('where-status')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
 }
 
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */

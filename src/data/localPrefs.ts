@@ -1,4 +1,4 @@
-import type { ChartOrientation, ChartView, Favourite, Locale, Observer, PassSort, Theme } from '../model';
+import { THEMES, type ChartOrientation, type ChartView, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../model';
 import { mostRecentlyUsed } from './favourites';
 import { storedObserverSchema, toObserver } from './schemas';
 import { browserStorage, type StorageLike } from './storage';
@@ -98,7 +98,8 @@ const storedPrefsSchema = z.object({
   chartView: z.enum(['dome', 'polar', 'window']).optional().catch(undefined),
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
   locale: z.enum(['en', 'es']).optional().catch(undefined),
-  theme: z.enum(['dark', 'night']).optional().catch(undefined),
+  // R156 (FR-PHONE-15): the three values `THEMES` lists, `auto` among them; anything else reads as absent (dark).
+  theme: z.enum(THEMES).optional().catch(undefined),
   liveHidden: z.boolean().optional().catch(undefined),
   // FR-FAINT-3 (D-623): absent, malformed or false all mean the default list; the field is never optional on read.
   showFaint: z.boolean().catch(false),

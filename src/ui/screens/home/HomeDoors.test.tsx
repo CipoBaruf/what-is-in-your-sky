@@ -77,11 +77,11 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
     const { container } = show();
     const nav = screen.getByRole('list', { name: en.doors.region });
     const links = within(nav).getAllByRole('link');
-    expect(links.map((link) => link.getAttribute('data-testid'))).toEqual(['door-satellites', 'door-stars', 'door-both']);
+    expect(links.map((link) => link.getAttribute('data-testid'))).toEqual(['door-satellites', 'door-stars', 'door-live']);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([`#pass=${encodeURIComponent(tiangong.id)}`, '#stars', '#live']);
     // The whole box is the link: the title and every line are inside it.
     expect(links[0]).toHaveTextContent(/^SatellitesNext 05:48 · in 48:00Tiangong · NE 11° → ENE$/);
-    expect(links[2]).toHaveTextContent(/^Both · live skyNothing up now · next 05:48$/);
+    expect(links[2]).toHaveTextContent(/^Live skysatellites and stars, nowNothing up now · next 05:48$/);
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -126,14 +126,14 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
     }
   });
 
-  it('on wide, one more line each: the Moon, and the Both door’s hint', () => {
+  it('on wide, one more line each: the Moon, and the Live sky door’s hint', () => {
     media = stubMatchMedia(WIDE_PX);
     show();
     act(() => {
       chunk.land?.(STARS_MODULE);
     });
     expect(within(screen.getByTestId('door-stars')).getAllByTestId('door-stars-line').map((line) => line.textContent)).toEqual([expect.any(String), 'Brightest now: Canopus, S', 'Moon 64 % · sets 02:10']);
-    expect(within(screen.getByTestId('door-both')).getAllByTestId('door-both-line').at(-1)).toHaveTextContent('Stars under the arcs, drag to look');
+    expect(within(screen.getByTestId('door-live')).getAllByTestId('door-live-line').at(-1)).toHaveTextContent('Stars under the arcs, drag to look');
     // No landmark for the pass in this sky: the Satellites door keeps its two lines.
     expect(within(screen.getByTestId('door-satellites')).getAllByTestId('door-satellites-line')).toHaveLength(2);
   });

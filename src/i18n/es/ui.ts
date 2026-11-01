@@ -95,7 +95,8 @@ export const ui: typeof EnUi = {
     tagline: 'Pases de satélites visibles a simple vista para la próxima noche: cuáles, cuándo y hacia dónde mirar.',
     language: 'Idioma',
     theme: 'Tema',
-    themes: { dark: 'Oscuro', night: 'Nocturno' },
+    // R156 (FR-PHONE-15): «Nocturno» becomes «Noche», the spec's word, so `Tema [x] Oscuro [ ] Noche [ ] Auto` fits 36 cells.
+    themes: { dark: 'Oscuro', night: 'Noche', auto: 'Auto' },
     shortTitle: 'Tu cielo',
   },
 
@@ -341,6 +342,7 @@ export const ui: typeof EnUi = {
     rise: 'salida',
     peak: 'máximo',
     set: 'fin',
+    row: { at: 'a', shadow: 'sombra' },
   },
 
   guide: {

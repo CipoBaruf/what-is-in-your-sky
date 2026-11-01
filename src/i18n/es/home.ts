@@ -30,16 +30,13 @@ export const home: typeof EnHome = {
       noNight: 'Sin cielo oscuro esta noche',
       moon: (p) => `Luna ${p.pct} % · ${p.event === 'sets' ? 'se pone' : 'sale'} ${p.time}`,
     },
-    both: {
-      title: 'Ambos · cielo en vivo',
+    live: {
+      title: 'Cielo en vivo',
+      line: 'satélites y estrellas, ahora',
       up: (p) => `${String(p.count)} en el cielo${p.star === null ? '' : `, ${landmarkWord[p.star.word]} ${p.star.name}`}`,
       nothingNext: (time) => `Nada arriba · próximo ${time}`,
       nothing: 'Nada arriba ahora',
       hint: 'Estrellas bajo los arcos, arrastrá',
     },
-  },
-  whereFold: {
-    ready: (age) => `Listo sin red · elementos de ${age}`,
-    elements: (age) => `Elementos de ${age}`,
   },
 };

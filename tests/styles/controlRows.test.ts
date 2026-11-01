@@ -62,7 +62,9 @@ import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { StarsPage } from '../../src/ui/screens/Stars';
-import { formatDate } from '../../src/lib/timeFormat';
+import { DETAIL_TIMES_CELLS, formatDateZone } from '../../src/lib/format';
+import { TimesRow } from '../../src/ui/components/guide/TimesRow';
+import { DOOR_CELLS } from '../../src/ui/screens/home/doorLines';
 import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
 import { chipRows, contextRows, tapsRows } from './tonightRows';
@@ -173,6 +175,34 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
     },
   },
+  // R156 (FR-PHONE-12): folded and ready, the Where's second line is `[ details ]` alone.
+  {
+    name: 'the folded Where, ready: [ details ] alone (FR-PHONE-12)',
+    element: createElement(WherePlace, { open: false, onToggle: () => undefined, controls: 'where-group', folded: true }),
+    find: () => screen.getByTestId('where-status'),
+    setUp: () => {
+      appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
+    },
+  },
+  // R156 (FR-PHONE-13): the third door's two fixed lines, each within FR-FLOW-1's 34 cells (its state line is `doorRows.test.ts`'s).
+  ...(['title', 'line'] as const).map(
+    (key): Row => ({
+      name: `the Live sky door's ${key} (FR-PHONE-13)`,
+      element: createElement('span', { 'data-testid': 'door-live-fixed' }, t.doors.live[key]),
+      find: () => screen.getByTestId('door-live-fixed'),
+      budget: DOOR_CELLS,
+    }),
+  ),
+  // R156 (FR-PHONE-14, D-978): the pass detail's one times row at its longest — a three-letter point with a
+  // shadow entry, 36 cells — and the plain line with the same peak, within `DETAIL_TIMES_CELLS`.
+  ...(['shadow', 'horizon'] as const).map(
+    (endReason): Row => ({
+      name: `the pass detail's times row, ${endReason} (FR-PHONE-14)`,
+      element: createElement(TimesRow, { pass: { ...pass, endReason, peak: { ...pass.peak, elDeg: 89.9, azDeg: 22.5 } }, timeZone: null, compact: true }),
+      find: () => screen.getByTestId('pass-times'),
+      budget: DETAIL_TIMES_CELLS,
+    }),
+  ),
   // The readiness line's ready form is pinned at one 390 px row by `messages.test.ts` (R27, D-145); its not-ready form is a sentence and wraps.
   {
     name: 'the elements line (FR-SAT-4 as amended)',
@@ -416,7 +446,8 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
 describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (locale: Locale) => {
   /** The cells a viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  const context = (page: HeaderPage): string => (page === 'pass' ? formatDate(pass.start.t, null, locale) : observer.label);
+  // R156 (FR-PHONE-14): the pass's date line carries the zone once, measured with one of the longest abbreviations Intl gives.
+  const context = (page: HeaderPage): string => (page === 'pass' ? formatDateZone(pass.start.t, 'Australia/Lord_Howe', locale) : observer.label);
   const header = (page: HeaderPage, withContext: boolean): ReactElement =>
     createElement(Header, { page, context: withContext ? context(page) : null, onBack: noop });
   /**
@@ -631,7 +662,9 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
     ['Theme', () => screen.getByRole('group', { name: t.app.theme })],
     ['Install', () => screen.getByTestId('settings-install')],
   ] as const)('the %s row: its label and its control', (_name, control) => {
-    const labels = [t.app.language, t.app.theme, t.install.action];
+    // The column is the three visible labels `Settings.tsx` draws — the Install row's is `App` since v2.1 (V21-17, F-83), not
+    // the button's `Install`. R156 (FR-PHONE-15): the Theme row with Auto is 8 + 1 + 27 = 36 in English and 6 + 1 + 29 = 36 in Spanish.
+    const labels = [t.app.language, t.app.theme, t.settings.installLabel];
     const column = Math.max(...labels.map((label) => label.length));
     const cells = column + 1 + rowCells(control(), table);
     expect(cells, `${String(column)} + 1 + ${rowParts(control(), table).join(' | ')}`).toBeLessThanOrEqual(BUDGET);

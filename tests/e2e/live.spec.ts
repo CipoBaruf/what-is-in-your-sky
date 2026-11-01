@@ -79,7 +79,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-page')).toHaveCount(0);
 
     // …and the Both door (R130, FR-FLOW-1; the next-event block's `[ Open the live sky ]` before it) opens it again; the return control closes it.
-    await page.getByTestId('door-both').click();
+    await page.getByTestId('door-live').click();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
     await expect(page.getByTestId('conditions')).toBeVisible();

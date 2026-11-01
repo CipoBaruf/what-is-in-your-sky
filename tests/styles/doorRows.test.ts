@@ -104,7 +104,7 @@ describe('the home doors’ lines (R130: FR-FLOW-1, FR-COMP-4)', () => {
       it(`every compact door line is within ${String(DOOR_CELLS)} cells and its ${String(width)} px row (${String(lineCells)}), ${locale}`, () => {
         for (const [name, input] of cases(locale)) {
           const doors = doorLines(input, CATALOGS[locale]);
-          for (const door of [doors.satellites, doors.stars, doors.both]) {
+          for (const door of [doors.satellites, doors.stars, doors.live]) {
             expect([...door.title].length, `${name}: "${door.title}"`).toBeLessThanOrEqual(titleCells);
             for (const line of door.lines) {
               if (line === null) continue;

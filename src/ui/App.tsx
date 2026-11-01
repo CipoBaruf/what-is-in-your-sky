@@ -7,10 +7,10 @@ import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
-import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
+import { appStore, catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
+import { themeAt } from './styles/theme';
 import { RootBoundary } from './RootBoundary';
-import { applyTheme } from './styles/theme';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
 import { PageNotices } from './components/common/VisitNotice';
@@ -347,7 +347,8 @@ export function App() {
     // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.
     follow: () => false,
     theme: () => {
-      setTheme(theme === 'night' ? 'dark' : 'night');
+      // R156 (D-979): the key swaps the palette on the screen, so from Auto after dusk it goes to Dark, not to the Night it already shows.
+      setTheme(themeAt(theme, appStore.getState().observer, Date.now()) === 'night' ? 'dark' : 'night');
       return true;
     },
     help: () => {
@@ -487,16 +488,12 @@ export function App() {
 /**
  * The app as `main.tsx` mounts it: the active language around the screen, and
  * the active theme on the root element (D-70). `main.tsx` applies both once
- * before the first render; this keeps them on every later switch, which is
- * why the effect is here and not in the toggle — the store is the one source
- * of the choice.
+ * before the first render; this keeps the language on every later switch, and
+ * the shell keeps the theme (R156, `useThemeTick.ts`) — the store is the one
+ * source of the choice.
  */
 export function AppRoot() {
   const locale = useAppStore((s) => s.locale);
-  const theme = useAppStore((s) => s.theme);
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
   // R93 (D-545): the settings chunk is fetched once the browser is idle after first paint, so the link's tap does not wait on it.
   useEffect(prefetchSettingsWhenIdle, []);
   // R91 (FR-FAIL-5, D-544): the boundary outside the provider, so a render error anywhere below is a page.

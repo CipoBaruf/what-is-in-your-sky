@@ -224,13 +224,13 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     media = stubMatchMedia(COMPACT_PX);
   });
 
-  it('stacks the page as FR-FLOW-1 has it: Where in two lines, the three doors, When — the stripe, the table — then What (R130)', () => {
+  it('stacks the page as FR-PHONE-12 has it: the three doors, Where in two lines, When — the stripe, the table — then What (R130, R156)', () => {
     act(() => {
       appStore.setState({ observer, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });
     });
     render(<App />);
     const doors = screen.getByRole('list', { name: en.doors.region });
-    const [satellites, stars, both] = within(doors).getAllByRole('link');
+    const [satellites, stars, live] = within(doors).getAllByRole('link');
     // FR-FLOW-1: the fixed order, the Satellites door the next event's two lines, opening that pass.
     expect(satellites).toHaveTextContent(/^Satellites/);
     expect(within(satellites as HTMLElement).getAllByTestId('door-satellites-line').map((line) => line.textContent)).toEqual([
@@ -240,8 +240,8 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     expect(satellites).toHaveAttribute('href', `#pass=${encodeURIComponent(pass.id)}`);
     expect(stars).toHaveTextContent(/^Stars/);
     expect(stars).toHaveAttribute('href', '#stars');
-    expect(both).toHaveTextContent(/^Both · live sky/);
-    expect(both).toHaveAttribute('href', '#live');
+    expect(live).toHaveTextContent(/^Live skysatellites and stars, now/);
+    expect(live).toHaveAttribute('href', '#live');
     // The next-event block and the When pane's stars line are gone from the home (D-843).
     expect(screen.queryByTestId('next-event')).toBeNull();
     expect(screen.queryByTestId('stars-line')).toBeNull();
@@ -249,8 +249,9 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     const where = screen.getByTestId('reading-where');
     const when = screen.getByTestId('reading-when');
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
-    expect(precedes(where, doors)).toBe(true);
-    expect(precedes(doors, when)).toBe(true);
+    // R156 (FR-PHONE-12): the doors first under the header, the Where reading after them.
+    expect(precedes(doors, where)).toBe(true);
+    expect(precedes(where, when)).toBe(true);
     expect(precedes(when, screen.getByTestId('list-column'))).toBe(true);
     for (const [reading, name] of [[where, 'Where'], [when, 'When'], [screen.getByTestId('list-column'), 'What']] as const) expect(within(reading).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     // When: the table (the stripe once the astronomy chunk lands); no Now panel.

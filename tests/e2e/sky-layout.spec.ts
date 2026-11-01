@@ -100,6 +100,20 @@ async function expectHintOffTheDrawing(layout: Locator): Promise<void> {
   await expect(hint).toHaveText(/\S/);
 }
 
+/**
+ * R156 (FR-PHONE-14): on compact the rise, the peak and the end are one row at `--small` — one line box, no cells — and
+ * the zone is the header's date line's, once.
+ */
+async function expectTimesOneRow(page: Page, head: Locator): Promise<void> {
+  const times = head.getByTestId('pass-times');
+  await expect(times).toHaveAttribute('data-form', 'row');
+  await expect(times.locator('[data-cell]')).toHaveCount(0);
+  await expect(times).toHaveText(/^\d\d:\d\d → \d\d:\d\d (at |a )?\d+° [NESW]{1,3} → \d\d:\d\d( shadow| sombra)?$/);
+  const lines = await times.evaluate((el: HTMLElement) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+  expect(lines, 'the times row is one line').toBe(1);
+  await expect(page.locator('[data-testid="header"][data-page="pass"]')).toContainText(/\d{4}-\d\d-\d\d · (GMT[−+-]?[\d:]*|UTC)/);
+}
+
 const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'timeline', 'action', 'foot'];
 
 /** The desk's rail form: the box at the left, the readout on its corner, the hint under it, the rail's slots stacked at the right. */
@@ -291,11 +305,11 @@ for (const locale of LOCALES) {
       expectStacked(slots);
       await expectViewRowOneLine(layout, locale);
       await expectHintOffTheDrawing(layout);
-      // The head: the name as the h1, the countdown, the landmark line where there is one, the three times.
+      // The head: the name as the h1, the countdown, the landmark line where there is one, the times as one row (R156).
       const head = layout.locator('[data-slot="answer"]');
       await expect(head.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(head.getByRole('timer')).toBeVisible();
-      await expect(head.getByTestId('pass-times').locator('[data-cell]')).toHaveCount(3);
+      await expectTimesOneRow(page, head);
       const drawing = await box(layout.getByTestId('chart-box'));
       expect(drawing.y).toBeLessThanOrEqual(DETAIL_DRAWING_TOP_PX);
       // The prose and the table of points after the drawing.
@@ -487,6 +501,49 @@ for (const viewport of TURNED) {
       });
     });
   }
+}
+
+/**
+ * R156 (FR-PHONE-12, FR-PHONE-14; US-48 AC1, AC3): the phone's pages answer first. At 390 × 844 the home opens on
+ * its three doors, the Where reading folded under them, the third door's bottom edge at or above `DOORS_BOTTOM_PX`;
+ * at 390 × 667, the smaller phone, the pass detail's drawing still starts at or above `DETAIL_DRAWING_TOP_PX` with
+ * its times on one row. Both languages.
+ */
+const DOORS_BOTTOM_PX = 420;
+const SMALL_PHONE = { width: 390, height: 667 };
+
+for (const locale of LOCALES) {
+  test.describe(`FR-PHONE-12 at 390 × 844, ${locale}`, () => {
+    test.use({ viewport: PHONE, hasTouch: false });
+
+    test('the home: the three doors first under the header, the Where reading after them, the doors’ bottom edge at or above 420 px', async ({ page }) => {
+      await seedStoredRun(page, { locale, settled: true, prefs: FRESH });
+      const doors = ['door-satellites', 'door-stars', 'door-live'].map((id) => page.getByTestId(id));
+      for (const door of doors) await expect(door).toBeVisible();
+      const boxes = await Promise.all(doors.map(box));
+      const header = await box(page.getByTestId('header'));
+      const where = await box(page.getByTestId('reading-where'));
+      // The status line is drawn (in this seed a fault — no forecast stored — which is never folded, FR-FLOW-2): the edge holds with it.
+      await expect(page.getByTestId('where-status')).toBeVisible();
+      const bottom = Math.max(...boxes.map((door) => door.y + door.height));
+      console.log(`R156: the doors' bottom edge at 390 × 844 in ${locale}: ${String(Math.round(bottom))} px`);
+      expect(bottom).toBeLessThanOrEqual(DOORS_BOTTOM_PX);
+      expect(boxes[0]?.y ?? 0).toBeGreaterThanOrEqual(header.y + header.height - 1);
+      expect(where.y).toBeGreaterThanOrEqual(bottom - 1);
+    });
+  });
+
+  test.describe(`FR-PHONE-14 at 390 × 667, ${locale}`, () => {
+    test.use({ viewport: SMALL_PHONE, hasTouch: false });
+
+    test('the pass detail: the times on one row, the drawing’s top at or above DETAIL_DRAWING_TOP_PX', async ({ page }) => {
+      const layout = await openDetail(page, locale);
+      await expectTimesOneRow(page, layout.locator('[data-slot="answer"]'));
+      const drawing = await box(layout.getByTestId('chart-box'));
+      console.log(`R156: the detail's drawing top at 390 × 667 in ${locale}: ${String(Math.round(drawing.y))} px`);
+      expect(drawing.y).toBeLessThanOrEqual(DETAIL_DRAWING_TOP_PX);
+    });
+  });
 }
 
 test.describe('FR-FLOW-14: the view a fresh profile opens on', () => {

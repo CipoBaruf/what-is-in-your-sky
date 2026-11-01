@@ -220,6 +220,20 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       await expect(page.getByTestId('favourites')).toHaveCount(0);
     });
 
+    test(`the Theme row offers Auto on one line, in ${locale} (R156, FR-PHONE-15)`, async ({ page }) => {
+      await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER });
+      const group = page.getByRole('group', { name: locale === 'es' ? 'Tema' : 'Theme' });
+      const names = locale === 'es' ? ['Oscuro', 'Noche', 'Auto'] : ['Dark', 'Night', 'Auto'];
+      for (const name of names) await expect(group.getByRole('button', { name })).toBeVisible();
+      expect(await isOneLine(group)).toBe(true);
+      expect(await fitsTheViewport(group)).toBe(true);
+      await group.getByRole('button', { name: 'Auto' }).click();
+      await expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
+      // NINE_DAYS_ON is the page's clock: the root reads one of the two palettes, never `auto`.
+      await expect(page.locator('html')).toHaveAttribute('data-theme', /^(dark|night)$/);
+      await fitsOneViewport(page);
+    });
+
     test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
       const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });

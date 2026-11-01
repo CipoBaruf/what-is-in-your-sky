@@ -5,6 +5,7 @@ import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { guideParams } from '../../lib/phrases';
 import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
+import { formatDateZone } from '../../lib/format';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
 import { Header } from '../components/common/Header';
@@ -213,7 +214,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       </p>
     ) : null;
   const countdown = <Countdown pass={pass} now={now} timeZone={timeZone} steps={false} />;
-  const times = <TimesRow pass={pass} timeZone={timeZone} />;
+  // R156 (FR-PHONE-14, D-972): one row on compact, the zone on the head's date line; three cells in the wide band.
+  const times = <TimesRow pass={pass} timeZone={timeZone} compact={compact} />;
   const viewRow = (
     <>
       <SkyViewChartSlot name="control" />
@@ -299,9 +301,9 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         {/* R129 (FR-FLOW-3, D-845; F10): the sheet's top row is the app's one header, told it is the pass detail —
-            `[ ← ]`, `pass` and the pass's date. The language and theme switches that opened the page are the settings
+            `[ ← ]`, `pass` and the pass's date with its zone, once (R156, FR-PHONE-14). The language and theme switches that opened the page are the settings
             page's alone (V26-10). A `div`: the page behind the sheet has the `banner`. */}
-        <Header page="pass" landmark={false} context={formatDate(pass.start.t, timeZone, locale)} onBack={onClose} />
+        <Header page="pass" landmark={false} context={formatDateZone(pass.start.t, timeZone, locale)} onBack={onClose} />
         {layout(
           <div className={styles.head} data-testid="pass-head">
             {/* FR-FLOW-7: the name is the sheet's `h1` — the sheet is the whole screen, and the page behind it is inert. */}

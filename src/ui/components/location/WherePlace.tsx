@@ -37,7 +37,8 @@ export interface WherePlaceProps {
   /**
    * R130 (FR-FLOW-2, D-844): compact's two lines — the place with `[ change ]` at the row's end, and one status
    * line ending in `[ details ]`, which opens the sentence and then `details` (the readiness line, the elements
-   * line and the saved places) in place. A fault takes the status line whole and is never folded away.
+   * line and the saved places) in place. A fault takes the status line whole and is never folded away; with none
+   * the line is `[ details ]` alone (R156, FR-PHONE-12).
    */
   folded?: boolean;
   /** What `[ details ]` opens under the sentence, in FR-FIRST-11's order; the folded form's only. */
@@ -77,7 +78,12 @@ function PlaceText({ observer }: { observer: Observer }) {
 /**
  * R130 (FR-FLOW-2, D-844): the folded Where's second line. A fault takes the line whole, in its own tone: the
  * elements load's failure first, with its `[ retry ]` (a failed load is always a not-ready state too, which would
- * otherwise hide it, D-858), then the readiness line's not-ready state, then the elements warning. With none it is "Ready offline · elements 4 d old". Either way it ends in `[ details ]`, which opens the rest.
+ * otherwise hide it, D-858), then the readiness line's not-ready state, then the elements warning. Either way it ends in `[ details ]`, which opens the rest.
+ *
+ * R156 (FR-PHONE-12, D-972): with no fault the line is `[ details ]` alone at the row's right end, under the place —
+ * the readiness and the elements' age are inside it, where they already were. `data-state` says whether the
+ * readiness has answered (`ready`) or not yet (`pending`), which the line no longer says in words and a capture's
+ * wait still needs.
  */
 function WhereStatus({ open, onToggle, controls }: { open: boolean; onToggle: () => void; controls: string }) {
   const t = useT();
@@ -122,11 +128,10 @@ function WhereStatus({ open, onToggle, controls }: { open: boolean; onToggle: ()
       </Line>
     );
   }
-  const text = age?.age == null ? null : readiness ? t.whereFold.ready(age.age) : t.whereFold.elements(age.age);
   return (
-    <Line size="small" ink="dim" dot={text !== null} actions={details} data-testid="where-status">
-      {text}
-    </Line>
+    <p className={styles.status} data-testid="where-status" data-state={readiness ? 'ready' : 'pending'}>
+      {details}
+    </p>
   );
 }
 

@@ -17,22 +17,24 @@ const SKY = DOOR_SKY;
 
 describe('doorLines', () => {
   it('a later pass: its time and countdown, then its name, peak and end, opening that pass', () => {
-    const { satellites, stars, both } = doorLines(doorInput(), en);
+    const { satellites, stars, live } = doorLines(doorInput(), en);
     expect(satellites).toEqual({ title: 'Satellites', lines: ['Next 05:48 · in 48:00', 'Tiangong · NE 11° → ENE'], passId: 'tiangong', wide: 'passes 3° beside Mintaka, in Orion' });
     expect(stars.lines).toEqual(['Dark 20:25 → 07:05 · Clear', 'Brightest now: Canopus, S']);
     expect(stars.wide).toBe('Moon 64 % · sets 02:10');
-    expect(both).toEqual({ title: 'Both · live sky', lines: ['Nothing up now · next 05:48'], wide: 'Stars under the arcs, drag to look' });
+    // R156 (FR-PHONE-13): "Live sky", its fixed line, then the state line; wide's hint stays the third.
+    expect(live).toEqual({ title: 'Live sky', lines: ['satellites and stars, now', 'Nothing up now · next 05:48'], wide: 'Stars under the arcs, drag to look' });
+    expect(doorLines(doorInput({ locale: 'es' }), es).live).toMatchObject({ title: 'Cielo en vivo', lines: ['satélites y estrellas, ahora', 'Nada arriba · próximo 05:48'] });
   });
 
-  it('an up-now pass: the countdown to its peak, and the Both door counts it with its landmark star', () => {
+  it('an up-now pass: the countdown to its peak, and the Live sky door counts it with its landmark star', () => {
     const now = local(11, 5, 49);
-    const { satellites, both } = doorLines(doorInput({ now }), en);
+    const { satellites, live } = doorLines(doorInput({ now }), en);
     expect(satellites.lines[0]).toBe('Up now · peaks in 1:00');
     expect(satellites.passId).toBe('tiangong');
-    expect(both.lines).toEqual(['1 up now, beside Mintaka']);
-    expect(doorLines(doorInput({ now, locale: 'es' }), es).both.lines).toEqual(['1 en el cielo, junto a Mintaka']);
+    expect(live.lines).toEqual(['satellites and stars, now', '1 up now, beside Mintaka']);
+    expect(doorLines(doorInput({ now, locale: 'es' }), es).live.lines).toEqual(['satélites y estrellas, ahora', '1 en el cielo, junto a Mintaka']);
     // Before the chunk, the count alone.
-    expect(doorLines(doorInput({ now, sky: null }), en).both.lines).toEqual(['1 up now']);
+    expect(doorLines(doorInput({ now, sky: null }), en).live.lines).toEqual(['satellites and stars, now', '1 up now']);
   });
 
   it('words the up-now line exactly in both languages: the peak, then the end by its reason', () => {
@@ -54,9 +56,9 @@ describe('doorLines', () => {
   });
 
   it('no pass in the span: one line, and the door opens the What reading (no pass id)', () => {
-    const { satellites, both } = doorLines(doorInput({ passes: [] }), en);
+    const { satellites, live } = doorLines(doorInput({ passes: [] }), en);
     expect(satellites).toEqual({ title: 'Satellites', lines: ['No visible pass in 72 h'], passId: null });
-    expect(both.lines).toEqual(['Nothing up now']);
+    expect(live.lines).toEqual(['satellites and stars, now', 'Nothing up now']);
     expect(doorLines(doorInput({ passes: [], locale: 'es' }), es).satellites.lines).toEqual(['Ningún pase visible en 72 h']);
     // While the passes are still arriving it is not yet "no pass".
     expect(doorLines(doorInput({ passes: [], pending: true }), en).satellites.lines).toEqual(['Looking for the next pass…']);

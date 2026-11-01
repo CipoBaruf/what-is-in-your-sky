@@ -284,6 +284,21 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  it('saves Auto, the third value, and reads it back at the next start; a profile from before v2.10 reads as it was (R156, FR-PHONE-15)', () => {
+    const storage = memoryStorage();
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().theme).toBe('dark');
+    fresh.getState().setTheme('auto');
+    expect(fresh.getState().theme).toBe('auto');
+    expect(stored(storage)).toEqual({ theme: 'auto' });
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().theme).toBe('auto');
+    // A record a 2.9 build wrote holds one of the two palettes, and loads as it did.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', locale: 'es' }));
+    const older = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(older.getState().theme).toBe('night');
+    expect(older.getState().locale).toBe('es');
+  });
+
   it('ignores a theme it does not know without losing the other preferences', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));

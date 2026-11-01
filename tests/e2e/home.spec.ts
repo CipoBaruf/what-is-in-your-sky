@@ -130,11 +130,11 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     // The group folded away under the line.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
 
-    // FR-FIRST-4, FR-FLOW-1: the stacked page — Where, the doors, When, then What; no dome on a phone (D-512).
+    // FR-FIRST-4, FR-PHONE-12: the stacked page — the doors, Where, When, then What; no dome on a phone (D-512).
     const [summaryBox, blockBox, listBox] = await Promise.all([page.getByTestId('location-summary').boundingBox(), block.boundingBox(), page.getByTestId('list-column').boundingBox()]);
     if (!summaryBox || !blockBox || !listBox) throw new Error('the readings are not laid out');
-    expect(blockBox.y).toBeGreaterThan(summaryBox.y);
-    expect(listBox.y).toBeGreaterThan(blockBox.y);
+    expect(summaryBox.y).toBeGreaterThan(blockBox.y);
+    expect(listBox.y).toBeGreaterThan(summaryBox.y);
     await expect(page.getByTestId('where-dome')).toHaveCount(0);
     // It ticks once a second from the wall clock.
     const before = await label.textContent();
@@ -144,31 +144,34 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
 });
 
 /**
- * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): on a phone the home is the Where
- * reading in two lines and then the three doors, whose foot is inside the first
- * 600 px of an 844 px screen in both languages; each door is one link to its
+ * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844), R156 (FR-PHONE-12): on a phone the
+ * home is the three doors first and then the Where reading in two lines; the
+ * doors' foot is inside the first 420 px of an 844 px screen in both languages
+ * (`sky-layout.spec.ts` holds the same edge); each door is one link to its
  * page — the next event's pass, `#stars`, `#live`.
  */
 test.describe('the doors at 390 × 844 (FR-FLOW-1)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   for (const locale of ['en', 'es'] as const) {
-    test(`in ${locale}: the doors' bottom edge is at or above 600 px, under the two-line Where`, async ({ page }) => {
+    test(`in ${locale}: the doors' bottom edge is at or above 420 px, over the two-line Where`, async ({ page }) => {
       await seedStoredRun(page, { locale });
-      const doors = ['door-satellites', 'door-stars', 'door-both'].map((id) => page.getByTestId(id));
+      const doors = ['door-satellites', 'door-stars', 'door-live'].map((id) => page.getByTestId(id));
       for (const door of doors) await expect(door).toBeVisible();
       await expect(page.getByTestId('door-stars').getByTestId('door-stars-line').nth(1)).not.toHaveAttribute('data-pending', '', { timeout: 30_000 });
       const boxes = await Promise.all(doors.map((door) => door.boundingBox()));
-      const status = await page.getByTestId('where-status').boundingBox();
+      const where = await page.getByTestId('location-summary').boundingBox();
       const bottom = Math.max(...boxes.map((box) => (box?.y ?? Infinity) + (box?.height ?? 0)));
-      console.log(`R130: the doors' bottom edge at 390 × 844 in ${locale}: ${String(Math.round(bottom))} px`);
-      expect(bottom).toBeLessThanOrEqual(600);
-      // In order, one under the other, under the Where's status line; each at least 44 px tall and full width.
+      console.log(`R156: the doors' bottom edge at 390 × 844 in ${locale}: ${String(Math.round(bottom))} px`);
+      expect(bottom).toBeLessThanOrEqual(420);
+      // The Where reading's place line under the last door.
+      expect(where?.y ?? 0).toBeGreaterThanOrEqual(bottom);
+      // In order, one under the other; each at least 44 px tall and full width.
       for (const [i, box] of boxes.entries()) {
         expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-        // Clear of what is above it, by at least the space scale's step: the boxes never touch or overlap.
-        const above = i === 0 ? status : boxes[i - 1];
-        expect(box?.y ?? 0).toBeGreaterThanOrEqual((above?.y ?? Infinity) + (above?.height ?? 0) + 6);
+        // Clear of the door above it, by at least the space scale's step: the boxes never touch or overlap.
+        const above = boxes[i - 1];
+        if (above) expect(box?.y ?? 0).toBeGreaterThanOrEqual((above.y) + (above.height) + 6);
         expect(Math.abs((box?.width ?? 0) - (boxes[0]?.width ?? 0))).toBeLessThanOrEqual(1);
       }
       // Every line on one row: a door line never wraps (34 cells, `doorRows.test.ts`).
@@ -190,7 +193,7 @@ test.describe('the doors at 390 × 844 (FR-FLOW-1)', () => {
     await page.getByTestId('door-stars').click();
     await expect(page).toHaveURL(/#stars$/);
     await page.goBack();
-    await page.getByTestId('door-both').click();
+    await page.getByTestId('door-live').click();
     await expect(page).toHaveURL(/#live$/);
   });
 });
@@ -228,7 +231,7 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
       await expect(page.getByTestId('next-event')).toHaveCount(0);
       // R130 (FR-FLOW-1, FR-FIRST-11 as amended): the doors one row over the panes, and no dome in Where.
       await expect(page.getByTestId('where-dome')).toHaveCount(0);
-      const doors = await Promise.all(['door-satellites', 'door-stars', 'door-both'].map((id) => page.getByTestId(id).boundingBox()));
+      const doors = await Promise.all(['door-satellites', 'door-stars', 'door-live'].map((id) => page.getByTestId(id).boundingBox()));
       for (const door of doors) {
         expect(Math.abs((door?.y ?? NaN) - (doors[0]?.y ?? NaN))).toBeLessThanOrEqual(1);
         expect((door?.y ?? Infinity) + (door?.height ?? 0)).toBeLessThanOrEqual(Math.min(where.y, when.y, what.y));
