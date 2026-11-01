@@ -9,7 +9,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PREFS_KEY } from '../../../data/localPrefs';
 import { appStore } from '../../../state';
-import { undoPhone, withPhone, type PhoneAnswer } from '../../../../tests/support/phone';
+import { northReading, nullReading, undoPhone, withPhone, type PhoneAnswer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
 import { FOLLOW_DEFAULT, useFollow } from './useFollow';
 
@@ -40,11 +40,26 @@ describe('useFollow (FR-PHONE-1, FR-PHONE-2; D-962)', () => {
     expect(FOLLOW_DEFAULT).toBe(true);
   });
 
-  it('is on at mount where the sensor is and nothing has to be asked (FR-PHONE-1), and asks nothing', () => {
+  it('follows from the first reading with a north where the sensor is and nothing has to be asked (FR-PHONE-1), and asks nothing', () => {
     withPhone();
     const { result } = renderHook(() => useFollow());
+    expect(result.current).toMatchObject({ sensor: true, on: false, armed: false, refused: false });
+    // D-986: a desk Chromium's reading, every angle null, has no north and starts nothing.
+    nullReading();
+    expect(result.current.on).toBe(false);
+    northReading(90);
     expect(result.current).toMatchObject({ sensor: true, on: true, armed: false, refused: false });
     expect(saved()).toBeUndefined();
+  });
+
+  it('a press before the first reading wins: off stays off when the reading comes', () => {
+    withPhone();
+    const { result } = renderHook(() => useFollow());
+    act(() => {
+      result.current.turnOff();
+    });
+    northReading(90);
+    expect(result.current.on).toBe(false);
   });
 
   it('is off and unarmed without the sensor — no constructor, or no touch points — whatever is saved', () => {
@@ -194,6 +209,7 @@ describe('useFollow (FR-PHONE-1, FR-PHONE-2; D-962)', () => {
   it('turns off without asking, and a grant where no request exists saves nothing (Android needs no grant)', async () => {
     withPhone();
     const { result } = renderHook(() => useFollow());
+    northReading();
     act(() => {
       result.current.turnOff();
     });

@@ -2044,7 +2044,8 @@ describe('<LivePage>', () => {
       media = stubMatchMedia(390, 844);
       scriptedFrames();
       render(<LivePage link={null} onLeave={() => undefined} />);
-      // R159 (FR-PHONE-1): where nothing has to be asked the page opens following; no tap.
+      // R159 (FR-PHONE-1, D-986): where nothing has to be asked the page follows from the first reading; no tap.
+      reading(90, 30);
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
       await windowDrawn();
       const box = document.querySelector('[data-follow="true"] [tabindex="0"]') as HTMLElement;
@@ -2074,6 +2075,9 @@ describe('<LivePage>', () => {
       });
       render(<LivePage link={null} onLeave={() => undefined} />);
       expect(screen.getByTestId('live-card')).toHaveAttribute('data-kind', 'ask');
+      // D-986: from the first reading with a north.
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      reading(90, 30);
       expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');

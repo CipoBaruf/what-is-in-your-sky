@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStore, useAppStore } from '../../../state';
 import { orientationAnswer, requestOrientationAccess } from '../guide/skychart/window/orientationAccess';
-import { orientationApiPresent, permissionRequest } from '../live/compassHeading';
+import { deviceHeading, orientationApiPresent, orientationEventName, permissionRequest } from '../live/compassHeading';
 
 /**
  * FR-PHONE-1 (V210-2): on a touch phone the window follows from the first reading where no permission is needed, and
@@ -38,7 +38,10 @@ export interface Follow {
  * controls never disagree and share one press logic and one refusal line.
  *
  * At mount, where `orientationApiPresent()`: with no request to make (`permissionRequest()` is `null`: Android, and
- * every browser without one) `on` starts `FOLLOW_DEFAULT`; else with `followGranted` saved, `armed` starts true and
+ * every browser without one) the page follows (`FOLLOW_DEFAULT`) from the sensor's first reading that has a north in
+ * it — a phone gives one within a frame, so it follows from its first reading as FR-PHONE-1 says, while a touch
+ * laptop or a desk Chromium, whose readings carry no north (every angle `null`, or `absolute: false`), never starts
+ * following and keeps its window by hand rather than reading as a compass-less phone (D-986); else with `followGranted` saved, `armed` starts true and
  * `on` false — nothing is asked at load (FR-WIN-4); else both start false, the first visit's rule. Without the sensor
  * everything is off and stays off.
  *
@@ -54,14 +57,30 @@ export interface Follow {
 export function useFollow(): Follow {
   const [sensor] = useState(() => typeof window !== 'undefined' && orientationApiPresent());
   const [start] = useState(() => {
-    if (!sensor) return { on: false, armed: false };
-    if (permissionRequest() === null) return { on: FOLLOW_DEFAULT, armed: false };
+    if (!sensor) return { on: false, armed: false, waiting: false };
+    if (permissionRequest() === null) return { on: false, armed: false, waiting: FOLLOW_DEFAULT };
     const granted = appStore.getState().followGranted;
-    if (granted && orientationAnswer() === 'granted') return { on: true, armed: false };
-    return { on: false, armed: granted };
+    if (granted && orientationAnswer() === 'granted') return { on: true, armed: false, waiting: false };
+    return { on: false, armed: granted, waiting: false };
   });
   const [on, setOn] = useState(start.on);
   const [armed, setArmed] = useState(start.armed);
+  // FR-PHONE-1 (D-986): following by default starts at the first reading with a north; any press or drag first wins.
+  const [waiting, setWaiting] = useState(start.waiting);
+  useEffect(() => {
+    if (!waiting) return;
+    const name = orientationEventName();
+    const onReading = (event: Event): void => {
+      const reading = event as Event & { alpha?: number | null; absolute?: boolean; webkitCompassHeading?: number | null };
+      if (deviceHeading({ alpha: reading.alpha ?? null, absolute: reading.absolute === true, webkitCompassHeading: reading.webkitCompassHeading ?? null }) === null) return;
+      setWaiting(false);
+      setOn(true);
+    };
+    window.addEventListener(name, onReading);
+    return () => {
+      window.removeEventListener(name, onReading);
+    };
+  }, [waiting]);
   const [refused, setRefused] = useState(false);
   const setFollowGranted = useAppStore((s) => s.setFollowGranted);
   // Every press or drag that ends following moves this on, so an answer to an earlier press does not overrule it.
@@ -71,6 +90,7 @@ export function useFollow(): Follow {
     // FR-GYRO-3: the refusal's line goes on the next press, whatever that press does.
     setRefused(false);
     setArmed(false);
+    setWaiting(false);
     const asks = permissionRequest() !== null;
     const press = (said.current += 1);
     // Inside the gesture, before any await: the request is the press's (D-175).
@@ -86,11 +106,13 @@ export function useFollow(): Follow {
   }, [setFollowGranted]);
   const turnOff = useCallback(() => {
     said.current += 1;
+    setWaiting(false);
     setRefused(false);
     setOn(false);
   }, []);
   const onFollowEnd = useCallback(() => {
     said.current += 1;
+    setWaiting(false);
     setOn(false);
   }, []);
 

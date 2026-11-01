@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { appStore } from '../../../state';
-import { undoPhone, withPhone as phone, type PhoneAnswer as Answer } from '../../../../tests/support/phone';
+import { northReading, undoPhone, withPhone as phone, type PhoneAnswer as Answer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
 import { FollowControl } from '../live/FollowControl';
 import { FollowToggle } from './FollowToggle';
@@ -53,11 +53,17 @@ function toggle(on: boolean, onChange: (on: boolean) => void, locale: Locale = '
     if (last !== null && next !== last) onChange(next);
     last = next;
   };
-  return render(
+  const rendered = render(
     <I18nProvider locale={locale}>
       <Page onChange={report} both={both} />
     </I18nProvider>,
   );
+  // FR-PHONE-1 (D-986): with no request the page follows from the first reading with a north.
+  if (on) {
+    northReading();
+    last = true;
+  }
+  return rendered;
 }
 
 describe('<FollowToggle> (FR-GYRO-1, FR-GYRO-3)', () => {

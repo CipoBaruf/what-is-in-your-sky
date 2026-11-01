@@ -393,6 +393,10 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     const { container } = page();
+    // D-986: from the first reading with a north.
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, beta: 120, gamma: 0, absolute: true }));
+    });
     expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
     expect(windowRoot(container)).toHaveAttribute('data-follow', 'true');
     expect(screen.queryByTestId('window-readout')).toBeNull();

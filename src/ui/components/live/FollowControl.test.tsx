@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { appStore } from '../../../state';
-import { undoPhone, withPhone, type PhoneAnswer as Answer } from '../../../../tests/support/phone';
+import { northReading, undoPhone, withPhone, type PhoneAnswer as Answer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
 import { useFollow } from '../sky/useFollow';
 import { FollowControl } from './FollowControl';
@@ -67,9 +67,10 @@ describe('<FollowControl> (FR-PHONE-3)', () => {
     expect(off).toHaveClass('target');
     expect(off).toHaveAttribute('data-testid', 'live-follow-control');
     unmount();
-    // FR-PHONE-1: where nothing has to be asked it opens pressed.
+    // FR-PHONE-1: where nothing has to be asked it is pressed from the first reading.
     withPhone();
     control('es');
+    northReading();
     expect(screen.getByRole('button', { name: 'seguir' })).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -102,6 +103,7 @@ describe('<FollowControl> (FR-PHONE-3)', () => {
   it('turns off without asking', () => {
     withPhone();
     control();
+    northReading();
     const button = screen.getByTestId('live-follow-control');
     expect(button).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(button);

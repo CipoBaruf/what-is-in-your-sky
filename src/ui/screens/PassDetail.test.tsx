@@ -201,6 +201,9 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       appStore.getState().setChartView('dome');
       detail();
       const figure = screen.getByRole('figure', { name: 'ISS (Zarya)' });
+      // D-986: following starts at the first reading with a north; until it the guide is on its saved view.
+      expect(figure).toHaveAttribute('data-view', 'dome');
+      reading(180, 30);
       expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
       expect(figure).toHaveAttribute('data-view', 'window');
       expect(figure).toHaveAttribute('data-follow', 'true');
@@ -208,9 +211,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       await waitFor(() => {
         expect(figure.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
       });
-      // Before any reading the window faces the peak (FR-FLOW-14's "until the sensor's first reading").
-      const peakAz = windowRoot()?.getAttribute('data-look-az');
-      expect(Math.abs(Number(peakAz) - 180)).toBeGreaterThan(10);
+      // The window, mounted on the window's first frame of following, takes the phone's next reading as its pose.
       reading(180, 30);
       for (let i = 1; i <= 40; i += 1) frame(16 * i);
       expect(windowRoot()).toHaveAttribute('data-state', 'on');
