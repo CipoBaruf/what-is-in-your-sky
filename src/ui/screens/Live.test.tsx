@@ -13,6 +13,7 @@
  *   - the two inert states, and the two ways back.
  */
 import { readFileSync } from 'node:fs';
+import { createRoot } from 'react-dom/client';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -872,9 +873,24 @@ describe('<LivePage>', () => {
   describe('the window in the box across the page’s charts (FR-SKY-2, D-789)', () => {
     const handBox = (): HTMLElement => document.querySelector<HTMLElement>('[data-state="hand"] [tabindex="0"]') as HTMLElement;
     const lookAz = (): string | null => document.querySelector('[data-look-az]')?.getAttribute('data-look-az') ?? null;
+    /*
+     * R159 (D-986): drawn, and its commit finished. The window is `SkyChart`'s lazy chunk, so it commits when the import
+     * resolves — outside `act`, inside `waitFor` — and that commit's passive effects, `useSyncExternalStore`'s
+     * subscription to the page's hand camera among them, wait for the scheduler's next task. Under load that task came
+     * after the test's next key, which moved a camera nobody listened to yet; the subscription then read the store and
+     * drew the step late, so `turned` was read one step behind. React runs pending passive effects before any render
+     * inside `act`, so an empty probe root rendered here runs them now.
+     */
     const windowDrawn = async (): Promise<void> => {
       await waitFor(() => {
         expect(document.querySelector('[data-drawing="window"]')).not.toBeNull();
+      });
+      const probe = createRoot(document.createElement('div'));
+      act(() => {
+        probe.render(null);
+      });
+      act(() => {
+        probe.unmount();
       });
     };
 
