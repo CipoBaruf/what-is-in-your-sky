@@ -74,13 +74,15 @@ const legendOrders = new Map<string, string[]>();
  * user unit, the window's half pixel, the dome's cell.
  */
 const STAR = { azDeg: 120, altDeg: 40 };
+/** R158 (FR-PHONE-8): a faint second star the figure runs to — past the dome's cap, within the polar chart's and the window's field. */
+const FIGURE_STAR = { azDeg: 128, altDeg: 50 };
 const PLANET = { body: 'Venus' as const, azDeg: 150, altDeg: 25 };
 const FACING = 135;
 const TILT = 35;
 const starScene: SkyScene = {
   stars: {
-    catalog: { ra: [0], dec: [0], mag: [0.5], name: ['Star'], desig: ['s'], con: ['Ori'], figures: [] },
-    positions: { altDeg: [STAR.altDeg], azDeg: [STAR.azDeg], planets: [{ ...PLANET, mag: -4 }] },
+    catalog: { ra: [0, 0], dec: [0, 0], mag: [0.5, 4], name: ['Star', ''], desig: ['s', 't'], con: ['Ori', 'Ori'], figures: [{ con: 'Ori', part: '', segments: [[0, 1]] }] },
+    positions: { altDeg: [STAR.altDeg, FIGURE_STAR.altDeg], azDeg: [STAR.azDeg, FIGURE_STAR.azDeg], planets: [{ ...PLANET, mag: -4 }] },
     layers: { stars: true, figures: true, planets: true, names: true },
   },
   // R127 (FR-SKY-11): the one star is the landmark of the explained pass, so every view rings it.
@@ -273,8 +275,9 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   /**
    * FR-SKY-1 / US-41 AC3 (R119): the star case. The scene's one star and one planet are one anchor each in every
    * view — `data-star="0"`, `data-planet="Venus"`, the same identity whichever view is mounted — and each sits where
-   * that view projects the known altitude and azimuth, within the view's own tolerance. Nothing else of the scene
-   * reaches the drawing: no figure, no name (the table leaves them to the window alone, and this scene has none).
+   * that view projects the known altitude and azimuth, within the view's own tolerance. R158 (FR-PHONE-8, D-968):
+   * the case holds with a figure — a line from the star to a faint one past the dome's cap — which the window and the
+   * polar chart draw with the faint star and the star's name, and the dome draws none of the three (FR-PHONE-11).
    */
   it('places the scene’s star and planet at the same anchor, where this view projects their altitude and azimuth', async () => {
     const camera = createHandCamera({ azDeg: FACING, altDeg: TILT });
@@ -283,18 +286,18 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
       expect(container.querySelector('[data-drawing] [data-star]')).not.toBeNull();
       expect(container.querySelector('[data-drawing] [data-planet]')).not.toBeNull();
     });
-    const stars = container.querySelectorAll('[data-drawing] [data-star]');
+    const drawn = [...container.querySelectorAll('[data-drawing] [data-star]')].filter((el) => el.getAttribute('visibility') !== 'hidden');
     const planets = container.querySelectorAll('[data-drawing] [data-planet]');
-    expect(stars).toHaveLength(1);
+    expect(drawn.map((el) => el.getAttribute('data-star'))).toEqual(view.id === 'dome' ? ['0'] : ['0', '1']);
     expect(planets).toHaveLength(1);
-    const star = stars[0] as Element;
+    const star = container.querySelector('[data-drawing] [data-star="0"]') as Element;
     const planet = planets[0] as Element;
-    expect(star).toHaveAttribute('data-star', '0');
     expect(planet).toHaveAttribute('data-planet', PLANET.body);
-    expect(container.querySelector('[data-drawing] [data-figure]')).toBeNull();
-    // The names are the table's `names` row: the window draws the star's, the polar chart and the dome never do.
-    if (view.id === 'window') expect(container.querySelector('[data-drawing] [data-star-name="0"]')).toHaveTextContent('Star');
-    else expect(container.querySelector('[data-drawing] [data-star-name]')).toBeNull();
+    // The figures and the names are the table's rows: the window and the polar chart draw the line and the star's name, the dome neither.
+    const lines = [...container.querySelectorAll('[data-drawing] line[data-figure]')].filter((el) => el.getAttribute('visibility') !== 'hidden');
+    expect(lines).toHaveLength(view.id === 'dome' ? 0 : 1);
+    if (view.id === 'dome') expect(container.querySelector('[data-drawing] [data-star-name]')).toBeNull();
+    else expect(container.querySelector('[data-drawing] [data-star-name="0"]')).toHaveTextContent('Star');
     starAnchors.set(view.id, [star.getAttribute('data-star') ?? '', planet.getAttribute('data-planet') ?? '']);
     // R127 (FR-SKY-11, D-796): the landmark's ring in every view, at the star (the dome's, since the star is within its cap).
     const ring = container.querySelector('[data-drawing] [data-landmark-ring="0"]');
