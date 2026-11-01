@@ -226,6 +226,24 @@
      a star's and the faintest rung is the dimmest mark. */
   --chart-star-faint: #626d7a; /* 3.65 : 1 — the faintest rung, V ≤ 4.5 */
   --chart-figure-name: #7a8591; /* 5.12 : 1 — a constellation's name, text */
+  /* FR-DS-8 as amended v2.10 (R155, V210-7, V210-10; FR-LOOK-1, FR-LOOK-2,
+     FR-LOOK-3, FR-LOOK-5): the look's second pass. Four surfaces — the sky
+     under the window's stars at night, in twilight and by day, a tone darker
+     than `--bg` so the drawing has an edge against the page, and the horizon
+     band's glow — the haze the Milky Way is drawn in at a few hundredths of
+     alpha, and three star tones from the B−V index beside `--chart-star`'s
+     white, each ≥ 3 : 1 on `--chart-sky-deep` and on the band's lightest value
+     (the glow at 0.3 over the deep sky), measured by the tokens test; the
+     ratio beside each is on `--chart-sky-deep`. In night mode the four tones
+     are four reds that differ in lightness only (FR-THEME-3). */
+  --chart-sky-deep: #06080d; /* 1.00 : 1 — the sky surface at night, 1.04 : 1 on --bg */
+  --chart-sky-twilight: #111826; /* 1.13 : 1 — the surface with the Sun between 0° and −6° */
+  --chart-sky-day: #1a2230; /* 1.25 : 1 — the surface with the Sun up */
+  --chart-horizon-glow: #1c2535; /* 1.30 : 1 — the horizon band, at HORIZON_STRENGTH × 0.5 */
+  --chart-haze: #7f93b0; /* 6.39 : 1 — the Milky Way's haze, at its bands' alphas */
+  --chart-star-blue: #c9d6f7; /* 13.78 : 1 — a star of B−V < 0.0, blue-white */
+  --chart-star-yellow: #f2eedc; /* 17.21 : 1 — a star of B−V 0.4 to 0.8, yellow-white */
+  --chart-star-orange: #f1c39d; /* 12.43 : 1 — a star of B−V ≥ 0.8, orange */
 
   /* FR-LIVE-2 (R32, D-158): the live page draws every pass of the coming 24 h
      at once, one colour per satellite in pass order, from these six. Six
@@ -285,6 +303,16 @@
   --chart-planet: #ff9a70; /* 9.89 : 1 */
   --chart-star-faint: #a24a40; /* 3.51 : 1 */
   --chart-figure-name: #c4544a; /* 4.61 : 1 */
+
+  /* FR-DS-8 as amended v2.10 (R155): the surfaces a shade over black, the haze and the four tones in one hue, apart by lightness. */
+  --chart-sky-deep: #060101; /* 1.00 : 1 */
+  --chart-sky-twilight: #120505; /* 1.04 : 1 */
+  --chart-sky-day: #1e0a08; /* 1.09 : 1 */
+  --chart-horizon-glow: #1e0a08; /* 1.09 : 1 */
+  --chart-haze: #8a2e26; /* 2.47 : 1 */
+  --chart-star-blue: #ffd6ca; /* 15.53 : 1 */
+  --chart-star-yellow: #f5a68f; /* 10.60 : 1 */
+  --chart-star-orange: #e58f76; /* 8.42 : 1 */
 
   --chart-series-1: #ff5c4a; /* 6.73 : 1 */
   --chart-series-2: #ffa07a; /* 10.33 : 1 */

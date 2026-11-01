@@ -226,7 +226,8 @@ export function sceneCatalog(catalog: StarCatalog): StarField['catalog'] {
     return { con: figure.con, part, segments };
   });
   // R127 (D-832): the names' columns go with it, so the views name a star or a figure in the reader's language.
-  const shaped: StarField['catalog'] = { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, name: catalog.name, desig: catalog.desig, con: catalog.con, figures, nameEs: catalog.nameEs, figureNames: catalog.figureNames, wholeNames: catalog.wholeNames };
+  // R155 (FR-LOOK-3, FR-LOOK-5): the B−V column and the Milky Way's outline go with it too, both the catalogue's.
+  const shaped: StarField['catalog'] = { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, bv: catalog.bv, milkyWay: catalog.milkyWay, name: catalog.name, desig: catalog.desig, con: catalog.con, figures, nameEs: catalog.nameEs, figureNames: catalog.figureNames, wholeNames: catalog.wholeNames };
   converted.set(catalog, shaped);
   return shaped;
 }

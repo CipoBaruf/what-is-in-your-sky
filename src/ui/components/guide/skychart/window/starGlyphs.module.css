@@ -37,3 +37,38 @@
 .glyphs [data-tone='chart-planet'] {
   fill: var(--chart-planet);
 }
+
+/* R155 (FR-LOOK-5, FR-LOOK-6; D-974): the four tones from B−V — the white is
+   `--chart-star` above — on a `*` or a dot alike, and the bloom's gradients,
+   each keyed by the tone it is drawn in. */
+.glyphs [data-tone='chart-star-blue'] {
+  fill: var(--chart-star-blue);
+}
+
+.glyphs [data-tone='chart-star-yellow'] {
+  fill: var(--chart-star-yellow);
+}
+
+.glyphs [data-tone='chart-star-orange'] {
+  fill: var(--chart-star-orange);
+}
+
+.glyphs [data-bloom-tone='chart-star'] stop {
+  stop-color: var(--chart-star);
+}
+
+.glyphs [data-bloom-tone='chart-star-blue'] stop {
+  stop-color: var(--chart-star-blue);
+}
+
+.glyphs [data-bloom-tone='chart-star-yellow'] stop {
+  stop-color: var(--chart-star-yellow);
+}
+
+.glyphs [data-bloom-tone='chart-star-orange'] stop {
+  stop-color: var(--chart-star-orange);
+}
+
+.glyphs [data-bloom-tone='chart-planet'] stop {
+  stop-color: var(--chart-planet);
+}

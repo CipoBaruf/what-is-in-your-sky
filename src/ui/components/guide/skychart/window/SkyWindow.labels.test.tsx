@@ -62,9 +62,25 @@ describe('the names (FR-STAR-6 as amended, D-755)', () => {
     resetOrientationAccess();
   });
 
-  it('makes one name node per star of V ≤ 1.5 with a proper name and one per figure, and writes them by ref', () => {
+  /** R155 (FR-LOOK-9): the names follow the field's row — at 20° every star to 3.2, a designation where there is no proper name. */
+  it('names to the field’s row: a pinch to 20° brings in ε Car by its designation', () => {
+    const { container, box, q } = mount();
+    for (let i = 0; i < 5; i += 1) fireEvent.keyDown(box, { key: '+' });
+    expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-fov', '20');
+    const shown = [...container.querySelectorAll('[data-star-name][visibility="visible"]')].map((n) => n.textContent);
+    expect(shown).toContain('ε Car');
+    expect(shown).toContain('ι Car');
+    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'visible');
+    fireEvent.keyDown(box, { key: '0' });
+    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'hidden');
+  });
+
+  it('makes one name node per star to the deepest row’s named magnitude (by designation where there is no name) and one per figure, writes them by ref, and at 60° names to 1.5', () => {
     const { container, q } = mount();
-    expect([...container.querySelectorAll('[data-star-name]')].map((n) => n.textContent)).toEqual(['Canopus', 'Bravo']);
+    // R155 (FR-LOOK-9): the nodes reach to 3.2, the 20° row's; the 60° row draws the names to 1.5 (below).
+    expect([...container.querySelectorAll('[data-star-name]')].map((n) => n.textContent)).toEqual(['Canopus', 'Bravo', 'ε Car', 'ι Car']);
+    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'hidden');
+    expect(q('[data-star-name="3"]')).toHaveAttribute('visibility', 'hidden');
     expect(container.querySelectorAll('[data-figure-name]')).toHaveLength(1);
     // Bravo's name to the right of its mark, the first free place, and not on it.
     const bravo = q('[data-star-name="1"]');

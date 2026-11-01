@@ -44,6 +44,9 @@ export function cutCatalog(catalog: Catalog, cap: number): Catalog {
       ra: prefix(catalog.ra, n),
       dec: prefix(catalog.dec, n),
       mag: prefix(catalog.mag, n),
+      // R155 (FR-LOOK-5): the tones ride with the cut, so a twilight star keeps its colour.
+      ...(catalog.bv === undefined ? {} : { bv: prefix(catalog.bv, n) }),
+      ...(catalog.milkyWay === undefined ? {} : { milkyWay: catalog.milkyWay }),
       name: catalog.name.slice(0, n),
       desig: catalog.desig.slice(0, n),
       con: catalog.con.slice(0, n),

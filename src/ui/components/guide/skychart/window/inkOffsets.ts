@@ -1,4 +1,4 @@
-import { GLYPH_SIZES, SIZE_PX, type SizeToken, type StarGlyph } from './starGlyphs';
+import { GLYPH_SIZES, MARK_GLYPH_SIZES, SIZE_PX, type SizeToken, type StarGlyph } from './starGlyphs';
 
 /**
  * R114 (FR-STAR-6 as amended, V24-15; PLAN D-746, D-752): where each glyph's
@@ -22,6 +22,12 @@ import { GLYPH_SIZES, SIZE_PX, type SizeToken, type StarGlyph } from './starGlyp
  * browser project's `inkOffsets.integration.test.ts` is where the numbers are
  * real. The canvas here is a ruler and draws nothing: FR-GUIDE-5's rule is
  * about what the charts render with, and the module imports no renderer.
+ *
+ * R155 (FR-LOOK-4, D-982): the window's marks are `*` and `@` at
+ * `STAR_SIZES_PX` (20, 16, 13), which are no chart text token, so the map is
+ * keyed by the glyph and its px — `inkOffsetPx` — and the polar chart's
+ * `inkOffset(glyph, token)` reads the same map through the token's px. One
+ * measurement covers both lists.
  */
 export interface InkOffset {
   /** Added to the glyph's `x`: positive moves the ink right. */
@@ -32,12 +38,29 @@ export interface InkOffset {
 
 const ZERO: InkOffset = { dx: 0, dy: 0 };
 const offsets = new Map<string, InkOffset>();
-const key = (glyph: StarGlyph, size: SizeToken): string => `${glyph}@${size}`;
+const key = (glyph: StarGlyph, px: number): string => `${glyph}@${String(px)}`;
 const tenth = (value: number): number => Math.round(value * 10) / 10 || 0;
 
-/** The shift for `glyph` at `size`: the measured one, or 0 until (or without) a measurement. */
+/** The shift for `glyph` at `px`: the measured one, or 0 until (or without) a measurement. */
+export function inkOffsetPx(glyph: StarGlyph, px: number): InkOffset {
+  return offsets.get(key(glyph, px)) ?? ZERO;
+}
+
+/** The shift for `glyph` at a chart text token's size (the polar chart's rungs). */
 export function inkOffset(glyph: StarGlyph, size: SizeToken): InkOffset {
-  return offsets.get(key(glyph, size)) ?? ZERO;
+  return inkOffsetPx(glyph, SIZE_PX[size]);
+}
+
+/** Every glyph × px either ladder draws, each once. */
+function measured(): (readonly [StarGlyph, number])[] {
+  const seen = new Set<string>();
+  const list: (readonly [StarGlyph, number])[] = [];
+  for (const [glyph, px] of [...GLYPH_SIZES.map(([glyph, size]): readonly [StarGlyph, number] => [glyph, SIZE_PX[size]]), ...MARK_GLYPH_SIZES]) {
+    if (seen.has(key(glyph, px))) continue;
+    seen.add(key(glyph, px));
+    list.push([glyph, px]);
+  }
+  return list;
 }
 
 /** Whether the measurement has run and found metrics. */
@@ -58,8 +81,8 @@ function measure(): boolean {
   if (!context) return false;
   const family = monoFamily();
   const found = new Map<string, InkOffset>();
-  for (const [glyph, size] of GLYPH_SIZES) {
-    context.font = `${String(SIZE_PX[size])}px ${family}`;
+  for (const [glyph, px] of measured()) {
+    context.font = `${String(px)}px ${family}`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     const m = context.measureText(glyph);
@@ -67,7 +90,7 @@ function measure(): boolean {
     // The ink runs from `-left` to `+right` across and from `-ascent` to `+descent` down; its centre is what the shift cancels.
     const centreX = (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
     const centreY = (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
-    found.set(key(glyph, size), { dx: tenth(-centreX), dy: tenth(-centreY) });
+    found.set(key(glyph, px), { dx: tenth(-centreX), dy: tenth(-centreY) });
   }
   for (const [k, v] of found) offsets.set(k, v);
   return true;
@@ -89,7 +112,7 @@ export function inkOffsetsReady(): Promise<boolean> {
   return pending;
 }
 
-/** Every measured offset, for the probe that reports them: `*@chart-text-18` → `{ dx, dy }`. */
+/** Every measured offset, for the probe that reports them: `*@18` → `{ dx, dy }`. */
 export function inkOffsetTable(): ReadonlyMap<string, InkOffset> {
   return offsets;
 }
