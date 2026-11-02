@@ -46,9 +46,13 @@ const stars = () => screen.getByTestId('stars-page');
  * so the hand camera's subscription is attached before a test moves it.
  */
 async function drawn(view: 'window' | 'polar' = 'window'): Promise<void> {
-  await waitFor(() => {
-    expect(document.querySelector(`[data-drawing="${view}"]`)).not.toBeNull();
-  });
+  // The chunk's import lands late under a loaded run: five seconds, not `waitFor`'s one.
+  await waitFor(
+    () => {
+      expect(document.querySelector(`[data-drawing="${view}"]`)).not.toBeNull();
+    },
+    { timeout: 5_000 },
+  );
   const probe = createRoot(document.createElement('div'));
   act(() => {
     probe.render(null);
