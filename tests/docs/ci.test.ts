@@ -148,7 +148,8 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // R152 (FR-GYRO-6, D-958): the pass detail's sky screen and the stars page's screen with `[ passes ]` are retired,
     // and the two waits that were theirs went with their routes.
     // R153 (FR-GYRO-9): the live page following puts it back on `SHOWN` after the window has settled on the reading.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(7);
+    // R161 (FR-PHONE-16, D-993): the whole sky with `[ passes ]` puts it back on `SHOWN` after the polar chart's wait.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(8);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });

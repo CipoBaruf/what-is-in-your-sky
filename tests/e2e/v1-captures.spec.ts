@@ -158,7 +158,10 @@ async function settled(page: Page): Promise<void> {
 // where the presence test passes (D-957) — and so is the live page following.
 // R157 (D-966, D-980): the compact live screens are marked `touch` in `captureSet.ts`; this set is what is touch at every
 // width — the sheet's files at 844 too — and `stars-following`, which is not a live screen.
-const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following']);
+// R161 (FR-PHONE-16, D-993): and `stars-whole-following`, the stars page following under the whole sky.
+const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following', 'stars-whole-following']);
+/** R161 (FR-PHONE-16, FR-LOOK-12, D-993): the stars page's other screens, a touch phone at 390 as `stars` is. */
+const STARS_PAGE = new Set<string>(['stars', 'stars-passes', 'stars-whole', 'stars-whole-passes', 'stars-zoom']);
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
@@ -170,13 +173,15 @@ const isTouch = (screen: string, width: CaptureWidth): boolean =>
   TOUCH.has(screen) ||
   // R157 (FR-PHONE-5, D-966): a screen marked `touch` is a touch phone at its compact widths.
   (SCREENS.find((candidate) => candidate.name === screen)?.touch === true && VIEWPORTS[width].width <= 390) ||
-  ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844));
+  (STARS_PAGE.has(screen) && (VIEWPORTS[width].width <= 390 || width === 844));
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
 /** R128: the stars page's layer and its facing picker, by their names (R126's). */
 const PASSES = { en: 'passes', es: 'pases' } as const;
 const FACING = { en: 'Facing', es: 'Mirando' } as const;
+/** R161 (FR-PHONE-7): the stars page's view row, the polar chart's option by its name. */
+const WHOLE_SKY = { en: 'Whole sky', es: 'Cielo entero' } as const;
 const FRAME_MS = 16;
 
 /**
@@ -185,10 +190,16 @@ const FRAME_MS = 16;
  * refused (P8, D-684). Called once per test.
  */
 async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CLOCK): Promise<void> {
-  await page.setViewportSize(VIEWPORTS[width]);
+  await page.setViewportSize({ width: VIEWPORTS[width].width, height: SHORT.get(page) ?? VIEWPORTS[width].height });
   await seedPage(page, prefs, time);
   await stubNetwork(page, 'fixtures', 'showcase');
 }
+
+/**
+ * R161 (FR-PHONE-16, D-993): a screen's own height (`CaptureScreen.height`), set by `shoot` for the page it opens and
+ * read by `open`, so every route opens a short screen at its height without a parameter of its own.
+ */
+const SHORT = new WeakMap<Page, number>();
 
 /**
  * R128 (FR-CAP-5, FR-SKY-3; D-830): the stars under the arcs, arrived. `[ stars ]` is on by default and the
@@ -628,6 +639,24 @@ async function starsWithPasses(page: Page, width: CaptureWidth, theme: CaptureTh
   return azDeg;
 }
 
+/**
+ * R161 (FR-PHONE-7, FR-PHONE-8, D-993): the stars page's `Whole sky` pressed in its view row — the polar chart in the
+ * box, its stars group a lazy chunk the paused clock holds (R32), so the wait is a placed mark ticking the clock, then
+ * the field's outline drawn. The focus ring leaves the row's button. Returns the chart's drawing.
+ */
+async function wholeSky(page: Page, locale: CaptureLocale): Promise<Locator> {
+  await page.getByTestId('stars-view-row').getByRole('button', { name: WHOLE_SKY[locale] }).click();
+  await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'polar');
+  const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
+  await starsDrawn(page, polar, '[data-layer="stars"] [data-star]');
+  await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/);
+  await blurFocus(page);
+  return polar;
+}
+
+/** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the eastern horizon by the page's own reading — civil twilight, near the middle of its step. */
+const TWILIGHT = CLOCK + 165 * 60_000;
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
@@ -983,14 +1012,80 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
+  /** R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. */
+  async 'stars-whole'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await wholeSky(page, locale);
+    await pinnedAt(page, CLOCK);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R161 (FR-PHONE-8, FR-PHONE-16): the whole sky three minutes into the night's brightest pass, `[ passes ]` on. */
+  async 'stars-whole-passes'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale, SHOWN);
+    await page.getByTestId('stars-layers').getByRole('button', { name: PASSES[locale] }).click();
+    const polar = await wholeSky(page, locale);
+    await pinnedAt(page, SHOWN);
+    await expect(polar.locator('[data-pass-id]').first()).toBeAttached();
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R161 (FR-PHONE-9, FR-PHONE-16; D-992): `stars-following`'s page, then `Whole sky`: following stays on, and the
+   * outline is the sensor's, at the stubbed reading the page already faced.
+   */
+  async 'stars-whole-following'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await followed(page, page.getByTestId('stars-sky'));
+    const polar = await wholeSky(page, locale);
+    const outline = polar.locator('[data-field-outline]');
+    await expect(outline).toHaveAttribute('data-following', 'true');
+    // FR-CAP-5: the following outline eases onto the readings, so the wait is for its path to hold across half a second
+    // of them before the instant is pinned. The path is then the same string in every run; two faint hairlines in the
+    // disc's lower left still rasterise in one of two ways (RELEASE §23.1, F-99).
+    let previous = '';
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(500);
+        const d = (await outline.getAttribute('d')) ?? '';
+        const still = d === previous;
+        previous = d;
+        return still;
+      }, { timeout: 30_000 })
+      .toBe(true);
+    await expect(page.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+    await pinnedAt(page, CLOCK);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R161 (FR-PHONE-13, FR-PHONE-16): the `guide` screen's pass at 390 × 667, `shoot` having set the height. */
+  async 'guide-short'(page, width, theme, locale) {
+    await openChart(page, width, theme, locale, 'dome');
+    // The times row is the file's subject, so it must be on the short screen, not scrolled above it by the dome's wait.
+    await expect(guide(page).getByTestId('pass-times')).toBeInViewport({ ratio: 1 });
+  },
+
+  /**
+   * R161 (FR-LOOK-2, FR-LOOK-12): the live page at `TWILIGHT` on the window — the phone's opens on it, the desk's
+   * view control is turned to it — with the surface on the twilight step.
+   */
+  async 'live-twilight'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale, TWILIGHT);
+    const chart = page.getByTestId('sky-chart');
+    if ((await chart.getAttribute('data-view')) !== 'window') await windowInTheBox(page, chart, locale, TWILIGHT);
+    await expect(chart.locator('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
+    await page.mouse.move(0, 0);
+  },
+
   /** R128 (FR-SKY-6; US-40 AC5): the stars page with `[ passes ]` on, faced to the pass. */
   async 'stars-passes'(page, width, theme, locale) {
     await starsWithPasses(page, width, theme, locale);
   },
 
   /**
-   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens at 1280, zoomed to the narrowest
-   * field by the box's `+`. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
+   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens, zoomed to the narrowest
+   * field by the box's `+` — at 1280, and since R161 at 390 too (FR-LOOK-12), where the key stands in for the pinch to
+   * the same field, so the picture is the phone's at 20° and not the gesture's. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
    * press more than 60 / 1.25ⁿ needs is held at the minimum.
    */
   async 'stars-zoom'(page, width, theme, locale) {
@@ -1024,6 +1119,7 @@ function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof cap
     test(`${screen.name} at ${String(width)} px${view ? ' (view)' : ''}, ${theme}, ${locale}`, async ({ page }) => {
       // R153 (FR-GYRO-9, D-946): a touch capture brings its own motion permission, granting and reading nothing until a
       // capture that follows sets its readings — and the desk browser's own all-`null` event never reaches the page.
+      if (screen.height !== undefined) SHORT.set(page, screen.height);
       if (isTouch(screen.name, width)) await stubOrientation(page, { answer: 'granted', readings: [] });
       await reach(page, width, theme, locale, view);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);

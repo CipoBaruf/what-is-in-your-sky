@@ -184,6 +184,14 @@
  * `[ follow the phone ]` with the sheet closed, and `stars-following`, the stars page with the toggle on. The compact
  * live sheet files are a touch phone's too, since the toggle's row is drawn only where the sensor is. The set is
  * 384 files.
+ *
+ * R161 (SPEC §9 Phase 2s, FR-PHONE-16, FR-LOOK-12; PLAN D-993): v2.10 puts the phone first and redraws the sky, and
+ * adds the files the two requirements name — every one at the sizes they name, in both themes and languages.
+ * `stars-whole` and `stars-whole-passes` are the stars page's `Whole sky` with `[ passes ]` off and on, at 390 and
+ * 1280; `stars-whole-following` is the field's outline on it while the page follows, at 390; `guide-short` is the
+ * pass detail at 390 × 667, the one screen whose height is not its width's usual one (`height`); `live-twilight` is
+ * the live page's window at civil twilight, at 390 and 1280; and `stars-zoom` gains 390, the stars page at 20° on the
+ * phone. The set is 420 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -256,6 +264,13 @@ export interface CaptureScreen {
    * `v1-captures.spec.ts` reads it.
    */
   readonly touch?: true;
+  /**
+   * R161 (FR-PHONE-16, D-993): the viewport's height where it is not the width's usual one — the pass detail at
+   * 390 × 667, the short phone FR-PHONE-13's times row is for. The file keeps the width in its name and the screen's
+   * name says what is short about it, since a second height at 390 would otherwise collide with the phone's file
+   * (D-420's reason for never adding one).
+   */
+  readonly height?: number;
 }
 
 /**
@@ -324,6 +339,21 @@ export const SCREENS: readonly CaptureScreen[] = [
     what: "The `#stars` page as it opens (FR-STAR-3, FR-STAR-6, R115–R117), over Bariloche at 05:00 local on the 6th, facing the pole side — south, 35° up — with every layer on: the stars on the ladder's three sizes, the figures as hairlines with their spaced names (Crux, Centaurus, Carina), the bright stars named (Canopus, Acrux, Hadar) and the horizon at the box's foot. No planet is in that field at that instant, so the planet layer is on and draws nothing there. At 360 and 390 (a touch phone, FR-WIN-4) it is the readout, the box full-bleed and square, the facing row and the layers, with `[ follow the phone ]` where the sensor is (FR-GYRO-1; `[ hold up to the sky ]` until v2.9); `In this field` is under the fold, which the viewport shot leaves out. Since v2.6 the action comes first, then the layers, then the list (FR-FLOW-8). At 844 × 390 it is the same touch phone turned: the box left at full height and the rail beside it, scrolling inside itself (FR-FLOW-15, R135). At 1280 and 1920 it is the box at the left and the rail beside it — the facing picker, the layers and `In this field` with its rows.",
   },
   {
+    name: 'stars-whole',
+    widths: [390, 1280],
+    what: "The `#stars` page as `stars` opens it, with `Whole sky` pressed in its view row (FR-PHONE-7, FR-PHONE-8, R158, R160): the polar chart in the box with every star to 4.5 on the ladder, the figures as hairlines with the gap at each mark, the surface and the band inside the rim and the Moon with its phase, and the window's field outlined where the page faced, south 35° up (FR-PHONE-9). The readout slot holds the chart's convention line and the picker slot its looking-up / map toggle; `In this field` lists the whole sky's twelve brightest. At 390 a touch phone, the names off by the compact default (`[ ] names`); at 1280 the rail beside the box, the names on. FR-PHONE-16 names the two widths.",
+  },
+  {
+    name: 'stars-whole-passes',
+    widths: [390, 1280],
+    what: "The same whole sky three minutes into the night's brightest pass with `[ passes ]` on (FR-PHONE-8, FR-SKY-6): the pass's arc and its key over the stars, and `In this field` with the pass first. FR-PHONE-16 names the two widths.",
+  },
+  {
+    name: 'stars-whole-following',
+    widths: [390],
+    what: "The stars page following the phone, then `Whole sky` pressed (FR-PHONE-9, D-992): following stays on under the whole sky, `[x] follow the phone` in the action slot, and the field's outline is the sensor's — a stubbed reading aimed where the page faced, south 35° up — drawn on the polar chart and marked `data-following`. FR-PHONE-16 names the one size, 390 × 844.",
+  },
+  {
     name: 'stars-following',
     widths: [390],
     what: "The `#stars` page as `stars` opens it at 390, with `[ follow the phone ]` on (FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, R152; US-44 AC1): the toggle in the action slot where `[ hold up to the sky ]` stood, the window following a stubbed reading (D-946) aimed where the page faced — south, 35° up — and no readout over it. FR-GYRO-9 names the one size, 390 × 844.",
@@ -350,8 +380,20 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   {
     name: 'stars-zoom',
-    widths: [1280],
-    what: 'The `#stars` page as `stars` opens it at 1280, zoomed by `+` to `WINDOW_FOV_MIN_DEG`, 20° (FR-SKY-14, R125): the same stars spread about the centre at their sizes, the readout naming the field and the facing unchanged. FR-SKY-9 names this one width for it.',
+    widths: [390, 1280],
+    what: 'The `#stars` page as `stars` opens it, zoomed by `+` to `WINDOW_FOV_MIN_DEG`, 20° (FR-SKY-14, R125): the same stars spread about the centre at their sizes, the readout naming the field and the facing unchanged. Since v2.10 the field\'s detail follows it (FR-LOOK-9): at 20° the deep catalogue to 6.5 is drawn and more names are placed. FR-SKY-9 named 1280 for it; FR-LOOK-12 adds 390, a touch phone, as `stars` is there.',
+  },
+  {
+    name: 'guide-short',
+    widths: [390],
+    height: 667,
+    what: "The `guide` screen's pass on the short phone, 390 × 667 (FR-PHONE-13, FR-PHONE-16): the pass detail's head with its three times on one row under the name, the view row and the dome. FR-PHONE-16 names the one size; the file carries the width, and the screen's name the short height.",
+  },
+  {
+    name: 'live-twilight',
+    touch: true,
+    widths: [390, 1280],
+    what: "The live page's window at civil twilight (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the horizon in the east, so the surface is `--chart-sky-twilight` and the stars thin into the lighter sky, the band at the horizon as on every step. At 390 the touch phone's live page, which opens on the window; at 1280 the view control turned to `Window`, the box beside the rail. Nothing visible is up at that instant, so the phone's card is answered `[ see now ]`, as every live capture of its own instant is.",
   },
   {
     name: 'home-up-now',

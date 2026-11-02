@@ -350,6 +350,37 @@ export interface Budget {
  * move the module back into `camera`. The dome page loads the same bytes, the
  * other pages fewer. `docs/RELEASE.md` §18.2 has the byte counts.
  *
+ * R161 re-sets every row on the 2.10.0 branch (SPEC §9 Phase 2s, FR-PHONE-16,
+ * FR-LOOK-12; D-178, D-993, D-994), beside `95f3c88`'s (2.9.0) built on the
+ * same machine, both plain, and moves R154's `stars-deep` row out of
+ * `PHASE_BUDGETS` into the table. **Three budgets move by the rule: `stars` up,
+ * `window` down, `stars-deep` in. `main` is over its 180 and is the owner's**
+ * (`docs/RELEASE.md` §23.4): the rule would make it 200, past the ceiling only
+ * the owner moves, so the row stays at 180 and the build warns until they decide.
+ *
+ * | chunk          | file                  | `95f3c88` | measured | budget | was | ceiling |
+ * |----------------|-----------------------|----------:|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |     176.6 |    180.3 |    180 | 180 |     180 |
+ * | chart          | `SkyDome-*.js`        |      97.1 |     97.1 |    110 | 110 |     110 |
+ * | stars-deep     | `deep-*.js`           |         — |     41.8 | **50** |  60 |      60 |
+ * | worker         | `passes.worker-*`     |      36.1 |     36.1 |     40 |  40 |     130 |
+ * | stars          | `Stars-*.js`          |      26.0 |     29.2 | **35** |  30 |      40 |
+ * | astronomy      | `astronomy-*` + `skyBodies-*` | 24.1 |  24.1 |     30 |  30 |      30 |
+ * | live           | `Live-*.js`           |      15.6 |     15.8 |     20 |  20 |      40 |
+ * | window         | `SkyWindow-*.js`      |      26.1 |     13.1 | **15** |  30 |       — |
+ * | service worker | `workbox-*.js`        |       5.0 |      5.0 |     10 |  10 |      15 |
+ * | settings       | `Settings-*.js`       |       1.1 |      1.1 |     10 |  10 |       — |
+ *
+ * `window` halves because Rollup moved what the window shares with the polar
+ * chart (the sensor's hooks, the magnetic model, `MoonDisc` and the projection,
+ * D-988, D-992) into a chunk the two load, `starLabels-*.js` at 12.9, and the
+ * constellation table the stars page shares into `camera-*.js` at 4.5; both are
+ * listed unbudgeted, as every shared lazy chunk is, so the window's own row is
+ * re-set to what is its own and the page's total is named in the release table
+ * (SkyWindow + the two shared chunks + `field-*.js`: 33.9 against 2.9.0's 28.7).
+ * `PolarStars-*.js` grew 0.8 → 5.3 with the chart's star map (FR-PHONE-16 lets
+ * it land where `SkyPolar` lands) and stays unbudgeted beside it.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -398,16 +429,18 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 180 }, // R149 (FR-FULL-9, FULL_MAIN_KB = 0.5 over 2.7.0): 180.0 on the 2.8.0 branch against 179.3 on 2.7.0 (184,363 bytes against 183,560, +803) — the sheet's and the card's strings (+173) and `SkyViewLayout`'s `full` form (+632), which the stars page and the pass detail share; within `FULL_MAIN_KB` as amended (1.0 KB, V28-9, D-940) and at the 180 ceiling the owner kept; R145 (FR-TONIGHT-10, TONIGHT_MAIN_KB = 2.0 over 2.6.1): 179.3 on 2.7.0 against 177.6 on 2.6.1 (+1,737 bytes) — the catalog's new strings, `usePlayback`'s automatic rate and `SkyViewLayout`'s corner readout; D-178's × 1.1 is past the ceiling, so 180 stays; R135 (V26-14, D-875): 177.5 on 2.6.0, the owner's raise to the next 5 KB line, ceiling with it, after D-882 took the dome camera back out; R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 180 }, // R161 (D-178, D-994): 180.3 on the 2.10.0 branch against 176.6 on 2.9.0 (184,678 bytes against 180,854, +3,824) — `SkyPolar`'s wrappers and the chart's held and controlled view, the theme's rule, the phase's strings; over the 180 ceiling, the rule's 200 past it, so the row stays and the owner decides (RELEASE §23.4); R149 (FR-FULL-9, FULL_MAIN_KB = 0.5 over 2.7.0): 180.0 on the 2.8.0 branch against 179.3 on 2.7.0 (184,363 bytes against 183,560, +803) — the sheet's and the card's strings (+173) and `SkyViewLayout`'s `full` form (+632), which the stars page and the pass detail share; within `FULL_MAIN_KB` as amended (1.0 KB, V28-9, D-940) and at the 180 ceiling the owner kept; R145 (FR-TONIGHT-10, TONIGHT_MAIN_KB = 2.0 over 2.6.1): 179.3 on 2.7.0 against 177.6 on 2.6.1 (+1,737 bytes) — the catalog's new strings, `usePlayback`'s automatic rate and `SkyViewLayout`'s corner readout; D-178's × 1.1 is past the ceiling, so 180 stays; R135 (V26-14, D-875): 177.5 on 2.6.0, the owner's raise to the next 5 KB line, ceiling with it, after D-882 took the dome camera back out; R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 }, // R135 (D-875, D-882): 97.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 106.8, up to 110, its ceiling) — the build puts `domeGeometry` here now, not in the shared `camera` chunk (camera.ts's uses of it are test-only and shaken out); R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10, per: 'each' },
   // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
   { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 30 }, // R135 (D-875): 24.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 26.5, up to 30, its ceiling) — R130's `moonNow`
+  // R154 (FR-LOOK-8, D-973, D-976): the deep catalogue, `src/data/stars/deep.json` through `deepChunk.ts`; Rollup names a lazily imported JSON module's chunk after the file, so the file is `deep-*.js` and the row is `stars-deep`. R161 (D-178, D-993): 41.8 on 2.10.0 (42,772 bytes), moved here from `PHASE_BUDGETS`; × 1.1 = 46.0, so 50 under DEEP_BUDGET_KB (60), the ceiling.
+  { name: 'stars-deep', match: (file) => /^deep-.*\.js$/.test(file), limitKb: 50 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 20 }, // R149 (FR-FULL-9 as amended, V28-9, D-940): 15.3 on the 2.8.0 branch against 13.3 on 2.7.0 (15,658 bytes against 13,596, +2,062) — `ControlsSheet`, `SkyHead`, `OpeningCard` and the card's effect; the owner accepted the measure and D-178's × 1.1 (16.8) re-sets the row to 20; R145 (D-178): 13.3 on 2.7.0 against 9.7 on 2.6.1 (+3,681 bytes) — the track, the taps, the shown time and the jump are imported only by the lazy `Live.tsx`, so Rollup puts them here and not in main (FR-TONIGHT-10 as amended, V27-9); × 1.1 = 14.6, so 15 stays; R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 30 }, // R128 (D-831): 25.7 on 2.5.0, re-set by D-178's rule (× 1.1 = 28.3, up to 30) — the hand camera on every page, the picker, the zoom and the landmark (R121, R125, R127); R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R161 (D-178, D-993): 13.1 on 2.10.0 against 26.1 on 2.9.0 (13,370 bytes against 26,725) — what the window shares with the polar chart went to the shared `starLabels-*` chunk (12.9) and the constellation table to `camera-*` (4.5), both unbudgeted; × 1.1 = 14.4, down to 15; R128 (D-831): 25.7 on 2.5.0, re-set by D-178's rule (× 1.1 = 28.3, up to 30) — the hand camera on every page, the picker, the zoom and the landmark (R121, R125, R127); R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
-  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 30 }, // R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 35 }, // R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
 /**
@@ -418,10 +451,8 @@ export const BUDGETS: readonly Budget[] = [
  * into `BUDGETS` with its measure and into the release table with it (R161,
  * D-178).
  */
-export const PHASE_BUDGETS: readonly Budget[] = [
-  // R154 (FR-LOOK-8, D-973, D-976): the deep catalogue, `src/data/stars/deep.json` through `deepChunk.ts`, at DEEP_BUDGET_KB (60) until the release re-sets it by D-178. Rollup names a lazily imported JSON module's chunk after the file, so the file is `deep-*.js` and the row is `stars-deep`. 41.8 measured on the R154 branch with a temporary importer; no committed module imports `deepChunk.ts` until R155's window does, so until then the row prints the missing-chunk warning.
-  { name: 'stars-deep', match: (file) => /^deep-.*\.js$/.test(file), limitKb: 60 },
-];
+// R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
+export const PHASE_BUDGETS: readonly Budget[] = [];
 
 /** Every row the script measures: the release's and the phase's. */
 const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];

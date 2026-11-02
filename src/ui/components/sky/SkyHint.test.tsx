@@ -96,7 +96,7 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
           const line = skyHintLine(words, view, 'coarse', { follow });
           expect(line.split(' · ').length, line).toBeLessThanOrEqual(HINT_TOUCH_CLAUSES);
           expect(line.startsWith(words.drag.coarse)).toBe(true);
-          expect(line).not.toContain(words.star.coarse);
+          expect(line).not.toMatch(/tap a star|tocá una estrella/);
         }
       }
       expect(skyHintLine(words, 'window', 'coarse', { follow: null })).toBe(`${words.drag.coarse} · ${words.zoom.coarse}`);

@@ -61,7 +61,7 @@ describe('the v1 capture set', () => {
      * R153 (FR-GYRO-6, FR-GYRO-9): v2.9 retires the sky screen, and the paragraphs above about it are history; no
      * screen of that name is left in the set.
      */
-    const DESK_ONLY = new Set(['live-window-follow', 'stars-zoom']);
+    const DESK_ONLY = new Set(['live-window-follow']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
     const DESK_WIDE = new Set(['live-window']);
@@ -80,7 +80,14 @@ describe('the v1 capture set', () => {
     ]);
     // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
     // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
-    const FOLLOWING = new Set(['live-following', 'stars-following']);
+    // R161 (FR-PHONE-16, D-993): and the whole sky's outline while following, at the same one size.
+    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following']);
+    // R161 (FR-PHONE-16, FR-LOOK-12, D-993): the files the two requirements name at the phone's and the desk's width,
+    // 390 and 1280 and no 360 beside them — `stars-zoom` among them, FR-LOOK-12's 390 joining FR-SKY-9's 1280.
+    const NAMED_PAIR = new Set(['stars-whole', 'stars-whole-passes', 'live-twilight', 'stars-zoom']);
+    // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
+    const SHORT = new Set(['guide-short']);
+    expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
@@ -92,6 +99,14 @@ describe('the v1 capture set', () => {
         continue;
       }
       if (FOLLOWING.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([390]);
+        continue;
+      }
+      if (NAMED_PAIR.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([390, 1280]);
+        continue;
+      }
+      if (SHORT.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([390]);
         continue;
       }
@@ -139,7 +154,9 @@ describe('the v1 capture set', () => {
     // R149 (FR-FULL-9, D-937): + 4 `live-tonight` at 844, + 8 each for `live-sheet` and `live-sheet-list` (390, 844).
     // R153 (FR-GYRO-9, D-958): − 38 for the sky screen's nine screens (`window`, the six `sky-screen-*`, `stars-screen`,
     // `stars-passes-screen`), + 4 each for `live-following` and `stars-following` (390).
-    expect(captureSet()).toHaveLength(384);
+    // R161 (FR-PHONE-16, FR-LOOK-12, D-993): + 8 each for `stars-whole`, `stars-whole-passes` and `live-twilight` (390,
+    // 1280), + 4 each for `stars-whole-following` and `guide-short` (390) and for `stars-zoom` at 390.
+    expect(captureSet()).toHaveLength(420);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

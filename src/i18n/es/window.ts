@@ -13,7 +13,7 @@ export const windowMessages: typeof EnWindow = {
     skyHint: {
       drag: { coarse: 'Arrastrá para mirar', fine: 'Arrastrá o usá las flechas' },
       zoom: { coarse: 'pellizcá para acercar', fine: 'ctrl + rueda para acercar' },
-      star: { coarse: 'tocá una estrella', fine: 'hacé clic en una estrella' },
+      star: { fine: 'hacé clic en una estrella' },
       follow: (p) => `tocá ${p.key} para seguir`,
     },
     readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
