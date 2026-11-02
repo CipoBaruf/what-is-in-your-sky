@@ -248,6 +248,8 @@ test.describe('the sky window on a compact page without a sensor', () => {
   test('lays the window out in the box by hand on the pass detail, saves it, and a reload opens on it (FR-FLOW-14)', async ({ page }) => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
+    // R164 (FR-CLEAN-5): the view row is the sheet's.
+    await openSheet(page);
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
     await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await toggle.getByRole('button', { name: 'Window' }).click();
@@ -256,14 +258,15 @@ test.describe('the sky window on a compact page without a sensor', () => {
     const w = figure.locator('[data-look-az]');
     await expect(w).toHaveAttribute('data-state', 'hand');
     expect((await look(w)).alt).toBe(46);
-    // Compact keeps the dome's box — square, full-bleed — and the readout in its row, not the corner: directly above
-    // the drawing (R132, FR-FLOW-4), where the column puts the readout slot.
+    // R164 (FR-CLEAN-1, FR-CLEAN-5): the box is the screen, and with the sheet open the readout is its facing row's,
+    // whose tap opens the picker with `peak` pressed (FR-SKY-7).
     const frame = figure.getByTestId('chart-frame');
     await expect(frame).toHaveAttribute('data-compact', 'true');
     const box = await rectOf(figure.getByTestId('chart-box'));
-    expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(1);
-    const readout = await rectOf(guide(page).getByTestId('window-readout'));
-    expect(readout.y + readout.height).toBeLessThanOrEqual(box.y + 1);
+    expect(Math.round(box.width)).toBe(390);
+    expect(Math.round(box.height)).toBe(844);
+    await expect(page.getByTestId('pass-facing').getByTestId('window-readout')).toBeVisible();
+    await page.getByTestId('sky-readout-toggle').click();
     await expect(guide(page).getByRole('group', { name: 'Facing' }).locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     // R136 (FR-FLOW-14, D-876): the window is saved on compact as on wide.
     expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
@@ -465,6 +468,8 @@ test.describe('the landmark and the facing key (R127)', () => {
     await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: OPEN_GUIDE[locale] }).click();
     const sheet = guide(page);
     await expect(sheet).toBeVisible();
+    // R164 (FR-CLEAN-5): the name block and the table are the controls sheet's.
+    await openSheet(page);
     // FR-SKY-11: the line, under the name, in the reader's language (D-832).
     await expect(sheet.getByTestId('pass-landmark')).toHaveText(locale === 'es' ? /^pasa \d+° (?:sobre|bajo|junto a) .+, en Orión$/ : /^passes \d+° (?:above|below|beside) .+, in Orion$/, { timeout: 30_000 });
     // FR-SKY-12: the `Among` / `Entre` column, the peak among Orión; the rise and the set named by where the eye is sent.

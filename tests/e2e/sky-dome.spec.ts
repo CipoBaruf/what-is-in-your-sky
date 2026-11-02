@@ -15,8 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { compactBowlBoxPx } from '../../src/ui/components/guide/skychart/dome/camera';
-import { savedDome, withSettings } from './liveHelpers';
+import { openSheet, savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -86,6 +85,8 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   // FR-DOME-7 (FR-FLOW-14 since R136: the saved view wins on a phone): the dome is what the sheet opens on, with no toggle needed.
   await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
+  // R164 (FR-CLEAN-5): the view row and the table are the sheet's.
+  await openSheet(page);
   const viewToggle = dialog.getByRole('group', { name: 'Chart view' });
   await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
   await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
@@ -96,14 +97,12 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   const domeFrame = await frameBox();
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
-  // R132 (FR-FLOW-4): the readout above the box is the view's — one line for the dome, two for the polar convention —
-  // so the frame may move down a row between views while it keeps its width; the table follows it. R133 (FR-FLOW-9,
-  // D-850): the dome's frame is the bowl's height and the polar chart's the square, so the heights differ by rule.
+  // R164 (FR-CLEAN-1, FR-CLEAN-6): the box is the screen in every view, so the frame does not move with the view, and
+  // the table stays where it is in the sheet.
+  const tableBefore = await tableY();
   const polarFrame = await frameBox();
-  expect(polarFrame.width).toBe(domeFrame.width);
-  expect(domeFrame.height).toBeLessThan(polarFrame.height);
-  // …and the table of points stays under the drawing (the polar chart's orientation control stands between them, in the picker slot).
-  expect(await tableY()).toBeGreaterThanOrEqual(polarFrame.y + polarFrame.height - 1);
+  expect(polarFrame).toEqual(domeFrame);
+  expect(await tableY()).toBe(tableBefore);
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
   await expect(figure).toHaveAttribute('data-view', 'dome');
 
@@ -117,8 +116,8 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   const rows = raster.split('\n');
   // FR-DOME-1: the columns are the phone's 60 at this width (an integer rule, so exact everywhere), and the rows follow the
   // box's height at cell aspect 2. The row count is therefore platform-dependent: where glyph advances round to whole pixels
-  // (Linux Chromium) the fitted cell is a little narrower, so a few more rows fit the same box. R133 (FR-FLOW-9): the box is
-  // the bowl's height — 337 at 390 px, 25 rows of 13 px — so the floor is the rows that box holds at the exact cell.
+  // (Linux Chromium) the fitted cell is a little narrower, so a few more rows fit the same box. R164: the box is
+  // the screen (FR-CLEAN-1), so the floor is the rows that box holds at the exact cell.
   const box = await stage.boundingBox(); // the focusable stage fills the frame's box; the drawing inside is sized by its raster
   if (!box) throw new Error('drawing has no box');
   expect(rows[0]).toHaveLength(60);
@@ -128,8 +127,8 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(box.width).toBeGreaterThan(300);
-  // R133 (FR-FLOW-9, D-850): the box is cut from the bowl — its drawn height at this width plus the slack above and below — not the square.
-  expect(Math.abs(box.height - compactBowlBoxPx(box.width))).toBeLessThanOrEqual(1);
+  // R164 (FR-CLEAN-1, FR-CLEAN-8): the box is the screen, so FR-FLOW-9's compact cut from the bowl binds the detail no more.
+  expect(Math.round(box.height)).toBe(844);
   const preBox = await pre.boundingBox();
   if (!preBox) throw new Error('raster has no box');
   // FR-DOME-1: no frame, so the drawing fills the box itself rather than the box less a border — the *height* exactly, because
@@ -217,7 +216,8 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   const stageBox = await drawing.boundingBox(); // measured again: the sheet was scrolled since the first box
   if (!stageBox) throw new Error('drawing has no box');
   const cx = stageBox.x + stageBox.width / 2;
-  const cy = stageBox.y + stageBox.height / 2;
+  // R164: the open sheet covers the lower 70 % of the sky and the head the top-left corner, so the drag is a fifth of the way down.
+  const cy = stageBox.y + stageBox.height * 0.2;
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   for (let i = 1; i <= 10; i++) await page.mouse.move(cx - i * 12, cy - i * 4);
@@ -242,12 +242,17 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   await page.reload();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'polar');
+  // Every visit opens with the sheet closed (FR-CLEAN-6); the view row is the sheet's.
+  await openSheet(page);
   await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Dome' }).click();
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'dome');
   await expect(page.getByRole('dialog').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
 
   // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the night on the dome.
+  // R164 (FR-CLEAN-6): `Esc` closes the sheet, then the guide.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');

@@ -791,7 +791,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
    * in this browser's own cell (`1ch` of the font it has, F-10) rather than derived from a px assumption. The
    * live page is reached by one fresh load per row, since leaving it is a route of its own.
    */
-  test('the tablet rows: the column is 60 cells and centred on home, the sheet, settings and the live page, the box no wider, and the live page does not scroll (FR-TAB-1, FR-TAB-2, US-35)', async ({ page }) => {
+  test('the tablet rows: the column is 60 cells and centred on home and settings, the live page and the pass detail all sky, and the live page does not scroll (FR-TAB-1, FR-TAB-2, US-35)', async ({ page }) => {
     test.setTimeout(180_000);
     for (const size of TABLET) {
       const [width, height] = size;
@@ -805,13 +805,14 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // The home: its three landmarks.
       for (const [name, locator] of landmarks(page)) expectColumn(await settledBox(locator), column, width, `${at} home ${name}`);
 
-      // The sheet: its frame, and the box inside it.
+      // The pass detail: R164 (FR-CLEAN-1, V211-1) — the full form on the tablet too, as the live page is: the box is
+      // the viewport, not the column (the column of R99 was the sheet form's).
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: /Open guide/ }).click();
       const sheet = page.getByRole('dialog');
       await expect(sheet, at).toBeVisible();
-      expectColumn(await settledBox(sheet.locator(':scope > *').first()), column, width, `${at} sheet`);
       const sheetBox = await settledBox(sheet.getByTestId('chart-box'));
-      expect(sheetBox.width, `${at}: the sheet's box is ${String(Math.round(sheetBox.width))} px wide in a ${String(Math.round(column))} px column`).toBeLessThanOrEqual(column + 1);
+      expect(Math.round(sheetBox.width), `${at}: the detail's box is ${String(Math.round(sheetBox.width))} px wide, not the viewport's`).toBe(width);
+      expect(Math.round(sheetBox.height), `${at}: the detail's box is ${String(Math.round(sheetBox.height))} px tall, not the viewport's`).toBe(height);
       await page.keyboard.press('Escape');
       await expect(sheet, at).toBeHidden();
 

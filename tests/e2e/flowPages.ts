@@ -88,9 +88,12 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       await seedStoredRun(page, { locale, settled: true, prefs: viewPrefs(drawn) });
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
       const layout = page.getByTestId('pass-layout');
-      await expect(layout).toBeVisible();
+      // R164: the full form's root holds a box fixed to the viewport and has no box of its own, so it is attached, not visible.
+      await expect(layout).toBeAttached();
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
-      // The compact guide is a sheet over the home, which it makes inert: the sheet is the page.
+      // The compact guide stands over the home, which it makes inert: the dialog is the page. R164 (FR-CLEAN-5,
+      // FR-CLEAN-8): it is measured with its sheet open, as the live page and the stars page are — its rows are the sheet's.
+      await openSheet(page);
       return page.locator('[role="dialog"][data-pass-id]');
     }
     case 'settings': {

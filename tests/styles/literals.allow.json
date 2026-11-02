@@ -96,8 +96,8 @@
     "reason": "R110 (D-736): 1 the sheet names — the headline's 1.25rem (--text-heading)."
   },
   "src/ui/screens/PassDetail.module.css": {
-    "count": 2,
-    "reason": "R110 (D-736): 2 the sheet names — the sheet's z-index 10 (--z-sheet), the heading's 1.25rem (--text-heading)."
+    "count": 1,
+    "reason": "R110 (D-736): 1 the sheet names — the page's z-index 10 (--z-sheet); R164 took the compact heading's 1.25rem with the column."
   },
   "src/ui/screens/home/Steps.module.css": {
     "count": 13,

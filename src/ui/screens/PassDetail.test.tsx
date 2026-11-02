@@ -10,6 +10,10 @@ import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { stubMatchMedia } from '../../../tests/support/matchMedia';
 import type { Observer } from '../../model';
 import { en } from '../../i18n/en';
+import { es } from '../../i18n/es';
+import { I18nProvider } from '../../i18n/useT';
+import { formatDateZone } from '../../lib/format';
+import type { Locale } from '../../model';
 import { appStore, type ElementsState } from '../../state';
 import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
 import { IDLE_PASSES } from '../../state/slices/passes';
@@ -71,7 +75,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     const figure = within(dialog).getByRole('figure', { name: 'ISS (Zarya)' });
     const sentence = within(dialog).getByTestId('guide-sentence');
     expect(figure).toHaveAttribute('aria-describedby', sentence.id);
-    expect(sentence.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    // R164 (FR-CLEAN-5): the prose is the sheet's last group.
+    expect(sentence.closest('[data-testid="pass-prose"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'sheet');
     expect(figure.closest('[data-slot]')).toHaveAttribute('data-slot', 'drawing');
     expect(figure).toHaveAttribute('data-view', 'dome');
     // PLAN §11: the dome is the chart chunk, behind `React.lazy`, so the drawing arrives a tick after the sheet.
@@ -80,8 +85,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(dialog.querySelector('canvas')).toBeNull();
     // The orientation toggle is the polar view's (FR-GUIDE-4); the dome is turned by dragging it instead.
     expect(within(dialog).queryByRole('group', { name: 'Chart orientation' })).toBeNull();
-    // R132 (D-842): the view control is the layout's view row, not the figure's.
-    expect(within(dialog).getByRole('group', { name: 'Chart view' }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    // R164 (FR-CLEAN-5): the view control is the sheet's view row, not the figure's.
+    expect(within(dialog).getByRole('group', { name: 'Chart view' }).closest('[data-testid="pass-view-row"]')).not.toBeNull();
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
@@ -99,11 +104,9 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(lead).toContainElement(table);
     const slot = dialog.querySelector('[data-testid="chart-legend-slot"]');
     expect(slot).toContainElement(lead as HTMLElement);
-    // R132 (FR-FLOW-7, D-849): in the layout's `list` slot, after the drawing — the prose first, then the table (FR-FLOW-4's order).
-    const slots = [...dialog.querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
-    expect(slots.indexOf('drawing')).toBeLessThan(slots.indexOf('list'));
-    expect(slot?.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    const list = dialog.querySelector('[data-slot="list"]') as HTMLElement;
+    // R164 (FR-CLEAN-5): in the sheet's last group — the prose first, then the table.
+    const list = screen.getByTestId('pass-prose');
+    expect(list).toContainElement(slot as HTMLElement);
     expect([...list.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid')).filter((id) => id === 'guide-sentence' || id === 'chart-legend-slot')).toEqual(['guide-sentence', 'chart-legend-slot']);
     const caption = table.querySelector('caption');
     expect(caption?.textContent).toContain('A');
@@ -111,10 +114,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     // The table is not repeated below the Moon lines, and the figure carries no caption of its own any more.
     expect(within(dialog).getAllByRole('table')).toHaveLength(1);
     expect(within(dialog).getByRole('figure').querySelector('figcaption')).toBeNull();
-    // FR-FLOW-7: the head — the name as the h1, the countdown line, the three times — before the view row and the drawing.
-    expect(within(dialog).getByRole('heading', { level: 1, name: 'ISS (Zarya)' }).closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
-    expect(within(dialog).getByTestId('pass-times').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
-    expect(slots.slice(0, 4)).toEqual(['answer', 'viewRow', 'readout', 'drawing']);
+    // R164 (FR-CLEAN-5): the times row is the sheet's, after the name block.
+    expect(within(dialog).getByTestId('pass-times').closest('[data-testid="pass-times-row"]')).not.toBeNull();
   });
 
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
@@ -215,6 +216,17 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
         },
         { timeout: 5_000 },
       );
+      /*
+       * R164 (the intermittent `idle` here): the window's `deviceorientation` listener is added in its passive effect
+       * (`useDeviceOrientation`), which React's scheduler runs in a `setImmediate` task after the lazy chunk's commit.
+       * `waitFor` passes on the commit's DOM mutation, before that task (one listener in the window then, the page's),
+       * and what let the reading below arrive was RTL's own `setTimeout(0)` drain after it — which Node does not order
+       * against a `setImmediate`, so now and then the reading went first, reached no listener, and the window stayed
+       * `idle`. A `setImmediate` of the test's own, queued after React's, runs after it: the listener is in place.
+       */
+      await act(async () => {
+        await new Promise((resolve) => setImmediate(resolve));
+      });
       // The window, mounted on the window's first frame of following, takes the phone's next reading as its pose.
       reading(180, 30);
       for (let i = 1; i <= 40; i += 1) frame(16 * i);
@@ -263,24 +275,24 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(appStore.getState().followGranted).toBe(false);
     });
 
-    it('stands in the action slot on a phone, after the hint and before the prose, and is absent without the sensor; no sky screen, no hold-up', () => {
+    it('stands in the sheet after the view row and [ follow ] in the bottom row on a phone, and is absent without the sensor; no sky screen, no hold-up (FR-CLEAN-3)', () => {
       appStore.getState().setChartView('dome');
       const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
-      expect(screen.getByTestId('pass-layout').querySelector('[data-slot="action"]')).toBeNull();
+      expect(screen.queryByTestId('pass-follow')).toBeNull();
       expect(screen.queryByTestId('follow-toggle')).toBeNull();
+      expect(screen.queryByTestId('live-follow-control')).toBeNull();
       expect(screen.queryByTestId('window-hold-up')).toBeNull();
       unmount();
 
       // An iPhone's first visit: off until asked (FR-PHONE-2).
       withPhone(() => Promise.resolve('granted'));
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
-      const layout = screen.getByTestId('pass-layout');
-      const action = layout.querySelector('[data-slot="action"]') as HTMLElement;
-      expect(within(action).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
-      expect(within(action).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
-      const slots = [...layout.querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
-      expect(slots.indexOf('action')).toBeGreaterThan(slots.indexOf('drawing'));
-      expect(slots.indexOf('action')).toBeLessThan(slots.indexOf('list'));
+      const row = screen.getByTestId('pass-follow');
+      expect(within(row).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
+      expect(within(row).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+      expect(row.previousElementSibling).toHaveAttribute('data-testid', 'pass-view-row');
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('pass-layout').querySelector('[data-slot="action"]')).toBeNull();
       expect(screen.queryByTestId('window-hold-up')).toBeNull();
       expect(screen.queryByTestId('sky-screen')).toBeNull();
     });
@@ -364,7 +376,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the view control in the picker's idiom, `[x] stars` at the row's end.
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    const row = toggle.closest('[data-slot="viewRow"]') as HTMLElement;
+    // R164 (FR-CLEAN-5): on compact the row is the sheet's.
+    const row = toggle.closest('[data-testid="pass-view-row"]') as HTMLElement;
     expect(row).not.toBeNull();
     expect(row.lastElementChild).toBe(toggle);
     const control = within(row).getByRole('group', { name: en.chart.viewGroup });
@@ -415,7 +428,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       vi.setSystemTime(pass.peak.t + 1000);
       vi.advanceTimersByTime(TICK_MS);
     });
-    expect(timer).toHaveTextContent('Sets in 0:22');
+    // R164 (FR-CLEAN-2, D-1012): the head's phase words, without the reason.
+    expect(timer).toHaveTextContent('Ends in 0:22');
   });
 
   // R35 (D-73): Escape is no longer this component's; it is the `close` row of
@@ -438,6 +452,137 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     opener.remove();
   });
 });
+
+/**
+ * R164 (FR-CLEAN-1..3, FR-CLEAN-5, FR-CLEAN-6; US-49 AC1..AC5; D-998, D-999, D-1012..D-1014): on compact the pass
+ * detail is the layout's `full` form — the box is the screen, the head, the corner readout, the bottom row and the
+ * hint over it, everything else in the sheet in FR-CLEAN-5's order; `Esc` closes the sheet, then the guide.
+ */
+describe('<PassDetail> in the full form (FR-CLEAN-1..3, FR-CLEAN-5, FR-CLEAN-6)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(pass.start.t - 754_000);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    appStore.setState(initial, true);
+    window.localStorage.clear();
+  });
+  const detail = (locale: Locale = 'en') =>
+    render(
+      <I18nProvider locale={locale}>
+        <PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />
+      </I18nProvider>,
+    );
+  const openSheet = (): void => {
+    fireEvent.click(screen.getByTestId('live-controls'));
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+  };
+
+  it('with the sheet closed renders the box, the head, the corner readout, the bottom row and the hint, and nothing else over the sky; the h1 is hidden', async () => {
+    detail();
+    const layout = screen.getByTestId('pass-layout');
+    expect(layout).toHaveAttribute('data-shape', 'full');
+    // FR-CLEAN-1: no row outside the box, the overlay and the sheet.
+    expect([...layout.querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
+    // FR-CLEAN-2: `[ ← ]`, the countdown in the head's words and the pass's name as its chip.
+    const head = screen.getByTestId('live-head');
+    expect(within(head).getByTestId('live-back')).toBeInTheDocument();
+    expect(within(head).getByRole('timer')).toHaveTextContent('Appears in 12:34');
+    expect(within(head).getByTestId('pass-head-chip')).toHaveTextContent('ISS (Zarya)');
+    const h1 = screen.getByRole('heading', { level: 1, name: 'ISS (Zarya)' });
+    expect(h1).toHaveAttribute('data-visually-hidden', '');
+    // The readout in the corner, the landmark line under it once the stars' source is in hand (FR-SKY-11).
+    const corner = screen.getByTestId('sky-corner-readout');
+    expect(corner).toHaveAttribute('data-lines', '2');
+    await waitFor(() => {
+      expect(within(corner).getByTestId('window-readout')).toBeInTheDocument();
+    });
+    // FR-CLEAN-3: `[ controls ]` alone at the bottom without the sensor, and the hint until the first gesture.
+    expect([...screen.getByTestId('live-bottom-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-controls']);
+    expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    // FR-CLEAN-5: no countdown in the sheet (one timer on the page), and the column's head is gone.
+    expect(screen.getAllByRole('timer')).toHaveLength(1);
+    expect(screen.queryByTestId('header')).toBeNull();
+  });
+
+  it.each(['en', 'es'] as const)('holds the sheet in FR-CLEAN-5’s order in %s: the name line, the times, the view row, follow, facing, Share, the prose and the table', (locale) => {
+    const t = locale === 'en' ? en : es;
+    withSensor();
+    detail(locale);
+    openSheet();
+    const body = screen.getByTestId('sheet-body');
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose']);
+    expect(screen.getByTestId('pass-name-line')).toHaveTextContent(`ISS (Zarya) · ${formatDateZone(pass.start.t, null, locale)}`);
+    expect(within(screen.getByTestId('pass-view-row')).getAllByRole('button').map((b) => b.textContent)).toEqual([...(locale === 'en' ? ['Window', 'Polar', 'Dome'] : ['Ventana', 'Polar', 'Domo']), t.live.starsToggle]);
+    expect(within(screen.getByTestId('pass-share')).getByRole('button')).toBeInTheDocument();
+    const prose = screen.getByTestId('pass-prose');
+    expect(within(prose).getByTestId('guide-sentence')).toBeInTheDocument();
+    expect(within(prose).getByRole('table')).toBeInTheDocument();
+    // The readout left the corner for the facing row; with the sheet open it is the row's.
+    expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
+    // The window's picker offers `peak` first (FR-SKY-7).
+    fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    expect(screen.getByTestId('pass-facing-picker')).toBeInTheDocument();
+    vi.unstubAllGlobals();
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+  });
+
+  it('opens on the window facing the peak (FR-SKY-7, FR-CLEAN-5)', async () => {
+    detail();
+    await waitFor(
+      () => {
+        expect(document.querySelector('[data-look-az]')).not.toBeNull();
+      },
+      { timeout: 5_000 },
+    );
+    const look = Number(document.querySelector('[data-look-az]')?.getAttribute('data-look-az'));
+    expect(Math.abs(look - Math.round(pass.peak.azDeg))).toBeLessThanOrEqual(1);
+    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
+  });
+
+  it('takes Esc in two steps: the sheet closes and focus returns to [ controls ], then the key is left to the app to close the guide (D-999)', () => {
+    detail();
+    const app = vi.fn();
+    document.addEventListener('keydown', app);
+    try {
+      openSheet();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+      expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
+      expect(app).not.toHaveBeenCalled();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(app).toHaveBeenCalledTimes(1);
+      expect((app.mock.calls[0]?.[0] as KeyboardEvent).defaultPrevented).toBe(false);
+    } finally {
+      document.removeEventListener('keydown', app);
+    }
+  });
+
+  it('folds the facing picker with the sheet: Esc with the picker open, and the next [ controls ] opens it folded', () => {
+    detail();
+    openSheet();
+    fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    expect(screen.getByTestId('pass-facing-picker')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    openSheet();
+    expect(screen.queryByTestId('pass-facing-picker')).toBeNull();
+    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+/** D-175's presence test: a phone to point, with nothing to ask. */
+function withSensor(): void {
+  vi.stubGlobal(
+    'DeviceOrientationEvent',
+    Object.assign(function DeviceOrientationEvent() {
+      return undefined;
+    }, {}),
+  );
+  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+}
 
 describe('<App> with the detail sheet (D-13)', () => {
   afterEach(() => {

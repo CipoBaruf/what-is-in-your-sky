@@ -8,8 +8,9 @@
  *   at the panel's width, the prose and the table under it).
  * - The view row is one line, the view control first and `[x] stars` at its end.
  * - No hint text intersects the drawing's box (FR-FLOW-6).
- * - The pass detail's drawing has its top at or above `DETAIL_DRAWING_TOP_PX` on the phone and is at least
- *   `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk (FR-FLOW-7).
+ * - The pass detail's drawing is at least `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk
+ *   (FR-FLOW-7). R164 (FR-CLEAN-1, FR-CLEAN-5, FR-CLEAN-7): on the phone it is the full form in both shapes, the
+ *   drawing the viewport and the head, the times and the table the sheet's; `DETAIL_DRAWING_TOP_PX` binds no more.
  * - R163 (FR-CLEAN-1, FR-CLEAN-7): the stars page is the full form on the phone in both shapes, as the live page is;
  *   FR-FLOW-8's column and its fold rule are withdrawn.
  * - R166 (FR-CLEAN-13, D-1008): on the wide stars page the rail's View, Facing and Layers rows share one left edge.
@@ -24,7 +25,7 @@
  *   the shown instant, and opens no screen.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
+import { DETAIL_DRAWING_MIN_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
@@ -86,7 +87,7 @@ const intersects = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x
 
 /** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
-  const row = (await layout.getAttribute('data-testid')) === 'live-view-row' ? layout : layout.locator('[data-slot="viewRow"]');
+  const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="viewRow"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
   const stars = await box(row.getByRole('button', { name: WORDS[locale].stars }));
   expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
@@ -106,7 +107,8 @@ async function expectHintOffTheDrawing(layout: Locator): Promise<void> {
 
 /**
  * R156 (FR-PHONE-14): on compact the rise, the peak and the end are one row at `--small` — one line box, no cells — and
- * the zone is the header's date line's, once.
+ * the zone is the header's date line's, once. R164 (FR-CLEAN-5): the row and the name line with the date and the zone
+ * are the sheet's, which the caller opens.
  */
 async function expectTimesOneRow(page: Page, head: Locator): Promise<void> {
   const times = head.getByTestId('pass-times');
@@ -115,7 +117,7 @@ async function expectTimesOneRow(page: Page, head: Locator): Promise<void> {
   await expect(times).toHaveText(/^\d\d:\d\d → \d\d:\d\d (at |a )?\d+° [NESW]{1,3} → \d\d:\d\d( shadow| sombra)?$/);
   const lines = await times.evaluate((el: HTMLElement) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
   expect(lines, 'the times row is one line').toBe(1);
-  await expect(page.locator('[data-testid="header"][data-page="pass"]')).toContainText(/\d{4}-\d\d-\d\d · (GMT[−+-]?[\d:]*|UTC)/);
+  await expect(page.getByTestId('pass-name-line')).toContainText(/\d{4}-\d\d-\d\d · (GMT[−+-]?[\d:]*|UTC)/);
 }
 
 const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'timeline', 'action', 'foot'];
@@ -173,7 +175,8 @@ async function openDetail(page: Page, locale: Locale): Promise<Locator> {
   await seedStoredRun(page, { locale, settled: true, prefs: FRESH });
   await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
   const layout = page.getByTestId('pass-layout');
-  await expect(layout).toBeVisible();
+  // R164: on the phone the full form's root holds a fixed box and has none of its own, so attached, not visible.
+  await expect(layout).toBeAttached();
   await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
   return layout;
 }
@@ -304,25 +307,22 @@ for (const locale of LOCALES) {
       await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
     });
 
-    test('the pass detail leads with its head and its drawing is on the first screen (FR-FLOW-7)', async ({ page }) => {
+    test('the pass detail is the full form: the drawing the viewport, the head over it, the times, the prose and the table in the sheet (FR-FLOW-7 as amended, FR-CLEAN-1, FR-CLEAN-5)', async ({ page }) => {
       const layout = await openDetail(page, locale);
-      await expect(layout).toHaveAttribute('data-shape', 'column');
-      const slots = await slotBoxes(layout);
-      expect(slots.map((slot) => slot.name).slice(0, 4)).toEqual(['answer', 'viewRow', 'readout', 'drawing']);
-      expectStacked(slots);
-      await expectViewRowOneLine(layout, locale);
-      await expectHintOffTheDrawing(layout);
-      // The head: the name as the h1, the countdown, the landmark line where there is one, the times as one row (R156).
-      const head = layout.locator('[data-slot="answer"]');
-      await expect(head.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(head.getByRole('timer')).toBeVisible();
-      await expectTimesOneRow(page, head);
-      const drawing = await box(layout.getByTestId('chart-box'));
-      expect(drawing.y).toBeLessThanOrEqual(DETAIL_DRAWING_TOP_PX);
-      // The prose and the table of points after the drawing.
-      const prose = await box(layout.getByTestId('guide-sentence'));
-      const table = await box(layout.getByRole('table'));
-      expect(prose.y).toBeGreaterThanOrEqual(drawing.y + drawing.height - 1);
+      await expect(layout).toHaveAttribute('data-shape', 'full');
+      const drawing = await box(layout.locator('[data-slot="drawing"]'));
+      expect(Math.round(drawing.width)).toBe(PHONE.width);
+      expect(Math.round(drawing.height)).toBe(PHONE.height);
+      // FR-CLEAN-2: the countdown is the head's over the sky; the h1 is in the document, hidden.
+      await expect(page.getByTestId('live-head').getByRole('timer')).toBeVisible();
+      await expect(layout.page().locator('[role="dialog"][data-pass-id] h1')).toHaveAttribute('data-visually-hidden', '');
+      await openSheet(page);
+      const body = page.getByTestId('sheet-body');
+      await expectTimesOneRow(page, body);
+      await expectViewRowOneLine(page.getByTestId('pass-view-row'), locale);
+      // The prose and the table of points last, in that order.
+      const prose = await box(body.getByTestId('guide-sentence'));
+      const table = await box(body.getByRole('table'));
       expect(table.y).toBeGreaterThanOrEqual(prose.y + prose.height - 1);
     });
   });
@@ -428,42 +428,6 @@ async function pageScrolls(layout: Locator): Promise<string[]> {
   });
 }
 
-/** FR-FLOW-15: the drawing at the left at the share and the layout's height, the rail in order at the right and scrolling on its own, the page still. */
-async function expectTurned(page: Page, layout: Locator, viewport: { width: number; height: number }): Promise<void> {
-  await expect(layout).toHaveAttribute('data-mode', 'compact');
-  await expectRail(layout);
-  const whole = await box(layout);
-  const drawing = await box(layout.locator('[data-slot="drawing"]'));
-  const hint = layout.locator('[data-slot="hint"]');
-  const hintPx = (await hint.count()) === 0 ? 0 : (await box(hint)).height;
-  expect(drawing.width, 'the drawing’s share of the width').toBeGreaterThanOrEqual(LANDSCAPE_DRAWING_MIN_SHARE * viewport.width - 0.5);
-  expect(drawing.x).toBeLessThan(viewport.width / 10);
-  // One viewport high under the top row: the layout reaches the viewport's foot (less the live page's quarter row)…
-  expect(whole.y + whole.height).toBeGreaterThanOrEqual(viewport.height - 8);
-  expect(whole.y + whole.height).toBeLessThanOrEqual(viewport.height + 1);
-  // …and the drawing takes its height, less the hint's row under it.
-  expect(Math.abs(drawing.y - whole.y)).toBeLessThanOrEqual(1);
-  expect(drawing.height + hintPx).toBeGreaterThanOrEqual(whole.height - 30);
-  expect(await pageScrolls(layout)).toEqual([]);
-  // Nothing lost in the narrow rail: every slot holds its own content, so a row that wraps grows and lies over nothing.
-  const overflowing = await layout.evaluate((el) =>
-    [...el.querySelectorAll<HTMLElement>('[data-slot]')]
-      .filter((slot) => !['drawing', 'readout', 'hint'].includes(slot.dataset['slot'] ?? '') && slot.scrollHeight > slot.clientHeight + 1)
-      .map((slot) => `${slot.dataset['slot'] ?? ''} ${String(slot.scrollHeight)} > ${String(slot.clientHeight)}`),
-  );
-  expect(overflowing).toEqual([]);
-  // The rail scrolls inside the layout, and the box stays where it is while it does.
-  expect(await layout.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
-  await layout.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  expect(Math.abs((await box(layout.locator('[data-slot="drawing"]'))).y - drawing.y)).toBeLessThanOrEqual(1);
-  await layout.evaluate((el) => {
-    el.scrollTop = 0;
-  });
-  await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-}
-
 for (const viewport of TURNED) {
   for (const locale of LOCALES) {
     test.describe(`FR-FLOW-15 on the turned phone, ${String(viewport.width)} × ${String(viewport.height)}, ${locale}`, () => {
@@ -523,13 +487,21 @@ for (const viewport of TURNED) {
         await expect(page.getByTestId('sky-screen')).toHaveCount(0);
       });
 
-      test('the pass detail: the drawing at the left at its share and full height, the head first in the rail, no page scroll', async ({ page }) => {
+      test('the pass detail: the full form, the window the whole viewport, the bottom sheet at its share (FR-CLEAN-7)', async ({ page }) => {
+        // R164 (FR-CLEAN-7, D-998): the landscape pass detail is all sky too; the rail of FR-FLOW-15 is withdrawn for compact.
         const layout = await openDetail(page, locale);
+        await expect(layout).toHaveAttribute('data-shape', 'full');
         await expect(layout.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
-        await expectTurned(page, layout, viewport);
-        await expectHintOffTheDrawing(layout);
-        const names = (await slotBoxes(layout)).map((slot) => slot.name);
-        expect(names.filter((name) => !['drawing', 'readout', 'hint'].includes(name)).slice(0, 3)).toEqual(['answer', 'viewRow', 'picker']);
+        const drawing = await box(layout.locator('[data-slot="drawing"]'));
+        expect(Math.round(drawing.width)).toBe(viewport.width);
+        expect(Math.round(drawing.height)).toBe(viewport.height);
+        await openSheet(page);
+        const sheet = await box(page.getByTestId('live-sheet'));
+        expect(Math.abs(sheet.width - viewport.width)).toBeLessThanOrEqual(1);
+        expect(sheet.height).toBeLessThanOrEqual(SHEET_MAX_SHARE * viewport.height + 1);
+        expect(Math.abs(sheet.y + sheet.height - viewport.height)).toBeLessThanOrEqual(1);
+        await expect(page.getByTestId('pass-view-row')).toBeVisible();
+        await expect(page.getByTestId('sky-screen')).toHaveCount(0);
       });
     });
   }
@@ -538,8 +510,8 @@ for (const viewport of TURNED) {
 /**
  * R156 (FR-PHONE-12, FR-PHONE-14; US-48 AC1, AC3): the phone's pages answer first. At 390 × 844 the home opens on
  * its three doors, the Where reading folded under them, the third door's bottom edge at or above `DOORS_BOTTOM_PX`;
- * at 390 × 667, the smaller phone, the pass detail's drawing still starts at or above `DETAIL_DRAWING_TOP_PX` with
- * its times on one row. Both languages.
+ * at 390 × 667, the smaller phone, the pass detail's times are one row (R164: in its sheet; the drawing is the
+ * viewport, so `DETAIL_DRAWING_TOP_PX` binds no more). Both languages.
  */
 const DOORS_BOTTOM_PX = 420;
 const SMALL_PHONE = { width: 390, height: 667 };
@@ -568,12 +540,10 @@ for (const locale of LOCALES) {
   test.describe(`FR-PHONE-14 at 390 × 667, ${locale}`, () => {
     test.use({ viewport: SMALL_PHONE, hasTouch: false });
 
-    test('the pass detail: the times on one row, the drawing’s top at or above DETAIL_DRAWING_TOP_PX', async ({ page }) => {
-      const layout = await openDetail(page, locale);
-      await expectTimesOneRow(page, layout.locator('[data-slot="answer"]'));
-      const drawing = await box(layout.getByTestId('chart-box'));
-      console.log(`R156: the detail's drawing top at 390 × 667 in ${locale}: ${String(Math.round(drawing.y))} px`);
-      expect(drawing.y).toBeLessThanOrEqual(DETAIL_DRAWING_TOP_PX);
+    test('the pass detail: the times on one row in the sheet', async ({ page }) => {
+      await openDetail(page, locale);
+      await openSheet(page);
+      await expectTimesOneRow(page, page.getByTestId('sheet-body'));
     });
   });
 }

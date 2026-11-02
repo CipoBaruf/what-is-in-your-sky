@@ -361,7 +361,7 @@ const rows = (t: Messages): readonly Row[] => [
   {
     name: 'the pass detail view row (FR-FLOW-4, D-846)',
     element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
-    find: () => screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as Element,
+    find: () => screen.getByTestId('pass-view-row'),
     budget: VIEW_ROW_BUDGET,
   },
   {
@@ -439,7 +439,25 @@ const rows = (t: Messages): readonly Row[] => [
     find: () => screen.getByTestId('live-head'),
     measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestStarsLine(t)].length * 14) / 16,
   },
+  /*
+   * R164 (FR-CLEAN-2 as amended, D-1012): the compact pass detail's head — `[ ← ]`, then the countdown in the head's
+   * phase words at `--text-heading` (1.25 cells a character) and the pass's name as its chip, which is what gives (cut
+   * by the head's ellipsis), so the row's fixed part is the back control and the countdown at its longest form, a
+   * two-digit hour ("Ended 23:59:59 ago" / "Terminó hace 23:59:59"): 30.5 cells in English and 32.25 in Spanish.
+   */
+  {
+    name: "the pass detail's head (FR-CLEAN-2)",
+    element: createElement(SkyHead, { line: createElement('p', { 'data-testid': 'pass-head-line' }, longestPassHead(t)), onBack: noop }),
+    find: () => screen.getByTestId('live-head'),
+    measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestPassHead(t)].length * 5) / 4,
+  },
 ];
+
+/** R164: the longest of the pass head's countdown forms, over the four phases at a two-digit hour. */
+function longestPassHead(t: Messages): string {
+  const forms = (['before', 'to-peak', 'to-end', 'over'] as const).map((phase) => t.countdown.head({ phase, clock: '23:59:59' }));
+  return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
+}
 
 /** R163: the longest of the head line's forms (`starsHeadLine`'s three, over every cloud word), in the catalog's language. */
 function longestStarsLine(t: Messages): string {
@@ -531,7 +549,7 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
   ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
     setUp();
     render(createElement(I18nProvider, { locale, children: element() }));
-    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"]') as Element;
+    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"], [data-testid="pass-view-row"]') as Element;
     const cells = rowCells(row, table);
     expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
     // R150 (FR-GYRO-11, D-950): `[Window] Polar Dome` / `[Ventana] Polar Domo` — the window first.

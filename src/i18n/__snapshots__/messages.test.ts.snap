@@ -63,6 +63,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".compass.W:string",
   ".compass.WNW:string",
   ".compass.WSW:string",
+  ".countdown.head:function",
   ".countdown.headline:function",
   ".countdown.peak:string",
   ".countdown.rise:string",

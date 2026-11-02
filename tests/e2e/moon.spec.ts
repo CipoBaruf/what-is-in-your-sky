@@ -15,7 +15,7 @@
  * these fail loudly here rather than quietly showing the wrong card.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { openSheet, withSettings } from './liveHelpers';
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -87,6 +87,8 @@ test('a pass that fails a condition shows neither the label nor the sentence', a
   await openNightOf(page, card);
   await card.getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Tiangong (Tianhe)' });
+  // R164 (FR-CLEAN-5): the prose is the sheet's.
+  await openSheet(page);
   await expect(dialog.getByTestId('guide-sentence')).toBeVisible(); // the guide is up…
   await expect(dialog).not.toContainText('The Moon is bright'); // …and says nothing about the Moon
 });

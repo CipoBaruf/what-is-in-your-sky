@@ -338,6 +338,18 @@ export const ui: typeof EnUi = {
           return `Terminó hace ${p.clock}`;
       }
     },
+    head: (p) => {
+      switch (p.phase) {
+        case 'before':
+          return `Aparece en ${p.clock}`;
+        case 'to-peak':
+          return `Máximo en ${p.clock}`;
+        case 'to-end':
+          return `Termina en ${p.clock}`;
+        case 'over':
+          return `Terminó hace ${p.clock}`;
+      }
+    },
     steps: 'Horas de salida, máximo y fin',
     rise: 'salida',
     peak: 'máximo',

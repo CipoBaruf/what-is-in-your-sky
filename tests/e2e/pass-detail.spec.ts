@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { seedStoredRun } from './liveHelpers';
+import { openSheet, seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -57,7 +57,8 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeFocused();
   // The sheet fits the phone width: no horizontal scroll on the page.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  // One scrollbar: the page behind the sheet is locked while the sheet scrolls itself (R13 review).
+  // One scrollbar: the page behind the detail is locked while the sheet scrolls itself (R13 review). R164 (FR-CLEAN-1):
+  // the detail is the full form — the box is the screen, and the view row, the facing row and the table are the sheet's.
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe('hidden');
   await page.screenshot({ path: 'test-results/r6-pass-detail-390.png' });
 
@@ -67,6 +68,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
   const figure = dialog.getByRole('figure');
   await expect(figure).toHaveAttribute('data-view', 'dome');
+  await openSheet(page);
   const views = dialog.getByRole('group', { name: 'Chart view' });
   await views.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
@@ -92,11 +94,15 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
 
   // FR-GUIDE-4: looking up by default (east on the left); the toggle flips it, relabels the convention, and the choice survives a reload.
   const eastX = async (): Promise<number> => (await drawing.locator('[data-anchor="E"]').boundingBox())?.x ?? NaN;
+  // R164 (FR-CLEAN-5): the looking-up / map toggle is the facing row's picker, opened by a tap on the convention line.
+  await dialog.getByTestId('sky-readout-toggle').click();
   const orientation = dialog.getByRole('group', { name: 'Chart orientation' });
   await expect(orientation.getByRole('button', { name: 'Looking up' })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByTestId('chart-convention')).toHaveText('Looking up: east on the left, as when lying on your back.');
   expect(await eastX()).toBeLessThan(box.x + box.width / 2);
   await orientation.getByRole('button', { name: 'Map' }).click();
+  // A pick closes the picker (D-923); the choice is read on the next opening.
+  await dialog.getByTestId('sky-readout-toggle').click();
   await expect(orientation.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByTestId('chart-convention')).toHaveText('Map: east on the right, as on a map.');
   expect(await eastX()).toBeGreaterThan(box.x + box.width / 2);
@@ -105,11 +111,18 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await page.screenshot({ path: 'test-results/r13-polar-map-390.png' });
   await page.reload();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 30_000 });
+  // Every visit opens with the sheet closed (FR-CLEAN-6).
+  await openSheet(page);
+  await page.getByTestId('sky-readout-toggle').click();
   await expect(page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Looking up' }).click();
   await page.getByRole('dialog').getByRole('figure').evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-390.png' });
 
+  // R164 (FR-CLEAN-6): `Esc` closes the sheet, then the guide.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+  await expect(page.getByRole('dialog')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).not.toHaveURL(/#pass=/);

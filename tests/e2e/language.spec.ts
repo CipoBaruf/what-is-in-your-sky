@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { seedStoredRun, withSettings } from './liveHelpers';
+import { openSheet, seedStoredRun, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -102,6 +102,8 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(dialog).toContainText('Arrastrá o usá las flechas');
   await expect(dialog.getByTestId('dome-readout')).toHaveText(/^Hacia .+ · inclinación \d+°$/);
   await page.screenshot({ path: 'test-results/r17-detail-390-es.png' });
+  // R164 (FR-CLEAN-5): the view row is the sheet's.
+  await openSheet(page);
   // The polar view is one toggle away and carries its own translated convention line (FR-GUIDE-4).
   // It stays in force from here on, so the switch back to English is checked on the same view.
   await dialog.getByRole('group', { name: 'Vista del gráfico' }).getByRole('button', { name: 'Polar' }).click();
@@ -134,6 +136,8 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(dialog.getByTestId('chart-legend')).toHaveAttribute('aria-label', 'Legend');
   await expect(dialog).toContainText('Looking up: east on the left');
   await page.screenshot({ path: 'test-results/r17-detail-390-en.png' });
+  // A new visit opens with the sheet closed (FR-CLEAN-6); the table is the sheet's.
+  await openSheet(page);
   await showNumbers(dialog);
   await page.screenshot({ path: 'test-results/r17-numbers-390-en.png' });
   await dialog.evaluate((el) => el.scrollTo(0, 0));
