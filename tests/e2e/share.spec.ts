@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { savedDome, withSettings } from './liveHelpers';
+import { openSheet, savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -74,6 +74,8 @@ test('the share action copies a link, and a fresh device opens the same pass fro
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: LABEL.en.open }).click();
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
   await expect(dialog).toBeVisible();
+  // R164 (FR-CLEAN-5): the prose and `[ Share ]` are the sheet's.
+  await openSheet(page);
   const sentence = await dialog.getByTestId('guide-sentence').first().innerText();
 
   const share = dialog.getByRole('button', { name: LABEL.en.share });
@@ -145,6 +147,8 @@ for (const width of [390, 1280] as const) {
       const guide = width === 390 ? page.getByRole('dialog', { name: 'ISS (Zarya)' }) : page.getByRole('region', { name: /ISS \(Zarya\)/ });
       // Let the dome finish drawing, or the capture shows its loading line where the chart should be.
       await expect(guide.locator('[data-layer="base"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+      // R164 (FR-CLEAN-5): on the phone `[ Share ]` is the sheet's.
+      if (width === 390) await openSheet(page);
       const share = guide.getByRole('button', { name: LABEL[locale].share });
       await share.scrollIntoViewIfNeeded();
       await share.click();

@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { savedDome, withSettings } from './liveHelpers';
+import { openSheet, savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -102,6 +102,8 @@ test('the polar view moves the live marker and grows the flown arc behind it at 
   const pass = golden();
   await openGoldenPassAt(page, pass.start - 60_000);
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
+  // R164 (FR-CLEAN-5): the view row is the sheet's.
+  await openSheet(page);
   await dialog.getByRole('button', { name: 'Polar' }).click();
   const drawing = dialog.locator('[data-drawing="polar"]');
   await expect(drawing).toBeVisible();

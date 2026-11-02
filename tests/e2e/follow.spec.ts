@@ -91,15 +91,17 @@ async function openPage(page: Page, which: Which, locale: Locale): Promise<Locat
       await seedStoredRun(page, { locale, settled: true, prefs: { chartView: 'dome' } });
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
       const layout = page.getByTestId('pass-layout');
-      await expect(layout).toBeVisible();
+      // R164 (FR-CLEAN-5): the full form — the root holds a fixed box, so attached, and the toggle is the sheet's row.
+      await expect(layout).toBeAttached();
       await expect(layout.locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
+      await openSheet(page);
       return layout;
     }
   }
 }
 
-/** R163: the two pages in the full form, whose toggle is the sheet's row and whose `[ follow ]` is the bottom row's. */
-const inSheet = (which: Which): boolean => which !== 'detail';
+/** R163, R164: the pages in the full form — all three now — whose toggle is the sheet's row and whose `[ follow ]` is the bottom row's. */
+const inSheet = (_which: Which): boolean => true;
 
 /** The window's root — the element that carries `data-look-az`, `data-look-alt`, `data-state` and `data-follow`. */
 const windowRoot = (root: Locator): Locator => root.locator('[data-look-az][data-fov]');
@@ -123,7 +125,7 @@ async function expectPlaced(page: Page, root: Locator, which: Which, locale: Loc
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   if (inSheet(which)) {
     const rows = await page.getByTestId('sheet-body').locator(':scope > *').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
-    const [view, follow, facing] = which === 'live' ? ['live-view-row', 'live-follow', 'live-facing'] : ['stars-view-row', 'stars-follow', 'stars-facing'];
+    const [view, follow, facing] = which === 'live' ? ['live-view-row', 'live-follow', 'live-facing'] : which === 'stars' ? ['stars-view-row', 'stars-follow', 'stars-facing'] : ['pass-view-row', 'pass-follow', 'pass-facing'];
     expect(rows.indexOf(follow)).toBe(rows.indexOf(view) + 1);
     expect(rows.indexOf(facing)).toBe(rows.indexOf(follow) + 1);
   } else {
@@ -260,7 +262,17 @@ test.describe('the refusal and the finger, at 390 × 844', () => {
         await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
         await expect(root.getByTestId('sky-chart')).not.toHaveAttribute('data-follow', 'true');
       }
-      const after = await look(w);
+      // The drag's last frame can still be easing the camera when the pointer lifts (a degree, on all three pages): the
+      // look is read once it holds still between two reads, so the check below is the sensor's and not the glide's.
+      let after = await look(w);
+      await expect
+        .poll(async () => {
+          const was = after;
+          await page.waitForTimeout(150);
+          after = await look(w);
+          return was.az === after.az && was.alt === after.alt;
+        }, { timeout: 5_000 })
+        .toBe(true);
       expect(after.alt).toBe(before.alt);
       expect(azClose(after.az, before.az, 25)).toBe(true);
       expect(after.az).not.toBe(before.az);
