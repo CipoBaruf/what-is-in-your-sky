@@ -393,7 +393,7 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'live-twilight',
     touch: true,
     widths: [390, 1280],
-    what: "The live page's window at civil twilight (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3° under the horizon in the east, so the surface is `--chart-sky-twilight` and the stars thin into the lighter sky, the band at the horizon as on every step. At 390 the touch phone's live page, which opens on the window; at 1280 the view control turned to `Window`, the box beside the rail. Nothing visible is up at that instant, so the phone's card is answered `[ see now ]`, as every live capture of its own instant is.",
+    what: "The live page's window at civil twilight (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the horizon in the east, so the surface is `--chart-sky-twilight` and the stars thin into the lighter sky, the band at the horizon as on every step. At 390 the touch phone's live page, which opens on the window; at 1280 the view control turned to `Window`, the box beside the rail. Nothing visible is up at that instant, so the phone's card is answered `[ see now ]`, as every live capture of its own instant is.",
   },
   {
     name: 'home-up-now',

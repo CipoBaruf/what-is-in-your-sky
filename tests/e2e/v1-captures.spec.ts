@@ -654,7 +654,7 @@ async function wholeSky(page: Page, locale: CaptureLocale): Promise<Locator> {
   return polar;
 }
 
-/** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.3° under the eastern horizon — civil twilight, the middle of its step. */
+/** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the eastern horizon by the page's own reading — civil twilight, near the middle of its step. */
 const TWILIGHT = CLOCK + 165 * 60_000;
 
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
@@ -1061,7 +1061,8 @@ const REACH: Record<string, Reach> = {
   /** R161 (FR-PHONE-13, FR-PHONE-16): the `guide` screen's pass at 390 × 667, `shoot` having set the height. */
   async 'guide-short'(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'dome');
-    await expect(guide(page).getByTestId('pass-times')).toBeVisible();
+    // The times row is the file's subject, so it must be on the short screen, not scrolled above it by the dome's wait.
+    await expect(guide(page).getByTestId('pass-times')).toBeInViewport({ ratio: 1 });
   },
 
   /**
@@ -1082,8 +1083,9 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens at 1280, zoomed to the narrowest
-   * field by the box's `+`. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
+   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens, zoomed to the narrowest
+   * field by the box's `+` — at 1280, and since R161 at 390 too (FR-LOOK-12), where the key stands in for the pinch to
+   * the same field, so the picture is the phone's at 20° and not the gesture's. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
    * press more than 60 / 1.25ⁿ needs is held at the minimum.
    */
   async 'stars-zoom'(page, width, theme, locale) {
