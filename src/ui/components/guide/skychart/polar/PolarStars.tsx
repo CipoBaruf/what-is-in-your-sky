@@ -4,10 +4,14 @@ import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../d
 import { useLocale } from '../../../../../i18n/useT';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
-import type { ChartOrientation, Locale, MoonState } from '../../../../../model';
+import type { ChartOrientation, Locale, MoonState, Observer } from '../../../../../model';
+import { useDeclination } from '../../../live/useDeclination';
 import { drawsLayer, sceneFor, starsFor, type PlacedBody } from '../layers';
 import { BLOOM_STOPS, BLOOM_TONES, bloomGradientId, bloomRadiusPx } from '../window/bloom';
-import type { HandCamera } from '../window/camera';
+import { handRotation, type HandCamera } from '../window/camera';
+import type { Mat3, View } from '../window/projection';
+import { turnFor } from '../window/screenTurn';
+import { useViewRotation } from '../window/useViewRotation';
 import { inkMeasured, inkOffsetPx, inkOffsetsReady } from '../window/inkOffsets';
 import { bandHalfWidthDeg, galacticOf, prepareHaze, hazeOpacity, type PreparedHaze } from '../window/milkyWay';
 import { brightLimbPoint, limbAngleDeg, litPath } from '../window/MoonDisc';
@@ -455,6 +459,20 @@ interface PolarFieldOutlineProps {
   camera: HandCamera;
   orientation: ChartOrientation;
   project: Project;
+  /** R160 (FR-PHONE-9): the page's window follows the phone — the outline is the sensor's pose, not the hand's. */
+  follow: boolean;
+  /** The observer, for the declination every sensor reading is turned to true north by (FR-WIN-3). */
+  observer: Pick<Observer, 'lat' | 'lon' | 'altM'>;
+}
+
+/** The window's view for the outline: the box the chart is drawn in (a square where nothing is laid out, as in jsdom), at the camera's field. */
+function outlineView(box: HTMLElement | null | undefined, fovDeg: number, screenAngleDeg: number, sideways: boolean): View {
+  const width = box?.clientWidth ?? 0;
+  const height = box?.clientHeight ?? 0;
+  const sized = width > 0 && height > 0;
+  const w = sized ? width : 1;
+  const h = sized ? height : 1;
+  return { fovDeg, width: sideways ? h : w, height: sideways ? w : h, screenAngleDeg };
 }
 
 /**
@@ -462,8 +480,19 @@ interface PolarFieldOutlineProps {
  * written by ref on the camera's channel — every drag, key and zoom the camera takes moves it without a render of
  * the chart. The box is the frame's: the shape the window would draw in, read off the drawing's own box when it has
  * one (a square without, as in jsdom), at the camera's field, and drawn again when that box changes shape.
+ *
+ * R160 (FR-PHONE-9; D-992): while the page's window follows the phone the outline is the sensor's: `FollowingFieldOutline`
+ * reads the phone's pose through the window's own `useViewRotation` (the sensor armed, the declination folded in, the
+ * quarter the window would turn its box by) and writes the outline on its rotation channel, so the field moves with
+ * every reading; the hand's form stays R158's, with no sensor armed and no render per move.
  */
-export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOutlineProps) {
+export function PolarFieldOutline({ follow, ...props }: PolarFieldOutlineProps) {
+  return follow ? <FollowingFieldOutline {...props} /> : <HandFieldOutline {...props} />;
+}
+
+type OutlineProps = Omit<PolarFieldOutlineProps, 'follow'>;
+
+function HandFieldOutline({ camera, orientation, project }: OutlineProps) {
   const path = useRef<SVGPathElement>(null);
   useLayoutEffect(() => {
     const node = path.current;
@@ -471,11 +500,7 @@ export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOu
     const box = node.ownerSVGElement?.parentElement;
     const write = (): void => {
       const pose = camera.get();
-      const width = box?.clientWidth ?? 0;
-      const height = box?.clientHeight ?? 0;
-      const sized = width > 0 && height > 0;
-      const view = { fovDeg: pose.fovDeg, width: sized ? width : 1, height: sized ? height : 1, screenAngleDeg: 0 };
-      node.setAttribute('d', fieldOutline(pose, view, (point) => project(point, orientation)));
+      node.setAttribute('d', fieldOutline(pose, outlineView(box, pose.fovDeg, 0, false), (point) => project(point, orientation)));
     };
     write();
     const unsubscribe = camera.subscribe(write);
@@ -488,4 +513,49 @@ export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOu
     };
   }, [camera, orientation, project]);
   return <path ref={path} className={styles.fieldOutline} data-field-outline d="" />;
+}
+
+/** The rotation `useViewRotation` falls back on before the hand has a state: never read for a hand camera, which always has one. */
+const NO_ROTATION: Mat3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+
+function FollowingFieldOutline({ camera, orientation, project, observer }: OutlineProps) {
+  const path = useRef<SVGPathElement>(null);
+  const declinationDeg = useDeclination(observer);
+  // The window's own source: the sensor drives, the hand's rotation stands until the first reading (D-941).
+  const { subscribe, orientation: sensor } = useViewRotation(camera, declinationDeg, NO_ROTATION, true);
+  // The window following turns its box by the pose's quarter against the browser's angle (FR-FSC-10, D-941): the
+  // field it draws is upright to the reader, its sides swapped for a quarter, and the outline is of that field.
+  const sensed = sensor.rotation !== null;
+  const quarter = sensed ? sensor.quarter : 0;
+  const turn = sensed ? turnFor(sensor.quarter, sensor.screenAngleDeg) : 0;
+  const sideways = Math.abs(turn) === 90;
+  const latest = useRef<Mat3 | null>(null);
+  useLayoutEffect(() => {
+    const node = path.current;
+    if (!node) return undefined;
+    const box = node.ownerSVGElement?.parentElement;
+    const write = (): void => {
+      const pose = camera.get();
+      node.setAttribute('d', fieldOutline(latest.current ?? handRotation(pose), outlineView(box, pose.fovDeg, quarter, sideways), (point) => project(point, orientation)));
+    };
+    // One call per rotation the window would draw, the current one at once (D-751); a zoom while following moves the camera's field alone.
+    const unsubscribeRotation = subscribe((m) => {
+      latest.current = m;
+      write();
+    });
+    write();
+    const unsubscribeCamera = camera.subscribe(write);
+    const resized = box && typeof ResizeObserver === 'function' ? new ResizeObserver(write) : null;
+    if (box) resized?.observe(box);
+    return () => {
+      unsubscribeRotation();
+      unsubscribeCamera();
+      resized?.disconnect();
+    };
+  }, [camera, orientation, project, subscribe, quarter, sideways]);
+  return <path ref={path} className={styles.fieldOutline} data-field-outline data-following d="" />;
 }

@@ -46,6 +46,12 @@ export interface FieldInput {
   layers: Pick<StarField['layers'], 'stars' | 'planets'>;
   /** FR-STAR-10 as amended v2.5 (D-832): the language a star is named in. */
   lang: Locale;
+  /**
+   * R160 (FR-PHONE-7, D-971): the whole sky — the polar chart in the box — where the field is every object above the
+   * horizon, whatever `rotation` and `view` say (both are read for nothing). The list then names the whole sky's
+   * twelve brightest.
+   */
+  whole?: boolean;
 }
 
 /** Whether a sky direction is drawn in the box: in front of the camera, inside the box, and above the horizon (the ground hides the rest). */
@@ -63,20 +69,21 @@ function drawn(rotation: Mat3, view: View, azDeg: number, altDeg: number): boole
  * nothing. An unmeasured box draws nothing either. A star is named through
  * `starName` in the reader's language (R126, D-832): `Sirio`, `Canopo`.
  */
-export function fieldObjects({ catalog, positions, rotation, view, layers, lang }: FieldInput): FieldObject[] {
-  if (view.width <= 0 || view.height <= 0) return [];
+export function fieldObjects({ catalog, positions, rotation, view, layers, lang, whole = false }: FieldInput): FieldObject[] {
+  if (!whole && (view.width <= 0 || view.height <= 0)) return [];
+  const inField = (azDeg: number, altDeg: number): boolean => (whole ? altDeg >= 0 : drawn(rotation, view, azDeg, altDeg));
   const found: FieldObject[] = [];
   if (layers.stars) {
     for (let i = 0; i < catalog.size && found.length < FIELD_LIST_MAX; i += 1) {
       const altDeg = positions.altDeg[i] ?? -90;
       const azDeg = positions.azDeg[i] ?? 0;
-      if (!drawn(rotation, view, azDeg, altDeg)) continue;
+      if (!inField(azDeg, altDeg)) continue;
       found.push({ index: i, name: starName(catalog, i, lang), planet: null, mag: catalog.mag[i] ?? 99, altDeg, point: compassPoint(azDeg) });
     }
   }
   if (layers.planets) {
     positions.planets.forEach((planet, k) => {
-      if (drawn(rotation, view, planet.azDeg, planet.altDeg)) found.push({ index: catalog.size + k, name: null, planet: planet.body, mag: planet.mag, altDeg: planet.altDeg, point: compassPoint(planet.azDeg) });
+      if (inField(planet.azDeg, planet.altDeg)) found.push({ index: catalog.size + k, name: null, planet: planet.body, mag: planet.mag, altDeg: planet.altDeg, point: compassPoint(planet.azDeg) });
     });
   }
   return found.sort((a, b) => a.mag - b.mag).slice(0, FIELD_LIST_MAX);
@@ -105,6 +112,8 @@ export interface FieldPassesInput {
   rotation: Mat3;
   view: View;
   now: EpochMs;
+  /** R160 (FR-PHONE-7): the whole sky — a pass is in the field where any part of its drawn arc is above the horizon. */
+  whole?: boolean;
 }
 
 /** The window's arc step (`SkyWindow`'s `ARC_STEP_DEG`): the arc is drawn as straight segments between these samples. */
@@ -167,8 +176,8 @@ function arcInField(track: readonly PassPoint[], rotation: Mat3, view: View): bo
  * word for its state (`'full'`, an arc handed in with no state) is not listed:
  * this page hands every pass with its state at now.
  */
-export function fieldPasses({ passes, rows, rotation, view, now }: FieldPassesInput): FieldPass[] {
-  if (view.width <= 0 || view.height <= 0) return [];
+export function fieldPasses({ passes, rows, rotation, view, now, whole = false }: FieldPassesInput): FieldPass[] {
+  if (!whole && (view.width <= 0 || view.height <= 0)) return [];
   const byId = new Map(passes.map((pass) => [pass.id, pass]));
   const found: FieldPass[] = [];
   for (const row of rows) {
@@ -176,7 +185,7 @@ export function fieldPasses({ passes, rows, rotation, view, now }: FieldPassesIn
     const { state } = row;
     if (pass === undefined || !isFieldPassState(state)) continue;
     const track = state === 'live' ? cutTrack(pass, now) : pass.track;
-    if (!arcInField(track, rotation, view)) continue;
+    if (!(whole ? track.some((point) => point.elDeg >= 0) : arcInField(track, rotation, view))) continue;
     found.push({ id: pass.id, key: row.key, color: row.colorToken, name: pass.name, state, peakAltDeg: pass.peak.elDeg, peakPoint: compassPoint(pass.peak.azDeg) });
   }
   return found;

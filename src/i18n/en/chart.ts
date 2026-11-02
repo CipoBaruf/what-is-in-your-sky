@@ -7,6 +7,12 @@ export const chart = {
     viewGroup: 'Chart view',
     viewPrefix: 'View:',
     view: { dome: 'Dome', polar: 'Polar', window: 'Window' } satisfies Record<ChartView, string>,
+    /**
+     * R160 (FR-PHONE-7, D-971): the stars page's own view row, `[ Window ] Whole sky` — the polar chart under the
+     * name a reader of that page knows it by, since the page is about the stars and offers no dome; the live page
+     * and the pass detail keep `view`'s three.
+     */
+    views: { window: 'Window', wholeSky: 'Whole sky' },
     loadingDome: 'Loading the sky dome…',
     noPass: 'No pass to draw.',
     orientationGroup: 'Chart orientation',
