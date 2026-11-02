@@ -76,6 +76,19 @@ describe('<SkyHead> (FR-FULL-2)', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
+  it('takes any page’s line as its own: one paragraph after `[ ← ]` (R162, D-996)', () => {
+    render(
+      <I18nProvider locale="en">
+        <SkyHead line={<p data-testid="page-line">Dark 20:25 → 07:05 · Clear</p>} onBack={vi.fn()} />
+      </I18nProvider>,
+    );
+    const [back, line] = [...screen.getByTestId('live-head').children];
+    expect(back).toBe(screen.getByTestId('live-back'));
+    expect(line?.children).toHaveLength(1);
+    expect(line?.firstElementChild).toBe(screen.getByTestId('page-line'));
+    expect(screen.queryByTestId('shown-time')).toBeNull();
+  });
+
   it('is one row as wide as its content, cut with an ellipsis on the paragraph’s end (the chip)', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/ui/components/sky/SkyHead.module.css'), 'utf8');
     expect(css).toMatch(/inline-size: max-content;/);
