@@ -21,6 +21,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 import { listSettled, seedStoredRun } from './liveHelpers';
 
+/** A describe whose tests seed the page themselves (in their own language) and skip the file's English seed. */
+const SEEDS_ITSELF = '@seeds-itself';
+
 /** FR-DESK-2/3: the left column, the list's floor and the guide's, in cells. */
 const LEFT_COLUMN_CELLS = 40;
 const LIST_MIN_CELLS = 44;
@@ -74,7 +77,9 @@ async function openTheGuide(page: Page): Promise<void> {
   await expect(page).toHaveURL(/#pass=/);
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
+  // R166: the desk-width describe seeds its own page, in its own language.
+  if (info.tags.includes(SEEDS_ITSELF)) return;
   await seedStoredRun(page);
 });
 
@@ -250,4 +255,93 @@ test('the shortcuts overlay gives focus back to the card, and leaves j to the br
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('shortcuts-overlay')).toBeHidden();
   expect(await page.evaluate(() => document.activeElement?.getAttribute('data-pass-id'))).toBe(cursor);
+});
+
+/**
+ * R166 (FR-CLEAN-12, FR-HOME-4 as amended v2.11; D-1003): one width on a desk. At 1920 and 2560 px every page — the
+ * live page, the stars page, the pass detail and the settings page, as the home — holds `HOME_MAX_CELLS` and is
+ * centred: each of its rows (the header, `main`, the footer where it has one; the live page's grid, which holds its
+ * own landmarks) is 160 cells wide and stands in the middle of the viewport, and the sky's box stands inside it. At
+ * 1280 px, under the cap, nothing moves: every row is the viewport's width. Both languages; the 1280 project only
+ * (the sizes are this describe's own).
+ */
+type DeskPage = 'live' | 'stars' | 'pass' | 'settings';
+const DESK_PAGES: readonly DeskPage[] = ['live', 'stars', 'pass', 'settings'];
+
+async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): Promise<void> {
+  await seedStoredRun(page, { locale, settled: true });
+  if (target === 'pass') {
+    await page
+      .getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ })
+      .first()
+      .click();
+    await expect(page.getByTestId('guide-panel')).toBeVisible();
+    await expect(page.getByTestId('pass-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+    return;
+  }
+  await page.goto(`/#${target}`);
+  if (target === 'live') {
+    await expect(page.getByTestId('live-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  } else if (target === 'stars') {
+    await expect(page.getByTestId('stars-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  } else {
+    await expect(page.getByTestId('settings-back')).toBeVisible();
+  }
+}
+
+/** The page's rows, `#root`'s own children that carry its content: the live page's grid, or the header, `main` and the footer. */
+async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
+  const ids = target === 'live' ? ['[data-testid="live-page"]'] : ['#root > header', '#root > main', '#root > footer'];
+  const rows = await page.evaluate((selectors) => selectors.flatMap((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) return [];
+    const rect = element.getBoundingClientRect();
+    return [{ name: selector, x: rect.x, width: rect.width }];
+  }), ids);
+  return rows;
+}
+
+/** The sky's box on the page, where it has one. */
+function skyBox(page: Page, target: DeskPage) {
+  if (target === 'settings') return null;
+  const layout = target === 'live' ? 'live-layout' : target === 'stars' ? 'stars-layout' : 'pass-layout';
+  return page.getByTestId(layout).locator('[data-slot="drawing"]').first();
+}
+
+test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }, () => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1920, 1080],
+    [2560, 1440],
+  ] as const) {
+    test.describe(`${String(width)} × ${String(height)}`, () => {
+      test.use({ viewport: { width, height } });
+      for (const locale of ['en', 'es'] as const) {
+        for (const target of DESK_PAGES) {
+          test(`${target} in ${locale}: ${width > 1600 ? 'the rows hold the home’s 160 cells, centred' : 'under the cap every row is the viewport’s width'}, the sky inside them`, async ({ page }, info) => {
+            test.skip(info.project.name !== 'chromium', 'the sizes are this describe’s own: the 1024 project has nothing to add');
+            await openDeskPage(page, target, locale);
+            const cell = await cellPx(page);
+            const capped = Math.min(width, 160 * cell);
+            const rows = await contentRows(page, target);
+            expect(rows.length, 'the page has rows').toBeGreaterThan(0);
+            for (const row of rows) {
+              expect(Math.abs(row.width - capped), `${row.name} is ${String(row.width)} px, not ${String(capped)}`).toBeLessThanOrEqual(1);
+              expect(Math.abs(row.x - (width - row.width) / 2), `${row.name} is not centred`).toBeLessThanOrEqual(1);
+            }
+            const sky = skyBox(page, target);
+            if (sky) {
+              const rect = await sky.boundingBox();
+              if (!rect) throw new Error('the sky is not laid out');
+              const left = (width - capped) / 2;
+              expect(rect.x, 'the sky starts inside the column').toBeGreaterThanOrEqual(left - 1);
+              expect(rect.x + rect.width, 'the sky ends inside the column').toBeLessThanOrEqual(left + capped + 1);
+            }
+            expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways').toBeLessThanOrEqual(1);
+            info.annotations.push({ type: 'content-width', description: `${target} ${locale} ${String(width)}: ${rows.map((row) => `${row.name} ${row.width.toFixed(1)}`).join(', ')}` });
+          });
+        }
+      }
+    });
+  }
 });

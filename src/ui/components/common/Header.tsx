@@ -160,7 +160,8 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
    */
   const navLink = (target: (typeof NAV_PAGES)[number]): ReactNode => {
     const label = t.header.pages[target];
-    if (target === page) return <BracketLink key={target} href={NAV_HREF[target]} label={label} current className={TARGET} data-testid={`${target}-link`} />;
+    // The current page is not a control, so it carries no target floor: a flex item, the floor would make it a 44 px block and the row 20 px taller.
+    if (target === page) return <BracketLink key={target} href={NAV_HREF[target]} label={label} current data-testid={`${target}-link`} />;
     return (
       <BracketLink
         key={target}
