@@ -6,7 +6,8 @@
  * place, and both languages. The box's layout and the list against a measured
  * box are the e2e's (`tests/e2e/stars.spec.ts`): jsdom lays nothing out.
  */
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../tests/support/matchMedia';
@@ -18,6 +19,7 @@ import { appStore } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
 import { STARS_DEFAULT_TILT } from '../components/guide/skychart/window/camera';
+import { WINDOW_FOV_MAX_DEG } from '../components/guide/skychart/window/projection';
 import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
@@ -38,18 +40,44 @@ afterEach(() => {
 const page = (locale: Locale = 'en') => render(<I18nProvider locale={locale}>{<StarsPage />}</I18nProvider>);
 const stars = () => screen.getByTestId('stars-page');
 
+/**
+ * R160 (D-971): the window is `SkyChart`'s lazy view, drawn after the page's commit. `drawn` waits for a view's drawing
+ * and flushes the commit's passive effects inside `act` with an empty probe root (`Live.test.tsx`'s `windowDrawn`, D-987),
+ * so the hand camera's subscription is attached before a test moves it.
+ */
+async function drawn(view: 'window' | 'polar' = 'window'): Promise<void> {
+  await waitFor(() => {
+    expect(document.querySelector(`[data-drawing="${view}"]`)).not.toBeNull();
+  });
+  const probe = createRoot(document.createElement('div'));
+  act(() => {
+    probe.render(null);
+  });
+  act(() => {
+    probe.unmount();
+  });
+}
+/** The page with its window drawn. */
+async function opened(locale: Locale = 'en'): Promise<ReturnType<typeof page>> {
+  const rendered = page(locale);
+  await drawn();
+  return rendered;
+}
+/** The stars page's own view row (FR-PHONE-7): `[ Window ] Whole sky`. */
+const viewRow = () => within(screen.getByTestId('stars-view-row'));
+
 describe('<StarsPage> (FR-STAR-3)', () => {
   it('has its own visible h1, three h2 blocks in the rail, and the drawing named as a group (FR-A11Y-1, FR-A11Y-2, FR-FLOW-3)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
-    const { container } = page();
+    const { container } = await opened();
     const p = STARS_PAGE_CATALOGS.en;
     expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual([en.starsHeading]);
     // R129 (FR-FLOW-3): under it at `--small`, the dark window and the cloud word — with no forecast, the cloud word says so.
     expect(screen.getByTestId('stars-intro')).toContainElement(screen.getByTestId('stars-tonight'));
     expect(screen.getByTestId('stars-tonight')).toHaveTextContent(en.weather.state.unknown);
-    // R132 (FR-FLOW-4, D-846): the rail's facing row is labelled by the layout (`Facing`), then the page's Layers and In this field.
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.skyView.facing, p.layersHeading, p.fieldHeading]);
+    // R132 (FR-FLOW-4, D-846): the rail's view row and facing row are labelled by the layout (`View`, `Facing`), then the page's Layers and In this field.
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.skyView.view, en.skyView.facing, p.layersHeading, p.fieldHeading]);
     // The readout is the layout's `readout` slot — in the box's corner on wide — placed there by the window itself.
     expect(screen.getByTestId('window-readout').closest('[data-slot]')).toHaveAttribute('data-slot', 'readout');
     expect(screen.getByRole('group', { name: p.drawing })).toContainElement(container.querySelector('[data-drawing="window"]') as HTMLElement);
@@ -59,10 +87,10 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('opens on the pole side at the default tilt, south of the equator and north of it, and focuses the box', () => {
+  it('opens on the pole side at the default tilt, south of the equator and north of it, and focuses the box', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
-    const { unmount } = page();
+    const { unmount } = await opened();
     expect(stars()).toHaveAttribute('data-look-az', '180');
     expect(stars()).toHaveAttribute('data-look-alt', String(STARS_DEFAULT_TILT));
     expect(within(screen.getByRole('group', { name: STARS_PAGE_CATALOGS.en.facing })).getByRole('button', { name: 'S' })).toHaveAttribute('aria-pressed', 'true');
@@ -70,14 +98,14 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getByTestId('stars-sky')).toContainElement(document.activeElement as HTMLElement);
     unmount();
     appStore.setState({ observer: NORTH });
-    page();
+    await opened();
     expect(stars()).toHaveAttribute('data-look-az', '0');
   });
 
-  it('turns the camera from the facing picker: a point at the current tilt, up to the zenith, and a point from there back down (FR-STAR-4)', () => {
+  it('turns the camera from the facing picker: a point at the current tilt, up to the zenith, and a point from there back down (FR-STAR-4)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
-    page();
+    await opened();
     const picker = screen.getByRole('group', { name: STARS_PAGE_CATALOGS.en.facing });
     expect(within(picker).getAllByRole('button').map((b) => b.textContent)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
     fireEvent.click(within(picker).getByRole('button', { name: 'NE' }));
@@ -100,10 +128,10 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(within(picker).getAllByRole('button').some((b) => b.getAttribute('aria-pressed') === 'true')).toBe(false);
   });
 
-  it('toggles the four layers, all on at first, names included, and [ passes ] off (FR-STAR-3 as amended v2.4.1, FR-SKY-6)', () => {
+  it('toggles the four layers, all on at first, names included, and [ passes ] off (FR-STAR-3 as amended v2.4.1, FR-SKY-6)', async () => {
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
-    page();
+    await opened();
     const layers = screen.getByRole('group', { name: STARS_PAGE_CATALOGS.en.layersHeading });
     const toggles = within(layers).getAllByRole('button');
     expect(toggles.map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
@@ -117,16 +145,16 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
     // R132 (FR-FLOW-8): one group of two rows — three toggles, then names and `[ passes ]`.
     expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([3, 2]);
-    // FR-FLOW-4's order: the action right after the hint, the layers after it, then `In this field`.
+    // FR-FLOW-4's order: the view row after the h1 block (R160, FR-PHONE-7), the action right after the hint, the layers after it, then `In this field`.
     const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
-    expect(slots).toEqual(['answer', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
+    expect(slots).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
     expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
   });
 
-  it('puts the hint away for good on the first drag, pinch or tap in the box, and renders no hint slot after it (FR-FLOW-6)', () => {
+  it('puts the hint away for good on the first drag, pinch or tap in the box, and renders no hint slot after it (FR-FLOW-6)', async () => {
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
-    page();
+    await opened();
     expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
     const box = screen.getByTestId('stars-sky').querySelector<HTMLElement>('[tabindex="0"]');
     fireEvent.pointerDown(box as HTMLElement, { pointerId: 1, button: 0, pointerType: 'touch', clientX: 10, clientY: 10 });
@@ -139,13 +167,13 @@ describe('<StarsPage> (FR-STAR-3)', () => {
    * R126 (FR-SKY-6, D-794; US-40 AC5): `[ passes ]` brings the store's run for this place onto the sky — the arc in
    * the page's window with its key — and is page state: off on every open, never in the saved prefs.
    */
-  it('brings tonight’s passes onto the sky with [ passes ], off on every open and never saved (FR-SKY-6)', () => {
+  it('brings tonight’s passes onto the sky with [ passes ], off on every open and never saved (FR-SKY-6)', async () => {
     media = stubMatchMedia(COMPACT_PX);
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
     const golden = goldenPassFixture();
     vi.setSystemTime(golden.start.t + 10_000);
     appStore.setState({ observer: SOUTH, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [golden], hasDarkness: true } });
-    const { unmount } = page();
+    const { unmount } = await opened();
     const sky = screen.getByTestId('stars-sky');
     expect(sky.querySelector('[data-pass-id]')).toBeNull();
     const toggle = screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer });
@@ -155,7 +183,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(sky.querySelector('[data-key="A"]')).not.toBeNull();
     expect(JSON.stringify(window.localStorage)).not.toMatch(/passes/i);
     unmount();
-    page();
+    await opened();
     expect(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer })).toHaveAttribute('aria-pressed', 'false');
     // A run for another place is not this sky's.
     appStore.setState({ passes: { ...appStore.getState().passes, observer: NORTH } });
@@ -190,21 +218,176 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getByTestId('stars-set-place')).toHaveFocus();
   });
 
-  it('focuses the drawing’s box on open (FR-A11Y-1..3)', () => {
+  it('focuses the drawing’s box on open (FR-A11Y-1..3)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
-    page();
-    expect(screen.getByTestId('stars-sky').querySelector('[tabindex="0"]')).toHaveFocus();
+    await opened();
+    // R160: the box arrives with the window's chunk and takes the focus then.
+    await waitFor(() => {
+      expect(screen.getByTestId('stars-sky').querySelector('[tabindex="0"]')).toHaveFocus();
+    });
   });
 
-  it('is all Spanish in Spanish, the compass abbreviations and the star names aside (FR-STAR-10)', () => {
+  it('is all Spanish in Spanish, the compass abbreviations and the star names aside (FR-STAR-10)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
-    page('es');
+    await opened('es');
     const p = STARS_PAGE_CATALOGS.es;
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Hacia', p.layersHeading, p.fieldHeading]);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Vista', 'Hacia', p.layersHeading, p.fieldHeading]);
     expect(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'arriba' })).toBeInTheDocument();
     expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres', 'pases']);
+    // R160 (FR-PHONE-7): the view row's two words.
+    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Ventana', 'Cielo entero']);
+  });
+});
+
+/**
+ * R160 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-9; US-46 AC1, AC3; D-968, D-970, D-971, D-990): the whole sky on the stars
+ * page — the view row, the polar chart in the box with the page's layers and the passes, the names' default by width,
+ * `In this field` as the whole sky's twelve brightest, the outline of the page's camera, the view never saved and the
+ * window on every open, and the handoff landing on the page's own view.
+ */
+describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)', () => {
+  const drawnStars = (): number => screen.getByTestId('stars-sky').querySelectorAll('[data-drawing="polar"] [data-star]').length;
+  const polarMarks = async (): Promise<void> => {
+    await waitFor(() => {
+      expect(drawnStars()).toBeGreaterThan(0);
+    });
+  };
+
+  it('reads [ Window ] Whole sky between the h1 block and the readout, opens on the window, and Whole sky draws the polar chart with the page’s layers and the passes', async () => {
+    media = stubMatchMedia(COMPACT_PX);
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const golden = goldenPassFixture();
+    vi.setSystemTime(golden.start.t + 10_000);
+    appStore.setState({ observer: SOUTH, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [golden], hasDarkness: true } });
+    const { container } = await opened();
+    expect(viewRow().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
+      ['Window', 'true'],
+      ['Whole sky', 'false'],
+    ]);
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'polar');
+    await drawn('polar');
+    await polarMarks();
+    const sky = screen.getByTestId('stars-sky');
+    expect(sky.querySelector('[data-drawing="window"]')).toBeNull();
+    // The page's layers: the figures on; the names off by default on compact (FR-PHONE-8), the toggle reading so.
+    expect(sky.querySelector('[data-drawing="polar"] [data-figures] path')).not.toBeNull();
+    expect(sky.querySelector('[data-drawing="polar"] [data-names] text')).toBeNull();
+    expect(screen.getByRole('button', { name: 'names' })).toHaveAttribute('aria-pressed', 'false');
+    // `[ passes ]` on: the arc with its key on the whole sky, and the pass first in `In this field`.
+    fireEvent.click(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer }));
+    expect(sky.querySelector(`[data-drawing="polar"] [data-pass-id="${golden.id}"]`)).not.toBeNull();
+    expect(sky.querySelector('[data-drawing="polar"] [data-key="A"]')).not.toBeNull();
+    // The polar chart's own readout and picker take the slots (FR-FLOW-4): the convention line and the looking-up / map toggle.
+    expect(screen.getByTestId('chart-convention').closest('[data-slot]')).toHaveAttribute('data-slot', 'readout');
+    expect(screen.getByRole('group', { name: en.chart.orientationGroup }).closest('[data-slot]')).toHaveAttribute('data-slot', 'picker');
+    expect(screen.queryByRole('group', { name: STARS_PAGE_CATALOGS.en.facing })).toBeNull();
+    // A layer off takes its marks off the whole sky too.
+    fireEvent.click(screen.getByRole('button', { name: 'stars' }));
+    expect(drawnStars()).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'stars' }));
+    // Back to the window: the camera where it was (the page's), nothing saved.
+    fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
+    await drawn('window');
+    expect(container.querySelector('[data-look-az][data-fov]')).toHaveAttribute('data-look-az', '180');
+    expect(JSON.stringify(window.localStorage)).not.toMatch(/polar|chartView/);
+  });
+
+  it('names the whole sky’s twelve brightest in In this field, with the passes in it first', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const golden = goldenPassFixture();
+    vi.setSystemTime(golden.start.t + 10_000);
+    appStore.setState({ observer: SOUTH, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [golden], hasDarkness: true } });
+    await opened();
+    const list = () => screen.getByRole('list', { name: STARS_PAGE_CATALOGS.en.fieldHeading });
+    // jsdom lays nothing out: the window's box is unmeasured, so the window lists nothing — and the whole sky lists its twelve.
+    expect(screen.queryByRole('list', { name: STARS_PAGE_CATALOGS.en.fieldHeading })).toBeNull();
+    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
+    await waitFor(() => {
+      expect(within(list()).getAllByRole('button')).toHaveLength(12);
+    });
+    const mags = within(list())
+      .getAllByRole('button')
+      .map((b) => Number((/mag (−?\d+\.\d)/.exec(b.getAttribute('aria-label') ?? '')?.[1] ?? '99').replace('−', '-')));
+    expect([...mags].sort((a, b) => a - b)).toEqual(mags);
+    expect(within(list()).getAllByRole('button').map((b) => Number(/(-?\d+)° up/.exec(b.getAttribute('aria-label') ?? '')?.[1])).every((alt) => alt >= 0)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer }));
+    await waitFor(() => {
+      expect(list().querySelector('[data-kind="pass"]')).not.toBeNull();
+    });
+    expect(within(list()).getAllByRole('listitem')).toHaveLength(12);
+    expect(within(list()).getAllByRole('listitem')[0]?.querySelector('[data-kind="pass"]')).not.toBeNull();
+  });
+
+  it('defaults the names on for the whole sky on wide, and the [x] names toggle drives both views once tapped (FR-PHONE-8)', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    appStore.setState({ observer: SOUTH });
+    await opened();
+    const names = () => screen.getByRole('button', { name: 'names' });
+    expect(names()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
+    await drawn('polar');
+    await polarMarks();
+    expect(names()).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('stars-sky').querySelector('[data-drawing="polar"] [data-names] text')).not.toBeNull();
+    fireEvent.click(names());
+    expect(names()).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('stars-sky').querySelector('[data-drawing="polar"] [data-names] text')).toBeNull();
+    // The choice holds for the window too.
+    fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
+    await drawn('window');
+    expect(names()).toHaveAttribute('aria-pressed', 'false');
+    // And on compact the whole sky's names start off, and a tap turns them on for both.
+    act(() => {
+      media?.setSize(390, 844);
+    });
+    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
+    await drawn('polar');
+    expect(names()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(names());
+    expect(names()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
+    await drawn('window');
+    expect(names()).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('outlines the page’s camera on the whole sky, and a pinch back lands on the window at the aim at the widest field (FR-PHONE-9, FR-PHONE-10)', async () => {
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    const { container } = await opened();
+    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
+    await drawn('polar');
+    const outline = (): Element | null => container.querySelector('[data-field-outline]');
+    await waitFor(() => {
+      expect(outline()?.getAttribute('d')).toMatch(/^M/);
+    });
+    const south = outline()?.getAttribute('d');
+    // The facing picker is the whole sky's too: a point moves the outline with the camera, with no render of the chart.
+    const before = outline();
+    fireEvent.keyDown(container, { key: 'ArrowRight' });
+    expect(outline()).toBe(before);
+    // The pinch in on the whole sky: two touches a hundred px apart, closed to forty, released — the window, facing the midpoint, at 90°.
+    const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
+    svg.setPointerCapture = vi.fn();
+    svg.releasePointerCapture = vi.fn();
+    svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
+    // The midpoint at the chart's centre is the zenith.
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 75, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 175, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 105, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 145, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 105, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 145, clientY: 125 });
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+    expect(viewRow().getByRole('button', { name: 'Window' })).toHaveAttribute('aria-pressed', 'true');
+    await drawn('window');
+    expect(stars()).toHaveAttribute('data-look-alt', '90');
+    expect(container.querySelector('[data-look-az][data-fov]')).toHaveAttribute('data-fov', String(WINDOW_FOV_MAX_DEG));
+    expect(south).toMatch(/^M/);
   });
 });
 
@@ -388,11 +571,11 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
   };
 
   /** R159 (FR-PHONE-1; US-45 AC1; D-962): where nothing has to be asked the page opens following; a drag hands the sky to the finger. */
-  it('opens following where nothing is asked, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', () => {
+  it('opens following where nothing is asked, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
     withPhone();
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
-    const { container } = page();
+    const { container } = await opened();
     // D-986: from the first reading with a north.
     act(() => {
       window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, beta: 120, gamma: 0, absolute: true }));
@@ -418,7 +601,7 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     appStore.getState().setFollowGranted(true);
-    const { container, unmount } = page();
+    const { container, unmount } = await opened();
     expect(requestPermission).not.toHaveBeenCalled();
     expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
     touch(screen.getByTestId('stars-sky'));
@@ -474,7 +657,7 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     withPhone(requestPermission);
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
-    const { container } = page();
+    const { container } = await opened();
     const w = (): Element => container.querySelector('[data-look-az][data-fov]') as Element;
     expect(w()).toHaveAttribute('data-state', 'hand');
     fireEvent.click(screen.getByTestId('follow-toggle'));
