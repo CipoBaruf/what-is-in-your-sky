@@ -165,8 +165,8 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(container.querySelector('[data-pass-id]')).toBeNull();
     fireEvent.click(within(layers).getByRole('button', { name: 'figures' }));
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
-    // FR-CLEAN-4: one group of two rows — three toggles, then names.
-    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([3, 1]);
+    // FR-CLEAN-4: one group of two rows, two toggles each — the row's room is 32 cells, and three would be 33 (D-865's split).
+    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([2, 2]);
     // FR-CLEAN-1 (D-919): the full form's three slots and nothing else; the hint over the box (a mouse's three clauses here).
     const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
     expect(slots).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
@@ -250,7 +250,7 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
     expect(screen.queryByTestId('stars-tonight')).toBeNull();
     const head = screen.getByTestId('live-head');
     expect(within(head).getByTestId('live-back')).toHaveAccessibleName(en.header.backName);
-    expect(within(head).getByTestId('stars-head-line').textContent).toMatch(/^(Dark \d\d:\d\d → \d\d:\d\d UTC|No full dark|Stars from \d\d:\d\d UTC|Weather unknown)$/);
+    expect(within(head).getByTestId('stars-head-line').textContent).toMatch(/^(Dark \d\d:\d\d → \d\d:\d\d UTC|No full dark|Stars from \d\d:\d\d UTC|)$/);
     // FR-STAR-7 as amended: the corner readout asks the full form for two lines, and a named star is its second.
     const corner = screen.getByTestId('sky-corner-readout');
     expect(corner).toHaveAttribute('data-lines', '2');
@@ -288,8 +288,9 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
     ];
     expect(starsHeadLine(t, locale, { now: noon + 13 * H, bands: bright, sunUp: false, ...zoned })).toBe(locale === 'en' ? 'No full dark · Clear' : 'Sin oscuridad total · Despejado');
     expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, zone: null, cloud: 'clear' })).toMatch(locale === 'en' ? /^Dark 20:25 → 07:05 UTC$/ : /^Oscuro 20:25 → 07:05 UTC$/);
-    // Before the bands are known: the cloud word alone.
+    // Before the bands are known: the cloud word alone, and with no zone (no forecast) nothing.
     expect(starsHeadLine(t, locale, { now: noon, bands: [], sunUp: false, ...zoned })).toBe(t.weather.state.clear);
+    expect(starsHeadLine(t, locale, { now: noon, bands: [], sunUp: false, zone: null, cloud: 'unknown' })).toBe('');
   });
 
   it.each(['en', 'es'] as const)('holds the sheet’s rows in FR-CLEAN-4’s order in %s — the view row, the facing row, the layer rows, In this field open — the readout moving into the facing row and its tap opening the picker', async (locale) => {

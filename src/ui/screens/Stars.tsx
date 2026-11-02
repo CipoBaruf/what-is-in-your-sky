@@ -4,7 +4,7 @@ import type { Messages } from '../../i18n/messages';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { fitBox, hintFitsBeside, RAIL_MIN_CELLS } from '../../lib/layout';
+import { fitBox, hintFitsBeside, RAIL_MIN_CELLS, SHELL_PADDING_CELLS } from '../../lib/layout';
 import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
 import { formatShortClock } from '../../lib/timeFormat';
@@ -126,13 +126,18 @@ const STARS_VIEWS: readonly ChartView[] = ['window', 'polar'];
 /** FR-STAR-3 as amended v2.11: the four layer toggles in this order, over two rows. */
 const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
 
-/** FR-COMP-4: a 390 px viewport at the default cell, the budget the first layer row is cut to. */
-const LAYER_ROW_BUDGET = 36;
+/**
+ * FR-COMP-4's 36 cells at 390 px less the two cells of padding each side the sheet shares with the shell (R163): the
+ * room a layer row has, 32 cells, the budget the first row is cut to. The 36 of R132 counted the padding as room, and
+ * `[x] stars [x] figures [x] planets` (33 cells) stood squeezed on the phone, its third toggle with no cell before it.
+ */
+const LAYER_ROW_BUDGET = 36 - 2 * SHELL_PADDING_CELLS;
 
 /**
  * R132 (FR-FLOW-8, D-865): how many of the layer toggles the first row holds — as many as fit the budget as `[x] label`
- * cells with a cell between (`tests/styles/cells.ts`'s count), at least one. Three in English (33 cells); two in Spanish,
- * where the three would be 38.
+ * cells with a cell between (`tests/styles/cells.ts`'s count), at least one. Two in both languages at 32 cells: three
+ * would be 33 in English and 38 in Spanish (R163; FR-CLEAN-11's row reads `[x] stars [x] figures` then `[x] planets
+ * [x] names`).
  */
 export function firstRowCount(labels: readonly string[], budget: number): number {
   let cells = 0;
@@ -393,6 +398,8 @@ function StarsSky({ observer }: { observer: Observer }) {
     if (!compact) return;
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape' || !sheetOpenRef.current) return;
+      // The shortcuts overlay over the page makes the page inert (D-73's "overlay first"): the key is the overlay's.
+      if (layoutRef.current?.closest('[inert]')) return;
       event.preventDefault();
       event.stopPropagation();
       closeSheet();
@@ -424,9 +431,9 @@ function StarsSky({ observer }: { observer: Observer }) {
       <SectionHeading id={layersId} visuallyHidden={!wide}>
         {p.layersHeading}
       </SectionHeading>
-      {/* FR-FLOW-8 → FR-CLEAN-4: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names`,
-          33 and 9 cells in English. In Spanish the first three are 38 cells, two past FR-COMP-4's 36, so the split is by the
-          budget (`firstRowCount`): `[x] estrellas [x] figuras` and `[x] planetas [x] nombres` (25 and 24). */}
+      {/* FR-FLOW-8 → FR-CLEAN-4: one group of two rows `--space-1` apart, the split by the row's room (`firstRowCount`):
+          `[x] stars [x] figures` and `[x] planets [x] names` (21 and 23 cells); `[x] estrellas [x] figuras` and
+          `[x] planetas [x] nombres` (25 and 24). */}
       <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
         <div className={styles.row} data-testid="stars-layers-row" {...(compact ? { 'data-rhythm': 'row' } : {})}>
           {LAYER_KEYS.slice(0, firstRow).map((key, index) => layer(key, index > 0))}
@@ -701,12 +708,12 @@ export interface StarsHeadLineInput {
  * "No full dark · Clear" with none; and "Stars from 20:25" while the Sun is up and the stars are still to come, the
  * door's second line, since the first would name a window the reader cannot use yet. With no zone the stamps say UTC
  * and there is no forecast, so no cloud word (the door's rule, D-859); before the bands are known the line is the
- * cloud word alone, as the wide line under the `h1` is.
+ * cloud word alone, as the wide line under the `h1` is, or empty with no zone.
  */
 export function starsHeadLine(t: Messages, locale: Locale, { now, zone, bands, cloud, sunUp }: StarsHeadLineInput): string {
-  if (bands.length === 0) return t.weather.state[cloud];
-  const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
   const cloudWord = zone === null ? null : cloud;
+  if (bands.length === 0) return cloudWord === null ? '' : t.weather.state[cloudWord];
+  const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
   const starsFrom = tonightsStarsFrom(bands, now);
   if (sunUp && starsFrom !== null && starsFrom.from > now) return t.doors.stars.from(clock(starsFrom.from, true));
   const dark = tonightsDark(bands, now);
