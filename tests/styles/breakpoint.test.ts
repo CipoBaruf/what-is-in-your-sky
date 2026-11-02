@@ -36,6 +36,8 @@ import { BREAKPOINTS_PATH, conditionText, cssFiles, listing, queriesOf, UI_DIR, 
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
 const APP_PATH = 'src/ui/App.module.css';
+/** R166 (FR-CLEAN-12, D-1003): the shell's stylesheet, where the desk's cap is written for every route. */
+const SHELL_PATH = 'src/ui/Shell.module.css';
 const SHEET_PATH = 'src/ui/screens/PassDetail.module.css';
 const FRAME_PATH = 'src/ui/components/guide/skychart/ChartFrame.module.css';
 const HEADER_PATH = 'src/ui/components/common/Header.module.css';
@@ -191,21 +193,26 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
    * written in cells in the stylesheet itself. It stands beside the wide and
    * three-pane breakpoints: wider than the three panes need, so the cap never
    * engages before the panes exist, and pinned here so a change to it is a
-   * change to this file too. The live page is not under it (FR-DOME-1): the rule
-   * names `#root`'s own rows, and the live page's landmarks are not those.
+   * change to this file too. R166 (FR-CLEAN-12, D-1003): the rule is the
+   * shell's, for every route — the shell's `main` and `#root`'s other rows, the
+   * wide live page's grid among them — and the home's stylesheet no longer
+   * writes it.
    */
-  it('caps the home page at 160 cells beside 964 and 1118, in cells, and not the live page (FR-HOME-4)', () => {
+  it('caps every route at 160 cells beside 964 and 1118, in cells: the shell\'s rows and the live page\'s grid (FR-HOME-4, FR-CLEAN-12)', () => {
     expect(HOME_MAX_CELLS).toBe(160);
     expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX]).toEqual([964, 1118]);
     expect(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
-    const app = readFileSync(APP_PATH, 'utf8');
-    const cap = wideBlocks(app).find((block) => block.includes(`max-width: calc(${String(HOME_MAX_CELLS)} * var(--cell))`));
-    expect(cap, `${APP_PATH} should cap the shell's rows at HOME_MAX_CELLS inside a wide block`).toBeDefined();
+    const literal = `max-width: calc(${String(HOME_MAX_CELLS)} * var(--cell))`;
+    expect(readFileSync(APP_PATH, 'utf8'), `${APP_PATH} should leave the cap to the shell`).not.toContain(literal);
+    const shell = readFileSync(SHELL_PATH, 'utf8');
+    expect(outsideMedia(shell), 'the cap is wide\'s alone').not.toContain(literal);
+    const cap = wideBlocks(shell).find((block) => block.includes(literal));
+    expect(cap, `${SHELL_PATH} should cap the shell's rows at HOME_MAX_CELLS inside a wide block`).toBeDefined();
     const rule = /([^{}]+)\{[^{}]*max-width: calc\(160 \* var\(--cell\)\)/.exec((cap ?? '').replace(/\/\*[\s\S]*?\*\//g, ''));
     const selectors = rule?.[1] ?? '';
-    for (const row of ['.main', '#root) > :global(header)', '#root) > :global(footer)']) expect(selectors).toContain(row);
-    expect(selectors).not.toMatch(/live/i);
+    for (const row of ['.main', '#root) > :global(header)', '#root) > :global(footer)', '#root) > :global([data-page-notices])', "#root) > :global([data-compact='false'])"]) expect(selectors).toContain(row);
     expect(cap).toContain('margin-inline: auto');
+    expect(cap).toContain('width: 100%');
   });
 
   it('starts at the stylesheet frame: wide drops the 60-cell compact frame', () => {

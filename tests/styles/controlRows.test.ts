@@ -32,7 +32,7 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
-import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer } from '../../src/model';
@@ -804,13 +804,19 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('fits a sub-page’s row — [ ← ], the mark and title, the three links, the context, [ settings ] — in the wide breakpoint, the context with ten cells at least', () => {
+  it('fits a sub-page’s row — [ ← ], the mark and title, the three links, the context, [ settings ] — in the wide breakpoint with the title whole, the context with ten cells from its own width', () => {
     // R129 (D-845): with the switches gone the title has no short form on wide; the context is what ellipsises.
-    const nav = Object.values({ home: t.header.pages.home, live: t.header.pages.live, stars: t.header.pages.stars }).reduce((sum, word) => sum + word.length, 0) + 2 * navGap;
+    // R166 (FR-CLEAN-14, D-1007): the links are `[ home ] [ live ] [ stars ]`, one cell apart — ten cells more than the
+    // three words two cells apart. The row without its context still fits the wide breakpoint in both languages, so
+    // FR-HOME-1's fold never reaches the title; the context keeps ten cells from the width that pays for them.
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.stars].reduce((sum, word) => sum + control(word), 0) + 2 * navGap;
+    expect(navGap).toBe(1);
     const fixed = 2 * SHELL_PADDING_CELLS + control(t.header.back) + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + control(t.settings.open);
-    expect(fixed).toBe(locale === 'es' ? 89 : 79);
-    expect(WIDE_CELLS - fixed).toBeGreaterThanOrEqual(10);
-    expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(WIDE_MIN_PX);
+    expect(fixed).toBe(locale === 'es' ? 99 : 89);
+    expect(fixed).toBeLessThanOrEqual(WIDE_CELLS);
+    expect(thresholdPx(fixed + 10)).toBe(locale === 'es' ? 1050 : 954);
+    expect(thresholdPx(fixed + 10)).toBeLessThan(HOME_THREE_PANE_MIN_PX);
+    if (locale === 'en') expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(WIDE_MIN_PX);
   });
 
   it('draws a sub-page’s row with [ ← ] and a long place as counted above, and at 1024 px the place gives first, then the title, never the links', () => {
@@ -820,15 +826,17 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'live', context: place, onBack: noop }) }));
     const row = within(container).getByTestId('header');
     const parts = rowParts(row, table);
-    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.stars];
+    // R166 (FR-CLEAN-14): each link wears `BracketLink`'s four cells of brackets.
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.stars].map((word) => `####${word}`);
     expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
     expect(parts[0]).toContain(t.header.back);
     // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
     const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
     const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 2 * navGap;
-    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 89 : 79);
+    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 99 : 89);
     const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBeGreaterThanOrEqual(10);
+    // R166 (D-1007): the brackets are paid from the place, which keeps 17 cells in English and 7 in Spanish at 1024 px.
+    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? 7 : 17);
     expect(at1024 - measured).toBeLessThan(place.length + rowGap);
     // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
     // `[ ← ]`, the links and `[ settings ]` never shrink.

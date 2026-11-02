@@ -35,6 +35,9 @@
  * there was no `chart-aside` to find.
  *
  * Every test sets its own viewport, so this file runs in the default project.
+ *
+ * R166 (FR-CLEAN-12, D-1003): from 1541 px the page is the home's 160-cell column, centred, so "hard against the
+ * page's right edge" is the column's edge, not the viewport's.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
@@ -128,9 +131,13 @@ for (const [width, height] of [
       // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
       const foot = await page.getByTestId('live-rail-foot').boundingBox();
       if (!foot) throw new Error('no foot');
+      // R166 (FR-CLEAN-12, D-1003): the page's right edge is its column's — `HOME_MAX_CELLS` from 1541 px, centred.
+      const column = await page.getByTestId('live-page').boundingBox();
+      if (!column) throw new Error('no page');
+      const right = column.x + column.width;
       const heightBound = height - (foot.y + foot.height) <= UNDER_PX;
-      const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
-      expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
+      const widthBound = right - (rail.x + rail.width) <= UNDER_PX;
+      expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(right - rail.x - rail.width)} px past the rail)`).toBe(true);
 
       // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its
       // cadence is the stripe's own (FR-TRAJ-4, `labelEveryHours` on the width it measures): every two hours

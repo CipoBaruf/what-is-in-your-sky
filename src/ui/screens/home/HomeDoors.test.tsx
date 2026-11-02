@@ -137,4 +137,18 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
     // No landmark for the pass in this sky: the Satellites door keeps its two lines.
     expect(within(screen.getByTestId('door-satellites')).getAllByTestId('door-satellites-line')).toHaveLength(2);
   });
+
+  it('on wide, each door is a Card in its emphasis form; on compact, the plain link card (R166, FR-CLEAN-16)', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const wide = show();
+    for (const id of ['door-satellites', 'door-stars', 'door-live']) expect(screen.getByTestId(id).className).toMatch(/emphasis/);
+    wide.unmount();
+    media.restore();
+    media = stubMatchMedia(COMPACT_PX);
+    show();
+    for (const id of ['door-satellites', 'door-stars', 'door-live']) {
+      expect(screen.getByTestId(id).className).toMatch(/control/);
+      expect(screen.getByTestId(id).className).not.toMatch(/emphasis/);
+    }
+  });
 });

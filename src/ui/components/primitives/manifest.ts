@@ -99,6 +99,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     as: { type: "'article' | 'section' | 'button' | 'a'", text: 'The element: a pass’s article, the next event’s named section, or the card as one button or link with the sheet’s control chrome taken off.' },
     selected: { type: 'boolean', text: 'The card the guide is open on: ruled in the accent on the raised ground and `aria-current`.' },
     frame: { type: "'rule' | 'accent'", text: 'The frame’s ink: the rule (a card among cards), or the accent (the phone’s first card).' },
+    emphasis: { type: 'boolean', text: 'A link or button card that is a page’s main navigation (the home’s doors on a desk): a control’s frame, a row and two cells inside, the frame in the accent on hover and focus.' },
     children: { type: 'ReactNode', text: 'What the card holds.' },
     className: PLACEMENT,
   }),

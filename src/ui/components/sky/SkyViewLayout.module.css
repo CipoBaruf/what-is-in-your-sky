@@ -471,8 +471,10 @@
   margin: 0;
 }
 
-/* The view row: the view control at the left and `[x] stars` at the row's right end, one line (FR-FLOW-4). */
-.viewRow > :global(*:last-child:not(:first-child)) {
+/* The view row: the view control at the left and `[x] stars` at the row's right end, one line (FR-FLOW-4). R166
+   (FR-CLEAN-13, D-1008): a row whose one control follows the rail's label (the stars page's `[ Window ] Whole sky`)
+   has no `[x] stars` to push, and sits at the rail's left like `Facing` and `Layers`. */
+.viewRow > :global(*:last-child:not(:first-child, h2 + *)) {
   margin-left: auto;
 }
 

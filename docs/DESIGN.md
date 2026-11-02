@@ -228,6 +228,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `as` | `'article' \| 'section' \| 'button' \| 'a'` | The element: a pass’s article, the next event’s named section, or the card as one button or link with the sheet’s control chrome taken off. |
 | `selected` | `boolean` | The card the guide is open on: ruled in the accent on the raised ground and `aria-current`. |
 | `frame` | `'rule' \| 'accent'` | The frame’s ink: the rule (a card among cards), or the accent (the phone’s first card). |
+| `emphasis` | `boolean` | A link or button card that is a page’s main navigation (the home’s doors on a desk): a control’s frame, a row and two cells inside, the frame in the accent on hover and focus. |
 | `children` | `ReactNode` | What the card holds. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
