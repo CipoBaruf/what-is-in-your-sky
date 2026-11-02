@@ -122,4 +122,29 @@
   .privacy {
     max-width: calc(60 * var(--cell));
   }
+
+  /* R166 (FR-CLEAN-15, V211-10): on a desk the page breathes. FR-SET-2's fit is the phone's 844 px; the desk has the
+     room, so the three sections stand a section gap apart as the home's do (FR-FLOW-10), each heading's rule
+     `--space-2` above its first row, the rows inside a section one text row apart, and the privacy line a section gap
+     under the last section. The page is one of the wide shell's panes (D-119): what no longer fits a short window
+     scrolls inside it, never the page. Widths and controls are untouched; compact keeps the rules above. */
+  .page {
+    gap: var(--space-5);
+    padding-bottom: var(--space-5);
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .page section {
+    row-gap: var(--space-3);
+  }
+
+  /* The heading's rule sits `--space-2` over the first row: the section's row gap less the difference. */
+  .page section > h2 {
+    margin-bottom: calc(var(--space-2) - var(--space-3));
+  }
+
+  .rows {
+    row-gap: var(--space-3);
+  }
 }

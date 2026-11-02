@@ -89,3 +89,62 @@ for (const locale of LOCALES) {
     }
   });
 }
+
+/**
+ * R166 (FR-CLEAN-15, V211-10): the settings page breathes on a desk. At 1280 × 800 in both languages the three
+ * sections stand `--space-5` apart, each heading's rule `--space-2` above its first row, the rows inside a section
+ * `--space-3` apart, and the privacy line at least `--space-5` under the last section once the page is read to its
+ * end. The phone's case above is unchanged (FR-SET-2's fit).
+ */
+for (const locale of LOCALES) {
+  test.describe(`FR-CLEAN-15 at 1280 × 800, ${locale}`, () => {
+    test.use({ viewport: { width: 1280, height: 800 } });
+
+    test('the settings page: sections --space-5 apart, the heading --space-2 over its first row, rows --space-3 apart', async ({ page }) => {
+      await openFlowPage(page, 'settings', locale);
+      const main = page.locator('#root > main');
+      await main.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
+      const measured = await main.evaluate((el) => {
+        const probe = document.createElement('div');
+        document.body.append(probe);
+        const px = (token: string): number => {
+          probe.style.height = `var(${token})`;
+          return probe.getBoundingClientRect().height;
+        };
+        const tokens = { s2: px('--space-2'), s3: px('--space-3'), s5: px('--space-5') };
+        probe.remove();
+        const drawn = (b: Element): boolean => b.getBoundingClientRect().height > 0 && b.checkVisibility();
+        const gapsOf = (list: Element[]): number[] => list.slice(1).map((b, i) => b.getBoundingClientRect().top - (list[i] as Element).getBoundingClientRect().bottom);
+        const groups = Array.from(el.children).filter((b) => b.hasAttribute('data-rhythm') && drawn(b));
+        const sections = Array.from(el.querySelectorAll('section')).filter(drawn);
+        const headings: number[] = [];
+        const rows: number[] = [];
+        for (const section of sections) {
+          const children = Array.from(section.children).filter(drawn);
+          const [heading, ...rest] = children;
+          if (!heading || heading.tagName !== 'H2' || !rest[0]) continue;
+          headings.push(rest[0].getBoundingClientRect().top - heading.getBoundingClientRect().bottom);
+          rows.push(...gapsOf(rest));
+        }
+        // The browser section's label-and-control rows: one label per row.
+        const labels = Array.from(el.querySelectorAll('[data-testid="settings-browser"] [aria-hidden="true"]')).filter(drawn);
+        rows.push(...gapsOf(labels));
+        const last = groups.at(-1)?.getBoundingClientRect().bottom ?? NaN;
+        const privacy = document.querySelector('[data-testid="settings-privacy"]')?.getBoundingClientRect().top ?? NaN;
+        return { tokens, sectionGaps: gapsOf(groups), headings, rows, foot: privacy - last, scrolls: document.documentElement.scrollHeight - document.documentElement.clientHeight };
+      });
+      const { tokens } = measured;
+      expect(measured.sectionGaps).toHaveLength(2);
+      for (const gap of measured.sectionGaps) expect(Math.abs(gap - tokens.s5), `a section gap of ${String(gap)} px`).toBeLessThanOrEqual(1);
+      expect(measured.headings).toHaveLength(3);
+      for (const gap of measured.headings) expect(Math.abs(gap - tokens.s2), `a heading gap of ${String(gap)} px`).toBeLessThanOrEqual(1);
+      expect(measured.rows.length).toBeGreaterThan(3);
+      for (const gap of measured.rows) expect(Math.abs(gap - tokens.s3), `a row gap of ${String(gap)} px`).toBeLessThanOrEqual(1);
+      expect(measured.foot).toBeGreaterThanOrEqual(tokens.s5 - 1);
+      // The page itself does not scroll: the pane does, where a short window asks it to.
+      expect(measured.scrolls).toBeLessThanOrEqual(0);
+    });
+  });
+}
