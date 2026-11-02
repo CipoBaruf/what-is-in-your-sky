@@ -4623,7 +4623,8 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
 
 ### Wave 1
 
-- [ ] **R162 — The shared sheet and head: `ControlsSheet` and `SkyHead` moved to `components/sky/`, `SkyHead`'s `line` prop, the live page re-pointed, nothing else moving**
+- [x] **R162 — The shared sheet and head: `ControlsSheet` and `SkyHead` moved to `components/sky/`, `SkyHead`'s `line` prop, the live page re-pointed, nothing else moving**
+  - *Done:* as written but for one prop, plus D-1005 and D-1006. `git mv` moved `ControlsSheet` and `SkyHead` with their stylesheets and tests to `components/sky/`; `ControlsSheet` is unchanged. `SkyHead` takes `line: ReactNode` (the live page passes `<ShownTime>` on its 1 s clock) and keeps `onBack` for `[ ← ]`; no `backHref` (D-1005: every page's Back is FR-ROUTE-1's history rule, a callback, not an address). Its test ids, its `[ ← ]` and its stylesheet are unchanged; `Live.tsx` and `sheetRows.test.ts` re-pointed. **Budget** (`npm run bundle:budget`, gzip KB, 2.10.0 → R162): `main` 180.3 → 180.4 of 185 (the same 569.3 KB raw; only the hashed chunk names it carries changed), `live` 15.8 → 15.8 of 20, `stars` 29.2 → 29.2 of 35: Rollup keeps both modules in the `live` chunk while only `Live.tsx` imports them (D-1006). **The live page:** `ControlsSheet.test.tsx`, `SkyHead.test.tsx`, `Live.test.tsx` and `live-full.spec.ts` (26 cases) pass with no assertion changed; the 28 compact live captures at 390 × 844 (`CAPTURES=1`) shot on `main` and on this branch off one browser are pixel-identical file by file, but for the three `live-sheet-list-390-*` files, whose head rows (6–53) flip by one level between two states from run to run on `main` as on the branch (F-99's noise), every branch file pixel-identical to one of `main`'s.
   - **Lane:** live
   - **Model:** opus
   - **Review:** opus
