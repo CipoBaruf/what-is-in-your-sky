@@ -488,6 +488,23 @@ export const ui = {
           return `Ended ${p.clock} ago`;
       }
     },
+    /**
+     * R164 (FR-CLEAN-2 as amended, D-1012): the compact pass detail's head over the sky — the phase without its reason,
+     * so the longest form ("Ended 1:23:45 ago") stays inside the head at 360 px at the heading size; the reason
+     * (shadow, twilight) is the sheet's times row's and the prose's.
+     */
+    head: (p: { phase: CountdownPhase; clock: string }) => {
+      switch (p.phase) {
+        case 'before':
+          return `Appears in ${p.clock}`;
+        case 'to-peak':
+          return `Peak in ${p.clock}`;
+        case 'to-end':
+          return `Ends in ${p.clock}`;
+        case 'over':
+          return `Ended ${p.clock} ago`;
+      }
+    },
     steps: 'Rise, peak and set times',
     rise: 'rise',
     peak: 'peak',

@@ -234,7 +234,7 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
    * literal is written once per column — the shell's and the sheet's — and the
    * 80-cell frame it replaces is gone from `src/ui`.
    */
-  it('caps the compact column at 60 cells beside 964, 1118 and 160: the shell, the notices, the live page and the sheet, lifted from the landscape phone alone (FR-TAB-1, FR-TAB-2, D-625)', () => {
+  it('caps the compact column at 60 cells beside 964, 1118 and 160: the shell, the notices and the live page, lifted from the landscape phone alone (FR-TAB-1, FR-TAB-2, D-625)', () => {
     const CARD_CELLS = 36;
     expect(COMPACT_MAX_CELLS).toBe(60);
     expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, HOME_MAX_CELLS, COMPACT_MAX_CELLS]).toEqual([964, 1118, 160, 60]);
@@ -250,9 +250,10 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     for (const row of ['header', 'main', 'footer', '[data-page-notices]', "#root > [data-compact='true']"]) expect(selectors.split(',').map((s) => s.trim())).toContain(row);
     expect(shell.slice(shell.indexOf(cap)).split('}')[0]).toContain('margin-inline: auto');
 
-    // The sheet's frame carries the same literal, outside any media block.
+    // R164 (FR-CLEAN-1): the pass detail is the full form — the box is the viewport on a tablet too — so its stylesheet
+    // no longer carries the column's cap (the sheet's frame of R99 is gone with the column).
     const sheet = readFileSync(SHEET_PATH, 'utf8');
-    expect(selectorsOf(outsideMedia(sheet), cap), `${SHEET_PATH} should cap the sheet's frame at COMPACT_MAX_CELLS`).toBe('.frame');
+    expect(selectorsOf(outsideMedia(sheet), cap), `${SHEET_PATH} should not cap the full form`).toBe('');
 
     // The landscape phone lifts it from the live page and from nothing else: D-173's query, the live page's selector alone.
     const lifted = mediaBlocks(global, /orientation: landscape/);

@@ -1,14 +1,14 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { guideParams } from '../../lib/phrases';
 import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
-import { formatDateZone } from '../../lib/format';
-import type { Observer, Pass } from '../../model';
-import { Countdown } from '../components/common/Countdown';
-import { Header } from '../components/common/Header';
+import { formatClockDuration, formatDateZone } from '../../lib/format';
+import { hintFitsBeside } from '../../lib/layout';
+import type { ChartView, EpochMs, Observer, Pass } from '../../model';
+import { Countdown, countdownState } from '../components/common/Countdown';
 import { ShareButton } from '../components/common/ShareButton';
 import { GuidePanel } from '../components/guide/GuidePanel';
 import { GuideText } from '../components/guide/GuideText';
@@ -29,10 +29,14 @@ import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
 import { useWakeLock } from '../components/live/useWakeLock';
+import { FollowControl } from '../components/live/FollowControl';
+import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
+import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowToggle } from '../components/sky/FollowToggle';
-import { useFollow } from '../components/sky/useFollow';
-import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
-import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
+import { SkyHead } from '../components/sky/SkyHead';
+import { useFollow, type Follow } from '../components/sky/useFollow';
+import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
 
 /**
@@ -86,6 +90,12 @@ import styles from './PassDetail.module.css';
  * it. The link is built here rather than in the button: the observer and the
  * pass are what identify it (D-83), and the page's own URL is what it is
  * relative to.
+ *
+ * R164 (FR-CLEAN-1..3, FR-CLEAN-5..7; D-998, D-1012..D-1014): on compact the sheet's column is gone — the page is the
+ * layout's `full` form, as the live page and the stars page are (`PassFull` below): the box is the screen, the head
+ * (`[ ← ]`, the countdown, the name as its chip), the corner readout with the landmark line, `[ follow ]` and
+ * `[ controls ]` over it, and everything above in `ControlsSheet`. It is still the portaled dialog of R23, its `h1`
+ * visually hidden and focused on open. Wide is unchanged.
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -107,6 +117,11 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const timeZone = observer.timeZone;
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // R164: the compact page's root; its `h1` is a `VisuallyHidden` (no ref), found here before the focus moves to it.
+  const pageRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (compact) headingRef.current = pageRef.current?.querySelector('h1') ?? null;
+  });
   const now = useNow(TICK_MS);
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arc at this page's own instant, thinned by
@@ -164,7 +179,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const sensor = follow.sensor;
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
   useWakeLock(following);
-  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
+  // R164 (FR-GYRO-1 as amended): on compact the toggle is the sheet's row; the wide panel keeps it in the action slot.
+  const action = sensor && !compact ? <FollowToggle follow={follow} className={styles.follow} /> : null;
   // Focus in on open, back to the opener on close. Once, on open: crossing
   // the breakpoint swaps the shell around the same guide and must not take
   // the reader's focus away from wherever they had put it. R50 (F-8): a
@@ -204,17 +220,16 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         {landmarkText}
       </p>
     ) : null;
-  // The date is the compact header's (R129); the band keeps it on wide. The twilight label stays on both.
-  const meta =
-    !compact || pass.twilight ? (
-      <p className={styles.meta} data-testid="pass-meta">
-        {!compact && formatDate(pass.start.t, timeZone, locale)}
-        {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
-      </p>
-    ) : null;
+  // The wide band's date line with the twilight label; the compact sheet words its own (R164, `PassFull`).
+  const meta = (
+    <p className={styles.meta} data-testid="pass-meta">
+      {formatDate(pass.start.t, timeZone, locale)}
+      {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
+    </p>
+  );
   const countdown = <Countdown pass={pass} now={now} timeZone={timeZone} steps={false} />;
   // R156 (FR-PHONE-14, D-972): one row on compact, the zone on the head's date line; three cells in the wide band.
-  const times = <TimesRow pass={pass} timeZone={timeZone} compact={compact} />;
+  const times = <TimesRow pass={pass} timeZone={timeZone} />;
   const viewRow = (
     <>
       <SkyViewChartSlot name="control" />
@@ -245,6 +260,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       {/* R30 (FR-MOON-2): the glare sentence directly under the FR-GUIDE-1 sentence. */}
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
       {/* R51 (FR-LEG-3): the table of points is the chart's legend, placed here. */}
+      {/* R164 (FR-CLEAN-5): on compact the Moon-at-peak sentence is the prose's, before the table; wide keeps it in the foot. */}
+      {compact && <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />}
       <SkyViewChartSlot name="list" />
     </>
   );
@@ -254,15 +271,14 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
     </>
   );
-  const layout = (answer: ReactNode, wide: 'rail' | 'panel') => (
+  const panel = (
     <SkyViewLayout
       onFirstTouch={follow.firstTouch}
-      wide={wide}
+      wide="panel"
       describedBy={proseId}
       labelledBy={headingId}
       data-testid="pass-layout"
       className={styles.layout}
-      {...(answer === null ? {} : { answer })}
       viewRow={viewRow}
       readout={<SkyViewChartSlot name="readout" />}
       drawing={chart}
@@ -292,33 +308,258 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         }
         times={times}
       >
-        {layout(null, 'panel')}
+        {panel}
       </GuidePanel>
     );
   }
 
+  /*
+   * R164 (FR-CLEAN-1..3, FR-CLEAN-5..7; US-49 AC1..AC5; D-998, D-999, D-1012..D-1014): compact is the layout's `full`
+   * form in both shapes, as the live page and the stars page are — the box is the screen, and over it only the head
+   * (`SkyHead`: `[ ← ]`, the countdown at the heading size and the pass's name as its chip), the facing readout in the
+   * top-right corner with the landmark line under it while the finger has the sky, `[ follow ]` and `[ controls ]` at
+   * the bottom-right and the hint until the first gesture. `[ controls ]` opens the live page's `ControlsSheet` with
+   * FR-CLEAN-5's rows. The page is still a portal to the body (D-117) with the dialog's role and name: the home behind
+   * it is inert, and every visit opens with the sheet closed, the window facing the peak or following.
+   */
   return createPortal(
-    <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
-      <div className={styles.frame}>
-        {/* R129 (FR-FLOW-3, D-845; F10): the sheet's top row is the app's one header, told it is the pass detail —
-            `[ ← ]`, `pass` and the pass's date with its zone, once (R156, FR-PHONE-14). The language and theme switches that opened the page are the settings
-            page's alone (V26-10). A `div`: the page behind the sheet has the `banner`. */}
-        <Header page="pass" landmark={false} context={formatDateZone(pass.start.t, timeZone, locale)} onBack={onClose} />
-        {layout(
-          <div className={styles.head} data-testid="pass-head">
-            {/* FR-FLOW-7: the name is the sheet's `h1` — the sheet is the whole screen, and the page behind it is inert. */}
-            <h1 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
-              {pass.name}
-            </h1>
-            {countdown}
-            {landmark}
-            {times}
-            {meta}
-          </div>,
-          'rail',
-        )}
-      </div>
+    <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.page} data-pass-id={pass.id} ref={pageRef}>
+      {/* FR-CLEAN-2: the name stays the page's `h1`, visually hidden, for the outline and assistive technology; it takes the focus on open. */}
+      <VisuallyHidden as="h1" id={headingId} tabIndex={-1}>
+        {pass.name}
+      </VisuallyHidden>
+      <PassFull
+        pass={pass}
+        observer={observer}
+        now={now}
+        follow={follow}
+        view={view}
+        hintShown={hintShown}
+        proseId={proseId}
+        headingId={headingId}
+        landmarkText={landmarkText}
+        chart={chart}
+        list={list}
+        onClose={onClose}
+        rootRef={pageRef}
+      />
     </div>,
     document.body,
+  );
+}
+
+interface PassFullProps {
+  pass: Pass;
+  observer: Observer;
+  now: EpochMs;
+  follow: Follow;
+  view: ChartView;
+  hintShown: boolean;
+  proseId: string;
+  headingId: string;
+  landmarkText: string | null;
+  chart: ReactNode;
+  /** The prose, the glare sentence and the table's slot: the sheet's last group. */
+  list: ReactNode;
+  onClose: () => void;
+  /** The page's root, for the `Esc` listener's inert check. */
+  rootRef: RefObject<HTMLDivElement | null>;
+}
+
+/**
+ * R164 (FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-5, FR-CLEAN-6): the compact pass detail in the full form. Its own component so
+ * the sheet's state — open, the picker — is this form's and the wide panel never carries it.
+ */
+function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headingId, landmarkText, chart, list, onClose, rootRef }: PassFullProps) {
+  const t = useT();
+  const locale = useLocale();
+  const timeZone = observer.timeZone;
+  const following = follow.on;
+  const sensor = follow.sensor;
+
+  /*
+   * D-921's rule: the sheet's open state is the page's, so every visit opens with it closed and a turn of the phone,
+   * which keeps this page mounted, keeps it. Closing by `Esc` gives the focus back to `[ controls ]`.
+   */
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  }, []);
+  /*
+   * FR-CLEAN-6 (D-999, D-1011's device): `Esc` in two steps. With the sheet open a capture listener on the window closes
+   * it and stops the event before the app's one `keydown` listener on the document (D-73); with it closed the key goes
+   * through and that listener closes the guide (`close`, §4.37). Read through a ref so the open state does not rebuild it.
+   */
+  const sheetOpenRef = useRef(sheetOpen);
+  useLayoutEffect(() => {
+    sheetOpenRef.current = sheetOpen;
+  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || !sheetOpenRef.current) return;
+      // The shortcuts overlay over the page makes it inert (D-73's "overlay first"): the key is the overlay's.
+      if (rootRef.current?.closest('[inert]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeSheet();
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [closeSheet, rootRef]);
+
+  /*
+   * FR-CLEAN-2 (D-965, D-1013): while the finger has the sky and the sheet is closed, the chart's readout stands in the
+   * box's top-right corner with the landmark line under it; with the sheet open it is the facing row's. The polar
+   * chart's readout is its convention, not a facing, and stays in the sheet.
+   */
+  const cornerReadout = !following && !sheetOpen && view !== 'polar';
+  const landmark = (testId: string) =>
+    landmarkText !== null ? (
+      <p className={styles.landmark} data-testid={testId}>
+        {landmarkText}
+      </p>
+    ) : null;
+
+  /*
+   * The sheet's facing row (D-923's row): the chart's readout as a button that opens the chart's picker under it — the
+   * eight points with `peak` (FR-SKY-7) on the window, the looking-up / map toggle on the polar chart; the dome has no
+   * picker. A pick closes the row from a `click` listener on the document, above React's root (D-1011), and the sheet
+   * stays open (FR-CLEAN-6).
+   */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const facingLabelId = useId();
+  const facingPickerId = useId();
+  const facingPickerRef = useRef<HTMLDivElement>(null);
+  const hasPicker = view !== 'dome';
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onPick = (event: MouseEvent): void => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target && facingPickerRef.current?.contains(target) && target.closest(PICK_SELECTOR)) setPickerOpen(false);
+    };
+    document.addEventListener('click', onPick);
+    return () => {
+      document.removeEventListener('click', onPick);
+    };
+  }, [pickerOpen]);
+  const facing = (
+    <div className={styles.facing} data-testid="pass-facing" data-rhythm="group">
+      <div className={styles.facingReadout}>
+        <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
+          {!cornerReadout && <SkyViewChartSlot name="readout" />}
+        </div>
+        {hasPicker && (
+          <button
+            type="button"
+            className={styles.facingHit}
+            data-testid="sky-readout-toggle"
+            aria-labelledby={facingLabelId}
+            aria-expanded={pickerOpen}
+            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
+            onClick={() => {
+              setPickerOpen(!pickerOpen);
+            }}
+          />
+        )}
+      </div>
+      {hasPicker && pickerOpen && (
+        <div className={styles.facingPicker} id={facingPickerId} ref={facingPickerRef} data-testid="pass-facing-picker">
+          <SkyViewChartSlot name="picker" />
+        </div>
+      )}
+    </div>
+  );
+
+  const hintLine = useSkyHintLine(view);
+  const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, sensor ? [t.sheet.follow, t.sheet.controls] : [t.sheet.controls]);
+  const state = countdownState(pass, now);
+
+  const overlay = (
+    <>
+      <SkyHead
+        line={
+          <p className={styles.headLine} data-testid="pass-head-line">
+            <span className={styles.headCount} role="timer" aria-live="off" data-phase={state.phase}>
+              {t.countdown.head({ phase: state.phase, clock: formatClockDuration(state.seconds) })}
+            </span>{' '}
+            <span className={styles.headChip} data-testid="pass-head-chip" aria-hidden="true">
+              {pass.name}
+            </span>
+          </p>
+        }
+        onBack={onClose}
+        className={styles.head}
+      />
+      {/* R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint steps aside until the next press. */}
+      {hintShown && hintLine !== null && !follow.refused && (
+        <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
+          <SkyHint view={view} fit />
+        </div>
+      )}
+    </>
+  );
+  const sheet = (
+    <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
+      {/* FR-CLEAN-5: the name with the date and the zone, the landmark line under it (and the twilight label, as the column had it). */}
+      <div className={styles.nameBlock} data-testid="pass-head" data-rhythm="group">
+        <p className={styles.nameLine} data-testid="pass-name-line">
+          {`${pass.name} · ${formatDateZone(pass.start.t, timeZone, locale)}`}
+        </p>
+        {landmark('pass-landmark')}
+        {pass.twilight && (
+          <p className={styles.meta} data-testid="pass-meta">
+            <span className={styles.twilight}>{t.passes.twilightLabel}</span>
+          </p>
+        )}
+      </div>
+      <div data-testid="pass-times-row" data-rhythm="group">
+        <TimesRow pass={pass} timeZone={timeZone} compact />
+      </div>
+      <div className={styles.viewRow} data-testid="pass-view-row" data-rhythm="group">
+        <SkyViewChartSlot name="control" />
+        <StarsToggle />
+      </div>
+      {sensor && (
+        <div className={styles.follow} data-testid="pass-follow" data-rhythm="group">
+          <FollowToggle follow={follow} />
+        </div>
+      )}
+      {/* R152 (FR-GYRO-5, D-957): not drawn while following — nothing describes the sensor's view and a pick would fight it. */}
+      {!following && facing}
+      <div className={styles.share} data-testid="pass-share" data-rhythm="group">
+        <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
+      </div>
+      <div className={styles.prose} data-testid="pass-prose" data-rhythm="group">
+        {list}
+      </div>
+    </ControlsSheet>
+  );
+  return (
+    <SkyViewLayout
+      form="full"
+      readoutIn="sheet"
+      readoutLines={2}
+      onFirstTouch={follow.firstTouch}
+      describedBy={proseId}
+      labelledBy={headingId}
+      className={styles.layout}
+      data-testid="pass-layout"
+      drawing={chart}
+      overlay={overlay}
+      {...(cornerReadout
+        ? {
+            readout: (
+              <>
+                <SkyViewChartSlot name="readout" />
+                {landmark('pass-corner-landmark')}
+              </>
+            ),
+          }
+        : {})}
+      sheet={sheet}
+    />
   );
 }

@@ -1,47 +1,12 @@
-.sheet {
+/* R164 (FR-CLEAN-1, D-998): the compact pass detail is the screen — a page fixed to the viewport over the home (whose
+   `main` is inert behind it, D-117), the layout's `full` form inside it. The box is the layout's own fixed wrapper
+   (`SkyViewLayout.module.css`, D-919), so nothing here sizes it; the column of R99 and its full-screen sheet chrome
+   (D-354) are gone. The `z-index` is the old sheet's, under the shortcuts overlay. */
+.page {
   position: fixed;
   inset: 0;
-  overflow-y: auto;
-  background: var(--bg);
   color: var(--fg);
   z-index: 10;
-}
-
-/* R99 (FR-TAB-1, D-634): the sheet's column is the shell's — `COMPACT_MAX_CELLS`, 60 cells
-   (`lib/layout.ts`, `global.css`), centred — so on a tablet the guide is a phone's column in
-   the middle of the screen, and its full-bleed box (FR-COMP-5) is that column's width. The
-   sheet is compact only (the wide guide is a panel beside the list), so no wide block undoes it. */
-.frame {
-  max-width: calc(60 * var(--cell));
-  margin: 0 auto;
-  padding: var(--row) calc(2 * var(--cell)) calc(2 * var(--row));
-  /* The cap counts the padding, as the shell's does (`global.css`): the column is 60 cells outside to outside. */
-  box-sizing: border-box;
-  display: grid;
-  gap: var(--row);
-}
-
-/* R129 (FR-FLOW-3, D-845): the sheet's top row is the app's one `Header` (`[ ← ]`, `pass`, the date), laid out by its own
-   stylesheet; the language and theme switches it used to carry here are the settings page's. */
-
-.heading {
-  font-size: 1.25rem;
-  font-weight: normal;
-  margin: 0;
-  color: var(--accent);
-}
-
-.heading::before {
-  content: '> ';
-  color: var(--fg-dim);
-}
-
-/* R132 (FR-FLOW-7, D-849): the head — the name, the countdown line, the landmark line, the three times — one block
-   in the layout's `answer` slot, its lines a row's quarter apart; the layout owns the gap under it. */
-.head {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
 }
 
 .layout {
@@ -78,4 +43,176 @@
 .follow {
   min-height: var(--tap);
   align-content: center;
+}
+
+/* --- R164 (FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-5; D-998): the compact page in the full form. The overlay's parts stand
+   where `Live.module.css` and `Stars.module.css` stand theirs (D-920, D-924, D-964), inside the layout's overlay slot,
+   which lets the pointer through to the sky where it holds nothing. Every length is a token or a count of cells. --- */
+
+/* The head (FR-CLEAN-2): `[ ← ]`, the countdown and the name, at the box's top-left. */
+.head {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-start: var(--space-3);
+  pointer-events: auto;
+}
+
+/* One line that does not wrap; the head cuts its end — the chip — with an ellipsis. */
+.headLine {
+  margin: 0;
+  line-height: var(--row);
+  white-space: nowrap;
+}
+
+/* The countdown at the heading size in the accent, dim once the pass is over (`Countdown.module.css`'s rule). */
+.headCount {
+  font-size: var(--text-heading);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.headCount[data-phase='over'] {
+  color: var(--fg-dim);
+}
+
+/* The pass's name as the countdown's chip, at `--small` in the dim ink (`ShownTime`'s chip). */
+.headChip {
+  font-size: var(--small);
+  color: var(--fg-dim);
+}
+
+/* FR-CLEAN-2 (D-1013): the corner readout draws two lines here — the facing, then the landmark line under it — the
+   one-line slot of D-965 stacked; the chart's own second line (`<br>` and after) stays hidden, as on the live page.
+   The head (the countdown at the heading size and the name) takes the box's whole top row on a phone, so the readout
+   stands at the top-right corner under the head's row rather than beside it, a `--space-1` below, as wide as the box
+   less `--space-3` each side. */
+.layout :global([data-slot='readout'][data-lines='2']) {
+  inset-block-start: calc(2 * var(--space-1) + var(--target));
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-height: 0;
+  max-inline-size: calc(100% - 2 * var(--space-3));
+}
+
+/* A line that does not wrap is as wide as its text in a column flex box: held to the slot's width, so its ellipsis
+   falls before the head rather than the line running over it. */
+.layout :global([data-slot='readout'][data-lines='2'] > *) {
+  max-inline-size: 100%;
+}
+
+/* The hint (FR-CLEAN-3, D-924): one line at the box's bottom-left, on the bottom row where it fits beside the row's
+   controls and in the row above it otherwise; drawn whole, two balanced rows rather than an ellipsis (D-981). */
+.hintArea {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  max-inline-size: calc(100% - 2 * var(--space-3));
+  pointer-events: none;
+}
+
+.hintArea[data-beside='false'] {
+  inset-block-end: var(--tap);
+}
+
+.hintArea > p {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  text-wrap: balance;
+}
+
+/* The bottom row (FR-CLEAN-3): `[ follow ]` where the sensor is, then `[ controls ]`, at the box's bottom-right. */
+.controls {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0 var(--cell);
+  background: var(--screen-overlay);
+  pointer-events: auto;
+}
+
+/* The sheet's rows (FR-CLEAN-5): the name block's lines `--space-1` apart; the layout's sheet owns the groups' gap. */
+.nameBlock {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nameLine {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* `[Window] Polar Dome  [x] stars`: the live sheet's view row (`Live.module.css`), `[x] stars` at the row's end. */
+.viewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cell);
+  min-height: var(--tap);
+  min-width: 0;
+}
+
+.viewRow > :last-child:not(:first-child) {
+  margin-left: auto;
+}
+
+.share {
+  min-width: 0;
+}
+
+.prose {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The facing row (D-923): the readout with a button laid over it at the row's size, the picker under it while open. */
+.facing {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.facingReadout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  min-width: 0;
+}
+
+.facingWords {
+  min-width: 0;
+}
+
+.facingWords p {
+  margin: 0;
+}
+
+.facingHit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.facingPicker {
+  min-width: 0;
 }
