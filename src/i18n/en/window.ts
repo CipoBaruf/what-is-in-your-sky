@@ -32,11 +32,12 @@ export const windowMessages = {
      * and the polar chart the drag clause alone; the live page with a highlighted pass ends the coarse line with
      * `follow` (FR-SKY-13). R121's `handHint` in the box's corner is gone with it. R157 (FR-PHONE-5): the coarse line
      * is two clauses — `drag`, then `follow` where there is a key and `zoom` otherwise; `star` is the fine line's only.
+     * R161 (FR-FLOW-17's rule): `star.coarse`, "tap a star", is removed with its last reader.
      */
     skyHint: {
       drag: { coarse: 'Drag to look', fine: 'Drag or use the arrow keys' },
       zoom: { coarse: 'pinch to zoom', fine: 'ctrl + wheel to zoom' },
-      star: { coarse: 'tap a star', fine: 'click a star' },
+      star: { fine: 'click a star' },
       follow: (p: { key: string }) => `tap ${p.key} to follow`,
     },
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Facing NE (53°) · up 10°" — the dome's first word too (FR-FLOW-5, D-847). */

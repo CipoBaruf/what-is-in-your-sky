@@ -2271,3 +2271,174 @@ Owner steps, in this order, and none of them belong to a task session:
 - [ ] Mark §21 and this section history, as §14 was at its release.
 - [ ] Record in the release PR: the bundle table, the knip output, the two capture runs'
       numbers, and the date.
+
+## 23. v2.10 (spec §9 Phase 2s)
+
+Everything above still applies, §1 to §5 included, and §22's list is run with this one if
+`v2.9.0` has not been tagged yet. v2.10 is the phone first (V210-1..V210-11): on a phone the
+page's own sky follows the phone by default — at the first reading where nothing is asked, and
+from a grant saved on the first allow and asked again at the first tap's lift on iOS — with
+`[ follow ]` beside `[ controls ]`, the facing readout in the sky's corner while the finger has
+it, and the hint in two touch clauses (FR-PHONE-1..6, R157, R159); the whole sky with every star
+is one tap (`[Window] Whole sky` on the stars page) or one pinch away, the polar chart drawing
+the figures and the names with the window's field outlined on it, moving with the phone while
+following (FR-PHONE-7..11, R158, R160); the home's doors come first, a ready Where folds to
+`[ details ]`, the third door is "Live sky", the pass detail's times are one row and the theme
+can be Auto (FR-PHONE-12..15, R156); and the window's sky has a surface, a horizon band, a
+twilight tint, the Milky Way as a haze, `*` to 2.5 and dots below in four tones, a bloom, the
+Moon's phase and detail that follows the field from a second catalogue chunk (FR-LOOK-1..11,
+R154, R155). R161 is this section: the capture set, what nothing reads any more, the budget, the
+version and the owner's phone run. `main` reads `2.10.0` once R161 merges; the tag, the push to
+`release` and the deploy are the owner's (§23.6).
+
+### 23.1 The capture set and the diff against `95f3c88` (FR-PHONE-16, FR-LOOK-12, FR-CAP-5)
+
+CAPTURE_SECTION
+
+### 23.2 The budget (FR-PHONE-16, FR-LOOK-12, D-178, D-994)
+
+`npm run bundle:budget` on the branch, gzip level 9, beside `95f3c88` (2.9.0) built on the same
+machine, both plain (`VITE_MOON_LORE` unset). D-178 re-sets three rows — `stars` up, `window`
+down, `stars-deep` in from `PHASE_BUDGETS` — and `main` is over its ceiling, which is the owner's
+(§23.4). The budget column is `scripts/bundle-budget.ts`'s rows; `tests/docs/accuracy.test.ts`
+checks it against them:
+
+| Chunk | gzip KB | Budget KB | `95f3c88` | Change |
+|---|---|---|---|---|
+| main | **180.3** | 180 | 176.6 | **+3,824 bytes** |
+| chart (`SkyDome`) | 97.1 | 110 | 97.1 | −14 bytes |
+| stars-deep (`deep`) | 41.8 | **50** | — | new, 42,772 bytes |
+| worker | 36.1 | 40 | 36.1 | 0 |
+| stars | 29.2 | **35** | 26.0 | +3,198 bytes |
+| astronomy (`astronomy` + `skyBodies`) | 24.1 | 30 | 24.1 | −1 byte |
+| live | 15.8 | 20 | 15.6 | +182 bytes |
+| window (`SkyWindow`) | 13.1 | **15** | 26.1 | −13,355 bytes |
+| service worker | 5.0 | 10 | 5.0 | +21 bytes (the `sw` file) |
+| settings | 1.1 | 10 | 1.1 | +44 bytes |
+
+Where it came from. **`main`** grew 3.8 KB across the phase, as the tasks measured it on their
+own boxes: 176.6 → 177.8 KB before R158 (R156's theme rule by the Sun, inside FR-PHONE-16's
+0.5, the home's order and the times row, R157's and R159's code that the shell imports, and the
+phase's strings in both catalogs), +0.7 for `SkyPolar`'s wrappers for the star map (R158), and
++0.4 for `SkyChart`'s held and controlled view and the handoff (R160); R161's removed key gives
+back 10 bytes. FR-LOOK-12 says `main` does not grow, and D-178 would make the row 200, past the
+180 ceiling only the owner moves. **`stars`** grew 3.1 KB with
+the catalogue's `bv` column, the haze outline (1.7 KB, inside FR-LOOK-12's 2) and the view row.
+**`window`** halved because what it shares with the polar chart moved into a chunk the two load
+(the sensor's hooks, the magnetic model, `MoonDisc` and the projection, D-988, D-992): the
+window page now loads `SkyWindow` 13.1, the shared chunk 12.9, the constellation table it shares
+with the stars page 4.5, `field` 2.2 and `camera` 1.2 — **33.9 KB against 2.9.0's 28.7** (its
+`SkyWindow`, `camera` and two `starGlyphs` chunks), the look's +5.2 KB. Those shared chunks and
+the polar chart's own (`PolarStars`, 0.8 → 5.3 KB with the figures, the names, the surface, the
+haze, the bloom, the Moon's disc, the outline and the pinch) are lazy and unbudgeted, as every
+shared chunk is. The few-byte moves elsewhere are the chunk hashes' names and Rollup's ordering.
+
+- [ ] §23.4's first item is decided, and the release PR carries the table as it then stands.
+
+### 23.3 What R161 removed (FR-PHONE-16, FR-FLOW-17's rule)
+
+**One message key, and no code.** `window.skyHint.star.coarse` ("tap a star" / "tocá una
+estrella") lost its last reader when R157 made the touch hint two clauses (FR-PHONE-5); it leaves
+both catalogs, and the two tests that named it read the words instead (`SkyHint.test.tsx`
+asserts the touch line never carries them, and `layout.test.ts`'s window line on touch is the
+two clauses the app draws). Every other read the phase removed was checked: the folded Where's
+`whereFold` and the third door's `both` left the catalogs with their readers in R156, and the
+rest (`chart.viewPrefix`, `window.followToggle`, the `live` door's lines) are read. `npm run
+check:dead` reports nothing. `scripts/bundle-budget.ts`'s `PHASE_BUDGETS` is left empty for the
+next phase.
+
+### 23.4 What the owner decides on this release
+
+- [ ] **The `main` budget** (§23.2, D-994): `main` is 180.3 KB against 2.9.0's 176.6
+      (+3,824 bytes), 0.3 KB over the 180 ceiling V26-14 set and V28-9 and V29-10 kept.
+      Either accept the measure and raise the ceiling and the budget to 185, the next 5 KB
+      line (D-178's × 1.1 would be 200), as V25-20 and V26-14 did; or cut a task that takes
+      about 0.4 KB out of `main` (the polar chart's wrappers into its own chunk, or the
+      handoff's state into the window's). Until then the build warns and nothing moves.
+- [ ] **FR-LOOK-10's three strengths** (OQ-52): `BLOOM_STRENGTH` 0.7, `MILKY_WAY_STRENGTH`
+      0.6 and `HORIZON_STRENGTH` 0.6 are the mockup's second cut and final only after §23.5's
+      phone run, in the dark on the OLED screen in both themes. Keep them, or re-set them by
+      one Decision Log row (V210-11's form) and a one-line change to the constants and their
+      test.
+- [ ] **FR-FLOW-8's fold** (R160, D-990): with the stars page's view row (54 px) and the box at
+      FR-COMP-5's floor, `In this field`'s first row ends 28.5 px (English) and 52.5 px
+      (Spanish) under the fold at 390 × 844, so "the heading of `In this field` and its first
+      row are inside the viewport" cannot hold. Proposed: amend FR-FLOW-8 to "the heading
+      inside the viewport and the first row within one row's height under the fold", which is
+      what `sky-layout.spec.ts` now pins; or cut the box under its floor.
+- [ ] **The hero** (D-993): its three tiles keep their files and their pictures move with the
+      set (the live page's touch overlay, the stars page's view row and look, the window's
+      look); re-draw the hero and the social preview from run 1's set and upload the preview
+      (FR-PUB-11).
+- [ ] **F-99** stays open with §23.1's noise files.
+
+Three things R161 checked and records, none of them this release's to change:
+
+- MOON_LINE
+- `starGlyphs.ts`'s `GLYPH_SIZES` still measures the old ladder's `+` and `.`, which nothing
+  draws since R158 and R160; only the ink map's Chromium test reads them — a cleanup for a
+  `window` task, with the test moved onto the marks.
+- The window's and the polar chart's two-pointer bookkeeping (`SkyWindow`'s pinch and
+  `PolarPinch`, R160) are two copies of one tracker — a cleanup for a later phase, not a change
+  this release makes.
+
+### 23.5 The phone run (FR-LOOK-12, US-45..US-48)
+
+On the release build, before the tag, with the iPhone and an Android phone. Write what each
+step showed beside it; the last item is written in words, not ticked (FR-LOOK-12).
+
+- [ ] **Android, at once** (FR-PHONE-1): open the live page from a clean visit. The sky follows
+      the phone from the first reading, with no tap and nothing asked; a drag hands it to the
+      finger, and `[ follow ]` gives it back.
+- [ ] **iOS, the first allow** (FR-PHONE-2): on a clean visit nothing follows and nothing is
+      asked at load; `[ follow ]` asks for motion once — allow it, and the sky follows.
+- [ ] **iOS, a later visit** (FR-PHONE-2, V210-15): open the live page again. Nothing is asked
+      at load; the first tap on the sky asks inside its lift and following starts; a drag or a
+      pinch first asks nothing. Refuse once on another visit: one line says so, and the finger
+      keeps the sky.
+- [ ] **`[ follow ]` beside `[ controls ]`** (FR-PHONE-3, FR-PHONE-4): on the bottom row,
+      pressed while following and bare while not; the refusal line, when there is one, on the
+      row above it; while the finger has the sky the facing readout in the corner.
+- [ ] **The hint whole** (FR-PHONE-5): "Drag to look · pinch to zoom" (or the follow clause on
+      the live page) on one line in English, the Spanish broken between its two clauses, no
+      ellipsis, at the phone's width.
+- [ ] **The stars page's `Whole sky`** (FR-PHONE-7..9): `[Window] Whole sky` under the heading;
+      tap `Whole sky` — every star, the figures, the window's field outlined; turn the phone
+      while following and the outline moves with it; drag on the window, come back, and the
+      outline is the hand's.
+- [ ] **The pinch across and back** (FR-PHONE-10): on the window, pinch out past the widest
+      field — the whole sky; on it, pinch in on a spot — the window facing that spot, at its
+      widest field, following off until asked.
+- [ ] **The home's doors first** (FR-PHONE-12, FR-PHONE-13): the three doors before the Where
+      reading, the Where folded to the place and `[ details ]`, the third door "Live sky".
+- [ ] **Auto at dusk** (FR-PHONE-15): Theme Auto in settings; at sunset the page turns to the
+      night theme at the Sun's step, and back at dawn, with no flash.
+- [ ] **In the dark on the OLED screen** (FR-LOOK-1..7, FR-LOOK-12), eyes adapted, at 60° and
+      at 20° in both themes: the surface a shade off the page and not grey, the horizon band,
+      the haze (a sky and not full white), the bloom under the brightest, the four tones, the
+      Moon's phase on the right side. Written here: _(what it looked like, theme by theme)_.
+- [ ] **The rate at 20°** (FR-LOOK-11): on the stars page at 20° with every layer on, drag
+      steadily: the stars keep up with the finger. Written here: _(smooth or not, and where)_.
+      FR-LOOK-10's constants are final after this run and not before (§23.4).
+
+### 23.6 The release itself — `v2.10.0`
+
+Owner steps, in this order, and none of them belong to a task session:
+
+- [ ] `package.json` is `2.10.0` on `main` and every task of the phase is checked off in
+      `TASKS.md` (R154..R161).
+- [ ] §23.4's items are decided.
+- [ ] §23.1's two `captures.yml` runs are recorded and run 1's artefact is committed.
+- [ ] `npm run check:dead` on the release commit reports nothing, and the bundle table is
+      §23.2's.
+- [ ] §23.5's phone run is written down.
+- [ ] Find the release commit: `git fetch origin && git log --oneline -3 origin/main`, and
+      take the squash merge of R161's PR (its subject starts `R161:`), or the commit that
+      lands §23.1's Linux set after it, whichever is last. Write it here: _(the SHA)_.
+- [ ] Tag it: `git tag -a v2.10.0 <sha> -m "v2.10: the phone first" && git push origin v2.10.0`.
+      If `v2.9.0` is not tagged yet, tag it first, as §22.5 says.
+- [ ] Deploy it: `git push origin <sha>:release` with the same SHA (D-739; `docs/DEPLOY.md`),
+      and run §2 and §5 against `https://inyoursky.app`.
+- [ ] Mark §22 and this section history, as §14 was at its release.
+- [ ] Record in the release PR: the bundle table, the knip output, the two capture runs'
+      numbers, and the date.

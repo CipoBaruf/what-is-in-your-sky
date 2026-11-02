@@ -55,7 +55,8 @@ describe('hintFitsBeside (FR-FULL-3, D-924; FR-PHONE-3, D-964)', () => {
       const words = m.window.skyHint;
       for (const pointer of ['coarse', 'fine'] as const) {
         expect(hintFitsBeside(words.drag[pointer], [m.sheet.controls]), `${locale} ${pointer}: ${words.drag[pointer]}`).toBe(beside[locale][pointer]);
-        const window = [words.drag[pointer], words.zoom[pointer], words.star[pointer]].join(' · ');
+        // R161: a touch line has no star clause since FR-PHONE-5 (its words left the catalogs), so it is drag and zoom.
+        const window = (pointer === 'fine' ? [words.drag.fine, words.zoom.fine, words.star.fine] : [words.drag.coarse, words.zoom.coarse]).join(' · ');
         expect(hintFitsBeside(window, [m.sheet.controls]), window).toBe(false);
       }
     }
