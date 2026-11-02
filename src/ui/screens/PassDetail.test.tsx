@@ -208,9 +208,13 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(figure).toHaveAttribute('data-view', 'window');
       expect(figure).toHaveAttribute('data-follow', 'true');
       expect(appStore.getState().chartView).toBe('dome');
-      await waitFor(() => {
-        expect(figure.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
-      });
+      // R160: the window's chunk lands late under a loaded run — five seconds, not `waitFor`'s one.
+      await waitFor(
+        () => {
+          expect(figure.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
+        },
+        { timeout: 5_000 },
+      );
       // The window, mounted on the window's first frame of following, takes the phone's next reading as its pose.
       reading(180, 30);
       for (let i = 1; i <= 40; i += 1) frame(16 * i);

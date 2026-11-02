@@ -3,22 +3,23 @@ import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
 import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
-import { legendKeys, legendRows, type LegendPass, type LegendRow } from '../../lib/legend';
+import { legendRows, type LegendPass, type LegendRow } from '../../lib/legend';
 import { livePasses } from '../../lib/livePasses';
 import { starsAt } from '../../lib/skyStars';
-import type { EpochMs, Observer } from '../../model';
+import type { ChartView, EpochMs, Observer } from '../../model';
 import { useActiveObserver, useAppStore, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
-import { groundState, type View } from '../components/guide/skychart/window/projection';
+import { groundState, type Mat3, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
-import { SkyWindow } from '../components/guide/skychart/window/SkyWindow';
+import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { markSkyHintSeen } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { TextButton } from '../components/primitives/TextButton';
+import { ToggleGroup } from '../components/primitives/ToggleGroup';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
@@ -77,11 +78,30 @@ import styles from './Stars.module.css';
  * `[ hold up to the sky ]` stood, and on it the page's own window takes the
  * sensor; a drag hands it back. The sky screen's stars inventory (R117) is
  * gone with the screen.
+ *
+ * R160 (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10; US-46 AC1, AC3, AC4; D-970,
+ * D-971, D-990): the whole sky. The page draws `SkyChart` with two views, the
+ * window and the polar chart (`views`), and holds the view itself (`view`,
+ * never saved: every open is the window, as the camera is not saved). Its
+ * row, `[ Window ] Whole sky`, is the layout's `viewRow` slot between the
+ * `h1` block and the readout. The whole sky draws the page's layers, with the
+ * names off by default on compact (a 250-unit disc at 390 px has room for
+ * the figures, not their names) and on on wide, until the `[x] names` toggle
+ * says otherwise for both views; `In this field` names the whole sky's
+ * twelve brightest; the window's field is outlined on it from the page's
+ * camera, moving with the phone while following; and a pinch past the
+ * window's widest field opens it, a pinch in on it returning to the window
+ * facing the spot under the fingers (`SkyChart`'s handoff).
  */
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
 
-const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
+/** The three layers the page holds as plain switches; `names` is its own override over a default by view and width (R160, D-990). */
+type LayerSwitches = Omit<StarField['layers'], 'names'>;
+const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
+
+/** R160 (FR-PHONE-7): the two views the page offers, the window first (FR-GYRO-11); no dome, since the page is about the stars. */
+const STARS_VIEWS: readonly ChartView[] = ['window', 'polar'];
 
 /** FR-FLOW-8: the four layer toggles in this order, over two rows; `[ passes ]` ends the second. */
 const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
@@ -107,6 +127,13 @@ export function firstRowCount(labels: readonly string[], budget: number): number
 }
 
 const UNMEASURED = { width: 0, height: 0 };
+/** R160 (FR-PHONE-7): the whole sky reads no camera and no box — one inert rotation and view, so the list's memos hold still while the camera moves under it. */
+const WHOLE_SKY_VIEW: View = { fovDeg: 0, width: 0, height: 0, screenAngleDeg: 0 };
+const WHOLE_SKY_ROTATION: Mat3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
 
 /**
  * R126 (FR-SKY-6): whether the store's run is this sky's and has arrived — the live page's `liveState` rule: this
@@ -154,6 +181,7 @@ export function StarsPage() {
 
 function StarsSky({ observer }: { observer: Observer }) {
   const p = useStarsPageT();
+  const t = useT();
   const mode = useLayoutMode();
   const wide = mode === 'wide';
   const layersId = useId();
@@ -169,8 +197,18 @@ function StarsSky({ observer }: { observer: Observer }) {
   const now = useNow(STARS_TICK_MS);
   const catalog = starCatalog();
   const positions = useMemo(() => starsAt(catalog, observer, now), [catalog, observer, now]);
-  const [layers, setLayers] = useState(ALL_LAYERS);
-  const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers } }), [catalog, positions, layers]);
+  /*
+   * R160 (FR-PHONE-7, D-971): the view — the window or the whole sky — is the page's own, the window on every open and
+   * never saved. R160 (FR-PHONE-8, D-968, D-990): the names' default is by view and width — on for the window, and for
+   * the whole sky on wide, off for the whole sky on compact — until the `[x] names` toggle is tapped, from when its
+   * choice holds for both views; the toggle shows the value in force.
+   */
+  const [view, setView] = useState<ChartView>('window');
+  const [layers, setLayers] = useState<LayerSwitches>(ALL_LAYERS);
+  const [namesChoice, setNamesChoice] = useState<boolean | null>(null);
+  const names = namesChoice ?? !(view === 'polar' && !wide);
+  const drawnLayers = useMemo<StarField['layers']>(() => ({ ...layers, names }), [layers, names]);
+  const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers: drawnLayers } }), [catalog, positions, drawnLayers]);
   const { sun, moon } = useSkyBodies({ observer, now });
 
   /*
@@ -200,7 +238,6 @@ function StarsSky({ observer }: { observer: Observer }) {
   const passes = useMemo(() => (tonight === null || arcs === null ? null : withArcStates(tonight, arcs)), [tonight, arcs]);
   const drawnPasses = passes ?? NO_PASSES;
   const rows = useMemo(() => (drawnPasses.length === 0 ? NO_ROWS : legendRows({ passes: drawnPasses, highlightedPassId: null, now, colorBy: 'pass' })), [drawnPasses, now]);
-  const keys = useMemo(() => legendKeys(rows), [rows]);
 
   // FR-STAR-7: one named object for the drawing and the list, cleared after the hold; naming it again restarts the hold.
   const [named, setNamed] = useState<{ index: number; at: number } | null>(null);
@@ -219,7 +256,7 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const skyRef = useRef<HTMLDivElement>(null);
-  const hintShown = useSkyHintShown('window');
+  const hintShown = useSkyHintShown(view);
   const probeRef = useRef<HTMLSpanElement>(null);
 
   // Where the camera looks, on the page's root for the tests and the captures, written by ref (no render per frame).
@@ -277,13 +314,15 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   /*
    * The list's field is the drawing's own: the page observes the one element `SkyWindow` measures for its projection
-   * and reads the same `contentRect`, rounded the same way, so the list names what the box shows.
+   * and reads the same `contentRect`, rounded the same way, so the list names what the box shows. R160: the window
+   * is `SkyChart`'s lazy view now, drawn after the page and gone while the whole sky is shown, so the box to observe
+   * is found again whenever the drawing's tree changes.
    */
   const [box, setBox] = useState(UNMEASURED);
   useEffect(() => {
-    const drawn = skyRef.current && windowBox(skyRef.current);
-    if (!drawn || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver((entries) => {
+    const sky = skyRef.current;
+    if (!sky || typeof ResizeObserver === 'undefined') return;
+    const sizes = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       if (rect && rect.width > 0 && rect.height > 0) {
         const width = Math.round(rect.width);
@@ -291,15 +330,43 @@ function StarsSky({ observer }: { observer: Observer }) {
         setBox((was) => (was.width === width && was.height === height ? was : { width, height }));
       }
     });
-    observer.observe(drawn);
+    let watched: HTMLElement | null = null;
+    const attach = (): void => {
+      const drawn = windowBox(sky);
+      if (drawn === watched) return;
+      if (watched) sizes.unobserve(watched);
+      watched = drawn;
+      if (drawn) sizes.observe(drawn);
+    };
+    attach();
+    const arrivals = typeof MutationObserver === 'undefined' ? null : new MutationObserver(attach);
+    arrivals?.observe(sky, { childList: true, subtree: true });
     return () => {
-      observer.disconnect();
+      sizes.disconnect();
+      arrivals?.disconnect();
     };
   }, []);
 
-  // FR-A11Y-1..3: the page's focus target is the drawing's box, which takes the arrow keys (FR-STAR-4).
+  // FR-A11Y-1..3: the page's focus target is the drawing's box, which takes the arrow keys (FR-STAR-4). R160: the box
+  // arrives with the window's chunk; it takes the focus then, unless the reader has put it somewhere else meanwhile.
   useEffect(() => {
-    if (skyRef.current) windowBox(skyRef.current)?.focus({ preventScroll: true });
+    const sky = skyRef.current;
+    if (!sky) return;
+    const focus = (): boolean => {
+      const drawn = windowBox(sky);
+      if (!drawn) return false;
+      const active = document.activeElement;
+      if (active === null || active === document.body || sky.contains(active)) drawn.focus({ preventScroll: true });
+      return true;
+    };
+    if (focus() || typeof MutationObserver === 'undefined') return;
+    const arrival = new MutationObserver(() => {
+      if (focus()) arrival.disconnect();
+    });
+    arrival.observe(sky, { childList: true, subtree: true });
+    return () => {
+      arrival.disconnect();
+    };
   }, []);
 
   /*
@@ -317,12 +384,13 @@ function StarsSky({ observer }: { observer: Observer }) {
   useWakeLock(following);
 
   const toggle = (key: keyof StarField['layers']) => () => {
-    setLayers((was) => ({ ...was, [key]: !was[key] }));
+    if (key === 'names') setNamesChoice(!names);
+    else setLayers((was) => ({ ...was, [key]: !was[key] }));
   };
   const togglePasses = (): void => {
     setShowPasses((was) => !was);
   };
-  const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
+  const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={drawnLayers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
   const firstRow = firstRowCount(
     LAYER_KEYS.map((key) => p.layers[key]),
     LAYER_ROW_BUDGET,
@@ -336,6 +404,12 @@ function StarsSky({ observer }: { observer: Observer }) {
    * as before, and written on the layout's root.
    */
   const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
+  // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` — a `ToggleGroup` in the bracket mark, 20 cells in English and 24 in Spanish.
+  const viewRow = (
+    <div className={styles.row} data-testid="stars-view-row">
+      <ToggleGroup name={t.chart.viewGroup} mark="bracket" options={STARS_VIEWS.map((id) => ({ value: id, label: id === 'polar' ? t.chart.views.wholeSky : t.chart.views.window }))} value={view} onChange={setView} />
+    </div>
+  );
   const layerRows = (
     <section aria-labelledby={layersId} className={styles.block}>
       <SectionHeading id={layersId} visuallyHidden={!wide}>
@@ -358,7 +432,7 @@ function StarsSky({ observer }: { observer: Observer }) {
   const field = (
     <section aria-labelledby={fieldId} className={styles.block}>
       <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-      <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+      <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={drawnLayers} whole={view === 'polar'} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
     </section>
   );
 
@@ -371,18 +445,21 @@ function StarsSky({ observer }: { observer: Observer }) {
           className={styles.skyLayout}
           data-testid="stars-layout"
           answer={<StarsHeading observer={observer} now={now} />}
+          viewRow={viewRow}
           readout={<SkyViewChartSlot name="readout" />}
           drawing={
             // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
             // tap all begin with a pointer down in the box, caught here before the window's own handlers.
+            // R160 (D-971): the chart with the page's two views; the window takes the page's camera, the whole sky outlines it.
             <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
-              <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} />
+              <SkyChart passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={STARS_VIEWS} view={view} onViewChange={setView} />
             </div>
           }
           // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
-          // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846).
-          picker={<FacingPicker camera={camera} className={styles.row} />}
-          hint={hintShown && <SkyHint view="window" />}
+          // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846). R160: on the whole sky the
+          // row is the polar chart's own, its looking-up / map toggle, as FR-FLOW-4 has it on the live page and the pass detail.
+          picker={view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" />}
+          hint={hintShown && <SkyHint view={view} />}
           {...(action === null ? {} : { action })}
           layers={layerRows}
           list={field}
@@ -448,6 +525,8 @@ interface FieldSectionProps {
   /** The drawing's measured box; the field across it is the camera's (R125, FR-SKY-14). */
   box: { width: number; height: number };
   layers: StarField['layers'];
+  /** R160 (FR-PHONE-7): the whole sky is shown — the list names its twelve brightest, whatever the camera and the box. */
+  whole: boolean;
   named: number | null;
   onName: (index: number | null) => void;
   labelledBy: string;
@@ -458,18 +537,21 @@ interface FieldSectionProps {
  * old value, which every memo below answers, and the list follows when React has the time. R125 (FR-SKY-14): the
  * view's field is the camera's `fovDeg`, read the same deferred way, so a zoom lists what the narrowed box shows.
  */
-function FieldSection({ camera, catalog, positions, passes, rows, now, box, layers, named, onName, labelledBy }: FieldSectionProps) {
+function FieldSection({ camera, catalog, positions, passes, rows, now, box, layers, whole, named, onName, labelledBy }: FieldSectionProps) {
   const lang = useLocale();
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
-  const view: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
-  const rotation = useMemo(() => handRotation(settled), [settled]);
+  const windowView: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
+  const windowRotation = useMemo(() => handRotation(settled), [settled]);
+  // R160: the whole sky's field is every object above the horizon, so its memos read an inert camera and hold still under the hand.
+  const view = whole ? WHOLE_SKY_VIEW : windowView;
+  const rotation = whole ? WHOLE_SKY_ROTATION : windowRotation;
   // R126 (D-832): the star names in the reader's language, through `starName`.
-  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang }), [catalog, positions, rotation, view, layers, lang]);
+  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang, whole }), [catalog, positions, rotation, view, layers, lang, whole]);
   // R126 (FR-SKY-6, D-794): the passes drawn in the field, ahead of the stars.
   // R126 (FR-STAR-7, D-825): with the passes first, the list is still at most `FIELD_LIST_MAX` rows.
-  const listed = useMemo(() => fieldRows(passes.length === 0 ? [] : fieldPasses({ passes, rows, rotation, view, now }), objects), [passes, rows, rotation, view, now, objects]);
-  const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';
+  const listed = useMemo(() => fieldRows(passes.length === 0 ? [] : fieldPasses({ passes, rows, rotation, view, now, whole }), objects), [passes, rows, rotation, view, now, objects, whole]);
+  const buried = !whole && windowView.width > 0 && groundState(settled.altDeg, windowView) === 'buried';
   return useMemo(() => <FieldList objects={listed.objects} passes={listed.passes} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [listed, named, onName, buried, labelledBy]);
 }
 

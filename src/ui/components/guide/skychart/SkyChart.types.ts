@@ -311,7 +311,43 @@ export interface SkyChartProps {
    * `hand`.
    */
   chartHand?: ChartHand;
+  /**
+   * R160 (FR-PHONE-7; D-324, D-971): the views the page offers, of the registered ones, in the registered order; absent,
+   * all three. The stars page passes `['window', 'polar']`: it is about the stars and offers no dome. Read by `SkyChart`
+   * alone. A saved view the page does not offer is drawn as the first offered.
+   */
+  views?: readonly ChartView[];
+  /**
+   * R160 (FR-PHONE-7, D-971): the page's own view, where the page holds it and never saves it — the stars page's local
+   * `view` — in place of the `chartView` preference. With it `SkyChart` neither reads nor writes the preference: every
+   * change of view it would make (the control's pick, following turning on, a pinch handoff) goes to `onViewChange`
+   * instead, and the page draws its own row. Read by `SkyChart` alone.
+   */
+  view?: ChartView;
+  onViewChange?: (view: ChartView) => void;
+  /**
+   * R160 (FR-PHONE-10; D-970): the pinch across the limit, by callback. The window calls it with no aim on a pinch's
+   * release that reached `WINDOW_FOV_MAX_DEG` and went on widening past `PINCH_HANDOFF_RATIO`; the polar chart calls it
+   * with the aim under the pinch's midpoint — its inverse projection — on a pinch's release that narrowed past the same
+   * ratio. `SkyChart` turns the first into an unsaved hold on the polar view and the second into one on the window,
+   * seeding the hand camera at the aim with `WINDOW_FOV_MAX_DEG`. Absent (the view row does not offer the other view,
+   * or a view mounted on its own), a pinch past the end stays at it. The dome never calls it.
+   */
+  onFieldHandoff?: (aim?: FieldAim) => void;
+  /**
+   * R160 (D-970, D-991): the aim of a pinch back from the whole sky, handed down by `SkyChart` for the window to open
+   * the hand camera at — the page's, the slot's, or one it makes when the slot is empty — at `WINDOW_FOV_MAX_DEG`,
+   * once per aim (a remount with the same aim opens nothing again), ending following where the page was following.
+   * The window owns the camera's constants and its maker, which `main` may not import. Read by the window alone.
+   */
+  opening?: FieldAim;
   className?: string;
+}
+
+/** R160 (FR-PHONE-10): the point under a pinch on the whole sky, as the window faces it — its azimuth and, as the tilt, its altitude. */
+export interface FieldAim {
+  azDeg: number;
+  altDeg: number;
 }
 
 /** One dimmed object for the chart to place (FR-LIVE-6). */

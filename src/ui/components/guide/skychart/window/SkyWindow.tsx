@@ -5,6 +5,7 @@ import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees, formatSignedDegrees } from '../../../../../lib/format';
 import { SERIES_COUNT } from '../../../../../lib/legend';
+import { PINCH_HANDOFF_RATIO } from '../../../../../lib/layout';
 import { shortcutFor } from '../../../../../lib/shortcuts';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
@@ -17,10 +18,10 @@ import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
-import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type SkyCamera } from './camera';
+import { arcOf, FACING_OPTIONS, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
+import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type HandState, type SkyCamera } from './camera';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
-import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
@@ -133,6 +134,10 @@ const ARC_STEP_DEG = 2;
 
 /** FR-FLOW-14 as amended (D-883): the hand cameras opened before the passes were known and not yet turned or moved. */
 const UNTURNED = new WeakSet<HandCamera>();
+/** R160 (D-991): the return aims the hand camera has been opened at, so an aim is taken once and a remount does not take it again. */
+const OPENED = new WeakSet<FieldAim>();
+/** R160 (FR-PHONE-10): the hand's state for a return from the whole sky — the aim, at the widest field. */
+const returnedAt = (aim: FieldAim): HandState => ({ azDeg: aim.azDeg, altDeg: aim.altDeg, fovDeg: WINDOW_FOV_MAX_DEG });
 /** The placeholder's altitude before the first reading: the horizon and the arc's lower part both in view. */
 const PLACEHOLDER_ALT_DEG = 20;
 /** How far inside the top of the box the placeholder keeps the peak, so its marker and key (9 px up) stay in view. */
@@ -354,7 +359,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -398,6 +403,12 @@ export function SkyWindow(props: SkyWindowProps) {
     if (hand === undefined || givenCamera !== undefined) return null;
     const kept = hand.get();
     if (kept !== null) return kept;
+    // R160 (FR-PHONE-10, D-970, D-991): a pinch back from the whole sky on a page whose window has not been drawn
+    // this visit: the camera opens at the aim, at the widest field, and is not turned when the passes arrive.
+    if (opening !== undefined && !OPENED.has(opening)) {
+      OPENED.add(opening);
+      return createHandCamera(returnedAt(opening));
+    }
     if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
     const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
     const opened = createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
@@ -545,6 +556,22 @@ export function SkyWindow(props: SkyWindowProps) {
     const { azDeg, altDeg, fovDeg: field } = handCamera.get();
     onFollowEnd?.(sensed ?? { azDeg, altDeg, fovDeg: field });
   };
+  /*
+   * R160 (FR-PHONE-10; D-970, D-991): the return from the whole sky. `SkyChart` hands the aim under the pinch down as
+   * `opening` and this window, which owns the camera's constants, opens the hand camera at it — the azimuth, the
+   * altitude as the tilt, `WINDOW_FOV_MAX_DEG` as the field — once per aim (a remount with the same aim, the dome and
+   * back, opens nothing again). If the page was following, the pinch was the finger taking the sky: following ends
+   * here as a drag ends it (FR-PHONE-10: "following stays off until the reader asks"), from the aim and not the pose.
+   */
+  useLayoutEffect(() => {
+    if (opening === undefined || OPENED.has(opening) || handCamera === null) return;
+    OPENED.add(opening);
+    handCamera.open(returnedAt(opening));
+    if (followPhone && !followEndedRef.current) {
+      followEndedRef.current = true;
+      onFollowEnd?.(handCamera.get());
+    }
+  }, [opening, handCamera, followPhone, onFollowEnd]);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; x0: number; y0: number; travel: number } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
@@ -559,7 +586,13 @@ export function SkyWindow(props: SkyWindowProps) {
    * box does not take up the drag: a jump to where it now is would be the first thing the reader saw.
    */
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
-  const pinchRef = useRef<{ a: number; b: number; distance: number } | null>(null);
+  /*
+   * R160 (FR-PHONE-10, D-970): `from` is the field when the pinch began and `asked` the product of every factor it
+   * has asked for since, so `from × asked` is the field the fingers want, past the ends the camera clamps at. On the
+   * pinch's release, where that is wider than `WINDOW_FOV_MAX_DEG` by more than `PINCH_HANDOFF_RATIO`, the view is
+   * handed to the whole sky (`onFieldHandoff`); a pinch that stops at the end stays at it.
+   */
+  const pinchRef = useRef<{ a: number; b: number; distance: number; from: number; asked: number } | null>(null);
   const pendingZoomRef = useRef(1);
   const zoomBy = useCallback(
     (factor: number) => {
@@ -622,7 +655,7 @@ export function SkyWindow(props: SkyWindowProps) {
     }
     if (pointers.size === 2 && pinchRef.current === null) {
       const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
-      pinchRef.current = { a: first[0], b: second[0], distance: Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y) };
+      pinchRef.current = { a: first[0], b: second[0], distance: Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y), from: handCamera?.get().fovDeg ?? sensorFov, asked: 1 };
       if (dragRef.current) {
         dragRef.current = null;
         pendingRef.current = null;
@@ -684,7 +717,9 @@ export function SkyWindow(props: SkyWindowProps) {
         return;
       }
       if (distance > 0 && distance !== pinch.distance) {
-        scheduleZoom(pinch.distance / distance);
+        const factor = pinch.distance / distance;
+        pinch.asked *= factor;
+        scheduleZoom(factor);
         pinch.distance = distance;
       }
       return;
@@ -729,7 +764,20 @@ export function SkyWindow(props: SkyWindowProps) {
   const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
     const active = dragRef.current;
     const tapped = active?.pointerId === event.pointerId && active.travel < HIT_RADIUS_PX;
+    const pinch = pinchRef.current;
+    const released = pinch !== null && (pinch.a === event.pointerId || pinch.b === event.pointerId) ? pinch : null;
     endDrag(event);
+    // R160 (FR-PHONE-10): the pinch's release, past the widest field by the ratio: the pending zoom lands now, so the
+    // camera the whole sky outlines is at the end the fingers reached, and the view is handed over. A cancelled pinch
+    // (`onPointerCancel`, the capture lost) hands nothing over.
+    if (released !== null && onFieldHandoff !== undefined && released.from * released.asked > WINDOW_FOV_MAX_DEG * PINCH_HANDOFF_RATIO) {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+        flush();
+      }
+      onFieldHandoff();
+      return;
+    }
     // The hover from before a drag no longer marks what is under the pointer.
     if (event.pointerType === 'mouse' && hovered !== null) setHovered(null);
     if (!tapped || !active || !scene?.stars) return;

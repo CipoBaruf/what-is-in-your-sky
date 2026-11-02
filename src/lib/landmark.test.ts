@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
-import { LADDER } from '../ui/components/guide/skychart/window/starGlyphs';
+import { STAR_SIZES_PX } from '../data/stars/constants';
 import { AMONG_MAX_DEG, constellationAt, drawnRungs, landmark, LANDMARK_DEG, LANDMARK_LEVEL_DEG, LANDMARK_MAG, segmentDistanceDeg, type SkyPoint } from './landmark';
 import { angularDistanceDeg } from './skyGeometry';
 import { constellationName, drawnMagLimit, planetsDrawn, starName, starsAt } from './skyStars';
@@ -212,8 +212,8 @@ describe('the twilight steps (FR-STAR-13, FR-SKY-3)', () => {
     expect(planetsDrawn(1)).toBe(false);
   });
 
-  it("has starGlyphs' ladder, rung by rung, and turns rungs into a magnitude", () => {
-    expect(RUNG_MAX_MAG).toEqual(LADDER.map((row) => row.maxMag));
+  it("has the marks' three `*` bounds as its top rungs (D-982; R160: the old ladder is gone), and turns rungs into a magnitude", () => {
+    expect(RUNG_MAX_MAG).toEqual([...STAR_SIZES_PX.map((row) => row.maxMag), 3.5, Number.POSITIVE_INFINITY]);
     expect(drawnMagLimit(0)).toBe(Number.NEGATIVE_INFINITY);
     expect(drawnMagLimit(2)).toBe(1.5);
     expect(drawnMagLimit(3)).toBe(LANDMARK_MAG);

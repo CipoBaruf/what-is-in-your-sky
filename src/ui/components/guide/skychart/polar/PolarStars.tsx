@@ -1,13 +1,19 @@
 import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { PINCH_HANDOFF_RATIO } from '../../../../../lib/layout';
 import { FIELD_DETAIL_STEPS, HORIZON_BAND_DEG, MOON_DISC_PX } from '../../../../../data/stars/constants';
 import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../data/stars/constellations';
 import { useLocale } from '../../../../../i18n/useT';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
-import type { ChartOrientation, Locale, MoonState } from '../../../../../model';
+import type { ChartOrientation, Locale, MoonState, Observer } from '../../../../../model';
+import { useDeclination } from '../../../live/useDeclination';
 import { drawsLayer, sceneFor, starsFor, type PlacedBody } from '../layers';
+import type { FieldAim } from '../SkyChart.types';
 import { BLOOM_STOPS, BLOOM_TONES, bloomGradientId, bloomRadiusPx } from '../window/bloom';
-import type { HandCamera } from '../window/camera';
+import { handRotation, type HandCamera } from '../window/camera';
+import type { Mat3, View } from '../window/projection';
+import { turnFor } from '../window/screenTurn';
+import { useViewRotation } from '../window/useViewRotation';
 import { inkMeasured, inkOffsetPx, inkOffsetsReady } from '../window/inkOffsets';
 import { bandHalfWidthDeg, galacticOf, prepareHaze, hazeOpacity, type PreparedHaze } from '../window/milkyWay';
 import { brightLimbPoint, limbAngleDeg, litPath } from '../window/MoonDisc';
@@ -455,6 +461,20 @@ interface PolarFieldOutlineProps {
   camera: HandCamera;
   orientation: ChartOrientation;
   project: Project;
+  /** R160 (FR-PHONE-9): the page's window follows the phone — the outline is the sensor's pose, not the hand's. */
+  follow: boolean;
+  /** The observer, for the declination every sensor reading is turned to true north by (FR-WIN-3). */
+  observer: Pick<Observer, 'lat' | 'lon' | 'altM'>;
+}
+
+/** The window's view for the outline: the box the chart is drawn in (a square where nothing is laid out, as in jsdom), at the camera's field. */
+function outlineView(box: HTMLElement | null | undefined, fovDeg: number, screenAngleDeg: number, sideways: boolean): View {
+  const width = box?.clientWidth ?? 0;
+  const height = box?.clientHeight ?? 0;
+  const sized = width > 0 && height > 0;
+  const w = sized ? width : 1;
+  const h = sized ? height : 1;
+  return { fovDeg, width: sideways ? h : w, height: sideways ? w : h, screenAngleDeg };
 }
 
 /**
@@ -462,8 +482,19 @@ interface PolarFieldOutlineProps {
  * written by ref on the camera's channel — every drag, key and zoom the camera takes moves it without a render of
  * the chart. The box is the frame's: the shape the window would draw in, read off the drawing's own box when it has
  * one (a square without, as in jsdom), at the camera's field, and drawn again when that box changes shape.
+ *
+ * R160 (FR-PHONE-9; D-992): while the page's window follows the phone the outline is the sensor's: `FollowingFieldOutline`
+ * reads the phone's pose through the window's own `useViewRotation` (the sensor armed, the declination folded in, the
+ * quarter the window would turn its box by) and writes the outline on its rotation channel, so the field moves with
+ * every reading; the hand's form stays R158's, with no sensor armed and no render per move.
  */
-export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOutlineProps) {
+export function PolarFieldOutline({ follow, ...props }: PolarFieldOutlineProps) {
+  return follow ? <FollowingFieldOutline {...props} /> : <HandFieldOutline {...props} />;
+}
+
+type OutlineProps = Omit<PolarFieldOutlineProps, 'follow'>;
+
+function HandFieldOutline({ camera, orientation, project }: OutlineProps) {
   const path = useRef<SVGPathElement>(null);
   useLayoutEffect(() => {
     const node = path.current;
@@ -471,11 +502,7 @@ export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOu
     const box = node.ownerSVGElement?.parentElement;
     const write = (): void => {
       const pose = camera.get();
-      const width = box?.clientWidth ?? 0;
-      const height = box?.clientHeight ?? 0;
-      const sized = width > 0 && height > 0;
-      const view = { fovDeg: pose.fovDeg, width: sized ? width : 1, height: sized ? height : 1, screenAngleDeg: 0 };
-      node.setAttribute('d', fieldOutline(pose, view, (point) => project(point, orientation)));
+      node.setAttribute('d', fieldOutline(pose, outlineView(box, pose.fovDeg, 0, false), (point) => project(point, orientation)));
     };
     write();
     const unsubscribe = camera.subscribe(write);
@@ -488,4 +515,160 @@ export function PolarFieldOutline({ camera, orientation, project }: PolarFieldOu
     };
   }, [camera, orientation, project]);
   return <path ref={path} className={styles.fieldOutline} data-field-outline d="" />;
+}
+
+/** The rotation `useViewRotation` falls back on before the hand has a state: never read for a hand camera, which always has one. */
+const NO_ROTATION: Mat3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+
+function FollowingFieldOutline({ camera, orientation, project, observer }: OutlineProps) {
+  const path = useRef<SVGPathElement>(null);
+  const declinationDeg = useDeclination(observer);
+  // The window's own source: the sensor drives, the hand's rotation stands until the first reading (D-941).
+  const { subscribe, orientation: sensor } = useViewRotation(camera, declinationDeg, NO_ROTATION, true);
+  // The window following turns its box by the pose's quarter against the browser's angle (FR-FSC-10, D-941): the
+  // field it draws is upright to the reader, its sides swapped for a quarter, and the outline is of that field.
+  const sensed = sensor.rotation !== null;
+  const quarter = sensed ? sensor.quarter : 0;
+  const turn = sensed ? turnFor(sensor.quarter, sensor.screenAngleDeg) : 0;
+  const sideways = Math.abs(turn) === 90;
+  const latest = useRef<Mat3 | null>(null);
+  useLayoutEffect(() => {
+    const node = path.current;
+    if (!node) return undefined;
+    const box = node.ownerSVGElement?.parentElement;
+    const write = (): void => {
+      const pose = camera.get();
+      node.setAttribute('d', fieldOutline(latest.current ?? handRotation(pose), outlineView(box, pose.fovDeg, quarter, sideways), (point) => project(point, orientation)));
+    };
+    // One call per rotation the window would draw, the current one at once (D-751); a zoom while following moves the camera's field alone.
+    const unsubscribeRotation = subscribe((m) => {
+      latest.current = m;
+      write();
+    });
+    write();
+    const unsubscribeCamera = camera.subscribe(write);
+    const resized = box && typeof ResizeObserver === 'function' ? new ResizeObserver(write) : null;
+    if (box) resized?.observe(box);
+    return () => {
+      unsubscribeRotation();
+      unsubscribeCamera();
+      resized?.disconnect();
+    };
+  }, [camera, orientation, project, subscribe, quarter, sideways]);
+  return <path ref={path} className={styles.fieldOutline} data-field-outline data-following d="" />;
+}
+
+// --- The pinch back to the window (FR-PHONE-10) --------------------------------
+
+/**
+ * R160 (FR-PHONE-10, D-970): `toPolar` run backwards — a point of the chart in user units (the horizon at `horizonR`)
+ * to the sky direction under it, in the convention drawn: the altitude from the radius (90° at the centre, 0° on the
+ * ring, under it past the ring, which the hand's tilt clamps), the azimuth from the angle with east on the left or the
+ * right. The point a pinch's midpoint names, which the window then faces.
+ */
+export function skyAt(point: { x: number; y: number }, orientation: ChartOrientation, horizonR: number): FieldAim {
+  const east = orientation === 'map' ? 1 : -1;
+  const r = Math.hypot(point.x, point.y) / horizonR;
+  const az = r < 1e-9 ? 0 : (Math.atan2(east * point.x, -point.y) * 180) / Math.PI;
+  return { azDeg: ((az % 360) + 360) % 360, altDeg: 90 - 90 * r };
+}
+
+/** A client point to the chart's user units: the viewBox is square and centred in the drawing's box (`xMidYMid meet`). */
+function chartPoint(svg: SVGSVGElement, half: number, clientX: number, clientY: number): { x: number; y: number } {
+  const rect = svg.getBoundingClientRect();
+  const scale = Math.min(rect.width, rect.height) / (2 * half) || 1;
+  return { x: (clientX - rect.left - rect.width / 2) / scale, y: (clientY - rect.top - rect.height / 2) / scale };
+}
+
+interface PolarPinchProps {
+  orientation: ChartOrientation;
+  /** The chart's horizon radius and half side, user units (`SkyPolar.tsx`'s `HORIZON_R` and `VIEW_HALF`). */
+  horizonR: number;
+  half: number;
+  onFieldHandoff: (aim: FieldAim) => void;
+}
+
+/**
+ * R160 (FR-PHONE-10; D-970, D-991): the pinch back to the window, as listeners on the chart's own `<svg>` (this node's
+ * owner), installed from the chunk so `main` carries none of it. Two touch pointers on the drawing are tracked from
+ * the second's press to the first's lift — captured by the svg only once the two make a pinch, so a tap on an arc
+ * still clicks it (a captured pointer's click goes to the capture target) — and where the distance between them grew
+ * by more than `PINCH_HANDOFF_RATIO` (the fingers spreading: the field narrowing, FR-PHONE-10's "a pinch that narrows",
+ * the way in that the window's pinch out past its end mirrors) the lift hands the view back to the window facing the
+ * sky under the pinch's midpoint where it began (`skyAt`). One pointer is nothing here (the chart has no drag), a
+ * mouse never pinches, a third finger is ignored, a cancel or a lost capture hands nothing over, and the first touch's
+ * request is not this gesture's (`SkyViewLayout` asks only on a tap's lift). While mounted the svg's `touch-action`
+ * keeps the page's scroll under one finger and takes the two from the browser's own zoom; it is restored on unmount,
+ * so a chart offering no way back leaves the browser's zoom alone.
+ */
+export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: PolarPinchProps) {
+  const anchor = useRef<SVGGElement>(null);
+  const latest = useRef({ orientation, horizonR, half, onFieldHandoff });
+  useLayoutEffect(() => {
+    latest.current = { orientation, horizonR, half, onFieldHandoff };
+  });
+  useLayoutEffect(() => {
+    const svg = anchor.current?.ownerSVGElement;
+    if (!svg) return undefined;
+    const touchAction = svg.style.touchAction;
+    svg.style.touchAction = 'pan-x pan-y';
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch: { a: number; b: number; from: number; last: number; mid: { x: number; y: number } } | null = null;
+    const forget = (pointerId: number): void => {
+      pointers.delete(pointerId);
+      if (pinch !== null && (pinch.a === pointerId || pinch.b === pointerId)) pinch = null;
+    };
+    const onDown = (event: PointerEvent): void => {
+      if (event.pointerType !== 'touch') return;
+      if (event.isPrimary) for (const id of [...pointers.keys()]) forget(id);
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.size !== 2 || pinch !== null) return;
+      const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
+      const distance = Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y);
+      pinch = { a: first[0], b: second[0], from: distance, last: distance, mid: chartPoint(svg, latest.current.half, (first[1].x + second[1].x) / 2, (first[1].y + second[1].y) / 2) };
+      for (const id of [first[0], second[0]]) {
+        try {
+          svg.setPointerCapture(id);
+        } catch {
+          // jsdom and old browsers: the pinch still works while the pointers stay over the drawing.
+        }
+      }
+    };
+    const onMove = (event: PointerEvent): void => {
+      const tracked = pointers.get(event.pointerId);
+      if (!tracked) return;
+      tracked.x = event.clientX;
+      tracked.y = event.clientY;
+      if (pinch === null || (pinch.a !== event.pointerId && pinch.b !== event.pointerId)) return;
+      const a = pointers.get(pinch.a);
+      const b = pointers.get(pinch.b);
+      if (a && b) pinch.last = Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const onUp = (event: PointerEvent): void => {
+      const released = pinch !== null && (pinch.a === event.pointerId || pinch.b === event.pointerId) ? pinch : null;
+      forget(event.pointerId);
+      if (released === null) return;
+      if (released.from > 0 && released.last / released.from > PINCH_HANDOFF_RATIO) latest.current.onFieldHandoff(skyAt(released.mid, latest.current.orientation, latest.current.horizonR));
+    };
+    const onCancel = (event: PointerEvent): void => {
+      forget(event.pointerId);
+    };
+    const listeners = [
+      ['pointerdown', onDown],
+      ['pointermove', onMove],
+      ['pointerup', onUp],
+      ['pointercancel', onCancel],
+      ['lostpointercapture', onCancel],
+    ] as const;
+    for (const [name, listener] of listeners) svg.addEventListener(name, listener);
+    return () => {
+      for (const [name, listener] of listeners) svg.removeEventListener(name, listener);
+      svg.style.touchAction = touchAction;
+    };
+  }, []);
+  return <g ref={anchor} data-pinch />;
 }

@@ -564,6 +564,15 @@ const GAP_CELLS = 1;
 export const HINT_TOUCH_CLAUSES = 2;
 
 /**
+ * R160 (FR-PHONE-10, V210-5; PLAN D-970): how far past the window's widest field a pinch has to go on widening before
+ * its release hands the view to the whole sky — the field the fingers asked for over `WINDOW_FOV_MAX_DEG`, as a ratio
+ * (1.15: 90° asked to 103.5°). A pinch that stops at the end stays at it, so the ends are not a trap; the same ratio
+ * narrowing on the whole sky hands the view back to the window. Declared here beside the layout's other thresholds, its
+ * one reader each side the window's and the polar chart's pointer handlers.
+ */
+export const PINCH_HANDOFF_RATIO = 1.15;
+
+/**
  * R147 (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): whether the sky hint, one line at `--small`, stands on the
  * overlay's bottom row beside its controls (true) or in the row above it (false). They share the row when the hint,
  * then a cell of gap and the bracketed label for each control, fit `ROW_BUDGET_CELLS`, counted as

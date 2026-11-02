@@ -108,6 +108,12 @@ const CSS = [
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
+/**
+ * R160: the stars page's view row is `TextButton`s alone, measured on that module's rules — `cells.ts` keys a rule by
+ * its local class name, and `PassList.module.css` has a `.toggle::before` of its own that the full table would add to
+ * every unpressed option of the bracket mark (four cells a row), which the browser never draws.
+ */
+const textButtonTable = decorations([resolve(process.cwd(), 'src/ui/components/primitives/TextButton.module.css')]);
 
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const pass = goldenPassFixture();
@@ -394,6 +400,16 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer });
     },
   },
+  {
+    // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` / `[ Ventana ] Cielo entero`, the bracket mark — 20 cells in English, 24 in Spanish.
+    name: 'the stars view row (FR-PHONE-7)',
+    element: createElement(StarsPage),
+    find: () => screen.getByTestId('stars-view-row'),
+    setUp: () => {
+      appStore.setState({ observer });
+    },
+    measure: (row) => rowCells(row, textButtonTable),
+  },
   // R132 (FR-FLOW-8): two rows — three toggles then `names` and `passes` in English (33 and 19 cells), two then three in
   // Spanish (25 and 34), the split cut to the budget by `firstRowCount`.
   ...([0, 1] as const).map(
@@ -503,6 +519,28 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
     // recorded in R132's summary; this pins the number so the gap cannot grow unnoticed.
     expect(cells, 'at 360 px').toBeLessThanOrEqual(Math.max(rowCellsAt(360), VIEW_ROW_BUDGET));
     if (locale === 'en') expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
+  });
+});
+
+/**
+ * R160 (FR-PHONE-7, D-971): the stars page's view row, `[ Window ] Whole sky` / `[ Ventana ] Cielo entero` — a
+ * `ToggleGroup` in the bracket mark, 20 cells in English and 24 in Spanish (the spec's 23 counts `Cielo entero` a
+ * character short), the window first (FR-GYRO-11), inside 36 at 390 px and inside what 360 px has.
+ */
+describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) => {
+  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  const EXPECTED: Record<Locale, number> = { en: 20, es: 24 };
+
+  it('is one line of the spec’s cells, the window first, inside both widths', () => {
+    appStore.setState({ observer });
+    render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
+    const row = screen.getByTestId('stars-view-row');
+    const cells = rowCells(row, textButtonTable);
+    expect(cells, rowParts(row, textButtonTable).join(' | ')).toBe(EXPECTED[locale]);
+    const views = CATALOGS[locale].chart.views;
+    expect(rowParts(row, textButtonTable)).toEqual([`####${views.window}`, views.wholeSky]);
+    expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
+    expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
   });
 });
 

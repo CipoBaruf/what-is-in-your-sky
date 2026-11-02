@@ -83,6 +83,8 @@ const PolarStars = lazy(() => polarChunk().then((module) => ({ default: module.P
 const PolarSky = lazy(() => polarChunk().then((module) => ({ default: module.PolarSky })));
 const PolarMoon = lazy(() => polarChunk().then((module) => ({ default: module.PolarMoon })));
 const PolarFieldOutline = lazy(() => polarChunk().then((module) => ({ default: module.PolarFieldOutline })));
+/** R160 (FR-PHONE-10, D-991): the pinch back to the window is the chunk's too, with its inverse projection, so `main` carries none of it. */
+const PolarPinch = lazy(() => polarChunk().then((module) => ({ default: module.PolarPinch })));
 /** The cardinal letters' size, user units (the sheet's `.cardinal`). */
 const CARDINAL_PX = 12;
 const LABEL_GAP = 10;
@@ -305,7 +307,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, follow = false, onFieldHandoff, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
@@ -360,6 +362,12 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         status={readoutSlot.inLayout ? null : convention}
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
+        {/* R160 (FR-PHONE-10): where the page's row offers the window, a pinch in on the drawing hands the view back to it (the chunk's listeners on this svg). */}
+        {onFieldHandoff !== undefined && (
+          <Suspense fallback={null}>
+            <PolarPinch orientation={orientation} horizonR={HORIZON_R} half={VIEW_HALF} onFieldHandoff={onFieldHandoff} />
+          </Suspense>
+        )}
         {/* R158 (FR-LOOK-1, FR-LOOK-2): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
         {field && drawsLayer('polar', 'surface') && (
           <Suspense fallback={null}>
@@ -404,10 +412,10 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
             </text>
           );
         })}
-        {/* R158 (FR-PHONE-9): the window's field, over the stars and under the arcs. */}
+        {/* R158 (FR-PHONE-9): the window's field, over the stars and under the arcs. R160: following, the sensor's poses move it. */}
         {fieldCamera && (
           <Suspense fallback={null}>
-            <PolarFieldOutline camera={fieldCamera} orientation={orientation} project={project} />
+            <PolarFieldOutline camera={fieldCamera} orientation={orientation} project={project} follow={follow} observer={observer} />
           </Suspense>
         )}
         {passes.map((pass, index) => (

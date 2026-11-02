@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
@@ -12,7 +12,7 @@ import { ChartFrame, ChartFrameSlots, LEGEND_PANEL_ID } from './ChartFrame';
 import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
-import type { SkyChartProps, SkyChartView } from './SkyChart.types';
+import type { FieldAim, SkyChartProps, SkyChartView } from './SkyChart.types';
 import { defaultChartView } from '../../../screens/chartViewDefault';
 import { useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
@@ -86,6 +86,14 @@ import { useSkyBodies } from './useSkyBodies';
  * is the page's: while it is set this chart shows the window — `setChartView`
  * is not called, so the saved view is what it was — and hands `follow` and
  * `onFollowEnd` to the window with the rest of the props.
+ *
+ * R160 (FR-PHONE-7, FR-PHONE-10; D-970, D-971): a page may offer fewer views
+ * (`views`: the stars page offers the window and the polar chart) and may hold
+ * the view itself (`view` and `onViewChange`, never saved), drawing its own
+ * row; and the pinch across the limit arrives here by callback from either
+ * drawing (`onFieldHandoff`) and becomes `heldView` — D-957's hold on the
+ * window generalised to either view, unsaved — with the aim of a pinch back
+ * handed down to the window as `opening`.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -158,14 +166,22 @@ const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [WINDOW_VIEW, POLAR_VIEW, DOME_VIEW];
 
 /**
+ * R160 (D-324, D-971): the views a page offers, in the registered order — all three where it names none.
+ */
+function offeredViews(views: readonly ChartView[] | undefined): readonly SkyChartView[] {
+  const offered = views === undefined ? SKY_CHART_VIEWS : SKY_CHART_VIEWS.filter((candidate) => views.includes(candidate.id));
+  if (offered.length === 0) throw new Error('SkyChart: a page must offer at least one view');
+  return offered;
+}
+
+/**
  * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
  * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
- * phone with no north loses the sensor, not the view, which it gets in the box under the hand.
+ * phone with no north loses the sensor, not the view, which it gets in the box under the hand. R160: a saved view
+ * the page does not offer is drawn as the first it offers.
  */
-function viewFor(id: SkyChartView['id']): SkyChartView {
-  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id);
-  if (!view) throw new Error(`SkyChart: no view registered for ${id}`);
-  return view;
+function viewFor(offered: readonly SkyChartView[], id: SkyChartView['id']): SkyChartView {
+  return offered.find((candidate) => candidate.id === id) ?? (offered[0] as SkyChartView);
 }
 
 /**
@@ -198,27 +214,82 @@ export function SkyChart(props: SkyChartProps) {
   const controlSlot = useChartSlot('control');
   const follow = props.follow ?? false;
   const moonPhase = props.moonPhase ?? false;
+  const offered = useMemo(() => offeredViews(props.views), [props.views]);
+  // R160 (D-971): the page holds the view itself — the stars page's, never saved — and every change goes to it.
+  const { view: givenView, onViewChange } = props;
+  const controlled = givenView !== undefined;
   // D-876 (R136): the saved view, else the window on compact and the dome on wide (`defaultChartView`).
-  const pageView: ChartView = defaultChartView(mode, chartView);
+  const pageView: ChartView = givenView ?? defaultChartView(mode, chartView);
   /*
    * FR-GYRO-2 (D-941, D-957): following, the view is the window and the preference is neither read for it nor
    * written. Once following has been on, the window stays the view after it ends — "the view becomes the window",
    * and a drag that ends following hands the finger the window it is on, not the saved dome (FR-GYRO-4) — until
    * the reader chooses a view; the choice is this chart's own state, so a reload opens on the saved view.
+   *
+   * R160 (FR-PHONE-10, D-970): the hold is `heldView`, either view: a pinch past the window's widest field holds the
+   * polar chart, and a pinch in on it holds the window, neither written. Following turning on holds the window at
+   * that moment (not while it stays on, so a pinch to the whole sky while following shows the whole sky, its outline
+   * moving with the phone, FR-PHONE-9). Where the page holds the view, the hold goes to the page instead.
    */
-  const [becameWindow, setBecameWindow] = useState(follow);
-  if (follow && !becameWindow) setBecameWindow(true);
-  const view = follow || becameWindow ? WINDOW_VIEW : viewFor(pageView);
+  const [heldView, setHeldView] = useState<ChartView | null>(follow && !controlled ? 'window' : null);
+  const [seenFollow, setSeenFollow] = useState(follow);
+  if (follow !== seenFollow) {
+    setSeenFollow(follow);
+    if (follow && !controlled) setHeldView('window');
+  }
+  const followedRef = useRef(follow);
+  useLayoutEffect(() => {
+    const was = followedRef.current;
+    followedRef.current = follow;
+    if (follow && !was && controlled && givenView !== 'window') onViewChange?.('window');
+  }, [follow, controlled, givenView, onViewChange]);
+  // FR-GYRO-2: following, the dome is never the view — it has no camera to follow with — so a pick of it while following
+  // saves it and shows the window until following ends (as D-957 had every view); the polar chart is shown, with the
+  // field outlined and moving (FR-PHONE-8: the whole sky one tap away from every sky view, FR-PHONE-9).
+  const shown = controlled ? pageView : (heldView ?? pageView);
+  const view = viewFor(offered, follow && shown === 'dome' ? 'window' : shown);
   /*
    * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
    * window is laid out in the box under the hand. Choosing the window asks for no permission — the follow toggle
    * does (FR-GYRO-2); choosing any view clears the note the last refusal left, and D-957's hold on the window.
    */
   const choose = (id: ChartView): void => {
-    viewFor(id).choose?.();
-    setBecameWindow(false);
+    viewFor(offered, id).choose?.();
+    if (controlled) {
+      onViewChange?.(id);
+      return;
+    }
+    setHeldView(null);
     setChartView(id);
   };
+  /*
+   * R160 (FR-PHONE-10; D-970, D-991): the pinch across the limit. From the window, with no aim, the whole sky is held
+   * where the page offers it; from the whole sky, with the aim under the pinch, the window is held and opened at the
+   * aim — the aim goes down to the window as `opening`, since the camera's constants are the window chunk's, and the
+   * window opens the hand camera (the page's, or the slot's, or one it makes) at it and ends following if it was on.
+   * Neither writes `chartView`.
+   */
+  const offers = useCallback((id: ChartView): boolean => offered.some((candidate) => candidate.id === id), [offered]);
+  const [opening, setOpening] = useState<FieldAim | undefined>(undefined);
+  const hold = useCallback(
+    (id: ChartView): void => {
+      if (controlled) onViewChange?.(id);
+      else setHeldView(id);
+    },
+    [controlled, onViewChange],
+  );
+  const onFieldHandoff = useCallback(
+    (aim?: FieldAim): void => {
+      if (aim === undefined) {
+        if (offers('polar')) hold('polar');
+        return;
+      }
+      if (!offers('window')) return;
+      setOpening({ azDeg: aim.azDeg, altDeg: aim.altDeg });
+      hold('window');
+    },
+    [offers, hold],
+  );
   // R58 review (D-277) → R66 (D-352): a window that cannot run here leaves the note beside this control; nothing
   // is written, because the reader chose neither the failure nor a view to fall back to.
   const unavailable = useCallback(
@@ -292,9 +363,9 @@ export function SkyChart(props: SkyChartProps) {
   const listSlot = useChartSlot('list');
   const inLayout = controlSlot.inLayout;
   const viewControl = inLayout ? (
-    <ToggleGroup name={t.chart.viewGroup} mark="tight" options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+    <ToggleGroup name={t.chart.viewGroup} mark="tight" options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   ) : (
-    <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+    <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   );
   const chartControls = (
     <>
@@ -326,7 +397,9 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
-  const { chartHand: _chartHand, ...forwarded } = props;
+  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, ...forwarded } = props;
+  // R160 (D-970): the handoff's callback goes to either drawing only where the row offers the other view (`onFieldHandoff` sorts out which).
+  const handoff = offers('polar') && offers('window') ? { onFieldHandoff, ...(opening === undefined ? {} : { opening }) } : {};
   // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).
   const legendPlaced = inLayout;
   const placedLegend = legendPlaced && props.legendOpen !== false ? (
@@ -348,7 +421,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
     </figure>
   );
 }
