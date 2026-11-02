@@ -3344,6 +3344,6 @@ R162 and R166 share no file (R162 moves two components and re-points the live pa
 
 **Owner gates:** none. At R165 the owner opens the stars page and a pass detail on the phone: the sky fills the screen, `[ follow ]` and `[ controls ]` in the corner, the sheet with its rows, upright and turned, no passes toggle; on the desk every page at the home's width. The tag `v2.11.0` and the deploy are the owner's.
 
-**Decision block** (§16.2): **R162 takes D-1005..D-1006, R166 D-1007..D-1008, R163 D-1009..D-1011, R164 D-1012..D-1014, R165 D-1015..D-1016.** D-996..D-1004 are this plan's.
+**Decision block** (§16.2): **R162 takes D-1005..D-1006, R166 D-1007..D-1008, R163 D-1009..D-1011, R164 D-1012..D-1014, R165 D-1015..D-1016.** D-996..D-1004 are this plan's. *(2026-11-02)* R166 also takes **D-1017** for FR-CLEAN-16 (V211-11), added after its block was spent on D-1007 and D-1008.
 
 What every session reads (D-284's rule): SPEC §4.54 whole (FR-CLEAN-1..16), US-49, §9 Phase 2t, §12 V211-1..V211-11; SPEC FR-HOME-4 and FR-SKY-6 as amended; SPEC §4.50 (FR-FULL-1..6 as amended) and §4.52 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-7) for the pattern; §4.48 (FR-FLOW-4, FR-FLOW-7, FR-FLOW-8, FR-FLOW-9, FR-FLOW-15) and §4.46 (FR-STAR-3) for what is withdrawn; PLAN §2.44, §2.46, §2.47, §9.13 and this section.
