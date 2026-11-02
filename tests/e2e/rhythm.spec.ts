@@ -147,6 +147,24 @@ for (const locale of LOCALES) {
       expect(measured.scrolls).toBeLessThanOrEqual(0);
     });
 
+    test('the column is 60 cells inside the shell’s row: a saved place’s remove sits by its name', async ({ page }) => {
+      await openFlowPage(page, 'settings', locale);
+      const measured = await page.evaluate(() => {
+        const probe = document.createElement('div');
+        probe.style.width = 'calc(60 * var(--cell))';
+        document.body.append(probe);
+        const column = probe.getBoundingClientRect().width;
+        probe.remove();
+        const main = document.querySelector('#root > main');
+        if (!main) throw new Error('no main');
+        const left = main.getBoundingClientRect().left + parseFloat(getComputedStyle(main).paddingLeft);
+        const blocks = [...Array.from(main.children), ...Array.from(document.querySelector('[data-testid="settings-privacy"]')?.children ?? [])].filter((b) => b.getBoundingClientRect().height > 0);
+        return { column, left, rights: blocks.map((b) => b.getBoundingClientRect().right) };
+      });
+      expect(measured.rights.length).toBeGreaterThan(3);
+      for (const right of measured.rights) expect(right, 'a block runs past the 60-cell column').toBeLessThanOrEqual(measured.left + measured.column + 1);
+    });
+
     test('the place field’s focus ring clears its label and its help line', async ({ page }) => {
       await openFlowPage(page, 'settings', locale);
       const input = page.locator('#root > main input').first();

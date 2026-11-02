@@ -116,10 +116,12 @@
 
 /* FR-COMP-2 holds at every width; only the compact header links here. The page
    is narrow prose either way, so on a wide screen it stops rather than
-   stretching a 36-cell row of toggles across 100 cells of empty line. */
+   stretching a 36-cell row of toggles across 100 cells of empty line.
+   R166 (FR-CLEAN-12, D-1008): `main` and the footer are the shell's rows, 160 cells centred, and the shell's rule
+   sets their width; so the 60-cell column is their children's, at the row's left edge under the header's title. */
 @media (width >= 964px) {
-  .page,
-  .privacy {
+  .page > *,
+  .privacy > * {
     max-width: calc(60 * var(--cell));
   }
 
