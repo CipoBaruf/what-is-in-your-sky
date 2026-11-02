@@ -355,11 +355,12 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
  * a pane heading's size (`--text-pane`, 20 px), its lines the body's (`--text-body`, 16 px), the frame a control's
  * edge (`--border-control`); on hover the frame and the title take the accent. The 1280 project only.
  */
-test.describe('FR-CLEAN-16: the doors stand out on a desk', () => {
+test.describe('FR-CLEAN-16: the doors stand out on a desk', { tag: SEEDS_ITSELF }, () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test('pane-sized titles, body-sized lines, a control frame, the accent on hover', async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', 'the size is this test’s own: the 1024 project has nothing to add');
+    await seedStoredRun(page, { settled: true });
     /** A token resolved to the colour the browser computes, so it compares with a computed style. */
     const token = (name: string) =>
       page.evaluate((property) => {
