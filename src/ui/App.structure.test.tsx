@@ -116,14 +116,16 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     ]);
   });
 
-  it('stars: the page is named by its visible h1, "Stars tonight", the header leaving it the rank (R129, FR-FLOW-3)', async () => {
+  it('stars: the page is named by its h1, "Stars tonight", visible on wide and hidden on compact, the header leaving it the rank (R129, FR-FLOW-3; R163, FR-CLEAN-2)', async () => {
     for (const width of [390, WIDE_PX]) {
       media = stubMatchMedia(width);
       withPasses();
       const { unmount } = render(<App />);
       go('#stars');
       const heading = await screen.findByRole('heading', { level: 1, name: en.starsHeading });
-      expect(heading).not.toHaveAttribute('data-visually-hidden');
+      // R163 (FR-CLEAN-2): on compact the page is the sky and its name stays in the document for the outline, visually hidden.
+      if (width === WIDE_PX) expect(heading).not.toHaveAttribute('data-visually-hidden');
+      else expect(heading).toHaveAttribute('data-visually-hidden');
       const headings = outline();
       expect(headings[0]).toEqual([1, en.starsHeading]);
       expect(headings.filter(([level]) => level === 1)).toHaveLength(1);

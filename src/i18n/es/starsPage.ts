@@ -9,8 +9,6 @@ export const starsPage: typeof EnStarsPage = {
   up: 'arriba',
   layersHeading: 'Capas',
   layers: { stars: 'estrellas', figures: 'figuras', planets: 'planetas', names: 'nombres' },
-  passesLayer: 'pases',
-  passRow: (p) => `${p.key}: ${p.name} · ${p.state} · culmina a ${p.altitude} de altura · ${p.point}`,
   fieldHeading: 'En este campo',
   fieldEmpty: 'Nada dibujado en este campo.',
   planets: { Mercury: 'Mercurio', Venus: 'Venus', Mars: 'Marte', Jupiter: 'Júpiter', Saturn: 'Saturno' },

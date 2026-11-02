@@ -29,14 +29,8 @@ export const starsPage = {
   up: 'up',
   /** FR-STAR-3: the rail's second block. */
   layersHeading: 'Layers',
+  /** R163 (FR-CLEAN-11, D-1004): four layers; the `[ passes ]` toggle and its pass row left with the passes. */
   layers: { stars: 'stars', figures: 'figures', planets: 'planets', names: 'names' },
-  /** FR-SKY-6 (R126, D-794): the layer row's fifth toggle, tonight's passes on the sky; page state, off, never saved. */
-  passesLayer: 'passes',
-  /**
-   * FR-SKY-6 (D-794): a pass's row in `In this field`, as what reads the page hears it — the key, the name, the
-   * FR-LEG-3 state word (the legend's, `chart.legend.state`) and where the peak is: "A: ISS (ZARYA) · up · peaks 64° up · NNW".
-   */
-  passRow: (p: { key: string; name: string; state: string; altitude: string; point: CompassPoint }) => `${p.key}: ${p.name} · ${p.state} · peaks ${p.altitude} up · ${p.point}`,
   /** FR-STAR-7: the rail's third block, the drawing's text alternative. */
   fieldHeading: 'In this field',
   /** The list with nothing drawn above the horizon in the field (every object layer off, or empty sky). */

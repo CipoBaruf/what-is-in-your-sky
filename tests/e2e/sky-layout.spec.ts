@@ -10,7 +10,8 @@
  * - No hint text intersects the drawing's box (FR-FLOW-6).
  * - The pass detail's drawing has its top at or above `DETAIL_DRAWING_TOP_PX` on the phone and is at least
  *   `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk (FR-FLOW-7).
- * - On the stars page `In this field`'s heading and first row are inside 390 × 844 with `[ passes ]` off and on (FR-FLOW-8).
+ * - R163 (FR-CLEAN-1, FR-CLEAN-7): the stars page is the full form on the phone in both shapes, as the live page is;
+ *   FR-FLOW-8's column and its fold rule are withdrawn.
  * - R166 (FR-CLEAN-13, D-1008): on the wide stars page the rail's View, Facing and Layers rows share one left edge.
  *
  * R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877):
@@ -41,8 +42,8 @@ const LOCALES = ['en', 'es'] as const;
 type Locale = (typeof LOCALES)[number];
 
 const WORDS = {
-  en: { openGuide: /Open guide/, viewGroup: 'Chart view', views: { polar: 'Polar', dome: 'Dome', window: 'Window' }, field: 'In this field', passes: 'passes', stars: 'Stars under the arcs' },
-  es: { openGuide: /Abrir la guía/, viewGroup: 'Vista del gráfico', views: { polar: 'Polar', dome: 'Domo', window: 'Ventana' }, field: 'En este campo', passes: 'pases', stars: 'Estrellas bajo los arcos' },
+  en: { openGuide: /Open guide/, viewGroup: 'Chart view', views: { polar: 'Polar', dome: 'Dome', window: 'Window' }, field: 'In this field', stars: 'Stars under the arcs' },
+  es: { openGuide: /Abrir la guía/, viewGroup: 'Vista del gráfico', views: { polar: 'Polar', dome: 'Domo', window: 'Ventana' }, field: 'En este campo', stars: 'Estrellas bajo los arcos' },
 } as const;
 
 interface Box {
@@ -258,35 +259,37 @@ for (const locale of LOCALES) {
       }
     });
 
-    test('the stars page: the h1, the view row, the readout, the drawing, the facing row, the hint, the action, the layers, then In this field inside the viewport (FR-FLOW-8)', async ({ page }) => {
+    /**
+     * R163 (FR-CLEAN-1, FR-CLEAN-3, FR-CLEAN-4; D-997): the compact stars page is the full form too — the drawing the
+     * viewport, the hint over the box at its bottom-left, the sheet's rows in FR-CLEAN-4's order with the layer rows a
+     * group of two and no `[ passes ]` (FR-CLEAN-11). FR-FLOW-8's column and its fold rule are withdrawn (FR-CLEAN-8);
+     * `clean-sky.spec.ts` measures the rest.
+     */
+    test('the stars page is the full form: the drawing the viewport, the hint over the box, the sheet’s rows in order, no passes toggle (FR-CLEAN-1, FR-CLEAN-4, FR-CLEAN-11)', async ({ page }) => {
       const layout = await openStars(page, locale);
-      await expect(layout).toHaveAttribute('data-shape', 'column');
-      const check = async (): Promise<void> => {
-        const slots = await slotBoxes(layout);
-        const names = slots.map((slot) => slot.name);
-        // R160 (FR-PHONE-7): the view row between the h1 block and the readout.
-        expect(names.filter((name) => name !== 'action')).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
-        expectStacked(slots);
-        await expectHintOffTheDrawing(layout);
-        // FR-FLOW-8: the layer toggles are one group of two rows; the heading of `In this field` is inside 844 px. R160 (FR-PHONE-7,
-        // D-990): the view row above the box takes its own row and gap (54 px), and the box keeps FR-COMP-5's floor, so the
-        // list's first row now ends up to that much under the fold (28.5 px in English, 52.5 in Spanish, measured) — pinned
-        // here as the row's height, so the gap cannot grow unnoticed, and a finding for the spec (FR-FLOW-8's fold sentence).
-        await expect(layout.getByTestId('stars-layers-row')).toHaveCount(2);
-        const heading = await box(layout.getByRole('heading', { name: WORDS[locale].field }));
-        const firstRow = await box(layout.getByTestId('field-list').getByRole('listitem').first());
-        const viewRow = await box(layout.locator('[data-slot="viewRow"]'));
-        const viewRowGap = await layout.locator('[data-slot="viewRow"] + [data-slot]').evaluate((el) => parseFloat(getComputedStyle(el).marginTop) || 0);
-        expect(heading.y + heading.height).toBeLessThanOrEqual(PHONE.height);
-        expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(PHONE.height + viewRow.height + viewRowGap);
-      };
-      await check();
-      await layout.getByTestId('stars-layers').getByRole('button', { name: WORDS[locale].passes }).click();
-      await expect(layout.locator('[data-layer="passes"]')).toHaveAttribute('aria-pressed', 'true');
-      await check();
+      await expect(layout).toHaveAttribute('data-shape', 'full');
+      const slots = await slotBoxes(layout);
+      expect(slots.map((slot) => slot.name)).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
+      const drawing = slots.find((slot) => slot.name === 'drawing');
+      if (!drawing) throw new Error('no drawing');
+      expect(Math.round(drawing.box.width)).toBe(PHONE.width);
+      expect(Math.round(drawing.box.height)).toBe(PHONE.height);
+      const hintBox = await box(layout.getByTestId('sky-hint'));
+      expect(inside(hintBox, drawing.box), 'the hint over the box').toBe(true);
+      expect(hintBox.y).toBeGreaterThan(drawing.box.y + drawing.box.height / 2);
+      expect(hintBox.x).toBeLessThan(drawing.box.x + drawing.box.width / 4);
+      await openSheet(page);
+      const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
+      // No sensor on this profile: no follow row.
+      expect(order).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+      await expect(layout.getByTestId('stars-layers-row')).toHaveCount(2);
+      await expect(layout.getByTestId('stars-layers').getByRole('button')).toHaveCount(4);
+      await expect(layout.locator('[data-layer="passes"]')).toHaveCount(0);
+      await expect(page.getByTestId('sheet-body').getByRole('heading', { name: WORDS[locale].field })).toBeAttached();
+      expect(await pageScrolls(layout)).toEqual([]);
     });
 
-    test('the first drag on the stars page puts the hint away for good, with no slot and no gap left for it (FR-FLOW-6)', async ({ page }) => {
+    test('the first drag on the stars page puts the hint away for good, with no slot left for it (FR-FLOW-6)', async ({ page }) => {
       const layout = await openStars(page, locale);
       await expect(layout.getByTestId('sky-hint')).toBeVisible();
       const drawing = await box(layout.locator('[data-slot="drawing"]'));
@@ -296,11 +299,6 @@ for (const locale of LOCALES) {
       await page.mouse.up();
       await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
       await expect(layout.locator('[data-slot="hint"]')).toHaveCount(0);
-      // The slot under the picker stands its own rhythm's gap from it, and nothing more.
-      const picker = await box(layout.locator('[data-slot="picker"]'));
-      const next = layout.locator('[data-slot="picker"] + [data-slot]');
-      const gap = await next.evaluate((el) => parseFloat(getComputedStyle(el).marginTop));
-      expect(Math.abs((await box(next)).y - (picker.y + picker.height) - gap)).toBeLessThanOrEqual(1);
       await page.reload();
       await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
       await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
@@ -507,12 +505,22 @@ for (const viewport of TURNED) {
         expect(await pageScrolls(layout)).toEqual([]);
       });
 
-      test('the stars page: the drawing at the left at its share and full height, the rail in order, no page scroll', async ({ page }) => {
+      test('the stars page: the full form, the window the whole viewport, the bottom sheet at its share, no page scroll (FR-CLEAN-7)', async ({ page }) => {
+        // R163 (FR-CLEAN-7, D-997): the landscape stars page is all sky too; the rail of FR-FLOW-15 is withdrawn for compact.
         const layout = await openStars(page, locale);
-        await expectTurned(page, layout, viewport);
-        await expectHintOffTheDrawing(layout);
-        const names = (await slotBoxes(layout)).map((slot) => slot.name);
-        expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'viewRow', 'picker', 'layers', 'list']);
+        await expect(layout).toHaveAttribute('data-shape', 'full');
+        const drawing = await box(layout.locator('[data-slot="drawing"]'));
+        expect(Math.round(drawing.width)).toBe(viewport.width);
+        expect(Math.round(drawing.height)).toBe(viewport.height);
+        expect(await pageScrolls(layout)).toEqual([]);
+        await openSheet(page);
+        const sheet = await box(page.getByTestId('live-sheet'));
+        expect(Math.abs(sheet.width - viewport.width)).toBeLessThanOrEqual(1);
+        expect(sheet.height).toBeLessThanOrEqual(SHEET_MAX_SHARE * viewport.height + 1);
+        expect(Math.abs(sheet.y + sheet.height - viewport.height)).toBeLessThanOrEqual(1);
+        await expect(page.getByTestId('stars-view-row')).toBeVisible();
+        expect(await pageScrolls(layout)).toEqual([]);
+        await expect(page.getByTestId('sky-screen')).toHaveCount(0);
       });
 
       test('the pass detail: the drawing at the left at its share and full height, the head first in the rail, no page scroll', async ({ page }) => {

@@ -21,8 +21,8 @@ const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
 
 const WORDS = {
-  en: { app: 'What is in your sky right now', heading: 'Stars tonight', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', layerNames: ['stars', 'figures', 'planets', 'names', 'passes'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
-  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres', 'pases'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
+  en: { app: 'What is in your sky right now', heading: 'Stars tonight', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', layerNames: ['stars', 'figures', 'planets', 'names'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
+  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
 } as const;
 
 /** A reader with a saved place and a language, every provider refused, at the fixture's instant. */
@@ -132,13 +132,14 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await expect(page$(page)).toHaveAttribute('data-look-alt', '30');
   });
 
-  test('the layers are four toggles, all on, and each turns off, and [ passes ] off (FR-STAR-3 as amended v2.4.1, FR-SKY-6)', async ({ page }) => {
+  test('the layers are four toggles, all on, and each turns off; no [ passes ] (FR-STAR-3 as amended v2.4.1, FR-CLEAN-11)', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
     const layers = page.getByRole('group', { name: WORDS.en.layers });
     await expect(layers.getByRole('button')).toHaveText(WORDS.en.layerNames.map((name) => name));
-    for (const name of WORDS.en.layerNames.slice(0, 4)) await expect(layers.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
-    await expect(layers.getByRole('button', { name: 'passes' })).toHaveAttribute('aria-pressed', 'false');
+    for (const name of WORDS.en.layerNames) await expect(layers.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
+    // R163 (FR-CLEAN-11): the `[ passes ]` toggle of R126 is gone, on wide as on compact.
+    await expect(page.locator('[data-layer="passes"]')).toHaveCount(0);
     await layers.getByRole('button', { name: 'figures' }).click();
     await expect(layers.getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
     // Stars off: the list holds the planets alone, or says nothing is drawn.
@@ -187,7 +188,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
 test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('opens from the home’s Stars door, and lays out the readout, the box full-bleed, then the rows', async ({ page }) => {
+  test('opens from the home’s Stars door as the sky: the box the screen, the head and the bottom row over it, the rows in the sheet (FR-CLEAN-1..4)', async ({ page }) => {
     await asReader(page);
     await page.goto('/');
     // R130 (FR-FLOW-1): the When pane's "Stars tonight · [ look up ]" gave way to the Stars door.
@@ -195,20 +196,25 @@ test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
     await expect(page.getByTestId('stars-link')).toHaveCount(0);
     await page.getByTestId('door-stars').click();
     await expect(page).toHaveURL(/#stars$/);
+    // R163 (FR-CLEAN-1, D-997): the full form — the drawing is the viewport; over it `[ ← ]` with the door's line and the bottom row.
+    await expect(page.getByTestId('stars-layout')).toHaveAttribute('data-shape', 'full');
     const sky = drawing(page);
     await expect.poll(async () => (await box(sky)).width).toBe(PHONE.width);
-    const [drawn, readout, facing, layers] = await Promise.all([box(sky), box(page.getByTestId('window-readout')), box(page.getByRole('group', { name: WORDS.en.facing })), box(page.getByTestId('stars-layers'))]);
+    const drawn = await box(sky);
     expect(drawn.x).toBe(0);
-    // R132 (FR-FLOW-8): no taller than wide — four to three for now, R133's call — so `In this field` starts inside the first screen.
-    expect(drawn.height).toBeLessThanOrEqual(drawn.width + 1);
-    // The readout above the box; under it the facing row, the hint, then the layers' two rows (FR-FLOW-8), each on one line.
-    expect(readout.y + readout.height).toBeLessThanOrEqual(drawn.y + 0.5);
-    expect(facing.y).toBeGreaterThanOrEqual(drawn.y + drawn.height - 0.5);
-    expect(facing.height).toBeLessThanOrEqual(48 + 1);
-    expect(layers.y).toBeGreaterThanOrEqual(facing.y + facing.height - 0.5);
-    expect(layers.height).toBeLessThanOrEqual(2 * 48 + 6 + 1);
-    // The drawing is on the first screen; the list follows under the fold.
-    expect(drawn.y + drawn.height).toBeLessThanOrEqual(PHONE.height);
+    expect(drawn.y).toBe(0);
+    expect(Math.round(drawn.height)).toBe(PHONE.height);
+    const head = await box(page.getByTestId('live-head'));
+    expect(head.y).toBeLessThan(PHONE.height / 4);
+    await expect(page.getByTestId('live-head').getByTestId('stars-head-line')).toHaveText(/\S/);
+    const controls = await box(page.getByTestId('live-controls'));
+    expect(controls.y + controls.height).toBeLessThanOrEqual(PHONE.height + 0.5);
+    expect(controls.x).toBeGreaterThan(PHONE.width / 2);
+    // The readout in the corner while the finger has the sky; the facing row and the layers are the sheet's, inert while it is closed.
+    await expect(page.getByTestId('sky-corner-readout').getByTestId('window-readout')).toBeVisible();
+    await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    expect(await page.getByTestId('stars-layers').evaluate((el) => el.closest('[inert]') !== null)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
     expect(await page.locator('h1').count()).toBe(1);
   });
