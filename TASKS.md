@@ -48,7 +48,7 @@
 | Scope (v2.9) | Spec Phase 2r "follow the phone": **R150–R153** in the `## v2.9 tasks` block below, four tasks in three waves of two, one and one, lanes `live`, `window` and `docs`, `fable` on R152 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Inputs (v2.10) | `SPEC.md` v2.10, `PLAN.md` v0.18 (Decision Log V210-1..V210-11 and Decisions D-962..D-975, with §16.29 treated as fixed) |
 | Scope (v2.10) | Spec Phase 2s "the phone first": **R154–R161** in the `## v2.10 tasks` block below, eight tasks in five waves of three, two, one, one and one, lanes `data`, `ui`, `live`, `window`, `chart` and `docs`, `fable` on R155 and R160 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; the waves built around the account's limits (D-975); no tag |
-| Inputs (v2.11) | `SPEC.md` v2.11, `PLAN.md` v0.19 (Decision Log V211-1..V211-8 and Decisions D-996..D-1004, with §16.30 treated as fixed) |
+| Inputs (v2.11) | `SPEC.md` v2.11, `PLAN.md` v0.19 (Decision Log V211-1..V211-9 and Decisions D-996..D-1004, with §16.30 treated as fixed) |
 | Scope (v2.11) | Spec Phase 2t "one clean sky": **R162–R166** in the `## v2.11 tasks` block below, five tasks in three waves of two, two and one, lanes `live`, `ui`, `window` and `docs`, `fable` on R163 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; the waves built around the account's limits (D-1002); no tag |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
@@ -4613,13 +4613,13 @@ Waves (for the sanity check): **wave 1** R154 (data) + R156 (ui) + R157 (live) �
 
 ## v2.11 tasks
 
-Draft, cut 2026-11-02 from `SPEC.md` v2.11 and `PLAN.md` v0.19. Spec Phase 2t, "one clean sky": on the phone the stars page and the pass detail take the live page's compact form — the sky fills the screen, only `[ ← ]` with one line, the facing readout in the corner, `[ follow ]` and `[ controls ]` stand over it, and everything else is in the same bottom sheet; the compact column and the landscape rail are retired for the two pages; the `[ passes ]` toggle leaves the stars page; on a desk every page holds the home's width and is centred, and the stars rail's `View` row sits left (FR-CLEAN-1..13, US-49, V211-1..V211-8). The phase ends with `2.11.0` on `main`; the tag and the deploy are the owner's.
+Draft, cut 2026-11-02 from `SPEC.md` v2.11 and `PLAN.md` v0.19. Spec Phase 2t, "one clean sky": on the phone the stars page and the pass detail take the live page's compact form — the sky fills the screen, only `[ ← ]` with one line, the facing readout in the corner, `[ follow ]` and `[ controls ]` stand over it, and everything else is in the same bottom sheet; the compact column and the landscape rail are retired for the two pages; the `[ passes ]` toggle leaves the stars page; on a desk every page holds the home's width and is centred, the stars rail's `View` row sits left and the header's page links are `[ home ] [ live ] [ stars ]` (FR-CLEAN-1..14, US-49, V211-1..V211-9). The phase ends with `2.11.0` on `main`; the tag and the deploy are the owner's.
 
 Delivery is PLAN §16 with §16.30: five tasks in three waves of two, two and one, `Model: fable` on R163 and `opus` on the rest, every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto` — every pull request merges itself on CI green and a clean review, with an explicit commit message so no co-author line lands on `main` (V210-14). The waves are built around the account's limits (D-975): no wave holds more than one `fable` task; the driver's wait-and-resume is on and nothing is started with `--no-wait`; the owner reads `/usage` before wave 2.
 
 Decision block (§16.2), reserved in PLAN §16.30: **R162 D-1005..D-1006, R166 D-1007..D-1008, R163 D-1009..D-1011, R164 D-1012..D-1014, R165 D-1015..D-1016**. D-996..D-1004 are the plan's.
 
-What every session reads, named in each task as "the phase set": SPEC §4.54 whole (FR-CLEAN-1..13), US-49, §9 Phase 2t, §12 V211-1..V211-8; SPEC §4.50 (FR-FULL-1..6 as amended) and §4.52 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-7) for the pattern; §4.48 (FR-FLOW-4, FR-FLOW-7, FR-FLOW-8, FR-FLOW-9, FR-FLOW-15), §4.46 (FR-STAR-3) and FR-HOME-4, FR-SKY-6 for what is withdrawn or amended; PLAN §2.44, §2.46, §2.47, §9.13 and §16.30; `docs/DESIGN.md` for the tokens and the primitives by name.
+What every session reads, named in each task as "the phase set": SPEC §4.54 whole (FR-CLEAN-1..14), US-49, §9 Phase 2t, §12 V211-1..V211-9; SPEC §4.50 (FR-FULL-1..6 as amended) and §4.52 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-7) for the pattern; §4.48 (FR-FLOW-4, FR-FLOW-7, FR-FLOW-8, FR-FLOW-9, FR-FLOW-15), §4.46 (FR-STAR-3) and FR-HOME-4, FR-SKY-6 for what is withdrawn or amended; PLAN §2.44, §2.46, §2.47, §9.13 and §16.30; `docs/DESIGN.md` for the tokens and the primitives by name.
 
 ### Wave 1
 
@@ -4642,7 +4642,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
     - The 2.10.0 compact live captures are byte-identical on a local run of the live screens (`CAPTURES=1`, 390 × 844).
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green; the Done note gives the budget rows.
 
-- [ ] **R166 — One width on a desk: the shell's cap on every route, the four pages' e2e at 1920 and 2560, the stars rail's `View` row left**
+- [ ] **R166 — One width on a desk: the shell's cap on every route, the four pages' e2e at 1920 and 2560, the stars rail's `View` row left, the header's page links as `[ home ] [ live ] [ stars ]`**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -4650,15 +4650,15 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
   - **Fallback:** off
   - **Gate:** auto
   - **Depends on:** none
-  - **Reads:** the phase set (above); SPEC FR-HOME-4 as amended, FR-HOME-3, FR-LIVE-7, FR-DESK-1..3, FR-TAB-1; PLAN D-546, D-604, D-608, D-187, D-1003; `src/ui/App.module.css` (the `HOME_MAX_CELLS` rule, R93), `src/ui/Shell.{tsx,module.css}`, `src/ui/screens/Home.tsx`; `src/ui/components/sky/SkyViewLayout.module.css` (the rail's `viewRow` rule); `src/lib/layout.ts` (`HOME_MAX_CELLS`, read only); `tests/e2e/{wide,sky-layout,live-perf}.spec.ts`; `tests/styles/breakpoint.test.ts`.
-  - **Goal:** on a desk at 1920 and 2560 px the live page, the stars page, the pass detail and the settings page hold the home's 160 cells and are centred, the sky's box inside the capped column, and the wide stars page's `View` row sits at the rail's left like `Facing` and `Layers`.
-  - **Satisfies:** FR-CLEAN-12, FR-CLEAN-13; FR-HOME-4 as amended; US-49 AC7.
-  - **Scope (PLAN D-1003):** the cap moves from the home's route to the shell's wide branch for every route (header, `main`, footer), the home unchanged at every width; the sky pages' boxes read the capped `main`'s width as today's measure (D-187), no page knowing the cap; the rail's `viewRow` rule loses its end alignment; `wide.spec.ts` asserts the content's width and centring on the four pages at 1920 and 2560 in both languages, and `sky-layout.spec.ts` the three rail rows' shared left edge at 1280 × 800; `live-perf.spec.ts`'s wide cases re-measured; `breakpoint.test.ts` pins the one literal still.
+  - **Reads:** the phase set (above); SPEC FR-HOME-4 as amended, FR-HOME-1, FR-HOME-3, FR-FLOW-3 as amended, FR-LIVE-7, FR-DESK-1..3, FR-TAB-1; PLAN D-546, D-604, D-608, D-187, D-703, D-856, D-1003; `src/ui/App.module.css` (the `HOME_MAX_CELLS` rule, R93), `src/ui/Shell.{tsx,module.css}`, `src/ui/screens/Home.tsx`; `src/ui/components/common/Header.{tsx,module.css,test.tsx}`; `src/ui/components/primitives/BracketLink.tsx`; `src/ui/components/sky/SkyViewLayout.module.css` (the rail's `viewRow` rule); `src/lib/layout.ts` (`HOME_MAX_CELLS`, the header's fold literals, read only); `tests/e2e/{wide,sky-layout,live-perf}.spec.ts` and FR-HOME-1's spec; `tests/styles/{breakpoint,controlRows}.test.ts`; `docs/DESIGN.md` (`BracketLink`).
+  - **Goal:** on a desk at 1920 and 2560 px the live page, the stars page, the pass detail and the settings page hold the home's 160 cells and are centred, the sky's box inside the capped column; the wide stars page's `View` row sits at the rail's left like `Facing` and `Layers`; and the header's page links read `[ home ] [ live ] [ stars ]`, the current one dimmed, so they read as controls like `[ settings ]`.
+  - **Satisfies:** FR-CLEAN-12, FR-CLEAN-13, FR-CLEAN-14; FR-HOME-4, FR-FLOW-3 as amended; US-49 AC7.
+  - **Scope (PLAN D-1003):** the cap moves from the home's route to the shell's wide branch for every route (header, `main`, footer), the home unchanged at every width; the sky pages' boxes read the capped `main`'s width as today's measure (D-187), no page knowing the cap; the rail's `viewRow` rule loses its end alignment; `wide.spec.ts` asserts the content's width and centring on the four pages at 1920 and 2560 in both languages, and `sky-layout.spec.ts` the three rail rows' shared left edge at 1280 × 800; `live-perf.spec.ts`'s wide cases re-measured; `breakpoint.test.ts` pins the one literal still; the header's three page links as `BracketLink`s with `current` on the page's own, the accent-rule style removed, FR-HOME-1's e2e at 964, 1024, 1118 and 1280 px in both languages still one title line (re-measure the fold literals if the six cells move them), `controlRows.test.ts`'s wide header row.
   - **Touches outside the lane:** `src/ui/components/sky/SkyViewLayout.module.css` (one rule).
-  - **Out of scope:** anything on compact; the sheets (R163, R164); the captures (R165).
+  - **Out of scope:** anything on compact (the compact header is unchanged); the sheets (R163, R164); the captures (R165).
   - **Done when:**
-    - `wide.spec.ts` and `sky-layout.spec.ts` green at 1280 × 800, 1920 × 1080 and 2560 × 1440 in both languages; `live-perf.spec.ts` green.
-    - The Done note gives each page's content width at 1920 and 2560 and the rail rows' left edge.
+    - `wide.spec.ts` and `sky-layout.spec.ts` green at 1280 × 800, 1920 × 1080 and 2560 × 1440 in both languages; FR-HOME-1's e2e green at its four widths in both languages; `Header.test.tsx` and `controlRows.test.ts` pass; `live-perf.spec.ts` green.
+    - The Done note gives each page's content width at 1920 and 2560, the rail rows' left edge, and the wide header row's cell count in both languages.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
 
 ### Wave 2
@@ -4740,5 +4740,6 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
 | FR-CLEAN-11 | R163 |
 | FR-CLEAN-12 | R166 |
 | FR-CLEAN-13 | R166 |
+| FR-CLEAN-14 | R166 |
 
 Waves (for the sanity check): **wave 1** R162 (live) + R166 (ui) — **wave 2** R163 (window) + R164 (ui) — **wave 3** R165 (docs). R162 and R166 name no file in common; R163 and R164 share only `tests/e2e/clean-sky.spec.ts`, by position (R163 creates it, R164 appends), and R163 alone touches `SkyViewLayout.tsx` in wave 2. Every wave holds at most one `fable` task (D-1002).
