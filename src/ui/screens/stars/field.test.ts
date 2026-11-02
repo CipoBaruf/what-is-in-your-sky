@@ -227,6 +227,42 @@ describe('the passes in the field (FR-SKY-6, D-794)', () => {
   });
 });
 
+/**
+ * R160 (FR-PHONE-7, D-971): the whole sky — the polar chart in the box — lists every object above the horizon as its
+ * field, whatever the camera and the box, so `In this field` is the whole sky's twelve brightest; a pass is in it where
+ * any part of its drawn arc is above the horizon.
+ */
+describe('the whole sky’s field (FR-PHONE-7)', () => {
+  const unmeasured: View = { ...VIEW, width: 0, height: 0 };
+  const whole = fieldObjects({ catalog, positions, rotation: handRotation({ azDeg: 180, altDeg: 35 }), view: unmeasured, layers: ON, lang: 'en', whole: true });
+
+  it('lists the twelve brightest above the horizon, whatever the camera and the box', () => {
+    expect(whole).toHaveLength(FIELD_LIST_MAX);
+    expect(whole.map((o) => o.mag)).toEqual([...whole.map((o) => o.mag)].sort((a, b) => a - b));
+    expect(whole.every((o) => o.altDeg >= 0)).toBe(true);
+    // Brightest first over the whole sky: no star above the horizon is brighter than the faintest listed and left out.
+    const faintest = Math.max(...whole.map((o) => o.mag));
+    const listed = new Set(whole.map((o) => o.index));
+    for (let i = 0; i < catalog.size; i += 1) {
+      if ((positions.altDeg[i] ?? -90) >= 0 && (catalog.mag[i] ?? 99) < faintest) expect(listed.has(i)).toBe(true);
+    }
+    // The same twelve from any camera.
+    expect(fieldObjects({ catalog, positions, rotation: handRotation({ azDeg: 0, altDeg: 90 }), view: VIEW, layers: ON, lang: 'en', whole: true })).toEqual(whole);
+    // The window's own field lists fewer, and nothing in an unmeasured box.
+    expect(fieldObjects({ catalog, positions, rotation: handRotation({ azDeg: 180, altDeg: 35 }), view: unmeasured, layers: ON, lang: 'en' })).toEqual([]);
+  });
+
+  it('lists a pass whose arc has a point above the horizon, facing anywhere, and still nothing hidden', () => {
+    const golden = goldenPassFixture();
+    const up = shiftPass(golden, T - 10_000 - golden.start.t, 'up');
+    const later = shiftPass(golden, T + 6 * 3_600_000 - golden.start.t, 'later');
+    const scene = tonight([up, later]);
+    const away = { azDeg: (up.start.azDeg + 180) % 360, altDeg: 5 };
+    expect(fieldPasses({ ...scene, rotation: handRotation(away), view: unmeasured, now: T, whole: true }).map((p) => p.id)).toEqual(['up']);
+    expect(fieldPasses({ ...scene, rotation: handRotation(away), view: { ...VIEW, fovDeg: 20 }, now: T })).toEqual([]);
+  });
+});
+
 describe('the list’s twelve rows with the passes in them (FR-STAR-7, D-825)', () => {
   const pass = (id: string): FieldPass => ({ id, key: id, color: 'series-1', name: id, state: 'live', peakAltDeg: 40, peakPoint: 'N' });
   const object = (index: number): FieldObject => ({ index, name: String(index), planet: null, mag: index, altDeg: 30, point: 'S' });

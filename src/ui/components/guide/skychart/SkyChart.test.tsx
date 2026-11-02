@@ -317,6 +317,155 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   });
 });
 
+/**
+ * R160 (FR-PHONE-7, FR-PHONE-10; US-46 AC1, AC4; D-324, D-970, D-971, D-991): the views a page offers, the view a
+ * page holds itself, and the pinch across the limit as `heldView` — the window's handoff holds the polar chart and the
+ * polar chart's holds the window, opened at the aim at the widest field, neither written to the preference.
+ */
+describe('the offered views, the page’s own view and the pinch handoff (R160)', () => {
+  const drawn = async (container: HTMLElement, view: 'window' | 'polar'): Promise<void> => {
+    await waitFor(() => {
+      expect(container.querySelector(`[data-drawing="${view}"]`)).not.toBeNull();
+    });
+  };
+  it('offers the views the page names, in the registered order, and draws a saved view it does not offer as the first offered', () => {
+    appStore.getState().setChartView('dome');
+    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window', 'polar']} />);
+    expect(options()).toEqual(['Window', 'Polar']);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    expect(container.querySelector('[data-drawing="dome"]')).toBeNull();
+    expect(appStore.getState().chartView).toBe('dome');
+    unmount();
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['polar', 'window']} />);
+    expect(options()).toEqual(['Window', 'Polar']);
+  });
+
+  it('with a view of the page’s own draws it, reports every change to the page and never writes the preference', async () => {
+    const media = stubMatchMedia(390);
+    withPhone();
+    const onViewChange = vi.fn();
+    try {
+      const { container, rerender } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window', 'polar']} view="polar" onViewChange={onViewChange} />);
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+      await drawn(container, 'polar');
+      fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+      expect(onViewChange).toHaveBeenCalledWith('window');
+      // The page has not moved it yet: the chart draws what it is given.
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+      expect(appStore.getState().chartView).toBeUndefined();
+      expect(savedChartView()).toBeUndefined();
+      // Following turning on makes the view the window (FR-GYRO-2) — through the page.
+      onViewChange.mockClear();
+      rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window', 'polar']} view="polar" onViewChange={onViewChange} follow />);
+      expect(onViewChange).toHaveBeenCalledWith('window');
+      rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window', 'polar']} view="window" onViewChange={onViewChange} follow />);
+      await drawn(container, 'window');
+      expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-follow', 'true');
+      expect(savedChartView()).toBeUndefined();
+    } finally {
+      media.restore();
+    }
+  });
+
+  it('holds the polar chart on the window’s handoff and the window on the polar chart’s, opened at the aim at 90°, writing nothing (heldView)', async () => {
+    appStore.getState().setChartView('window');
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    await drawn(container, 'window');
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    box.setPointerCapture = vi.fn();
+    box.releasePointerCapture = vi.fn();
+    // The pinch past the widest field: from 60°, fingers closing from 300 px to 100 px ask for 180°.
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 50, clientY: 100 });
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 350, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 2, pointerType: 'touch', clientX: 150, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 1, pointerType: 'touch', clientX: 50, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 2, pointerType: 'touch', clientX: 150, clientY: 100 });
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    expect(within(rtl.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
+    expect(appStore.getState().chartView).toBe('window');
+    expect(savedChartView()).toBe('window');
+    await drawn(container, 'polar');
+    // The window's camera is kept, at the end it reached: the whole sky outlines it.
+    await waitFor(() => {
+      expect(container.querySelector('[data-field-outline]')?.getAttribute('d')).toMatch(/^M/);
+    });
+    // The pinch in on the whole sky, about a point on the eastern side at 45°: the window, facing it, at 90°.
+    const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
+    svg.setPointerCapture = vi.fn();
+    svg.releasePointerCapture = vi.fn();
+    svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
+    // Looking up, east is on the left: 50 user units left of the centre is east at 45°.
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 25, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 125, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 55, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 95, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 55, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 95, clientY: 125 });
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    await drawn(container, 'window');
+    const w = container.querySelector('[data-look-az]');
+    expect(w).toHaveAttribute('data-look-az', '90');
+    expect(w).toHaveAttribute('data-look-alt', '45');
+    expect(w).toHaveAttribute('data-fov', '90');
+    expect(savedChartView()).toBe('window');
+    // Choosing a view clears the hold and writes, as before.
+    fireEvent.click(rtl.getByRole('button', { name: 'Polar' }));
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    expect(savedChartView()).toBe('polar');
+  });
+
+  it('on a page whose window has not been drawn, the pinch in makes the slot’s camera at the aim', async () => {
+    appStore.getState().setChartView('polar');
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    await drawn(container, 'polar');
+    expect(container.querySelector('[data-field-outline]')).toBeNull();
+    const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
+    svg.setPointerCapture = vi.fn();
+    svg.releasePointerCapture = vi.fn();
+    svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 75, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 175, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 110, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 110, clientY: 125 });
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    await drawn(container, 'window');
+    const w = container.querySelector('[data-look-az]');
+    expect(w).toHaveAttribute('data-look-alt', '90');
+    expect(w).toHaveAttribute('data-fov', '90');
+    expect(savedChartView()).toBe('polar');
+  });
+
+  it('keeps a held whole sky while following, its outline the sensor’s, and the dome gets no handoff', async () => {
+    withPhone();
+    appStore.getState().setChartView('dome');
+    const { container, rerender } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} follow />);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    await drawn(container, 'window');
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    box.setPointerCapture = vi.fn();
+    box.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 50, clientY: 100 });
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 350, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 2, pointerType: 'touch', clientX: 150, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 1, pointerType: 'touch', clientX: 50, clientY: 100 });
+    fireEvent.pointerUp(box, { pointerId: 2, pointerType: 'touch', clientX: 150, clientY: 100 });
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-follow', 'true');
+    await drawn(container, 'polar');
+    await waitFor(() => {
+      expect(container.querySelector('[data-field-outline]')).toHaveAttribute('data-following');
+    });
+    // Following ends by the toggle: still the whole sky, the outline the hand's.
+    rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    expect(container.querySelector('[data-field-outline]')).not.toHaveAttribute('data-following');
+    expect(savedChartView()).toBe('dome');
+    // A page offering the window alone gets no handoff from it.
+    rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window']} />);
+    await drawn(container, 'window');
+  });
+});
+
 describe('the legend’s Moon line (FR-MOON-3 as amended v2.0)', () => {
   /**
    * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and the illumination are the *compact* live page's,
