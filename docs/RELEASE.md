@@ -2386,7 +2386,7 @@ checks it against them:
 
 | Chunk | gzip KB | Budget KB | `95f3c88` | Change |
 |---|---|---|---|---|
-| main | **180.3** | 180 | 176.6 | **+3,824 bytes** |
+| main | **180.3** | **185** | 176.6 | **+3,824 bytes** |
 | chart (`SkyDome`) | 97.1 | 110 | 97.1 | −14 bytes |
 | stars-deep (`deep`) | 41.8 | **50** | — | new, 42,772 bytes |
 | worker | 36.1 | 40 | 36.1 | 0 |
@@ -2414,7 +2414,7 @@ the polar chart's own (`PolarStars`, 0.8 → 5.3 KB with the figures, the names,
 haze, the bloom, the Moon's disc, the outline and the pinch) are lazy and unbudgeted, as every
 shared chunk is. The few-byte moves elsewhere are the chunk hashes' names and Rollup's ordering.
 
-- [ ] §23.4's first item is decided, and the release PR carries the table as it then stands.
+- [x] §23.4's first item is decided (2026-11-02, V210-16: 185), and the table above is the script's.
 
 ### 23.3 What R161 removed (FR-PHONE-16, FR-FLOW-17's rule)
 
@@ -2430,7 +2430,7 @@ next phase.
 
 ### 23.4 What the owner decides on this release
 
-- [ ] **The `main` budget** (§23.2, D-994): `main` is 180.3 KB against 2.9.0's 176.6
+- [x] **The `main` budget** (§23.2, D-994; decided 2026-11-02, V210-16, D-995: the measure accepted, the ceiling and the budget 185): `main` is 180.3 KB against 2.9.0's 176.6
       (+3,824 bytes), 0.3 KB over the 180 ceiling V26-14 set and V28-9 and V29-10 kept.
       Either accept the measure and raise the ceiling and the budget to 185, the next 5 KB
       line (D-178's × 1.1 would be 200), as V25-20 and V26-14 did; or cut a task that takes
@@ -2441,7 +2441,7 @@ next phase.
       phone run, in the dark on the OLED screen in both themes. Keep them, or re-set them by
       one Decision Log row (V210-11's form) and a one-line change to the constants and their
       test.
-- [ ] **FR-FLOW-8's fold** (R160, D-990): with the stars page's view row (54 px) and the box at
+- [x] **FR-FLOW-8's fold** (R160, D-990; decided 2026-11-02, V210-17: amended as proposed): with the stars page's view row (54 px) and the box at
       FR-COMP-5's floor, `In this field`'s first row ends 28.5 px (English) and 52.5 px
       (Spanish) under the fold at 390 × 844, so "the heading of `In this field` and its first
       row are inside the viewport" cannot hold. Proposed: amend FR-FLOW-8 to "the heading
@@ -2510,7 +2510,7 @@ step showed beside it; the last item is written in words, not ticked (FR-LOOK-12
 
 Owner steps, in this order, and none of them belong to a task session:
 
-- [ ] `package.json` is `2.10.0` on `main` and every task of the phase is checked off in
+- [x] `package.json` is `2.10.0` on `main` and every task of the phase is checked off in
       `TASKS.md` (R154..R161).
 - [ ] §23.4's items are decided.
 - [ ] §23.1's two `captures.yml` runs are recorded and run 1's artefact is committed.
