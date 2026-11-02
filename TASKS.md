@@ -4743,5 +4743,6 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
 | FR-CLEAN-13 | R166 |
 | FR-CLEAN-14 | R166 |
 | FR-CLEAN-15 | R166 (added 2026-11-02, V211-10) |
+| FR-CLEAN-16 | R166 (added 2026-11-02, V211-11) |
 
 Waves (for the sanity check): **wave 1** R162 (live) + R166 (ui) — **wave 2** R163 (window) + R164 (ui) — **wave 3** R165 (docs). R162 and R166 name no file in common; R163 and R164 share only `tests/e2e/clean-sky.spec.ts`, by position (R163 creates it, R164 appends), and R163 alone touches `SkyViewLayout.tsx` in wave 2. Every wave holds at most one `fable` task (D-1002).
