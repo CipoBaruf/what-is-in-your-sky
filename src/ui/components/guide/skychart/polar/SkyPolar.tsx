@@ -1,5 +1,4 @@
-import { lazy, Suspense, useMemo, useRef, type PointerEvent } from 'react';
-import { PINCH_HANDOFF_RATIO } from '../../../../../lib/layout';
+import { lazy, Suspense, useMemo } from 'react';
 import { useAppStore } from '../../../../../state';
 import { useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -11,7 +10,7 @@ import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible 
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { drawsLayer, landmarkFor } from '../layers';
-import { arcOf, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
+import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
 /**
@@ -68,26 +67,6 @@ const fmt = (n: number): string => n.toFixed(2);
 const at = ({ x, y }: Xy): string => `translate(${fmt(x)} ${fmt(y)})`;
 
 /**
- * R160 (FR-PHONE-10, D-970): `toPolar` run backwards — a point of the chart in user units (the horizon at `HORIZON_R`)
- * to the sky direction under it, in the convention drawn: the altitude from the radius (90° at the centre, 0° on the
- * ring, under it past the ring, which the hand's tilt clamps), the azimuth from the angle with east on the left or the
- * right. The point a pinch's midpoint names, which the window then faces.
- */
-export function skyAt(point: Xy, orientation: ChartOrientation): FieldAim {
-  const east = orientation === 'map' ? 1 : -1;
-  const r = Math.hypot(point.x, point.y) / HORIZON_R;
-  const az = r < 1e-9 ? 0 : (Math.atan2(east * point.x, -point.y) * 180) / Math.PI;
-  return { azDeg: ((az % 360) + 360) % 360, altDeg: 90 - 90 * r };
-}
-
-/** A client point to the chart's user units: the viewBox is square and centred in the drawing's box (`xMidYMid meet`). */
-function chartPoint(svg: SVGSVGElement, clientX: number, clientY: number): Xy {
-  const rect = svg.getBoundingClientRect();
-  const scale = Math.min(rect.width, rect.height) / (2 * VIEW_HALF) || 1;
-  return { x: (clientX - rect.left - rect.width / 2) / scale, y: (clientY - rect.top - rect.height / 2) / scale };
-}
-
-/**
  * R122 (FR-SKY-4, FR-SKY-10; D-813): the star group is its own chunk. It has
  * nothing to draw until the page's `stars` chunk has given the scene its
  * stars, so it loads beside that one and the ladder, the collision rule and
@@ -104,6 +83,8 @@ const PolarStars = lazy(() => polarChunk().then((module) => ({ default: module.P
 const PolarSky = lazy(() => polarChunk().then((module) => ({ default: module.PolarSky })));
 const PolarMoon = lazy(() => polarChunk().then((module) => ({ default: module.PolarMoon })));
 const PolarFieldOutline = lazy(() => polarChunk().then((module) => ({ default: module.PolarFieldOutline })));
+/** R160 (FR-PHONE-10, D-991): the pinch back to the window is the chunk's too, with its inverse projection, so `main` carries none of it. */
+const PolarPinch = lazy(() => polarChunk().then((module) => ({ default: module.PolarPinch })));
 /** The cardinal letters' size, user units (the sheet's `.cardinal`). */
 const CARDINAL_PX = 12;
 const LABEL_GAP = 10;
@@ -336,56 +317,6 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
    * passes, or the hand camera the window left in the chart's slot — and is absent where it has none.
    */
   const fieldCamera = drawsLayer('polar', 'fieldOutline') ? (camera?.source === 'hand' ? camera : (hand?.get() ?? null)) : null;
-  /*
-   * R160 (FR-PHONE-10; D-970): the pinch back to the window. Two pointers on the drawing are tracked from the second's
-   * press to the first's lift; where the distance between them shrank by more than `PINCH_HANDOFF_RATIO`, the lift
-   * hands the view back to the window facing the point under the pinch's midpoint where it began (`skyAt`), through
-   * `onFieldHandoff`. One pointer is nothing here (the chart has no drag), a third is ignored, a cancel hands nothing
-   * over, and the first touch's request is not this gesture's (`SkyViewLayout` asks only on a tap's lift).
-   */
-  const pointersRef = useRef(new Map<number, Xy>());
-  const pinchRef = useRef<{ a: number; b: number; from: number; last: number; mid: Xy } | null>(null);
-  const forget = (pointerId: number): void => {
-    pointersRef.current.delete(pointerId);
-    const pinch = pinchRef.current;
-    if (pinch !== null && (pinch.a === pointerId || pinch.b === pointerId)) pinchRef.current = null;
-  };
-  const onPointerDown = (event: PointerEvent<SVGSVGElement>): void => {
-    if (onFieldHandoff === undefined) return;
-    const pointers = pointersRef.current;
-    if (event.isPrimary) for (const id of [...pointers.keys()]) forget(id);
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // jsdom and old browsers: the pinch still works while the pointers stay over the drawing.
-    }
-    if (pointers.size !== 2 || pinchRef.current !== null) return;
-    const [first, second] = [...pointers.entries()] as [[number, Xy], [number, Xy]];
-    const distance = Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y);
-    pinchRef.current = { a: first[0], b: second[0], from: distance, last: distance, mid: chartPoint(event.currentTarget, (first[1].x + second[1].x) / 2, (first[1].y + second[1].y) / 2) };
-  };
-  const onPointerMove = (event: PointerEvent<SVGSVGElement>): void => {
-    const tracked = pointersRef.current.get(event.pointerId);
-    if (!tracked) return;
-    tracked.x = event.clientX;
-    tracked.y = event.clientY;
-    const pinch = pinchRef.current;
-    if (pinch === null || (pinch.a !== event.pointerId && pinch.b !== event.pointerId)) return;
-    const a = pointersRef.current.get(pinch.a);
-    const b = pointersRef.current.get(pinch.b);
-    if (a && b) pinch.last = Math.hypot(a.x - b.x, a.y - b.y);
-  };
-  const onPointerUp = (event: PointerEvent<SVGSVGElement>): void => {
-    const pinch = pinchRef.current;
-    const released = pinch !== null && (pinch.a === event.pointerId || pinch.b === event.pointerId) ? pinch : null;
-    forget(event.pointerId);
-    if (released === null || onFieldHandoff === undefined) return;
-    if (released.last > 0 && released.from / released.last > PINCH_HANDOFF_RATIO) onFieldHandoff(skyAt(released.mid, orientation));
-  };
-  const onPointerCancel = (event: PointerEvent<SVGSVGElement>): void => {
-    forget(event.pointerId);
-  };
   /** D-755 (R158): the compass letters' boxes, the names' first obstacles, in user units — the letters are centred on their point. */
   const compass = useMemo(
     () =>
@@ -430,7 +361,13 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         }
         status={readoutSlot.inLayout ? null : convention}
       >
-      <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} onLostPointerCapture={onPointerCancel}>
+      <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
+        {/* R160 (FR-PHONE-10): where the page's row offers the window, a pinch in on the drawing hands the view back to it (the chunk's listeners on this svg). */}
+        {onFieldHandoff !== undefined && (
+          <Suspense fallback={null}>
+            <PolarPinch orientation={orientation} horizonR={HORIZON_R} half={VIEW_HALF} onFieldHandoff={onFieldHandoff} />
+          </Suspense>
+        )}
         {/* R158 (FR-LOOK-1, FR-LOOK-2): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
         {field && drawsLayer('polar', 'surface') && (
           <Suspense fallback={null}>

@@ -5,12 +5,13 @@
  * `SIZE_PX` to the chart text tokens and `HIT_RADIUS_PX` to `--tap` / 4 — so
  * no length is written outside `tokens.css` without a test that reads it.
  * R155: the rungs are the polar chart's until R158 (D-982); the window's marks
- * have their own table at the end.
+ * have their own table at the end. R160: the rungs are gone (nothing drew them
+ * after R158); the token sizes and tones stay the sheet's and the ink map's.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { STAR_SIZES_PX } from '../../../../../data/stars/constants';
-import { bloomed, collide, COLLISION_PX, DOT_OPACITY, dotOpacity, dotRadiusPx, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, magnitudeOrder, MARK_GLYPH_SIZES, markFor, planetMarkFor, planetRungFor, rungFor, SIZE_PX, SMALL_SIZE, toneFor, toneToken, type ColourToken, type Rung, type SizeToken } from './starGlyphs';
+import { bloomed, collide, COLLISION_PX, DOT_OPACITY, dotOpacity, dotRadiusPx, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, magnitudeOrder, MARK_GLYPH_SIZES, markFor, planetMarkFor, SIZE_PX, SMALL_SIZE, toneFor, toneToken, type ColourToken, type SizeToken } from './starGlyphs';
 
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
 
@@ -26,52 +27,9 @@ function px(name: string): number {
   throw new Error(`--${name}: cannot read ${value}`);
 }
 
-describe('the ladder (FR-STAR-6 as amended, V24-14)', () => {
-  const rung = (glyph: Rung['glyph'], sizeToken: SizeToken, colourToken: Rung['colourToken']): Rung => ({ glyph, sizeToken, colourToken });
-
-  it.each([
-    [-1.46, rung('*', 'chart-text-18', 'chart-star')], // Sirius
-    [0.5, rung('*', 'chart-text-18', 'chart-star')],
-    [0.51, rung('*', 'chart-text-15', 'chart-star')],
-    [1.5, rung('*', 'chart-text-15', 'chart-star')],
-    [1.51, rung('+', 'chart-text-12', 'chart-star')],
-    [2.5, rung('+', 'chart-text-12', 'chart-star')],
-    [2.51, rung('.', 'chart-text-12', 'chart-star-dim')],
-    [3.5, rung('.', 'chart-text-12', 'chart-star-dim')],
-    [3.51, rung('.', 'chart-text-12', 'chart-star-faint')],
-    [4.5, rung('.', 'chart-text-12', 'chart-star-faint')],
-    [6, rung('.', 'chart-text-12', 'chart-star-faint')],
-  ])('V %s', (mag, expected) => {
-    expect(rungFor(mag)).toEqual(expected);
-  });
-
-  it('is five rungs, three sizes and three tones, the glyph carrying the magnitude without colour (FR-X-5)', () => {
-    expect(LADDER.map((row) => [row.maxMag, row.glyph, row.sizeToken, row.colourToken])).toEqual([
-      [0.5, '*', 'chart-text-18', 'chart-star'],
-      [1.5, '*', 'chart-text-15', 'chart-star'],
-      [2.5, '+', 'chart-text-12', 'chart-star'],
-      [3.5, '.', 'chart-text-12', 'chart-star-dim'],
-      [Number.POSITIVE_INFINITY, '.', 'chart-text-12', 'chart-star-faint'],
-    ]);
-    expect(new Set(LADDER.map((row) => row.sizeToken)).size).toBe(3);
-    expect(new Set(LADDER.map((row) => row.colourToken)).size).toBe(3);
-  });
-
-  it.each([
-    [-4.1, 'chart-text-18'], // Venus
-    [-2.3, 'chart-text-18'], // Jupiter
-    [0.5, 'chart-text-18'],
-    [0.7, 'chart-text-15'], // Saturn, often
-    [1.5, 'chart-text-15'],
-    [1.8, 'chart-text-12'], // Mars at its faintest
-    [5.5, 'chart-text-12'],
-  ])('a planet at V %s is `@` in --chart-planet at %s', (mag, sizeToken) => {
-    expect(planetRungFor(mag)).toEqual({ glyph: '@', sizeToken, colourToken: 'chart-planet' });
-  });
-
-  it('lists every glyph × size the ladder and the planets can draw, once, for the ink offsets (D-752)', () => {
-    const drawn = new Set<string>();
-    for (const row of LADDER) drawn.add(`${row.glyph} ${row.sizeToken}`);
+describe('the token sizes (FR-STAR-6 as amended, V24-14; R160)', () => {
+  it('lists every glyph × token size the ink map measures, once (D-752): the old ladder’s pairs and a planet at each size', () => {
+    const drawn = new Set(['* chart-text-18', '* chart-text-15', '+ chart-text-12', '. chart-text-12']);
     for (const size of Object.keys(SIZE_PX)) drawn.add(`@ ${size}`);
     const listed = GLYPH_SIZES.map(([glyph, size]) => `${glyph} ${size}`);
     expect(new Set(listed).size).toBe(listed.length);
@@ -133,10 +91,8 @@ describe('the one sheet (FR-STAR-6, FR-DS-2; D-813)', () => {
   const sizes: SizeToken[] = ['chart-text-18', 'chart-text-15', 'chart-text-12'];
   const tones: ColourToken[] = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-planet'];
 
-  it('styles every size and tone the ladder and the planets draw from the token of the same name, and nothing else', () => {
-    const drawn = [...LADDER, ...LADDER.map((row) => planetRungFor(row.maxMag))];
-    expect(new Set(drawn.map((rung) => rung.sizeToken))).toEqual(new Set(sizes));
-    expect(new Set(drawn.map((rung) => rung.colourToken))).toEqual(new Set(tones));
+  it('styles every token size and tone from the token of the same name, and nothing else', () => {
+    expect(new Set(GLYPH_SIZES.map(([, size]) => size))).toEqual(new Set(sizes));
     for (const size of sizes) expect(sheet).toContain(`.glyphs [data-size='${size}'] {\n  font-size: var(--${size});\n}`);
     for (const tone of tones) expect(sheet).toContain(`.glyphs [data-tone='${tone}'] {\n  fill: var(--${tone});\n}`);
     expect(sheet).toMatch(/\.glyphs \[data-glyph\] \{\n {2}text-anchor: middle;\n {2}dominant-baseline: central;\n\}/);

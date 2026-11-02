@@ -21,7 +21,8 @@ import { createHandCamera } from '../window/camera';
 import { resetOrientationAccess } from '../window/orientationAccess';
 import { uprightRotation } from '../window/projection';
 import { fieldOutline } from './fieldOutline';
-import { HORIZON_R, SkyPolar, skyAt } from './SkyPolar';
+import { skyAt } from './PolarStars';
+import { HORIZON_R, SkyPolar } from './SkyPolar';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -69,13 +70,13 @@ describe('skyAt: toPolar run backwards (FR-PHONE-10, D-970)', () => {
       { azDeg: 359.5, elDeg: 45 },
     ]) {
       const p = toPolar(azDeg, elDeg, orientation);
-      const back = skyAt({ x: p.x * HORIZON_R, y: p.y * HORIZON_R }, orientation);
+      const back = skyAt({ x: p.x * HORIZON_R, y: p.y * HORIZON_R }, orientation, HORIZON_R);
       expect(back.altDeg).toBeCloseTo(elDeg, 6);
       expect(Math.min(Math.abs(back.azDeg - azDeg), 360 - Math.abs(back.azDeg - azDeg))).toBeLessThan(1e-6);
     }
     // The centre is the zenith; a point past the ring is under the horizon (the hand's tilt clamps it).
-    expect(skyAt({ x: 0, y: 0 }, orientation)).toEqual({ azDeg: 0, altDeg: 90 });
-    expect(skyAt({ x: 0, y: -1.2 * HORIZON_R }, orientation)).toEqual({ azDeg: 0, altDeg: -18 });
+    expect(skyAt({ x: 0, y: 0 }, orientation, HORIZON_R)).toEqual({ azDeg: 0, altDeg: 90 });
+    expect(skyAt({ x: 0, y: -1.2 * HORIZON_R }, orientation, HORIZON_R)).toEqual({ azDeg: 0, altDeg: -18 });
   });
 });
 
@@ -84,9 +85,10 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     appStore.setState(initial, true);
   });
 
-  it('hands the view back on the release of a pinch that narrowed by more than the ratio, aimed at the sky under its midpoint, in either convention', () => {
+  it('hands the view back on the release of a pinch that narrowed by more than the ratio, aimed at the sky under its midpoint, in either convention', async () => {
     const onFieldHandoff = vi.fn();
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} onFieldHandoff={onFieldHandoff} />);
+    await settle();
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     laidOut(svg, 500);
     // Looking up: east on the left. A midpoint 25 px left of the centre at 500 px (two px a unit) is x = −12.5 user units: east, at 90 − 90 × 0.125 = 78.75°.
@@ -95,7 +97,7 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     const [aim] = onFieldHandoff.mock.calls[0] as [{ azDeg: number; altDeg: number }];
     expect(aim.azDeg).toBeCloseTo(90, 6);
     expect(aim.altDeg).toBeCloseTo(78.75, 6);
-    expect(aim).toEqual(skyAt({ x: -12.5, y: 0 }, 'looking-up'));
+    expect(aim).toEqual(skyAt({ x: -12.5, y: 0 }, 'looking-up', HORIZON_R));
     // On the map the same point is west.
     act(() => {
       appStore.getState().setChartOrientation('map');
@@ -109,9 +111,10 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     expect((onFieldHandoff.mock.calls[2] as [{ azDeg: number; altDeg: number }])[0]).toEqual({ azDeg: 0, altDeg: 90 });
   });
 
-  it('stays for a pinch that stops short of the ratio, for a cancel, for a third finger and for an opening pinch; and calls nothing without the prop', () => {
+  it('stays for a pinch that stops short of the ratio, for a cancel, for a third finger and for an opening pinch; and calls nothing without the prop', async () => {
     const onFieldHandoff = vi.fn();
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} onFieldHandoff={onFieldHandoff} />);
+    await settle();
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     laidOut(svg, 500);
     const centre = { x: 250, y: 250 };

@@ -1,4 +1,5 @@
 import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { PINCH_HANDOFF_RATIO } from '../../../../../lib/layout';
 import { FIELD_DETAIL_STEPS, HORIZON_BAND_DEG, MOON_DISC_PX } from '../../../../../data/stars/constants';
 import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../data/stars/constellations';
 import { useLocale } from '../../../../../i18n/useT';
@@ -7,6 +8,7 @@ import { figureName, starName, type StarNamesSource } from '../../../../../lib/s
 import type { ChartOrientation, Locale, MoonState, Observer } from '../../../../../model';
 import { useDeclination } from '../../../live/useDeclination';
 import { drawsLayer, sceneFor, starsFor, type PlacedBody } from '../layers';
+import type { FieldAim } from '../SkyChart.types';
 import { BLOOM_STOPS, BLOOM_TONES, bloomGradientId, bloomRadiusPx } from '../window/bloom';
 import { handRotation, type HandCamera } from '../window/camera';
 import type { Mat3, View } from '../window/projection';
@@ -558,4 +560,104 @@ function FollowingFieldOutline({ camera, orientation, project, observer }: Outli
     };
   }, [camera, orientation, project, subscribe, quarter, sideways]);
   return <path ref={path} className={styles.fieldOutline} data-field-outline data-following d="" />;
+}
+
+// --- The pinch back to the window (FR-PHONE-10) --------------------------------
+
+/**
+ * R160 (FR-PHONE-10, D-970): `toPolar` run backwards — a point of the chart in user units (the horizon at `horizonR`)
+ * to the sky direction under it, in the convention drawn: the altitude from the radius (90° at the centre, 0° on the
+ * ring, under it past the ring, which the hand's tilt clamps), the azimuth from the angle with east on the left or the
+ * right. The point a pinch's midpoint names, which the window then faces.
+ */
+export function skyAt(point: { x: number; y: number }, orientation: ChartOrientation, horizonR: number): FieldAim {
+  const east = orientation === 'map' ? 1 : -1;
+  const r = Math.hypot(point.x, point.y) / horizonR;
+  const az = r < 1e-9 ? 0 : (Math.atan2(east * point.x, -point.y) * 180) / Math.PI;
+  return { azDeg: ((az % 360) + 360) % 360, altDeg: 90 - 90 * r };
+}
+
+/** A client point to the chart's user units: the viewBox is square and centred in the drawing's box (`xMidYMid meet`). */
+function chartPoint(svg: SVGSVGElement, half: number, clientX: number, clientY: number): { x: number; y: number } {
+  const rect = svg.getBoundingClientRect();
+  const scale = Math.min(rect.width, rect.height) / (2 * half) || 1;
+  return { x: (clientX - rect.left - rect.width / 2) / scale, y: (clientY - rect.top - rect.height / 2) / scale };
+}
+
+interface PolarPinchProps {
+  orientation: ChartOrientation;
+  /** The chart's horizon radius and half side, user units (`SkyPolar.tsx`'s `HORIZON_R` and `VIEW_HALF`). */
+  horizonR: number;
+  half: number;
+  onFieldHandoff: (aim: FieldAim) => void;
+}
+
+/**
+ * R160 (FR-PHONE-10; D-970, D-991): the pinch back to the window, as listeners on the chart's own `<svg>` (this node's
+ * owner), installed from the chunk so `main` carries none of it. Two pointers on the drawing are tracked from the
+ * second's press to the first's lift; where the distance between them shrank by more than `PINCH_HANDOFF_RATIO`, the
+ * lift hands the view back to the window facing the sky under the pinch's midpoint where it began (`skyAt`). One
+ * pointer is nothing here (the chart has no drag), a third is ignored, a cancel or a lost capture hands nothing over,
+ * and the first touch's request is not this gesture's (`SkyViewLayout` asks only on a tap's lift).
+ */
+export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: PolarPinchProps) {
+  const anchor = useRef<SVGGElement>(null);
+  const latest = useRef({ orientation, horizonR, half, onFieldHandoff });
+  useLayoutEffect(() => {
+    latest.current = { orientation, horizonR, half, onFieldHandoff };
+  });
+  useLayoutEffect(() => {
+    const svg = anchor.current?.ownerSVGElement;
+    if (!svg) return undefined;
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch: { a: number; b: number; from: number; last: number; mid: { x: number; y: number } } | null = null;
+    const forget = (pointerId: number): void => {
+      pointers.delete(pointerId);
+      if (pinch !== null && (pinch.a === pointerId || pinch.b === pointerId)) pinch = null;
+    };
+    const onDown = (event: PointerEvent): void => {
+      if (event.isPrimary) for (const id of [...pointers.keys()]) forget(id);
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      try {
+        svg.setPointerCapture(event.pointerId);
+      } catch {
+        // jsdom and old browsers: the pinch still works while the pointers stay over the drawing.
+      }
+      if (pointers.size !== 2 || pinch !== null) return;
+      const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
+      const distance = Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y);
+      pinch = { a: first[0], b: second[0], from: distance, last: distance, mid: chartPoint(svg, latest.current.half, (first[1].x + second[1].x) / 2, (first[1].y + second[1].y) / 2) };
+    };
+    const onMove = (event: PointerEvent): void => {
+      const tracked = pointers.get(event.pointerId);
+      if (!tracked) return;
+      tracked.x = event.clientX;
+      tracked.y = event.clientY;
+      if (pinch === null || (pinch.a !== event.pointerId && pinch.b !== event.pointerId)) return;
+      const a = pointers.get(pinch.a);
+      const b = pointers.get(pinch.b);
+      if (a && b) pinch.last = Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const onUp = (event: PointerEvent): void => {
+      const released = pinch !== null && (pinch.a === event.pointerId || pinch.b === event.pointerId) ? pinch : null;
+      forget(event.pointerId);
+      if (released === null) return;
+      if (released.last > 0 && released.from / released.last > PINCH_HANDOFF_RATIO) latest.current.onFieldHandoff(skyAt(released.mid, latest.current.orientation, latest.current.horizonR));
+    };
+    const onCancel = (event: PointerEvent): void => {
+      forget(event.pointerId);
+    };
+    const listeners = [
+      ['pointerdown', onDown],
+      ['pointermove', onMove],
+      ['pointerup', onUp],
+      ['pointercancel', onCancel],
+      ['lostpointercapture', onCancel],
+    ] as const;
+    for (const [name, listener] of listeners) svg.addEventListener(name, listener);
+    return () => {
+      for (const [name, listener] of listeners) svg.removeEventListener(name, listener);
+    };
+  }, []);
+  return <g ref={anchor} data-pinch />;
 }

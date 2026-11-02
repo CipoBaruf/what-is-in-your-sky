@@ -4,7 +4,7 @@ import type { CompassPoint } from '../../../../lib/compass';
 import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
-import type { HandCamera, HandState, SkyCamera } from './window/camera';
+import type { HandCamera, SkyCamera } from './window/camera';
 import type { SkyScene } from './window/scene';
 import type { HandPose } from './window/useViewRotation';
 
@@ -335,12 +335,12 @@ export interface SkyChartProps {
    */
   onFieldHandoff?: (aim?: FieldAim) => void;
   /**
-   * R160 (D-970): where the window's hand camera opens when it has to make one — the chart's slot empty, no `camera`
-   * of the page's — in place of `openingFacing`: the aim of a pinch back from the whole sky on a page whose window had
-   * not been drawn this visit. Read by the window alone, at its first mount; a camera already in the slot is opened
-   * by `SkyChart` itself and this is not read.
+   * R160 (D-970, D-991): the aim of a pinch back from the whole sky, handed down by `SkyChart` for the window to open
+   * the hand camera at — the page's, the slot's, or one it makes when the slot is empty — at `WINDOW_FOV_MAX_DEG`,
+   * once per aim (a remount with the same aim opens nothing again), ending following where the page was following.
+   * The window owns the camera's constants and its maker, which `main` may not import. Read by the window alone.
    */
-  opening?: HandState;
+  opening?: FieldAim;
   className?: string;
 }
 

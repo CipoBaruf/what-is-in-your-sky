@@ -45,6 +45,8 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".chart.view.window:string",
   ".chart.viewGroup:string",
   ".chart.viewPrefix:string",
+  ".chart.views.wholeSky:string",
+  ".chart.views.window:string",
   ".compass.E:string",
   ".compass.ENE:string",
   ".compass.ESE:string",

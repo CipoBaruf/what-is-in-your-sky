@@ -1,5 +1,4 @@
 import { BLOOM_MAG, BV_TONES, DEEP_MAG_LIMIT, DOT_RADIUS_PX, STAR_DOT_MAG, STAR_MAG_LIMIT, STAR_SIZES_PX, type StarTone } from '../../../../../data/stars/constants';
-import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
 
 /**
  * R114 (FR-STAR-6 as amended, FR-DS-8 as amended; PLAN D-753): the ladder,
@@ -16,13 +15,12 @@ import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
  * glyph or the dot and its size carry the magnitude and `@` says planet, so
  * the reading survives monochrome (FR-X-5).
  *
- * The **rungs** below (`rungFor`, `planetRungFor`, `LADDER`) are v2.4.1's
- * ladder of characters — `*`, `+` and `.` in three greys — which the polar
- * chart still draws until R158 moves it onto the marks; `RUNG_MAX_MAG`'s five
- * bounds are theirs and the twilight steps' (`lib/skyStars.ts`), and the
- * three top bounds are the marks' `*` sizes too. The old ladder leaves with
- * R158's re-baseline and not before, so the chart lane's snapshot is not
- * moved by the window lane.
+ * v2.4.1's **rungs** (`rungFor`, `planetRungFor`, `LADDER` — `*`, `+` and `.`
+ * in three greys) left with R160, once R158 had moved the polar chart onto the
+ * marks and nothing drew them; `RUNG_MAX_MAG`'s five bounds stay the twilight
+ * steps' (`lib/skyStars.ts`) and, the three top ones, the marks' `*` sizes
+ * (D-982). The token sizes (`SIZE_PX`, `GLYPH_SIZES`) are still the chart text
+ * tokens' for the ink map keyed by token (`inkOffsets.ts`).
  *
  * The **collision** rule keeps the brighter of any two marks whose centres
  * fall within half the small size of each other, so a close pair never prints
@@ -37,16 +35,10 @@ import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
  */
 
 export type StarGlyph = '*' | '+' | '.' | '@';
-/** The chart text tokens the ladder draws at, by name. */
+/** The chart text tokens the glyphs draw at, by name. */
 export type SizeToken = 'chart-text-18' | 'chart-text-15' | 'chart-text-12';
-/** The colour tokens the ladder draws in, by name. */
+/** The colour tokens the glyphs and the names draw in, by name (the sheet's `data-tone` values). */
 export type ColourToken = 'chart-star' | 'chart-star-dim' | 'chart-star-faint' | 'chart-planet';
-
-export interface Rung {
-  glyph: StarGlyph;
-  sizeToken: SizeToken;
-  colourToken: ColourToken;
-}
 
 /** The sheet's values for the three sizes, at the base (the tokens are px on purpose, OQ-38); the test pins them to `tokens.css`. */
 export const SIZE_PX: Readonly<Record<SizeToken, number>> = { 'chart-text-18': 18, 'chart-text-15': 15, 'chart-text-12': 12 };
@@ -60,33 +52,7 @@ export const HIT_RADIUS_PX = 12;
 /** R127 (FR-SKY-11, D-796): the landmark's ring, px of radius — dashed in `--chart-star` at the chart hairline, in every view (the polar chart in its user units, D-812). */
 export const LANDMARK_RING_PX = 13;
 
-type Row = Rung & { maxMag: number };
-/** The bottom rung: everything the catalogue holds beyond 3.5 (its limit is `STAR_MAG_LIMIT`, 4.5), and the row a magnitude outside every bound falls to. */
-const FAINTEST: Row = { maxMag: RUNG_MAX_MAG[4], glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-faint' };
-
-/** The ladder as a table, top rung first: the first row whose `maxMag` the magnitude does not exceed is the rung. The bounds are `RUNG_MAX_MAG`'s (D-806). */
-export const LADDER: readonly Row[] = [
-  { maxMag: RUNG_MAX_MAG[0], glyph: '*', sizeToken: 'chart-text-18', colourToken: 'chart-star' },
-  { maxMag: RUNG_MAX_MAG[1], glyph: '*', sizeToken: 'chart-text-15', colourToken: 'chart-star' },
-  { maxMag: RUNG_MAX_MAG[2], glyph: '+', sizeToken: 'chart-text-12', colourToken: 'chart-star' },
-  { maxMag: RUNG_MAX_MAG[3], glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-dim' },
-  FAINTEST,
-];
-
-const rowFor = (mag: number): Row => LADDER.find((row) => mag <= row.maxMag) ?? FAINTEST;
-
-/** A star's rung by its visual magnitude. */
-export function rungFor(mag: number): Rung {
-  const { glyph, sizeToken, colourToken } = rowFor(mag);
-  return { glyph, sizeToken, colourToken };
-}
-
-/** A planet's rung by its magnitude at the shown instant: `@` in `--chart-planet`, at the size the same ladder gives (18 at V ≤ 0.5, 15 at ≤ 1.5, 12 otherwise). */
-export function planetRungFor(mag: number): Rung {
-  return { glyph: '@', sizeToken: rowFor(mag).sizeToken, colourToken: 'chart-planet' };
-}
-
-/** Every glyph × size the ladder can draw, for the ink offsets to measure once (D-752). */
+/** Every glyph × token size the ink map keyed by token measures once (D-752; `inkOffset`). R160: the old ladder's `+` and `.` stay measured — the map's own Chromium test reads the period's ink — though no drawing asks for them now. */
 export const GLYPH_SIZES: readonly (readonly [StarGlyph, SizeToken])[] = [
   ['*', 'chart-text-18'],
   ['*', 'chart-text-15'],
