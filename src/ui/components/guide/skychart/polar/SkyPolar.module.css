@@ -8,14 +8,12 @@
   display: contents;
 }
 
-/* The frame's square box is the drawing's size; the viewBox is square too. R160 (FR-PHONE-10): a two-finger pinch on
-   it is the chart's (the way back to the window), so the browser keeps the page's scroll and not its zoom. */
+/* The frame's square box is the drawing's size; the viewBox is square too. */
 .svg {
   display: block;
   width: 100%;
   height: 100%;
   font-family: inherit;
-  touch-action: pan-x pan-y;
 }
 
 /* R122 (FR-SKY-4, D-792, D-813): the stars and the planets as FR-STAR-6's

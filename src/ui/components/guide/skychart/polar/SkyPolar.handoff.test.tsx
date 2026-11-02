@@ -3,9 +3,11 @@
  * polar chart's side of the pinch across the limit, and the outline while the
  * page follows the phone. `skyAt` is `toPolar` run backwards in either
  * convention; a pinch on the drawing that narrows by more than
- * `PINCH_HANDOFF_RATIO` calls `onFieldHandoff` once, at its release, with the
- * sky under the pinch's midpoint; one that stops short, a cancel, a third
- * finger or a chart with no prop calls nothing. With `follow` the outline is
+ * `PINCH_HANDOFF_RATIO` — the fingers spreading, the field narrowing — calls
+ * `onFieldHandoff` once, at its release, with the sky under the pinch's
+ * midpoint; one that stops short, a cancel, a third finger, a closing pinch,
+ * a mouse or a chart with no prop calls nothing, and a lone touch is never
+ * captured, so a tap on an arc still clicks it. With `follow` the outline is
  * written from the sensor's readings on the window's own rotation channel,
  * and from the hand camera again when following ends.
  */
@@ -41,7 +43,7 @@ function laidOut(svg: SVGSVGElement, side: number): void {
   svg.releasePointerCapture = vi.fn();
 }
 
-/** Two touches on the drawing about `centre` (client px), `fromPx` apart, closed to `toPx`, lifted or cancelled. */
+/** Two touches on the drawing about `centre` (client px), `fromPx` apart, moved to `toPx` apart, lifted or cancelled. */
 function pinch(svg: SVGSVGElement, centre: { x: number; y: number }, fromPx: number, toPx: number, { end = 'up' as 'up' | 'cancel', ids = [1, 2] as [number, number] } = {}): void {
   const [a, b] = ids;
   fireEvent.pointerDown(svg, { pointerId: a, pointerType: 'touch', isPrimary: true, clientX: centre.x - fromPx / 2, clientY: centre.y });
@@ -85,14 +87,14 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     appStore.setState(initial, true);
   });
 
-  it('hands the view back on the release of a pinch that narrowed by more than the ratio, aimed at the sky under its midpoint, in either convention', async () => {
+  it('hands the view back on the release of a pinch whose fingers spread by more than the ratio, aimed at the sky under its midpoint, in either convention', async () => {
     const onFieldHandoff = vi.fn();
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} onFieldHandoff={onFieldHandoff} />);
     await settle();
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     laidOut(svg, 500);
     // Looking up: east on the left. A midpoint 25 px left of the centre at 500 px (two px a unit) is x = −12.5 user units: east, at 90 − 90 × 0.125 = 78.75°.
-    pinch(svg, { x: 225, y: 250 }, 100, 40);
+    pinch(svg, { x: 225, y: 250 }, 40, 100);
     expect(onFieldHandoff).toHaveBeenCalledTimes(1);
     const [aim] = onFieldHandoff.mock.calls[0] as [{ azDeg: number; altDeg: number }];
     expect(aim.azDeg).toBeCloseTo(90, 6);
@@ -102,40 +104,54 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     act(() => {
       appStore.getState().setChartOrientation('map');
     });
-    pinch(svg, { x: 225, y: 250 }, 100, 40, { ids: [3, 4] });
+    pinch(svg, { x: 225, y: 250 }, 40, 100, { ids: [3, 4] });
     expect(onFieldHandoff).toHaveBeenCalledTimes(2);
     expect((onFieldHandoff.mock.calls[1] as [{ azDeg: number }])[0].azDeg).toBeCloseTo(270, 6);
     // Where the box is laid out off the origin the midpoint is still read in the drawing's own frame.
     svg.getBoundingClientRect = () => ({ x: 100, y: 300, left: 100, top: 300, width: 250, height: 250, right: 350, bottom: 550, toJSON: () => ({}) }) as DOMRect;
-    pinch(svg, { x: 225, y: 425 }, 100, 40, { ids: [5, 6] });
+    pinch(svg, { x: 225, y: 425 }, 40, 100, { ids: [5, 6] });
     expect((onFieldHandoff.mock.calls[2] as [{ azDeg: number; altDeg: number }])[0]).toEqual({ azDeg: 0, altDeg: 90 });
+    // The two touches are captured only once they make a pinch: a lone touch's click still reaches what is under it.
+    expect(svg.setPointerCapture).toHaveBeenCalledTimes(6);
+    fireEvent.pointerDown(svg, { pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: 250, clientY: 250 });
+    fireEvent.pointerUp(svg, { pointerId: 9, pointerType: 'touch', clientX: 250, clientY: 250 });
+    expect(svg.setPointerCapture).toHaveBeenCalledTimes(6);
   });
 
-  it('stays for a pinch that stops short of the ratio, for a cancel, for a third finger and for an opening pinch; and calls nothing without the prop', async () => {
+  it('stays for a pinch that stops short of the ratio, for a cancel, for a third finger, for a closing pinch and for a mouse; and calls nothing without the prop', async () => {
     const onFieldHandoff = vi.fn();
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} onFieldHandoff={onFieldHandoff} />);
     await settle();
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     laidOut(svg, 500);
     const centre = { x: 250, y: 250 };
-    pinch(svg, centre, 100, 100 / PINCH_HANDOFF_RATIO);
+    pinch(svg, centre, 100, 100 * PINCH_HANDOFF_RATIO - 1);
     expect(onFieldHandoff).not.toHaveBeenCalled();
-    pinch(svg, centre, 100, 100 / PINCH_HANDOFF_RATIO - 1, { end: 'cancel' });
+    pinch(svg, centre, 100, 100 * PINCH_HANDOFF_RATIO + 1, { end: 'cancel' });
     expect(onFieldHandoff).not.toHaveBeenCalled();
-    // Opening the fingers is the other way: the whole sky has no narrower field to go to.
-    pinch(svg, centre, 100, 200);
+    // Closing the fingers is the other way: the whole sky has no wider field to go to.
+    pinch(svg, centre, 200, 100);
     expect(onFieldHandoff).not.toHaveBeenCalled();
+    // A mouse never pinches, and is never captured.
+    (svg.setPointerCapture as ReturnType<typeof vi.fn>).mockClear();
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'mouse', isPrimary: true, clientX: 200, clientY: 250 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'mouse', isPrimary: false, clientX: 300, clientY: 250 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'mouse', clientX: 400, clientY: 250 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'mouse', clientX: 200, clientY: 250 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'mouse', clientX: 400, clientY: 250 });
+    expect(onFieldHandoff).not.toHaveBeenCalled();
+    expect(svg.setPointerCapture).not.toHaveBeenCalled();
     // A third finger lands: the first two are still the pinch, and the third is ignored.
     fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 200, clientY: 250 });
     fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 300, clientY: 250 });
     fireEvent.pointerDown(svg, { pointerId: 3, pointerType: 'touch', isPrimary: false, clientX: 250, clientY: 100 });
     fireEvent.pointerMove(svg, { pointerId: 3, pointerType: 'touch', clientX: 250, clientY: 110 });
-    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 230, clientY: 250 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 330, clientY: 250 });
     fireEvent.pointerUp(svg, { pointerId: 3, pointerType: 'touch', clientX: 250, clientY: 110 });
     expect(onFieldHandoff).not.toHaveBeenCalled();
     fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 250 });
     expect(onFieldHandoff).toHaveBeenCalledTimes(1);
-    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 230, clientY: 250 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 330, clientY: 250 });
     expect(onFieldHandoff).toHaveBeenCalledTimes(1);
     // One finger alone is nothing, with or without a move.
     fireEvent.pointerDown(svg, { pointerId: 4, pointerType: 'touch', isPrimary: true, clientX: 200, clientY: 250 });
@@ -143,8 +159,10 @@ describe('<SkyPolar> the pinch back to the window (FR-PHONE-10, D-970)', () => {
     fireEvent.pointerUp(svg, { pointerId: 4, pointerType: 'touch', clientX: 260, clientY: 250 });
     expect(onFieldHandoff).toHaveBeenCalledTimes(1);
     rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    pinch(svg, centre, 100, 40, { ids: [5, 6] });
+    pinch(svg, centre, 40, 100, { ids: [5, 6] });
     expect(onFieldHandoff).toHaveBeenCalledTimes(1);
+    // Without the way back the svg's `touch-action` is the browser's again.
+    expect(svg.style.touchAction).toBe('');
   });
 });
 

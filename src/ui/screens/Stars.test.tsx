@@ -370,18 +370,18 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
     const before = outline();
     fireEvent.keyDown(container, { key: 'ArrowRight' });
     expect(outline()).toBe(before);
-    // The pinch in on the whole sky: two touches a hundred px apart, closed to forty, released — the window, facing the midpoint, at 90°.
+    // The pinch in on the whole sky: two touches forty px apart, spread to a hundred, released — the window, facing the midpoint, at 90°.
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     svg.setPointerCapture = vi.fn();
     svg.releasePointerCapture = vi.fn();
     svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
     // The midpoint at the chart's centre is the zenith.
-    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 75, clientY: 125 });
-    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 175, clientY: 125 });
-    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 105, clientY: 125 });
-    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 145, clientY: 125 });
-    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 105, clientY: 125 });
-    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 145, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 105, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 145, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 75, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 175, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 75, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 175, clientY: 125 });
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     expect(viewRow().getByRole('button', { name: 'Window' })).toHaveAttribute('aria-pressed', 'true');
     await drawn('window');

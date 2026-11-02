@@ -195,13 +195,13 @@ for (const size of SIZES) {
         expect(held).toMatch(/^M/);
         expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/chartView|polar/);
 
-        // In on the whole sky about a point west of the zenith, a third of the way to the horizon: the window at 90° facing it.
+        // In on the whole sky (the fingers spreading) about a point west of the zenith, a third of the way to the horizon: the window at 90° facing it.
         const svg = polar(page);
         const rect = await svg.evaluate((el) => el.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number });
         const side = Math.min(rect.width, rect.height);
         const at = { x: rect.x + rect.width / 2 + side * 0.13, y: rect.y + rect.height / 2 - side * 0.05 };
         const expected = await skyUnder(svg, at);
-        await pinchPolar(svg, 120, 60, at);
+        await pinchPolar(svg, 60, 120, at);
         await expect(chart(page)).toHaveAttribute('data-view', 'window');
         await expect(viewRow(page).getByRole('button', { name: WORDS[locale].window })).toHaveAttribute('aria-pressed', 'true');
         await expect(w).toHaveAttribute('data-state', 'hand');

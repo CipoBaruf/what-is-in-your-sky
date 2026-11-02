@@ -40,8 +40,9 @@ export async function pinch(within: Locator, fromPx: number, toPx: number, steps
 
 /**
  * R160 (FR-PHONE-10): the pinch on the whole sky — two `touch` pointers on the polar chart's drawing about `at` (client
- * px; the drawing's centre when absent), `fromPx` apart, closed to `toPx` in `steps`, and lifted. The chart hands the
- * view back on the lift where the fingers closed by more than `PINCH_HANDOFF_RATIO`, facing the sky under the midpoint.
+ * px; the drawing's centre when absent), `fromPx` apart, moved to `toPx` apart in `steps`, and lifted. The chart hands
+ * the view back on the lift where the fingers spread by more than `PINCH_HANDOFF_RATIO` (the field narrowing, the way
+ * in), facing the sky under the midpoint.
  */
 export async function pinchPolar(within: Locator, fromPx: number, toPx: number, at?: { x: number; y: number }, steps = 4): Promise<void> {
   await within.evaluate(

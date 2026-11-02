@@ -389,18 +389,18 @@ describe('the offered views, the page’s own view and the pinch handoff (R160)'
     await waitFor(() => {
       expect(container.querySelector('[data-field-outline]')?.getAttribute('d')).toMatch(/^M/);
     });
-    // The pinch in on the whole sky, about a point on the eastern side at 45°: the window, facing it, at 90°.
+    // The pinch in on the whole sky (the fingers spreading), about a point on the eastern side at 45°: the window, facing it, at 90°.
     const svg = container.querySelector('[data-drawing="polar"]') as SVGSVGElement;
     svg.setPointerCapture = vi.fn();
     svg.releasePointerCapture = vi.fn();
     svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
     // Looking up, east is on the left: 50 user units left of the centre is east at 45°.
-    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 25, clientY: 125 });
-    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 125, clientY: 125 });
-    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 55, clientY: 125 });
-    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 95, clientY: 125 });
-    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 55, clientY: 125 });
-    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 95, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 55, clientY: 125 });
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 95, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 25, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 125, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 25, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch', clientX: 125, clientY: 125 });
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
     await drawn(container, 'window');
     const w = container.querySelector('[data-look-az]');
@@ -425,8 +425,8 @@ describe('the offered views, the page’s own view and the pinch handoff (R160)'
     svg.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 250, height: 250, right: 250, bottom: 250, toJSON: () => ({}) }) as DOMRect;
     fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 75, clientY: 125 });
     fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', isPrimary: false, clientX: 175, clientY: 125 });
-    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 110, clientY: 125 });
-    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 110, clientY: 125 });
+    fireEvent.pointerMove(svg, { pointerId: 1, pointerType: 'touch', clientX: 40, clientY: 125 });
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch', clientX: 40, clientY: 125 });
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
     await drawn(container, 'window');
     const w = container.querySelector('[data-look-az]');
@@ -455,10 +455,19 @@ describe('the offered views, the page’s own view and the pinch handoff (R160)'
     await waitFor(() => {
       expect(container.querySelector('[data-field-outline]')).toHaveAttribute('data-following');
     });
-    // Following ends by the toggle: still the whole sky, the outline the hand's.
-    rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    // A pick of the dome while following saves it and shows the window until following ends (FR-GYRO-2); a pick of the polar chart shows it, following on.
+    fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
+    expect(savedChartView()).toBe('dome');
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    fireEvent.click(rtl.getByRole('button', { name: 'Polar' }));
+    expect(savedChartView()).toBe('polar');
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
-    expect(container.querySelector('[data-field-outline]')).not.toHaveAttribute('data-following');
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-follow', 'true');
+    fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    // Following ends by the toggle: the saved dome.
+    rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     expect(savedChartView()).toBe('dome');
     // A page offering the window alone gets no handoff from it.
     rerender(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['window']} />);

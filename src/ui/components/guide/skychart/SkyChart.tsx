@@ -243,7 +243,11 @@ export function SkyChart(props: SkyChartProps) {
     followedRef.current = follow;
     if (follow && !was && controlled && givenView !== 'window') onViewChange?.('window');
   }, [follow, controlled, givenView, onViewChange]);
-  const view = viewFor(offered, controlled ? pageView : (heldView ?? pageView));
+  // FR-GYRO-2: following, the dome is never the view — it has no camera to follow with — so a pick of it while following
+  // saves it and shows the window until following ends (as D-957 had every view); the polar chart is shown, with the
+  // field outlined and moving (FR-PHONE-8: the whole sky one tap away from every sky view, FR-PHONE-9).
+  const shown = controlled ? pageView : (heldView ?? pageView);
+  const view = viewFor(offered, follow && shown === 'dome' ? 'window' : shown);
   /*
    * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
    * window is laid out in the box under the hand. Choosing the window asks for no permission — the follow toggle

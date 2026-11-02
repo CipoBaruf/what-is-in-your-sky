@@ -594,11 +594,16 @@ interface PolarPinchProps {
 
 /**
  * R160 (FR-PHONE-10; D-970, D-991): the pinch back to the window, as listeners on the chart's own `<svg>` (this node's
- * owner), installed from the chunk so `main` carries none of it. Two pointers on the drawing are tracked from the
- * second's press to the first's lift; where the distance between them shrank by more than `PINCH_HANDOFF_RATIO`, the
- * lift hands the view back to the window facing the sky under the pinch's midpoint where it began (`skyAt`). One
- * pointer is nothing here (the chart has no drag), a third is ignored, a cancel or a lost capture hands nothing over,
- * and the first touch's request is not this gesture's (`SkyViewLayout` asks only on a tap's lift).
+ * owner), installed from the chunk so `main` carries none of it. Two touch pointers on the drawing are tracked from
+ * the second's press to the first's lift — captured by the svg only once the two make a pinch, so a tap on an arc
+ * still clicks it (a captured pointer's click goes to the capture target) — and where the distance between them grew
+ * by more than `PINCH_HANDOFF_RATIO` (the fingers spreading: the field narrowing, FR-PHONE-10's "a pinch that narrows",
+ * the way in that the window's pinch out past its end mirrors) the lift hands the view back to the window facing the
+ * sky under the pinch's midpoint where it began (`skyAt`). One pointer is nothing here (the chart has no drag), a
+ * mouse never pinches, a third finger is ignored, a cancel or a lost capture hands nothing over, and the first touch's
+ * request is not this gesture's (`SkyViewLayout` asks only on a tap's lift). While mounted the svg's `touch-action`
+ * keeps the page's scroll under one finger and takes the two from the browser's own zoom; it is restored on unmount,
+ * so a chart offering no way back leaves the browser's zoom alone.
  */
 export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: PolarPinchProps) {
   const anchor = useRef<SVGGElement>(null);
@@ -609,6 +614,8 @@ export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: Pola
   useLayoutEffect(() => {
     const svg = anchor.current?.ownerSVGElement;
     if (!svg) return undefined;
+    const touchAction = svg.style.touchAction;
+    svg.style.touchAction = 'pan-x pan-y';
     const pointers = new Map<number, { x: number; y: number }>();
     let pinch: { a: number; b: number; from: number; last: number; mid: { x: number; y: number } } | null = null;
     const forget = (pointerId: number): void => {
@@ -616,17 +623,20 @@ export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: Pola
       if (pinch !== null && (pinch.a === pointerId || pinch.b === pointerId)) pinch = null;
     };
     const onDown = (event: PointerEvent): void => {
+      if (event.pointerType !== 'touch') return;
       if (event.isPrimary) for (const id of [...pointers.keys()]) forget(id);
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      try {
-        svg.setPointerCapture(event.pointerId);
-      } catch {
-        // jsdom and old browsers: the pinch still works while the pointers stay over the drawing.
-      }
       if (pointers.size !== 2 || pinch !== null) return;
       const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
       const distance = Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y);
       pinch = { a: first[0], b: second[0], from: distance, last: distance, mid: chartPoint(svg, latest.current.half, (first[1].x + second[1].x) / 2, (first[1].y + second[1].y) / 2) };
+      for (const id of [first[0], second[0]]) {
+        try {
+          svg.setPointerCapture(id);
+        } catch {
+          // jsdom and old browsers: the pinch still works while the pointers stay over the drawing.
+        }
+      }
     };
     const onMove = (event: PointerEvent): void => {
       const tracked = pointers.get(event.pointerId);
@@ -642,7 +652,7 @@ export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: Pola
       const released = pinch !== null && (pinch.a === event.pointerId || pinch.b === event.pointerId) ? pinch : null;
       forget(event.pointerId);
       if (released === null) return;
-      if (released.last > 0 && released.from / released.last > PINCH_HANDOFF_RATIO) latest.current.onFieldHandoff(skyAt(released.mid, latest.current.orientation, latest.current.horizonR));
+      if (released.from > 0 && released.last / released.from > PINCH_HANDOFF_RATIO) latest.current.onFieldHandoff(skyAt(released.mid, latest.current.orientation, latest.current.horizonR));
     };
     const onCancel = (event: PointerEvent): void => {
       forget(event.pointerId);
@@ -657,6 +667,7 @@ export function PolarPinch({ orientation, horizonR, half, onFieldHandoff }: Pola
     for (const [name, listener] of listeners) svg.addEventListener(name, listener);
     return () => {
       for (const [name, listener] of listeners) svg.removeEventListener(name, listener);
+      svg.style.touchAction = touchAction;
     };
   }, []);
   return <g ref={anchor} data-pinch />;

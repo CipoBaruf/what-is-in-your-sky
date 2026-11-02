@@ -349,13 +349,13 @@ test.describe('zoom on a compact page without a sensor', () => {
     await expect(chart).toHaveAttribute('data-view', 'polar');
     const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
     await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/, { timeout: 30_000 });
-    // In on the whole sky short of the ratio: it stays; past it, about the zenith: the window, up, at 90°.
-    await pinchPolar(polar, 100, 90);
+    // In on the whole sky (the fingers spreading) short of the ratio: it stays; past it, about the zenith: the window, up, at 90°.
+    await pinchPolar(polar, 100, 110);
     await expect(chart).toHaveAttribute('data-view', 'polar');
     const rect = await polar.evaluate((el) => el.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number });
     const at = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
     expect((await skyUnder(polar, at)).altDeg).toBeCloseTo(90, 6);
-    await pinchPolar(polar, 100, 60, at);
+    await pinchPolar(polar, 60, 100, at);
     await expect(chart).toHaveAttribute('data-view', 'window');
     const back = page.getByTestId('stars-sky').locator('[data-look-az][data-fov]');
     await expect(back).toHaveAttribute('data-state', 'hand');

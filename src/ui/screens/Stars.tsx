@@ -11,7 +11,7 @@ import { useActiveObserver, useAppStore, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
-import { groundState, type View } from '../components/guide/skychart/window/projection';
+import { groundState, type Mat3, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { markSkyHintSeen } from '../components/guide/skychart/useChartHand';
@@ -96,7 +96,9 @@ import styles from './Stars.module.css';
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
 
-const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
+/** The three layers the page holds as plain switches; `names` is its own override over a default by view and width (R160, D-990). */
+type LayerSwitches = Omit<StarField['layers'], 'names'>;
+const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
 
 /** R160 (FR-PHONE-7): the two views the page offers, the window first (FR-GYRO-11); no dome, since the page is about the stars. */
 const STARS_VIEWS: readonly ChartView[] = ['window', 'polar'];
@@ -125,6 +127,13 @@ export function firstRowCount(labels: readonly string[], budget: number): number
 }
 
 const UNMEASURED = { width: 0, height: 0 };
+/** R160 (FR-PHONE-7): the whole sky reads no camera and no box — one inert rotation and view, so the list's memos hold still while the camera moves under it. */
+const WHOLE_SKY_VIEW: View = { fovDeg: 0, width: 0, height: 0, screenAngleDeg: 0 };
+const WHOLE_SKY_ROTATION: Mat3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
 
 /**
  * R126 (FR-SKY-6): whether the store's run is this sky's and has arrived — the live page's `liveState` rule: this
@@ -195,7 +204,7 @@ function StarsSky({ observer }: { observer: Observer }) {
    * choice holds for both views; the toggle shows the value in force.
    */
   const [view, setView] = useState<ChartView>('window');
-  const [layers, setLayers] = useState(ALL_LAYERS);
+  const [layers, setLayers] = useState<LayerSwitches>(ALL_LAYERS);
   const [namesChoice, setNamesChoice] = useState<boolean | null>(null);
   const names = namesChoice ?? !(view === 'polar' && !wide);
   const drawnLayers = useMemo<StarField['layers']>(() => ({ ...layers, names }), [layers, names]);
@@ -532,14 +541,17 @@ function FieldSection({ camera, catalog, positions, passes, rows, now, box, laye
   const lang = useLocale();
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
-  const view: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
-  const rotation = useMemo(() => handRotation(settled), [settled]);
+  const windowView: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
+  const windowRotation = useMemo(() => handRotation(settled), [settled]);
+  // R160: the whole sky's field is every object above the horizon, so its memos read an inert camera and hold still under the hand.
+  const view = whole ? WHOLE_SKY_VIEW : windowView;
+  const rotation = whole ? WHOLE_SKY_ROTATION : windowRotation;
   // R126 (D-832): the star names in the reader's language, through `starName`.
   const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang, whole }), [catalog, positions, rotation, view, layers, lang, whole]);
   // R126 (FR-SKY-6, D-794): the passes drawn in the field, ahead of the stars.
   // R126 (FR-STAR-7, D-825): with the passes first, the list is still at most `FIELD_LIST_MAX` rows.
   const listed = useMemo(() => fieldRows(passes.length === 0 ? [] : fieldPasses({ passes, rows, rotation, view, now, whole }), objects), [passes, rows, rotation, view, now, objects, whole]);
-  const buried = !whole && view.width > 0 && groundState(settled.altDeg, view) === 'buried';
+  const buried = !whole && windowView.width > 0 && groundState(settled.altDeg, windowView) === 'buried';
   return useMemo(() => <FieldList objects={listed.objects} passes={listed.passes} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [listed, named, onName, buried, labelledBy]);
 }
 
