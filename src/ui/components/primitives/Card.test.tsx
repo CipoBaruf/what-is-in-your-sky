@@ -101,4 +101,13 @@ describe.each(THEMES)('<Card> under data-theme=%s', (theme) => {
     expect(link.className).toMatch(/placed/);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('keeps emphasis for a link or a button: an article asked for it stays a plain card', () => {
+    render(
+      <Card aria-label="A pass" emphasis data-testid="article">
+        <p>21:14 ISS</p>
+      </Card>,
+    );
+    expect(screen.getByTestId('article').className).not.toMatch(/emphasis/);
+  });
 });

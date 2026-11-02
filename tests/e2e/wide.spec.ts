@@ -403,7 +403,7 @@ test.describe('FR-CLEAN-16: the doors stand out on a desk', { tag: SEEDS_ITSELF 
         await page.setViewportSize({ width, height: 800 });
         await seedStoredRun(page, { locale, settled: true });
         await expect(page.getByTestId('door-stars-line')).toHaveCount(3);
-        await expect(page.locator('[data-testid="door-stars-line"][data-pending]')).toHaveCount(0);
+        await expect(page.locator('[data-testid^="door-"][data-pending]')).toHaveCount(0);
         const doors = await page.evaluate(() =>
           ['door-satellites', 'door-stars', 'door-live'].map((id) => {
             const door = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);

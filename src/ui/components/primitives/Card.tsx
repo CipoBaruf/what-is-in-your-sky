@@ -40,7 +40,7 @@ export type CardProps = CardOwnProps & Omit<ComponentPropsWithoutRef<'article'>,
 
 export function Card({ as = 'article', selected = false, frame = 'rule', emphasis = false, children, className, href, ...rest }: CardProps) {
   const control = as === 'button' || as === 'a';
-  const classes = [styles.card, control ? styles.control : undefined, frame === 'accent' ? styles.accent : undefined, emphasis ? styles.emphasis : undefined, className].filter(Boolean).join(' ');
+  const classes = [styles.card, control ? styles.control : undefined, frame === 'accent' ? styles.accent : undefined, control && emphasis ? styles.emphasis : undefined, className].filter(Boolean).join(' ');
   const state = { 'data-card': '', ...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {}) };
   if (as === 'button') {
     return (

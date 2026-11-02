@@ -35,8 +35,9 @@
   color: var(--fg);
 }
 
-/* An answer line at `--small`, in `--fg-dim`; one row each, never wrapped (34 cells, `doorRows.test.ts`). A line
-   still waiting on the `stars` chunk keeps its row (`min-height: 1lh`). */
+/* An answer line at `--small`, in `--fg-dim`; on compact one row each, never wrapped (34 cells, `doorRows.test.ts`);
+   on wide body-sized and wrapping (below, D-1017). A line still waiting on the `stars` chunk keeps a row
+   (`min-height: 1lh`). */
 .line {
   display: block;
   min-height: 1lh;
@@ -61,8 +62,14 @@
     line-height: var(--text-pane-row);
   }
 
-  .door:is(:hover, :focus-visible) .title {
+  .door:focus-visible .title {
     color: var(--accent);
+  }
+
+  @media (hover: hover) {
+    .door:hover .title {
+      color: var(--accent);
+    }
   }
 
   /* D-1017: a body-sized line no longer fits a third of a narrow desk (964–1200 px), so on wide it wraps onto a
@@ -71,6 +78,6 @@
     font-size: var(--text-body);
     line-height: var(--text-body-row);
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 }

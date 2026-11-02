@@ -20,7 +20,7 @@ import { useNight } from './useNight';
  * `a`), its title in `--fg` and its answer lines at `--small` (`doorLines`).
  * Full width and stacked on compact, over the Where reading (R156, FR-PHONE-12); on wide one row
  * of three equal boxes over the panes, each with one more line, in `Card`'s `emphasis` form: the page's main
- * navigation, a pane-sized title and body-sized lines (R166, FR-CLEAN-16).
+ * navigation, a pane-sized title and body-sized lines that wrap rather than cut (R166, FR-CLEAN-16, D-1017).
  *
  * The Satellites door opens the next event's pass (`#pass=<id>`, the hash the
  * cards open), or with no visible pass in the span the What reading: its
