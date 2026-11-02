@@ -27,14 +27,14 @@ import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
-import { ControlsSheet } from '../components/live/ControlsSheet';
+import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowControl } from '../components/live/FollowControl';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
 import { BackToLive, HiddenToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
-import { ContextLine, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
-import { SkyHead } from '../components/live/SkyHead';
+import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
+import { SkyHead } from '../components/sky/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
@@ -458,7 +458,7 @@ function SecondClock({ clockRef, children }: { clockRef: RefObject<EpochMs>; chi
 /** R148 (FR-FULL-2, D-920): the head over the sky — `[ ← ]` and the shown time — on the page's 1 s clock. */
 function ClockedHead({ onBack, ...props }: Omit<ShownTimeProps, 'clock'> & { onBack: () => void }) {
   const clock = useContext(SecondClockContext);
-  return <SkyHead {...props} clock={clock} onBack={onBack} />;
+  return <SkyHead line={<ShownTime {...props} clock={clock} />} onBack={onBack} />;
 }
 
 /** The time track, its value text the headline's words on the same 1 s clock (FR-TONIGHT-3, D-900). */
