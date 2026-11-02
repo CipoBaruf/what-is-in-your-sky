@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { handRotation } from './camera';
-import { drawableDeg, FOLLOW_HORIZON_SHARE, followAimShiftPx, groundState, project, type View } from './projection';
+import { drawableDeg, FOLLOW_HORIZON_SHARE, FOLLOW_VERTICAL_FIELD_DEG, followAimShiftPx, followFovDeg, groundState, project, verticalHalfFieldDeg, WINDOW_FOV, type View } from './projection';
 
 const CENTRED: View = { fovDeg: 60, width: 390, height: 844, screenAngleDeg: 0 };
 const SHIFTED: View = { ...CENTRED, aimShiftPx: followAimShiftPx(CENTRED.height) };
@@ -36,5 +36,23 @@ describe('the following window’s aim shift', () => {
     expect(groundState(-10, SHIFTED)).toBe('sky');
     expect(groundState(-60, SHIFTED)).toBe('ground');
     expect(groundState(-120, SHIFTED)).toBe('buried');
+  });
+});
+
+describe('the following window’s field', () => {
+  it('narrows a portrait drawing to FOLLOW_VERTICAL_FIELD_DEG top to bottom, and its top stops short of the zenith', () => {
+    const fov = followFovDeg(WINDOW_FOV, 390, 844);
+    expect(fov).toBeLessThan(WINDOW_FOV);
+    const view: View = { fovDeg: fov, width: 390, height: 844, screenAngleDeg: 0, aimShiftPx: followAimShiftPx(844) };
+    expect(2 * verticalHalfFieldDeg(view)).toBeCloseTo(FOLLOW_VERTICAL_FIELD_DEG, 6);
+    // Level: the box's top edge, straight up from the aim, is well under the zenith.
+    const top = project(handRotation({ azDeg: 0, altDeg: 0 }), 0, 63, view);
+    expect(top.y).toBeGreaterThan(0);
+    expect(project(handRotation({ azDeg: 0, altDeg: 0 }), 0, 0, view).y).toBeCloseTo(844 * (1 - FOLLOW_HORIZON_SHARE), 6);
+  });
+
+  it('scales a pinched field from there, and leaves a wide drawing alone', () => {
+    expect(followFovDeg(WINDOW_FOV * 0.75, 390, 844)).toBeCloseTo(followFovDeg(WINDOW_FOV, 390, 844) * 0.75, 6);
+    expect(followFovDeg(WINDOW_FOV, 844, 390)).toBe(WINDOW_FOV);
   });
 });

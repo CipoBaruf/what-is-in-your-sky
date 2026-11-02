@@ -412,3 +412,22 @@ export const FOLLOW_HORIZON_SHARE = 0.15;
 export function followAimShiftPx(height: number): number {
   return (0.5 - FOLLOW_HORIZON_SHARE) * height;
 }
+
+/**
+ * v2.12 (FR-GYRO-2 as amended, D-1018): the tallest field a following window draws, degrees top to bottom. A portrait
+ * phone at `WINDOW_FOV` across its width spans about 115° top to bottom, which with the aim drawn low reaches the
+ * zenith, where a small turn swings the sky round fast; capped here, the top of a level phone's window is about 63°
+ * up at 390 × 844.
+ */
+export const FOLLOW_VERTICAL_FIELD_DEG = 80;
+
+/**
+ * v2.12 (D-1018): the field a following window draws for the camera's `fovDeg`. Where the drawing is taller than wide
+ * the field is narrowed so `WINDOW_FOV` spans `FOLLOW_VERTICAL_FIELD_DEG` top to bottom, and a pinched field scales from
+ * there; a drawing as wide as it is tall or wider spans its field top to bottom already, and is left as it is.
+ */
+export function followFovDeg(fovDeg: number, width: number, height: number): number {
+  if (height <= width) return fovDeg;
+  const opening = (4 * Math.atan((width / height) * Math.tan((FOLLOW_VERTICAL_FIELD_DEG / 4) * RAD))) / RAD;
+  return Math.min(WINDOW_FOV_MAX_DEG, Math.max(WINDOW_FOV_MIN_DEG, (opening * fovDeg) / WINDOW_FOV));
+}
