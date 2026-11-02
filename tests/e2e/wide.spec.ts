@@ -289,16 +289,21 @@ async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): 
   }
 }
 
-/** The page's rows, `#root`'s own children that carry its content: the live page's grid, or the header, `main` and the footer. */
+/**
+ * The page's rows, `#root`'s own children that carry its content: the live page's grid (which holds its own
+ * landmarks), or the header, `main` and — on every page but the stars page, which has none — the footer, plus the
+ * page notices where they say something. Every expected row must be there, so a row moved out of `#root` fails.
+ */
 async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
-  const ids = target === 'live' ? ['[data-testid="live-page"]'] : ['#root > header', '#root > main', '#root > footer'];
-  const rows = await page.evaluate((selectors) => selectors.flatMap((selector) => {
+  const required = target === 'live' ? ['[data-testid="live-page"]'] : target === 'stars' ? ['#root > header', '#root > main'] : ['#root > header', '#root > main', '#root > footer'];
+  const rows = await page.evaluate((selectors) => selectors.map((selector) => {
     const element = document.querySelector(selector);
-    if (!element) return [];
+    if (!element) return { name: selector, x: NaN, width: NaN };
     const rect = element.getBoundingClientRect();
-    return [{ name: selector, x: rect.x, width: rect.width }];
-  }), ids);
-  return rows;
+    return { name: selector, x: rect.x, width: rect.width };
+  }), [...required, '#root > [data-page-notices]:not(:empty)']);
+  for (const row of rows.slice(0, required.length)) expect(Number.isNaN(row.width), `${row.name} is not one of #root's rows`).toBe(false);
+  return rows.filter((row) => !Number.isNaN(row.width));
 }
 
 /** The sky's box on the page, where it has one. */
@@ -324,7 +329,6 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
             const cell = await cellPx(page);
             const capped = Math.min(width, 160 * cell);
             const rows = await contentRows(page, target);
-            expect(rows.length, 'the page has rows').toBeGreaterThan(0);
             for (const row of rows) {
               expect(Math.abs(row.width - capped), `${row.name} is ${String(row.width)} px, not ${String(capped)}`).toBeLessThanOrEqual(1);
               expect(Math.abs(row.x - (width - row.width) / 2), `${row.name} is not centred`).toBeLessThanOrEqual(1);
