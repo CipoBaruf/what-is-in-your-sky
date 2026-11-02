@@ -257,3 +257,85 @@
   stroke-width: var(--chart-hairline);
   stroke-dasharray: 3 3;
 }
+
+/* R158 (FR-LOOK-1, FR-LOOK-2, FR-LOOK-3, FR-PHONE-8; D-968): the whole sky's
+   look, the window's tokens at the chart's unit. The surface fills the horizon
+   ring in the twilight step's tone; the band is five stroked annuli in the
+   glow, each at its strip's alpha (an attribute, the strip's own); the haze's
+   three bands in one tone at theirs; the figures hairlines in the figure
+   token, one path per figure. */
+.surface {
+  stroke: none;
+}
+
+.surface[data-tint='deep'] {
+  fill: var(--chart-sky-deep);
+}
+
+.surface[data-tint='twilight'] {
+  fill: var(--chart-sky-twilight);
+}
+
+.surface[data-tint='day'] {
+  fill: var(--chart-sky-day);
+}
+
+.band circle {
+  fill: none;
+  stroke: var(--chart-horizon-glow);
+}
+
+.haze path {
+  fill: var(--chart-haze);
+  fill-rule: evenodd;
+  stroke: none;
+}
+
+.figures path {
+  fill: none;
+  stroke: var(--chart-figure);
+  stroke-width: var(--chart-hairline);
+}
+
+/* R158 (FR-PHONE-8; D-755, D-968): the names where `names` is on, centred on
+   the box `starLabels` placed them in, at the window's sizes in user units: a
+   star's proper name in the dim star tone, a figure's in spaced capitals, a
+   size down and in its own tone. */
+.starName,
+.figureName {
+  text-anchor: middle;
+  dominant-baseline: central;
+  white-space: pre;
+}
+
+.starName {
+  font-size: var(--chart-text-12);
+  fill: var(--chart-star-dim);
+}
+
+.figureName {
+  font-size: var(--chart-text-11);
+  fill: var(--chart-figure-name);
+}
+
+/* R158 (FR-LOOK-7): the Moon's disc — the dark part in the deep sky's tone
+   with a hairline rim, the lit part filled, as the window draws it. */
+.moonDark {
+  fill: var(--chart-sky-deep);
+  stroke: var(--chart-moon);
+  stroke-width: var(--chart-hairline);
+}
+
+.moonLit {
+  fill: var(--chart-moon);
+  stroke: none;
+}
+
+/* R158 (FR-PHONE-9, `FIELD_OUTLINE_STROKE`): the window's field, a closed
+   hairline in the compass tone, so it reads as a frame and not as an arc. */
+.fieldOutline {
+  fill: none;
+  stroke: var(--chart-compass);
+  stroke-width: var(--chart-hairline);
+  stroke-linejoin: round;
+}

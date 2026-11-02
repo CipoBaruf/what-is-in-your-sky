@@ -1,16 +1,96 @@
 <svg viewBox="-125 -125 250 250" aria-hidden="true" data-drawing="polar" focusable="false">
+<g data-layer="sky" data-tint="deep">
+<circle data-sky-surface="true" data-tint="deep" r="100.00">
+</circle>
+<g data-horizon-band="true">
+<circle data-band-strip="0" r="98.33" stroke-width="3.33" stroke-opacity="0.27">
+</circle>
+<circle data-band-strip="1" r="95.00" stroke-width="3.33" stroke-opacity="0.21">
+</circle>
+<circle data-band-strip="2" r="91.67" stroke-width="3.33" stroke-opacity="0.15">
+</circle>
+<circle data-band-strip="3" r="88.33" stroke-width="3.33" stroke-opacity="0.09">
+</circle>
+<circle data-band-strip="4" r="85.00" stroke-width="3.33" stroke-opacity="0.03">
+</circle>
+</g>
+</g>
 <g data-body="sun">
 <path d="M88.93 19.81 L90.67 9.00 L91.09 -1.94 L90.20 -12.86 L88.01 -23.58 L84.54 -33.97 L79.86 -43.86 L74.02 -53.12 L67.11 -61.62" stroke-width="17.78" opacity="0.58">
 </path>
 </g>
 <g data-layer="stars">
-<text data-planet="Venus" data-glyph="@" data-size="chart-text-18" data-tone="chart-planet" dx="0" dy="0" transform="translate(86.34 -7.55)">@</text>
-<text data-star="0" data-glyph="*" data-size="chart-text-18" data-tone="chart-star" dx="0" dy="0" transform="translate(-13.30 36.54)">*</text>
-<text data-star="1" data-glyph="*" data-size="chart-text-15" data-tone="chart-star" dx="0" dy="0" transform="translate(39.28 46.81)">*</text>
-<text data-planet="Mars" data-glyph="@" data-size="chart-text-15" data-tone="chart-planet" dx="0" dy="0" transform="translate(-69.28 40.00)">@</text>
-<text data-star="2" data-glyph="+" data-size="chart-text-12" data-tone="chart-star" dx="0" dy="0" transform="translate(-24.70 -67.87)">+</text>
-<text data-planet="Jupiter" data-glyph="@" data-size="chart-text-12" data-tone="chart-planet" dx="0" dy="0" transform="translate(-9.62 -5.56)">@</text>
-<text data-star="4" data-glyph="." data-size="chart-text-12" data-tone="chart-star-dim" dx="0" dy="0" transform="translate(19.25 -11.11)">.</text>
+<defs>
+<radialGradient id="_r_0_-bloom-chart-star" data-bloom-tone="chart-star">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="_r_0_-bloom-chart-star-blue" data-bloom-tone="chart-star-blue">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="_r_0_-bloom-chart-star-yellow" data-bloom-tone="chart-star-yellow">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="_r_0_-bloom-chart-star-orange" data-bloom-tone="chart-star-orange">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+<radialGradient id="_r_0_-bloom-chart-planet" data-bloom-tone="chart-planet">
+<stop offset="0" stop-opacity="0.224">
+</stop>
+<stop offset="0.35" stop-opacity="0.056">
+</stop>
+<stop offset="1" stop-opacity="0">
+</stop>
+</radialGradient>
+</defs>
+<g data-blooms="true">
+<circle data-bloom="Venus" r="39.5" fill="url(#_r_0_-bloom-chart-planet)" transform="translate(86.34 -7.55)">
+</circle>
+<circle data-bloom="0" r="22.5" fill="url(#_r_0_-bloom-chart-star)" transform="translate(-13.30 36.54)">
+</circle>
+<circle data-bloom="1" r="13.5" fill="url(#_r_0_-bloom-chart-star-orange)" transform="translate(39.28 46.81)">
+</circle>
+<circle data-bloom="Mars" r="12" fill="url(#_r_0_-bloom-chart-planet)" transform="translate(-69.28 40.00)">
+</circle>
+</g>
+<g data-figures="true">
+<path data-figure="0" data-segments="2" d="M-7.41 37.69L34.57 45.89M-9.92 31.59L18.04 -9.35">
+</path>
+</g>
+<path data-dots="chart-star-yellow" data-tone="chart-star-yellow" data-stars="4" d="M17.12 -11.11a2.13 2.13 0 1 0 4.26 0a2.13 2.13 0 1 0 -4.26 0">
+</path>
+<path data-dots="chart-star" data-tone="chart-star" data-stars="5" d="M-51.63 -0.00a1.63 1.63 0 1 0 3.26 0a1.63 1.63 0 1 0 -3.26 0">
+</path>
+<text data-planet="Venus" data-glyph="@" data-px="20" font-size="20" data-tone="chart-planet" dx="0" dy="0" transform="translate(86.34 -7.55)">@</text>
+<text data-star="0" data-glyph="*" data-px="20" font-size="20" data-tone="chart-star" dx="0" dy="0" transform="translate(-13.30 36.54)">*</text>
+<text data-star="1" data-glyph="*" data-px="16" font-size="16" data-tone="chart-star-orange" dx="0" dy="0" transform="translate(39.28 46.81)">*</text>
+<text data-planet="Mars" data-glyph="@" data-px="16" font-size="16" data-tone="chart-planet" dx="0" dy="0" transform="translate(-69.28 40.00)">@</text>
+<text data-star="2" data-glyph="*" data-px="13" font-size="13" data-tone="chart-star-blue" dx="0" dy="0" transform="translate(-24.70 -67.87)">*</text>
+<text data-planet="Jupiter" data-glyph="@" data-px="13" font-size="13" data-tone="chart-planet" dx="0" dy="0" transform="translate(-9.62 -5.56)">@</text>
+<g data-names="true">
+<text data-star-name="0" x="-13.30" y="52.14">Canopus</text>
+<text data-star-name="1" x="72.88" y="46.81">Antares</text>
+<text data-figure-name="0" x="34.88" y="24.08">O R I O N</text>
+</g>
 </g>
 <circle r="100">
 </circle>
@@ -32,6 +112,8 @@
 <text data-anchor="E" x="-114.00" y="-0.00" text-anchor="middle" dominant-baseline="central">E</text>
 <text data-anchor="S" x="-0.00" y="114.00" text-anchor="middle" dominant-baseline="central">S</text>
 <text data-anchor="W" x="114.00" y="0.00" text-anchor="middle" dominant-baseline="central">W</text>
+<path data-field-outline="true" d="M-31.84 23.42L-26.79 24.72L-21.60 25.80L-16.30 26.66L-10.92 27.28L-5.47 27.65L-0.00 27.78L5.47 27.65L10.92 27.28L16.30 26.66L21.60 25.80L26.79 24.72L31.84 23.42L32.92 28.46L34.02 33.60L35.13 38.81L36.26 44.07L37.40 49.37L38.54 54.69L39.70 60.00L40.86 65.28L42.02 70.52L43.19 75.68L44.36 80.77L45.55 85.75L38.41 88.33L31.04 90.49L23.46 92.20L15.73 93.44L7.89 94.19L-0.00 94.44L-7.89 94.19L-15.73 93.44L-23.46 92.20L-31.04 90.49L-38.41 88.33L-45.55 85.75L-44.36 80.77L-43.19 75.68L-42.02 70.52L-40.86 65.28L-39.70 60.00L-38.54 54.69L-37.40 49.37L-36.26 44.07L-35.13 38.81L-34.02 33.60L-32.92 28.46Z">
+</path>
 <g data-pass-id="25544-1789120094063" data-arc="full">
 <path d="M-64.41 -61.25 L-66.76 -58.57 L-69.01 -55.81 L-71.16 -52.98 L-73.20 -50.19 L-75.14 -47.33 L-76.99 -44.40">
 </path>
@@ -49,8 +131,10 @@
 </circle>
 <text data-anchor="key" data-key="A" x="-79.17" y="-58.95" text-anchor="end">A</text>
 </g>
-<g data-body="moon">
-<circle data-marker="moon" r="4.5" transform="translate(-7.92 -67.17)">
+<g data-body="moon" data-phase="waningGibbous" data-lit="0.72" data-limb="-15" transform="translate(-7.92 -67.17)">
+<circle data-marker="moon" r="5">
 </circle>
+<path data-moon-lit="true" d="M0 -5.00A5.00 5.00 0 0 1 0 5.00A2.20 5.00 0 0 1 0 -5.00Z" transform="rotate(-15.5)">
+</path>
 </g>
 </svg>
