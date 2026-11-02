@@ -116,10 +116,45 @@
 
 /* FR-COMP-2 holds at every width; only the compact header links here. The page
    is narrow prose either way, so on a wide screen it stops rather than
-   stretching a 36-cell row of toggles across 100 cells of empty line. */
+   stretching a 36-cell row of toggles across 100 cells of empty line.
+   R166 (FR-CLEAN-12, D-1008): `main` and the footer are the shell's rows, 160 cells centred, and the shell's rule
+   sets their width; so the 60-cell column is their children's, at the row's left edge under the header's title. */
 @media (width >= 964px) {
-  .page,
-  .privacy {
+  .page > *,
+  .privacy > * {
     max-width: calc(60 * var(--cell));
+  }
+
+  /* R166 (FR-CLEAN-15, V211-10): on a desk the page breathes. FR-SET-2's fit is the phone's 844 px; the desk has the
+     room, so the three sections stand a section gap apart as the home's do (FR-FLOW-10), each heading's rule
+     `--space-2` above its first row, the rows inside a section one text row apart, and the privacy line a section gap
+     under the last section. The page is one of the wide shell's panes (D-119): what no longer fits a short window
+     scrolls inside it, never the page. Widths and controls are untouched; compact keeps the rules above. */
+  .page {
+    gap: var(--space-5);
+    padding-bottom: var(--space-5);
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .page section {
+    row-gap: var(--space-3);
+  }
+
+  /* The heading's rule sits `--space-2` over the first row: the section's row gap less the difference. */
+  .page section > h2 {
+    margin-bottom: calc(var(--space-2) - var(--space-3));
+  }
+
+  .rows {
+    row-gap: var(--space-3);
+  }
+
+  /* The phone sets a field's label, box and help line flush (`gap: 0`, FR-SET-2's fit), and the focus ring, drawn
+     `--focus-offset` + `--focus-ring` (4 px) outside the box, then lies over the label and the help line. On a desk
+     they stand `--space-1` apart, clear of the ring. */
+  .location section > div:first-of-type,
+  .coords > div > div {
+    gap: var(--space-1);
   }
 }

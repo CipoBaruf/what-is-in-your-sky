@@ -12,6 +12,7 @@
  *   `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk (FR-FLOW-7).
  * - R163 (FR-CLEAN-1, FR-CLEAN-7): the stars page is the full form on the phone in both shapes, as the live page is;
  *   FR-FLOW-8's column and its fold rule are withdrawn.
+ * - R166 (FR-CLEAN-13, D-1008): on the wide stars page the rail's View, Facing and Layers rows share one left edge.
  *
  * R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877):
  *
@@ -31,6 +32,8 @@ const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
+/** R166 (FR-CLEAN-12, D-1003): the desk's order holds inside the capped column too, at the two sizes past the cap. */
+const DESKS = [DESK, { width: 1920, height: 1080 }, { width: 2560, height: 1440 }] as const;
 const TURNED = [
   { width: 844, height: 390 },
   { width: 667, height: 375 },
@@ -324,8 +327,8 @@ for (const locale of LOCALES) {
     });
   });
 
-  test.describe(`FR-FLOW-4 on a desk, ${locale}`, () => {
-    test.use({ viewport: DESK, hasTouch: false });
+  for (const desk of DESKS) test.describe(`FR-FLOW-4 on a desk, ${String(desk.width)} × ${String(desk.height)}, ${locale}`, () => {
+    test.use({ viewport: desk, hasTouch: false });
 
     test('the live page is the box and the rail in every view, the view row one line, the readout on the corner and the hint under the box', async ({ page }) => {
       const layout = await openLive(page, locale);
@@ -348,6 +351,21 @@ for (const locale of LOCALES) {
       await expectHintOffTheDrawing(layout);
       const names = (await slotBoxes(layout)).map((slot) => slot.name);
       expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'viewRow', 'picker', 'layers', 'list']);
+    });
+
+    test('the stars rail’s three rows — View, Facing, Layers — share one left edge (FR-CLEAN-13)', async ({ page }) => {
+      // R166 (D-1008): the view row's one control sits at the rail's left, under its label, as the other two rows do.
+      const layout = await openStars(page, locale);
+      const rows = [layout.locator('[data-slot="viewRow"]'), layout.locator('[data-slot="picker"]'), layout.locator('[data-slot="layers"]')];
+      const lefts: number[] = [];
+      for (const row of rows) {
+        const heading = await box(row.getByRole('heading', { level: 2 }));
+        const control = await box(row.getByRole('button').first());
+        expect(Math.abs(control.x - heading.x), `${String(row)}: the first control under its label`).toBeLessThanOrEqual(1);
+        lefts.push(control.x);
+      }
+      for (const left of lefts) expect(Math.abs(left - (lefts[0] ?? NaN)), lefts.join(', ')).toBeLessThanOrEqual(1);
+      test.info().annotations.push({ type: 'rail-left', description: `${locale}: ${lefts.map((left) => left.toFixed(1)).join(', ')}` });
     });
 
     test('the pass detail panel: the head band, the one control line, the drawing at the panel’s width and most of its area, the prose and the table under it (FR-FLOW-7)', async ({ page }) => {

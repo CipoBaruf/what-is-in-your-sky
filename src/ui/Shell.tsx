@@ -3,6 +3,7 @@ import { useT } from '../i18n/useT';
 import { followHash } from '../state';
 import { VisuallyHidden } from './components/primitives/VisuallyHidden';
 import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
+import styles from './Shell.module.css';
 import { useThemeTick } from './styles/useThemeTick';
 
 /**
@@ -24,6 +25,10 @@ import { useThemeTick } from './styles/useThemeTick';
  * either half would re-cut it (FR-SHP-2's rule), so on `live` the page renders
  * the two landmarks itself, as `display: contents` wrappers inside that grid
  * (`Live.tsx`), and the shell renders its children as they are.
+ *
+ * R166 (FR-CLEAN-12, D-1003): on a desk every route's rows stop at
+ * `HOME_MAX_CELLS` and are centred — the rule is `Shell.module.css`'s, on the
+ * shell's `main` and on `#root`'s other rows, the live page's grid among them.
  *
  * Links to a route (`#live`, `#settings`, a pass) are taken from the browser
  * here, by one delegated click listener, so every entry the app opens is one
@@ -146,7 +151,8 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
       {chrome === 'live' ? (
         children
       ) : (
-        <main id={MAIN_ID} ref={main} tabIndex={-1} {...mainProps}>
+        // R166 (FR-CLEAN-12, D-1003): the shell's class carries the desk's cap, beside the page's own.
+        <main id={MAIN_ID} ref={main} tabIndex={-1} {...mainProps} className={[styles.main, mainProps?.className].filter(Boolean).join(' ')}>
           {children}
         </main>
       )}

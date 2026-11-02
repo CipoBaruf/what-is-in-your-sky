@@ -35,8 +35,9 @@
   color: var(--fg);
 }
 
-/* An answer line at `--small`, in `--fg-dim`; one row each, never wrapped (34 cells, `doorRows.test.ts`). A line
-   still waiting on the `stars` chunk keeps its row (`min-height: 1lh`). */
+/* An answer line at `--small`, in `--fg-dim`; on compact one row each, never wrapped (34 cells, `doorRows.test.ts`);
+   on wide body-sized and wrapping (below, D-1017). A line still waiting on the `stars` chunk keeps a row
+   (`min-height: 1lh`). */
 .line {
   display: block;
   min-height: 1lh;
@@ -52,5 +53,25 @@
   .list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: calc(3 * var(--cell));
+  }
+
+  /* R166 (FR-CLEAN-16): the desk's main navigation. The frame and its accent are `Card`'s `emphasis`; the door's
+     own type is a pane heading's title and body-sized lines, and the title takes the accent with the frame. */
+  .title {
+    font-size: var(--text-pane);
+    line-height: var(--text-pane-row);
+  }
+
+  .door:is(:hover, :focus-visible) .title {
+    color: var(--accent);
+  }
+
+  /* D-1017: a body-sized line no longer fits a third of a narrow desk (964–1200 px), so on wide it wraps onto a
+     second row rather than being cut; the item's grid keeps the three boxes as tall as the tallest. */
+  .line {
+    font-size: var(--text-body);
+    line-height: var(--text-body-row);
+    white-space: normal;
+    overflow-wrap: break-word;
   }
 }

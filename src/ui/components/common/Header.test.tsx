@@ -7,6 +7,8 @@
  * row, a sub-page's `[ ← ]`, name and context on compact, and on wide one row
  * with the page links, the current one marked, and `[ settings ]` last — and no
  * language or theme switch anywhere.
+ *
+ * R166 (FR-CLEAN-14): on wide the page links are `[ home ] [ live ] [ stars ]`, the current one dimmed.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -99,6 +101,27 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
   });
 });
 
+/**
+ * R166 (FR-CLEAN-14, D-1007): the wide page links are `BracketLink`s, `[ home ] [ live ] [ stars ]` — the brackets are
+ * the primitive's stylesheet, so its class is what is asserted — the current page the primitive's dim `aria-current`
+ * span (no `href`), the other two links in the accent; no accent rule under the current one.
+ */
+function expectBracketedLinks(page: HeaderPage): void {
+  for (const target of ['home', 'live', 'stars'] as const) {
+    const link = screen.getByTestId(`${target}-link`);
+    expect(link.className, target).toMatch(/bracketLink/);
+    expect(link.className, target).not.toMatch(/navCurrent|navLink/);
+    if (target === page) {
+      expect(link.tagName).toBe('SPAN');
+      expect(link.className).toMatch(/current/);
+      expect(link).not.toHaveAttribute('href');
+    } else {
+      expect(link.tagName).toBe('A');
+      expect(link.className).not.toMatch(/current/);
+    }
+  }
+}
+
 describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.6)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
@@ -114,6 +137,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     expect(screen.getByTestId('home-link')).not.toHaveAttribute('href');
     expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
     expect(screen.getByTestId('stars-link')).toHaveAttribute('href', '#stars');
+    expectBracketedLinks('home');
     expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
     // `[ settings ]` is the row's last item, after the navigation.
     const settings = screen.getByTestId('settings-link');
@@ -148,6 +172,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
       }
     }
     expect(screen.getByTestId('settings-link').hasAttribute('aria-current')).toBe(page === 'settings');
+    expectBracketedLinks(page);
     // The live and stars pages carry their own h1, and the wide pass is the home's panel; settings has the title as its h1.
     expect(screen.queryAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(page === 'settings' ? [t.app.title] : []);
     expectNoSwitches(locale);

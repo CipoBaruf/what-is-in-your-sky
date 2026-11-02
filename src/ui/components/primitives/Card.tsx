@@ -16,6 +16,11 @@ import styles from './Card.module.css';
  * link card wears the one `:focus-visible` ring, and an article whose
  * stretched child button is focused (`PassCard`'s `OpenGuide`) wears it by
  * the same rule's `:where([data-card]:has(> button:focus-visible))` (D-704, D-719).
+ *
+ * R166 (FR-CLEAN-16): `emphasis` is the card as a page's main navigation — the
+ * home's three doors on a desk: a control's frame (`--border-control`), a row
+ * and two cells inside, and the frame in the accent on hover and focus, so the
+ * box reads as a button. What the card holds keeps its own type.
  */
 export interface CardOwnProps {
   /** The element: a pass's `article`, the next event's `section`, or the card as one `button` or `a`. */
@@ -24,6 +29,8 @@ export interface CardOwnProps {
   selected?: boolean;
   /** The frame's ink: the rule (a card among cards), or the accent (the phone's first card, FR-FIRST-4). */
   frame?: 'rule' | 'accent';
+  /** A link or button card that is a page's main navigation (FR-CLEAN-16, the home's doors on wide): framed as a control, padded a row by two cells, the frame in the accent on hover and focus. */
+  emphasis?: boolean;
   children: ReactNode;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
@@ -31,9 +38,9 @@ export interface CardOwnProps {
 
 export type CardProps = CardOwnProps & Omit<ComponentPropsWithoutRef<'article'>, keyof CardOwnProps | 'style'> & { href?: string };
 
-export function Card({ as = 'article', selected = false, frame = 'rule', children, className, href, ...rest }: CardProps) {
+export function Card({ as = 'article', selected = false, frame = 'rule', emphasis = false, children, className, href, ...rest }: CardProps) {
   const control = as === 'button' || as === 'a';
-  const classes = [styles.card, control ? styles.control : undefined, frame === 'accent' ? styles.accent : undefined, className].filter(Boolean).join(' ');
+  const classes = [styles.card, control ? styles.control : undefined, frame === 'accent' ? styles.accent : undefined, control && emphasis ? styles.emphasis : undefined, className].filter(Boolean).join(' ');
   const state = { 'data-card': '', ...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {}) };
   if (as === 'button') {
     return (

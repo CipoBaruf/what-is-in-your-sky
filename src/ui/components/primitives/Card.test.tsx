@@ -82,6 +82,32 @@ describe.each(THEMES)('<Card> under data-theme=%s', (theme) => {
     const link = screen.getByRole('link', { name: 'Open the live sky' });
     expect(link).toHaveAttribute('href', '#live');
     expect(link.className).toMatch(/control/);
+    expect(link.className).not.toMatch(/emphasis/);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('takes the emphasis form when asked: a page’s main navigation, still a link with its target (R166, FR-CLEAN-16)', async () => {
+    document.documentElement.setAttribute('data-theme', theme);
+    const { container } = render(
+      <Card as="a" href="#stars" emphasis className="placed">
+        Stars
+      </Card>,
+    );
+    const link = screen.getByRole('link', { name: 'Stars' });
+    expect(link).toHaveAttribute('href', '#stars');
+    expect(link.className).toMatch(/card/);
+    expect(link.className).toMatch(/control/);
+    expect(link.className).toMatch(/emphasis/);
+    expect(link.className).toMatch(/placed/);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('keeps emphasis for a link or a button: an article asked for it stays a plain card', () => {
+    render(
+      <Card aria-label="A pass" emphasis data-testid="article">
+        <p>21:14 ISS</p>
+      </Card>,
+    );
+    expect(screen.getByTestId('article').className).not.toMatch(/emphasis/);
   });
 });
