@@ -1,0 +1,20 @@
+/* R93 (FR-HOME-4, D-546, D-604) → R166 (FR-CLEAN-12, D-1003): one width on a desk. From `HOME_MAX_CELLS`
+   (`lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`) every route's rows stop growing and are centred:
+   the header, the page notices, `main` and the footer, which are `#root`'s direct children on the home, the pass
+   detail (the home's panel), the stars page and the settings page; and the wide live page, whose landmarks are
+   `display: contents` cells of its own grid (D-529), so the rule names the grid itself — the one child of `#root`
+   that carries the mode it is laid out in, as global.css's compact frame does. No page knows the cap: each sky box
+   measures the capped row it stands in (`ChartFrame`, D-187; `Stars.tsx`'s `fitBox`). `width: 100%` because inside
+   D-119's grid an auto margin turns off the stretch a grid item gets, and a row left to size itself shrinks to its
+   text (global.css). The rule is wide's alone: compact keeps global.css's 60-cell frame (FR-TAB-1). */
+@media (width >= 964px) {
+  .main,
+  :global(#root) > :global(header),
+  :global(#root) > :global(footer),
+  :global(#root) > :global([data-page-notices]),
+  :global(#root) > :global([data-compact='false']) {
+    width: 100%;
+    max-width: calc(160 * var(--cell));
+    margin-inline: auto;
+  }
+}
