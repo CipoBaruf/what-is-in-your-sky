@@ -1,14 +1,17 @@
 import { useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { starCatalog } from '../../data/stars/catalog';
+import type { Messages } from '../../i18n/messages';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
-import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
-import { legendRows, type LegendPass, type LegendRow } from '../../lib/legend';
-import { livePasses } from '../../lib/livePasses';
-import { starsAt } from '../../lib/skyStars';
-import type { ChartView, EpochMs, Observer } from '../../model';
-import { useActiveObserver, useAppStore, type PassesState } from '../../state';
-import { sameLocation } from '../../state/slices/location';
+import { cloudVerdict } from '../../lib/cloudVerdict';
+import { fitBox, hintFitsBeside, RAIL_MIN_CELLS } from '../../lib/layout';
+import type { LegendPass } from '../../lib/legend';
+import { drawnRungs, starsAt } from '../../lib/skyStars';
+import { formatShortClock } from '../../lib/timeFormat';
+import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
+import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
+import type { ChartView, CloudState, EpochMs, Locale, Observer } from '../../model';
+import { useActiveObserver, useAppStore } from '../../state';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
 import { groundState, type Mat3, type View } from '../components/guide/skychart/window/projection';
@@ -16,27 +19,28 @@ import type { SkyScene, StarField } from '../components/guide/skychart/window/sc
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { markSkyHintSeen } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
+import { FollowControl } from '../components/live/FollowControl';
+import { useSkyBands } from '../components/live/useSkyBands';
+import { useWakeLock } from '../components/live/useWakeLock';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { TextButton } from '../components/primitives/TextButton';
 import { ToggleGroup } from '../components/primitives/ToggleGroup';
+import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
+import { ControlsSheet } from '../components/sky/ControlsSheet';
+import { FollowToggle } from '../components/sky/FollowToggle';
+import { SkyHead } from '../components/sky/SkyHead';
+import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
+import { useFollow } from '../components/sky/useFollow';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
+import { close } from '../navigation';
 import { requestPlace } from './home/placeRequest';
 import { nightWindow } from './home/tonight';
-import { useSkyBands } from '../components/live/useSkyBands';
-import { cloudVerdict } from '../../lib/cloudVerdict';
-import { HOUR_MS, type Span } from '../../lib/timeStripe';
-import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
-import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
-import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { useWakeLock } from '../components/live/useWakeLock';
-import { FollowToggle } from '../components/sky/FollowToggle';
-import { useFollow } from '../components/sky/useFollow';
-import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
-import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
+import { fieldObjects, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import styles from './Stars.module.css';
 
 /**
@@ -57,11 +61,24 @@ import styles from './Stars.module.css';
  * **Wide**: the box at the left, the room the page leaves beside a rail of at
  * least `RAIL_MIN_CELLS` and over the hint's row (`fitBox`, the live page's
  * rule; R133, FR-FLOW-9: down to the hint line, not the browser window's
- * shape), and the rail — `Facing`, `Layers`, `In this field`. The
- * window's facing readout stands in the box's top-left corner on the screen's
- * overlay surface. **Compact**: the readout row, the box full-bleed and
- * square, the facing row, the layers' two rows (four `[x]` toggles are 43
- * cells in English, D-776), then the list.
+ * shape), and the rail — the `View` row, `Facing`, `Layers`, `In this field`.
+ * The window's facing readout stands in the box's top-left corner on the
+ * screen's overlay surface.
+ *
+ * **Compact (R163: FR-CLEAN-1..4, FR-CLEAN-6, FR-CLEAN-7; US-49 AC1..AC6; D-997,
+ * D-999, D-1009..D-1011)**: the page is the layout's `full` form in both shapes,
+ * as the live page has been since v2.8 — the box is the screen, and over it
+ * only the head (`SkyHead`: `[ ← ]` and the Stars door's dark-window line), the
+ * facing readout in the top-right corner while the finger has the sky (with
+ * FR-STAR-7's second line under it), `[ follow ]` and `[ controls ]` at the
+ * bottom-right, and the hint until the first gesture. `[ controls ]` opens the
+ * live page's `ControlsSheet` holding, top to bottom: `[Window] Whole sky`,
+ * `[ ] follow the phone` where the sensor is, the facing row (the readout as a
+ * button that opens the picker under it; on the whole sky the polar chart's
+ * convention line and its looking-up / map toggle), the layer rows and
+ * `In this field` open. The `h1` is visually hidden. `Esc` closes the sheet,
+ * and with it closed the app's listener leaves the page (D-999). The compact
+ * column of R132 and the landscape rail of R136 are gone from this page.
  *
  * The window is placed, not restyled: its frame's controls row (empty under
  * the hand) is not drawn and its status slot is put where this page's layout
@@ -74,24 +91,27 @@ import styles from './Stars.module.css';
  * With no observer it is FR-LIVE-1's inert line and `[ set a place ]`.
  *
  * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6; D-943..D-945): where the phone has
- * the sensor, `[ follow the phone ]` stands in the `action` slot where
- * `[ hold up to the sky ]` stood, and on it the page's own window takes the
- * sensor; a drag hands it back. The sky screen's stars inventory (R117) is
- * gone with the screen.
+ * the sensor, `[ follow the phone ]` lets the page's own window take the
+ * sensor; a drag hands it back. R163: the toggle is the sheet's row after the
+ * view row, and `[ follow ]` stands in the bottom row (FR-GYRO-1 as amended).
  *
  * R160 (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10; US-46 AC1, AC3, AC4; D-970,
  * D-971, D-990): the whole sky. The page draws `SkyChart` with two views, the
  * window and the polar chart (`views`), and holds the view itself (`view`,
- * never saved: every open is the window, as the camera is not saved). Its
- * row, `[ Window ] Whole sky`, is the layout's `viewRow` slot between the
- * `h1` block and the readout. The whole sky draws the page's layers, with the
- * names off by default on compact (a 250-unit disc at 390 px has room for
- * the figures, not their names) and on on wide, until the `[x] names` toggle
- * says otherwise for both views; `In this field` names the whole sky's
- * twelve brightest; the window's field is outlined on it from the page's
- * camera, moving with the phone while following; and a pinch past the
- * window's widest field opens it, a pinch in on it returning to the window
- * facing the spot under the fingers (`SkyChart`'s handoff).
+ * never saved: every open is the window, as the camera is not saved). The
+ * whole sky draws the page's layers, with the names off by default on compact
+ * (a 250-unit disc at 390 px has room for the figures, not their names) and on
+ * on wide, until the `[x] names` toggle says otherwise for both views;
+ * `In this field` names the whole sky's twelve brightest; the window's field
+ * is outlined on it from the page's camera, moving with the phone while
+ * following; and a pinch past the window's widest field opens it, a pinch in
+ * on it returning to the window facing the spot under the fingers
+ * (`SkyChart`'s handoff).
+ *
+ * R163 (FR-CLEAN-11; D-1004): the `[ passes ]` toggle of R126 is gone with its
+ * pass set — the page shows now, when a visible pass is rarely up — so the
+ * scene carries no pass and `In this field` lists stars and planets only; the
+ * view of both is the live page with `[x] stars`.
  */
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
@@ -103,7 +123,7 @@ const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
 /** R160 (FR-PHONE-7): the two views the page offers, the window first (FR-GYRO-11); no dome, since the page is about the stars. */
 const STARS_VIEWS: readonly ChartView[] = ['window', 'polar'];
 
-/** FR-FLOW-8: the four layer toggles in this order, over two rows; `[ passes ]` ends the second. */
+/** FR-STAR-3 as amended v2.11: the four layer toggles in this order, over two rows. */
 const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
 
 /** FR-COMP-4: a 390 px viewport at the default cell, the budget the first layer row is cut to. */
@@ -135,18 +155,8 @@ const WHOLE_SKY_ROTATION: Mat3 = [
   [0, 0, 1],
 ];
 
-/**
- * R126 (FR-SKY-6): whether the store's run is this sky's and has arrived — the live page's `liveState` rule: this
- * place's run (`sameLocation`), finished, or with passes standing in while a new one computes. A run computing from
- * nothing, one that failed with nothing, or one for another place is not in, and `[ passes ]` then hands the window
- * no passes rather than an empty night.
- */
-export function passesRunIn(passes: Pick<PassesState, 'observer' | 'status' | 'passes'>, observer: Observer): boolean {
-  return sameLocation(passes.observer, observer) && (passes.status === 'done' || passes.passes.length > 0);
-}
-
+/** R163 (FR-CLEAN-11, D-1004): the chart is handed no pass on this page. */
 const NO_PASSES: readonly LegendPass[] = [];
-const NO_ROWS: readonly LegendRow[] = [];
 
 /** The rail's minimum, from `lib/layout.ts`, as the stylesheet's one input in cells (the probe and the grid read it). */
 const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as CSSProperties;
@@ -184,6 +194,7 @@ function StarsSky({ observer }: { observer: Observer }) {
   const t = useT();
   const mode = useLayoutMode();
   const wide = mode === 'wide';
+  const compact = !wide;
   const layersId = useId();
   const fieldId = useId();
 
@@ -210,34 +221,6 @@ function StarsSky({ observer }: { observer: Observer }) {
   const drawnLayers = useMemo<StarField['layers']>(() => ({ ...layers, names }), [layers, names]);
   const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers: drawnLayers } }), [catalog, positions, drawnLayers]);
   const { sun, moon } = useSkyBodies({ observer, now });
-
-  /*
-   * R126 (FR-SKY-6, D-794): `[ passes ]` — page state, off on every open and never saved. With it on the scene
-   * carries tonight's passes: the store's run for this place, FR-TRAJ-1's set at now with each arc's state, handed
-   * to the window with the legend's keys and series colours as the live page's chart hands them, and to
-   * `In this field`. A run for another place is not this sky's, so it carries none (FR-OFF-8's rule).
-   *
-   * The run is "in" as the live page's `liveState` has it: this place's, and finished or standing in with passes.
-   * Until it is, `passes` is `null`, so nothing says "nothing tonight" for a night not yet computed.
-   *
-   * The set is the live page's (`livePasses`, `src/lib`), and the arcs' states are its `arcKey` / `withArcStates`:
-   * the array is remade only when the set or a state changes, not on every 10 s tick. The legend's rows are worked
-   * out once here, for the window's keys and the list.
-   */
-  const [showPasses, setShowPasses] = useState(false);
-  const passesState = useAppStore((s) => s.passes);
-  const runIn = passesRunIn(passesState, observer);
-  const source = showPasses && runIn ? passesState.passes : null;
-  const tonightIds = source === null ? null : livePasses(source, now).map((pass) => pass.id).join(' ');
-  const tonight = useMemo(() => {
-    if (source === null || tonightIds === null) return null;
-    const ids = new Set(tonightIds.split(' '));
-    return source.filter((pass) => ids.has(pass.id));
-  }, [source, tonightIds]);
-  const arcs = tonight === null ? null : arcKey(tonight, now);
-  const passes = useMemo(() => (tonight === null || arcs === null ? null : withArcStates(tonight, arcs)), [tonight, arcs]);
-  const drawnPasses = passes ?? NO_PASSES;
-  const rows = useMemo(() => (drawnPasses.length === 0 ? NO_ROWS : legendRows({ passes: drawnPasses, highlightedPassId: null, now, colorBy: 'pass' })), [drawnPasses, now]);
 
   // FR-STAR-7: one named object for the drawing and the list, cleared after the hold; naming it again restarts the hold.
   const [named, setNamed] = useState<{ index: number; at: number } | null>(null);
@@ -372,10 +355,12 @@ function StarsSky({ observer }: { observer: Observer }) {
   /*
    * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether this page's window follows the phone.
    * R159 (FR-PHONE-1, FR-PHONE-2; D-962): the page's `useFollow()` — on at mount where nothing has to be asked, armed by a
-   * saved grant so the first touch on the sky asks (`onFirstTouch`), off otherwise. The toggle turns it on after the grant; the window turns it off when a drag
-   * or a box key takes the sky back (`onFollowEnd`), the hand camera seeded where the phone last pointed. The row is
-   * drawn only where the sensor is (FR-WIN-4's presence test, asked once at mount), in the `action` slot where
-   * `[ hold up to the sky ]` stood.
+   * saved grant so the first touch on the sky asks (`onFirstTouch`), off otherwise. The toggle turns it on after the
+   * grant; the window turns it off when a drag or a box key takes the sky back (`onFollowEnd`), the hand camera seeded
+   * where the phone last pointed. The controls are drawn only where the sensor is (FR-WIN-4's presence test, asked
+   * once at mount): R163 (FR-GYRO-1 as amended, FR-CLEAN-3): on compact the toggle is the sheet's row after the view
+   * row and `[ follow ]` stands before `[ controls ]` in the bottom row, the same state both ways; on wide the toggle
+   * is the rail's `action` slot.
    */
   const follow = useFollow();
   const following = follow.on;
@@ -383,12 +368,44 @@ function StarsSky({ observer }: { observer: Observer }) {
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
   useWakeLock(following);
 
+  /*
+   * R163 (FR-CLEAN-4, FR-CLEAN-6; D-921's rule): the sheet's open state is the page's — `useState`, so every visit
+   * opens with it closed, and held here so a turn of the phone, which keeps this page mounted, keeps it. Closing by
+   * the page's own way (`Esc`) returns the focus to `[ controls ]`, as the live page does.
+   */
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  }, []);
+  /*
+   * R163 (FR-CLEAN-6; D-999, D-1011): `Esc` in two steps. The first step is the page's: with the sheet open a capture
+   * listener on the window closes it and stops the event there, before the app's one `keydown` listener on the
+   * document (D-73) can read it; with the sheet closed the page lets the key through, and that listener leaves the
+   * page as it has since R115 (`stars.leave`, §4.37's rule). One listener per page, read through a ref so the open
+   * state does not rebuild it.
+   */
+  const sheetOpenRef = useRef(sheetOpen);
+  useLayoutEffect(() => {
+    sheetOpenRef.current = sheetOpen;
+  });
+  useEffect(() => {
+    if (!compact) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || !sheetOpenRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeSheet();
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [compact, closeSheet]);
+
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);
     else setLayers((was) => ({ ...was, [key]: !was[key] }));
-  };
-  const togglePasses = (): void => {
-    setShowPasses((was) => !was);
   };
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={drawnLayers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
   const firstRow = firstRowCount(
@@ -396,50 +413,201 @@ function StarsSky({ observer }: { observer: Observer }) {
     LAYER_ROW_BUDGET,
   );
 
-  /*
-   * R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s slots — the `h1` block as `answer`, the
-   * window's readout in `readout` (placed by the window itself), the drawing, this page's own facing picker, the
-   * hint, `[ follow the phone ]` right after it where the sensor is (R152), the layer toggles as one group of two
-   * rows, then `In this field`. On wide the layout is the box and the rail, in the same order; the box is cut here,
-   * as before, and written on the layout's root.
-   */
-  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
   // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` — a `ToggleGroup` in the bracket mark, 20 cells in English and 24 in Spanish.
   const viewRow = (
-    <div className={styles.row} data-testid="stars-view-row">
+    <div className={styles.row} data-testid="stars-view-row" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <ToggleGroup name={t.chart.viewGroup} mark="bracket" options={STARS_VIEWS.map((id) => ({ value: id, label: id === 'polar' ? t.chart.views.wholeSky : t.chart.views.window }))} value={view} onChange={setView} />
     </div>
   );
   const layerRows = (
-    <section aria-labelledby={layersId} className={styles.block}>
+    <section aria-labelledby={layersId} className={styles.block} data-testid="stars-layer-rows" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <SectionHeading id={layersId} visuallyHidden={!wide}>
         {p.layersHeading}
       </SectionHeading>
-      {/* FR-FLOW-8: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names [ ] passes`,
-          33 and 19 cells in English. In Spanish the first three are 38 cells, two past FR-COMP-4's 36, so the split is by the
-          budget (`firstRowCount`): `[x] estrellas [x] figuras` and `[x] planetas [x] nombres [ ] pases` (25 and 34). */}
+      {/* FR-FLOW-8 → FR-CLEAN-4: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names`,
+          33 and 9 cells in English. In Spanish the first three are 38 cells, two past FR-COMP-4's 36, so the split is by the
+          budget (`firstRowCount`): `[x] estrellas [x] figuras` and `[x] planetas [x] nombres` (25 and 24). */}
       <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
-        <div className={styles.row} data-testid="stars-layers-row">
+        <div className={styles.row} data-testid="stars-layers-row" {...(compact ? { 'data-rhythm': 'row' } : {})}>
           {LAYER_KEYS.slice(0, firstRow).map((key, index) => layer(key, index > 0))}
         </div>
-        <div className={styles.row} data-testid="stars-layers-row">
+        <div className={styles.row} data-testid="stars-layers-row" {...(compact ? { 'data-rhythm': 'row' } : {})}>
           {LAYER_KEYS.slice(firstRow).map((key, index) => layer(key, index > 0))}
-          <OptionToggle label={p.passesLayer} pressed={showPasses} onPress={togglePasses} data-layer="passes" alone />
         </div>
       </div>
     </section>
   );
   const field = (
-    <section aria-labelledby={fieldId} className={styles.block}>
+    <section aria-labelledby={fieldId} className={styles.block} data-testid="stars-field" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-      <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={drawnLayers} whole={view === 'polar'} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+      <FieldSection camera={camera} catalog={catalog} positions={positions} box={box} layers={drawnLayers} whole={view === 'polar'} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
     </section>
   );
+  const drawing = (
+    // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
+    // tap all begin with a pointer down in the box, caught here before the window's own handlers.
+    // R160 (D-971): the chart with the page's two views; the window takes the page's camera, the whole sky outlines it.
+    <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
+      <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={STARS_VIEWS} view={view} onViewChange={setView} />
+    </div>
+  );
 
+  /*
+   * R163 (FR-CLEAN-2, FR-CLEAN-3, FR-PHONE-4; D-965, D-980): while the finger has the sky — not following — and the
+   * sheet is closed, the chart's facing readout stands in the box's top-right corner, with FR-STAR-7's second line
+   * under it (`readoutLines`, D-1010); with the sheet open it is the facing row's. The chart portals it into one place,
+   * so the two take turns. The polar chart's readout is its convention, not a facing, and stays in the sheet.
+   */
+  const cornerReadout = compact && !following && !sheetOpen && view !== 'polar';
+  /*
+   * R157's device (D-965): the head's width, written as `--sky-head-w` on the full layout's root, so the corner
+   * readout ends in its ellipsis before it meets the head; by a resize observer and no render. Held here and let go
+   * when the root is: `SkyViewLayout` calls the page's ref from its own and does not hand back a ref callback's cleanup.
+   */
+  const headObserver = useRef<ResizeObserver | null>(null);
+  const headRoom = useCallback((root: HTMLDivElement | null) => {
+    headObserver.current?.disconnect();
+    headObserver.current = null;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const head = root.querySelector<HTMLElement>('[data-testid="live-head"]');
+    if (!head) return;
+    const write = (): void => {
+      root.style.setProperty('--sky-head-w', `${String(Math.ceil(head.getBoundingClientRect().width))}px`);
+    };
+    write();
+    const observer = new ResizeObserver(write);
+    observer.observe(head);
+    headObserver.current = observer;
+  }, []);
+  useEffect(
+    () => () => {
+      headObserver.current?.disconnect();
+      headObserver.current = null;
+    },
+    [],
+  );
+
+  /*
+   * R163 (FR-CLEAN-4; D-923's row): the facing row in the sheet — the chart's readout as a button that opens the
+   * picker under it, the live page's row. On the window the picker is this page's own (`FacingPicker`, the eight
+   * points and `up`, on the page's camera); on the whole sky the readout is the polar chart's convention line and the
+   * picker its looking-up / map toggle, both portaled by the chart. A pick — one of the row's options — closes the
+   * picker, read off the DOM, since a portal's events bubble through the chart's tree and not through this row
+   * (D-904); the sheet stays open (FR-CLEAN-6).
+   */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const facingLabelId = useId();
+  const facingPickerId = useId();
+  const facingPickerRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) return;
+      element.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest(PICK_SELECTOR)) setPickerOpen(false);
+      });
+    },
+    [],
+  );
+  const facing = (
+    <div className={styles.facing} data-testid="stars-facing" data-rhythm="group">
+      <div className={styles.facingReadout}>
+        <div className={styles.facingWords} id={facingLabelId} aria-hidden="true">
+          {!cornerReadout && <SkyViewChartSlot name="readout" />}
+        </div>
+        <button
+          type="button"
+          className={styles.facingHit}
+          data-testid="sky-readout-toggle"
+          aria-labelledby={facingLabelId}
+          aria-expanded={pickerOpen}
+          {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
+          onClick={() => {
+            setPickerOpen(!pickerOpen);
+          }}
+        />
+      </div>
+      {pickerOpen && (
+        <div className={styles.facingPicker} id={facingPickerId} ref={facingPickerRef} data-testid="stars-facing-picker">
+          {view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" />}
+        </div>
+      )}
+    </div>
+  );
+
+  // R148's hint rule (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): the hint's line, for where it stands beside the bottom row's controls.
+  const hintLine = useSkyHintLine(view);
+  const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, sensor ? [t.sheet.follow, t.sheet.controls] : [t.sheet.controls]);
+  const sunUp = drawnRungs(positions.sunAltDeg) === 0;
+
+  if (compact) {
+    /*
+     * R163 (FR-CLEAN-1..4, FR-CLEAN-6; D-997): the full form — the box is the screen, and over it the overlay (the
+     * head with the door's line, the hint until the first gesture; the corner readout is the layout's slot) and the
+     * sheet slot (`[ follow ]` and `[ controls ]` at the bottom-right, and the sheet they stand over). The sheet's
+     * rows are FR-CLEAN-4's, in order; they stay mounted while the sheet is closed, inert (D-932), so a turn of the
+     * phone keeps every state. R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint
+     * steps aside until the next press.
+     */
+    const overlay = (
+      <>
+        <SkyHead line={<StarsHeadLine observer={observer} now={now} sunUp={sunUp} />} onBack={close} className={styles.head} />
+        {hintLine !== null && !follow.refused && (
+          <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
+            <SkyHint view={view} fit />
+          </div>
+        )}
+      </>
+    );
+    const sheet = (
+      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
+        {viewRow}
+        {sensor && (
+          <div className={styles.follow} data-testid="stars-follow" data-rhythm="group">
+            <FollowToggle follow={follow} />
+          </div>
+        )}
+        {/* R152 (FR-GYRO-5, D-957): while following the facing row is not drawn — its readout is not (nothing describes the
+            sensor's view) and a pick by hand would fight the sensor; it is back, where the phone last pointed, when following ends. */}
+        {!following && facing}
+        {layerRows}
+        {field}
+      </ControlsSheet>
+    );
+    return (
+      <div className={styles.page} data-layout={mode}>
+        <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
+          {/* FR-CLEAN-2: the page's name stays in the document for the outline (FR-A11Y-2) and assistive technology; the head over the sky carries the door's line. */}
+          <VisuallyHidden as="h1">{t.starsHeading}</VisuallyHidden>
+          <SkyViewLayout
+            ref={headRoom}
+            form="full"
+            readoutIn="sheet"
+            readoutLines={2}
+            onFirstTouch={follow.firstTouch}
+            className={styles.skyLayout}
+            data-testid="stars-layout"
+            drawing={drawing}
+            overlay={overlay}
+            {...(cornerReadout ? { readout: <SkyViewChartSlot name="readout" /> } : {})}
+            sheet={sheet}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * R132 (FR-FLOW-4, FR-FLOW-8; D-842): on wide the page is `SkyViewLayout`'s slots — the `h1` block as `answer`,
+   * the view row, the window's readout in `readout` (placed by the window itself, on the box's corner), the drawing,
+   * this page's own facing picker, the hint, `[ follow the phone ]` at the rail's foot where the sensor is (R152),
+   * the layer toggles as one group of two rows, then `In this field`. The box is cut here, as before, and written on
+   * the layout's root.
+   */
+  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
   return (
     <div className={styles.page} data-layout={mode}>
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
-        {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
+        <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />
         <SkyViewLayout
           onFirstTouch={follow.firstTouch}
           className={styles.skyLayout}
@@ -447,17 +615,10 @@ function StarsSky({ observer }: { observer: Observer }) {
           answer={<StarsHeading observer={observer} now={now} />}
           viewRow={viewRow}
           readout={<SkyViewChartSlot name="readout" />}
-          drawing={
-            // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
-            // tap all begin with a pointer down in the box, caught here before the window's own handlers.
-            // R160 (D-971): the chart with the page's two views; the window takes the page's camera, the whole sky outlines it.
-            <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
-              <SkyChart passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={STARS_VIEWS} view={view} onViewChange={setView} />
-            </div>
-          }
+          drawing={drawing}
           // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
-          // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846). R160: on the whole sky the
-          // row is the polar chart's own, its looking-up / map toggle, as FR-FLOW-4 has it on the live page and the pass detail.
+          // chart's window. It names itself (`Facing`); the layout labels its row (D-846). R160: on the whole sky the row is the
+          // polar chart's own, its looking-up / map toggle, as FR-FLOW-4 has it on the live page and the pass detail.
           picker={view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" />}
           hint={hintShown && <SkyHint view={view} />}
           {...(action === null ? {} : { action })}
@@ -470,10 +631,11 @@ function StarsSky({ observer }: { observer: Observer }) {
 }
 
 /**
- * R129 (FR-FLOW-3; F7, D4): the page names itself — a visible `h1`, "Stars tonight", and under it at `--small` the
- * dark window and the cloud word, as the home's What step words them (`useNight`: the stripe's bands and the
+ * R129 (FR-FLOW-3; F7, D4): the wide page names itself — a visible `h1`, "Stars tonight", and under it at `--small`
+ * the dark window and the cloud word, as the home's What step words them (`useNight`: the stripe's bands and the
  * forecast at the middle of the night). Before the bands are known the line is the cloud word alone; with no place,
- * the heading alone. R132 moves the block into the `answer` slot.
+ * the heading alone. R132 moves the block into the `answer` slot. R163: wide's alone — compact hides the `h1` and
+ * puts the door's line in the head (`StarsHeadLine`).
  */
 function StarsHeading({ observer, now }: { observer: Observer | null; now: EpochMs | null }) {
   const t = useT();
@@ -490,25 +652,70 @@ const TONIGHT_BACK_MS = 24 * HOUR_MS;
 const TONIGHT_AHEAD_MS = 36 * HOUR_MS;
 
 /**
- * `useNight`'s reading, on the page's own clock: the stars page already ticks (`STARS_TICK_MS`), so the line takes
- * that `now` rather than a second timer, and samples the bands once an hour, when the span moves.
+ * `useNight`'s reading, on the page's own clock: the stars page already ticks (`STARS_TICK_MS`), so the lines take
+ * that `now` rather than a second timer, and sample the bands once an hour, when the span moves. The cloud word is
+ * the forecast's at the middle of tonight's stretch (`nightWindow`), as the home's doors word it.
  */
-function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
-  const t = useT();
-  const locale = useLocale();
+function useStarsNight(observer: Observer, now: EpochMs): { bands: readonly SkyBand[]; span: Span; cloud: CloudState } {
   const hour = Math.floor(now / HOUR_MS) * HOUR_MS;
   const span = useMemo<Span>(() => ({ start: hour - TONIGHT_BACK_MS, end: hour + TONIGHT_AHEAD_MS }), [hour]);
   const bands = useSkyBands(observer, span);
   const weather = useAppStore((s) => s.weather);
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
+  const night = bands.length > 0 ? nightWindow(bands, observer, now) : null;
+  return { bands, span, cloud: cloudVerdict(snapshot, night ? (night.start + night.end) / 2 : now).state };
+}
+
+function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
+  const t = useT();
+  const locale = useLocale();
+  const { bands, span, cloud } = useStarsNight(observer, now);
   const known = bands.length > 0;
-  const night = known ? nightWindow(bands, observer, now) : null;
   const darkBand = known ? tonightsDark(bands, now) : null;
-  const clouds = cloudVerdict(snapshot, night ? (night.start + night.end) / 2 : now);
   const dark = !known ? null : darkBand === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(darkBand, span.start, observer.timeZone, locale, t)}`;
   return (
     <p className={styles.tonight} data-testid="stars-tonight">
-      {[dark, t.weather.state[clouds.state]].filter((piece) => piece !== null).join(' · ')}
+      {[dark, t.weather.state[cloud]].filter((piece) => piece !== null).join(' · ')}
+    </p>
+  );
+}
+
+/** What the head's line is worded from (D-1009): the clock, the zone, the bands, the cloud word, and whether the Sun is up. */
+export interface StarsHeadLineInput {
+  now: EpochMs;
+  zone: string | null;
+  bands: readonly SkyBand[];
+  cloud: CloudState;
+  /** The twilight step draws nothing (`drawnRungs` 0): the Sun is up, and the stars come later. */
+  sunUp: boolean;
+}
+
+/**
+ * R163 (FR-CLEAN-2; D-1009): the compact head's one line after `[ ← ]`, the Stars door's own words (`doorLines`'s
+ * functions in `i18n/{en,es}/home.ts`) in its three forms — "Dark 20:25 → 07:05 · Clear" with tonight's dark band;
+ * "No full dark · Clear" with none; and "Stars from 20:25" while the Sun is up and the stars are still to come, the
+ * door's second line, since the first would name a window the reader cannot use yet. With no zone the stamps say UTC
+ * and there is no forecast, so no cloud word (the door's rule, D-859); before the bands are known the line is the
+ * cloud word alone, as the wide line under the `h1` is.
+ */
+export function starsHeadLine(t: Messages, locale: Locale, { now, zone, bands, cloud, sunUp }: StarsHeadLineInput): string {
+  if (bands.length === 0) return t.weather.state[cloud];
+  const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
+  const cloudWord = zone === null ? null : cloud;
+  const starsFrom = tonightsStarsFrom(bands, now);
+  if (sunUp && starsFrom !== null && starsFrom.from > now) return t.doors.stars.from(clock(starsFrom.from, true));
+  const dark = tonightsDark(bands, now);
+  return dark ? t.doors.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud: cloudWord }) : t.doors.stars.noDark(cloudWord);
+}
+
+/** The head's line as `SkyHead` wants it: one `<p>` at `--small` in the dim ink that does not wrap (its end is cut by the head). */
+function StarsHeadLine({ observer, now, sunUp }: { observer: Observer; now: EpochMs; sunUp: boolean }) {
+  const t = useT();
+  const locale = useLocale();
+  const { bands, cloud } = useStarsNight(observer, now);
+  return (
+    <p className={styles.headLine} data-testid="stars-head-line">
+      {starsHeadLine(t, locale, { now, zone: observer.timeZone, bands, cloud, sunUp })}
     </p>
   );
 }
@@ -517,11 +724,6 @@ interface FieldSectionProps {
   camera: HandCamera;
   catalog: ReturnType<typeof starCatalog>;
   positions: ReturnType<typeof starsAt>;
-  /** R126 (FR-SKY-6): the scene's passes, empty with `[ passes ]` off, at the page's instant. */
-  passes: readonly LegendPass[];
-  /** The legend's rows over `passes`, the page's one computation of them (the window's keys come from the same rows). */
-  rows: readonly LegendRow[];
-  now: EpochMs;
   /** The drawing's measured box; the field across it is the camera's (R125, FR-SKY-14). */
   box: { width: number; height: number };
   layers: StarField['layers'];
@@ -537,7 +739,7 @@ interface FieldSectionProps {
  * old value, which every memo below answers, and the list follows when React has the time. R125 (FR-SKY-14): the
  * view's field is the camera's `fovDeg`, read the same deferred way, so a zoom lists what the narrowed box shows.
  */
-function FieldSection({ camera, catalog, positions, passes, rows, now, box, layers, whole, named, onName, labelledBy }: FieldSectionProps) {
+function FieldSection({ camera, catalog, positions, box, layers, whole, named, onName, labelledBy }: FieldSectionProps) {
   const lang = useLocale();
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
@@ -548,11 +750,8 @@ function FieldSection({ camera, catalog, positions, passes, rows, now, box, laye
   const rotation = whole ? WHOLE_SKY_ROTATION : windowRotation;
   // R126 (D-832): the star names in the reader's language, through `starName`.
   const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang, whole }), [catalog, positions, rotation, view, layers, lang, whole]);
-  // R126 (FR-SKY-6, D-794): the passes drawn in the field, ahead of the stars.
-  // R126 (FR-STAR-7, D-825): with the passes first, the list is still at most `FIELD_LIST_MAX` rows.
-  const listed = useMemo(() => fieldRows(passes.length === 0 ? [] : fieldPasses({ passes, rows, rotation, view, now, whole }), objects), [passes, rows, rotation, view, now, objects, whole]);
   const buried = !whole && windowView.width > 0 && groundState(settled.altDeg, windowView) === 'buried';
-  return useMemo(() => <FieldList objects={listed.objects} passes={listed.passes} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [listed, named, onName, buried, labelledBy]);
+  return useMemo(() => <FieldList objects={objects} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, named, onName, buried, labelledBy]);
 }
 
 /** R123 (FR-SKY-3, FR-SKY-10, D-791): the live page's and the pass detail's stars, from this chunk through `starsChunk.ts`. */

@@ -1,13 +1,10 @@
-import { cutTrack, type ArcState } from '../../../lib/arcReveal';
 import { compassPoint, type CompassPoint } from '../../../lib/compass';
 import { INTL_LOCALE } from '../../../i18n/locale';
 import type { StarCatalog } from '../../../data/stars/catalog';
 import { CONSTELLATION_NAMES } from '../../../data/stars/constellations';
-import type { LegendColor, LegendPass, LegendRow } from '../../../lib/legend';
-import { resampleArc } from '../../../lib/skyGeometry';
 import { figureName, starName, type StarNamesSource, type StarsAt } from '../../../lib/skyStars';
-import type { EpochMs, Locale, PassPoint } from '../../../model';
-import { drawableDeg, project, type Mat3, type Projected, type View } from '../../components/guide/skychart/window/projection';
+import type { Locale } from '../../../model';
+import { project, type Mat3, type View } from '../../components/guide/skychart/window/projection';
 import type { StarField } from '../../components/guide/skychart/window/scene';
 
 /**
@@ -16,7 +13,8 @@ import type { StarField } from '../../components/guide/skychart/window/scene';
  * `FIELD_LIST_MAX` brightest of it for `In this field`, the magnitude as the
  * page prints it, and the catalogue in the shape the window's scene types.
  * Pure: the page hands in the rotation, the box and the positions at the shown
- * instant; nothing here reads a clock or the DOM.
+ * instant; nothing here reads a clock or the DOM. R163 (FR-CLEAN-11, D-1004): the
+ * passes' half — `fieldPasses`, `fieldRows` — went with the `[ passes ]` toggle.
  */
 
 /** FR-STAR-7: `In this field` lists at most this many objects, brightest first. */
@@ -87,118 +85,6 @@ export function fieldObjects({ catalog, positions, rotation, view, layers, lang,
     });
   }
   return found.sort((a, b) => a.mag - b.mag).slice(0, FIELD_LIST_MAX);
-}
-
-/** FR-LEG-3's three words, the states a pass row in `In this field` can be in. */
-type FieldPassState = Extract<ArcState, 'ahead' | 'live' | 'linger'>;
-
-const isFieldPassState = (state: string): state is FieldPassState => state === 'ahead' || state === 'live' || state === 'linger';
-
-/** FR-SKY-6 (D-794): one pass in `In this field` — its legend key and colour, its name, its FR-LEG-3 state, and where its peak is. */
-export interface FieldPass {
-  id: string;
-  key: string;
-  color: LegendColor;
-  name: string;
-  state: FieldPassState;
-  peakAltDeg: number;
-  peakPoint: CompassPoint;
-}
-
-export interface FieldPassesInput {
-  passes: readonly LegendPass[];
-  /** The legend's rows over the same passes (`legendRows`, `colorBy: 'pass'`), computed once by the page for the window's keys and this list. */
-  rows: readonly LegendRow[];
-  rotation: Mat3;
-  view: View;
-  now: EpochMs;
-  /** R160 (FR-PHONE-7): the whole sky — a pass is in the field where any part of its drawn arc is above the horizon. */
-  whole?: boolean;
-}
-
-/** The window's arc step (`SkyWindow`'s `ARC_STEP_DEG`): the arc is drawn as straight segments between these samples. */
-const ARC_STEP_DEG = 2;
-
-/** Liang–Barsky: whether the segment from `a` to `b` crosses the box `[0, width] × [0, height]`. */
-function segmentInBox(a: Projected, b: Projected, view: View): boolean {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  let lo = 0;
-  let hi = 1;
-  const edges: [number, number][] = [
-    [-dx, a.x],
-    [dx, view.width - a.x],
-    [-dy, a.y],
-    [dy, view.height - a.y],
-  ];
-  for (const [p, q] of edges) {
-    if (p === 0) {
-      if (q < 0) return false;
-      continue;
-    }
-    const r = q / p;
-    if (p < 0) lo = Math.max(lo, r);
-    else hi = Math.min(hi, r);
-    if (lo > hi) return false;
-  }
-  return true;
-}
-
-/**
- * Whether any part of an arc, as the window draws it, is in the box: the track
- * resampled at the window's step and each segment between two drawable samples
- * (in front, inside the drawable field, above the horizon) tested against the
- * box, so an arc that only crosses a zoomed-in field between two samples counts.
- */
-function arcInField(track: readonly PassPoint[], rotation: Mat3, view: View): boolean {
-  const limitDeg = drawableDeg(view);
-  let previous: Projected | null = null;
-  for (const point of resampleArc(track, ARC_STEP_DEG)) {
-    const p = project(rotation, point.azDeg, point.elDeg, view);
-    const ok = point.elDeg >= 0 && p.front && p.offAxisDeg <= limitDeg && Number.isFinite(p.x) && Number.isFinite(p.y);
-    if (!ok) {
-      previous = null;
-      continue;
-    }
-    if (segmentInBox(previous ?? p, p, view)) return true;
-    previous = p;
-  }
-  return false;
-}
-
-/**
- * FR-SKY-6 (D-794): the passes drawn in the field, ahead of the stars, in the
- * legend's order and with the legend's keys and colours (the rows the page
- * computed over the same passes the window is given, `colorBy: 'pass'`). A
- * pass is in the field when any part of the arc the window draws at `now` is:
- * the part flown so far while it is up (`cutTrack`), the whole track before and
- * after; above the horizon, in front and in the box. A pass with no FR-LEG-3
- * word for its state (`'full'`, an arc handed in with no state) is not listed:
- * this page hands every pass with its state at now.
- */
-export function fieldPasses({ passes, rows, rotation, view, now, whole = false }: FieldPassesInput): FieldPass[] {
-  if (!whole && (view.width <= 0 || view.height <= 0)) return [];
-  const byId = new Map(passes.map((pass) => [pass.id, pass]));
-  const found: FieldPass[] = [];
-  for (const row of rows) {
-    const pass = byId.get(row.passId);
-    const { state } = row;
-    if (pass === undefined || !isFieldPassState(state)) continue;
-    const track = state === 'live' ? cutTrack(pass, now) : pass.track;
-    if (!(whole ? track.some((point) => point.elDeg >= 0) : arcInField(track, rotation, view))) continue;
-    found.push({ id: pass.id, key: row.key, color: row.colorToken, name: pass.name, state, peakAltDeg: pass.peak.elDeg, peakPoint: compassPoint(pass.peak.azDeg) });
-  }
-  return found;
-}
-
-/**
- * FR-STAR-7's twelve rows with the passes in them (R126, D-825): the passes in
- * the field first, then the brightest objects in what is left of
- * `FIELD_LIST_MAX`, so the list is never longer than twelve.
- */
-export function fieldRows(passes: readonly FieldPass[], objects: readonly FieldObject[]): { passes: readonly FieldPass[]; objects: readonly FieldObject[] } {
-  const listed = passes.slice(0, FIELD_LIST_MAX);
-  return { passes: listed, objects: objects.slice(0, FIELD_LIST_MAX - listed.length) };
 }
 
 /**

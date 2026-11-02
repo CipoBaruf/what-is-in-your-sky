@@ -1,9 +1,11 @@
-/* R115 (FR-STAR-3, D-756): the stars page. R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s —
-   the column on compact (the `h1` block, the readout, the box full-bleed and square, the facing row, the hint,
-   `[ follow the phone ]`, the layers' two rows, the list) and the box beside the rail on wide, in the same order.
-   The layout owns the gaps; this file sizes the wide box (cut by `Stars.tsx` to the browser window's shape beside
-   the rail's minimum, `fitBox`, FR-LIVE-7's rule) and the page's own rows. Every length is a token or a count of
-   cells (FR-DS-2). */
+/* R115 (FR-STAR-3, D-756): the stars page. R132 (FR-FLOW-4, FR-FLOW-8; D-842): on wide the page is `SkyViewLayout`'s
+   box beside the rail (the `h1` block, the view row, the facing row, the layers, the list). R163 (FR-CLEAN-1..4,
+   FR-CLEAN-6, FR-CLEAN-7; D-997): on compact it is the layout's `full` form — the box is the screen, the head, the
+   corner readout, the bottom row and the hint stand over it, and the rows are the controls sheet's — so the compact
+   column and the landscape rail this file once sized are gone. The layout owns the gaps; this file sizes the wide
+   box (cut by `Stars.tsx` to the browser window's shape beside the rail's minimum, `fitBox`, FR-LIVE-7's rule), places
+   the overlay's parts as `Live.module.css` places the live page's, and lays out the page's own rows. Every length is
+   a token or a count of cells (FR-DS-2). */
 
 .page[data-layout='wide'] {
   height: 100%;
@@ -66,7 +68,7 @@
   white-space: nowrap;
 }
 
-/* FR-FLOW-8: the layer toggles are one group of two rows, `--space-1` apart. */
+/* FR-FLOW-8 → FR-CLEAN-4: the layer toggles are one group of two rows, `--space-1` apart. */
 .layers {
   display: grid;
   gap: var(--space-1);
@@ -83,16 +85,6 @@
   margin: 0;
 }
 
-/* R132 (FR-FLOW-8): on the phone the box is four wide to three tall, so that the heading of `In this field` and its
-   first row are inside 390 × 844 with the rows FR-FLOW-4 puts above them (the square left them 50 px under the
-   fold). An interim shape: the box's size is R133's, which reads `sky-layout.spec.ts` and replaces this rule with
-   the fit it decides. The frame's own floor (its width, FR-COMP-5) is off here (D-233's switch), since the slot is
-   what sizes the box. */
-.layout[data-layout='compact'] .skyLayout[data-shape='column'] :global([data-slot='drawing']) {
-  --chart-floor-on: 0;
-  height: calc((100cqw + 4 * var(--cell)) * 3 / 4);
-}
-
 /* Wide: the box's size, written by the page (`--stars-box-w` / `--stars-box-h`) on the layout's root; the window
    fills it (`fill`). */
 .layout[data-layout='wide'] .skyLayout :global([data-slot='drawing']) {
@@ -101,9 +93,127 @@
   justify-self: start;
 }
 
-/* R152 (FR-GYRO-1, D-944): `[ follow the phone ]` in the action slot where `[ hold up to the sky ]` stood (R117,
-   R132) — one row at least `--tap` tall, and the refusal line under it when there is one. */
+/* R152 (FR-GYRO-1, D-944): `[ follow the phone ]` — on wide in the action slot at the rail's foot, on compact the
+   sheet's own row after the view row (R163, FR-CLEAN-4) — one row at least `--tap` tall, and the refusal line under
+   it when there is one. */
 .follow {
   min-height: var(--tap);
   align-content: center;
+}
+
+/* --- R163 (FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-4; D-997): the compact page is the full form. The overlay's parts stand
+   where `Live.module.css` stands the live page's (D-920, D-924, D-934, D-964), inside the layout's overlay slot,
+   which lets the pointer through to the sky where it holds nothing. --- */
+
+/* The head over the sky (FR-CLEAN-2): `[ ← ]` and the door's line at the box's top-left, inside the safe area, a row
+   gap from the top edge and `--space-3` from the left; the head's own `max-inline-size` keeps `--space-3` at the
+   right (`SkyHead.module.css`). The head takes the pointer. */
+.head {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-start: var(--space-3);
+  pointer-events: auto;
+}
+
+/* The door's line in the head: `--small` in the dim ink, one line, which the head cuts with an ellipsis at its end. */
+.headLine {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+
+/* FR-STAR-7's second line under the corner readout (FR-CLEAN-2; D-1010): the layout's one-line rule hides a
+   readout's `<br>` and what follows it for the live page (D-965); this page asks the full form for two lines
+   (`readoutLines`, `data-lines`) and shows them — a tapped star's name, under the facing. */
+.skyLayout :global([data-slot='readout'][data-lines='2'] p br),
+.skyLayout :global([data-slot='readout'][data-lines='2'] p br ~ *) {
+  display: initial;
+}
+
+/* The hint (FR-CLEAN-3, D-924): one line at the box's bottom-left, on the bottom row — a target tall, the line
+   centred in it — where it and the row's controls fit in 36 cells, and in the row above it otherwise. Not a control:
+   the pointer goes through it to the sky. R157 (FR-PHONE-5, D-981): drawn whole, never cut — a line wider than the
+   box less its margins takes a second row, balanced, rather than an ellipsis. */
+.hintArea {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  max-inline-size: calc(100% - 2 * var(--space-3));
+  pointer-events: none;
+}
+
+.hintArea[data-beside='false'] {
+  /* R157: the row's controls are `--tap` tall (`.target`'s box), so the row above starts there and not at `--target`. */
+  inset-block-end: var(--tap);
+}
+
+.hintArea > p {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  text-wrap: balance;
+}
+
+/* The bottom row (FR-CLEAN-3): `[ follow ]` where the phone has the sensor, then `[ controls ]`, at the box's
+   bottom-right inside the safe area, a cell between them, one overlay surface (D-964). */
+.controls {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0 var(--cell);
+  background: var(--screen-overlay);
+  pointer-events: auto;
+}
+
+/* The sheet's facing row (FR-CLEAN-4, D-923): the chart's readout with a button laid over it at the row's whole
+   size — a target tall, named by the words (a button holds phrasing content only, the readout is a `p`) — and the
+   picker under it while open, a row apart. */
+.facing {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.facingReadout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--target);
+  min-width: 0;
+}
+
+.facingWords {
+  min-width: 0;
+}
+
+.facingWords p {
+  margin: 0;
+}
+
+.facingHit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.facingPicker {
+  min-width: 0;
 }

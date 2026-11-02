@@ -128,6 +128,12 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   /** R144 (FR-TONIGHT-6, D-904): the readout in the box's corner as the picker's toggle — the compact live page alone passes `'corner'`. */
   readoutIn?: SkyViewReadoutPlace | undefined;
   /**
+   * R163 (FR-CLEAN-2, D-1010): how many lines the full form's corner readout draws — one, the live page's (D-965: the
+   * second line is the sheet's), or two, the stars page's, where FR-STAR-7's second line (a tapped star's name)
+   * stands under the facing. Written on the readout's slot as `data-lines`; the page's stylesheet shows the second.
+   */
+  readoutLines?: 1 | 2 | undefined;
+  /**
    * R144 (FR-FSC-2): the corner picker's open state, held by the page where the layout does not outlive what it
    * opens — the live page unmounts the layout while the sky screen is up, and closing the screen has to find the
    * facing row open with `[ hold up to the sky ]` in it, for its focus to come back to. Without it the layout holds
@@ -166,7 +172,7 @@ const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
 const PICK = PICK_SELECTOR;
 
-export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, pickerOpen: heldOpen, onPickerOpen, roomKey, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -502,7 +508,7 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
               <div className={styles.overlay} data-slot="overlay">
                 {slots.overlay}
                 {given('readout') && (
-                  <div className={styles.fullReadout} data-slot="readout" data-testid="sky-corner-readout">
+                  <div className={styles.fullReadout} data-slot="readout" data-lines={readoutLines} data-testid="sky-corner-readout">
                     {slots.readout}
                   </div>
                 )}
