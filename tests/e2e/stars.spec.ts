@@ -87,8 +87,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     expect(readout.x).toBeGreaterThanOrEqual(drawn.x - 0.5);
     expect(readout.y).toBeGreaterThanOrEqual(drawn.y - 0.5);
     expect(readout.y + readout.height).toBeLessThan(drawn.y + drawn.height / 4);
-    // The rail's three blocks, in order (FR-STAR-3): the layout's `Facing` label (D-846), then the page's two.
-    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText([WORDS.en.facing, WORDS.en.layers, WORDS.en.field]);
+    // The rail's blocks, in order (FR-STAR-3): the layout's `View` (R160, FR-PHONE-7) and `Facing` labels (D-846), then the page's two.
+    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText(['View', WORDS.en.facing, WORDS.en.layers, WORDS.en.field]);
     expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   });
@@ -224,8 +224,8 @@ test.describe('both languages (FR-STAR-10, FR-A11Y-3)', () => {
     await page.getByTestId('stars-link').click();
     await expect(page).toHaveTitle(`Estrellas · ${WORDS.es.app}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(WORDS.es.heading);
-    // R132 (D-846): the rail labels the facing row `Hacia`; the picker's own name stays `Mirando`.
-    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText(['Hacia', WORDS.es.layers, WORDS.es.field]);
+    // R132 (D-846): the rail labels the view row `Vista` (R160) and the facing row `Hacia`; the picker's own name stays `Mirando`.
+    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText(['Vista', 'Hacia', WORDS.es.layers, WORDS.es.field]);
     await expect(page.getByRole('group', { name: WORDS.es.facing }).getByRole('button').last()).toHaveText(WORDS.es.up);
     await expect(page.getByRole('group', { name: WORDS.es.layers }).getByRole('button')).toHaveText(WORDS.es.layerNames.map((name) => name));
     const rows = page.getByRole('list', { name: WORDS.es.field }).getByRole('button');

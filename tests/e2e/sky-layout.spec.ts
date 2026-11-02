@@ -255,21 +255,27 @@ for (const locale of LOCALES) {
       }
     });
 
-    test('the stars page: the h1, the readout, the drawing, the facing row, the hint, the action, the layers, then In this field inside the viewport (FR-FLOW-8)', async ({ page }) => {
+    test('the stars page: the h1, the view row, the readout, the drawing, the facing row, the hint, the action, the layers, then In this field inside the viewport (FR-FLOW-8)', async ({ page }) => {
       const layout = await openStars(page, locale);
       await expect(layout).toHaveAttribute('data-shape', 'column');
       const check = async (): Promise<void> => {
         const slots = await slotBoxes(layout);
         const names = slots.map((slot) => slot.name);
-        expect(names.filter((name) => name !== 'action')).toEqual(['answer', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
+        // R160 (FR-PHONE-7): the view row between the h1 block and the readout.
+        expect(names.filter((name) => name !== 'action')).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
         expectStacked(slots);
         await expectHintOffTheDrawing(layout);
-        // FR-FLOW-8: the layer toggles are one group of two rows; the heading of `In this field` and its first row are inside 844 px.
+        // FR-FLOW-8: the layer toggles are one group of two rows; the heading of `In this field` is inside 844 px. R160 (FR-PHONE-7,
+        // D-990): the view row above the box takes its own row and gap (54 px), and the box keeps FR-COMP-5's floor, so the
+        // list's first row now ends up to that much under the fold (28.5 px in English, 52.5 in Spanish, measured) — pinned
+        // here as the row's height, so the gap cannot grow unnoticed, and a finding for the spec (FR-FLOW-8's fold sentence).
         await expect(layout.getByTestId('stars-layers-row')).toHaveCount(2);
         const heading = await box(layout.getByRole('heading', { name: WORDS[locale].field }));
         const firstRow = await box(layout.getByTestId('field-list').getByRole('listitem').first());
+        const viewRow = await box(layout.locator('[data-slot="viewRow"]'));
+        const viewRowGap = await layout.locator('[data-slot="viewRow"] + [data-slot]').evaluate((el) => parseFloat(getComputedStyle(el).marginTop) || 0);
         expect(heading.y + heading.height).toBeLessThanOrEqual(PHONE.height);
-        expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(PHONE.height);
+        expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(PHONE.height + viewRow.height + viewRowGap);
       };
       await check();
       await layout.getByTestId('stars-layers').getByRole('button', { name: WORDS[locale].passes }).click();
@@ -338,12 +344,12 @@ for (const locale of LOCALES) {
       await expect(layout.locator('[data-slot="picker"]').getByRole('heading', { level: 2 })).toHaveText(locale === 'en' ? 'Facing' : 'Hacia');
     });
 
-    test('the stars page is the box and the rail: the h1, the facing row, the layers, In this field', async ({ page }) => {
+    test('the stars page is the box and the rail: the h1, the view row, the facing row, the layers, In this field', async ({ page }) => {
       const layout = await openStars(page, locale);
       await expectRail(layout);
       await expectHintOffTheDrawing(layout);
       const names = (await slotBoxes(layout)).map((slot) => slot.name);
-      expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'picker', 'layers', 'list']);
+      expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'viewRow', 'picker', 'layers', 'list']);
     });
 
     test('the pass detail panel: the head band, the one control line, the drawing at the panel’s width and most of its area, the prose and the table under it (FR-FLOW-7)', async ({ page }) => {
@@ -488,7 +494,7 @@ for (const viewport of TURNED) {
         await expectTurned(page, layout, viewport);
         await expectHintOffTheDrawing(layout);
         const names = (await slotBoxes(layout)).map((slot) => slot.name);
-        expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'picker', 'layers', 'list']);
+        expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'viewRow', 'picker', 'layers', 'list']);
       });
 
       test('the pass detail: the drawing at the left at its share and full height, the head first in the rail, no page scroll', async ({ page }) => {

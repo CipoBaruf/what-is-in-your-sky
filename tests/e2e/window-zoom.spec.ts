@@ -18,7 +18,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR } from './captureSet';
 import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
-import { ctrlWheel, pinch, placedAt, wheel } from './windowZoom';
+import { ctrlWheel, pinch, pinchPolar, placedAt, skyUnder, wheel } from './windowZoom';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -162,13 +162,14 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '60');
 
-    // The pinch: two pointers from 100 px to 200 px apart halve the field, together to 50 px double it, held at 90°.
+    // The pinch: two pointers from 100 px to 200 px apart halve the field, together from 150 px to 50 px treble it to the end, 90°
+    // (R160: a pinch asking past the end by `PINCH_HANDOFF_RATIO` would hand the view to the whole sky — `whole-sky.spec.ts`).
     await pinch(box(w), 100, 200);
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '30');
     await expect(w).toHaveAttribute('data-look-az', '0');
     await expect(w).toHaveAttribute('data-look-alt', '35');
-    await pinch(box(w), 200, 50);
+    await pinch(box(w), 150, 50);
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '90');
     await pinch(box(w), 50, 500);
@@ -313,8 +314,53 @@ test.describe('zoom on a compact page without a sensor', () => {
     await expect(w).toHaveAttribute('data-fov', '30');
     await expect(w).toHaveAttribute('data-look-az', '180');
     await page.screenshot({ path: `${CAPTURE_DIR}/r125-stars-390-window-30-dark-en.png` });
-    await pinch(box(w), 160, 40);
+    // R160: to the end and not past it (30 × 150 / 50 = 90°); past it by the ratio is the whole sky's (below).
+    await pinch(box(w), 150, 50);
     await expect(w).toHaveAttribute('data-fov', '90');
     await expect(readout(page)).toHaveText(READOUT);
+  });
+
+  /**
+   * R160 (FR-PHONE-10; US-46 AC4; D-970): the ends. A pinch that stops at the widest field stays at it, and one that
+   * goes on by less than `PINCH_HANDOFF_RATIO` too; past the ratio the release opens the whole sky with the window's
+   * camera kept at 90°; a pinch in on the whole sky that stops short of the ratio stays, and past it returns to the
+   * window at 90° facing the sky under the fingers; the narrow end stays at 20° whatever the pinch asks.
+   */
+  test('a pinch stopping at either end stays there; past the widest field by the ratio it opens the whole sky, and the pinch in on it returns to the window', async ({ page }) => {
+    const w = await openStars(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(w).toHaveAttribute('data-fov', '60');
+    const chart = page.getByTestId('sky-chart');
+    // To the end exactly (60 × 150 / 100 = 90°), and then 10 % past it: the field holds at 90 and the view stays the window.
+    await pinch(box(w), 150, 100);
+    await expect(w).toHaveAttribute('data-fov', '90');
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    await pinch(box(w), 110, 100);
+    await expect(w).toHaveAttribute('data-fov', '90');
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    // The narrow end: 20° however far the fingers go, and never a handoff.
+    await pinch(box(w), 50, 500);
+    await expect(w).toHaveAttribute('data-fov', '20');
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    await pinch(box(w), 500, 100);
+    await expect(w).toHaveAttribute('data-fov', '90');
+    // Past the end by the ratio: 90 × 120 / 100 = 108° asked, over 103.5: the whole sky, the camera at 90°.
+    await pinch(box(w), 120, 100);
+    await expect(chart).toHaveAttribute('data-view', 'polar');
+    const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
+    await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/, { timeout: 30_000 });
+    // In on the whole sky short of the ratio: it stays; past it, about the zenith: the window, up, at 90°.
+    await pinchPolar(polar, 100, 90);
+    await expect(chart).toHaveAttribute('data-view', 'polar');
+    const rect = await polar.evaluate((el) => el.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number });
+    const at = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    expect((await skyUnder(polar, at)).altDeg).toBeCloseTo(90, 6);
+    await pinchPolar(polar, 100, 60, at);
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    const back = page.getByTestId('stars-sky').locator('[data-look-az][data-fov]');
+    await expect(back).toHaveAttribute('data-state', 'hand');
+    await expect(back).toHaveAttribute('data-fov', '90');
+    await expect(back).toHaveAttribute('data-look-alt', '90');
+    expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov|chartView/i);
   });
 });
