@@ -146,5 +146,25 @@ for (const locale of LOCALES) {
       // The page itself does not scroll: the pane does, where a short window asks it to.
       expect(measured.scrolls).toBeLessThanOrEqual(0);
     });
+
+    test('the place field’s focus ring clears its label and its help line', async ({ page }) => {
+      await openFlowPage(page, 'settings', locale);
+      const input = page.locator('#root > main input').first();
+      await input.focus();
+      // The field's rows (its label, its box, the help line once a place is picked) stand its row gap apart.
+      const clear = await input.evaluate((el) => {
+        const style = getComputedStyle(el);
+        const field = el.parentElement;
+        if (!field) throw new Error('the input has no field');
+        return {
+          ring: parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset),
+          gap: parseFloat(getComputedStyle(field).rowGap),
+          above: el.getBoundingClientRect().top - (el.previousElementSibling?.getBoundingClientRect().bottom ?? -Infinity),
+        };
+      });
+      expect(clear.ring).toBeGreaterThan(0);
+      expect(clear.above, 'the ring lies over the label').toBeGreaterThanOrEqual(clear.ring);
+      expect(clear.gap, 'the ring lies over the help line').toBeGreaterThanOrEqual(clear.ring);
+    });
   });
 }

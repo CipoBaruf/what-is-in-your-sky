@@ -147,4 +147,12 @@
   .rows {
     row-gap: var(--space-3);
   }
+
+  /* The phone sets a field's label, box and help line flush (`gap: 0`, FR-SET-2's fit), and the focus ring, drawn
+     `--focus-offset` + `--focus-ring` (4 px) outside the box, then lies over the label and the help line. On a desk
+     they stand `--space-1` apart, clear of the ring. */
+  .location section > div:first-of-type,
+  .coords > div > div {
+    gap: var(--space-1);
+  }
 }
