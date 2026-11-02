@@ -15,7 +15,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import { tonightBand } from '../../../lib/shownTime';
 import type { SkyBand } from '../../../lib/timeStripe';
 import type { Locale } from '../../../model';
-import type { ShownTimeProps } from './ShownTime';
+import { ShownTime, type ShownTimeProps } from '../live/ShownTime';
 import { SkyHead } from './SkyHead';
 
 afterEach(cleanup);
@@ -37,7 +37,7 @@ const HELD: ShownTimeProps = { ...LIVE, t: NOW + 9 * H + 47 * MIN - 7_000, realT
 const mount = (locale: Locale, shown: ShownTimeProps, onBack = vi.fn()) => {
   const utils = render(
     <I18nProvider locale={locale}>
-      <SkyHead {...shown} onBack={onBack} />
+      <SkyHead line={<ShownTime {...shown} />} onBack={onBack} />
     </I18nProvider>,
   );
   return { ...utils, onBack, head: screen.getByTestId('live-head') };
@@ -77,7 +77,7 @@ describe('<SkyHead> (FR-FULL-2)', () => {
   });
 
   it('is one row as wide as its content, cut with an ellipsis on the paragraph’s end (the chip)', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/live/SkyHead.module.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/sky/SkyHead.module.css'), 'utf8');
     expect(css).toMatch(/inline-size: max-content;/);
     expect(css).toMatch(/max-inline-size: calc\(100% - 2 \* var\(--space-3\)\);/);
     expect(css).toMatch(/background: var\(--screen-overlay\);/);

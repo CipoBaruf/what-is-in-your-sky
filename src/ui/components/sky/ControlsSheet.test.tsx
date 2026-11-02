@@ -266,7 +266,7 @@ describe('<ControlsSheet>’s swipe (FR-GYRO-8)', () => {
   }
 
   it('takes the touch on the head row alone, so the body keeps its native scroll', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/live/ControlsSheet.module.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/sky/ControlsSheet.module.css'), 'utf8');
     expect(/\.head \{[^}]*touch-action: none;/.exec(css)).not.toBeNull();
     expect(/\.body \{[^}]*touch-action/.exec(css)).toBeNull();
   });
@@ -346,7 +346,7 @@ describe('<ControlsSheet>’s swipe (FR-GYRO-8)', () => {
 });
 
 describe('ControlsSheet.module.css (FR-FULL-4)', () => {
-  const css = readFileSync(resolve(process.cwd(), 'src/ui/components/live/ControlsSheet.module.css'), 'utf8');
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/components/sky/ControlsSheet.module.css'), 'utf8');
 
   it('slides by `transform` in at most 200 ms, and not at all under reduced motion', () => {
     const slide = /--sheet-slide:\s*(\d+)ms/.exec(css);

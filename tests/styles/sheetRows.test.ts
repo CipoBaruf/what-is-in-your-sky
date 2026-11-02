@@ -29,10 +29,10 @@ import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, SHELL_PADDING_CELLS } from '../../sr
 import { tonightBand } from '../../src/lib/shownTime';
 import type { SkyBand } from '../../src/lib/timeStripe';
 import type { Locale } from '../../src/model';
-import { ControlsSheet } from '../../src/ui/components/live/ControlsSheet';
+import { ControlsSheet } from '../../src/ui/components/sky/ControlsSheet';
 import { FollowControl } from '../../src/ui/components/live/FollowControl';
-import type { ShownTimeProps } from '../../src/ui/components/live/ShownTime';
-import { SkyHead } from '../../src/ui/components/live/SkyHead';
+import { ShownTime, type ShownTimeProps } from '../../src/ui/components/live/ShownTime';
+import { SkyHead } from '../../src/ui/components/sky/SkyHead';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -81,7 +81,7 @@ interface HeadRow {
 
 /** The head rendered at its longest, measured by its parts. */
 function headRow(locale: Locale): HeadRow {
-  inLocale(locale, createElement(SkyHead, { ...LONGEST, onBack: () => undefined }));
+  inLocale(locale, createElement(SkyHead, { line: createElement(ShownTime, LONGEST), onBack: () => undefined }));
   // `cells.ts` puts a control's brackets in front of its words (`####←`); the row is read with them where they stand.
   const back = `[ ${CATALOGS[locale].header.back} ]`;
   expect(rowCells(screen.getByTestId('live-back'), table)).toBe(back.length);

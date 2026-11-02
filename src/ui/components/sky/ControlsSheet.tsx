@@ -37,6 +37,9 @@ import styles from './ControlsSheet.module.css';
  * detail's sheet does, mounted with the open sheet; the button takes the focus itself before it opens the sheet,
  * so the opener is `[ controls ]` on a browser that does not focus a pressed button (Safari). No focus trap, no
  * backdrop: the sky above stays hit-testable. Nothing here writes the URL or the history (§4.37).
+ *
+ * R162 (FR-CLEAN-9; D-996): moved from `components/live/` to `components/sky/`, unchanged, so the stars page and the
+ * pass detail mount the same sheet without the `live` chunk.
  */
 export interface ControlsSheetProps {
   open: boolean;
