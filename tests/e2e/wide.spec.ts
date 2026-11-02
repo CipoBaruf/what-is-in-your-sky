@@ -349,3 +349,72 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
     });
   }
 });
+
+/**
+ * R166 (FR-CLEAN-16, D-1017): on a desk the three doors are the home's main navigation and look it. Each title is
+ * a pane heading's size (`--text-pane`, 20 px), its lines the body's (`--text-body`, 16 px), the frame a control's
+ * edge (`--border-control`); on hover the frame and the title take the accent. The 1280 project only.
+ */
+test.describe('FR-CLEAN-16: the doors stand out on a desk', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('pane-sized titles, body-sized lines, a control frame, the accent on hover', async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', 'the size is this test’s own: the 1024 project has nothing to add');
+    /** A token resolved to the colour the browser computes, so it compares with a computed style. */
+    const token = (name: string) =>
+      page.evaluate((property) => {
+        const probe = document.createElement('span');
+        probe.style.color = `var(${property})`;
+        document.body.append(probe);
+        const value = getComputedStyle(probe).color;
+        probe.remove();
+        return value;
+      }, name);
+    const [edge, accent, fg] = await Promise.all([token('--edge'), token('--accent'), token('--fg')]);
+    for (const id of ['door-satellites', 'door-stars', 'door-live']) {
+      const door = page.getByTestId(id);
+      await expect(door).toBeVisible();
+      const title = door.locator('span').first();
+      const look = () =>
+        door.evaluate((el) => {
+          const [first, second] = [el.children[0], el.children[1]];
+          if (!first || !second) throw new Error('the door has no title and line');
+          const box = getComputedStyle(el);
+          return { frame: box.borderTopColor, width: box.borderTopWidth, title: getComputedStyle(first).fontSize, titleColour: getComputedStyle(first).color, line: getComputedStyle(second).fontSize };
+        });
+      const rest = await look();
+      expect(rest.title, `${id}'s title`).toBe('20px');
+      expect(rest.line, `${id}'s line`).toBe('16px');
+      expect(rest.frame, `${id}'s frame at rest`).toBe(edge);
+      expect(rest.titleColour, `${id}'s title at rest`).toBe(fg);
+      await title.hover();
+      await expect.poll(async () => (await look()).frame, `${id}'s frame on hover`).toBe(accent);
+      expect((await look()).titleColour, `${id}'s title on hover`).toBe(accent);
+    }
+  });
+
+  // D-1017: a body-sized line does not fit a third of a narrow desk, so it wraps rather than being cut, and the
+  // three boxes stay as tall as the tallest.
+  for (const width of [964, 1024, 1118, 1280]) {
+    for (const locale of ['en', 'es'] as const) {
+      test(`at ${String(width)} px in ${locale} no door line is cut and the three boxes are one height`, async ({ page }, info) => {
+        test.skip(info.project.name !== 'chromium', 'the sizes are this test’s own');
+        await page.setViewportSize({ width, height: 800 });
+        await seedStoredRun(page, { locale, settled: true });
+        await expect(page.getByTestId('door-stars-line')).toHaveCount(3);
+        await expect(page.locator('[data-testid="door-stars-line"][data-pending]')).toHaveCount(0);
+        const doors = await page.evaluate(() =>
+          ['door-satellites', 'door-stars', 'door-live'].map((id) => {
+            const door = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+            if (!door) throw new Error(`${id} is not on the page`);
+            const cut = [...door.querySelectorAll<HTMLElement>(`[data-testid="${id}-line"]`)].filter((line) => line.scrollWidth > line.clientWidth + 1).map((line) => line.textContent);
+            return { id, cut, height: door.getBoundingClientRect().height };
+          }),
+        );
+        for (const door of doors) expect(door.cut, `${door.id} cuts a line`).toEqual([]);
+        const heights = doors.map((door) => door.height);
+        expect(Math.max(...heights) - Math.min(...heights), 'the three boxes differ in height').toBeLessThanOrEqual(1);
+      });
+    }
+  }
+});

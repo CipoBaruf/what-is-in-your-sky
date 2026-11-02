@@ -19,7 +19,8 @@ import { useNight } from './useNight';
  * in that fixed order, each one link over the whole of a ruled box (`Card`'s
  * `a`), its title in `--fg` and its answer lines at `--small` (`doorLines`).
  * Full width and stacked on compact, over the Where reading (R156, FR-PHONE-12); on wide one row
- * of three equal boxes over the panes, each with one more line.
+ * of three equal boxes over the panes, each with one more line, in `Card`'s `emphasis` form: the page's main
+ * navigation, a pane-sized title and body-sized lines (R166, FR-CLEAN-16).
  *
  * The Satellites door opens the next event's pass (`#pass=<id>`, the hash the
  * cards open), or with no visible pass in the span the What reading: its
@@ -54,7 +55,7 @@ function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: stri
   const lines = wide && door.wide !== undefined ? [...door.lines, door.wide] : door.lines;
   return (
     <li className={styles.item}>
-      <Card as="a" href={href} className={`${styles.door} target`} data-testid={testId} {...(onClick ? { onClick } : {})}>
+      <Card as="a" href={href} emphasis={wide} className={`${styles.door} target`} data-testid={testId} {...(onClick ? { onClick } : {})}>
         <span className={styles.title}>{door.title}</span>
         {lines.map((line, i) => (
           // A line not in yet is drawn empty at its full height (`min-height: 1lh`), so nothing below moves when it lands.
