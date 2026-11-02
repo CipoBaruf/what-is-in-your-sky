@@ -21,7 +21,7 @@ import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type HandState, type SkyCamera } from './camera';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
-import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, followAimShiftPx, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
@@ -858,9 +858,10 @@ export function SkyWindow(props: SkyWindowProps) {
   };
 
   // FR-SKY-14: the field is the current one, so everything drawn from `view` — the scale, the drawable limit, the
-  // ground thresholds — follows the zoom.
+  // ground thresholds — follows the zoom. v2.12 (FR-GYRO-2 as amended, D-1018): while following, the aim is drawn
+  // below the centre, so a level phone's horizon is a straight line near the bottom and the sky has the screen.
   const view: View = useMemo(
-    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: followPhone ? quarter : screenAngleDeg }),
+    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: followPhone ? quarter : screenAngleDeg, ...(followPhone ? { aimShiftPx: followAimShiftPx(drawHeight) } : {}) }),
     [fovDeg, drawWidth, drawHeight, followPhone, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
