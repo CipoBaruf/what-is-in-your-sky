@@ -65,15 +65,8 @@
   border-color: var(--accent);
 }
 
-.emphasis:focus-visible {
+.emphasis:is(:hover, :focus-visible) {
   border-color: var(--accent);
-}
-
-/* Hover only where there is one: a tap on a touch screen at desk width would leave the frame lit. */
-@media (hover: hover) {
-  .emphasis:hover {
-    border-color: var(--accent);
-  }
 }
 
 .control.emphasis:focus-visible {

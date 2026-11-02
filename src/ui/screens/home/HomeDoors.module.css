@@ -62,14 +62,8 @@
     line-height: var(--text-pane-row);
   }
 
-  .door:focus-visible .title {
+  .door:is(:hover, :focus-visible) .title {
     color: var(--accent);
-  }
-
-  @media (hover: hover) {
-    .door:hover .title {
-      color: var(--accent);
-    }
   }
 
   /* D-1017: a body-sized line no longer fits a third of a narrow desk (964–1200 px), so on wide it wraps onto a
