@@ -25,7 +25,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createElement, createRef, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
@@ -61,6 +61,7 @@ import { PassDetail } from '../../src/ui/screens/PassDetail';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
+import { SkyHead } from '../../src/ui/components/sky/SkyHead';
 import { StarsPage } from '../../src/ui/screens/Stars';
 import { DETAIL_TIMES_CELLS, formatDateZone } from '../../src/lib/format';
 import { TimesRow } from '../../src/ui/components/guide/TimesRow';
@@ -399,6 +400,10 @@ const rows = (t: Messages): readonly Row[] => [
     setUp: () => {
       appStore.setState({ observer });
     },
+    // R163 (FR-CLEAN-4): on compact the picker is the sheet's facing row's, opened by a tap on the readout.
+    after: () => {
+      fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    },
   },
   {
     // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` / `[ Ventana ] Cielo entero`, the bracket mark — 20 cells in English, 24 in Spanish.
@@ -410,11 +415,11 @@ const rows = (t: Messages): readonly Row[] => [
     },
     measure: (row) => rowCells(row, textButtonTable),
   },
-  // R132 (FR-FLOW-8): two rows — three toggles then `names` and `passes` in English (33 and 19 cells), two then three in
-  // Spanish (25 and 34), the split cut to the budget by `firstRowCount`.
+  // R132 (FR-FLOW-8) → R163 (FR-CLEAN-11): two rows — three toggles then `names` in English (33 and 9 cells), two then two
+  // in Spanish (25 and 24), the split cut to the budget by `firstRowCount`; `[ passes ]` is gone.
   ...([0, 1] as const).map(
     (index): Row => ({
-      name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-SKY-6)`,
+      name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-CLEAN-11)`,
       element: createElement(StarsPage),
       find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
       setUp: () => {
@@ -422,7 +427,26 @@ const rows = (t: Messages): readonly Row[] => [
       },
     }),
   ),
+  /*
+   * R163 (FR-CLEAN-2, D-1009): the compact stars head — `[ ← ]`, then the Stars door's line at `--small` in its longest
+   * form, the dark window with the longest cloud word ("Dark 20:25 → 07:05 · Partly cloudy" / "Oscuro 20:25 → 07:05 ·
+   * Algo nuboso", 34 characters): the line's characters count 14/16 of a cell, as `sheetRows.test.ts` counts a chip, so
+   * the row is 35.75 cells in both languages — inside 36 at 390 px, and cut by the head's ellipsis at 360.
+   */
+  {
+    name: "the stars head's line (FR-CLEAN-2)",
+    element: createElement(SkyHead, { line: createElement('p', { 'data-testid': 'stars-head-line' }, longestStarsLine(t)), onBack: noop }),
+    find: () => screen.getByTestId('live-head'),
+    measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestStarsLine(t)].length * 14) / 16,
+  },
 ];
+
+/** R163: the longest of the head line's forms (`starsHeadLine`'s three, over every cloud word), in the catalog's language. */
+function longestStarsLine(t: Messages): string {
+  const clouds = ['clear', 'partly', 'obscured', 'unknown'] as const;
+  const forms = [...clouds.map((cloud) => t.doors.stars.dark({ from: '20:25', to: '07:05', cloud })), ...clouds.map((cloud) => t.doors.stars.noDark(cloud)), t.doors.stars.from('20:25')];
+  return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
+}
 
 /** The stars page's own words for the catalog `rows` was given (they ride in the page's chunk, D-777). */
 const starsPage = (t: Messages) => STARS_PAGE_CATALOGS[t === CATALOGS.es ? 'es' : 'en'];
@@ -552,8 +576,7 @@ describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) 
  * 360 px the name has what the fixed columns leave, which is less than either
  * name: the row stays one line because the name column is cut — no wrap,
  * hidden overflow, `…` — and the button's accessible name carries the whole
- * name. A pass's row is the same columns with the key and the swatch at the
- * head of its name column, and the whole sentence as what is read.
+ * name. R163 (FR-CLEAN-11): the pass rows R126 added went with the toggle.
  */
 describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () => {
   const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/stars/FieldList.module.css'), 'utf8');
@@ -581,7 +604,6 @@ describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () 
         locale: 'es',
         children: createElement(FieldList, {
           objects: [{ index: 1, name: longest, planet: null, mag: 2.6, altDeg: 45, point: 'SSW' }],
-          passes: [{ id: 'p', key: 'A', color: 'series-1', name: longest, state: 'live', peakAltDeg: 64, peakPoint: 'NNW' }],
           named: null,
           onName: () => undefined,
           buried: false,
@@ -592,10 +614,6 @@ describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () 
     const star = screen.getByRole('button');
     expect(star.getAttribute('aria-label')).toBe(`${longest} · mag 2,6 · 45° de altura · SSW`);
     expect(star.firstElementChild?.textContent).toBe(longest);
-    const pass = screen.getByTestId('field-list').querySelector('[data-kind="pass"]');
-    expect(pass?.textContent).toContain(`A: ${longest} · arriba`);
-    // The pass's name column opens with the key and the two-cell swatch, and still has room for a name to cut.
-    expect(nameCells - 'A '.length - 3).toBeGreaterThan(0);
   });
 });
 
