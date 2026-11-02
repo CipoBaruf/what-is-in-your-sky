@@ -120,7 +120,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   // R164: the compact page's root; its `h1` is a `VisuallyHidden` (no ref), found here before the focus moves to it.
   const pageRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    headingRef.current = compact ? (pageRef.current?.querySelector('h1') ?? null) : null;
+    // Wide's `h1` takes the ref itself; only the compact one is looked up.
+    if (compact) headingRef.current = pageRef.current?.querySelector('h1') ?? null;
   }, [compact]);
   const now = useNow(TICK_MS);
   /*
