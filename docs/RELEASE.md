@@ -2293,7 +2293,88 @@ version and the owner's phone run. `main` reads `2.10.0` once R161 merges; the t
 
 ### 23.1 The capture set and the diff against `95f3c88` (FR-PHONE-16, FR-LOOK-12, FR-CAP-5)
 
-CAPTURE_SECTION
+The set has **420 files**: `95f3c88`'s 384 and 36 new; nothing is removed. Measured by R161 on
+one Linux container: the branch's set and `95f3c88`'s, each shot by its own commit's
+`tests/e2e/v1-captures.spec.ts` off a plain build of its own commit (`95f3c88` checked out into a
+scratch worktree), and compared pixel by pixel. **Of the 384 files both runs shot, 56 are
+byte-identical, 22 differ only by F-99's noise, and 306 moved, every one a named move of
+FR-PHONE-16 or FR-LOOK-12:**
+
+- **Every compact live capture — 72 files, FR-PHONE-16's and FR-LOOK-12's named move** (the
+  bottom row `[ follow ] [ controls ]`, the corner readout, the touch hint in two clauses, and the
+  window's new sky the phone opens on): `v1-live-watching-{360,390,768,844}-*` (16),
+  `v1-live-scrubbing-{360,390,768,844}-*` (16), `v1-live-tonight-{360,390,844}-*` (12),
+  `v1-live-sheet-{390,844}-*` (8), `v1-live-sheet-list-{390,844}-*` (8),
+  `v1-live-following-390-*` (4) and `v1-legend-{360,390}-*` (8). The files at 360 and 390 are
+  shot as a touch phone now (D-966); 768 and 844 move with the window's look alone.
+- **The stars page at every width — 40 files** (the view row `[Window] Whole sky`, and the window's
+  look with the deep stars and the field's detail): `v1-stars-{360,390,844,1280,1920}-*` (20),
+  `v1-stars-passes-{360,390,1280}-*` (12), `v1-stars-following-390-*` (4) and
+  `v1-stars-zoom-1280-*` (4).
+- **Every polar capture — 12 files** (the figures, the names, the surface and the band, the Moon's
+  disc): `v1-polar-{360,390,1280}-*`.
+- **The home at every width — 104 files** (the doors first, the folded line, "Live sky"):
+  `v1-home-{360,390,768,1024,1280,1920}-*` and their `-view` twins (48),
+  `v1-home-{up-now,no-pass,daylight}-{360,390,1280,1920}-*` (48) and
+  `v1-where-opened-{360,390}-*` (8).
+- **The pass detail — 40 files:** at compact widths the times row
+  (`v1-guide-{360,390,768,844}-*`, 16; `v1-guide-window-{360,390}-*`, 8, with the window's look);
+  at 1024 and 1280 (`v1-guide-{1024,1280}-*`, 8) only the home's third door beside the open
+  pass, "Live sky" where "Both · live sky" was — the dome itself does not move; and
+  `v1-guide-window-{1280,1920}-*` (8) the window's look.
+- **The settings page — 26 files** (the third option, `Theme [x] Dark [ ] Night [ ] Auto`):
+  `v1-settings-{360,390,768,1280}-*` (16; at 360 the page is 4 px taller in English and 28 in
+  Spanish, the row wrapping) and `v1-favourites-{360,390,1280}-*` (10, the same page scrolled to
+  its places, the theme row in view; the two Spanish files at 360 keep it out and are unchanged).
+- **The window with stars on, wide — 12 files** (FR-LOOK-12): `v1-live-window-{1280,1920}-*` (8)
+  and `v1-live-window-follow-1280-*` (4).
+- **New — 36 files**, both themes and languages: `v1-stars-whole-{390,1280}-*` and
+  `v1-stars-whole-passes-{390,1280}-*` (16, the whole sky with `[ passes ]` off and on),
+  `v1-stars-whole-following-390-*` (4, the outline while following), `v1-guide-short-390-*` (4,
+  the pass detail at 390 × 667), `v1-live-twilight-{390,1280}-*` (8, the live page's window at
+  civil twilight) and `v1-stars-zoom-390-*` (4, the stars page at 20° on the phone) (D-993).
+
+**The dome's captures are unchanged:** `v1-live-watching-{1200,1280,1920,2560,3840}-*` are
+byte-identical, and every other wide live file (`v1-live-watching-1024-dark-en`,
+`v1-live-scrubbing-{1024,1200,1280,1920,2560,3840}-*`, 18, `v1-legend-1280-*`, 3) differs from
+`95f3c88`'s only by F-99's few pixels; on the wide pass detail the dome's pixels are identical and
+only the door beside it moved. The location, shortcuts and the rest are byte-identical.
+
+**Two runs of the 420 files** (FR-CAP-5), off one plain build: 399 byte-identical and 21 apart.
+19 are F-99's edges, as in §22.1: the wide live files' (`v1-live-scrubbing-*`, 11;
+`v1-live-watching-1024-*`, 2; `v1-live-window-1280-dark-es`; `v1-live-window-follow-1280-night-es`;
+`v1-legend-1280-dark-es`; 3 to 28 pixels at a step of at most 2) and the sheet's
+(`v1-live-sheet-list-*`, 3, 6 to 31 pixels at a step of 1); among the wide ones, the mark's bead at a step of
+189 in `v1-live-scrubbing-1920-night-*`, 14 to 28 pixels, which differs between the branch's two
+runs as it does from `95f3c88`'s. **Two are new:** `v1-stars-whole-following-390-night-*`, 65 and
+67 pixels at a step of at most 19, two faint hairlines in the disc's lower left. Re-shot eight
+times, that screen's files fall in one of two states each (up to three of the four differ from
+one run to the next); the outline's path is the same string in every run and the capture waits
+for it to hold still across half a second of readings, so it is the raster of the same drawing,
+F-99's kind, and is recorded with it. Run 2 also lost one capture to `captureSeeds.ts`'s
+`seedPage` race (`clock.pauseAt`: "Cannot fast-forward to the past", R153's follow-up), shot
+again alone.
+
+**What is committed.** The 306 moved and the 36 new files as this container shot them (run 1);
+every other file stays as it was on `main`. The set of record is the Linux renderer's (D-732),
+and `captures.yml`'s run 1 replaces it. The README hero keeps its three tiles' files, whose
+pictures moved, so it is re-drawn from run 1's set with it (§23.4); `scripts/readme-hero.ts` is
+unchanged.
+
+The capture-spec changes change no page (D-993): `captureSet.ts` gains the six screens and
+`height`; `v1-captures.spec.ts` gains their routes (`Whole sky` clicked in the stars page's view
+row and the polar chart's marks and outline waited for; following tapped under
+`stubOrientation` before the whole sky; the pass detail opened at its height; the live page at
+07:45 local on the window, its surface `data-tint="twilight"`) and treats the stars page's new
+screens as the touch phone `stars` is at 390.
+
+- [ ] Dispatch `captures.yml` on the release commit with `base` `95f3c88`, twice: run 1
+      _(id)_, run 2 _(id)_.
+- [ ] Run 1 is green: **420 files** and the four design captures, no capture missing.
+- [ ] Run 1's diff step lists the 306 files above and the 36 new ones, and nothing else (F-99's
+      places excepted).
+- [ ] Run 1's artefact is committed as the set, the hero and the social preview are re-drawn
+      from it, and run 2 agrees with run 1 but for F-99's noise.
 
 ### 23.2 The budget (FR-PHONE-16, FR-LOOK-12, D-178, D-994)
 
@@ -2374,7 +2455,11 @@ next phase.
 
 Three things R161 checked and records, none of them this release's to change:
 
-- MOON_LINE
+- `moon.spec.ts`'s "the conditions table carries the Moon's facts…" fails on a plain local build
+  and passes on CI: it asserts the `[lore]` region, which only a build with
+  `VITE_MOON_LORE=on` draws, and `ci.yml` builds with it. With the flag on it passes here (3 of
+  3); the environment, not the app — the spec has no skip for a plain build (a follow-up for
+  the spec, not this release).
 - `starGlyphs.ts`'s `GLYPH_SIZES` still measures the old ladder's `+` and `.`, which nothing
   draws since R158 and R160; only the ink map's Chromium test reads them — a cleanup for a
   `window` task, with the test moved onto the marks.

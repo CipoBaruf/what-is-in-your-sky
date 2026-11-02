@@ -1038,7 +1038,21 @@ const REACH: Record<string, Reach> = {
     await starsAt(page, width, theme, locale);
     await followed(page, page.getByTestId('stars-sky'));
     const polar = await wholeSky(page, locale);
-    await expect(polar.locator('[data-field-outline]')).toHaveAttribute('data-following', 'true');
+    const outline = polar.locator('[data-field-outline]');
+    await expect(outline).toHaveAttribute('data-following', 'true');
+    // FR-CAP-5: the following outline eases onto the readings, so the wait is for its path to hold across half a second
+    // of them before the instant is pinned. The path is then the same string in every run; two faint hairlines in the
+    // disc's lower left still rasterise in one of two ways (RELEASE §23.1, F-99).
+    let previous = '';
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(500);
+        const d = (await outline.getAttribute('d')) ?? '';
+        const still = d === previous;
+        previous = d;
+        return still;
+      }, { timeout: 30_000 })
+      .toBe(true);
     await expect(page.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
     await pinnedAt(page, CLOCK);
     await page.mouse.move(0, 0);
