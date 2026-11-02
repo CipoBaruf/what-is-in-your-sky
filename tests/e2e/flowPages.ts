@@ -80,6 +80,8 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       const layout = page.getByTestId('stars-layout');
       await expect(layout).toBeVisible();
       await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
+      // R163 (FR-CLEAN-4, FR-CLEAN-8): the compact stars page is measured with its sheet open, as the live page is — its rows are the sheet's.
+      await openSheet(page);
       return page.locator('body');
     }
     case 'detail': {

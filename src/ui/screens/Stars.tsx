@@ -493,21 +493,26 @@ function StarsSky({ observer }: { observer: Observer }) {
    * points and `up`, on the page's camera); on the whole sky the readout is the polar chart's convention line and the
    * picker its looking-up / map toggle, both portaled by the chart. A pick — one of the row's options — closes the
    * picker, read off the DOM, since a portal's events bubble through the chart's tree and not through this row
-   * (D-904); the sheet stays open (FR-CLEAN-6).
+   * (D-904); the sheet stays open (FR-CLEAN-6). The listener is the document's, above React's root, so it runs after
+   * React has given the pick to its own handler (the point, the orientation): a listener under the root would close
+   * the row first, and a browser flushes that render between two listeners of one click, which leaves React a pick
+   * on an unmounted row and the camera where it was (D-1011).
    */
   const [pickerOpen, setPickerOpen] = useState(false);
   const facingLabelId = useId();
   const facingPickerId = useId();
-  const facingPickerRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      if (!element) return;
-      element.addEventListener('click', (event) => {
-        const target = event.target instanceof Element ? event.target : null;
-        if (target?.closest(PICK_SELECTOR)) setPickerOpen(false);
-      });
-    },
-    [],
-  );
+  const facingPickerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onPick = (event: MouseEvent): void => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target && facingPickerRef.current?.contains(target) && target.closest(PICK_SELECTOR)) setPickerOpen(false);
+    };
+    document.addEventListener('click', onPick);
+    return () => {
+      document.removeEventListener('click', onPick);
+    };
+  }, [pickerOpen]);
   const facing = (
     <div className={styles.facing} data-testid="stars-facing" data-rhythm="group">
       <div className={styles.facingReadout}>
