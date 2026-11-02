@@ -120,8 +120,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   // R164: the compact page's root; its `h1` is a `VisuallyHidden` (no ref), found here before the focus moves to it.
   const pageRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    if (compact) headingRef.current = pageRef.current?.querySelector('h1') ?? null;
-  });
+    headingRef.current = compact ? (pageRef.current?.querySelector('h1') ?? null) : null;
+  }, [compact]);
   const now = useNow(TICK_MS);
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arc at this page's own instant, thinned by
@@ -228,7 +228,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     </p>
   );
   const countdown = <Countdown pass={pass} now={now} timeZone={timeZone} steps={false} />;
-  // R156 (FR-PHONE-14, D-972): one row on compact, the zone on the head's date line; three cells in the wide band.
+  // The wide band's three cells (the compact sheet draws its own one-row form, R164).
   const times = <TimesRow pass={pass} timeZone={timeZone} />;
   const viewRow = (
     <>
@@ -334,7 +334,6 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         now={now}
         follow={follow}
         view={view}
-        hintShown={hintShown}
         proseId={proseId}
         headingId={headingId}
         landmarkText={landmarkText}
@@ -354,7 +353,6 @@ interface PassFullProps {
   now: EpochMs;
   follow: Follow;
   view: ChartView;
-  hintShown: boolean;
   proseId: string;
   headingId: string;
   landmarkText: string | null;
@@ -370,7 +368,7 @@ interface PassFullProps {
  * R164 (FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-5, FR-CLEAN-6): the compact pass detail in the full form. Its own component so
  * the sheet's state — open, the picker — is this form's and the wide panel never carries it.
  */
-function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headingId, landmarkText, chart, list, onClose, rootRef }: PassFullProps) {
+function PassFull({ pass, observer, now, follow, view, proseId, headingId, landmarkText, chart, list, onClose, rootRef }: PassFullProps) {
   const t = useT();
   const locale = useLocale();
   const timeZone = observer.timeZone;
@@ -382,10 +380,16 @@ function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headi
    * which keeps this page mounted, keeps it. Closing by `Esc` gives the focus back to `[ controls ]`.
    */
   const [sheetOpen, setSheetOpen] = useState(false);
-  const closeSheet = useCallback(() => {
-    setSheetOpen(false);
-    document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  // The facing row's picker (below) is the sheet's: however the sheet closes, it reopens with the picker folded.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const changeSheet = useCallback((open: boolean) => {
+    setSheetOpen(open);
+    if (!open) setPickerOpen(false);
   }, []);
+  const closeSheet = useCallback(() => {
+    changeSheet(false);
+    rootRef.current?.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
+  }, [changeSheet, rootRef]);
   /*
    * FR-CLEAN-6 (D-999, D-1011's device): `Esc` in two steps. With the sheet open a capture listener on the window closes
    * it and stops the event before the app's one `keydown` listener on the document (D-73); with it closed the key goes
@@ -429,7 +433,6 @@ function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headi
    * picker. A pick closes the row from a `click` listener on the document, above React's root (D-1011), and the sheet
    * stays open (FR-CLEAN-6).
    */
-  const [pickerOpen, setPickerOpen] = useState(false);
   const facingLabelId = useId();
   const facingPickerId = useId();
   const facingPickerRef = useRef<HTMLDivElement>(null);
@@ -494,7 +497,7 @@ function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headi
         className={styles.head}
       />
       {/* R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint steps aside until the next press. */}
-      {hintShown && hintLine !== null && !follow.refused && (
+      {hintLine !== null && !follow.refused && (
         <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
           <SkyHint view={view} fit />
         </div>
@@ -502,7 +505,7 @@ function PassFull({ pass, observer, now, follow, view, hintShown, proseId, headi
     </>
   );
   const sheet = (
-    <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
+    <ControlsSheet open={sheetOpen} onOpenChange={changeSheet} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
       {/* FR-CLEAN-5: the name with the date and the zone, the landmark line under it (and the twilight label, as the column had it). */}
       <div className={styles.nameBlock} data-testid="pass-head" data-rhythm="group">
         <p className={styles.nameLine} data-testid="pass-name-line">

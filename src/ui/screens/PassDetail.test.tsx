@@ -559,6 +559,18 @@ describe('<PassDetail> in the full form (FR-CLEAN-1..3, FR-CLEAN-5, FR-CLEAN-6)'
       document.removeEventListener('keydown', app);
     }
   });
+
+  it('folds the facing picker with the sheet: Esc with the picker open, and the next [ controls ] opens it folded', () => {
+    detail();
+    openSheet();
+    fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    expect(screen.getByTestId('pass-facing-picker')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+    openSheet();
+    expect(screen.queryByTestId('pass-facing-picker')).toBeNull();
+    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'false');
+  });
 });
 
 /** D-175's presence test: a phone to point, with nothing to ask. */
