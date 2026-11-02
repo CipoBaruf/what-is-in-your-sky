@@ -8,6 +8,9 @@
     "@media (width >= 1118px)",
     "@media (width >= 1272px)"
   ],
+  "src/ui/Shell.module.css": [
+    "@media (width >= 964px)"
+  ],
   "src/ui/components/common/Header.module.css": [
     "@media (width < 848px)",
     "@media (width < 1050px)"

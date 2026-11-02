@@ -334,10 +334,13 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     }
     expect(live.left).toBeGreaterThan(title.right);
     expect(settings.left).toBeGreaterThan(live.right);
-    // The current page is drawn in the body's ink with the accent rule under it, not dimmed (D4).
-    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, fg: getComputedStyle(document.body).color }));
-    expect(current.line).toContain('underline');
-    expect(current.color).toBe(current.fg);
+    // R166 (FR-CLEAN-14, D-1007): the page links are `[ home ] [ live ] [ stars ]`; the current page is `BracketLink`'s
+    // dim `aria-current` span, as `[ settings ]` is on its own page, and the accent rule under it is gone.
+    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, open: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
+    expect(current.tag).toBe('SPAN');
+    expect(current.line).toBe('none');
+    expect(current.open).toBe('"[ "');
+    expect(current.color).not.toBe(current.accent);
     // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]` opens the
     // whole form in place; the header's `[ settings ]` is the one link to #settings.
     await expect(page.getByTestId('location-summary')).toBeVisible();

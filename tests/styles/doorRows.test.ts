@@ -88,9 +88,14 @@ function cases(locale: Locale): [string, DoorInput][] {
 }
 
 describe('the home doors’ lines (R130: FR-FLOW-1, FR-COMP-4)', () => {
-  it('sets the lines at --small and the title at the body size', () => {
-    expect(DOORS).toMatch(/\.line\s*\{[^}]*font-size: var\(--small\);/);
-    expect(DOORS).not.toMatch(/\.title\s*\{[^}]*font-size/);
+  it('sets the lines at --small and the title at the body size on compact; on wide the pane and body sizes (R166, FR-CLEAN-16)', () => {
+    // The rules outside the wide block are compact's; the wide block is FR-CLEAN-16's (D-1017).
+    const [compact = '', wide = ''] = DOORS.split('@media (width >= 964px)');
+    expect(compact).toMatch(/\.line\s*\{[^}]*font-size: var\(--small\);/);
+    expect(compact).toMatch(/\.line\s*\{[^}]*white-space: nowrap;/);
+    expect(compact).not.toMatch(/\.title\s*\{[^}]*font-size/);
+    expect(wide).toMatch(/\.title\s*\{[^}]*font-size: var\(--text-pane\);/);
+    expect(wide).toMatch(/\.line\s*\{[^}]*font-size: var\(--text-body\);[^}]*white-space: normal;/);
   });
 
   for (const width of [360, 390]) {

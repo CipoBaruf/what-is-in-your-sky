@@ -21,6 +21,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 import { listSettled, seedStoredRun } from './liveHelpers';
 
+/** A describe whose tests seed the page themselves (in their own language) and skip the file's English seed. */
+const SEEDS_ITSELF = '@seeds-itself';
+
 /** FR-DESK-2/3: the left column, the list's floor and the guide's, in cells. */
 const LEFT_COLUMN_CELLS = 40;
 const LIST_MIN_CELLS = 44;
@@ -74,7 +77,9 @@ async function openTheGuide(page: Page): Promise<void> {
   await expect(page).toHaveURL(/#pass=/);
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
+  // R166: the desk-width describe seeds its own page, in its own language.
+  if (info.tags.includes(SEEDS_ITSELF)) return;
   await seedStoredRun(page);
 });
 
@@ -250,4 +255,167 @@ test('the shortcuts overlay gives focus back to the card, and leaves j to the br
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('shortcuts-overlay')).toBeHidden();
   expect(await page.evaluate(() => document.activeElement?.getAttribute('data-pass-id'))).toBe(cursor);
+});
+
+/**
+ * R166 (FR-CLEAN-12, FR-HOME-4 as amended v2.11; D-1003): one width on a desk. At 1920 and 2560 px every page — the
+ * live page, the stars page, the pass detail and the settings page, as the home — holds `HOME_MAX_CELLS` and is
+ * centred: each of its rows (the header, `main`, the footer where it has one; the live page's grid, which holds its
+ * own landmarks) is 160 cells wide and stands in the middle of the viewport, and the sky's box stands inside it. At
+ * 1280 px, under the cap, nothing moves: every row is the viewport's width. Both languages; the 1280 project only
+ * (the sizes are this describe's own).
+ */
+type DeskPage = 'live' | 'stars' | 'pass' | 'settings';
+const DESK_PAGES: readonly DeskPage[] = ['live', 'stars', 'pass', 'settings'];
+
+async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): Promise<void> {
+  await seedStoredRun(page, { locale, settled: true });
+  if (target === 'pass') {
+    await page
+      .getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ })
+      .first()
+      .click();
+    await expect(page.getByTestId('guide-panel')).toBeVisible();
+    await expect(page.getByTestId('pass-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+    return;
+  }
+  await page.goto(`/#${target}`);
+  if (target === 'live') {
+    await expect(page.getByTestId('live-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  } else if (target === 'stars') {
+    await expect(page.getByTestId('stars-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  } else {
+    await expect(page.getByTestId('settings-back')).toBeVisible();
+  }
+}
+
+/**
+ * The page's rows, `#root`'s own children that carry its content: the live page's grid (which holds its own
+ * landmarks), or the header, `main` and — on every page but the stars page, which has none — the footer, plus the
+ * page notices where they say something. Every expected row must be there, so a row moved out of `#root` fails.
+ */
+async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
+  const required = target === 'live' ? ['[data-testid="live-page"]'] : target === 'stars' ? ['#root > header', '#root > main'] : ['#root > header', '#root > main', '#root > footer'];
+  const rows = await page.evaluate((selectors) => selectors.map((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) return { name: selector, x: NaN, width: NaN };
+    const rect = element.getBoundingClientRect();
+    return { name: selector, x: rect.x, width: rect.width };
+  }), [...required, '#root > [data-page-notices]:not(:empty)']);
+  for (const row of rows.slice(0, required.length)) expect(Number.isNaN(row.width), `${row.name} is not one of #root's rows`).toBe(false);
+  return rows.filter((row) => !Number.isNaN(row.width));
+}
+
+/** The sky's box on the page, where it has one. */
+function skyBox(page: Page, target: DeskPage) {
+  if (target === 'settings') return null;
+  const layout = target === 'live' ? 'live-layout' : target === 'stars' ? 'stars-layout' : 'pass-layout';
+  return page.getByTestId(layout).locator('[data-slot="drawing"]').first();
+}
+
+test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }, () => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1920, 1080],
+    [2560, 1440],
+  ] as const) {
+    test.describe(`${String(width)} × ${String(height)}`, () => {
+      test.use({ viewport: { width, height } });
+      for (const locale of ['en', 'es'] as const) {
+        for (const target of DESK_PAGES) {
+          test(`${target} in ${locale}: ${width > 1600 ? 'the rows hold the home’s 160 cells, centred' : 'under the cap every row is the viewport’s width'}, the sky inside them`, async ({ page }, info) => {
+            test.skip(info.project.name !== 'chromium', 'the sizes are this describe’s own: the 1024 project has nothing to add');
+            await openDeskPage(page, target, locale);
+            const cell = await cellPx(page);
+            const capped = Math.min(width, 160 * cell);
+            const rows = await contentRows(page, target);
+            for (const row of rows) {
+              expect(Math.abs(row.width - capped), `${row.name} is ${String(row.width)} px, not ${String(capped)}`).toBeLessThanOrEqual(1);
+              expect(Math.abs(row.x - (width - row.width) / 2), `${row.name} is not centred`).toBeLessThanOrEqual(1);
+            }
+            const sky = skyBox(page, target);
+            if (sky) {
+              const rect = await sky.boundingBox();
+              if (!rect) throw new Error('the sky is not laid out');
+              const left = (width - capped) / 2;
+              expect(rect.x, 'the sky starts inside the column').toBeGreaterThanOrEqual(left - 1);
+              expect(rect.x + rect.width, 'the sky ends inside the column').toBeLessThanOrEqual(left + capped + 1);
+            }
+            expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways').toBeLessThanOrEqual(1);
+            info.annotations.push({ type: 'content-width', description: `${target} ${locale} ${String(width)}: ${rows.map((row) => `${row.name} ${row.width.toFixed(1)}`).join(', ')}` });
+          });
+        }
+      }
+    });
+  }
+});
+
+/**
+ * R166 (FR-CLEAN-16, D-1017): on a desk the three doors are the home's main navigation and look it. Each title is
+ * a pane heading's size (`--text-pane`, 20 px), its lines the body's (`--text-body`, 16 px), the frame a control's
+ * edge (`--border-control`); on hover the frame and the title take the accent. The 1280 project only.
+ */
+test.describe('FR-CLEAN-16: the doors stand out on a desk', { tag: SEEDS_ITSELF }, () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('pane-sized titles, body-sized lines, a control frame, the accent on hover', async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', 'the size is this test’s own: the 1024 project has nothing to add');
+    await seedStoredRun(page, { settled: true });
+    /** A token resolved to the colour the browser computes, so it compares with a computed style. */
+    const token = (name: string) =>
+      page.evaluate((property) => {
+        const probe = document.createElement('span');
+        probe.style.color = `var(${property})`;
+        document.body.append(probe);
+        const value = getComputedStyle(probe).color;
+        probe.remove();
+        return value;
+      }, name);
+    const [edge, accent, fg] = await Promise.all([token('--edge'), token('--accent'), token('--fg')]);
+    for (const id of ['door-satellites', 'door-stars', 'door-live']) {
+      const door = page.getByTestId(id);
+      await expect(door).toBeVisible();
+      const title = door.locator('span').first();
+      const look = () =>
+        door.evaluate((el) => {
+          const [first, second] = [el.children[0], el.children[1]];
+          if (!first || !second) throw new Error('the door has no title and line');
+          const box = getComputedStyle(el);
+          return { frame: box.borderTopColor, width: box.borderTopWidth, title: getComputedStyle(first).fontSize, titleColour: getComputedStyle(first).color, line: getComputedStyle(second).fontSize };
+        });
+      const rest = await look();
+      expect(rest.title, `${id}'s title`).toBe('20px');
+      expect(rest.line, `${id}'s line`).toBe('16px');
+      expect(rest.frame, `${id}'s frame at rest`).toBe(edge);
+      expect(rest.titleColour, `${id}'s title at rest`).toBe(fg);
+      await title.hover();
+      await expect.poll(async () => (await look()).frame, `${id}'s frame on hover`).toBe(accent);
+      expect((await look()).titleColour, `${id}'s title on hover`).toBe(accent);
+    }
+  });
+
+  // D-1017: a body-sized line does not fit a third of a narrow desk, so it wraps rather than being cut, and the
+  // three boxes stay as tall as the tallest.
+  for (const width of [964, 1024, 1118, 1280]) {
+    for (const locale of ['en', 'es'] as const) {
+      test(`at ${String(width)} px in ${locale} no door line is cut and the three boxes are one height`, async ({ page }, info) => {
+        test.skip(info.project.name !== 'chromium', 'the sizes are this test’s own');
+        await page.setViewportSize({ width, height: 800 });
+        await seedStoredRun(page, { locale, settled: true });
+        await expect(page.getByTestId('door-stars-line')).toHaveCount(3);
+        await expect(page.locator('[data-testid^="door-"][data-pending]')).toHaveCount(0);
+        const doors = await page.evaluate(() =>
+          ['door-satellites', 'door-stars', 'door-live'].map((id) => {
+            const door = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+            if (!door) throw new Error(`${id} is not on the page`);
+            const cut = [...door.querySelectorAll<HTMLElement>(`[data-testid="${id}-line"]`)].filter((line) => line.scrollWidth > line.clientWidth + 1).map((line) => line.textContent);
+            return { id, cut, height: door.getBoundingClientRect().height };
+          }),
+        );
+        for (const door of doors) expect(door.cut, `${door.id} cuts a line`).toEqual([]);
+        const heights = doors.map((door) => door.height);
+        expect(Math.max(...heights) - Math.min(...heights), 'the three boxes differ in height').toBeLessThanOrEqual(1);
+      });
+    }
+  }
 });

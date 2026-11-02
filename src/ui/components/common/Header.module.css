@@ -132,23 +132,12 @@
   white-space: nowrap;
 }
 
+/* R166 (FR-CLEAN-14, D-1007): `[ home ] [ live ] [ stars ]`, one cell apart. The brackets, the dropped underline and
+   the current page's dim span are `BracketLink`'s; the 2 px accent rule under the current page went with the words. */
 .nav {
   flex: 0 0 auto;
   display: flex;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* The page links are words, not bracketed controls: the accent, no underline but the current page's. */
-.navLink {
-  text-decoration: none;
-}
-
-/* D4: the current page in the body's ink with a 2 px accent rule under it, not dimmed — a dim link read as a
-   disabled one. `aria-current` says it to a screen reader. */
-.navCurrent {
-  color: var(--fg);
-  text-decoration: underline calc(var(--row) / 12) var(--accent); /* 2 px */
-  text-underline-offset: calc(var(--row) / 8);
+  gap: 0 var(--cell);
 }
 
 .wide .context {
