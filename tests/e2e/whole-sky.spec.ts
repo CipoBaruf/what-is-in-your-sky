@@ -197,7 +197,8 @@ for (const size of SIZES) {
         // Out past the end by the ratio: from 60°, fingers from 200 px to 100 px ask for 120°, past 103.5°.
         await pinch(box, 200, 100);
         await expect(chart(page)).toHaveAttribute('data-view', 'polar');
-        await expect(viewRow(page).getByRole('button', { name: WORDS[locale].wholeSky })).toHaveAttribute('aria-pressed', 'true');
+        // R163: the row is the closed sheet's on compact, hidden from the accessibility tree, so the button is found by its words.
+        await expect(viewRow(page).locator('button', { hasText: WORDS[locale].wholeSky })).toHaveAttribute('aria-pressed', 'true');
         // R163 (FR-CLEAN-6): the handoff keeps the sheet as it was — closed.
         if (!size.wide) await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
         await expect.poll(() => marks(page).count(), { timeout: 30_000 }).toBeGreaterThan(0);
@@ -215,7 +216,7 @@ for (const size of SIZES) {
         const expected = await skyUnder(svg, at);
         await pinchPolar(svg, 60, 120, at);
         await expect(chart(page)).toHaveAttribute('data-view', 'window');
-        await expect(viewRow(page).getByRole('button', { name: WORDS[locale].window })).toHaveAttribute('aria-pressed', 'true');
+        await expect(viewRow(page).locator('button', { hasText: WORDS[locale].window })).toHaveAttribute('aria-pressed', 'true');
         await expect(w).toHaveAttribute('data-state', 'hand');
         await expect(w).toHaveAttribute('data-fov', '90');
         const after = await look(w);

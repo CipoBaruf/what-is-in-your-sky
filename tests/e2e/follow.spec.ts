@@ -392,7 +392,8 @@ for (const size of SIZES) {
           if (which === 'stars') await expect(windowRoot(root)).toHaveAttribute('data-state', 'hand');
           else await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
           await expect(root.locator('[data-follow="true"]')).toHaveCount(0);
-          if (inSheet(which)) {
+          // R163: the stars head carries the door's line, so its share is bound where FR-CLEAN-3 binds it, the portrait phone.
+          if (which === 'live' || (which === 'stars' && size.width === 390)) {
             // D-987: the line stands on the row above the bottom row, inside the box, and the overlay stays inside its share.
             const lineBox = (await line.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
             const row = (await page.getByTestId('live-bottom-row').boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
