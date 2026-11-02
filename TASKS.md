@@ -48,6 +48,8 @@
 | Scope (v2.9) | Spec Phase 2r "follow the phone": **R150–R153** in the `## v2.9 tasks` block below, four tasks in three waves of two, one and one, lanes `live`, `window` and `docs`, `fable` on R152 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Inputs (v2.10) | `SPEC.md` v2.10, `PLAN.md` v0.18 (Decision Log V210-1..V210-11 and Decisions D-962..D-975, with §16.29 treated as fixed) |
 | Scope (v2.10) | Spec Phase 2s "the phone first": **R154–R161** in the `## v2.10 tasks` block below, eight tasks in five waves of three, two, one, one and one, lanes `data`, `ui`, `live`, `window`, `chart` and `docs`, `fable` on R155 and R160 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; the waves built around the account's limits (D-975); no tag |
+| Inputs (v2.11) | `SPEC.md` v2.11, `PLAN.md` v0.19 (Decision Log V211-1..V211-8 and Decisions D-996..D-1004, with §16.30 treated as fixed) |
+| Scope (v2.11) | Spec Phase 2t "one clean sky": **R162–R166** in the `## v2.11 tasks` block below, five tasks in three waves of two, two and one, lanes `live`, `ui`, `window` and `docs`, `fable` on R163 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; the waves built around the account's limits (D-1002); no tag |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -4608,3 +4610,135 @@ What every session reads, named in each task as "the phase set": SPEC §4.52 and
 | FR-LOOK-12 | R155 (the tokens, the guide), R161 |
 
 Waves (for the sanity check): **wave 1** R154 (data) + R156 (ui) + R157 (live) — **wave 2** R155 (window) + R159 (live) — **wave 3** R158 (chart) — **wave 4** R160 (window) — **wave 5** R161 (docs). No two tasks in one wave name the same shared file: in wave 1 R154 stays in `data/`, `scripts/` and `tests/data/` plus one `bundle-budget.ts` row, R157 alone touches `lib/layout.ts`, and R156 alone touches `prefs.ts` (R159 adds `followGranted` to it in wave 2); R155 and R159 share nothing. Every wave holds at most one `fable` task, and the two that do hold at most two tasks (D-975).
+
+## v2.11 tasks
+
+Draft, cut 2026-11-02 from `SPEC.md` v2.11 and `PLAN.md` v0.19. Spec Phase 2t, "one clean sky": on the phone the stars page and the pass detail take the live page's compact form — the sky fills the screen, only `[ ← ]` with one line, the facing readout in the corner, `[ follow ]` and `[ controls ]` stand over it, and everything else is in the same bottom sheet; the compact column and the landscape rail are retired for the two pages; the `[ passes ]` toggle leaves the stars page; on a desk every page holds the home's width and is centred, and the stars rail's `View` row sits left (FR-CLEAN-1..13, US-49, V211-1..V211-8). The phase ends with `2.11.0` on `main`; the tag and the deploy are the owner's.
+
+Delivery is PLAN §16 with §16.30: five tasks in three waves of two, two and one, `Model: fable` on R163 and `opus` on the rest, every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto` — every pull request merges itself on CI green and a clean review, with an explicit commit message so no co-author line lands on `main` (V210-14). The waves are built around the account's limits (D-975): no wave holds more than one `fable` task; the driver's wait-and-resume is on and nothing is started with `--no-wait`; the owner reads `/usage` before wave 2.
+
+Decision block (§16.2), reserved in PLAN §16.30: **R162 D-1005..D-1006, R166 D-1007..D-1008, R163 D-1009..D-1011, R164 D-1012..D-1014, R165 D-1015..D-1016**. D-996..D-1004 are the plan's.
+
+What every session reads, named in each task as "the phase set": SPEC §4.54 whole (FR-CLEAN-1..13), US-49, §9 Phase 2t, §12 V211-1..V211-8; SPEC §4.50 (FR-FULL-1..6 as amended) and §4.52 (FR-PHONE-3, FR-PHONE-4, FR-PHONE-7) for the pattern; §4.48 (FR-FLOW-4, FR-FLOW-7, FR-FLOW-8, FR-FLOW-9, FR-FLOW-15), §4.46 (FR-STAR-3) and FR-HOME-4, FR-SKY-6 for what is withdrawn or amended; PLAN §2.44, §2.46, §2.47, §9.13 and §16.30; `docs/DESIGN.md` for the tokens and the primitives by name.
+
+### Wave 1
+
+- [ ] **R162 — The shared sheet and head: `ControlsSheet` and `SkyHead` moved to `components/sky/`, `SkyHead`'s `line` prop, the live page re-pointed, nothing else moving**
+  - **Lane:** live
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); PLAN D-920, D-921, D-948, D-949, D-964, D-965, D-996; `src/ui/components/live/{ControlsSheet,SkyHead}.{tsx,module.css,test.tsx}`; `src/ui/components/live/FollowControl.tsx`; `src/ui/screens/Live.tsx` (the imports and the head's children); `src/ui/components/sky/SkyViewLayout.tsx` (the `overlay` and `sheet` slots, read only); `tests/e2e/live-full.spec.ts`.
+  - **Goal:** the live page looks and behaves exactly as 2.10.0 does, with its sheet and head now living where the stars page and the pass detail can mount them without the `live` chunk; `SkyHead` takes its line as a prop.
+  - **Satisfies:** FR-CLEAN-9 (the shared component); FR-CLEAN-2, FR-CLEAN-3 (the component's half).
+  - **Scope (PLAN D-996):** `git mv` the two components and their tests and stylesheets to `src/ui/components/sky/`; `SkyHead` gains `line: ReactNode` and `backHref` (the live page passes `<ShownTime>`), its test id and its `[ ← ]` unchanged; `ControlsSheet`'s props unchanged; every import re-pointed; `live-full.spec.ts` green unchanged; `npm run bundle:budget` measured and written in the Done note (`live` may shrink, `main` may grow by what the shared path costs, each inside its budget).
+  - **Touches outside the lane:** `src/ui/components/sky/**` (the two files' new home).
+  - **Out of scope:** any change to the stars page or the pass detail (R163, R164); the width cap (R166); the column's removal (R165).
+  - **Done when:**
+    - `ControlsSheet.test.tsx`, `SkyHead.test.tsx`, `Live.test.tsx`, `live-full.spec.ts` pass unchanged in what they assert.
+    - The 2.10.0 compact live captures are byte-identical on a local run of the live screens (`CAPTURES=1`, 390 × 844).
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green; the Done note gives the budget rows.
+
+- [ ] **R166 — One width on a desk: the shell's cap on every route, the four pages' e2e at 1920 and 2560, the stars rail's `View` row left**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); SPEC FR-HOME-4 as amended, FR-HOME-3, FR-LIVE-7, FR-DESK-1..3, FR-TAB-1; PLAN D-546, D-604, D-608, D-187, D-1003; `src/ui/App.module.css` (the `HOME_MAX_CELLS` rule, R93), `src/ui/Shell.{tsx,module.css}`, `src/ui/screens/Home.tsx`; `src/ui/components/sky/SkyViewLayout.module.css` (the rail's `viewRow` rule); `src/lib/layout.ts` (`HOME_MAX_CELLS`, read only); `tests/e2e/{wide,sky-layout,live-perf}.spec.ts`; `tests/styles/breakpoint.test.ts`.
+  - **Goal:** on a desk at 1920 and 2560 px the live page, the stars page, the pass detail and the settings page hold the home's 160 cells and are centred, the sky's box inside the capped column, and the wide stars page's `View` row sits at the rail's left like `Facing` and `Layers`.
+  - **Satisfies:** FR-CLEAN-12, FR-CLEAN-13; FR-HOME-4 as amended; US-49 AC7.
+  - **Scope (PLAN D-1003):** the cap moves from the home's route to the shell's wide branch for every route (header, `main`, footer), the home unchanged at every width; the sky pages' boxes read the capped `main`'s width as today's measure (D-187), no page knowing the cap; the rail's `viewRow` rule loses its end alignment; `wide.spec.ts` asserts the content's width and centring on the four pages at 1920 and 2560 in both languages, and `sky-layout.spec.ts` the three rail rows' shared left edge at 1280 × 800; `live-perf.spec.ts`'s wide cases re-measured; `breakpoint.test.ts` pins the one literal still.
+  - **Touches outside the lane:** `src/ui/components/sky/SkyViewLayout.module.css` (one rule).
+  - **Out of scope:** anything on compact; the sheets (R163, R164); the captures (R165).
+  - **Done when:**
+    - `wide.spec.ts` and `sky-layout.spec.ts` green at 1280 × 800, 1920 × 1080 and 2560 × 1440 in both languages; `live-perf.spec.ts` green.
+    - The Done note gives each page's content width at 1920 and 2560 and the rail rows' left edge.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 2
+
+- [ ] **R163 — The stars page in the full form, and the passes gone: the head's dark-window line, the corner readout, the bottom row, the sheet with the view row, follow, facing, the three layer toggles and `In this field`; the `[ passes ]` toggle, its strings and its pass set removed; `Esc` in two steps; `clean-sky.spec.ts`'s stars half**
+  - **Lane:** window
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R162
+  - **Reads:** the phase set (above); SPEC FR-STAR-3, FR-STAR-7, FR-SKY-6, FR-PHONE-7..10, FR-GYRO-1..5, FR-FLOW-1 (the Stars door's line); PLAN D-842, D-919..D-927, D-957, D-962..D-965, D-969..D-971, D-996, D-997, D-999, D-1004; `src/ui/screens/{Stars.tsx,Stars.module.css,Stars.test.tsx}`; `src/ui/screens/stars/**`; `src/ui/screens/home/doorLines.ts` (the Stars door's line); `src/ui/components/sky/{SkyViewLayout.tsx,ControlsSheet.tsx,SkyHead.tsx,useFollow.ts,FollowToggle.tsx}`; `src/ui/components/live/FollowControl.tsx`; `src/ui/components/guide/skychart/useSkyScene.ts`; `src/i18n/{en,es}/starsPage.ts`; `tests/e2e/{follow,whole-sky,sky-layout}.spec.ts`.
+  - **Goal:** on the phone the stars page is the sky: `[ ← ]` and "Dark 20:25 → 07:05 · Clear" over it, the readout in the corner while the finger has the sky, `[ follow ]` and `[ controls ]` in the bottom corner; the sheet holds `[Window] Whole sky`, `[ ] follow the phone`, the facing row, `[x] stars [x] figures [x] planets` and `[x] names`, and `In this field` open; no `[ passes ]` anywhere; the whole sky, the outline and the pinch handoff work as in 2.10.0.
+  - **Satisfies:** FR-CLEAN-1, FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-4, FR-CLEAN-6, FR-CLEAN-7 (the stars page's half of each), FR-CLEAN-11; FR-STAR-3, FR-STAR-7, FR-SKY-6, FR-GYRO-1, FR-PHONE-7 as amended; US-49 AC1–AC6 on the stars page.
+  - **Scope (PLAN D-997, D-999, D-1004):** `form="full"` on compact in both shapes; the overlay slots (`SkyHead` with the Stars door's line, the corner readout with FR-STAR-7's second line, `FollowControl`, the hint); the sheet in FR-CLEAN-4's order with `FieldSection` last and open; the `h1` in a `VisuallyHidden`; `Esc`: the sheet, then leave; the `passes` layer, its toggle, its strings and its pass set removed, `whole-sky.spec.ts`'s passes case with it; `tests/e2e/clean-sky.spec.ts` (new) with the stars `describe` per D-1001 (the box, the overlay's share, the sheet's order and closes, the box's size across the sheet, the picker, a handoff and a turn, `Esc`); `follow.spec.ts` and `whole-sky.spec.ts` re-pointed at the sheet's rows. Wide: nothing but what R166 did.
+  - **Touches outside the lane:** `src/ui/screens/Stars.*`, `src/ui/screens/stars/**`, `src/ui/screens/home/doorLines.ts` (reading its line only), `src/ui/components/sky/SkyViewLayout.tsx` (the `full` branch only; R164 does not touch it), `skychart/useSkyScene.ts`, `src/i18n/**`, the e2e specs above. `tests/e2e/clean-sky.spec.ts` is created here with the stars `describe`; R164 appends its own.
+  - **Out of scope:** the pass detail (R164); the column's removal and the captures (R165).
+  - **Done when:**
+    - `Stars.test.tsx` (the inventory with the sheet closed, the sheet's order in both languages, no passes toggle, `Esc`'s two steps, the hidden `h1`), `controlRows.test.ts` (the head's line) pass.
+    - `clean-sky.spec.ts`'s stars half green at 390 × 844, 390 × 667, 360 × 640, 844 × 390 and 667 × 375 in both languages; `follow`, `whole-sky`, `targets`, `rhythm` green on the stars page.
+    - The Done note gives the overlay share at the three portrait sizes, the sheet's height with `In this field` open, and the budget rows (`stars` within its allowance).
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+- [ ] **R164 — The pass detail in the full form: the countdown head with the name chip, the corner readout with the landmark, the bottom row, the sheet with the name line, the times, the view row, follow, facing, Share, the prose and the table; `Esc` in two steps; `clean-sky.spec.ts`'s detail half**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R162
+  - **Reads:** the phase set (above); SPEC FR-FLOW-7, FR-PHONE-14, FR-SKY-7, FR-SKY-11, FR-SKY-12, FR-GYRO-1..5, FR-SHARE-1, §4.37; PLAN D-72, D-354, D-849, D-919..D-927, D-962..D-965, D-996, D-998, D-999; `src/ui/screens/{PassDetail.tsx,PassDetail.test.tsx}` and its stylesheet; `src/ui/components/guide/{TimesRow,GuideText,PassNumbers,GuidePanel}.tsx`; `src/ui/components/common/{Countdown,ShareButton}.tsx`; `src/ui/components/sky/{SkyViewLayout.tsx,ControlsSheet.tsx,SkyHead.tsx,useFollow.ts,FollowToggle.tsx}` (read only); `src/ui/components/live/FollowControl.tsx`; `tests/e2e/{pass-detail,sky-layout,follow}.spec.ts`.
+  - **Goal:** on the phone a pass detail is the sky: `[ ← ]` and "Peak in 0:08 · Tiangong (Tianhe)" over it, the readout and the landmark line in the corner while the finger has the sky, `[ follow ]` and `[ controls ]` in the bottom corner; the sheet holds the name with the date and the zone and the landmark line, the times row, `[Window] Polar Dome  [x] stars`, `[ ] follow the phone`, the facing row with `peak`, `[ Share ]`, the prose and the table of points; the window opens facing the peak or following.
+  - **Satisfies:** FR-CLEAN-1, FR-CLEAN-2, FR-CLEAN-3, FR-CLEAN-5, FR-CLEAN-6, FR-CLEAN-7 (the detail's half of each); FR-FLOW-7, FR-PHONE-14, FR-GYRO-1 as amended; US-49 AC1–AC5 on the pass detail.
+  - **Scope (PLAN D-998, D-999):** the compact branch passes `form="full"`; the overlay slots (`SkyHead` with `<Countdown>` at `--text-heading` and the name as the chip, the corner readout with the landmark line, `FollowControl`, the hint); the sheet in FR-CLEAN-5's order, the prose and the table last and scrolling; the compact detail's own full-screen chrome (D-354) retired in favour of the layout's `full` form; the `h1` in a `VisuallyHidden`; `Esc`: the sheet, then leave; `clean-sky.spec.ts`'s detail `describe` appended per D-1001 (the head's countdown, the sheet, the times row and the `Among` column inside the scrolling body, the dome picked, `Esc` twice); `pass-detail.spec.ts` and `sky-layout.spec.ts` re-pointed; `DETAIL_DRAWING_TOP_PX`'s assertions removed from the specs (the constant itself goes in R165). Wide (`GuidePanel`) untouched.
+  - **Touches outside the lane:** `src/ui/components/live/FollowControl.tsx` (mounting only), `tests/e2e/clean-sky.spec.ts` (its own `describe`, appended after R163's).
+  - **Out of scope:** the stars page (R163); `SkyViewLayout.tsx` (R163 owns its `full` branch this wave); the captures (R165).
+  - **Done when:**
+    - `PassDetail.test.tsx` (the inventory with the sheet closed, the sheet's order in both languages, `Esc`'s two steps, the hidden `h1`, the opening facing), `TimesRow.test.tsx`, `controlRows.test.ts` (the head's longest countdown form) pass.
+    - `clean-sky.spec.ts`'s detail half green at the five compact sizes in both languages; `pass-detail`, `follow`, `targets`, `rhythm` green on the detail.
+    - The Done note gives the overlay share at the three portrait sizes, the sheet's height with the table, and the budget rows (`main` within its allowance).
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 3
+
+- [ ] **R165 — The column retired, the captures and 2.11.0: the two passes screens removed from the set, `SkyViewLayout`'s `column` and compact `rail` removed with their constants and tests, `rhythm` and `targets` on the sheets, the capture set, the budget rows, `package.json` 2.11.0, `docs/RELEASE.md` §24, no tag**
+  - **Lane:** docs
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R163, R164, R166
+  - **Reads:** the phase set (above); SPEC FR-CLEAN-8, FR-CLEAN-9, FR-CAP-5, FR-FLOW-17; PLAN D-178, D-850, D-851, D-1000, D-1001, D-1002; `docs/RELEASE.md` §23 (the shape §24 follows); `src/ui/components/sky/SkyViewLayout.{tsx,module.css,test.tsx}`; `src/lib/layout.ts` (`DETAIL_DRAWING_TOP_PX`, `DOME_COMPACT_SLACK_PX`); `src/ui/screens/flowPages.ts`; `tests/e2e/{rhythm,targets,captureSet,v1-captures}.*`; `scripts/bundle-budget.ts`.
+  - **Goal:** nothing is left of the compact column; the capture set shows every compact stars and pass-detail screen as a sky with a sheet, the two sheets added and the two passes screens gone, every wide capture that R166 did not move and every live capture byte-identical; `main` reads 2.11.0 ready for the owner's phone run and tag.
+  - **Satisfies:** FR-CLEAN-8, FR-CLEAN-9, FR-CLEAN-10; §9 Phase 2t's release items.
+  - **Scope (PLAN D-1000, D-1001):** the `column` shape and the compact `rail` removed from `SkyViewLayout` with their styles, the bowl-cut and hint-row measurements, `readoutIn: 'corner'`'s column branch, `DETAIL_DRAWING_TOP_PX` and `DOME_COMPACT_SLACK_PX` with their tests; `flowPages.ts`'s two column orders; `rhythm.spec.ts` and `targets.spec.ts` on the two sheets open and closed; the capture set re-shot for every named move of FR-CLEAN-9 with `stars-sheet` and `guide-sheet` added at 390 × 844 and 844 × 390 and `stars-passes` and `stars-whole-passes` removed; FR-CAP-5's diff against 2.10.0; the budget rows re-set by D-178; `package.json` 2.11.0; RELEASE §24 with the owner's items and the phone run as a checklist (the stars page and a pass detail on the phone, upright and turned; the desk at 1920); the strings no reader uses removed.
+  - **Out of scope:** any behaviour change; the tag and the deploy.
+  - **Done when:**
+    - FR-CAP-5's diff against 2.10.0 lists only the named moves, the two additions and the two removals; two runs agree but for F-99's noise; every live and every untouched wide capture byte-identical.
+    - `npm run bundle:budget`, `npm run check:dead`, `npx vitest run tests/docs` green; `rhythm` and `targets` green at the compact sizes with the sheets.
+    - The Done note lists the changed, added and removed files, the budget rows against 2.10.0, and "tag the squash merge of this PR".
+
+### Requirement coverage (v2.11)
+
+| Requirement | Task |
+|---|---|
+| FR-CLEAN-1 | R163, R164 |
+| FR-CLEAN-2 | R162 (the component), R163, R164 |
+| FR-CLEAN-3 | R162 (the component), R163, R164 |
+| FR-CLEAN-4 | R163 |
+| FR-CLEAN-5 | R164 |
+| FR-CLEAN-6 | R163, R164 |
+| FR-CLEAN-7 | R163, R164 |
+| FR-CLEAN-8 | R165 |
+| FR-CLEAN-9 | R162 (the shared component), R165 |
+| FR-CLEAN-10 | R165 |
+| FR-CLEAN-11 | R163 |
+| FR-CLEAN-12 | R166 |
+| FR-CLEAN-13 | R166 |
+
+Waves (for the sanity check): **wave 1** R162 (live) + R166 (ui) — **wave 2** R163 (window) + R164 (ui) — **wave 3** R165 (docs). R162 and R166 name no file in common; R163 and R164 share only `tests/e2e/clean-sky.spec.ts`, by position (R163 creates it, R164 appends), and R163 alone touches `SkyViewLayout.tsx` in wave 2. Every wave holds at most one `fable` task (D-1002).
