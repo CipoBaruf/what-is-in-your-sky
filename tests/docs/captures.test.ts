@@ -77,6 +77,9 @@ describe('the v1 capture set', () => {
       ['live-tonight', [360, 390, 844]],
       ['live-sheet', [390, 844]],
       ['live-sheet-list', [390, 844]],
+      // R165 (FR-CLEAN-9, D-1001): the stars page's and the pass detail's sheets, at the same two sizes.
+      ['stars-sheet', [390, 844]],
+      ['guide-sheet', [390, 844]],
     ]);
     // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
     // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
@@ -84,7 +87,8 @@ describe('the v1 capture set', () => {
     const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following']);
     // R161 (FR-PHONE-16, FR-LOOK-12, D-993): the files the two requirements name at the phone's and the desk's width,
     // 390 and 1280 and no 360 beside them — `stars-zoom` among them, FR-LOOK-12's 390 joining FR-SKY-9's 1280.
-    const NAMED_PAIR = new Set(['stars-whole', 'stars-whole-passes', 'live-twilight', 'stars-zoom']);
+    // R165 (FR-CLEAN-9): `stars-whole-passes` left with the stars page's passes.
+    const NAMED_PAIR = new Set(['stars-whole', 'live-twilight', 'stars-zoom']);
     // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
     const SHORT = new Set(['guide-short']);
     expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
@@ -111,6 +115,7 @@ describe('the v1 capture set', () => {
         continue;
       }
       expect(screen.name, 'the sky screen left the set (FR-GYRO-9)').not.toMatch(/^(window|sky-screen-.*|stars-screen|stars-passes-screen)$/);
+      expect(screen.name, 'the stars page’s passes left the set (FR-CLEAN-9)').not.toMatch(/^stars(-whole)?-passes$/);
       if (DESK_WIDE.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([1280, 1920]);
         continue;
@@ -156,7 +161,9 @@ describe('the v1 capture set', () => {
     // `stars-passes-screen`), + 4 each for `live-following` and `stars-following` (390).
     // R161 (FR-PHONE-16, FR-LOOK-12, D-993): + 8 each for `stars-whole`, `stars-whole-passes` and `live-twilight` (390,
     // 1280), + 4 each for `stars-whole-following` and `guide-short` (390) and for `stars-zoom` at 390.
-    expect(captureSet()).toHaveLength(420);
+    // R165 (FR-CLEAN-9, D-1001): − 12 `stars-passes` (360, 390, 1280) and − 8 `stars-whole-passes` (390, 1280), + 8
+    // each for `stars-sheet` and `guide-sheet` (390, 844).
+    expect(captureSet()).toHaveLength(416);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
