@@ -283,7 +283,8 @@ async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): 
   if (target === 'live') {
     await expect(page.getByTestId('live-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
   } else if (target === 'stars') {
-    await expect(page.getByTestId('stars-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+    // V212-11 (D-1054): a desk opens the stars page on the globe.
+    await expect(page.getByTestId('stars-layout').locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   } else {
     await expect(page.getByTestId('settings-back')).toBeVisible();
   }

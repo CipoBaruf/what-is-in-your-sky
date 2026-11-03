@@ -24,7 +24,7 @@ export interface StarsSeed {
   clock?: 'fixed' | 'installed';
 }
 
-/** The stars page over Neuquén on the suite's night, the window drawn. */
+/** The stars page over Neuquén on the suite's night, its opening view drawn: the globe on a desk (FR-GLOBE-1 as amended, V212-11), the window on a phone. */
 export async function openStarsPage(page: Page, { locale = 'en', theme = 'dark', favourites = [], clock = 'fixed' }: StarsSeed = {}): Promise<void> {
   if (clock === 'installed') await page.clock.install({ time: NINE_DAYS_ON });
   else await page.clock.setFixedTime(NINE_DAYS_ON);
@@ -38,6 +38,19 @@ export async function openStarsPage(page: Page, { locale = 'en', theme = 'dark',
   );
   await page.goto('/#stars');
   await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+  if ((page.viewportSize()?.width ?? 0) >= 964) await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
+  else await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
+}
+
+/**
+ * FR-GLOBE-1 as amended (V212-11, D-1054): a desk opens the stars page on the globe, so the specs written for the
+ * window press `Window` after the open; on a phone the page is on the window already and nothing is pressed.
+ */
+export async function onWindow(page: Page): Promise<void> {
+  const sky = page.getByTestId('stars-sky');
+  await expect(sky).toBeAttached({ timeout: 30_000 });
+  if ((await sky.getAttribute('data-view')) !== 'globe') return;
+  await page.getByTestId('stars-view-row').getByRole('button', { name: /^(Window|Ventana)$/ }).click();
   await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
 }
 

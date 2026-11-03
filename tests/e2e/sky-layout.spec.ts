@@ -28,6 +28,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { DETAIL_DRAWING_MIN_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { onWindow } from './globeHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -184,6 +185,7 @@ async function openDetail(page: Page, locale: Locale): Promise<Locator> {
 async function openStars(page: Page, locale: Locale): Promise<Locator> {
   await seedReader(page, locale);
   await page.goto('/#stars');
+  await onWindow(page);
   const layout = page.getByTestId('stars-layout');
   await expect(layout).toBeVisible();
   await expect(layout.locator('[data-drawing="window"]')).toBeAttached();

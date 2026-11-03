@@ -247,9 +247,10 @@ function StarsSky({ observer }: { observer: Observer }) {
    * R160 (FR-PHONE-7, D-971): the view — the window or the whole sky — is the page's own, the window on every open and
    * never saved. R160 (FR-PHONE-8, D-968, D-990): the names' default is by view and width — on for the window, and for
    * the whole sky on wide, off for the whole sky on compact — until the `[x] names` toggle is tapped, from when its
-   * choice holds for both views; the toggle shows the value in force.
+   * choice holds for both views; the toggle shows the value in force. FR-GLOBE-1 as amended (V212-11, D-1054): a desk
+   * opens on the globe, a phone on the window; the width at the open picks it, nothing is saved.
    */
-  const [view, setView] = useState<StarsView>('window');
+  const [view, setView] = useState<StarsView>(wide ? 'whole' : 'window');
   const chartView = chartViewOf(view);
   const onChartView = useCallback((next: ChartView) => {
     setView(next === 'window' ? 'window' : 'whole');
@@ -409,6 +410,7 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   // FR-A11Y-1..3: the page's focus target is the drawing's box, which takes the arrow keys (FR-STAR-4). R160: the box
   // arrives with the window's chunk; it takes the focus then, unless the reader has put it somewhere else meanwhile.
+  // V212-11 (D-1054): a desk opens on the globe, which focuses its own box on mount by the same rule (`SkyGlobe`).
   useEffect(() => {
     const sky = skyRef.current;
     if (!sky) return;
@@ -551,7 +553,7 @@ function StarsSky({ observer }: { observer: Observer }) {
     // tap all begin with a pointer down in the box, caught here before the window's own handlers.
     // R160 (D-971): the chart with the page's two views; the window takes the page's camera, the whole sky outlines it.
     // R170 (FR-GLOBE-1, FR-GLOBE-12): on wide the whole sky is the globe, in the same box, the group named for its place, instant and turn.
-    <div className={globeShown ? `${styles.sky} ${styles.globeSky}` : styles.sky} ref={skyRef} role="group" aria-label={globeShown ? globeLabel : p.drawing} data-testid="stars-sky" data-view={globeShown ? 'globe' : chartView} onPointerDownCapture={markSkyHintSeen}>
+    <div className={styles.sky} ref={skyRef} role="group" aria-label={globeShown ? globeLabel : p.drawing} data-testid="stars-sky" data-view={globeShown ? 'globe' : chartView} onPointerDownCapture={markSkyHintSeen}>
       {globeShown ? (
         <Suspense fallback={null}>
           <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} />

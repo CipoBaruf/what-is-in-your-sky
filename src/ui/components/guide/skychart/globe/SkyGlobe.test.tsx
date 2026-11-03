@@ -188,6 +188,37 @@ describe('the keys (FR-GLOBE-6)', () => {
   });
 });
 
+describe('the zoom buttons (FR-GLOBE-6 as amended, V212-12, D-1055)', () => {
+  it('zoom one GLOBE_ZOOM_STEP a press, named in both languages, disabled at each end of the range', () => {
+    const { q, rerender } = mount();
+    const disc = q('[data-disc]');
+    const zoomIn = q<HTMLButtonElement>('[data-testid="globe-zoom-in"]');
+    const zoomOut = q<HTMLButtonElement>('[data-testid="globe-zoom-out"]');
+    expect(zoomIn.getAttribute('aria-label')).toBe('Zoom in');
+    expect(zoomOut.getAttribute('aria-label')).toBe('Zoom out');
+    expect(zoomIn.disabled).toBe(false);
+    expect(zoomOut.disabled).toBe(false);
+    fireEvent.click(zoomIn);
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP, 0);
+    fireEvent.click(zoomOut);
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R, 0);
+    for (let k = 0; k < 20 && !zoomIn.disabled; k += 1) fireEvent.click(zoomIn);
+    frames.frame();
+    expect(zoomIn.disabled).toBe(true);
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_MAX, 0);
+    for (let k = 0; k < 30 && !zoomOut.disabled; k += 1) fireEvent.click(zoomOut);
+    frames.frame();
+    expect(zoomOut.disabled).toBe(true);
+    expect(zoomIn.disabled).toBe(false);
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_MIN, 0);
+    rerender({ language: 'es' });
+    expect(zoomIn.getAttribute('aria-label')).toBe('Acercar');
+    expect(zoomOut.getAttribute('aria-label')).toBe('Alejar');
+  });
+});
+
 describe('the wheel and the pinch (FR-GLOBE-6)', () => {
   it('zooms one step per notch and stays between GLOBE_ZOOM_MIN and GLOBE_ZOOM_MAX', () => {
     const { box, q } = mount();

@@ -24,6 +24,7 @@ import { homeAt, openSheet, T } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
 import { pinch, pinchPolar, skyUnder } from './windowZoom';
+import { onWindow } from './globeHelpers';
 
 type Locale = 'en' | 'es';
 const SIZES = [
@@ -51,6 +52,7 @@ async function openStars(page: Page, locale: Locale, prefs: Record<string, unkno
     [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN, ...prefs })] as [string, string],
   );
   await page.goto('/#stars');
+  await onWindow(page);
   const layout = page.getByTestId('stars-layout');
   await expect(layout).toBeVisible();
   await expect(windowRoot(page)).toHaveAttribute('data-state', state, { timeout: 15_000 });

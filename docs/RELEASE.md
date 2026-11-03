@@ -2774,6 +2774,20 @@ whether that run's artefact replaces the set.
       gone and F-99's noise.
 - [ ] Run 2 agrees with run 1 but for F-99's noise.
 
+**After the owner's desk notes (V212-11..13, D-1054..D-1056).** The owner tested a local 2.12.0
+build before the tag; four notes landed in one PR: a desk opens the stars page on the globe, a
+hover never shrinks the globe (the readout row under the box keeps one height), `[ + ]` `[ − ]`
+zoom it, and a hovered figure is drawn in the accent. The set is still **436 files**. The 24
+`stars-globe*` files were re-shot on the same Mac off a plain build (the box is the readout row's
+height shorter, the zoom buttons at that row's right end); nothing else moved: `v1-captures`
+presses `Window` after the open on a desk for the window's screens (`starsAt`), so
+`v1-stars-{1280,1920}-*` and `v1-stars-zoom-1280-*` came out byte-identical to the committed
+files, and the compact stars files differ only by the Mac's raster against the committed Linux
+one (F-99's kind) and were left as committed. `stars-globe` is now the desk's page as it opens.
+
+- [ ] `captures.yml` run 1's list against `8413d978` names the 24 `stars-globe*` files among §25.1's
+      new ones, and nothing more than §25.1 names.
+
 ### 25.2 The budget (FR-GLOBE-15, D-178, D-1042)
 
 `npm run bundle:budget` on the branch, gzip level 9, beside `8413d978` (2.11.0) built on the

@@ -237,8 +237,9 @@
   min-width: 0;
 }
 
-/* R170 (FR-GLOBE-1, D-1035): the globe in the window's box — the box takes the room, the readout line under it. */
-.globeSky {
+/* R170 (FR-GLOBE-1, D-1035): the globe in the window's box — the box takes the room, the readout row under it (D-1055:
+   one fixed height). By `data-view`, not a class, so `stars` pays no bytes for the switch. */
+.sky[data-view='globe'] {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--space-1);

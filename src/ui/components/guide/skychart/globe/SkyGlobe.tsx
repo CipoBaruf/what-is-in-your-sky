@@ -3,6 +3,8 @@ import { starCatalog } from '../../../../../data/stars/catalog';
 import { loadDeepChunk } from '../../../../../data/stars/deepChunk';
 import type { EpochMs, Locale, Observer } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
+import { CATALOGS } from '../../../../../i18n/useT';
+import { TextButton } from '../../../primitives/TextButton';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
@@ -126,6 +128,8 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const [hovered, setHovered] = useState<GlobeTarget | null>(null);
   const listed = useMemo(() => listTarget(listNamed, catalog.size), [listNamed, catalog]);
   const [dragging, setDragging] = useState(false);
+  /** FR-GLOBE-6 as amended (V212-12, D-1055): which end of the zoom's range the view is at, for the buttons; a state that changes only at an end. */
+  const [zoomEnd, setZoomEnd] = useState<'min' | 'max' | null>(null);
   const readoutId = `${useId()}-readout`;
 
   // The renderer, once: React renders the empty `<svg>`, the renderer fills it and writes it until unmount. The box is measured here and by the observer.
@@ -136,6 +140,9 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const view = viewRef.current;
     const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null });
     rendererRef.current = renderer;
+    // FR-A11Y-1..3 with V212-11 (D-1054): a desk opens on the globe, so its box takes the page's focus as the window's does — unless the reader has put it somewhere already.
+    const active = document.activeElement;
+    if (active === null || active === document.body) box.focus({ preventScroll: true });
     let observer: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
       observer = new ResizeObserver((entries) => {
@@ -228,7 +235,10 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const view = viewRef.current;
     if (change.lon !== undefined) view.lon = change.lon;
     if (change.lat !== undefined) view.lat = clampLat(change.lat);
-    if (change.zoom !== undefined) view.zoom = clampZoom(change.zoom);
+    if (change.zoom !== undefined) {
+      view.zoom = clampZoom(change.zoom);
+      setZoomEnd(view.zoom <= GLOBE_ZOOM_MIN ? 'min' : view.zoom >= GLOBE_ZOOM_MAX ? 'max' : null);
+    }
     rendererRef.current?.set({ lon: view.lon, lat: view.lat, zoom: view.zoom });
   }, [viewRef]);
 
@@ -435,6 +445,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   };
 
   const shown = hovered ?? named ?? listed;
+  const words = CATALOGS[language].chart.globe;
   const line = shown === null ? null : readoutLine(catalog, { place, t: instant, lang: language }, shown);
   return (
     <>
@@ -457,13 +468,18 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         {/* FR-GLOBE-14: one SVG, its children the renderer's by ref (never React's), its label the renderer's words. */}
         <svg ref={svgRef} className={styles.svg} role="img" data-globe="" />
       </div>
-      <p className={styles.readout} id={readoutId} data-testid="globe-readout">
-        {line !== null && (
-          <span className={styles.named} data-testid="globe-named">
-            {line}
-          </span>
-        )}
-      </p>
+      {/* D-1055: the row under the box keeps its height named or not — the readout one ellipsised line, the zoom buttons beside it — so a hover never re-measures the box. */}
+      <div className={styles.foot}>
+        <p className={styles.readout} id={readoutId} data-testid="globe-readout">
+          {line !== null && (
+            <span className={styles.named} data-testid="globe-named">
+              {line}
+            </span>
+          )}
+        </p>
+        <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
+        <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
+      </div>
     </>
   );
 }

@@ -66,11 +66,16 @@ async function drawn(view: 'window' | 'polar' = 'window'): Promise<void> {
     probe.unmount();
   });
 }
-/** The page with its window drawn. */
+/** The page with its window drawn; on wide, where it opens on the globe (FR-GLOBE-1 as amended, V212-11), after a press of `Window`. */
 async function opened(locale: Locale = 'en'): Promise<ReturnType<typeof page>> {
   const rendered = page(locale);
+  toWindow();
   await drawn();
   return rendered;
+}
+function toWindow(): void {
+  if (screen.getByTestId('stars-sky').getAttribute('data-view') !== 'globe') return;
+  fireEvent.click(within(screen.getByTestId('stars-view-row')).getByRole('button', { name: /^(Window|Ventana)$/ }));
 }
 /** The stars page's own view row (FR-PHONE-7): `[ Window ] Whole sky`; on compact the sheet's first row (FR-CLEAN-4). */
 const viewRow = () => within(screen.getByTestId('stars-view-row'));

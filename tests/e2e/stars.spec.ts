@@ -14,6 +14,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { bandUnderBox, SPACE_3_PX } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { onWindow } from './globeHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -61,8 +62,9 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     expect(await page.locator('main').count()).toBe(1);
     expect(await page.getByRole('banner').count()).toBe(1);
     await expect(page.getByTestId('stars-link')).toHaveAttribute('aria-current', 'page');
-    // The focus target is the drawing's box, which takes the arrow keys.
-    await expect(page.getByRole('group', { name: WORDS.en.drawing }).locator('[tabindex="0"]')).toBeFocused();
+    // The focus target is the drawing's box, which takes the arrow keys: on a desk the globe's (V212-11, D-1054).
+    await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
+    await expect(page.getByTestId('globe-box')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page).not.toHaveURL(/#stars/);
     await expect(page.getByTestId('stars-link')).toBeFocused();
@@ -71,6 +73,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test('is the box at the left, the rail beside it, the readout in the box’s corner, and no scroll', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
+    await onWindow(page);
     await expect(page$(page)).toBeVisible();
     const sky = drawing(page);
     await expect.poll(async () => (await box(sky)).width).toBeGreaterThan(400);
@@ -96,6 +99,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test('the facing picker turns the camera; the drag and the arrow keys turn it too (FR-STAR-4)', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
+    await onWindow(page);
     // South of the equator: the pole side is south, at 35°.
     await expect(page$(page)).toHaveAttribute('data-look-az', '180');
     await expect(page$(page)).toHaveAttribute('data-look-alt', '35');
@@ -135,6 +139,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test('the layers are four toggles, all on, and each turns off; no [ passes ] (FR-STAR-3 as amended v2.4.1, FR-CLEAN-11)', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
+    await onWindow(page);
     const layers = page.getByRole('group', { name: WORDS.en.layers });
     await expect(layers.getByRole('button')).toHaveText(WORDS.en.layerNames.map((name) => name));
     for (const name of WORDS.en.layerNames) await expect(layers.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
@@ -151,6 +156,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test('In this field: the brightest drawn objects, a row names its mark, and the name clears after four seconds (FR-STAR-7)', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
+    await onWindow(page);
     const list = page.getByRole('list', { name: WORDS.en.field });
     const rows = list.getByRole('button');
     await expect.poll(async () => rows.count()).toBeGreaterThan(0);
@@ -180,8 +186,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await page.keyboard.press('s');
     await expect(page).toHaveURL(/#stars$/);
     await expect(page$(page)).toBeVisible();
-    // FR-A11Y-1..3: opened by the key, the page places its focus as from the link.
-    await expect(page.getByRole('group', { name: WORDS.en.drawing }).locator('[tabindex="0"]')).toBeFocused();
+    // FR-A11Y-1..3: opened by the key, the page places its focus as from the link — the globe's box on a desk (V212-11).
+    await expect(page.getByTestId('globe-box')).toBeFocused();
   });
 });
 
@@ -228,6 +234,7 @@ test.describe('both languages (FR-STAR-10, FR-A11Y-3)', () => {
     await page.goto('/');
     await expect(page.getByTestId('stars-link')).toHaveText(WORDS.es.link);
     await page.getByTestId('stars-link').click();
+    await onWindow(page);
     await expect(page).toHaveTitle(`Estrellas · ${WORDS.es.app}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(WORDS.es.heading);
     // R132 (D-846): the rail labels the view row `Vista` (R160) and the facing row `Hacia`; the picker's own name stays `Mirando`.
@@ -249,6 +256,7 @@ test.describe('offline (FR-STAR-8, US-38 AC7)', () => {
   test('with a saved place, a reload with the network down draws the page as online', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
+    await onWindow(page);
     const rows = page.getByRole('list', { name: WORDS.en.field }).getByRole('button');
     await expect.poll(async () => rows.count()).toBeGreaterThan(0);
     const online = await rows.evaluateAll((buttons) => buttons.map((b) => b.getAttribute('aria-label')));
@@ -258,6 +266,7 @@ test.describe('offline (FR-STAR-8, US-38 AC7)', () => {
     try {
       await page.reload();
       await expect(page$(page)).toBeVisible();
+      await onWindow(page);
       expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
       await expect.poll(async () => rows.evaluateAll((buttons) => buttons.map((b) => b.getAttribute('aria-label')))).toEqual(online);
     } finally {

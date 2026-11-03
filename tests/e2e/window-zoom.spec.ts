@@ -19,6 +19,7 @@ import type { Observer } from '../../src/model';
 import { CAPTURE_DIR } from './captureSet';
 import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
 import { ctrlWheel, pinch, pinchPolar, placedAt, skyUnder, wheel } from './windowZoom';
+import { onWindow } from './globeHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -77,6 +78,7 @@ async function openStars(page: Page): Promise<Locator> {
     [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
   );
   await page.goto('/#stars');
+  await onWindow(page);
   const w = page.getByTestId('stars-sky').locator('[data-look-az]');
   await expect(w).toHaveAttribute('data-state', 'hand');
   return w;
@@ -236,7 +238,9 @@ test.describe('zoom on the stars page', () => {
     await expect.poll(async () => rows.count()).toBeGreaterThan(0);
     const listed = await rows.count();
     const before = await placedAt(zenith(w));
-    // The page opens with the box focused (FR-A11Y-1..3): the keys reach it at once.
+    // The page opens with its box focused (FR-A11Y-1..3) — on a desk the globe's since V212-11, so after `Window` the
+    // window's box is focused by hand and the keys reach it.
+    await box(w).focus();
     await expect(box(w)).toBeFocused();
     for (let i = 0; i < 3; i += 1) await page.keyboard.press('+');
     await expect(w).toHaveAttribute('data-fov', '31');
@@ -264,6 +268,7 @@ test.describe('zoom on the stars page', () => {
     await expect(w).toHaveAttribute('data-fov', '25');
     // Never saved: the reload opens at the default field.
     await page.reload();
+    await onWindow(page);
     await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '60');
     expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov/i);
   });

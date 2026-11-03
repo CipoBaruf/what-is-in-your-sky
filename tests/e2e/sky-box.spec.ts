@@ -15,6 +15,7 @@ import { DETAIL_DRAWING_MIN_SHARE } from '../../src/lib/layout';
 import { painted } from './domeInk';
 import { bandUnderBox, domeDrawn, seedStoredRun, SPACE_3_PX } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { onWindow } from './globeHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -133,6 +134,7 @@ test.describe('the wide box runs to the hint line (FR-FLOW-9) and the panel’s 
       [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
     );
     await page.goto('/#stars');
+    await onWindow(page);
     const layout = page.getByTestId('stars-layout');
     await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
     const sky = await settledBox(page.getByTestId('stars-sky'));

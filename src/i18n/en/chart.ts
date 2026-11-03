@@ -69,6 +69,9 @@ export const chart = {
      * (the view's name, the groups, the turn's values, the steps, `faint`) are the page's (R170).
      */
     globe: {
+      /** FR-GLOBE-6 as amended (V212-12): the zoom buttons' accessible names; the labels are `+` and `−`. */
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
       label: 'The celestial globe: drag it, or use the arrow keys',
       zenith: 'zenith',
       /** FR-GLOBE-2: the two celestial poles, as abbreviations. */

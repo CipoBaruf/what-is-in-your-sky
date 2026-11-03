@@ -56,12 +56,16 @@ async function drawn(view: 'window' | 'polar' = 'window'): Promise<void> {
   });
 }
 
+/** The page on its window; on wide it opens on the globe (FR-GLOBE-1 as amended, V212-11), so `Window` is pressed first. */
 async function opened(locale: Locale = 'en') {
   const rendered = render(
     <I18nProvider locale={locale}>
       <StarsPage />
     </I18nProvider>,
   );
+  if (screen.getByTestId('stars-sky').getAttribute('data-view') === 'globe') {
+    fireEvent.click(within(screen.getByTestId('stars-view-row')).getByRole('button', { name: locale === 'es' ? 'Ventana' : 'Window' }));
+  }
   await drawn();
   return rendered;
 }
@@ -76,6 +80,33 @@ const clockAt = (): number => Number(screen.getByTestId('globe-clock').getAttrib
 const skyLabel = (): string => screen.getByTestId('stars-sky').getAttribute('aria-label') ?? '';
 
 describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE-12)', () => {
+  it('opens on the globe on a desk and on the window on a phone, unsaved (FR-GLOBE-1 as amended, V212-11, D-1054)', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    appStore.setState({ observer: BUENOS_AIRES });
+    const before = appStore.getState().chartView;
+    render(
+      <I18nProvider locale="en">
+        <StarsPage />
+      </I18nProvider>,
+    );
+    await globe();
+    expect(screen.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
+    expect(viewRow().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
+      ['Window', 'false'],
+      ['Globe', 'true'],
+    ]);
+    expect(appStore.getState().chartView).toBe(before);
+    cleanup();
+    media?.setSize(390, 844);
+    render(
+      <I18nProvider locale="en">
+        <StarsPage />
+      </I18nProvider>,
+    );
+    await drawn('window');
+    expect(screen.queryByTestId('globe-box')).toBeNull();
+  });
+
   it('reads [ Window ] Globe, draws the globe in the box with its rail, and keeps the choice across the breakpoint (FR-GLOBE-1)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
