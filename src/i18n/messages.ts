@@ -14,7 +14,7 @@ import type { en } from './en';
 export type Messages = typeof en;
 
 /** R129 (FR-FLOW-3, D-845): the page a header stands on, which decides its row. */
-export type HeaderPage = 'home' | 'live' | 'stars' | 'pass' | 'settings';
+export type HeaderPage = 'home' | 'live' | 'stars' | 'settings';
 
 /**
  * A sentence with one link in it. The catalog decides where the link falls,

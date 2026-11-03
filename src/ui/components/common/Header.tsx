@@ -62,7 +62,7 @@ import styles from './Header.module.css';
 export interface HeaderProps {
   /** Which page this header stands on (D-845). */
   page?: HeaderPage;
-  /** A sub-page's place, or the pass's date on the pass detail; drawn after the name, cut with an ellipsis. */
+  /** A sub-page's place; drawn after the name, cut with an ellipsis. */
   context?: string | null;
   /** A sub-page's `[ ← ]`: leaves the page. */
   onBack?: () => void;
@@ -81,9 +81,6 @@ export interface HeaderProps {
 /** The wide row's page links, in order (FR-FLOW-3). */
 const NAV_PAGES = ['home', 'live', 'stars'] as const satisfies readonly HeaderPage[];
 const NAV_HREF: Record<(typeof NAV_PAGES)[number], string> = { home: '#', live: '#live', stars: STARS_HASH };
-
-/** The context's test id: the place on most pages, as the live page's was (`live-place`), and the date on the pass. */
-const contextTestId = (page: HeaderPage): string => (page === 'pass' ? 'pass-date' : `${page}-place`);
 
 /** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
 const TARGET = 'target';
@@ -114,7 +111,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   );
   const contextText =
     sub && context !== null && context !== '' ? (
-      <span className={styles.context} data-testid={contextTestId(page)}>
+      <span className={styles.context} data-testid={`${page}-place`}>
         {context}
       </span>
     ) : null;

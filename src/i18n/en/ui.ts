@@ -97,9 +97,6 @@ const moonPhase = {
   waningCrescent: 'waning crescent',
 } satisfies Record<MoonPhaseName, string>;
 
-/** R82 (D-513): the what step's count in words, one to twelve; figures after. */
-const numberWords = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-
 
 export const ui = {
   app: {
@@ -129,7 +126,7 @@ export const ui = {
     back: '←',
     backName: 'Back',
     nav: 'Pages',
-    pages: { home: 'home', live: 'live', stars: 'stars', pass: 'pass', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    pages: { home: 'home', live: 'live', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
   },
 
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
@@ -273,15 +270,6 @@ export const ui = {
     moonRow: (p: { phase: MoonPhaseName; illumination: string; point: CompassPoint | null }) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     /** FR-FIRST-9 (US-4 AC3 as amended v2.0.2): the first satellite up, its time left, and how many more. */
     upNow: (p: { name: string; left: string | null; more: number }) => `${p.name}${p.left === null ? '' : ` · ${p.left} left`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    /**
-     * R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's **what** step's heading — the count in words to
-     * twelve, figures after it (`Five things cross tonight`, `13 things cross tonight`).
-     */
-    count: (n: number) => {
-      if (n === 0) return 'Nothing crosses tonight';
-      if (n === 1) return 'One thing crosses tonight';
-      return `${n <= 12 ? capitalise(numberWords[n] ?? String(n)) : String(n)} things cross tonight`;
-    },
     /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **when** step. */
     whenStep: {
       heading: 'When is it dark enough?',

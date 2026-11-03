@@ -543,19 +543,3 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(window.location.hash).toBe(hash);
   });
 });
-
-describe('home.count (D-513)', () => {
-  it.each([
-    ['en', ['One thing crosses tonight', 'Two things cross tonight', 'Three things cross tonight', 'Four things cross tonight', 'Five things cross tonight', 'Six things cross tonight', 'Seven things cross tonight', 'Eight things cross tonight', 'Nine things cross tonight', 'Ten things cross tonight', 'Eleven things cross tonight', 'Twelve things cross tonight'], '13 things cross tonight'],
-    [
-      'es',
-      ['Esta noche hay un pase', 'Esta noche hay dos pases', 'Esta noche hay tres pases', 'Esta noche hay cuatro pases', 'Esta noche hay cinco pases', 'Esta noche hay seis pases', 'Esta noche hay siete pases', 'Esta noche hay ocho pases', 'Esta noche hay nueve pases', 'Esta noche hay diez pases', 'Esta noche hay once pases', 'Esta noche hay doce pases'],
-      'Esta noche hay 13 pases',
-    ],
-  ] as const)('writes the count in words from one to twelve and in figures past it (%s)', (locale, words, past) => {
-    const t = CATALOG[locale];
-    expect(Array.from({ length: 12 }, (_, index) => t.home.count(index + 1))).toEqual(words);
-    expect(t.home.count(13)).toBe(past);
-    expect(t.home.count(40)).toBe(past.replace('13', '40'));
-  });
-});

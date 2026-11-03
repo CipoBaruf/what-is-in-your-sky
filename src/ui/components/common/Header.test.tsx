@@ -29,7 +29,7 @@ afterEach(() => {
   window.history.replaceState(null, '', window.location.pathname);
 });
 
-const SUB_PAGES = ['live', 'stars', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
+const SUB_PAGES = ['live', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
 const PLACE = '−38.93, −67.99';
 
 const renderIn = (locale: Locale, props: HeaderProps = {}) => render(<I18nProvider locale={locale}>{<Header {...props} />}</I18nProvider>);
@@ -74,7 +74,7 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
     expect(onBack).toHaveBeenCalledOnce();
     const name = screen.getByTestId('header-page');
     expect(name).toHaveTextContent(t.header.pages[page]);
-    const context = screen.getByTestId(page === 'pass' ? 'pass-date' : `${page}-place`);
+    const context = screen.getByTestId(`${page}-place`);
     expect(context).toHaveTextContent(PLACE);
     // In that order, and nothing else on the row: no title, no links, no switch.
     expect([...header.children]).toEqual([back, name, context]);
@@ -95,7 +95,7 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
 
   it('is a div when the page holds it inside a landmark of its own, so there is one banner', () => {
     media = stubMatchMedia(COMPACT_PX);
-    renderIn(locale, { page: 'pass', landmark: false, context: '2026-10-27', onBack: vi.fn() });
+    renderIn(locale, { page: 'live', landmark: false, context: PLACE, onBack: vi.fn() });
     expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.getByTestId('header').tagName).toBe('DIV');
   });
@@ -158,7 +158,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     expect(row.firstElementChild).toBe(back);
     expect(row.lastElementChild).toBe(screen.getByTestId('settings-link'));
     expect(row).toHaveTextContent(t.app.title);
-    expect(within(row).getByTestId(page === 'pass' ? 'pass-date' : `${page}-place`)).toHaveTextContent(PLACE);
+    expect(within(row).getByTestId(`${page}-place`)).toHaveTextContent(PLACE);
     fireEvent.click(back);
     expect(onBack).toHaveBeenCalledOnce();
     // The current page is marked where it is one of the links; the others are links in the accent.

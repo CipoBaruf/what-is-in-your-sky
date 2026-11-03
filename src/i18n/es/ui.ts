@@ -85,9 +85,6 @@ const moonPhase = {
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
 
-/** R82 (D-513): la cuenta del paso **qué** en palabras, de uno a doce; cifras después. "Un" y no "uno": va antes de "pase". */
-const numberWords = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'];
-
 
 export const ui: typeof EnUi = {
   app: {
@@ -104,7 +101,7 @@ export const ui: typeof EnUi = {
     back: '←',
     backName: 'Volver',
     nav: 'Páginas',
-    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', pass: 'pase', settings: 'ajustes' },
+    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', settings: 'ajustes' },
   },
 
   starsHeading: 'Estrellas esta noche',
@@ -201,11 +198,6 @@ export const ui: typeof EnUi = {
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
     moonRow: (p) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     upNow: (p) => `${p.name}${p.left === null ? '' : ` · quedan ${p.left}`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    count: (n) => {
-      if (n === 0) return 'Esta noche no hay pases';
-      if (n === 1) return 'Esta noche hay un pase';
-      return `Esta noche hay ${n <= 12 ? (numberWords[n] ?? String(n)) : String(n)} pases`;
-    },
     whenStep: {
       heading: '¿Cuándo está lo bastante oscuro?',
       sentence: (place) => `${place}, esta noche. Los satélites solo se ven iluminados en la banda oscura entre el anochecer y el amanecer.`,
