@@ -72,7 +72,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(steps).toHaveText(['01 where ✓', '[02] when', '03 what']);
     await expect(when.getByRole('heading', { level: 2, name: 'When is it dark enough?' })).toBeFocused();
     // D-1025: the device fix is named after the nearest town, on the device, once the coordinates are set.
-    await expect(when.getByText('Near Cipolletti, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
+    await expect(when.getByText('Cipolletti, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
     await expect(when.getByTestId('when-passes')).toHaveText(/^\d+ tonight, \d+ in 72 h$/, { timeout: 60_000 });
     await expect(when.getByTestId('tonight-stripe')).toBeVisible();
     await expect(when.locator('[data-row="until"] dt')).toHaveText('Until');
@@ -95,7 +95,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText('What do you want to see?');
     await expect(what.getByTestId('home-doors').getByRole('link')).toHaveText([/^Satellites/, /^Stars/, /^Live sky/]);
     const foot = what.getByTestId('what-foot');
-    await expect(foot).toContainText(/^Near Cipolletti · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
+    await expect(foot).toContainText(/^Cipolletti · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
 
     // [ edit ] returns to where with the group open; the finished steps are the way back to when.
     await foot.getByRole('button', { name: 'edit' }).click();
@@ -120,7 +120,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(page.getByTestId('step-line')).toHaveCount(0);
     await expect(page.getByTestId('step-when')).toHaveCount(0);
     // FR-FIRST-11: the nearest town with the coordinates (D-1025), and the sentence by the source with the accuracy the device gave.
-    await expect(page.getByTestId('location-summary')).toHaveText('Near Cipolletti (−38.93, −67.99)');
+    await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
     // R130 (FR-FLOW-2): the sentence is at the top of the group the folded Where's `[ change ]` opens, above the inputs (D-1024).
     await expect(page.getByTestId('where-sentence')).toBeHidden();
     // `[ change ]` is the place line's one control; there is no `[ details ]`.

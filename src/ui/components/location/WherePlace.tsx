@@ -44,7 +44,7 @@ export interface WherePlaceProps {
 
 /**
  * A geocoded label's first part is the place itself ("Cipolletti, Río Negro, Argentina" → "Cipolletti"), and so
- * is a named device fix's (D-1025: "Near Cipolletti, Argentina" → "Near Cipolletti"). Typed coordinates, and a
+ * is a named device fix's (D-1025, D-1029: "Cipolletti, Argentina" → "Cipolletti"). Typed coordinates, and a
  * device fix still labelled with its coordinates, have none.
  */
 export function placeName(observer: Observer): string | null {
@@ -65,16 +65,18 @@ function whereSentence(observer: Observer, t: Messages): string {
   }
 }
 
+/**
+ * The place line: the place's name alone, or the coordinates where it has none. D-1029 (the owner's call 2026-11-02,
+ * from the phone): a named place's coordinates are the sentence's first words (`whereCoords`), shown where the
+ * sentence is — under `[ change ]` on compact, always on wide — and not after the name, where they were cut.
+ */
 function PlaceText({ observer }: { observer: Observer }) {
-  const place = placeName(observer);
-  const coords = coordsLabel(observer.lat, observer.lon);
-  return place === null ? (
-    <span className={styles.name}>{coords}</span>
-  ) : (
-    <>
-      <span className={styles.name}>{place}</span> <span className={styles.coords}>({coords})</span>
-    </>
-  );
+  return <span className={styles.name}>{placeName(observer) ?? coordsLabel(observer.lat, observer.lon)}</span>;
+}
+
+/** D-1029: `−38.94, −68.00 · ` before the sentence of a named place; nothing where the place line is the coordinates. */
+function whereCoords(observer: Observer): string {
+  return placeName(observer) === null ? '' : `${coordsLabel(observer.lat, observer.lon)} · `;
 }
 
 /**
@@ -137,6 +139,7 @@ export function WhereOpenedStatus({ children }: { children?: ReactNode }) {
   return (
     <Stack gap={2} className={styles.opened} data-testid="where-opened-status">
       <p className={styles.sentence} data-testid="where-sentence">
+        {whereCoords(observer)}
         {whereSentence(observer, t)} {t.location.savedHere}
       </p>
       {children}
@@ -156,6 +159,7 @@ export function WherePlace({ open, onToggle, controls, folded = false }: WherePl
         <PlaceText observer={observer} />
       </p>
       <p className={styles.sentence} data-testid="where-sentence">
+        {whereCoords(observer)}
         {whereSentence(observer, t)} {t.location.savedHere} {change}
       </p>
     </div>

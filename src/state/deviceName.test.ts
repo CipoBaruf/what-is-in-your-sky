@@ -22,10 +22,10 @@ function setup(nearestTown: NearestTown) {
 }
 
 describe('deviceLabel', () => {
-  it('reads "Near Cipolletti, Argentina" in English and "Cerca de Cipolletti, Argentina" in Spanish', () => {
-    expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'en')).toBe('Near Cipolletti, Argentina');
-    expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'es')).toBe('Cerca de Cipolletti, Argentina');
-    expect(deviceLabel({ name: 'Berlin', country: 'DE', km: 0.2 }, 52.52, 13.4, 'es')).toBe('Cerca de Berlin, Alemania');
+  it('reads "Cipolletti, Argentina", the country in the reader's language ("Berlin, Alemania"), with no "Near" (D-1029)', () => {
+    expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'en')).toBe('Cipolletti, Argentina');
+    expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'es')).toBe('Cipolletti, Argentina');
+    expect(deviceLabel({ name: 'Berlin', country: 'DE', km: 0.2 }, 52.52, 13.4, 'es')).toBe('Berlin, Alemania');
   });
 
   it('keeps the coordinates when no town is near', () => {
@@ -46,7 +46,7 @@ describe('startDeviceNaming', () => {
     answer(cipolletti);
     await flush();
     const named = store.getState().observer;
-    expect(named).toEqual({ ...fix, label: 'Near Cipolletti, Argentina' });
+    expect(named).toEqual({ ...fix, label: 'Cipolletti, Argentina' });
     expect(sameLocation(before, named)).toBe(true); // the passes and the forecast are not recomputed
     expect(store.getState().nowMs).toBe(nowMs);
     expect(lookup).toHaveBeenCalledTimes(1); // the rename itself does not look up again
@@ -54,12 +54,14 @@ describe('startDeviceNaming', () => {
   });
 
   it('rewrites the label when the language changes', async () => {
-    const { store, stop } = setup(() => Promise.resolve(cipolletti));
+    // D-1029: the town's name is the same in both; the country is the reader's.
+    const { store, stop } = setup(() => Promise.resolve({ name: 'Berlin', country: 'DE', km: 0.2 }));
     store.getState().setObserver(fix);
     await flush();
+    expect(store.getState().observer?.label).toBe('Berlin, Germany');
     store.getState().setLocale('es');
     await flush();
-    expect(store.getState().observer?.label).toBe('Cerca de Cipolletti, Argentina');
+    expect(store.getState().observer?.label).toBe('Berlin, Alemania');
     stop();
   });
 
@@ -93,7 +95,7 @@ describe('startDeviceNaming', () => {
     expect(store.getState().observer?.label).toBe('−38.94, −68.00');
     store.getState().setObserver({ ...fix }); // the button pressed again, at the very same spot
     await flush();
-    expect(store.getState().observer?.label).toBe('Near Cipolletti, Argentina');
+    expect(store.getState().observer?.label).toBe('Cipolletti, Argentina');
     stop();
   });
 
@@ -103,7 +105,7 @@ describe('startDeviceNaming', () => {
     store.getState().setObserver(fix);
     const stop = startDeviceNaming(store, () => Promise.resolve(cipolletti));
     await flush();
-    expect(store.getState().observer?.label).toBe('Near Cipolletti, Argentina');
+    expect(store.getState().observer?.label).toBe('Cipolletti, Argentina');
     stop();
   });
 });

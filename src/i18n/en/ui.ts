@@ -227,8 +227,6 @@ export const ui = {
     summaryChange: 'change',
     /** FR-FIRST-2 (R76): the one line under the primary action's label. */
     useMyLocationNote: 'Fastest. Your browser asks first; nothing is sent anywhere.',
-    /** FR-LOC-1 (c) as amended 2026-11-02 (D-1025): a device location's label once the nearest town is known, `Near Cipolletti, Argentina`. */
-    nearPlace: (place: string) => `Near ${place}`,
   },
 
   /**

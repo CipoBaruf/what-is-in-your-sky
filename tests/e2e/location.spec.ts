@@ -141,21 +141,21 @@ test('a device location is named after the nearest town, from the app\'s own ori
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
   if (compact) await leaveSettings(page);
-  await expect(page.getByTestId('location-summary')).toHaveText('Near Cipolletti (−38.94, −68.00)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
   const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; label: string } } | null;
-  expect(saved?.observer).toMatchObject({ source: 'device', label: 'Near Cipolletti, Argentina' });
+  expect(saved?.observer).toMatchObject({ source: 'device', label: 'Cipolletti, Argentina' });
   // The list is the app's own static file, fetched once; no request carries the position anywhere else.
   expect(places).toHaveLength(1);
   expect(places[0]).not.toMatch(/38\.9|68\.0/);
   expect(elsewhere).toEqual([]);
 
-  // The label is written in the reader's language, and rewritten when it changes.
+  // The label's country is written in the reader's language, and rewritten when it changes; the place line is the town alone (D-1029).
   await page.evaluate((k) => {
     const prefs = JSON.parse(localStorage.getItem(k) ?? '{}') as Record<string, unknown>;
     localStorage.setItem(k, JSON.stringify({ ...prefs, locale: 'es' }));
   }, PREFS_KEY);
   await page.reload();
-  await expect(page.getByTestId('location-summary')).toHaveText('Cerca de Cipolletti (−38.94, −68.00)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
   expect(elsewhere).toEqual([]);
 });
 

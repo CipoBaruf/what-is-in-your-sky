@@ -170,7 +170,6 @@ export const ui: typeof EnUi = {
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros.',
     summaryChange: 'cambiar',
     useMyLocationNote: 'Lo más rápido. El navegador pregunta antes; no se envía nada a ningún lado.',
-    nearPlace: (place) => `Cerca de ${place}`,
   },
 
   home: {

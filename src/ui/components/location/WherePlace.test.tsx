@@ -52,11 +52,11 @@ afterEach(() => {
 });
 
 describe('<WherePlace> (FR-FIRST-11)', () => {
-  it('a place picked by name: its own name and its coordinates, then the centre it uses', () => {
+  it('a place picked by name: its own name, then the coordinates and the centre it uses (D-1029)', () => {
     set(cipolletti);
     render(<Host />);
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti \(−38\.93, −67\.99\)$/);
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Using the centre of Cipolletti. Saved in this browser only. change');
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent('−38.93, −67.99 · Using the centre of Cipolletti. Saved in this browser only. change');
   });
 
   it('typed coordinates: the coordinates alone, and says so', () => {
@@ -75,14 +75,14 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
     expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Using your device's location\. Saved/);
   });
 
-  it('the device, once the nearest town is known: "Near" the town and the coordinates (D-1025)', () => {
+  it('the device, once the nearest town is known: the town alone, the coordinates first in the sentence (D-1025, D-1029)', () => {
     set({ ...coords, source: 'device', accuracyM: 12_000 });
     const { rerender } = render(<Host />);
     expect(screen.getByTestId('location-summary')).toHaveTextContent(/^−38\.93, −67\.99$/);
-    set({ ...coords, source: 'device', accuracyM: 12_000, label: 'Near Cipolletti, Argentina' });
+    set({ ...coords, source: 'device', accuracyM: 12_000, label: 'Cipolletti, Argentina' });
     rerender(<Host />);
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Near Cipolletti \(−38\.93, −67\.99\)$/);
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Using your device's location \(±12000 m\)\./);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^−38\.93, −67\.99 · Using your device's location \(±12000 m\)\./);
   });
 
   it('in Spanish, each sentence', () => {
@@ -92,7 +92,7 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
         <Host />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Con el centro de Cipolletti. Guardada solo en este navegador. cambiar');
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent('−38.93, −67.99 · Con el centro de Cipolletti. Guardada solo en este navegador. cambiar');
     set(coords);
     expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Con estas coordenadas\./);
     set({ ...coords, source: 'device', accuracyM: 40 });
@@ -213,7 +213,7 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
   it('folded and ready: the place with [ change ] on its row, the one control; no status line and no [ details ] (D-1024)', async () => {
     ready();
     const { container } = render(<Folded />);
-    expect(screen.getByTestId('location-summary')).toHaveTextContent('Cipolletti (−38.93, −67.99)');
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
     const row = screen.getByTestId('where-place-row');
     expect(row).toContainElement(screen.getByTestId('location-summary-change'));
     expect(screen.getAllByRole('button')).toEqual([screen.getByTestId('location-summary-change')]);
@@ -238,7 +238,7 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     expect(status.compareDocumentPosition(screen.getByTestId('inputs')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const [first, second] = Array.from(status.children);
     expect(first).toBe(screen.getByTestId('where-sentence'));
-    expect(first).toHaveTextContent(/^Using the centre of Cipolletti\. Saved in this browser only\.$/);
+    expect(first).toHaveTextContent(/^−38\.93, −67\.99 · Using the centre of Cipolletti\. Saved in this browser only\.$/);
     expect(second).toBe(screen.getByTestId('rest'));
     fireEvent.click(screen.getByTestId('location-summary-change'));
     expect(screen.queryByTestId('where-opened-status')).toBeNull();

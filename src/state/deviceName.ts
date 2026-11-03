@@ -1,4 +1,3 @@
-import { CATALOGS } from '../i18n/useT';
 import type { NearPlace } from '../data/places/nearestPlace';
 import { coordsLabel } from '../lib/place';
 import type { Locale, Observer } from '../model';
@@ -11,8 +10,8 @@ import type { AppStore } from './store';
  * watcher then looks the fix up in the bundled GeoNames list
  * (`data/places/nearestTown.ts`, a lazy chunk and a same-origin asset — no request carries
  * the position) and, when the answer is still for the observer on screen,
- * writes `Near Cipolletti, Argentina` / `Cerca de Cipolletti, Argentina` as
- * its label. No town within `NEAR_PLACE_MAX_KM` keeps the coordinates.
+ * writes `Cipolletti, Argentina` (the country in the reader's language,
+ * `Berlin, Alemania`; no "Near", D-1029) as its label. No town within `NEAR_PLACE_MAX_KM` keeps the coordinates.
  *
  * The label is a stored string, so it is written in the language of the
  * moment; a change of language, and every new device observer — a restored
@@ -41,7 +40,8 @@ function countryName(code: string, locale: Locale): string {
 /** The label a device observer at this fix carries: the near town in `locale`, or the coordinates. */
 export function deviceLabel(near: NearPlace | null, lat: number, lon: number, locale: Locale): string {
   if (near === null) return coordsLabel(lat, lon);
-  return CATALOGS[locale].location.nearPlace(`${near.name}, ${countryName(near.country, locale)}`);
+  // D-1029: the town's name as a picked place reads, with no "Near" before it.
+  return `${near.name}, ${countryName(near.country, locale)}`;
 }
 
 export function startDeviceNaming(store: AppStore, nearestTown: NearestTown = lazyNearestTown): () => void {
