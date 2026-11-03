@@ -15,7 +15,6 @@ const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', '
 export const LONDON: Observer = { lat: 51.51, lon: -0.13, altM: 0, label: 'London', source: 'coords', timeZone: 'Europe/London' };
 
 export const GLOBE_WORD = { en: 'Globe', es: 'Globo' } as const;
-export const WINDOW_WORD = { en: 'Window', es: 'Ventana' } as const;
 
 export interface StarsSeed {
   locale?: 'en' | 'es';
