@@ -146,6 +146,8 @@
   display: flex;
   align-items: center;
   gap: 0 var(--cell);
+  /* D-1026: half a cell inside each end, as the head's box has (SkyHead.module.css), so the brackets do not touch the overlay's edges. */
+  padding-inline: calc(var(--cell) / 2);
   background: var(--screen-overlay);
   pointer-events: auto;
 }

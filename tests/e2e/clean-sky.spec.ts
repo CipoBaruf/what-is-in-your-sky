@@ -166,6 +166,10 @@ for (const locale of LOCALES) {
         }
         expect(controls.x + controls.width).toBeLessThanOrEqual(size.width + 0.5);
         expect(controls.x).toBeGreaterThan(size.width / 2);
+        // D-1026: the row's overlay holds half a cell inside each end, so neither bracket touches its edge.
+        const rowBox = await box(row);
+        expect(follow.x - rowBox.x).toBeGreaterThanOrEqual(4.5);
+        expect(rowBox.x + rowBox.width - (controls.x + controls.width)).toBeGreaterThanOrEqual(4.5);
         const hint = page.getByTestId('sky-hint');
         await expect(hint).toHaveAttribute('data-pointer', 'coarse');
         const hintBox = await box(hint);
