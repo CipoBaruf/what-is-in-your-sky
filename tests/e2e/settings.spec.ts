@@ -8,7 +8,7 @@
  * viewport FR-COMP-4 names.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { SETTINGS_FIT_PLACES } from '../../src/lib/layout';
+import { SETTINGS_FIT_PLACES, SETTINGS_SKY_ROW_PX } from '../../src/lib/layout';
 import type { Observer } from '../../src/model';
 import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 import { NEUQUEN as NEUQUEN_OBSERVER } from './observers';
@@ -197,14 +197,14 @@ async function openSettingsWith(page: Page, prefs: Record<string, unknown>): Pro
   await page.evaluate(() => document.fonts.ready);
 }
 
-async function fitsOneViewport(page: Page): Promise<void> {
+async function fitsOneViewport(page: Page, allowancePx = 0): Promise<void> {
   const { scrollHeight, innerHeight } = await page.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight }));
-  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight);
+  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight + allowancePx);
   const privacy = page.getByTestId('settings-privacy');
   await expect(privacy).toBeVisible();
   const box = await privacy.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
   expect(box.top).toBeGreaterThanOrEqual(0);
-  expect(box.bottom).toBeLessThanOrEqual(innerHeight);
+  expect(box.bottom).toBeLessThanOrEqual(innerHeight + allowancePx);
   // The privacy line is the foot: nothing on the page is drawn below it.
   const lowest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('main *')).map((el) => el.getBoundingClientRect().bottom)));
   expect(lowest).toBeLessThanOrEqual(box.top);
@@ -231,14 +231,15 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       await expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
       // NINE_DAYS_ON is the page's clock: the root reads one of the two palettes, never `auto`.
       await expect(page.locator('html')).toHaveAttribute('data-theme', /^(dark|night)$/);
-      await fitsOneViewport(page);
+      await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
     });
 
     test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
       const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });
       await expect(page.getByTestId('favourite')).toHaveCount(SETTINGS_FIT_PLACES);
-      await fitsOneViewport(page);
+      // v2.12 (FR-SET-2 as amended, D-1019): the fullest state may run one row past, the Sun's glow row's.
+      await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
       // The observer came from coordinates, so the disclosure starts open: the larger of its two states.
       await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
     });

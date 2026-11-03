@@ -307,7 +307,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, follow = false, onFieldHandoff, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, follow = false, onFieldHandoff, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
@@ -375,7 +375,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
           </Suspense>
         )}
         {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-        {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
+        {sun && sunGlow && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
         {/* FR-SKY-1, FR-SKY-4, FR-PHONE-8: the star layer whole under the grid and the arcs, in SVG order. */}
         {field && (
           <Suspense fallback={null}>

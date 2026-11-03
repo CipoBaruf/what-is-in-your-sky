@@ -14,6 +14,9 @@
  * row and `[ follow ]` the bottom row's — so it is opened and read as the live page is; the pass detail keeps its
  * action slot until R164.
  *
+ * v2.12 (FR-GYRO-2 as amended, D-1018): following draws the aim below the box's centre, so a level phone's horizon
+ * is one straight line `FOLLOW_HORIZON_SHARE` of the height above the bottom edge (read on the upright phone).
+ *
  * R159 (FR-PHONE-1, FR-PHONE-2; US-45 AC1, AC2; D-962, D-963, D-986, D-987): following by default, at both sizes in
  * both languages on the three pages — with no request (`stubOrientation`'s `request: false`) the page follows from
  * load with no tap, and a drag ends it; with a saved grant nothing is asked at load and the first touch on the sky
@@ -24,6 +27,7 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { FULL_OVERLAY_MAX_SHARE } from '../../src/lib/layout';
+import { FOLLOW_HORIZON_SHARE } from '../../src/ui/components/guide/skychart/window/projection';
 import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { aimedAt, orientationAsks, setReadings, stubOrientation } from './orientation';
@@ -176,6 +180,19 @@ for (const size of SIZES) {
           // D-957: the sheet's facing row goes while following and is back when it ends (R163: the stars sheet's too).
           if (which === 'live') await expect(page.getByTestId('live-facing')).toHaveCount(0);
           if (which === 'stars') await expect(page.getByTestId('stars-facing')).toHaveCount(0);
+
+          // v2.12: held level, the horizon is a straight line (its stroke tall) near the bottom of the screen, the sky the rest.
+          if (size.height > size.width) {
+            await setReadings(page, [aimedAt(200, 0)]);
+            await settledOn(w, 200, 0);
+            const horizon = root.locator('[data-horizon]').first();
+            await expect
+              .poll(async () => {
+                const b = await horizon.boundingBox();
+                return b !== null && b.height < 8 && Math.abs(b.y + b.height / 2 - (1 - FOLLOW_HORIZON_SHARE) * size.height) < 3;
+              }, { timeout: 15_000 })
+              .toBe(true);
+          }
 
           // The phone turned: the window follows to the new pose.
           await setReadings(page, [aimedAt(200, 50)]);

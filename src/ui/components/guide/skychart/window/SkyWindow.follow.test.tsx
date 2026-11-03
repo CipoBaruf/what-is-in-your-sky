@@ -166,8 +166,13 @@ describe('<SkyWindow follow> (FR-GYRO-2, FR-GYRO-4, FR-GYRO-5)', () => {
     // The box is not described by a readout it does not draw.
     expect(boxOf(container)).not.toHaveAttribute('aria-describedby');
 
-    // Pointed below the horizon: the ground note is the one line over the drawing.
-    reading(aim(120, -20));
+    // v2.12 (D-1018): the aim is drawn below the centre, so a little under the horizon the box is still mostly sky.
+    reading(aim(120, -10));
+    frame();
+    settle(frame);
+    expect(screen.queryByTestId('window-ground-note')).toBeNull();
+    // Pointed well below the horizon, the box's centre under it: the ground note is the one line over the drawing.
+    reading(aim(120, -40));
     frame();
     settle(frame);
     expect(screen.getAllByRole('status')).toEqual([screen.getByTestId('window-ground-note')]);

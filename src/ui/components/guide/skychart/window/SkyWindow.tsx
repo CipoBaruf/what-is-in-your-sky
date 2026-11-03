@@ -21,14 +21,14 @@ import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type HandState, type SkyCamera } from './camera';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
-import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, followAimShiftPx, followFovDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
 import { brightLimbPoint, MoonDisc } from './MoonDisc';
 import { figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
-import { useViewRotation } from './useViewRotation';
+import { useViewRotation, type HandPose } from './useViewRotation';
 
 /**
  * R47 (FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5; US-21; PLAN D-188, §8.10): the
@@ -359,7 +359,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -536,6 +536,15 @@ export function SkyWindow(props: SkyWindowProps) {
    * Before any reading there is no pose: the hand's own is what was drawn, and it stays.
    */
   const followEndedRef = useRef(false);
+  /*
+   * v2.12 (D-1018): the pose handed to the hand when following ends, at the field the window drew while following
+   * (`followFovDeg`), so the finger takes the picture as it stood and not at the wider camera field under it.
+   */
+  const drawnFieldRef = useRef<number | null>(null);
+  const drawnPose = useCallback((): HandPose | null => {
+    const pose = poseAsHand();
+    return pose === null || drawnFieldRef.current === null ? pose : { ...pose, fovDeg: drawnFieldRef.current };
+  }, [poseAsHand]);
   const wasFollowingRef = useRef(followPhone);
   useLayoutEffect(() => {
     const was = wasFollowingRef.current;
@@ -545,13 +554,13 @@ export function SkyWindow(props: SkyWindowProps) {
       return;
     }
     if (!was || followEndedRef.current || handCamera === null) return;
-    const pose = poseAsHand();
+    const pose = drawnPose();
     if (pose !== null) handCamera.open(pose);
-  }, [followPhone, handCamera, poseAsHand]);
+  }, [followPhone, handCamera, drawnPose]);
   const endFollow = (): void => {
     if (!followPhone || handCamera === null || followEndedRef.current) return;
     followEndedRef.current = true;
-    const sensed = poseAsHand();
+    const sensed = drawnPose();
     if (sensed !== null) handCamera.open(sensed);
     const { azDeg, altDeg, fovDeg: field } = handCamera.get();
     onFollowEnd?.(sensed ?? { azDeg, altDeg, fovDeg: field });
@@ -858,12 +867,22 @@ export function SkyWindow(props: SkyWindowProps) {
   };
 
   // FR-SKY-14: the field is the current one, so everything drawn from `view` — the scale, the drawable limit, the
-  // ground thresholds — follows the zoom.
+  // ground thresholds — follows the zoom. v2.12 (FR-GYRO-2 as amended, D-1018): while following, the aim is drawn
+  // below the centre, so a level phone's horizon is a straight line near the bottom and the sky has the screen, and a
+  // portrait drawing's field is narrowed to `FOLLOW_VERTICAL_FIELD_DEG` top to bottom, so its top stops short of the zenith.
   const view: View = useMemo(
-    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: followPhone ? quarter : screenAngleDeg }),
+    () =>
+      followPhone
+        ? { fovDeg: followFovDeg(fovDeg, drawWidth, drawHeight), width: drawWidth, height: drawHeight, screenAngleDeg: quarter, aimShiftPx: followAimShiftPx(drawHeight) }
+        : { fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg },
     [fovDeg, drawWidth, drawHeight, followPhone, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
+  // v2.12 (D-1018): the field drawn while following, read by `drawnPose` in the commit that ends it (declared above, so
+  // it runs first and reads the last following render's field).
+  useLayoutEffect(() => {
+    drawnFieldRef.current = followPhone ? view.fovDeg : null;
+  }, [followPhone, view.fovDeg]);
 
   const look = lookDirection(m);
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
@@ -1104,7 +1123,7 @@ export function SkyWindow(props: SkyWindowProps) {
             {ground !== 'buried' && (
               <>
                 {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-                {sun && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
+                {sun && sunGlow && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
                 <g className={styles.grid}>
                   <path className={styles.altitude} data-ring="60" d={pathFrom(ALT_60.map(at), limitDeg)} />
                   <path className={styles.altitude} data-ring="30" d={pathFrom(ALT_30.map(at), limitDeg)} />

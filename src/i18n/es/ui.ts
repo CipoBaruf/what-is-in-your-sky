@@ -127,6 +127,9 @@ export const ui: typeof EnUi = {
     /* R75: "[ Guardar este lugar ] [ Borrar ]" is 33; the full "Borrar la ubicación guardada" stays the accessible name. */
     clearSaved: 'Borrar',
     installLabel: 'App',
+    skyLabel: 'Cielo',
+    sunGlow: 'brillo del sol',
+    sunGlowName: 'El brillo del Sol en el horizonte',
     privacy: 'Sin rastreo. La ubicación se guarda solo en este navegador.',
   },
 

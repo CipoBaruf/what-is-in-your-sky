@@ -104,6 +104,12 @@ export interface SkyChartProps {
    */
   sun?: SunState | null;
   moon?: MoonState | null;
+  /**
+   * v2.12 (FR-SET-5, D-1019): whether the view draws the Sun's glow on the horizon (FR-DOME-6). `SkyChart` passes the
+   * reader's setting (off by default); a view mounted on its own draws it, as before. The Sun still lights the dome and
+   * the Moon's limb either way.
+   */
+  sunGlow?: boolean;
   /** Default: the highlighted pass's start azimuth (D-17). The polar view has no facing; the dome (R15) uses it. */
   initialFacingAzDeg?: number;
   /**

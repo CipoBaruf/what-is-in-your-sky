@@ -111,7 +111,8 @@ test('the polar view moves the live marker and grows the flown arc behind it at 
   // Before the pass there is nothing to mark and nothing flown.
   await expect(drawing.locator('[data-marker="now"]')).toHaveCount(0);
   await expect(drawing.locator('[data-marker="flown"]')).toHaveCount(0);
-  await expect(drawing.locator('[data-body="sun"]')).toHaveCount(1);
+  // v2.12 (FR-SET-5, D-1019): the Sun's glow is off unless the settings page turns it on; the legend still names the Sun.
+  await expect(drawing.locator('[data-body="sun"]')).toHaveCount(0);
   await expect(dialog.getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sun');
 
   await page.clock.runFor(70_000);

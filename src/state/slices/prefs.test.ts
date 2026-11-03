@@ -305,6 +305,21 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  /** v2.12 (FR-SET-5, D-1019): the Sun's glow is off by default; turning it on is remembered, and only `true` is stored. */
+  it('keeps the Sun’s glow off until the setting turns it on, remembers that, and stores no key for off', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().sunGlow).toBe(false);
+    fresh.getState().setSunGlow(true);
+    expect(stored(storage)).toEqual({ theme: 'night', sunGlow: true });
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sunGlow).toBe(true);
+    fresh.getState().setSunGlow(false);
+    expect(stored(storage)).toEqual({ theme: 'night' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ sunGlow: 'yes' }));
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sunGlow).toBe(false);
+  });
+
   it('saves Auto, the third value, and reads it back at the next start; a profile from before v2.10 reads as it was (R156, FR-PHONE-15)', () => {
     const storage = memoryStorage();
     const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });

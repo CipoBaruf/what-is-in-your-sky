@@ -108,6 +108,12 @@ export interface View {
   height: number;
   /** `screen.orientation.angle`, degrees. */
   screenAngleDeg: number;
+  /**
+   * v2.12 (FR-GYRO-2 as amended, D-1018): how far below the box's centre the aim is drawn, px — the following
+   * window's `followAimShiftPx`; absent or 0, the aim is the centre. A shift of the image, not a turn of the camera,
+   * so the horizon of a level phone stays a straight line and the picture moves with the phone one to one.
+   */
+  aimShiftPx?: number;
 }
 
 export interface Projected {
@@ -142,7 +148,7 @@ function projectDevice(d: Vec3, view: View): Projected {
   const ru = u * cs - v * sn;
   const rv = u * sn + v * cs;
   const k = scaleFor(view);
-  return { x: view.width / 2 + k * ru, y: view.height / 2 - k * rv, offAxisDeg, front };
+  return { x: view.width / 2 + k * ru, y: view.height / 2 + (view.aimShiftPx ?? 0) - k * rv, offAxisDeg, front };
 }
 
 /** A sky direction to a point on the view, through the device rotation. */
@@ -152,7 +158,8 @@ export function project(m: Mat3, azDeg: number, altDeg: number, view: View): Pro
 
 /** The largest off-axis angle worth drawing: the corner of the view plus a margin, so arcs leave the frame instead of ending inside it. */
 export function drawableDeg(view: View): number {
-  const half = Math.hypot(view.width, view.height) / 2;
+  // From the aim to the box's farthest corner: with the aim drawn low, the top corners are farther off.
+  const half = Math.hypot(view.width / 2, view.height / 2 + Math.abs(view.aimShiftPx ?? 0));
   const r = half / scaleFor(view);
   return Math.min(150, (2 * Math.atan(r)) / RAD + 5);
 }
@@ -248,8 +255,11 @@ export type GroundState = 'sky' | 'ground' | 'buried';
  * render's one `lookDirection` call serves both the readout and this.
  */
 export function groundState(altDeg: number, view: View): GroundState {
-  if (altDeg >= 0) return 'sky';
-  return altDeg + verticalHalfFieldDeg(view) > 0 ? 'ground' : 'buried';
+  // v2.12 (D-1018): with the aim drawn below the centre, the centre's altitude is the aim's plus the shift's angle.
+  const shift = view.aimShiftPx ?? 0;
+  const centreDeg = shift === 0 ? altDeg : altDeg + (2 * Math.atan(shift / scaleFor(view))) / RAD;
+  if (centreDeg >= 0) return 'sky';
+  return centreDeg + verticalHalfFieldDeg(view) > 0 ? 'ground' : 'buried';
 }
 
 // --- Smoothing (FR-WIN-3's `WINDOW_SMOOTHING`) ---------------------------------
@@ -390,4 +400,34 @@ export class OffsetEstimate {
   get samples(): number {
     return this.count;
   }
+}
+
+/**
+ * v2.12 (FR-GYRO-2 as amended, D-1018): where a level phone's horizon stands while following, as a share of the
+ * drawing's height above its bottom edge.
+ */
+export const FOLLOW_HORIZON_SHARE = 0.15;
+
+/** v2.12 (D-1018): the following window's aim, drawn this many px below the centre, so a level phone's horizon is at `FOLLOW_HORIZON_SHARE`. */
+export function followAimShiftPx(height: number): number {
+  return (0.5 - FOLLOW_HORIZON_SHARE) * height;
+}
+
+/**
+ * v2.12 (FR-GYRO-2 as amended, D-1018): the tallest field a following window draws, degrees top to bottom. A portrait
+ * phone at `WINDOW_FOV` across its width spans about 115° top to bottom, which with the aim drawn low reaches the
+ * zenith, where a small turn swings the sky round fast; capped here, the top of a level phone's window is about 63°
+ * up at 390 × 844.
+ */
+export const FOLLOW_VERTICAL_FIELD_DEG = 80;
+
+/**
+ * v2.12 (D-1018): the field a following window draws for the camera's `fovDeg`. Where the drawing is taller than wide
+ * the field is narrowed so `WINDOW_FOV` spans `FOLLOW_VERTICAL_FIELD_DEG` top to bottom, and a pinched field scales from
+ * there; a drawing as wide as it is tall or wider spans its field top to bottom already, and is left as it is.
+ */
+export function followFovDeg(fovDeg: number, width: number, height: number): number {
+  if (height <= width) return fovDeg;
+  const opening = (4 * Math.atan((width / height) * Math.tan((FOLLOW_VERTICAL_FIELD_DEG / 4) * RAD))) / RAD;
+  return Math.min(WINDOW_FOV_MAX_DEG, Math.max(WINDOW_FOV_MIN_DEG, (opening * fovDeg) / WINDOW_FOV));
 }

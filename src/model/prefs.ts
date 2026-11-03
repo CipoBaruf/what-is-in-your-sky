@@ -28,6 +28,11 @@ export const DEFAULT_SHOW_FAINT = false;
  */
 export const DEFAULT_STARS_LAYER = true;
 /**
+ * v2.12 (FR-SET-5, D-1019): whether the sky views draw the Sun's glow on the horizon (FR-DOME-6) — the window, the
+ * dome and the polar chart. Off until the settings page turns it on; persisted in `wiys:prefs:v1`.
+ */
+export const DEFAULT_SUN_GLOW = false;
+/**
  * FR-FLOW-6 / D-848 (R132): whether the reader has made a first drag, pinch or
  * tap on any sky view. The hand hint under the drawing (`SkyHint`) shows until
  * then and is gone for good after; false until the first gesture, and false
