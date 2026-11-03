@@ -4827,13 +4827,14 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
 
 ### Wave 3
 
-- [ ] **R170 — The stars page's globe: the wide view row `[ Window ] Globe`, the lazy chunk and its prefetch, the rail's `Time`, `Turn`, `Place` and layer groups with `faint`, the second `usePlayback`, the count and `Up from <place>`, the `globe` strings in both languages, the `globe` budget row, `globe.spec.ts`, `globe-perf.spec.ts`, the axe case**
+- [x] **R170 — The stars page's globe: the wide view row `[ Window ] Globe`, the lazy chunk and its prefetch, the rail's `Time`, `Turn`, `Place` and layer groups with `faint`, the second `usePlayback`, the count and `Up from <place>`, the `globe` strings in both languages, the `globe` budget row, `globe.spec.ts`, `globe-perf.spec.ts`, the axe case**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
+  - **Done (2026-11-03):** `globe-perf.spec.ts` at 4×: drag best of three 49.4 / 44.4 updates/s at 1280 × 800 and 47.5 / 43.1 at 1920 × 1080 (faint off / on), ×3600 58.5 / 48.7 and 55.9 / 43.1. Budgets: `globe` 13.4 of 15 (`SkyGlobe` 9.0 + `GlobeRail` 1.9 + `scene` 2.5), `main` 182.8 (+749 bytes over 2.11.0), `stars` 31.4 (+1.5 KB over 2.11.0). Differs from the text: the rail's groups are lazy with the globe and sit in the layout's scrolling list row (D-1050); the wide globe cases are `StarsGlobe.test.tsx`, beside `Stars.test.tsx`.
   - **Depends on:** R169
   - **Reads:** the phase set (above); SPEC FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-8, FR-GLOBE-9, FR-GLOBE-10, FR-GLOBE-12, FR-GLOBE-15, FR-GLOBE-16, FR-OFF-1, FR-OFF-7, FR-DESK-4, FR-TONIGHT-7, FR-CLEAN-13; PLAN D-178, D-817, D-1035, D-1039, D-1040, D-1042; `src/ui/screens/{Stars.tsx,Stars.module.css,Stars.test.tsx}`; `src/ui/screens/stars/**`; `src/ui/components/guide/skychart/globe/SkyGlobe.tsx` (R169's props, read only); `src/ui/components/live/usePlayback.ts` (read only); `src/data/stars/deepChunk.ts`; `src/i18n/{en,es}/starsPage.ts`; `src/i18n/messages.test.ts`; `scripts/bundle-budget.ts`; `tests/e2e/{stars-perf,axe}.spec.ts`; `tests/styles/controlRows.test.ts`.
   - **Goal:** on a desk the stars page's `View` row reads `[ Window ] Globe`; pressing `Globe` loads the globe's chunk and shows it in the window's box with the rail beside it, turning with you, its own clock, steps and time-lapse moving only it, the app's place and the saved places one press each and changing nothing else, the faint stars on a toggle, and the rail's count and `Up from <place>` following the shown place and instant; the phone's stars page is unchanged and never requests `SkyGlobe-*.js`.
