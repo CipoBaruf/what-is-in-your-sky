@@ -84,11 +84,21 @@ describe('the v1 capture set', () => {
     // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
     // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
     // R161 (FR-PHONE-16, D-993): and the whole sky's outline while following, at the same one size.
-    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following']);
+    // R171 (FR-GLOBE-18, D-1042): and the whole sky itself, whose wide file left for the globe.
+    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following', 'stars-whole']);
+    // R171 (FR-GLOBE-18, D-1042): the globe is a desk's screen — the compact stars page draws the whole sky as the polar
+    // chart — at the sizes FR-GLOBE-18 names for each.
+    const GLOBE: ReadonlyMap<string, readonly number[]> = new Map([
+      ['stars-globe', [1280, 1920]],
+      ['stars-globe-stars', [1280]],
+      ['stars-globe-faint', [1920]],
+      ['stars-globe-place', [1280]],
+      ['stars-globe-named', [1280]],
+    ]);
     // R161 (FR-PHONE-16, FR-LOOK-12, D-993): the files the two requirements name at the phone's and the desk's width,
     // 390 and 1280 and no 360 beside them — `stars-zoom` among them, FR-LOOK-12's 390 joining FR-SKY-9's 1280.
-    // R165 (FR-CLEAN-9): `stars-whole-passes` left with the stars page's passes.
-    const NAMED_PAIR = new Set(['stars-whole', 'live-twilight', 'stars-zoom']);
+    // R165 (FR-CLEAN-9): `stars-whole-passes` left with the stars page's passes. R171: `stars-whole` kept its 390 alone.
+    const NAMED_PAIR = new Set(['live-twilight', 'stars-zoom']);
     // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
     const SHORT = new Set(['guide-short']);
     expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
@@ -100,6 +110,11 @@ describe('the v1 capture set', () => {
       const turned = PHONE_TURNED.get(screen.name);
       if (turned) {
         expect(screen.widths, screen.name).toEqual(turned);
+        continue;
+      }
+      const globe = GLOBE.get(screen.name);
+      if (globe) {
+        expect(screen.widths, screen.name).toEqual(globe);
         continue;
       }
       if (FOLLOWING.has(screen.name)) {
@@ -163,7 +178,9 @@ describe('the v1 capture set', () => {
     // 1280), + 4 each for `stars-whole-following` and `guide-short` (390) and for `stars-zoom` at 390.
     // R165 (FR-CLEAN-9, D-1001): − 12 `stars-passes` (360, 390, 1280) and − 8 `stars-whole-passes` (390, 1280), + 8
     // each for `stars-sheet` and `guide-sheet` (390, 844).
-    expect(captureSet()).toHaveLength(416);
+    // R171 (FR-GLOBE-18, D-1042): − 4 `stars-whole` at 1280, + 8 `stars-globe` (1280, 1920) and + 4 each for
+    // `stars-globe-stars`, `stars-globe-place`, `stars-globe-named` (1280) and `stars-globe-faint` (1920).
+    expect(captureSet()).toHaveLength(436);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

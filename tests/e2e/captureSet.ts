@@ -199,6 +199,13 @@
  * names, 390 × 844 and 844 × 390, both themes and languages, on a touch phone under a stubbed sensor: `stars-sheet`,
  * the stars page with `[ controls ]` pressed, and `guide-sheet`, the pass detail with its sheet open. Every other
  * compact stars and pass-detail file is the sky with the sheet closed. The set is 416 files.
+ *
+ * R171 (SPEC §9 Phase 2u, FR-GLOBE-18; PLAN D-1042): v2.12 gives the wide stars page the globe in place of `Whole sky`,
+ * so `stars-whole` keeps its phone file and loses the 1280 one (4 files), and the globe joins in five screens, each a
+ * desk's at the set's instant over Bariloche, both themes and languages: `stars-globe` as it opens, at 1280 × 800 and
+ * 1920 × 1080; `stars-globe-stars` turning with the stars and `stars-globe-place` moved to a saved London, at 1280;
+ * `stars-globe-faint` with the faint stars on, at 1920; and `stars-globe-named` with the list's first row named, at 1280.
+ * The set is 436 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -347,8 +354,33 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   {
     name: 'stars-whole',
-    widths: [390, 1280],
-    what: "The `#stars` page as `stars` opens it, with `Whole sky` pressed in its view row (FR-PHONE-7, FR-PHONE-8, R158, R160): the polar chart in the box with every star to 4.5 on the ladder, the figures as hairlines with the gap at each mark, the surface and the band inside the rim and the Moon with its phase, and the window's field outlined where the page faced, south 35° up (FR-PHONE-9). The readout slot holds the chart's convention line and the picker slot its looking-up / map toggle; `In this field` lists the whole sky's twelve brightest. At 390 a touch phone, the names off by the compact default (`[ ] names`); at 1280 the rail beside the box, the names on. FR-PHONE-16 names the two widths. Since v2.11 at 390 `Whole sky` is pressed in the sheet, which is then closed: the polar chart fills the screen under the head (FR-CLEAN-4, R163).",
+    widths: [390],
+    what: "The `#stars` page as `stars` opens it, with `Whole sky` pressed in its view row (FR-PHONE-7, FR-PHONE-8, R158, R160): the polar chart in the box with every star to 4.5 on the ladder, the figures as hairlines with the gap at each mark, the surface and the band inside the rim and the Moon with its phase, and the window's field outlined where the page faced, south 35° up (FR-PHONE-9). The readout slot holds the chart's convention line and the picker slot its looking-up / map toggle; `In this field` lists the whole sky's twelve brightest. At 390 a touch phone, the names off by the compact default (`[ ] names`). FR-PHONE-16 named 390 and 1280. Since v2.11 at 390 `Whole sky` is pressed in the sheet, which is then closed: the polar chart fills the screen under the head (FR-CLEAN-4, R163). Since v2.12 a phone's screen alone: on wide the view row reads `[ Window ] Globe` and the whole sky is the globe (FR-GLOBE-1, FR-GLOBE-18), so the 1280 file left the set for `stars-globe`.",
+  },
+  {
+    name: 'stars-globe',
+    widths: [1280, 1920],
+    what: "The `#stars` page as `stars` opens it on a desk, with `Globe` pressed in its view row (FR-GLOBE-1..5, FR-GLOBE-18, R169, R170): the celestial sphere from outside in the box where the window stood, turning with you — Bariloche's zenith up, the equatorial grid, the ecliptic dashed, the Milky Way dotted, the figures mirrored as on a brass globe, the stars on the ladder and the bodies, the horizon's near half with the ground below it shaded and dimmed, the poles and the zenith marked. The rail beside it holds the view row `[ Window ] Globe`, `Time` with the clock in the place's zone, the steps and the speeds, `Turn` with `[x] with you`, `Place` with the app's place alone, the layers with `[ ] faint`, the count and `Up from Bariloche`. FR-GLOBE-18 names 1280 × 800 and 1920 × 1080.",
+  },
+  {
+    name: 'stars-globe-stars',
+    widths: [1280],
+    what: "`stars-globe` with `with the stars` pressed in the `Turn` row (FR-GLOBE-5): the frame the equatorial one, the north celestial pole up and the horizon across the stars, the centre direction kept, so the same stars stand where they stood and the horizon and the zenith move. FR-GLOBE-18 names 1280.",
+  },
+  {
+    name: 'stars-globe-faint',
+    widths: [1920],
+    what: "`stars-globe` with `[x] faint` pressed (FR-GLOBE-10): the deep catalogue's 7,373 stars to 6.5 drawn as dots into the globe's paths, the count reading the whole drawn set. FR-GLOBE-18 names 1920 × 1080.",
+  },
+  {
+    name: 'stars-globe-place',
+    widths: [1280],
+    what: "`stars-globe` with the seeds' saved London pressed in the `Place` group (FR-GLOBE-9, D-1042): the horizon, the ground, the zenith and the compass points London's, so the south is the shaded side; the clock in London's zone at the same instant, the count and `Up from London`; the app's place, Bariloche, unchanged. FR-GLOBE-18 names 1280.",
+  },
+  {
+    name: 'stars-globe-named',
+    widths: [1280],
+    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon named, its row pressed, shot inside `STAR_LABEL_HOLD_S`. FR-GLOBE-18 names 1280.",
   },
   {
     name: 'stars-whole-following',
