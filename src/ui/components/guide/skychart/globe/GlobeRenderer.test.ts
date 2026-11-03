@@ -250,7 +250,7 @@ describe('a frame’s attributes (FR-GLOBE-2, FR-GLOBE-13)', () => {
     expect(q(r, '[data-moon-lit]').getAttribute('d')).toMatch(/^M0/);
     for (const planet of sky.planets) {
       const node = q(r, `[data-planet="${planet.body}"]`);
-      const [x, y, z] = project(p, planet.dir);
+      const [x, , z] = project(p, planet.dir);
       expect(node.getAttribute('visibility')).toBe(z > 0 ? 'visible' : 'hidden');
       if (z > 0) expect(Number(node.getAttribute('x'))).toBeCloseTo(x, 0);
       expect(node.textContent).toBe('@');

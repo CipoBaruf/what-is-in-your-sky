@@ -204,6 +204,82 @@ function wordsFor(lang: Locale): Words {
   return { ...CATALOGS[lang].chart.globe, planets: page.planets, mag: page.mag, named: page.named };
 }
 
+/** The projector a state draws with: the frame by `turn`, the centre of the box, the radius by `GLOBE_RADIUS_SHARE` and the zoom. */
+export function projectorFor(s: Pick<GlobeState, 'place' | 't' | 'turn' | 'lon' | 'lat' | 'zoom' | 'width' | 'height'>): Projector {
+  const sky = globeSky(s.place, s.t);
+  const w = Math.max(0, s.width);
+  const h = Math.max(0, s.height);
+  return projector({ frame: s.turn === 'stars' ? EQUATORIAL : sky.frame, lon: s.lon, lat: s.lat }, w / 2, h / 2, Math.min(w, h) * GLOBE_RADIUS_SHARE * s.zoom);
+}
+
+const starDirOf = (dirs: Float64Array, i: number): Vec3 => [dirs[3 * i] ?? 0, dirs[3 * i + 1] ?? 0, dirs[3 * i + 2] ?? 0];
+
+function figureWord(catalog: StarCatalog, f: number, lang: Locale): string {
+  const figure = catalog.figures[f];
+  return figure ? (figureName(catalog, figure.con, figure.part, lang) ?? figure.con) : '';
+}
+
+function bodyOf(sky: GlobeSky, target: GlobeTarget): Body | undefined {
+  switch (target.kind) {
+    case 'planet':
+      return sky.planets.find((q) => q.body === target.body);
+    case 'sun':
+      return sky.sun;
+    case 'moon':
+      return sky.moon;
+    default:
+      return undefined;
+  }
+}
+
+/** The label beside a named mark: a star's or a planet's name with its magnitude, the Sun's or the Moon's word, a figure's name. */
+export function labelLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'lang'>, target: GlobeTarget): string {
+  const w = wordsFor(s.lang);
+  switch (target.kind) {
+    case 'star':
+      return `${starName(catalog, target.index, s.lang)} · ${w.mag({ mag: formatStarMag(catalog.mag[target.index] ?? 0, s.lang) })}`;
+    case 'planet': {
+      const planet = globeSky(s.place, s.t).planets.find((p) => p.body === target.body);
+      return planet ? `${w.planets[target.body]} · ${w.mag({ mag: formatStarMag(planet.mag, s.lang) })}` : w.planets[target.body];
+    }
+    case 'sun':
+      return w.sun;
+    case 'moon':
+      return w.moon;
+    default:
+      return figureWord(catalog, target.index, s.lang);
+  }
+}
+
+/**
+ * FR-GLOBE-11: the readout's second line — "Canopus · mag −0.7 · 28° up · S", or "· 12° below · S" on the ground
+ * side, the altitude and point at the shown place and instant; a figure's is its name. The Sun and the Moon carry
+ * no magnitude: their line is the same with its `mag` part left out.
+ */
+export function readoutLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'lang'>, target: GlobeTarget): string {
+  const w = wordsFor(s.lang);
+  const sky = globeSky(s.place, s.t);
+  if (target.kind === 'figure') return figureWord(catalog, target.index, s.lang);
+  let name: string;
+  let mag: number | null;
+  let altDeg: number;
+  let azDeg: number;
+  if (target.kind === 'star') {
+    name = starName(catalog, target.index, s.lang);
+    mag = catalog.mag[target.index] ?? 0;
+    ({ altDeg, azDeg } = altAz(sky, starDirOf(starVectors(catalog), target.index)));
+  } else {
+    const body = bodyOf(sky, target);
+    name = target.kind === 'planet' ? w.planets[target.body] : target.kind === 'sun' ? w.sun : w.moon;
+    mag = target.kind === 'planet' ? (sky.planets.find((p) => p.body === target.body)?.mag ?? 0) : null;
+    altDeg = body?.altDeg ?? 0;
+    azDeg = body?.azDeg ?? 0;
+  }
+  const parts: NamedParts = { name, mag: mag === null ? '' : formatStarMag(mag, s.lang), altitude: degrees(Math.abs(altDeg)), point: compassPoint(azDeg) };
+  const line = altDeg >= 0 ? w.named(parts) : w.namedBelow(parts);
+  return mag === null ? line.replace(` · ${w.mag({ mag: '' })}`, '') : line;
+}
+
 export class GlobeRenderer {
   readonly svg: SVGSVGElement;
   state: GlobeState;
@@ -441,82 +517,22 @@ export class GlobeRenderer {
     return { kind: 'figure', index: this.segments[segment]?.figure ?? 0, segment };
   }
 
-  /** The label beside a named mark: a star's or a planet's name with its magnitude, the Sun's or the Moon's word, a figure's name. */
+  /** `labelLine` for this state. */
   labelFor(target: GlobeTarget): string {
-    const w = this.words;
-    const { lang } = this.state;
-    switch (target.kind) {
-      case 'star':
-        return `${starName(this.catalog, target.index, lang)} · ${w.mag({ mag: formatStarMag(this.catalog.mag[target.index] ?? 0, lang) })}`;
-      case 'planet': {
-        const planet = this.skyNow?.planets.find((p) => p.body === target.body);
-        return planet ? `${w.planets[target.body]} · ${w.mag({ mag: formatStarMag(planet.mag, lang) })}` : w.planets[target.body];
-      }
-      case 'sun':
-        return w.sun;
-      case 'moon':
-        return w.moon;
-      default:
-        return this.figureWord(target.index);
-    }
+    return labelLine(this.catalog, this.state, target);
   }
 
-  /**
-   * FR-GLOBE-11: the readout's second line — "Canopus · mag −0.7 · 28° up · S", or "· 12° below · S" on the ground
-   * side, the altitude and point at the shown place and instant; a figure's is its name. The Sun and the Moon carry
-   * no magnitude: their line is the same with its `mag` part left out.
-   */
+  /** `readoutLine` for this state. */
   readoutFor(target: GlobeTarget): string {
-    const w = this.words;
-    const { lang } = this.state;
-    const sky = this.skyNow ?? globeSky(this.state.place, this.state.t);
-    if (target.kind === 'figure') return this.figureWord(target.index);
-    let name: string;
-    let mag: number | null;
-    let altDeg: number;
-    let azDeg: number;
-    if (target.kind === 'star') {
-      name = starName(this.catalog, target.index, lang);
-      mag = this.catalog.mag[target.index] ?? 0;
-      ({ altDeg, azDeg } = altAz(sky, this.starDir(target.index)));
-    } else if (target.kind === 'planet') {
-      const planet = sky.planets.find((p) => p.body === target.body);
-      name = w.planets[target.body];
-      mag = planet?.mag ?? 0;
-      altDeg = planet?.altDeg ?? 0;
-      azDeg = planet?.azDeg ?? 0;
-    } else {
-      const body = target.kind === 'sun' ? sky.sun : sky.moon;
-      name = target.kind === 'sun' ? w.sun : w.moon;
-      mag = null;
-      altDeg = body.altDeg;
-      azDeg = body.azDeg;
-    }
-    const parts: NamedParts = { name, mag: mag === null ? '' : formatStarMag(mag, lang), altitude: degrees(Math.abs(altDeg)), point: compassPoint(azDeg) };
-    const line = altDeg >= 0 ? w.named(parts) : w.namedBelow(parts);
-    return mag === null ? line.replace(` · ${w.mag({ mag: '' })}`, '') : line;
+    return readoutLine(this.catalog, this.state, target);
   }
 
   private figureWord(f: number): string {
-    const figure = this.catalog.figures[f];
-    return figure ? (figureName(this.catalog, figure.con, figure.part, this.state.lang) ?? figure.con) : '';
+    return figureWord(this.catalog, f, this.state.lang);
   }
 
   private starDir(i: number): Vec3 {
-    return [this.dirs[3 * i] ?? 0, this.dirs[3 * i + 1] ?? 0, this.dirs[3 * i + 2] ?? 0];
-  }
-
-  private bodyOf(sky: GlobeSky, target: GlobeTarget): Body | undefined {
-    switch (target.kind) {
-      case 'planet':
-        return sky.planets.find((q) => q.body === target.body);
-      case 'sun':
-        return sky.sun;
-      case 'moon':
-        return sky.moon;
-      default:
-        return undefined;
-    }
+    return starDirOf(this.dirs, i);
   }
 
   /** The words in `state.lang`: the SVG's label, the names, the zenith's and the poles' labels. */
@@ -560,10 +576,9 @@ export class GlobeRenderer {
     if (s.lang !== this.wordsLang) this.writeWords();
     const sky = globeSky(s.place, s.t);
     this.skyNow = sky;
-    const frame = s.turn === 'stars' ? EQUATORIAL : sky.frame;
     const w = Math.max(0, s.width);
     const h = Math.max(0, s.height);
-    const p = projector({ frame, lon: s.lon, lat: s.lat }, w / 2, h / 2, Math.min(w, h) * GLOBE_RADIUS_SHARE * s.zoom);
+    const p = projectorFor(s);
     this.projectorNow = p;
     this.svg.setAttribute('viewBox', `0 0 ${String(w)} ${String(h)}`);
     const [zx, zy, zz] = sky.zenith;
@@ -664,7 +679,7 @@ export class GlobeRenderer {
     const fixed: FixedLabel[] = [];
     const bodyBelow = new Map<number, boolean>();
     for (const b of this.bodies) {
-      const body = this.bodyOf(sky, b.target);
+      const body = bodyOf(sky, b.target);
       const on = body !== undefined && (b.target.kind !== 'planet' || s.layers.planets);
       const [x, y, depth] = body ? project(p, body.dir) : [0, 0, -1];
       const visible = on && depth > 0;
@@ -828,7 +843,7 @@ export class GlobeRenderer {
       const seg = this.segments[target.segment];
       return seg !== undefined && this.up[seg.a] === 0 && this.up[seg.b] === 0;
     }
-    return (this.bodyOf(sky, target)?.altDeg ?? 0) < 0;
+    return (bodyOf(sky, target)?.altDeg ?? 0) < 0;
   }
 
   /** FR-LOOK-7: the Moon's disc with its phase — the lit path by the fraction, turned toward the Sun's side on the drawing. */
