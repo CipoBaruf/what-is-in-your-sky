@@ -264,6 +264,24 @@ describe('a drag (FR-GLOBE-6)', () => {
     expect(side.lon).toBeCloseTo(-30, 9); // the content follows the hand: the centre's longitude falls behind it
   });
 
+  it('never jumps: from the clamped pole view a few pixels turn the view by degrees, not over to the other root', () => {
+    for (const lat of [90, -90, 89]) {
+      for (let n = 0; n < 300; n += 1) {
+        const p = projector({ frame: EQUATORIAL, lon: random() * 360, lat }, CX, CY, R);
+        const from = inside(0.9);
+        // Grabs near the pole are the drag's own singularity (longitude is ill-defined there); keep 20° off it.
+        if (Math.abs(dot(unproject(p, from[0], from[1]), EQUATORIAL.pole)) > Math.cos(20 * (Math.PI / 180))) continue;
+        const th = random() * 2 * Math.PI;
+        const to: [number, number] = [from[0] + 4 * Math.cos(th), from[1] + 4 * Math.sin(th)];
+        const turned = dragTurn(p, from, to);
+        const next = viewAxes(EQUATORIAL, turned.lon, turned.lat);
+        // The other root is about a half turn away (the old cost took it: a flip of up to 180° for a 4 px drag). Near the side of the pole view a grab is ill-conditioned (screen x near cos φ), so the bound is loose.
+        expect(angleDeg(next.c, p.axes.c), `lat ${lat} case ${n}`).toBeLessThan(30);
+        expect(angleDeg(next.u, p.axes.u), `lat ${lat} case ${n}`).toBeLessThan(30);
+      }
+    }
+  });
+
   it('a drag of nothing changes nothing', () => {
     const p = projector({ frame: EQUATORIAL, lon: 123, lat: -45 }, CX, CY, R);
     const same = dragTurn(p, [CX + 40, CY - 70], [CX + 40, CY - 70]);

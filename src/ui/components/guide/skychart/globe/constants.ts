@@ -1,3 +1,5 @@
+import type { Speed } from '../../../../../lib/playback';
+
 /**
  * R167 (SPEC §4.55's constants table, FR-GLOBE-17; PLAN D-1036, D-1037): every
  * number the celestial globe draws or turns by, in one place. The values are the
@@ -32,8 +34,8 @@ export const GLOBE_GRID_STEP_DEG = 30;
 /** FR-GLOBE-7: how far the globe's instant may run either side of now, days. */
 export const GLOBE_SPAN_DAYS = 366;
 
-/** FR-GLOBE-7: the time-lapse's three rates, the live page's `SPEEDS`. */
-export const GLOBE_SPEEDS: readonly number[] = [60, 600, 3600];
+/** FR-GLOBE-7: the time-lapse's three rates, the live page's `SPEEDS` past real time — typed as `Speed` so `usePlayback`'s `setSpeed` takes them. */
+export const GLOBE_SPEEDS = [60, 600, 3600] as const satisfies readonly Speed[];
 
 /** FR-GLOBE-4: the SVG's node ceiling; the faint stars add none. */
 export const GLOBE_MAX_NODES = 400;

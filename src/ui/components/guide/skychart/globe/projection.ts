@@ -243,11 +243,13 @@ export function dragTurn(p: Projector, from: readonly [number, number], to: read
   for (const delta of candidates) {
     const a = cosPhi * Math.cos(delta);
     const latRaw = (Math.atan2(sinPhi, a) - Math.atan2(ty, tz)) / RAD;
-    const latWrapped = nearestTurn(latRaw, 0);
-    const lat = Math.max(-90, Math.min(90, latWrapped));
+    const lat = Math.max(-90, Math.min(90, nearestTurn(latRaw, 0)));
     const lon = nearestTurn(g.lon - delta / RAD, p.lon);
-    // Prefer the solution the clamp leaves alone, then the one nearest the present view.
-    const cost = Math.abs(lat - latWrapped) * 1000 + Math.abs(lon - p.lon) + Math.abs(lat - p.lat);
+    // The root that turns the view least — its centre and its up both — so a drag never jumps: where the
+    // nearer root is clamped (a drag over the pole) the point lags the hand rather than the globe flipping
+    // to the other root half a turn away.
+    const next = viewAxes(p.frame, lon, lat);
+    const cost = 4 - dot(next.c, p.axes.c) - dot(next.u, p.axes.u) + 1e-9 * Math.abs(lon - p.lon);
     if (!best || cost < best.cost) best = { lon, lat, cost };
   }
   return { lon: best?.lon ?? p.lon, lat: best?.lat ?? p.lat };
