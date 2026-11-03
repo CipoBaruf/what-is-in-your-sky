@@ -390,8 +390,6 @@ export const ui = {
     save: 'Save this place',
     empty: 'No places saved yet.',
     use: (label: string) => `Use ${label}`,
-    /** Marks the entry the app is currently computing for; the button still works, it just changes nothing. */
-    current: 'in use',
     remove: (label: string) => `Remove ${label}`,
     limit: (max: number) => `Up to ${String(max)} places. Saving another forgets the one you have not used for longest.`,
   },

@@ -76,9 +76,16 @@
   margin-inline-start: auto;
 }
 
-/* `(en uso)` is one word to the reader and never breaks: a long place name wraps in what it leaves (the owner's phone,
-   2026-11-02, `Berlin, State of Berlin, Germany` in Spanish). */
-.current {
-  flex: none;
-  white-space: nowrap;
+/* D-1030 (the owner's call 2026-11-02, from the phone): the place in use is the row ruled in the accent on the raised
+   ground, as the open pass's card is (Card.module.css `selected`), with `aria-current` on its button for anyone not
+   looking; no `(in use)` words. Every row carries the frame's room, transparent, so the names stay aligned. */
+.item {
+  padding-inline: calc(var(--cell) / 2);
+  margin-inline: calc(var(--cell) / -2);
+  border: var(--hairline) solid transparent;
+}
+
+.item[data-current='yes'] {
+  border-color: var(--accent);
+  background: var(--bg-raised);
 }

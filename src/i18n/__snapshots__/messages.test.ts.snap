@@ -117,7 +117,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".failure.what.forecast:string",
   ".failure.what.passes:string",
   ".failure.what.search:string",
-  ".favourites.current:string",
   ".favourites.empty:string",
   ".favourites.heading:string",
   ".favourites.limit:function",

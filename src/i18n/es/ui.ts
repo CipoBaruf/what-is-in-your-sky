@@ -280,7 +280,6 @@ export const ui: typeof EnUi = {
     save: 'Guardar este lugar',
     empty: 'Todavía no hay lugares guardados.',
     use: (label) => `Usar ${label}`,
-    current: 'en uso',
     remove: (label) => `Quitar ${label}`,
     limit: (max) => `Hasta ${String(max)} lugares. Al guardar otro se olvida el que hace más tiempo que no se usa.`,
   },

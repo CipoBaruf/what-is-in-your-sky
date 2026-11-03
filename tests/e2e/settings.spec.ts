@@ -260,20 +260,22 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     expect(await fitsTheViewport(save)).toBe(true);
   });
 
-  test('a long saved place in use wraps its name and keeps `(en uso)` on one line, at 390 in Spanish', async ({ page }) => {
+  test('the saved place in use is the row ruled in the accent, with no `(en uso)`, and a long name wraps inside it, at 390 in Spanish (D-1030)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const observer = { ...NEUQUEN_OBSERVER, label: 'Berlin, State of Berlin, Germany' };
-    await openSettingsWith(page, { locale: 'es', observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }] });
-    const current = page.getByTestId('favourite').filter({ hasText: '(en uso)' }).getByText('(en uso)');
-    await expect(current).toBeVisible();
-    // The lines its text is laid out on: one, where the phone showed `(en` over `uso)`.
-    const lines = await current.evaluate((element) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      return new Set(Array.from(range.getClientRects()).map((box) => Math.round(box.top))).size;
-    });
-    expect(lines).toBe(1);
-    expect(await fitsTheViewport(page.getByTestId('favourite'))).toBe(true);
+    const other = { cellKey: '-39.26,-68.78', observer: DARK_SITE, addedAt: NINE_DAYS_ON - 2 * 86_400_000, lastUsedAt: NINE_DAYS_ON - 120_000 };
+    await openSettingsWith(page, { locale: 'es', observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }, other] });
+    const rows = page.getByTestId('favourite');
+    await expect(rows).toHaveCount(2);
+    await expect(page.getByText('(en uso)')).toHaveCount(0);
+    const looks = await rows.evaluateAll((items) => items.map((item) => ({ current: item.getAttribute('data-current'), border: getComputedStyle(item).borderTopColor, ground: getComputedStyle(item).backgroundColor })));
+    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+    const [inUse, notInUse] = [looks.find((l) => l.current === 'yes'), looks.find((l) => l.current === 'no')];
+    expect(inUse?.border).not.toBe(notInUse?.border);
+    expect(inUse?.ground).not.toBe(notInUse?.ground);
+    expect(accent).not.toBe('');
+    await expect(rows.filter({ has: page.locator('[aria-current="true"]') })).toHaveCount(1);
+    for (const row of await rows.all()) expect(await fitsTheViewport(row)).toBe(true);
   });
 
   test('"enter coordinates instead" opens the closed fields and focuses them, and stays on the page', async ({ page }) => {
