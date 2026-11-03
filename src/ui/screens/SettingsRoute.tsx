@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import type { Messages } from '../../i18n/messages';
-import { useT } from '../../i18n/useT';
+import { Footer } from '../components/common/Footer';
 import { Header } from '../components/common/Header';
 import type { ShellProps } from '../Shell';
 import styles from './Settings.module.css';
@@ -9,7 +9,7 @@ import { loadSettingsChunk } from './settingsChunk';
 
 /**
  * R92 (D-529): the settings route as the shell's slots — the header as its
- * `banner`, the page as its `main`, the privacy line as its `contentinfo`.
+ * `banner`, the page as its `main`, the app's footer as its `contentinfo`.
  * `App` spreads it into the one `Shell` every route shares — the same element
  * in every branch, so the announcer and the focus live across the change
  * rather than being remounted with it — and the page's own `main` is the
@@ -24,16 +24,6 @@ import { loadSettingsChunk } from './settingsChunk';
  * is for the reload on `#settings` and the tap that beat the network.
  */
 const SettingsPage = lazy(() => loadSettingsChunk().then((module) => ({ default: module.SettingsPage })));
-
-/** The page's foot, its `contentinfo`: the privacy line, in place of the home's credits (FR-SET-2). */
-function SettingsPrivacy() {
-  const t = useT();
-  return (
-    <footer className={styles.privacy} data-testid="settings-privacy">
-      <p>{t.settings.privacy}</p>
-    </footer>
-  );
-}
 
 /** Mounted only while the chunk is on its way: it turns the header's bead on for as long as it stands. */
 function Arriving({ onChange }: { onChange: (arriving: boolean) => void }) {
@@ -69,7 +59,9 @@ export function settingsShell(t: Messages, { onLeave, ...props }: SettingsShellP
     // R129 (D-845): the header is the page's top row, its `[ ← ]` the page's way back (US-20 AC4).
     banner: <Header page="settings" context={place} onBack={onLeave} backRef={props.backRef} busy={arriving} />,
     mainProps: { className: styles.page, 'aria-label': t.settings.heading },
-    footer: <SettingsPrivacy />,
+    // D-1023 (FR-X-2 and FR-SET-1 as amended 2026-11-02): the app's footer, as on every page — the full credits on a
+    // phone, D-120's one row on a desk. Its privacy sentence is the line this page used to end on.
+    footer: <Footer />,
     children: page ?? (
       <Suspense fallback={<Arriving onChange={onArriving} />}>
         <SettingsPage {...props} />

@@ -197,17 +197,25 @@ async function openSettingsWith(page: Page, prefs: Record<string, unknown>): Pro
   await page.evaluate(() => document.fonts.ready);
 }
 
+/**
+ * FR-SET-2 as amended 2026-11-02 (D-1023): the page above its footer fits the viewport, and the footer — the app's full
+ * credits, as on the home — follows under it, so the page scrolls by the footer's height and no more.
+ */
 async function fitsOneViewport(page: Page, allowancePx = 0): Promise<void> {
-  const { scrollHeight, innerHeight } = await page.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight }));
-  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight + allowancePx);
-  const privacy = page.getByTestId('settings-privacy');
-  await expect(privacy).toBeVisible();
-  const box = await privacy.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-  expect(box.top).toBeGreaterThanOrEqual(0);
-  expect(box.bottom).toBeLessThanOrEqual(innerHeight + allowancePx);
-  // The privacy line is the foot: nothing on the page is drawn below it.
-  const lowest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('main *')).map((el) => el.getBoundingClientRect().bottom)));
-  expect(lowest).toBeLessThanOrEqual(box.top);
+  const footer = page.getByRole('contentinfo');
+  await expect(footer).toHaveAttribute('data-form', 'full');
+  const m = await page.evaluate(() => {
+    const main = document.querySelector('#root > main');
+    const foot = document.querySelector('#root > footer');
+    if (!main || !foot) throw new Error('no main or footer');
+    const lowest = Math.max(...Array.from(main.querySelectorAll('*')).map((el) => el.getBoundingClientRect().bottom));
+    return { scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight, mainBottom: main.getBoundingClientRect().bottom, lowest, footTop: foot.getBoundingClientRect().top, footHeight: foot.getBoundingClientRect().height };
+  });
+  expect(m.mainBottom, `the page above the footer ends at ${String(m.mainBottom)} px in a ${String(m.innerHeight)} px viewport`).toBeLessThanOrEqual(m.innerHeight + allowancePx);
+  // The footer is the foot: nothing on the page is drawn below its top, and nothing but it runs past the viewport.
+  expect(m.lowest).toBeLessThanOrEqual(m.footTop + 1);
+  expect(m.scrollHeight).toBeLessThanOrEqual(m.innerHeight + allowancePx + m.footHeight + 1);
+  await expect(page.getByTestId('settings-privacy')).toHaveCount(0);
 }
 
 test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 AC2)', () => {

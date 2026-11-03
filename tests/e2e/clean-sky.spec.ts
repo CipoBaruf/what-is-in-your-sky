@@ -192,7 +192,7 @@ for (const locale of LOCALES) {
 
         // FR-CLEAN-4: the sheet, its rows in order, `In this field` open at its end, the box unmoved (FR-CLEAN-6).
         await openSheet(page);
-        expect(await sheetOrder(page)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+        expect(await sheetOrder(page)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
         await expect(page.getByTestId('sheet-place')).toHaveText(NEUQUEN.label);
         await expect(viewRow(page).getByRole('button')).toHaveText([words.window, words.wholeSky]);
         await expect(page.getByTestId('stars-layers-row')).toHaveCount(2);
@@ -429,7 +429,7 @@ for (const locale of LOCALES) {
 
         // FR-CLEAN-5: the sheet's groups in order, the box unmoved.
         await openSheet(page);
-        expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose']);
+        expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose', 'app-footer']);
         await expect(page.getByTestId('pass-name-line')).toHaveText(new RegExp(`^${name.replace(/[()]/g, '\\$&')} · \\d{4}-\\d\\d-\\d\\d · UTC$`));
         await expect(dialog.getByRole('timer')).toHaveCount(1);
         const sheet = await expectSheetShape(page, size);

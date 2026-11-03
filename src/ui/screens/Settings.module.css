@@ -103,32 +103,21 @@
   margin: 0;
 }
 
-/* R75 (FR-SET-1): the foot of the page, in place of the compact footer. */
-.privacy {
-  color: var(--fg-dim);
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.privacy > p {
-  margin: 0;
-}
-
 /* FR-COMP-2 holds at every width; only the compact header links here. The page
    is narrow prose either way, so on a wide screen it stops rather than
    stretching a 36-cell row of toggles across 100 cells of empty line.
+   D-1023: the page's foot is the app's footer, D-120's one row across the shell's width like the home's.
    R166 (FR-CLEAN-12, D-1008): `main` and the footer are the shell's rows, 160 cells centred, and the shell's rule
    sets their width; so the 60-cell column is their children's, at the row's left edge under the header's title. */
 @media (width >= 964px) {
-  .page > *,
-  .privacy > * {
+  .page > * {
     max-width: calc(60 * var(--cell));
   }
 
   /* R166 (FR-CLEAN-15, V211-10): on a desk the page breathes. FR-SET-2's fit is the phone's 844 px; the desk has the
      room, so the three sections stand a section gap apart as the home's do (FR-FLOW-10), each heading's rule
-     `--space-2` above its first row, the rows inside a section one text row apart, and the privacy line a section gap
-     under the last section. The page is one of the wide shell's panes (D-119): what no longer fits a short window
+     `--space-2` above its first row, the rows inside a section one text row apart, and the footer a section gap
+     under the last section (D-1023: the footer's row, where the privacy line stood). The page is one of the wide shell's panes (D-119): what no longer fits a short window
      scrolls inside it, never the page. Widths and controls are untouched; compact keeps the rules above. */
   .page {
     gap: var(--space-5);

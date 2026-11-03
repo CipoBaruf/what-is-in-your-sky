@@ -307,7 +307,7 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
     const t = locale === 'en' ? en : es;
     const body = openSheet();
     // No sensor: no follow row. Every row a group apart (FR-FLOW-10), the layer rows a row apart inside theirs.
-    expect(sheetRows(body)).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+    expect(sheetRows(body)).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
     for (const child of body.children) expect(child).toHaveAttribute('data-rhythm', 'group');
     for (const row of screen.getAllByTestId('stars-layers-row')) expect(row).toHaveAttribute('data-rhythm', 'row');
     expect(screen.getByTestId('sheet-place')).toHaveTextContent(SOUTH.label);
@@ -775,7 +775,7 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     withPhone(() => Promise.resolve('granted'));
     const { unmount: unmountEn } = page();
     const body = openSheet();
-    expect(sheetRows(body)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+    expect(sheetRows(body)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
     const row = screen.getByTestId('stars-follow');
     expect(within(row).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
     expect(within(row).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');

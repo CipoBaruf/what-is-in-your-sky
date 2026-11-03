@@ -67,7 +67,7 @@ describe('<App> and the live route', () => {
     const page = await screen.findByTestId('live-page');
     expect(page).toHaveAttribute('data-state', 'live');
     // R92 (FR-A11Y-1, F-71): nothing of the home page, and the live page's own landmarks — its top row the
-    // banner, the rest the main, no footer.
+    // banner, the rest the main, no footer on compact (D-1023: the footer's row is the sheet's last, a `div`).
     // R129 (D-845): the header is the live page's own, told its page, inside the page's banner.
     // R148 (FR-FULL-2, D-920): on compact the banner is the head over the sky, and the `h1` the page's name with the place.
     expect(screen.queryByTestId('header')).toBeNull();

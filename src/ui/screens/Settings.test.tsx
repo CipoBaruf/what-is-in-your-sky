@@ -83,7 +83,7 @@ describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
       screen.getByRole('group', { name: en.app.language }),
       screen.getByRole('group', { name: en.app.theme }),
       screen.getByTestId('install-action'),
-      screen.getByText(en.settings.privacy),
+      screen.getByRole('contentinfo'),
     ];
     for (const [before, after] of rows.slice(0, -1).map((row, i) => [row, rows[i + 1]] as const)) {
       if (after === undefined) continue;
@@ -93,8 +93,13 @@ describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
     // and the clear beside the save (FR-SET-1).
     expect(screen.getByTestId('location-actions')).toContainElement(screen.getByTestId('coords-disclosure'));
     expect(screen.getByTestId('clear-saved-location').closest('div')).toBe(screen.getByTestId('save-favourite').parentElement);
-    // The privacy line is the foot: after the whole of the page's main region, not inside it.
-    expect(main).not.toContainElement(screen.getByText(en.settings.privacy));
+    // D-1023 (FR-SET-1 as amended): the foot is the app's footer, after the whole of the page's main region, not inside
+    // it — the full credits on a phone, whose privacy sentence is the one the page used to end on.
+    const footer = screen.getByRole('contentinfo');
+    expect(main).not.toContainElement(footer);
+    expect(footer).toHaveAttribute('data-form', 'full');
+    expect(footer).toHaveTextContent(en.footer.privacy);
+    expect(screen.queryByTestId('settings-privacy')).toBeNull();
     // Its sentence took the place of the saved-here line, which is not said twice.
     expect(screen.queryByText(en.location.savedHere)).toBeNull();
     expect(screen.queryByRole('button', { name: /save settings/i })).toBeNull();
@@ -109,7 +114,7 @@ describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([es.location.heading, es.favourites.heading, es.settings.browser]);
     expect(screen.getByTestId('coords-disclosure')).toHaveTextContent(es.settings.coordinates);
     expect(screen.getByTestId('clear-saved-location')).toHaveTextContent(es.settings.clearSaved);
-    expect(screen.getByText(es.settings.privacy)).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(es.footer.privacy);
   });
 
   it('with no observer, has no saved places block and the coordinates closed', () => {

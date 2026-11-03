@@ -513,7 +513,7 @@ describe('<PassDetail> in the full form (FR-CLEAN-1..3, FR-CLEAN-5, FR-CLEAN-6)'
     detail(locale);
     openSheet();
     const body = screen.getByTestId('sheet-body');
-    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose']);
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose', 'app-footer']);
     expect(screen.getByTestId('pass-name-line')).toHaveTextContent(`ISS (Zarya) · ${formatDateZone(pass.start.t, null, locale)}`);
     expect(within(screen.getByTestId('pass-view-row')).getAllByRole('button').map((b) => b.textContent)).toEqual([...(locale === 'en' ? ['Window', 'Polar', 'Dome'] : ['Ventana', 'Polar', 'Domo']), t.live.starsToggle]);
     expect(within(screen.getByTestId('pass-share')).getByRole('button')).toBeInTheDocument();

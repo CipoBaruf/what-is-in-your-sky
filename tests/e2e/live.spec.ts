@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, footerBelowPx, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -300,7 +300,8 @@ test.describe('the wide live page (R61)', () => {
     // The hint's row under the box is the layout's last, so the foot ends a hint's row above the page's padding.
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
     expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
+    // D-1023: the page is one viewport; the footer's row follows under the fold.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080 + (await footerBelowPx(page)));
   });
 
   /*
@@ -336,6 +337,7 @@ test.describe('the wide live page (R61)', () => {
     expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
     expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
+    // D-1023: the page is one viewport; the footer's row follows under the fold.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800 + (await footerBelowPx(page)));
   });
 });

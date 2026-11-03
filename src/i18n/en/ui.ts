@@ -176,8 +176,6 @@ export const ui = {
     skyLabel: 'Sky',
     sunGlow: 'sun glow',
     sunGlowName: 'The Sun’s glow on the horizon',
-    /** R75 (FR-SET-1): the page's foot, which takes the place of the saved-here sentence and of the footer. */
-    privacy: 'No tracking. Your location is saved in this browser only.',
   },
 
   compass,

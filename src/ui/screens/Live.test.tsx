@@ -1178,7 +1178,7 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     inventory('watching', true);
     const open = present();
-    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
     expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
     expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
     // Held: a key on the track holds the instant; nothing appears, nothing disappears.
@@ -1270,7 +1270,7 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     const body = screen.getByTestId('sheet-body');
     // R150 (FR-GYRO-10, D-949): the satellites last, open, under their heading.
-    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
     expect(within(screen.getByTestId('live-satellites')).getByRole('heading', { name: 'Satellites (1)' })).toBeInTheDocument();
     expect(within(screen.getByTestId('live-satellites')).getByTestId('chart-legend-slot')).toBeInTheDocument();
     // R150 (FR-GYRO-11, D-950): the window first in the view row.
@@ -1846,7 +1846,7 @@ describe('<LivePage>', () => {
       withPhone(() => Promise.resolve('granted'));
       render(<LivePage link={null} onLeave={() => undefined} />);
       const body = screen.getByTestId('sheet-body');
-      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites']);
+      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
       expect(screen.getByTestId('live-follow')).toHaveAttribute('data-rhythm', 'group');
       expect(within(screen.getByTestId('live-follow')).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');

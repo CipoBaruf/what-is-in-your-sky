@@ -434,7 +434,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".settings.heading:string",
   ".settings.installLabel:string",
   ".settings.open:string",
-  ".settings.privacy:string",
   ".settings.skyLabel:string",
   ".settings.sunGlow:string",
   ".settings.sunGlowName:string",

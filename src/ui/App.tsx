@@ -396,8 +396,10 @@ export function App() {
   const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
   if (liveShown) {
     // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
+    // D-1023 (FR-X-2 as amended 2026-11-02): on a desk the footer's one row follows the page's one viewport, under the
+    // fold (`Live.module.css`); on a phone the row is the controls sheet's last (`ControlsSheet`).
     return (
-      <Shell chrome="live" routeKey={routeKey} title={title}>
+      <Shell chrome="live" routeKey={routeKey} title={title} {...(mode === 'wide' ? { footer: <Footer /> } : {})}>
         <Suspense
           fallback={
             <main className={styles.liveLoading}>
@@ -414,16 +416,16 @@ export function App() {
    * R52 (FR-COMP-2): the settings page is a screen, like the live one — the
    * whole of it, at every width, with its own header. Rendered after `#live`
    * so a hash that is somehow both is the live page, which is the one with a
-   * share link behind it. R75 (FR-SET-1, FR-SET-2): its foot is its own privacy
-   * line rather than the shell's footer, whose credits alone are a third of a
-   * 844 px phone.
+   * share link behind it. D-1023 (FR-SET-1 as amended 2026-11-02): its foot is
+   * the app's footer, as on every page (R75's privacy line is gone).
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
   if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
   /*
    * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
-   * current page's), the page as `main`, no footer — and a chunk of its own, fetched here or from the link ahead
-   * of the tap. The shortcuts overlay opens over it as over home.
+   * current page's), the page as `main` — and a chunk of its own, fetched here or from the link ahead
+   * of the tap. The shortcuts overlay opens over it as over home. D-1023 (FR-X-2 as amended 2026-11-02): on a desk
+   * the footer's one row under it, as every page; on a phone the row is the controls sheet's last (`ControlsSheet`).
    */
   if (stars.active) {
     return (
@@ -433,6 +435,7 @@ export function App() {
         title={title}
         banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
+        {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
         after={overlay}
       >
         <Suspense fallback={<p className={styles.starsLoading}>{t.stars.loading}</p>}>

@@ -132,8 +132,9 @@ for (const locale of LOCALES) {
         const labels = Array.from(el.querySelectorAll('[data-testid="settings-browser"] [aria-hidden="true"]')).filter(drawn);
         rows.push(...gapsOf(labels));
         const last = groups.at(-1)?.getBoundingClientRect().bottom ?? NaN;
-        const privacy = document.querySelector('[data-testid="settings-privacy"]')?.getBoundingClientRect().top ?? NaN;
-        return { tokens, sectionGaps: gapsOf(groups), headings, rows, foot: privacy - last, scrolls: document.documentElement.scrollHeight - document.documentElement.clientHeight };
+        // D-1023: the foot is the app's footer, its one row on a desk; measured to its rule, its first drawn line.
+        const rule = document.querySelector('#root > footer > hr')?.getBoundingClientRect().top ?? NaN;
+        return { tokens, sectionGaps: gapsOf(groups), headings, rows, foot: rule - last, scrolls: document.documentElement.scrollHeight - document.documentElement.clientHeight };
       });
       const { tokens } = measured;
       expect(measured.sectionGaps).toHaveLength(2);
@@ -158,10 +159,11 @@ for (const locale of LOCALES) {
         const main = document.querySelector('#root > main');
         if (!main) throw new Error('no main');
         const left = main.getBoundingClientRect().left + parseFloat(getComputedStyle(main).paddingLeft);
-        const blocks = [...Array.from(main.children), ...Array.from(document.querySelector('[data-testid="settings-privacy"]')?.children ?? [])].filter((b) => b.getBoundingClientRect().height > 0);
+        // D-1023: the footer is the shell's row now, D-120's one row across it like the home's, so only `main`'s blocks keep the column.
+        const blocks = Array.from(main.children).filter((b) => b.getBoundingClientRect().height > 0);
         return { column, left, rights: blocks.map((b) => b.getBoundingClientRect().right) };
       });
-      expect(measured.rights.length).toBeGreaterThan(3);
+      expect(measured.rights.length).toBeGreaterThanOrEqual(3);
       for (const right of measured.rights) expect(right, 'a block runs past the 60-cell column').toBeLessThanOrEqual(measured.left + measured.column + 1);
     });
 

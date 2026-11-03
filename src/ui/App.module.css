@@ -261,7 +261,9 @@
     --short-window: 0;
     --two-line-footer: 0;
     padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));
-    padding-bottom: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));
+    /* D-1023: the row under the panes is the footer's own space above its rule now (`Footer.module.css`), which the
+       same two rules halve (`--footer-short-window`, `--footer-two-line` below), so the panes keep their height. */
+    padding-bottom: 0;
   }
 
   .main > .column {
@@ -351,6 +353,10 @@
   .main {
     --short-window: 0.5;
   }
+
+  :global(#root) > :global(footer[data-form='short']) {
+    --footer-short-window: 0.5;
+  }
 }
 
 /* R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the two-line
@@ -376,6 +382,7 @@
 
   :global(:root[lang='en'] #root) > :global(footer[data-form='short']) {
     --footer-rule-gap: var(--space-2);
+    --footer-two-line: 0.5;
   }
 }
 
@@ -386,6 +393,7 @@
 
   :global(:root[lang='es'] #root) > :global(footer[data-form='short']) {
     --footer-rule-gap: var(--space-2);
+    --footer-two-line: 0.5;
   }
 }
 

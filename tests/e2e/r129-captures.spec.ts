@@ -47,7 +47,7 @@ for (const width of [390, 1280] as const) {
       await shot('stars');
 
       await go(page, 'settings');
-      await expect(page.getByTestId('settings-privacy')).toBeVisible();
+      await expect(page.getByTestId('app-footer')).toBeAttached();
       await expect(page.getByTestId('location-actions')).toBeVisible();
       await shot('settings');
     });

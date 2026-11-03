@@ -1,5 +1,7 @@
+/* D-1023 (the owner, 2026-11-02): every form stands a group gap (`--space-3`, FR-FLOW-10) under what is above it,
+   above its rule. The full form always did; the one-row forms had none and sat on the block above. */
 .footer {
-  padding-top: var(--row);
+  padding-top: var(--space-3);
   padding-bottom: calc(2 * var(--row));
   color: var(--fg-dim);
 }
@@ -30,8 +32,10 @@
      on the page is already drawn at (`global.css`) — the difference is that
      it is as wide as whatever contains it. R105 (D-720): that line is a
      `Rule`, the footer's first child, and the row's padding above is its
-     margin under. */
-  padding-top: 0;
+     margin under. D-1023: the group gap above the rule. On the home it is the row of air the main used to
+     keep under its panes, so the shell's short window and two-line widths halve it as they halved that row
+     (App.module.css, D-608, D-681); both true, it is none. */
+  padding-top: calc(var(--space-3) * (1 - var(--footer-short-window, 0) - var(--footer-two-line, 0)));
   padding-bottom: var(--row);
 }
 
