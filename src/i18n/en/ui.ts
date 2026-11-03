@@ -109,8 +109,8 @@ export const ui = {
     language: 'Language',
     /** FR-THEME-1: the palette switch. Unlike the languages, both names are translated — whoever reads this can read the page. */
     theme: 'Theme',
-    /** R156 (FR-PHONE-15): `Theme [x] Dark [ ] Night [ ] Auto`, within 36 cells. */
-    themes: { dark: 'Dark', night: 'Night', auto: 'Auto' } satisfies Record<Theme, string>,
+    /** `Theme [x] Dark [ ] Night` (v2.12, D-1020: Auto withdrawn). */
+    themes: { dark: 'Dark', night: 'Night' } satisfies Record<Theme, string>,
     /**
      * FR-COMP-1 (R52): the compact header's title. The full one is 29 cells and
      * the row it shares with `[ live ]` and `[ settings ]` has 36, so compact

@@ -7,9 +7,8 @@ import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
-import { appStore, catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
+import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
-import { themeAt } from './styles/theme';
 import { RootBoundary } from './RootBoundary';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
@@ -347,8 +346,7 @@ export function App() {
     // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.
     follow: () => false,
     theme: () => {
-      // R156 (D-979): the key swaps the palette on the screen, so from Auto after dusk it goes to Dark, not to the Night it already shows.
-      setTheme(themeAt(theme, appStore.getState().observer, Date.now()) === 'night' ? 'dark' : 'night');
+      setTheme(theme === 'night' ? 'dark' : 'night');
       return true;
     },
     help: () => {

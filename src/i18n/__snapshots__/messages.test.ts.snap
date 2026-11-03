@@ -9,7 +9,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".app.shortTitle:string",
   ".app.tagline:string",
   ".app.theme:string",
-  ".app.themes.auto:string",
   ".app.themes.dark:string",
   ".app.themes.night:string",
   ".app.title:string",

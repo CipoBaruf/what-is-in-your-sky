@@ -151,16 +151,19 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
             <span className={styles.label} aria-hidden="true">
               {t.settings.skyLabel}
             </span>
-            <OptionToggle
-              label={t.settings.sunGlow}
-              pressed={sunGlow}
-              alone
-              data-testid="settings-sun-glow"
-              aria-label={t.settings.sunGlowName}
-              onPress={() => {
-                setSunGlow(!sunGlow);
-              }}
-            />
+            {/* In a span: the rows' cells are flex boxes, and a flex button drops the trailing space of its `[ ] ` mark. */}
+            <span>
+              <OptionToggle
+                label={t.settings.sunGlow}
+                pressed={sunGlow}
+                alone
+                data-testid="settings-sun-glow"
+                aria-label={t.settings.sunGlowName}
+                onPress={() => {
+                  setSunGlow(!sunGlow);
+                }}
+              />
+            </span>
             {canInstall && (
               <>
                 <span className={styles.label} aria-hidden="true">

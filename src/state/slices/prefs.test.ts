@@ -320,19 +320,12 @@ describe('prefs slice', () => {
     expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sunGlow).toBe(false);
   });
 
-  it('saves Auto, the third value, and reads it back at the next start; a profile from before v2.10 reads as it was (R156, FR-PHONE-15)', () => {
+  it('reads an Auto saved by 2.10 as no choice, so dark, keeping the other preferences (v2.12, D-1020)', () => {
     const storage = memoryStorage();
-    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(fresh.getState().theme).toBe('dark');
-    fresh.getState().setTheme('auto');
-    expect(fresh.getState().theme).toBe('auto');
-    expect(stored(storage)).toEqual({ theme: 'auto' });
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().theme).toBe('auto');
-    // A record a 2.9 build wrote holds one of the two palettes, and loads as it did.
-    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', locale: 'es' }));
-    const older = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(older.getState().theme).toBe('night');
-    expect(older.getState().locale).toBe('es');
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'auto', locale: 'es' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().theme).toBe('dark');
+    expect(store.getState().locale).toBe('es');
   });
 
   it('ignores a theme it does not know without losing the other preferences', () => {

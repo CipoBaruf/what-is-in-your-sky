@@ -220,17 +220,17 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       await expect(page.getByTestId('favourites')).toHaveCount(0);
     });
 
-    test(`the Theme row offers Auto on one line, in ${locale} (R156, FR-PHONE-15)`, async ({ page }) => {
+    test(`the Theme row is Dark and Night on one line, and the Sky row's toggle keeps its mark's space, in ${locale} (D-1020)`, async ({ page }) => {
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER });
       const group = page.getByRole('group', { name: locale === 'es' ? 'Tema' : 'Theme' });
-      const names = locale === 'es' ? ['Oscuro', 'Noche', 'Auto'] : ['Dark', 'Night', 'Auto'];
+      const names = locale === 'es' ? ['Oscuro', 'Noche'] : ['Dark', 'Night'];
+      await expect(group.getByRole('button')).toHaveCount(2);
       for (const name of names) await expect(group.getByRole('button', { name })).toBeVisible();
       expect(await isOneLine(group)).toBe(true);
       expect(await fitsTheViewport(group)).toBe(true);
-      await group.getByRole('button', { name: 'Auto' }).click();
-      await expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
-      // NINE_DAYS_ON is the page's clock: the root reads one of the two palettes, never `auto`.
-      await expect(page.locator('html')).toHaveAttribute('data-theme', /^(dark|night)$/);
+      // The `[ ] ` mark is a ::before with a trailing space; a flex button would drop it (the phone showed `[ ]brillo`).
+      const display = await page.getByTestId('settings-sun-glow').evaluate((el) => getComputedStyle(el).display);
+      expect(display).not.toBe('flex');
       await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
     });
 
