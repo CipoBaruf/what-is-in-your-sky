@@ -8,6 +8,7 @@ import { fitBox, hintFitsBeside, RAIL_MIN_CELLS, SHELL_PADDING_CELLS } from '../
 import { shortcutFor } from '../../lib/shortcuts';
 import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
+import { BODIES_EVERY_MS } from '../../lib/playback';
 import { formatShortClock } from '../../lib/timeFormat';
 import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
@@ -24,6 +25,7 @@ import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { FollowControl } from '../components/live/FollowControl';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { usePlayback } from '../components/live/usePlayback';
+import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
@@ -43,8 +45,8 @@ import { close } from '../navigation';
 import { requestPlace } from './home/placeRequest';
 import { nightWindow } from './home/tonight';
 import { FieldList } from './stars/FieldList';
-import { loadGlobe, useGlobePrefetch, useGlobeScene } from './stars/globeChunk';
-import { GlobeField, GlobePlaces, GlobeTime, GlobeTurnRow, useGlobeLabel, type GlobeTurn, type PlaceChoice } from './stars/GlobeRail';
+import { loadGlobe, loadGlobeRail, useGlobePrefetch } from './stars/globeChunk';
+import type { GlobeTurn, PlaceChoice } from './stars/GlobeRail';
 import { fieldObjects, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import styles from './Stars.module.css';
 
@@ -121,6 +123,14 @@ import styles from './Stars.module.css';
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
 
+/** R170 (FR-GLOBE-12): the globe's name — the place, the instant to the minute in its zone (held to `BODIES_EVERY_MS`) and the turn. */
+function useGlobeLabel(place: Observer, instant: EpochMs, turn: GlobeTurn): string {
+  const t = useT();
+  const locale = useLocale();
+  const at = useWallThrottle(instant, BODIES_EVERY_MS);
+  return t.globe.label({ place: place.label, time: formatShortClock(at, place.timeZone, locale, true), turn });
+}
+
 /** The three layers the page holds as plain switches; `names` is its own override over a default by view and width (R160, D-990). */
 type LayerSwitches = Omit<StarField['layers'], 'names'>;
 const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
@@ -138,6 +148,9 @@ const chartViewOf = (view: StarsView): ChartView => (view === 'whole' ? 'polar' 
 
 /** R170 (FR-GLOBE-15): the globe, its own lazy chunk (`SkyGlobe-*.js`), asked for when the wide page first shows it. */
 const SkyGlobe = lazy(loadGlobe);
+/** R170 (FR-GLOBE-15, `GLOBE_STARS_KB`): the globe's rail groups and its list, lazy with the globe so `stars` keeps the wiring alone. */
+const GlobeGroups = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeGroups })));
+const GlobeField = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
 
 const DAY_MS = 24 * HOUR_MS;
 
@@ -304,7 +317,6 @@ function StarsSky({ observer }: { observer: Observer }) {
   const onFaintFailed = useCallback(() => {
     setFaint(false);
   }, []);
-  const globeScene = useGlobeScene(globeShown);
   useGlobePrefetch(wide);
   const globeLabel = useGlobeLabel(shownPlace, globeClock.t, turn);
 
@@ -540,14 +552,16 @@ function StarsSky({ observer }: { observer: Observer }) {
     </section>
   );
   // R170 (FR-GLOBE-12, D-1035): on the globe the list is `Up from <place>`, at the globe's place and instant.
-  const globeField = <GlobeField scene={globeScene} place={shownPlace} instant={globeClock.t} layers={drawnLayers} faint={faint} named={named?.index ?? null} onName={onName} />;
+  const globeField = (
+    <Suspense fallback={null}>
+      <GlobeField place={shownPlace} instant={globeClock.t} layers={drawnLayers} faint={faint} named={named?.index ?? null} onName={onName} />
+    </Suspense>
+  );
   // R170 (FR-GLOBE-5, FR-GLOBE-7..9): the rail's `Time`, `Turn` and `Place` groups, a group apart, under the view row.
   const globeGroups = (
-    <div className={styles.globeGroups} data-testid="globe-groups">
-      <GlobeTime playback={globeClock} zone={shownPlace.timeZone} />
-      <GlobeTurnRow turn={turn} onTurn={setTurn} />
-      <GlobePlaces observer={observer} places={places} choice={shownChoice} onChoice={setPlaceChoice} />
-    </div>
+    <Suspense fallback={null}>
+      <GlobeGroups playback={globeClock} zone={shownPlace.timeZone} turn={turn} onTurn={setTurn} observer={observer} places={places} choice={shownChoice} onChoice={setPlaceChoice} />
+    </Suspense>
   );
   const drawing = (
     // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a

@@ -1,20 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 /**
- * R170 (FR-GLOBE-15; PLAN D-1035, D-1050): the globe's code, out of the `stars` chunk. Two dynamic imports, both of
- * the globe's own modules: `SkyGlobe` (R169's default export, so Rollup names its chunk `SkyGlobe-*.js`) for the
- * drawing, and `globe/scene.ts` for the rail's count and `Up from <place>` list (`upCount`, `upList`, D-1037) — the
- * page reads the globe's sky through the module the globe draws from, and the module stays out of `stars`. Rollup
- * makes `scene.ts` (with the projection it imports) its own chunk, which `SkyGlobe-*.js` imports; the `globe` budget
- * row counts the two together (`scripts/bundle-budget.ts`). Each import is asked once and a failure is dropped, so the
+ * R170 (FR-GLOBE-15; PLAN D-1035): the globe's code, out of the `stars` chunk. Two dynamic imports: `SkyGlobe`
+ * (R169's default export, so Rollup names its chunk `SkyGlobe-*.js`) for the drawing, and `GlobeRail.tsx` for the
+ * rail's `Time`, `Turn`, `Place` groups and the count with `Up from <place>` (`GlobeRail-*.js`), which reads the
+ * globe's sky through `globe/scene.ts` (`upCount`, `upList`, D-1037). Rollup makes `scene.ts` (with the projection it
+ * imports) a chunk the two share; the `globe` budget row counts the three together (`scripts/bundle-budget.ts`), so
+ * `stars` keeps only the page's wiring (`GLOBE_STARS_KB`). Each import is asked once and a failure is dropped, so the
  * next ask fetches again (`starsChunk.ts`'s shape).
  */
 
 type GlobeModule = typeof import('../../components/guide/skychart/globe/SkyGlobe');
-export type GlobeSceneModule = typeof import('../../components/guide/skychart/globe/scene');
+type GlobeRailModule = typeof import('./GlobeRail');
 
 let globe: Promise<GlobeModule> | undefined;
-let scene: Promise<GlobeSceneModule> | undefined;
+let rail: Promise<GlobeRailModule> | undefined;
 
 export function loadGlobe(): Promise<GlobeModule> {
   globe ??= import('../../components/guide/skychart/globe/SkyGlobe').catch((reason: unknown) => {
@@ -24,31 +24,12 @@ export function loadGlobe(): Promise<GlobeModule> {
   return globe;
 }
 
-export function loadGlobeScene(): Promise<GlobeSceneModule> {
-  scene ??= import('../../components/guide/skychart/globe/scene').catch((reason: unknown) => {
-    scene = undefined;
+export function loadGlobeRail(): Promise<GlobeRailModule> {
+  rail ??= import('./GlobeRail').catch((reason: unknown) => {
+    rail = undefined;
     throw reason;
   });
-  return scene;
-}
-
-/** The scene module once loaded and `wanted`, else `null`; asked for when `wanted` turns on. */
-export function useGlobeScene(wanted: boolean): GlobeSceneModule | null {
-  const [module, setModule] = useState<GlobeSceneModule | null>(null);
-  useEffect(() => {
-    if (!wanted || module !== null) return;
-    let live = true;
-    loadGlobeScene().then(
-      (loaded) => {
-        if (live) setModule(loaded);
-      },
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [wanted, module]);
-  return wanted ? module : null;
+  return rail;
 }
 
 type IdleWindow = Window & { requestIdleCallback?: (callback: () => void) => number; cancelIdleCallback?: (id: number) => void };
@@ -63,7 +44,7 @@ export function useGlobePrefetch(wide: boolean): void {
     const idle = window as IdleWindow;
     const fetchBoth = (): void => {
       loadGlobe().catch(() => undefined);
-      loadGlobeScene().catch(() => undefined);
+      loadGlobeRail().catch(() => undefined);
     };
     if (typeof idle.requestIdleCallback === 'function') {
       const id = idle.requestIdleCallback(fetchBoth);

@@ -6,10 +6,11 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import { BODIES_EVERY_MS } from '../../../lib/playback';
 import { chipFor } from '../../../lib/shownTime';
-import { formatClock, formatDate, formatShortClock } from '../../../lib/timeFormat';
+import { formatClock, formatDate } from '../../../lib/timeFormat';
 import { HOUR_MS, shortWeekday } from '../../../lib/timeStripe';
 import type { EpochMs, Favourite, Observer } from '../../../model';
 import { GLOBE_SPEEDS } from '../../components/guide/skychart/globe/constants';
+import { globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
 import type { Playback } from '../../components/live/usePlayback';
 import { useWallThrottle } from '../../components/live/useWallThrottle';
 import { SectionHeading } from '../../components/primitives/SectionHeading';
@@ -18,7 +19,6 @@ import { ToggleGroup } from '../../components/primitives/ToggleGroup';
 import { VisuallyHidden } from '../../components/primitives/VisuallyHidden';
 import { useNow } from '../../hooks/useNow';
 import { FieldList } from './FieldList';
-import type { GlobeSceneModule } from './globeChunk';
 import styles from './GlobeRail.module.css';
 
 /**
@@ -180,7 +180,6 @@ function useDeep(faint: boolean): DeepCatalog | null {
 }
 
 export interface GlobeFieldProps {
-  scene: GlobeSceneModule | null;
   place: Observer;
   instant: EpochMs;
   layers: { stars: boolean; planets: boolean };
@@ -195,7 +194,7 @@ export interface GlobeFieldProps {
  * change per `BODIES_EVERY_MS` of wall time, as the live page's bodies are (D-1039), so a time-lapse recomputes them
  * once a second while the globe writes every frame.
  */
-export function GlobeField({ scene, place, instant, layers, faint, named, onName }: GlobeFieldProps) {
+export function GlobeField({ place, instant, layers, faint, named, onName }: GlobeFieldProps) {
   const t = useT();
   const p = useStarsPageT();
   const lang = useLocale();
@@ -203,23 +202,21 @@ export function GlobeField({ scene, place, instant, layers, faint, named, onName
   const catalog = starCatalog();
   const deep = useDeep(faint);
   const at = useWallThrottle(instant, BODIES_EVERY_MS);
-  const sky = useMemo(() => (scene === null ? null : scene.globeSky(place, at)), [scene, place, at]);
+  const sky = useMemo(() => globeSky(place, at), [place, at]);
   const count = useMemo(() => {
-    if (scene === null || sky === null) return null;
-    const up = scene.upCount(sky, scene.starVectors(catalog)) + (deep === null ? 0 : scene.upCount(sky, scene.starVectors(deep)));
+    const up = upCount(sky, starVectors(catalog)) + (deep === null ? 0 : upCount(sky, starVectors(deep)));
     return { up, total: catalog.size + (deep?.size ?? 0) };
-  }, [scene, sky, catalog, deep]);
+  }, [sky, catalog, deep]);
   const objects = useMemo(() => {
-    if (scene === null || sky === null) return [];
-    const listed = scene.upList(sky, catalog, layers.planets ? sky.planets : [], lang);
+    const listed = upList(sky, catalog, layers.planets ? sky.planets : [], lang);
     return layers.stars ? listed : listed.filter((object) => object.planet !== null);
-  }, [scene, sky, catalog, layers.planets, layers.stars, lang]);
-  const planets = sky === null ? [] : sky.planets.filter((planet) => planet.altDeg >= 0);
+  }, [sky, catalog, layers.planets, layers.stars, lang]);
+  const planets = sky.planets.filter((planet) => planet.altDeg >= 0);
   return (
     <section aria-labelledby={headingId} className={styles.block} data-testid="stars-field" data-field="globe">
       <div className={styles.counts} data-testid="globe-count">
-        {count !== null && <p>{t.globe.count(count)}</p>}
-        {sky !== null && <p data-testid="globe-planets">{planets.length === 0 ? t.globe.planetsNone : t.globe.planetsUp(planets.map((planet) => `${p.planets[planet.body]} ${compassPoint(planet.azDeg)}`).join(' · '))}</p>}
+        <p>{t.globe.count(count)}</p>
+        <p data-testid="globe-planets">{planets.length === 0 ? t.globe.planetsNone : t.globe.planetsUp(planets.map((planet) => `${p.planets[planet.body]} ${compassPoint(planet.azDeg)}`).join(' · '))}</p>
       </div>
       <SectionHeading id={headingId}>{t.globe.upFrom(place.label)}</SectionHeading>
       <FieldList objects={objects} named={named} onName={onName} buried={false} labelledBy={headingId} />
@@ -227,10 +224,24 @@ export function GlobeField({ scene, place, instant, layers, faint, named, onName
   );
 }
 
-/** FR-GLOBE-12: the drawing's name — the place, the instant to the minute in its zone and the turn. */
-export function useGlobeLabel(place: Observer, instant: EpochMs, turn: GlobeTurn): string {
-  const t = useT();
-  const locale = useLocale();
-  const at = useWallThrottle(instant, BODIES_EVERY_MS);
-  return t.globe.label({ place: place.label, time: formatShortClock(at, place.timeZone, locale, true), turn });
+export interface GlobeGroupsProps {
+  playback: Playback;
+  zone: string | null;
+  turn: GlobeTurn;
+  onTurn: (turn: GlobeTurn) => void;
+  observer: Observer;
+  places: readonly Favourite[];
+  choice: PlaceChoice;
+  onChoice: (choice: PlaceChoice) => void;
+}
+
+/** The rail's `Time`, `Turn` and `Place` groups, a group apart, as the page's `timeline` slot holds them. */
+export function GlobeGroups({ playback, zone, turn, onTurn, observer, places, choice, onChoice }: GlobeGroupsProps) {
+  return (
+    <div className={styles.groups} data-testid="globe-groups">
+      <GlobeTime playback={playback} zone={zone} />
+      <GlobeTurnRow turn={turn} onTurn={onTurn} />
+      <GlobePlaces observer={observer} places={places} choice={choice} onChoice={onChoice} />
+    </div>
+  );
 }

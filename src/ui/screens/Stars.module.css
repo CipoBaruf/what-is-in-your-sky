@@ -244,9 +244,3 @@
   gap: var(--space-1);
 }
 
-/* R170 (FR-GLOBE-5, FR-GLOBE-7..9): the rail's `Time`, `Turn` and `Place` groups, a group apart (D-851's rhythm). */
-.globeGroups {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-}

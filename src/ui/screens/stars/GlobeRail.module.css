@@ -67,3 +67,10 @@
   font-size: var(--small);
   color: var(--fg-dim);
 }
+
+/* The three groups, a group apart (D-851's rhythm). */
+.groups {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}

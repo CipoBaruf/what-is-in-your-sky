@@ -478,7 +478,12 @@ export const BUDGETS: readonly Budget[] = [
  * D-178).
  */
 // R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
-export const PHASE_BUDGETS: readonly Budget[] = [];
+// R170 (FR-GLOBE-15, D-1035): the stars page's globe at GLOBE_BUDGET_KB (15) — `SkyGlobe-*.js` (the renderer and the
+// hand), `GlobeRail-*.js` (the rail's groups and list, lazy with it so `stars` keeps the wiring alone) and `scene-*.js`
+// (`globe/scene.ts` and the projection, which the two share), one total. 13.4 on the R170 branch (9,215 + 1,895 +
+// 2,602 bytes); `main` 187,143 bytes (+749 over 2.11.0's 186,394, within GLOBE_MAIN_KB), `stars` 32,143 (+1.5 KB over
+// 2.11.0's 29.9, within GLOBE_STARS_KB). R171 moves the row into `BUDGETS` with the release's measure.
+export const PHASE_BUDGETS: readonly Budget[] = [{ name: 'globe', match: (file) => /^(SkyGlobe|GlobeRail|scene)-.*\.js$/.test(file), limitKb: 15 }];
 
 /** Every row the script measures: the release's and the phase's. */
 const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];
