@@ -22,7 +22,9 @@ always the next release and the site is always the last one:
 
 ```
 git fetch origin && git push origin <release-sha>:release   # the SHA the tag points at
-``` `wrangler.jsonc` at the root holds the whole
+```
+
+`wrangler.jsonc` at the root holds the whole
 configuration (assets-only Worker, `dist/` as the assets directory, no Worker script, and
 the `routes` entry that binds the public address — see *Domain* below), so the build
 never has to guess.

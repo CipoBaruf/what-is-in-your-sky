@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.2 — resliced as vertical slices, for review |
-| Date | 2026-09-01 |
+| Status | MVP through v2.11 broken down. The MVP rows below are the v0.2 breakdown (resliced as vertical slices); each later phase has its own Inputs and Scope rows and its own block, whose first line is that block's status. A checked box is a merged task. |
+| Date | 2026-09-01 (MVP, v0.2); the latest block, v2.11, was cut 2026-11-02 |
 | Inputs | `SPEC.md` v0.4, `PLAN.md` v0.2 (Decisions D-1..D-17 and §8, §10 treated as fixed) |
 | Scope | MVP (spec Phase 0 + Phase 1). v1 items are not broken down here. |
 | Inputs (v1) | `SPEC.md` v1.0, `PLAN.md` v0.3 (Decision Log V1-1..V1-11 and Decisions D-69..D-87 with §16 treated as fixed) |
@@ -57,7 +57,7 @@
 - Tasks are ordered; the order is a valid serial execution. Each task is sized for one pull request and touches at most three modules. R1 and R2 are the largest by design (a spike cannot run without the physics core it validates; the first visible slice cannot run without the scaffold).
 - Every task after R1 delivers something a user can see on screen or run end-to-end. The three exceptions (R1, R14, H) carry a one-line **Why not a slice** justification.
 - **Satisfies** lists the requirement IDs the task completes. **Advances** lists IDs the task contributes to but that are only fully met by a later task.
-- **Depends on** lists task IDs that must be checked off first (the `sdd-task` skill refuses to start otherwise).
+- **Depends on** lists task IDs that must be checked off first (the `sdd-implement` skill and the driver refuse to start otherwise).
 - **[P]** in the heading means the task has no dependency on its neighbouring [P] tasks; **Parallel with** names them explicitly.
 - **Done when** items are the acceptance checks: a command whose output is stated, a test that passes, or a visual check with a stated expectation. "Tests pass" always means `npm test` (Vitest) unless a narrower command is given. From R2 on, every slice adds its own case to `tests/e2e/` rather than deferring to a separate e2e task.
 - Fixtures are dated and immutable (PLAN §9.3). Nothing in `src/physics`, `src/worker`, or `src/lib` reads the wall clock (D-15).
