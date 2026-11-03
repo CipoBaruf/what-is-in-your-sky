@@ -80,7 +80,6 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
             select(favourite.cellKey);
           }}
         />
-        {current && <span className={styles.current}>({t.favourites.current})</span>}
         <TextButton
           tone="dim"
           label="×"

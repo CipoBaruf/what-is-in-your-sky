@@ -237,11 +237,6 @@
   stroke-width: 1;
 }
 
-.label {
-  fill: var(--fg);
-  font-size: 9px;
-}
-
 .convention {
   margin: 0;
   color: var(--fg-dim);

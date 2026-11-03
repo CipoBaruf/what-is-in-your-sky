@@ -149,6 +149,30 @@ describe('<Footer>', () => {
     expect(screen.getByRole('contentinfo')).toHaveTextContent(en.footer.privacy);
   });
 
+  // D-1023 (FR-X-2 as amended 2026-11-02): the controls sheet's foot on the phone's sky pages — D-120's row, its privacy
+  // word kept, at a compact width; a `div`, so the page has no second `contentinfo`; one of the sheet's groups.
+  it.each([
+    ['en', /^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*No tracking\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/],
+    ['es', /^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/],
+  ] as const)('is the one row with its privacy word in the short form, at a compact width, in %s', async (locale, text) => {
+    media = stubMatchMedia(390);
+    const { container } = render(
+      <I18nProvider locale={locale}>
+        <Footer form="short" className="placed" />
+      </I18nProvider>,
+    );
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+    const row = screen.getByTestId('app-footer');
+    expect(row.tagName).toBe('DIV');
+    expect(row).toHaveAttribute('data-form', 'short');
+    expect(row).toHaveAttribute('data-rhythm', 'group');
+    expect(row).toHaveClass('placed');
+    expect(row.querySelectorAll('p')).toHaveLength(1);
+    for (const [name, href] of Object.entries(CREDITS)) expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    expect(row).toHaveTextContent(text);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it('is inert while the detail sheet is up', () => {
     render(<Footer inert />);
     expect(screen.getByRole('contentinfo', { hidden: true })).toHaveAttribute('inert');

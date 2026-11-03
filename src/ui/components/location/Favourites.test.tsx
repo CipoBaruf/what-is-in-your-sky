@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -73,7 +73,7 @@ describe('Favourites (R28: FR-OFF-7, US-17)', () => {
     const [first, second] = screen.getAllByTestId('favourite');
     expect(first).toHaveAttribute('data-current', 'no');
     expect(second).toHaveAttribute('data-current', 'yes');
-    expect(within(second as HTMLElement).getByText('(in use)')).toBeInTheDocument();
+    expect(screen.queryByText('(in use)')).toBeNull(); // D-1030: the row is ruled, not labelled
     expect(screen.getByRole('button', { name: 'Use Cipolletti' })).toHaveAttribute('aria-current', 'true');
     // An observer a few hundred metres away is the same 0.01° cell, so it is the same saved place (D-138).
     set({ observer: { ...cipolletti, lat: cipolletti.lat + 0.001, label: '−38.93, −67.99', source: 'coords' } });
@@ -137,7 +137,7 @@ describe('Favourites, the Where reading’s line form (R81: FR-FIRST-11, D-511)'
     line();
     const items = screen.getAllByTestId('favourite');
     expect(items.map((item) => item.getAttribute('data-current'))).toEqual(['yes', 'no']);
-    expect(within(items[0] as HTMLElement).getByText('(in use)')).toBeInTheDocument();
+    expect(screen.queryByText('(in use)')).toBeNull();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Use Paris' }));
     expect(selectFavourite).toHaveBeenCalledWith(favouriteCellKey(paris));

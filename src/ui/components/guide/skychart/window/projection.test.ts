@@ -270,7 +270,9 @@ describe('the heading (FR-WIN-3, FR-WIN-4; R38 fused; R44 declination)', () => {
   });
 
   it('calibrates only while upright and while the compass says it is accurate', () => {
-    expect(calibrationSample(ios)).toBeCloseTo((360 - 4.7 - 80.9 + 360) % 360, 6);
+    // D-1027: the back's azimuth from the whole relative rotation, less the compass's — gamma counts.
+    expect(calibrationSample(ios)).toBeCloseTo((lookDirection(rotationMatrix(80.9, 99.9, 4.7)).azDeg - 4.7 + 360) % 360, 6);
+    expect(calibrationSample(ios)).not.toBeCloseTo((360 - 4.7 - 80.9 + 360) % 360, 0);
     expect(calibrationSample({ ...ios, webkitCompassAccuracy: -1 })).toBeNull();
     expect(calibrationSample({ ...ios, webkitCompassAccuracy: 40 })).toBeNull();
     expect(calibrationSample({ ...ios, beta: 170 })).toBeNull();

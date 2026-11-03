@@ -16,7 +16,7 @@ import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
-import { WherePlace } from './WherePlace';
+import { WhereOpenedStatus, WherePlace } from './WherePlace';
 
 /** The place as the Where reading hosts it: the open state is the host's, and the group it controls is the host's too. */
 function Host() {
@@ -52,11 +52,11 @@ afterEach(() => {
 });
 
 describe('<WherePlace> (FR-FIRST-11)', () => {
-  it('a place picked by name: its own name and its coordinates, then the centre it uses', () => {
+  it('a place picked by name: its own name, then the coordinates and the centre it uses (D-1029)', () => {
     set(cipolletti);
     render(<Host />);
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti \(−38\.93, −67\.99\)$/);
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Using the centre of Cipolletti. Saved in this browser only. change');
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent('−38.93, −67.99 · Using the centre of Cipolletti. Saved in this browser only. change');
   });
 
   it('typed coordinates: the coordinates alone, and says so', () => {
@@ -75,6 +75,16 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
     expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Using your device's location\. Saved/);
   });
 
+  it('the device, once the nearest town is known: the town alone, the coordinates first in the sentence (D-1025, D-1029)', () => {
+    set({ ...coords, source: 'device', accuracyM: 12_000 });
+    const { rerender } = render(<Host />);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^−38\.93, −67\.99$/);
+    set({ ...coords, source: 'device', accuracyM: 12_000, label: 'Cipolletti, Argentina' });
+    rerender(<Host />);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^−38\.93, −67\.99 · Using your device's location \(±12000 m\)\./);
+  });
+
   it('in Spanish, each sentence', () => {
     set(cipolletti);
     render(
@@ -82,7 +92,7 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
         <Host />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Con el centro de Cipolletti. Guardada solo en este navegador. cambiar');
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent('−38.93, −67.99 · Con el centro de Cipolletti. Guardada solo en este navegador. cambiar');
     set(coords);
     expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Con estas coordenadas\./);
     set({ ...coords, source: 'device', accuracyM: 40 });
@@ -118,8 +128,9 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
 });
 
 /**
- * R130 (FR-FLOW-2, D-844): the folded Where on compact — the place with `[ change ]`, one status line ending in
- * `[ details ]` that opens the sentence and the rest in FR-FIRST-11's order, and each fault taking the line whole.
+ * R130 (FR-FLOW-2, D-844) as amended by D-1024: the folded Where on compact — the place with `[ change ]`, its one
+ * control; the sentence and the rest at the top of the group `[ change ]` opens, in FR-FIRST-11's order; and a fault
+ * line under the place, with no `[ details ]`, only while there is a fault.
  */
 describe('WherePlace folded (R130: FR-FLOW-2)', () => {
   const T0 = Date.UTC(2026, 8, 11, 21, 0, 0);
@@ -165,6 +176,7 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     });
   };
 
+  /** As the Where reading hosts it (D-1024): the status heads the group, mounted only while the group is open. */
   function Folded({ locale = 'en' as const }: { locale?: 'en' | 'es' }) {
     const [open, setOpen] = useState(false);
     return (
@@ -177,9 +189,15 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
             onToggle={() => {
               setOpen((o) => !o);
             }}
-            details={<p data-testid="rest">the readiness line, the elements line, the saved places</p>}
           />
-          <div id="group" hidden={!open} data-testid="group" />
+          <div id="group" hidden={!open} data-testid="group">
+            {open ? (
+              <WhereOpenedStatus>
+                <p data-testid="rest">the readiness line, the elements line, the saved places</p>
+              </WhereOpenedStatus>
+            ) : null}
+            <input aria-label="place name" data-testid="inputs" />
+          </div>
         </main>
       </I18nProvider>
     );
@@ -192,62 +210,67 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     vi.restoreAllMocks();
   });
 
-  it('folded and ready: the place with [ change ] on its row, and [ details ] alone under it (R156, FR-PHONE-12); the rest hidden', async () => {
+  it('folded and ready: the place with [ change ] on its row, the one control; no status line and no [ details ] (D-1024)', async () => {
     ready();
     const { container } = render(<Folded />);
-    expect(screen.getByTestId('location-summary')).toHaveTextContent('Cipolletti (−38.93, −67.99)');
-    expect(screen.getByTestId('location-summary').parentElement).toContainElement(screen.getByTestId('location-summary-change'));
-    const status = screen.getByTestId('where-status');
-    expect(status).toHaveTextContent(/^details$/);
-    expect(status).toHaveAttribute('data-state', 'ready');
-    expect(status).not.toHaveAttribute('data-fault');
-    const details = screen.getByTestId('where-details');
-    expect(status).toContainElement(details);
-    expect(details).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByTestId('where-details-panel')).not.toBeVisible();
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Cipolletti$/);
+    const row = screen.getByTestId('where-place-row');
+    expect(row).toContainElement(screen.getByTestId('location-summary-change'));
+    expect(screen.getAllByRole('button')).toEqual([screen.getByTestId('location-summary-change')]);
+    expect(screen.queryByTestId('where-status')).toBeNull();
+    expect(screen.queryByTestId('where-details')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'details' })).toBeNull();
+    expect(screen.getByTestId('where-folded')).toHaveAttribute('data-state', 'ready');
+    expect(screen.queryByTestId('where-opened-status')).toBeNull();
+    expect(screen.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('opened: [ details ] shows the sentence first and then the rest, in place; [ change ] still opens the group', () => {
+  it('opened: [ change ] shows the sentence and then the rest at the top of the group, above the inputs (D-1024)', () => {
     ready();
     render(<Folded />);
-    fireEvent.click(screen.getByTestId('where-details'));
-    expect(screen.getByTestId('where-details')).toHaveAttribute('aria-expanded', 'true');
-    const panel = screen.getByTestId('where-details-panel');
-    expect(panel).toBeVisible();
-    expect(screen.getByTestId('where-details')).toHaveAttribute('aria-controls', panel.id);
-    const [first, second] = Array.from(panel.children);
-    expect(first).toHaveTextContent('Using the centre of Cipolletti. Saved in this browser only.');
+    fireEvent.click(screen.getByTestId('location-summary-change'));
+    expect(screen.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'true');
+    const group = screen.getByTestId('group');
+    expect(group).toBeVisible();
+    const status = screen.getByTestId('where-opened-status');
+    expect(group.firstElementChild).toBe(status);
+    expect(status.compareDocumentPosition(screen.getByTestId('inputs')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const [first, second] = Array.from(status.children);
+    expect(first).toBe(screen.getByTestId('where-sentence'));
+    expect(first).toHaveTextContent(/^−38\.93, −67\.99 · Using the centre of Cipolletti\. Saved in this browser only\.$/);
     expect(second).toBe(screen.getByTestId('rest'));
     fireEvent.click(screen.getByTestId('location-summary-change'));
-    expect(screen.getByTestId('group')).toBeVisible();
+    expect(screen.queryByTestId('where-opened-status')).toBeNull();
   });
 
-  it('Spanish: [ detalles ] alone', () => {
+  it('Spanish: [ cambiar ] alone, and no [ detalles ]', () => {
     ready();
     render(<Folded locale="es" />);
-    expect(screen.getByTestId('where-status')).toHaveTextContent(/^detalles$/);
-    expect(screen.getByTestId('where-details')).toHaveTextContent('detalles');
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByTestId('location-summary-change')).toHaveTextContent('cambiar');
+    expect(screen.queryByText(/detalles/)).toBeNull();
   });
 
-  it('before the readiness answers, [ details ] alone and pending, never a fault', () => {
+  it('before the readiness answers, no line and pending, never a fault', () => {
     act(() => {
       appStore.setState({ observer, elements: fresh, passes: { ...initial.passes, status: 'computing', observer } });
     });
     render(<Folded />);
-    const status = screen.getByTestId('where-status');
-    expect(status).toHaveTextContent(/^details$/);
-    expect(status).toHaveAttribute('data-state', 'pending');
-    expect(status).not.toHaveAttribute('data-fault');
+    expect(screen.queryByTestId('where-status')).toBeNull();
+    expect(screen.getByTestId('where-folded')).toHaveAttribute('data-state', 'pending');
   });
 
-  it('a not-ready state takes the line whole', () => {
+  it('a not-ready state shows under the place with the group closed, with no [ details ] (D-1024)', () => {
     ready({ weather: { observer, status: 'error', snapshot: null, error: { kind: 'offline', detail: 'offline' } } });
     render(<Folded />);
+    expect(screen.getByTestId('group')).not.toBeVisible();
     const status = screen.getByTestId('where-status');
+    expect(status).toBeVisible();
     expect(status).toHaveAttribute('data-fault', 'not-ready');
-    expect(status).toHaveTextContent(/^Not ready offline: no cloud forecast stored yet\./);
-    expect(status).toContainElement(screen.getByTestId('where-details'));
+    expect(status).toHaveTextContent(/^Not ready offline: no cloud forecast stored yet\.$/);
+    expect(status.querySelector('button')).toBeNull();
+    expect(screen.getByTestId('where-place-row').compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('an elements warning takes the line whole, in the warning ink', () => {
@@ -256,6 +279,7 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     const status = screen.getByTestId('where-status');
     expect(status).toHaveAttribute('data-fault', 'elements-warning');
     expect(status).toHaveTextContent(/^Elements 4 d old/);
+    expect(status.querySelector('button')).toBeNull();
   });
 
   it('a failure takes the line whole, with its [ retry ]', () => {

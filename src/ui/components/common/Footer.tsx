@@ -32,6 +32,13 @@ import styles from './Footer.module.css';
  * way the sources stand after `Data:`. It is the last item in each form: the
  * sources and the page's own lines keep their order, and the one-row forms
  * stay one row with the privacy word as their only difference (D-548).
+ *
+ * D-1023 (FR-X-2 as amended 2026-11-02): the footer is the same on every page.
+ * On a desk every route — home, the pass detail, settings, live, stars — ends
+ * in D-120's one row. On a phone the home and settings end in the full credits,
+ * and the three pages that are all sky (live, stars, the pass detail) carry the
+ * one row at the end of their controls sheet: `short`, the row with its privacy
+ * word at every width.
  */
 const ATTRIBUTION_URLS = {
   celestrak: 'https://celestrak.org/',
@@ -52,8 +59,12 @@ export interface FooterProps {
    * is that row without its privacy word, at every width: the phone's
    * first-run steps pass it, so the step and its footer are one screen and the
    * promise is not said twice (`home.savedFoot` says it four lines higher).
+   * D-1023: `short` is D-120's row, privacy word included, at every width — the
+   * controls sheet's foot on the phone's sky pages (`ControlsSheet`).
    */
-  form?: 'full' | 'line';
+  form?: 'full' | 'line' | 'short';
+  /** Placement only (D-704): the controls sheet fits the row to its body. */
+  className?: string | undefined;
 }
 
 function Linked({ text, href }: { text: LinkedText; href: string }) {
@@ -74,14 +85,19 @@ function Attribution({ text, href }: { text: LinkedText; href: string }) {
   );
 }
 
-export function Footer({ inert = false, form = 'full' }: FooterProps) {
+export function Footer({ inert = false, form = 'full', className }: FooterProps) {
   const t = useT();
   const wide = useLayoutMode() === 'wide';
   const line = form === 'line';
+  const footerClass = className ? `${styles.footer} ${className}` : styles.footer;
 
-  if (wide || line) {
+  if (wide || line || form === 'short') {
+    // D-1023: in the controls sheet the row is a `div` — the page's `contentinfo` is its own footer or none, never a
+    // second one inside a sheet (HTML-AAM scopes a `footer` in a `section` out of the role, but not every reader does).
+    // It is one of the sheet's groups (FR-FLOW-10's `data-rhythm`), as every row of the body is.
+    const Tag = form === 'short' ? 'div' : 'footer';
     return (
-      <footer inert={inert} className={styles.footer} data-form={line ? 'line' : 'short'}>
+      <Tag inert={inert} className={footerClass} data-form={line ? 'line' : 'short'} data-testid="app-footer" {...(form === 'short' ? { 'data-rhythm': 'group' } : {})}>
         {/* R105 (D-720): the one-row forms' rule above, as wide as the footer (R23, D-120). */}
         <Rule className={styles.rule} />
         <p className={styles.line}>
@@ -103,12 +119,12 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
           {t.footer.short.chart}{' '}
           <a href={ATTRIBUTION_URLS.glyphcss}>{t.footer.chart.link}</a>
         </p>
-      </footer>
+      </Tag>
     );
   }
 
   return (
-    <footer inert={inert} className={styles.footer} data-form="full">
+    <footer inert={inert} className={footerClass} data-form="full" data-testid="app-footer">
       <Attribution text={t.footer.celestrak} href={ATTRIBUTION_URLS.celestrak} />
       <Attribution text={t.footer.openMeteo} href={ATTRIBUTION_URLS.openMeteo} />
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />

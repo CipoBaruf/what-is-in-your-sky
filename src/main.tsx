@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { applyLocale } from './i18n/useT';
 import { appStore, registerServiceWorker, startApp } from './state';
 import { AppRoot } from './ui/App';
-import { applyTheme, themeAt } from './ui/styles/theme';
+import { applyTheme } from './ui/styles/theme';
 import './ui/styles/tokens.css';
 import './ui/styles/global.css';
 
@@ -20,8 +20,7 @@ import './ui/styles/global.css';
  */
 startApp();
 applyLocale(appStore.getState().locale);
-// R156 (FR-PHONE-15, D-972): `auto` resolves here, from the saved place and the real instant, before anything paints.
-applyTheme(themeAt(appStore.getState().theme, appStore.getState().observer, Date.now()));
+applyTheme(appStore.getState().theme);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root missing from index.html');

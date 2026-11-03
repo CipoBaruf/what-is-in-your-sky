@@ -31,15 +31,6 @@ export interface ShareButtonProps {
   label?: string;
   /** R48 (FR-COMP-4): the accessible name when the visible label is a short form of it — the live page's compact row says "Share" for "Share this sky". */
   ariaLabel?: string;
-  /**
-   * R71 (FR-COMP-4 as amended v1.4, D-411): the word without its brackets, for
-   * a compact row that cannot afford four cells of decoration — the live
-   * page's actions row once `[ list (n) ]` is on it (FR-LEG-7), which is 39
-   * cells in Spanish with them and 35 without. Nowhere else: the brackets are
-   * how an action reads (FR-X-5), and this is the one row whose budget buys
-   * them off. The colour and the tap target are unchanged.
-   */
-  plain?: boolean;
 }
 
 /** How long the inline confirmation stays. Long enough to read, short enough not to outlive the action. */
@@ -47,7 +38,7 @@ const CONFIRMATION_MS = 4000;
 
 type Confirmation = 'idle' | 'copied' | 'failed';
 
-export function ShareButton({ url, title, text, label, ariaLabel, plain = false }: ShareButtonProps) {
+export function ShareButton({ url, title, text, label, ariaLabel }: ShareButtonProps) {
   const t = useT();
   const [confirmation, setConfirmation] = useState<Confirmation>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,7 +80,6 @@ export function ShareButton({ url, title, text, label, ariaLabel, plain = false 
       {/* R104 (D-704): the sheet's bordered box (global.css `button`), which the live page's compact and folded rows strip to text. */}
       <TextButton
         box="edge"
-        bare={plain}
         label={label ?? t.share.pass}
         {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
         onClick={() => {

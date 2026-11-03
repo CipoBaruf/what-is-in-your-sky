@@ -36,6 +36,8 @@ import { BREAKPOINTS_PATH, conditionText, cssFiles, listing, queriesOf, UI_DIR, 
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
 const APP_PATH = 'src/ui/App.module.css';
+/** D-1023: the footer's top gap, which the shell's short window and two-line widths halve. */
+const FOOTER_CSS_PATH = 'src/ui/components/common/Footer.module.css';
 /** R166 (FR-CLEAN-12, D-1003): the shell's stylesheet, where the desk's cap is written for every route. */
 const SHELL_PATH = 'src/ui/Shell.module.css';
 const SHEET_PATH = 'src/ui/screens/PassDetail.module.css';
@@ -301,16 +303,20 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
       const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]?.trim() ?? '', m[2]?.trim() ?? ''] as const);
       expect(rules.map(([selector]) => selector)).toEqual([`:global(:root[lang='${lang}']) .main`, `:global(:root[lang='${lang}'] #root) > :global(footer[data-form='short'])`]);
       expect(rules[0]?.[1]).toBe('--two-line-footer: 0.5;');
-      // R105 (D-720): the footer's top padding is the space under its `Rule`, which Footer.module.css reads from this name.
-      expect(rules[1]?.[1]).toBe('--footer-rule-gap: var(--space-2);');
+      // R105 (D-720): the space under the footer's `Rule`, which Footer.module.css reads from this name; D-1023: and the
+      // footer's own top gap, the main's old row of air under the panes, halved by the same share.
+      expect(rules[1]?.[1]).toBe('--footer-rule-gap: var(--space-2);\n    --footer-two-line: 0.5;');
     }
     // The main's air is one calculation, the two shares subtracted, so both rules true leave none (D-608 composes).
     const wide = wideBlocks(app).join('\n');
     expect(wide).toContain('padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
-    expect(wide).toContain('padding-bottom: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
+    // D-1023: the air under the panes is the footer's top gap now (Footer.module.css), the same calculation on its own names.
+    expect(wide).toContain('padding-bottom: 0;');
+    const footer = readFileSync(FOOTER_CSS_PATH, 'utf8');
+    expect(footer).toContain('padding-top: calc(var(--space-3) * (1 - var(--footer-short-window, 0) - var(--footer-two-line, 0)));');
     const short = mediaBlocks(app, new RegExp(`height <= ${String(WIDE_SHORT_MAX_HEIGHT_PX)}px`));
     expect(short).toHaveLength(1);
-    expect(short[0]?.body.replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('.main {\n    --short-window: 0.5;\n  }');
+    expect(short[0]?.body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n\s*\n/g, '\n').trim()).toBe(".main {\n    --short-window: 0.5;\n  }\n  :global(#root) > :global(footer[data-form='short']) {\n    --footer-short-window: 0.5;\n  }");
   });
 
   it('writes every width inside a wide block in cells or rows, never in px (FR-DESK-1)', () => {

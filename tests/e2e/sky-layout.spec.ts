@@ -240,7 +240,7 @@ for (const locale of LOCALES) {
         }
         // The sheet's rows in FR-GYRO-10's order (R150: the satellites last), the view row one line.
         const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
         await expectViewRowOneLine(page.getByTestId('live-view-row'), locale);
         // The facing row: the readout as a button on the window and the polar chart, which have a picker — a tap opens
         // it directly under the readout, a second tap closes it; the dome's readout stands alone.
@@ -284,7 +284,7 @@ for (const locale of LOCALES) {
       await openSheet(page);
       const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
       // No sensor on this profile: no follow row.
-      expect(order).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+      expect(order).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
       await expect(layout.getByTestId('stars-layers-row')).toHaveCount(2);
       await expect(layout.getByTestId('stars-layers').getByRole('button')).toHaveCount(4);
       await expect(layout.locator('[data-layer="passes"]')).toHaveCount(0);

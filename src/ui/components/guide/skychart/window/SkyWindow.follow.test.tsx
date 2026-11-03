@@ -171,8 +171,8 @@ describe('<SkyWindow follow> (FR-GYRO-2, FR-GYRO-4, FR-GYRO-5)', () => {
     frame();
     settle(frame);
     expect(screen.queryByTestId('window-ground-note')).toBeNull();
-    // Pointed well below the horizon, the box's centre under it: the ground note is the one line over the drawing.
-    reading(aim(120, -40));
+    // Pointed well below the horizon — past the lift's band (D-1022), drawn about 33° under — the box's centre under it: the ground note is the one line over the drawing.
+    reading(aim(120, -55));
     frame();
     settle(frame);
     expect(screen.getAllByRole('status')).toEqual([screen.getByTestId('window-ground-note')]);

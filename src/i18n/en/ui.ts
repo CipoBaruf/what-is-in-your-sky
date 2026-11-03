@@ -6,7 +6,7 @@ import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phras
 import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
-import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
+import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme, TonightCloud } from '../../model';
 import type { CountdownPhase, HeaderPage, LinkedText } from '../messages';
 
 /**
@@ -97,9 +97,6 @@ const moonPhase = {
   waningCrescent: 'waning crescent',
 } satisfies Record<MoonPhaseName, string>;
 
-/** R82 (D-513): the what step's count in words, one to twelve; figures after. */
-const numberWords = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-
 
 export const ui = {
   app: {
@@ -109,8 +106,8 @@ export const ui = {
     language: 'Language',
     /** FR-THEME-1: the palette switch. Unlike the languages, both names are translated — whoever reads this can read the page. */
     theme: 'Theme',
-    /** R156 (FR-PHONE-15): `Theme [x] Dark [ ] Night [ ] Auto`, within 36 cells. */
-    themes: { dark: 'Dark', night: 'Night', auto: 'Auto' } satisfies Record<Theme, string>,
+    /** `Theme [x] Dark [ ] Night` (v2.12, D-1020: Auto withdrawn). */
+    themes: { dark: 'Dark', night: 'Night' } satisfies Record<Theme, string>,
     /**
      * FR-COMP-1 (R52): the compact header's title. The full one is 29 cells and
      * the row it shares with `[ live ]` and `[ settings ]` has 36, so compact
@@ -129,7 +126,7 @@ export const ui = {
     back: '←',
     backName: 'Back',
     nav: 'Pages',
-    pages: { home: 'home', live: 'live', stars: 'stars', pass: 'pass', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    pages: { home: 'home', live: 'live', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
   },
 
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
@@ -176,8 +173,6 @@ export const ui = {
     skyLabel: 'Sky',
     sunGlow: 'sun glow',
     sunGlowName: 'The Sun’s glow on the horizon',
-    /** R75 (FR-SET-1): the page's foot, which takes the place of the saved-here sentence and of the footer. */
-    privacy: 'No tracking. Your location is saved in this browser only.',
   },
 
   compass,
@@ -275,15 +270,6 @@ export const ui = {
     moonRow: (p: { phase: MoonPhaseName; illumination: string; point: CompassPoint | null }) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     /** FR-FIRST-9 (US-4 AC3 as amended v2.0.2): the first satellite up, its time left, and how many more. */
     upNow: (p: { name: string; left: string | null; more: number }) => `${p.name}${p.left === null ? '' : ` · ${p.left} left`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    /**
-     * R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's **what** step's heading — the count in words to
-     * twelve, figures after it (`Five things cross tonight`, `13 things cross tonight`).
-     */
-    count: (n: number) => {
-      if (n === 0) return 'Nothing crosses tonight';
-      if (n === 1) return 'One thing crosses tonight';
-      return `${n <= 12 ? capitalise(numberWords[n] ?? String(n)) : String(n)} things cross tonight`;
-    },
     /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **when** step. */
     whenStep: {
       heading: 'When is it dark enough?',
@@ -295,27 +281,39 @@ export const ui = {
       passesIn: 'Passes in it',
       passesValue: (p: { tonight: number; total: number; hours: number }) => `${String(p.tonight)} tonight, ${String(p.total)} in ${String(p.hours)} h`,
       clouds: 'Clouds tonight',
-      /** The cloud word's tooltip: the instant it is judged at. */
-      cloudsMoment: 'in the middle of the dark band',
+      /** The cloud word's tooltip: what it is judged over (D-1028: the dark band's hours). */
+      cloudsMoment: 'across the dark band',
+      /**
+       * D-1028: a night whose cloud changes once is two rows, `Until 02:00` · `Likely obscured` and `From 02:00` · `Clear`;
+       * "Clouds until 02:00" and "Likely obscured" would be 34 cells, but the Spanish pair would not fit, and the two
+       * languages keep one shape. Never with a UTC clock: with no zone there is no forecast (D-859).
+       */
+      cloudsUntil: (at: string) => `Until ${at}`,
+      cloudsFrom: (at: string) => `From ${at}`,
+      cloudsMomentUntil: (at: string) => `until ${at}`,
+      cloudsMomentFrom: (at: string) => `from ${at}`,
       moon: 'Moon',
       moonValue: (p: { phase: MoonPhaseName; illumination: string }) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
       /** D-513: by whether the Moon is up and at least `MOON_BRIGHT_PCT` lit inside the dark window (`lib/moonNote`). */
       moonNote: (note: MoonNote) => `A bright moon washes out the faint ones. ${note === 'bright' ? 'Tonight it will.' : 'Tonight it will not.'}`,
-      next: 'See what crosses',
+      /** v2.12 (FR-FIRST-4 as amended, D-1021): the when step's action leads to the choice of what to see. */
+      next: 'Choose what to see',
     },
     /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **what** step. */
     whatStep: {
-      sentence: 'Each one is a steady point of light, moving about as fast as a high aircraft, with no blinking.',
-      moreTonight: (n: number) => `${String(n)} more tonight`,
-      moreNights: (n: number) => (n === 1 ? '1 more night' : `${String(n)} more nights`),
+      /** v2.12 (FR-FIRST-4 as amended, D-1021): the third step asks, and the home's three doors answer. */
+      title: 'What do you want to see?',
       /**
        * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
        * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).
        */
-      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: CloudState }): string[] => [
+      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: TonightCloud }): string[] => [
         p.place,
         ...(p.dark === null ? [] : [p.dark === 'none' ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`]),
-        cloudState[p.cloud].toLowerCase(),
+        // D-1028: a change is two pieces, `likely obscured until 02:00 · clear after`, so the line breaks between them.
+        ...(p.cloud.kind === 'change'
+          ? [`${cloudState[p.cloud.before].toLowerCase()} until ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} after`]
+          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
       ],
       edit: 'edit',
     },
@@ -378,8 +376,6 @@ export const ui = {
     save: 'Save this place',
     empty: 'No places saved yet.',
     use: (label: string) => `Use ${label}`,
-    /** Marks the entry the app is currently computing for; the button still works, it just changes nothing. */
-    current: 'in use',
     remove: (label: string) => `Remove ${label}`,
     limit: (max: number) => `Up to ${String(max)} places. Saving another forgets the one you have not used for longest.`,
   },
@@ -608,7 +604,13 @@ export const ui = {
     momentPeak: 'at the pass peak',
     tooltipHead: (p: { percent: string | null; moment: string }) => (p.percent === null ? `No cloud forecast ${p.moment}.` : `${p.percent} % effective cloud ${p.moment}.`),
     thresholds: (p: { clear: string; obscured: string }) =>
-      `Clear below ${p.clear} %, partly cloudy ${p.clear}–${p.obscured} %, likely obscured above ${p.obscured} % effective cloud (low and mid cloud weigh more than high cloud).`,
+      `Clear below ${p.clear} %, partly cloudy ${p.clear}–${p.obscured} %, likely obscured above ${p.obscured} % effective cloud (the thickest layer, high cloud counted at 70 %).`,
+    /**
+     * D-1028: tonight's cloud as one phrase — the state, `Variable`, or the change, `Likely obscured until 02:00 · clear after`.
+     * The wide lines' form; the compact ones have their own (the door's `dark`, the when step's rows, the foot's pieces).
+     */
+    tonight: (cloud: TonightCloud): string =>
+      cloud.kind === 'steady' ? cloudState[cloud.state] : cloud.kind === 'variable' ? 'Variable' : `${cloudState[cloud.before]} until ${cloud.at} · ${cloudState[cloud.after].toLowerCase()} after`,
     source: (p: { provider: string; fetched: string }) => `Forecast by ${p.provider}, fetched ${p.fetched}.`,
     noForecast: 'No forecast is available.',
   },
@@ -703,7 +705,7 @@ export const ui = {
   footer: {
     celestrak: { before: 'Orbital elements by ', link: 'CelesTrak', after: '.' } satisfies LinkedText,
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
-    geonames: { before: 'Place search by Open-Meteo geocoding, with data from ', link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
+    geonames: { before: "Place search by Open-Meteo geocoding, and the town named for your device's location, with data from ", link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
     credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
     /* R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): the library

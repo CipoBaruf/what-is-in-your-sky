@@ -110,3 +110,19 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* D-1023: the footer's one row closes the body. The sheet already draws the two cells of side padding the frame's
+   footer carries (global.css), so the row takes none of its own, no cap, and its rule does not reach out past the
+   body (`Footer.module.css`'s `.rule`), which would scroll the body sideways. The sheet's own bottom padding is
+   the space under it. Written under `.body` so it outweighs the one-row form's own padding (`Footer.module.css`,
+   two classes) whatever order the build puts the stylesheets in. */
+.sheet .body > .foot {
+  flex: none;
+  max-width: none;
+  margin-inline: 0;
+  padding: 0;
+}
+
+.sheet .body > .foot > hr {
+  margin-inline: 0;
+}

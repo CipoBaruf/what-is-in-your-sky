@@ -42,7 +42,6 @@ import {
   nowPoint,
   OBSERVER_MARK_RADIUS,
   observerMark,
-  passAnchors,
   passMarkers,
   passStrip,
   projectToScreen,
@@ -186,21 +185,6 @@ describe('anchors', () => {
       expect(azDeg).toBeCloseTo(anchor.azDeg, 6);
       expect(elDeg).toBeCloseTo(0, 6);
     }
-  });
-
-  it('put the pass labels at the rise, peak and end points, outside the dome', () => {
-    const anchors = passAnchors(pass);
-    for (const [anchor, point] of [
-      [anchors.rise, pass.start],
-      [anchors.peak, pass.peak],
-      [anchors.end, pass.end],
-    ] as const) {
-      expect(radius(anchor.at)).toBeGreaterThan(1.05);
-      const { azDeg, elDeg } = skyOf(anchor.at);
-      expect(azDeg).toBeCloseTo(point.azDeg, 6);
-      expect(elDeg).toBeCloseTo(point.elDeg, 6);
-    }
-    expect(anchors.rise.id).toBe(`${pass.id}-rise`);
   });
 
   it('tells which side of the screen a point falls on: at rotY 0 east is right and west left; at rotY 90 north is right', () => {

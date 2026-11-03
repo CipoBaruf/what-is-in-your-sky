@@ -419,7 +419,7 @@ describe('<SkyPolar>', () => {
     // The stylesheet is a CSS module, so what the test can hold is the file:
     // no chart element may reach for a general foreground or accent colour.
     const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
-    const drawing = css.slice(css.indexOf('.horizon'), css.indexOf('.label {'));
+    const drawing = css.slice(css.indexOf('.horizon'), css.indexOf('.convention {'));
     expect(drawing).not.toMatch(/var\(--(accent|warn|fg|fg-dim)\)/);
     for (const token of ['--chart-horizon', '--chart-rings', '--chart-compass', '--chart-pass', '--chart-pass-dim', '--chart-pass-flown', '--chart-peak', '--chart-shadow', '--chart-now', '--chart-sun', '--chart-moon']) {
       expect(drawing, token).toContain(`var(${token})`);

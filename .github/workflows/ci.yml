@@ -3,7 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+  # D-1031: `labeled` too, so adding `full-ci` to a pull request reruns it whole.
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 env:
   # FR-CI-1's budget (R37, D-195): a pull request's CI finishes inside ten
@@ -43,40 +45,86 @@ jobs:
         shard: [1, 2, 3, 4, 5]
     name: ci (shard ${{ matrix.shard }})
     steps:
+      # D-1031: on a pull request the checkout is GitHub's merge commit, whose first parent is
+      # the tip of `main` it merges into, so two commits of history are the whole diff.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
+      # D-1031 (FR-CI-1 as amended 2026-11-02): which tests this change reaches. A push to `main`
+      # and a pull request labelled `full-ci` run everything; any other pull request runs what
+      # `scripts/ci-affected.ts` selects from its diff against `main`. Node runs the script as it
+      # is, before `npm ci`.
+      - name: affected
+        id: affected
+        env:
+          FULL_CI: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+        run: |
+          if [ "$FULL_CI" = true ]; then
+            node scripts/ci-affected.ts --all "${{ github.event_name }}, or the full-ci label"
+          else
+            node scripts/ci-affected.ts HEAD^1
+          fi
       # FR-CI-1: each stage is wrapped so the summary below can name what took the time.
-      - run: bash .github/workflows/stage.sh install npm ci
-      - run: bash .github/workflows/stage.sh typecheck npm run typecheck
-      - run: bash .github/workflows/stage.sh lint npm run lint
+      # D-1031: the whole-program checks and the unit tests run once, on shard 1; the other
+      # shards are e2e shards and stop here when no spec is selected.
+      - if: matrix.shard == 1 || steps.affected.outputs.e2e != 'none'
+        run: bash .github/workflows/stage.sh install npm ci
+      - if: matrix.shard == 1
+        run: bash .github/workflows/stage.sh typecheck npm run typecheck
+      - if: matrix.shard == 1
+        run: bash .github/workflows/stage.sh lint npm run lint
       # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
-      - run: bash .github/workflows/stage.sh browsers npx playwright install --with-deps chromium
-      - run: bash .github/workflows/stage.sh unit npm test
+      - if: (matrix.shard == 1 && steps.affected.outputs.unit != 'none') || steps.affected.outputs.e2e != 'none'
+        run: bash .github/workflows/stage.sh browsers npx playwright install --with-deps chromium
+      # D-1031: `vitest related` runs the test files it is handed and every test file whose
+      # imports reach the other files; `ci-affected.ts` adds the tests that read files by path.
+      - if: matrix.shard == 1 && steps.affected.outputs.unit != 'none'
+        env:
+          UNIT: ${{ steps.affected.outputs.unit }}
+          UNIT_FILES: ${{ steps.affected.outputs.unit_files }}
+        # `$UNIT_FILES` is word-split on purpose: the script refuses a path with whitespace in it.
+        run: |
+          if [ "$UNIT" = all ]; then set -- npm test; else set -- npx vitest related --run --passWithNoTests $UNIT_FILES; fi
+          bash .github/workflows/stage.sh unit "$@"
       # FR-FLAG-2 (D-183): this build and the e2e stage below run with the flag on, so
       # `tests/e2e/moon.spec.ts` keeps covering the tradition line end to end. The "off"
       # state — the default a plain `npm run build` ships — is `tests/build/flags.test.ts`
       # and the capture set (D-179, captures.yml), neither of which is this build.
-      - run: bash .github/workflows/stage.sh build npm run build
+      - if: steps.affected.outputs.e2e != 'none'
+        run: bash .github/workflows/stage.sh build npm run build
         env:
           VITE_MOON_LORE: 'on'
       # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
-      - run: bash .github/workflows/stage.sh bundle npm run bundle:budget
+      - if: steps.affected.outputs.e2e != 'none'
+        run: bash .github/workflows/stage.sh bundle npm run bundle:budget
       # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.
       # FR-CI-3: one worker per core (playwright.config.ts), and page specs load a stored run
       # instead of waiting on the 72 h search. A spec over 60 s on the list reporter is a defect.
       # D-526: Playwright sorts the spec files and cuts them into `job-total`
       # shards, so the halves are the same on every run and no spec is dropped
       # or shot twice. `workers: '100%'` (D-195, FR-CI-3) applies inside one.
-      - run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      # D-1031: with specs named, Playwright shards those; a shard left with none passes.
+      - if: steps.affected.outputs.e2e != 'none'
+        env:
+          E2E_SPECS: ${{ steps.affected.outputs.e2e_specs }}
+        run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests $E2E_SPECS
       # FR-CI-1: the stage table, in the job summary, on a pass and on a failure alike.
       - name: stage times
         if: always()
+        env:
+          UNIT: ${{ steps.affected.outputs.unit }}
+          E2E: ${{ steps.affected.outputs.e2e }}
+          WHY: ${{ steps.affected.outputs.reason }}
         run: |
+          touch "$STAGE_TIMES"
           {
             echo "## CI stages — shard ${{ matrix.shard }} of ${{ strategy.job-total }}"
+            echo
+            echo "Tests run (D-1031): unit **$UNIT**, e2e **$E2E** — $WHY"
             echo
             echo "| stage | wall time | |"
             echo "|---|---:|---|"

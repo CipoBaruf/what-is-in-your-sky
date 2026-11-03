@@ -15,8 +15,7 @@ import styles from './ThemeToggle.module.css';
  * Both names are translated, unlike the language switch's: someone reading
  * this switch can already read the page it is on.
  *
- * R156 (FR-PHONE-15, D-979): a third option, Auto, the theme by the Sun at the saved place; the three stand one
- * cell apart so the row fits 390 px beside its label (`ThemeToggle.module.css`).
+ * R156 (D-979): the options stand one cell apart (`ThemeToggle.module.css`); v2.12 (D-1020) withdrew its third, Auto.
  */
 export function ThemeToggle() {
   const t = useT();

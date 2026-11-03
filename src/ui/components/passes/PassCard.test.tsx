@@ -127,9 +127,9 @@ describe('<PassCard> (FR-FIRST-10)', () => {
   it('wears the cloud word at the peak when given a forecast, "weather unknown" for null, and none when omitted (FR-WX-3, US-7 AC2)', () => {
     const { rerender } = render(<PassCard pass={samplePass} timeZone="America/Argentina/Salta" weather={forecast} />);
     const card = screen.getByRole('article');
-    // 0.6·10 + 0.3·10 + 0.1·40 = 13 %: clear, the figure in the tooltip.
+    // max(10, 10, 0.7·40) = 28 %: clear, the figure in the tooltip (D-1028).
     expect(within(card).getByText('Clear')).toHaveAttribute('data-state', 'clear');
-    expect(within(card).getByRole('tooltip')).toHaveTextContent('13 % effective cloud at the pass peak.');
+    expect(within(card).getByRole('tooltip')).toHaveTextContent('28 % effective cloud at the pass peak.');
     expect(within(card).getByRole('tooltip')).toHaveTextContent('fetched 2026-09-11 04:48:14 GMT-3');
     rerender(<PassCard pass={samplePass} timeZone={null} weather={null} />);
     expect(within(card).getByText('Weather unknown')).toHaveAttribute('data-state', 'unknown');

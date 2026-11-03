@@ -24,7 +24,7 @@ for (const locale of ['en', 'es'] as const) {
   test(`the home at 390 × 844, folded and opened, ${locale}`, async ({ page }) => {
     await home(page, locale, { width: 390, height: 844 });
     await page.screenshot({ path: `${CAPTURE_DIR}/r130-home-390-${locale}.png` });
-    await page.getByTestId('where-details').click();
+    await page.getByTestId('location-summary-change').click();
     await page.screenshot({ path: `${CAPTURE_DIR}/r130-home-390-details-${locale}.png` });
   });
 

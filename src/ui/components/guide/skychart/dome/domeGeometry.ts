@@ -55,7 +55,6 @@ const ARROWHEAD_SIZE_DEG = 1.8;
 /** Label anchors: compass names just outside the horizon, pass labels further out so they clear the compass. */
 export const COMPASS_LABEL_RADIUS = 1.08;
 export const PASS_LABEL_RADIUS = 1.06;
-const RISE_LABEL_RADIUS = 1.18;
 /** FR-DOME-4: the degree numbers sit inside the compass names, the ring numbers just off their ring at the north-west. */
 export const TICK_LABEL_RADIUS = 1.03;
 const RING_LABEL_RADIUS = 1.02;
@@ -434,26 +433,6 @@ export interface CompassAnchor extends Anchor {
 /** Hotspot anchors for the eight compass names, just outside the horizon. */
 export function compassAnchors(): CompassAnchor[] {
   return COMPASS.map(({ label, azDeg }) => ({ id: `compass-${label}`, label, azDeg, at: tuple(toDome(azDeg, 0), COMPASS_LABEL_RADIUS) }));
-}
-
-export interface PassAnchors {
-  rise: Anchor;
-  peak: Anchor;
-  end: Anchor;
-}
-
-/**
- * Hotspot anchors for a pass's labels. R45 (FR-LEG-1): only the peak's is
- * drawn, and it carries the legend key rather than `max N°`; the rise and
- * end anchors stay computed for the geometry test and for a view that wants
- * to hang something else there.
- */
-export function passAnchors(pass: Pass): PassAnchors {
-  return {
-    rise: { id: `${pass.id}-rise`, at: tuple(toDome(pass.start.azDeg, pass.start.elDeg), RISE_LABEL_RADIUS) },
-    peak: { id: `${pass.id}-peak`, at: tuple(toDome(pass.peak.azDeg, pass.peak.elDeg), PASS_LABEL_RADIUS) },
-    end: { id: `${pass.id}-end`, at: tuple(toDome(pass.end.azDeg, pass.end.elDeg), PASS_LABEL_RADIUS) },
-  };
 }
 
 /** FR-LEG-1 (R45): the legend key's anchor, at the peak marker, just outside the dome like the other pass labels were. */

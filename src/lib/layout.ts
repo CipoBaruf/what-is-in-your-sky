@@ -579,6 +579,7 @@ export const PINCH_HANDOFF_RATIO = 1.15;
  * the sensor, `[ controls ]` alone where it has not.
  */
 export function hintFitsBeside(text: string, labels: readonly string[]): boolean {
-  const controls = labels.reduce((sum, label) => sum + GAP_CELLS + BRACKET_CELLS + label.length, 0);
+  // D-1026: the row's half a cell of padding at each end is one cell more.
+  const controls = labels.reduce((sum, label) => sum + GAP_CELLS + BRACKET_CELLS + label.length, 1);
   return text.length * SMALL_CELL + controls <= ROW_BUDGET_CELLS;
 }

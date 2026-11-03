@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cloudVerdict } from '../../../lib/cloudVerdict';
+import { nightClouds, type NightClouds } from '../../../lib/nightClouds';
 import { moonNote, moonSampleTimes, type MoonNote } from '../../../lib/moonNote';
 import type { SkyBodies } from '../../../lib/skyBodies';
 import type { SkyBand, Span } from '../../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
-import type { CloudVerdict, EpochMs, Observer, WeatherSnapshot } from '../../../model';
+import type { EpochMs, Observer, WeatherSnapshot } from '../../../model';
 import { useAppStore } from '../../../state';
 import { useTonight } from '../../components/now/useTonight';
 import { nightWindow } from './tonight';
@@ -13,9 +13,9 @@ import { nightWindow } from './tonight';
  * R82 (FR-FIRST-4 as amended v2.0.2): tonight as the phone's when and what
  * steps state it — the bands the stripe draws (`useTonight`, the stacked
  * page's own), tonight's dark band, the stretch of night the cloud word and the
- * Moon's sentence are about, and the cloud word for it: the forecast at the
- * middle of that stretch, so the when step's `Clouds tonight` and the what
- * step's foot line say the same word.
+ * Moon's sentence are about, and the cloud for it: the forecast hour by hour
+ * across that stretch (`nightClouds`, D-1028), so the when step's
+ * `Clouds tonight`, the what step's foot line and the Stars door say the same.
  */
 export interface Night {
   bands: readonly SkyBand[];
@@ -28,7 +28,7 @@ export interface Night {
   /** The rest of the dark band, or the stripe's span with none; null before the bands are known. */
   window: Span | null;
   snapshot: WeatherSnapshot | null;
-  clouds: CloudVerdict;
+  clouds: NightClouds;
 }
 
 export function useNight(observer: Observer): Night {
@@ -45,7 +45,7 @@ export function useNight(observer: Observer): Night {
     starsFrom: known ? tonightsStarsFrom(tonight.bands, tonight.now) : null,
     window,
     snapshot,
-    clouds: cloudVerdict(snapshot, window ? (window.start + window.end) / 2 : tonight.now),
+    clouds: nightClouds(snapshot, window, tonight.now),
   };
 }
 

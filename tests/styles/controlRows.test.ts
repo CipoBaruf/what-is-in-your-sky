@@ -35,7 +35,7 @@ import { LOCALES } from '../../src/i18n/locale';
 import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
-import type { Locale, Observer } from '../../src/model';
+import type { Locale, Observer, TonightCloud } from '../../src/model';
 import { appStore } from '../../src/state';
 import { Header } from '../../src/ui/components/common/Header';
 import { ElementsLine } from '../../src/ui/components/elements/ElementsLine';
@@ -63,7 +63,7 @@ import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { SkyHead } from '../../src/ui/components/sky/SkyHead';
 import { StarsPage } from '../../src/ui/screens/Stars';
-import { DETAIL_TIMES_CELLS, formatDateZone } from '../../src/lib/format';
+import { DETAIL_TIMES_CELLS } from '../../src/lib/format';
 import { TimesRow } from '../../src/ui/components/guide/TimesRow';
 import { DOOR_CELLS } from '../../src/ui/screens/home/doorLines';
 import type { HeaderPage } from '../../src/i18n/messages';
@@ -80,8 +80,8 @@ const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
 const LIVE_ROW_BUDGET = BUDGET - 2;
 /** R132 (FR-FLOW-4, D-846): the view row is 30 cells in English and 35 in Spanish, and the spec pins the Spanish number. */
 const VIEW_ROW_BUDGET = 35;
-/** R129 (FR-FLOW-3): the four pages under the home, each with the compact `[ ← ]` row. */
-const SUB_PAGES = ['live', 'stars', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
+/** R129 (FR-FLOW-3): the pages under the home with the header's compact `[ ← ]` row (the pass detail's went with R164). */
+const SUB_PAGES = ['live', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
@@ -182,15 +182,8 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
     },
   },
-  // R156 (FR-PHONE-12): folded and ready, the Where's second line is `[ details ]` alone.
-  {
-    name: 'the folded Where, ready: [ details ] alone (FR-PHONE-12)',
-    element: createElement(WherePlace, { open: false, onToggle: () => undefined, controls: 'where-group', folded: true }),
-    find: () => screen.getByTestId('where-status'),
-    setUp: () => {
-      appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
-    },
-  },
+  // D-1024 (FR-FLOW-2 amended): the folded Where has no ready line of its own any more (R156's `[ details ]` alone is
+  // gone); its place row clips the place, as the place line above does.
   // R156 (FR-PHONE-13): the third door's two fixed lines, each within FR-FLOW-1's 34 cells (its state line is `doorRows.test.ts`'s).
   ...(['title', 'line'] as const).map(
     (key): Row => ({
@@ -459,9 +452,20 @@ function longestPassHead(t: Messages): string {
   return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
 }
 
+/**
+ * D-1028: every form tonight's cloud takes — each state all night, `variable`, and a change between every pair of the
+ * three states at a two-digit hour (with no zone there is no forecast, so a change never carries a UTC clock, D-859).
+ */
+const STATES = ['clear', 'partly', 'obscured'] as const;
+const TONIGHT_CLOUDS: TonightCloud[] = [
+  ...(['clear', 'partly', 'obscured', 'unknown'] as const).map((state): TonightCloud => ({ kind: 'steady', state })),
+  { kind: 'variable' },
+  ...STATES.flatMap((before) => STATES.filter((after) => after !== before).map((after): TonightCloud => ({ kind: 'change', before, after, at: '23:00' }))),
+];
+
 /** R163: the longest of the head line's forms (`starsHeadLine`'s three, over every cloud word), in the catalog's language. */
 function longestStarsLine(t: Messages): string {
-  const clouds = ['clear', 'partly', 'obscured', 'unknown'] as const;
+  const clouds = TONIGHT_CLOUDS;
   const forms = [...clouds.map((cloud) => t.doors.stars.dark({ from: '20:25', to: '07:05', cloud })), ...clouds.map((cloud) => t.doors.stars.noDark(cloud)), t.doors.stars.from('20:25')];
   return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
 }
@@ -501,21 +505,19 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
  * it is about shows whole beside it: a coordinate pair (FR-COMP-7's, 14 cells) for the place, the date for the pass.
  * At 390 px the row with it stays inside FR-COMP-7's 34 cells; at 360 px inside what that width has.
  */
-describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (locale: Locale) => {
+describe.each(LOCALES)('FR-FLOW-3: the three compact sub-page rows in %s', (locale: Locale) => {
   /** The cells a viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  // R156 (FR-PHONE-14): the pass's date line carries the zone once, measured with one of the longest abbreviations Intl gives.
-  const context = (page: HeaderPage): string => (page === 'pass' ? formatDateZone(pass.start.t, 'Australia/Lord_Howe', locale) : observer.label);
   const header = (page: HeaderPage, withContext: boolean): ReactElement =>
-    createElement(Header, { page, context: withContext ? context(page) : null, onBack: noop });
+    createElement(Header, { page, context: withContext ? observer.label : null, onBack: noop });
   /**
    * The fixed part — `[ ← ]`, the name, the gaps — in cells, per page; the Done note's numbers. R149 (FR-FULL-2,
    * D-934): the live row is the inert page's alone since v2.8, `[ ← ] live` without the mark (R148 took the indicator
    * off compact and R149 `Header`'s `status` with it), so 14 → 10 and 17 → 13.
    */
   const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
-    en: { live: 10, stars: 11, pass: 10, settings: 14 },
-    es: { live: 13, stars: 15, pass: 10, settings: 13 },
+    en: { live: 10, stars: 11, settings: 14 },
+    es: { live: 13, stars: 15, settings: 13 },
   };
 
   it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {
@@ -526,7 +528,7 @@ describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (local
     render(createElement(I18nProvider, { locale, children: header(page, true) }));
     const row = screen.getByTestId('header');
     const cells = rowCells(row, table);
-    expect(cells, rowParts(row, table).join(' | ')).toBe(FIXED[locale][page] + 1 + context(page).length);
+    expect(cells, rowParts(row, table).join(' | ')).toBe(FIXED[locale][page] + 1 + observer.label.length);
     expect(cells, `${page} at 390 px`).toBeLessThanOrEqual(Math.min(LIVE_ROW_BUDGET, rowCellsAt(390)));
     expect(cells, `${page} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
   });
@@ -659,25 +661,26 @@ describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 
     ['Dark from', () => row(t.home.whenStep.darkFrom, clock)],
     ['Until', () => row(t.home.whenStep.until, clock)],
     ['Passes in it', () => row(t.home.whenStep.passesIn, t.home.whenStep.passesValue({ tonight: 99, total: 99, hours: 72 }))],
-    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])))],
+    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])), row(t.home.whenStep.clouds, t.weather.tonight({ kind: 'variable' })))],
+    // D-1028: a night whose cloud changes is two rows, `Until 23:00` and `From 23:00`, each with any state's word.
+    ['Until 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsUntil('23:00'), t.weather.state[cloud])))],
+    ['From 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsFrom('23:00'), t.weather.state[cloud])))],
     ['Moon', () => Math.max(...phases.map((phase) => row(t.home.whenStep.moon, t.home.whenStep.moonValue({ phase, illumination: '100' }))))],
-    ['[ See what crosses ]', () => control(t.home.whenStep.next)],
-    ['[ n more tonight ]', () => control(t.home.whatStep.moreTonight(99))],
-    ['[ n more nights ]', () => control(t.home.whatStep.moreNights(99))],
-    // R97 (FR-FAINT-2): the faint control after `[<n> more tonight]`, in its longer state.
+    ['[ Choose what to see ]', () => control(t.home.whenStep.next)],
+    // R97 (FR-FAINT-2): the faint control, in its longer state.
     ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
   ] as const)('the %s row', (_name, cells) => {
     expect(cells()).toBeLessThanOrEqual(BUDGET);
   });
 
   it('the foot line, piece by piece at --small, with [ edit ] on its last line', () => {
-    for (const cloud of clouds) {
+    for (const cloud of TONIGHT_CLOUDS) {
       const pieces = t.home.whatStep.foot({ place: '−38.93, −67.99', dark: { from: '20:14', to: clock }, cloud });
       const last = pieces[pieces.length - 1] ?? '';
       for (const piece of pieces.slice(0, -1)) expect(`${piece} ·`.length, piece).toBeLessThanOrEqual(SMALL_BUDGET);
       expect(last.length + 1 + control(t.home.whatStep.edit), last).toBeLessThanOrEqual(SMALL_BUDGET);
     }
-    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: 'unknown' })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
+    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: { kind: 'steady', state: 'unknown' } })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
   });
 });
 

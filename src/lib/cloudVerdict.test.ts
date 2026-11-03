@@ -1,6 +1,6 @@
 /**
  * TASKS R8: verdict boundaries at 29.9 / 30 / 70 / 70.1 %, the layered vs
- * total formula, midpoint interpolation, and `unknown` without a snapshot or
+ * total formula (D-1028's thickest layer), midpoint interpolation, and `unknown` without a snapshot or
  * outside the covered hours.
  */
 import { describe, expect, it } from 'vitest';
@@ -25,10 +25,22 @@ describe('cloudState', () => {
 });
 
 describe('effectiveCloudPct', () => {
-  it('weights 0.6·low + 0.3·mid + 0.1·high when all three layers are present (FR-WX-4)', () => {
-    expect(effectiveCloudPct({ t: T0, totalPct: 90, lowPct: 10, midPct: 20, highPct: 100 })).toBeCloseTo(6 + 6 + 10, 10);
-    // Thin cirrus alone barely counts: 100 % high cloud reads as 10 %.
-    expect(effectiveCloudPct({ t: T0, totalPct: 100, lowPct: 0, midPct: 0, highPct: 100 })).toBeCloseTo(10, 10);
+  it('takes the thickest layer, high cloud at 0.7, when all three layers are present (FR-WX-4 as amended, D-1028)', () => {
+    expect(effectiveCloudPct({ t: T0, totalPct: 90, lowPct: 10, midPct: 20, highPct: 100 })).toBeCloseTo(70, 10);
+    expect(effectiveCloudPct({ t: T0, totalPct: 80, lowPct: 75, midPct: 20, highPct: 10 })).toBe(75);
+    expect(effectiveCloudPct({ t: T0, totalPct: 60, lowPct: 5, midPct: 55, highPct: 70 })).toBe(55);
+  });
+
+  it('reads the Neuquén 22:00 sample of 2026-11-02 as partly cloudy, not clear (D-1028)', () => {
+    // cloud_cover 98, low 1, mid 27, high 98: the old 0.6/0.3/0.1 weights made it 18 %, clear, under a full deck.
+    const sample = { t: T0, totalPct: 98, lowPct: 1, midPct: 27, highPct: 98 };
+    expect(effectiveCloudPct(sample)).toBeCloseTo(68.6, 10);
+    expect(cloudState(effectiveCloudPct(sample))).toBe('partly');
+  });
+
+  it('never calls high cloud alone obscured: 100 % high is 70 %, the top of partly (D-1028)', () => {
+    expect(effectiveCloudPct({ t: T0, totalPct: 100, lowPct: 0, midPct: 0, highPct: 100 })).toBeCloseTo(70, 10);
+    expect(cloudState(effectiveCloudPct({ t: T0, totalPct: 100, lowPct: 0, midPct: 0, highPct: 100 }))).toBe('partly');
   });
 
   it('falls back to the total when any layer is missing', () => {
@@ -62,15 +74,15 @@ describe('interpolateCloud', () => {
 });
 
 describe('cloudVerdict', () => {
-  it('interpolates per layer to the instant and weights the result (FR-WX-2, FR-WX-4)', () => {
+  it('interpolates per layer to the instant and takes the thickest (FR-WX-2, FR-WX-4)', () => {
     const s = snapshot([
       { t: T0, totalPct: 0, lowPct: 0, midPct: 0, highPct: 0 },
       { t: T0 + HOUR, totalPct: 100, lowPct: 100, midPct: 100, highPct: 0 },
     ]);
-    // Midpoint: low 50, mid 50, high 0 → 0.6·50 + 0.3·50 = 45 → partly.
-    expect(cloudVerdict(s, T0 + HOUR / 2)).toEqual({ state: 'partly', effectivePct: 45, at: T0 + HOUR / 2 });
+    // Midpoint: low 50, mid 50, high 0 → max(50, 50, 0) = 50 → partly.
+    expect(cloudVerdict(s, T0 + HOUR / 2)).toEqual({ state: 'partly', effectivePct: 50, at: T0 + HOUR / 2 });
     expect(cloudVerdict(s, T0)).toMatchObject({ state: 'clear', effectivePct: 0 });
-    expect(cloudVerdict(s, T0 + HOUR)).toMatchObject({ state: 'obscured', effectivePct: 90 });
+    expect(cloudVerdict(s, T0 + HOUR)).toMatchObject({ state: 'obscured', effectivePct: 100 });
   });
 
   it('uses the total when the provider gave no layers', () => {

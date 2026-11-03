@@ -168,10 +168,22 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     expect(document.activeElement).toBe(button());
   });
 
-  it('focuses the `×` when the body has no control', () => {
+  it('focuses the `×` when the body has no control (the footer\'s links are not the page\'s rows, D-1023)', () => {
     mount('en', { children: <p>nothing to press</p> });
     fireEvent.click(button());
     expect(document.activeElement).toBe(screen.getByTestId('sheet-close'));
+  });
+
+  // D-1023 (FR-X-2 as amended 2026-11-02): the body ends in the footer's one row, after the page's rows, in both languages.
+  it.each(['en', 'es'] as const)('ends the body in the footer’s one row, privacy word kept, in %s', (locale) => {
+    mount(locale);
+    const body = screen.getByTestId('sheet-body');
+    const foot = body.lastElementChild;
+    expect(foot).toBe(screen.getByTestId('app-footer'));
+    expect(foot).toHaveAttribute('data-form', 'short');
+    expect(foot).toHaveTextContent(locale === 'en' ? 'No tracking' : 'Sin rastreo');
+    expect(foot).toHaveTextContent('glyphcss');
+    expect(screen.queryByRole('contentinfo')).toBeNull();
   });
 
   it('opens and closes again and again, each time focusing in and back', () => {

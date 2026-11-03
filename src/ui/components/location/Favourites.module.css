@@ -42,8 +42,7 @@
 }
 
 .empty,
-.limit,
-.current {
+.limit {
   color: var(--fg-dim);
 }
 
@@ -74,4 +73,17 @@
    the primitive's, and the one rule left here places the remove action. */
 .remove {
   margin-inline-start: auto;
+}
+
+/* D-1030 (the owner's call 2026-11-02, from the phone): the place in use is the row ruled in the accent on the raised
+   ground, as the open pass's card is (Card.module.css `selected`), with `aria-current` on its button for anyone not
+   looking; no `(in use)` words. Every row carries the frame's room, transparent, so the names stay aligned with each other; the frame stays inside the column (D-1033: pulled out by half a cell it overflowed the desk's Where pane, which then scrolled sideways). */
+.item {
+  padding-inline: calc(var(--cell) / 2);
+  border: var(--hairline) solid transparent;
+}
+
+.item[data-current='yes'] {
+  border-color: var(--accent);
+  background: var(--bg-raised);
 }

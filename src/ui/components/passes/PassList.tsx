@@ -112,7 +112,7 @@ export function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone
  * an autumn day is 25 h long, so now + 24 h stays on today and tomorrow's
  * heading reads "tonight" twice.
  */
-export function nightLabel(group: NightGroup, tonight: NightKey, t: Messages): string {
+function nightLabel(group: NightGroup, tonight: NightKey, t: Messages): string {
   if (group.key === tonight) return t.passes.nights.tonight;
   if (group.key === nextNight(tonight)) return t.passes.nights.tomorrow;
   return t.passes.nights.dated(group.key);

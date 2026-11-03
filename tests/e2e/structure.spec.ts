@@ -80,8 +80,9 @@ for (const viewport of [PHONE, DESK]) {
         window.location.hash = 'live';
       });
       await expect(page.getByTestId('live-page')).toBeVisible();
-      // The live page's top row is its banner; it has no footer (FR-A11Y-1).
-      expect(await landmarkCounts(page)).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: 0 });
+      // The live page's top row is its banner (FR-A11Y-1); D-1023: on a desk it ends in the footer's row, its
+      // contentinfo, and on a phone that row is the controls sheet's last, no landmark.
+      expect(await landmarkCounts(page)).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: viewport === PHONE ? 0 : 1 });
       await page.getByTestId('live-back').click();
       await home(page);
 

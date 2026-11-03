@@ -77,43 +77,13 @@
   color: var(--fg-dim);
 }
 
-/* `[ See what crosses ]`: a full-width `TextButton` in the accent's border, 56 px tall (`box="accent"`,
+/* `[ Choose what to see ]`: a full-width `TextButton` in the accent's border, 56 px tall (`box="accent"`,
    `fill`, `tall`), at the foot of the screen — R104 (D-704): the box is the primitive's, and this puts it at the foot. */
 .next {
   margin-top: auto;
 }
 
-/* The first card and tonight's others, 12 px apart (FR-FIRST-10). */
-.cards,
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nightLabel {
-  margin: 0;
-  font-size: var(--small);
-  line-height: var(--small-row);
-  color: var(--fg-dim);
-}
-
-/* `[ 2 more tonight ]   [ 2 more nights ]`: three spaces between, on a 44 px row; they wrap where a phone cannot hold both. */
-.more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: calc(3 * var(--cell));
-  min-height: 2.75rem;
-}
-
-/* The more controls and `[ edit ]` are inline `TextButton`s (R104, D-704); nothing here draws on them. */
+/* `[ edit ]` is an inline `TextButton` (R104, D-704); nothing here draws on it. */
 
 /* The what step's foot: ruled off at the bottom of the screen, at `--small`. The line breaks between its pieces,
    never inside one. R105 (D-720): the rule is a `Rule` on the grid's first row, across the text and `[ edit ]`;

@@ -648,3 +648,12 @@ export async function backToLive(page: Page): Promise<void> {
   await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);
 }
+
+/**
+ * D-1023 (FR-X-2 as amended 2026-11-02): the height of the shell's footer, 0 where the route has none. On a desk the
+ * live page keeps its one viewport for the sky and the rail and the footer's row follows it under the fold, so the
+ * document is the viewport plus this and no more.
+ */
+export async function footerBelowPx(page: Page): Promise<number> {
+  return page.evaluate(() => Math.round(document.querySelector('#root > footer')?.getBoundingClientRect().height ?? 0));
+}

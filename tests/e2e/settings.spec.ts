@@ -197,17 +197,25 @@ async function openSettingsWith(page: Page, prefs: Record<string, unknown>): Pro
   await page.evaluate(() => document.fonts.ready);
 }
 
+/**
+ * FR-SET-2 as amended 2026-11-02 (D-1023): the page above its footer fits the viewport, and the footer — the app's full
+ * credits, as on the home — follows under it, so the page scrolls by the footer's height and no more.
+ */
 async function fitsOneViewport(page: Page, allowancePx = 0): Promise<void> {
-  const { scrollHeight, innerHeight } = await page.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight }));
-  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight + allowancePx);
-  const privacy = page.getByTestId('settings-privacy');
-  await expect(privacy).toBeVisible();
-  const box = await privacy.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-  expect(box.top).toBeGreaterThanOrEqual(0);
-  expect(box.bottom).toBeLessThanOrEqual(innerHeight + allowancePx);
-  // The privacy line is the foot: nothing on the page is drawn below it.
-  const lowest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('main *')).map((el) => el.getBoundingClientRect().bottom)));
-  expect(lowest).toBeLessThanOrEqual(box.top);
+  const footer = page.getByRole('contentinfo');
+  await expect(footer).toHaveAttribute('data-form', 'full');
+  const m = await page.evaluate(() => {
+    const main = document.querySelector('#root > main');
+    const foot = document.querySelector('#root > footer');
+    if (!main || !foot) throw new Error('no main or footer');
+    const lowest = Math.max(...Array.from(main.querySelectorAll('*')).map((el) => el.getBoundingClientRect().bottom));
+    return { scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight, mainBottom: main.getBoundingClientRect().bottom, lowest, footTop: foot.getBoundingClientRect().top, footHeight: foot.getBoundingClientRect().height };
+  });
+  expect(m.mainBottom, `the page above the footer ends at ${String(m.mainBottom)} px in a ${String(m.innerHeight)} px viewport`).toBeLessThanOrEqual(m.innerHeight + allowancePx);
+  // The footer is the foot: nothing on the page is drawn below its top, and nothing but it runs past the viewport.
+  expect(m.lowest).toBeLessThanOrEqual(m.footTop + 1);
+  expect(m.scrollHeight).toBeLessThanOrEqual(m.innerHeight + allowancePx + m.footHeight + 1);
+  await expect(page.getByTestId('settings-privacy')).toHaveCount(0);
 }
 
 test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 AC2)', () => {
@@ -220,17 +228,17 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       await expect(page.getByTestId('favourites')).toHaveCount(0);
     });
 
-    test(`the Theme row offers Auto on one line, in ${locale} (R156, FR-PHONE-15)`, async ({ page }) => {
+    test(`the Theme row is Dark and Night on one line, and the Sky row's toggle keeps its mark's space, in ${locale} (D-1020)`, async ({ page }) => {
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER });
       const group = page.getByRole('group', { name: locale === 'es' ? 'Tema' : 'Theme' });
-      const names = locale === 'es' ? ['Oscuro', 'Noche', 'Auto'] : ['Dark', 'Night', 'Auto'];
+      const names = locale === 'es' ? ['Oscuro', 'Noche'] : ['Dark', 'Night'];
+      await expect(group.getByRole('button')).toHaveCount(2);
       for (const name of names) await expect(group.getByRole('button', { name })).toBeVisible();
       expect(await isOneLine(group)).toBe(true);
       expect(await fitsTheViewport(group)).toBe(true);
-      await group.getByRole('button', { name: 'Auto' }).click();
-      await expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
-      // NINE_DAYS_ON is the page's clock: the root reads one of the two palettes, never `auto`.
-      await expect(page.locator('html')).toHaveAttribute('data-theme', /^(dark|night)$/);
+      // The `[ ] ` mark is a ::before with a trailing space; a flex button would drop it (the phone showed `[ ]brillo`).
+      const display = await page.getByTestId('settings-sun-glow').evaluate((el) => getComputedStyle(el).display);
+      expect(display).not.toBe('flex');
       await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
     });
 
@@ -258,6 +266,24 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     await expect(save.getByRole('button', { name: 'Clear saved location' })).toHaveText('Clear saved');
     expect(await isOneLine(save)).toBe(true);
     expect(await fitsTheViewport(save)).toBe(true);
+  });
+
+  test('the saved place in use is the row ruled in the accent, with no `(en uso)`, and a long name wraps inside it, at 390 in Spanish (D-1030)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const observer = { ...NEUQUEN_OBSERVER, label: 'Berlin, State of Berlin, Germany' };
+    const other = { cellKey: '-39.26,-68.78', observer: DARK_SITE, addedAt: NINE_DAYS_ON - 2 * 86_400_000, lastUsedAt: NINE_DAYS_ON - 120_000 };
+    await openSettingsWith(page, { locale: 'es', observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }, other] });
+    const rows = page.getByTestId('favourite');
+    await expect(rows).toHaveCount(2);
+    await expect(page.getByText('(en uso)')).toHaveCount(0);
+    const looks = await rows.evaluateAll((items) => items.map((item) => ({ current: item.getAttribute('data-current'), border: getComputedStyle(item).borderTopColor, ground: getComputedStyle(item).backgroundColor })));
+    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+    const [inUse, notInUse] = [looks.find((l) => l.current === 'yes'), looks.find((l) => l.current === 'no')];
+    expect(inUse?.border).not.toBe(notInUse?.border);
+    expect(inUse?.ground).not.toBe(notInUse?.ground);
+    expect(accent).not.toBe('');
+    await expect(rows.filter({ has: page.locator('[aria-current="true"]') })).toHaveCount(1);
+    for (const row of await rows.all()) expect(await fitsTheViewport(row)).toBe(true);
   });
 
   test('"enter coordinates instead" opens the closed fields and focuses them, and stays on the page', async ({ page }) => {
@@ -393,5 +419,51 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     });
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Location' })).toBeVisible();
+  });
+});
+
+/**
+ * D-1033 (the owner's call 2026-11-02, on a desk): on wide nothing scrolls but the pick list — the list floats over
+ * the page and scrolls inside itself, and the home's panes never scroll sideways (the saved place's ruled row once
+ * pushed the Where pane wider than itself).
+ */
+test.describe('on a desk only the pick list scrolls (D-1033)', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  /** Every element that scrolls along `axis` though nothing asked it to: overflow `auto` or `scroll` with more content than room. */
+  const scrollers = (page: Page, axis: 'x' | 'y'): Promise<string[]> =>
+    page.evaluate((a) => {
+      const out: string[] = [];
+      for (const el of Array.from(document.querySelectorAll<HTMLElement>('body *'))) {
+        const style = getComputedStyle(el);
+        const overflow = a === 'x' ? style.overflowX : style.overflowY;
+        const over = a === 'x' ? el.scrollWidth > el.clientWidth + 1 : el.scrollHeight > el.clientHeight + 1;
+        if ((overflow === 'auto' || overflow === 'scroll') && over) out.push(el.getAttribute('data-testid') ?? el.getAttribute('role') ?? el.tagName.toLowerCase());
+      }
+      const root = document.scrollingElement;
+      if (root && (a === 'x' ? root.scrollWidth > root.clientWidth + 1 : root.scrollHeight > root.clientHeight + 1)) out.push('page');
+      return out;
+    }, axis);
+
+  test('eight answers to a place search scroll inside the list, and the settings page does not move', async ({ page }) => {
+    await openSettingsWith(page, { locale: 'es', observer: NEUQUEN_OBSERVER });
+    await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ path: 'tests/fixtures/open-meteo/2026-09-02-rosario-geocode.json', contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }));
+    const before = await scrollers(page, 'y');
+    await page.getByRole('combobox', { name: 'Nombre del lugar' }).fill('rosario');
+    const list = page.getByRole('listbox');
+    await expect(list.getByRole('option')).toHaveCount(8);
+    expect(await scrollers(page, 'y')).toEqual([...before, 'listbox']);
+    expect(await scrollers(page, 'x')).toEqual([]);
+    // It hangs under the field and never covers what the reader is typing.
+    const field = await page.getByRole('combobox', { name: 'Nombre del lugar' }).boundingBox();
+    const box = await list.boundingBox();
+    if (!field || !box) throw new Error('the field or the list has no box');
+    expect(box.y).toBeGreaterThanOrEqual(field.y + field.height - 1);
+  });
+
+  test('the home’s Where pane with a saved place in use never scrolls sideways', async ({ page }) => {
+    await seedStoredRun(page, { locale: 'es', settled: true, prefs: { favourites: [{ cellKey: '-38.93,-67.99', observer: NEUQUEN_OBSERVER, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }] } });
+    await expect(page.locator('[data-testid="favourite"][data-current="yes"]')).toBeVisible();
+    expect(await scrollers(page, 'x')).toEqual([]);
   });
 });

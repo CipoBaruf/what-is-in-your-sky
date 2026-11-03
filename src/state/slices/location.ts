@@ -47,7 +47,8 @@ export function activeObserver(state: Pick<LocationSlice, 'observer' | 'visiting
 export function sameLocation(a: Observer | null, b: Observer | null): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.lat === b.lat && a.lon === b.lon && a.altM === b.altM && a.source === b.source && a.label === b.label;
+  // D-1025: a device observer's label is its coordinates until the nearest town's name replaces it — the same fix.
+  return a.lat === b.lat && a.lon === b.lon && a.altM === b.altM && a.source === b.source && (a.source === 'device' || a.label === b.label);
 }
 
 export const createLocationSlice =

@@ -1,7 +1,5 @@
-/* R156 (FR-PHONE-15, D-979): `[x] Dark [ ] Night [ ] Auto` — three options, one cell apart (the group's `gap="none"`,
-   each option's own trailing cell the whole gap, D-172), and no trailing cell after the last, where nothing follows
-   it. With the label column that is 36 cells in both languages, measured in the browser at 390 px; the group's
-   default gap on top of the trailing cells would put the options two cells apart and wrap `Auto` to a second row. */
+/* R156 (D-979): the options one cell apart (the group's `gap="none"`, each option's own trailing cell the whole gap,
+   D-172), and no trailing cell after the last, where nothing follows it. v2.12 (D-1020): two options since Auto went. */
 .row > :last-child {
   padding-inline-end: 0;
 }

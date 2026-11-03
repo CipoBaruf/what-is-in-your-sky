@@ -114,7 +114,9 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toHaveCount(1);
-  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11).
+  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11) — on compact at
+  // the top of the group `[ change ]` opens (D-1024).
+  if (compact) await page.getByTestId('location-summary-change').click();
   await expect(page.getByTestId('where-sentence')).toContainText("Using your device's location (±2000 m).");
   await page.screenshot({ path: 'test-results/r10-device-390.png' });
 
@@ -123,6 +125,40 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device.');
+});
+
+test('a device location is named after the nearest town, from the app\'s own origin, and the language follows (D-1025)', async ({ page, context, baseURL }) => {
+  const origin = new URL(baseURL ?? 'http://localhost').origin;
+  const elsewhere: string[] = [];
+  const places: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.origin !== origin && url.origin !== 'https://celestrak.org' && url.origin !== 'https://api.open-meteo.com') elsewhere.push(request.url());
+    if (/\/assets\/places-[^/]+\.txt$/.test(url.pathname)) places.push(request.url());
+  });
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: -38.94, longitude: -68.0, accuracy: 12_000 });
+  await page.goto('/');
+  const compact = await openSettings(page);
+  await page.getByRole('button', { name: 'Use my location' }).click();
+  await expect(page.getByTestId('active-location')).toContainText('from your device');
+  if (compact) await leaveSettings(page);
+  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+  const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; label: string } } | null;
+  expect(saved?.observer).toMatchObject({ source: 'device', label: 'Cipolletti, Argentina' });
+  // The list is the app's own static file, fetched once; no request carries the position anywhere else.
+  expect(places).toHaveLength(1);
+  expect(places[0]).not.toMatch(/38\.9|68\.0/);
+  expect(elsewhere).toEqual([]);
+
+  // The label's country is written in the reader's language, and rewritten when it changes; the place line is the town alone (D-1029).
+  await page.evaluate((k) => {
+    const prefs = JSON.parse(localStorage.getItem(k) ?? '{}') as Record<string, unknown>;
+    localStorage.setItem(k, JSON.stringify({ ...prefs, locale: 'es' }));
+  }, PREFS_KEY);
+  await page.reload();
+  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+  expect(elsewhere).toEqual([]);
 });
 
 test('a denied permission shows the message and leaves the inputs usable (US-3 AC2)', async ({ page, context }) => {

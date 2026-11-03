@@ -71,14 +71,15 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(cold).toHaveCount(0);
     await expect(steps).toHaveText(['01 where ✓', '[02] when', '03 what']);
     await expect(when.getByRole('heading', { level: 2, name: 'When is it dark enough?' })).toBeFocused();
-    await expect(when.getByText('−38.93, −67.99, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
+    // D-1025: the device fix is named after the nearest town, on the device, once the coordinates are set.
+    await expect(when.getByText('Cipolletti, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
     await expect(when.getByTestId('when-passes')).toHaveText(/^\d+ tonight, \d+ in 72 h$/, { timeout: 60_000 });
     await expect(when.getByTestId('tonight-stripe')).toBeVisible();
     await expect(when.locator('[data-row="until"] dt')).toHaveText('Until');
     await expect(when.getByTestId('moon-note')).toHaveText(/^A bright moon washes out the faint ones\. Tonight it will( not)?\.$/);
     // One screen tall: the control stands at the foot of the step, which is the 844 px screen less the footer's
     // one row (R87, D-548 — the step shares its screen with the footer), so it is measured against the step's main.
-    const next = when.getByRole('button', { name: 'See what crosses' });
+    const next = when.getByRole('button', { name: 'Choose what to see' });
     const nextBox = await next.boundingBox();
     const stepBox = await page.locator('main[data-step]').boundingBox();
     const stepFoot = (stepBox?.y ?? 0) + (stepBox?.height ?? 0);
@@ -87,16 +88,14 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     expect((nextBox?.y ?? Infinity) + (nextBox?.height ?? 0)).toBeLessThanOrEqual(stepFoot);
     await next.click();
 
-    // what: the count in words, the first card, the foot line with `[ edit ]`.
+    // what (v2.12, FR-FIRST-4 as amended, D-1021): the choice — the question, the home's three doors, the foot line with `[ edit ]`.
     const what = page.getByTestId('step-what');
     await expect(what).toBeVisible();
     await expect(steps).toHaveText(['01 where ✓', '02 when ✓', '[03] what']);
-    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText(/^(One thing crosses|(Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+) things cross|Nothing crosses) tonight$/);
-    const first = what.getByTestId('next-event');
-    await expect(first).toHaveAttribute('data-form', 'card');
-    await expect(first.getByTestId('next-event-label')).toHaveText(/^(First up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/);
+    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText('What do you want to see?');
+    await expect(what.getByTestId('home-doors').getByRole('link')).toHaveText([/^Satellites/, /^Stars/, /^Live sky/]);
     const foot = what.getByTestId('what-foot');
-    await expect(foot).toContainText(/^−38\.93, −67\.99 · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
+    await expect(foot).toContainText(/^Cipolletti · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
 
     // [ edit ] returns to where with the group open; the finished steps are the way back to when.
     await foot.getByRole('button', { name: 'edit' }).click();
@@ -120,13 +119,19 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(page.getByTestId('next-event')).toHaveCount(0);
     await expect(page.getByTestId('step-line')).toHaveCount(0);
     await expect(page.getByTestId('step-when')).toHaveCount(0);
-    // FR-FIRST-11: the coordinates alone, and the sentence by the source with the accuracy the device gave.
-    await expect(page.getByTestId('location-summary')).toHaveText('−38.93, −67.99');
-    // R130 (FR-FLOW-2): the sentence is behind the folded Where's `[ details ]`.
+    // FR-FIRST-11: the nearest town alone (D-1025, D-1029); the coordinates open the sentence by the source with the accuracy the device gave.
+    await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+    // R130 (FR-FLOW-2): the sentence is at the top of the group the folded Where's `[ change ]` opens, above the inputs (D-1024).
     await expect(page.getByTestId('where-sentence')).toBeHidden();
-    await page.getByTestId('where-details').click();
-    await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\.$/);
-    await page.getByTestId('where-details').click();
+    // `[ change ]` is the place line's one control; there is no `[ details ]`.
+    await expect(page.getByTestId('where-place-row').getByRole('button')).toHaveCount(1);
+    await expect(page.getByTestId('where-details')).toHaveCount(0);
+    await page.getByTestId('location-summary-change').click();
+    await expect(page.getByTestId('where-sentence')).toHaveText(/^−38\.93, −67\.99 · Using your device's location \(±300 m\)\. Saved in this browser only\.$/);
+    const [statusBox, fieldBox] = await Promise.all([page.getByTestId('where-opened-status').boundingBox(), page.getByRole('combobox', { name: 'Place name' }).boundingBox()]);
+    if (!statusBox || !fieldBox) throw new Error('the opened group is not laid out');
+    expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(fieldBox.y);
+    await page.getByTestId('location-summary-change').click();
     // The group folded away under the line.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
 

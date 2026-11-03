@@ -5,7 +5,7 @@ export type { Observer } from './observer';
 export type { Place } from './place';
 export type { PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState } from './pass';
 export type { MoonPhaseName, MoonState, MoonGlare, MoonGlareThresholds } from './moon';
-export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './weather';
+export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict, TonightCloud } from './weather';
 export type { PassRun, Favourite, Readiness, ReadinessGap } from './offline';
 export { MAX_FAVOURITES } from './offline';
 export type { PassSort, ChartView, ChartOrientation, Locale, Theme } from './prefs';

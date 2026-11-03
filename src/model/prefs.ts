@@ -53,16 +53,16 @@ export type ChartOrientation = 'looking-up' | 'map';
 export type Locale = 'en' | 'es';
 /**
  * FR-THEME-1 / US-19 (R20): the palette, the default dark one or the red-on-black night one. Persisted in
- * `wiys:prefs:v1` and applied as `data-theme` before the first render (D-70). R156 (FR-PHONE-15, D-972): `auto` is
- * the third value, the one that is not a palette — `ui/styles/theme.ts`'s `resolveTheme` turns it into one of the
- * two by the Sun's altitude at the saved place, before first paint and on the shell's tick.
+ * `wiys:prefs:v1` and applied as `data-theme` before the first render (D-70). R156 (FR-PHONE-15, D-972) added a
+ * third value, `auto`, the theme by the Sun at the saved place; v2.12 (FR-PHONE-15 withdrawn, D-1020) took it out
+ * again on the owner's call, and a stored `auto` reads as no choice, so dark (`localPrefs.ts`'s enum).
  */
-export type Theme = 'dark' | 'night' | 'auto';
+export type Theme = 'dark' | 'night';
 /**
- * The themes the settings page's Theme row offers, in its order (`[x] Dark [ ] Night [ ] Auto`). A value, not a
+ * The themes the settings page's Theme row offers, in its order (`[x] Dark [ ] Night`). A value, not a
  * type, because the switch has to enumerate them, the stored prefs are checked against them and the store has to
  * default to one, and those sit on opposite sides of PLAN §3's layering — `src/model` is the layer all may import.
  */
-export const THEMES = ['dark', 'night', 'auto'] as const satisfies readonly Theme[];
+export const THEMES = ['dark', 'night'] as const satisfies readonly Theme[];
 /** Dark until the switch is used: the night palette is a choice, never a guess from the device (FR-THEME-1). */
 export const DEFAULT_THEME: Theme = 'dark';

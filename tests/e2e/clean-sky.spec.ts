@@ -40,8 +40,8 @@ const TURNED = [
 ] as const;
 
 const WORDS = {
-  en: { window: 'Window', wholeSky: 'Whole sky', field: 'In this field', orientationGroup: 'Chart orientation', facing: 'Facing', headLine: /^(Dark \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|No full dark( · .+)?|Stars from \d\d:\d\d.*|No dark sky tonight|Weather unknown)$/ },
-  es: { window: 'Ventana', wholeSky: 'Cielo entero', field: 'En este campo', orientationGroup: 'Orientación del gráfico', facing: 'Mirando', headLine: /^(Oscuro \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Sin oscuridad total( · .+)?|Estrellas desde las \d\d:\d\d.*|Sin cielo oscuro esta noche|Sin datos)$/ },
+  en: { window: 'Window', wholeSky: 'Whole sky', field: 'In this field', orientationGroup: 'Chart orientation', facing: 'Facing', headLine: /^(Dark \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Dark, [a-z ]+ \d\d:\d\d → \d\d:\d\d|No full dark( · .+)?|Stars from \d\d:\d\d.*|No dark sky tonight|Weather unknown)$/ },
+  es: { window: 'Ventana', wholeSky: 'Cielo entero', field: 'En este campo', orientationGroup: 'Orientación del gráfico', facing: 'Mirando', headLine: /^(Oscuro \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Oscuro y [a-z ]+ \d\d:\d\d → \d\d:\d\d|Sin oscuridad total( · .+)?|Estrellas desde las \d\d:\d\d.*|Sin cielo oscuro esta noche|Sin datos)$/ },
 } as const;
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -166,6 +166,10 @@ for (const locale of LOCALES) {
         }
         expect(controls.x + controls.width).toBeLessThanOrEqual(size.width + 0.5);
         expect(controls.x).toBeGreaterThan(size.width / 2);
+        // D-1026: the row's overlay holds half a cell inside each end, so neither bracket touches its edge.
+        const rowBox = await box(row);
+        expect(follow.x - rowBox.x).toBeGreaterThanOrEqual(4.5);
+        expect(rowBox.x + rowBox.width - (controls.x + controls.width)).toBeGreaterThanOrEqual(4.5);
         const hint = page.getByTestId('sky-hint');
         await expect(hint).toHaveAttribute('data-pointer', 'coarse');
         const hintBox = await box(hint);
@@ -188,7 +192,7 @@ for (const locale of LOCALES) {
 
         // FR-CLEAN-4: the sheet, its rows in order, `In this field` open at its end, the box unmoved (FR-CLEAN-6).
         await openSheet(page);
-        expect(await sheetOrder(page)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field']);
+        expect(await sheetOrder(page)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
         await expect(page.getByTestId('sheet-place')).toHaveText(NEUQUEN.label);
         await expect(viewRow(page).getByRole('button')).toHaveText([words.window, words.wholeSky]);
         await expect(page.getByTestId('stars-layers-row')).toHaveCount(2);
@@ -425,7 +429,7 @@ for (const locale of LOCALES) {
 
         // FR-CLEAN-5: the sheet's groups in order, the box unmoved.
         await openSheet(page);
-        expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose']);
+        expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose', 'app-footer']);
         await expect(page.getByTestId('pass-name-line')).toHaveText(new RegExp(`^${name.replace(/[()]/g, '\\$&')} · \\d{4}-\\d\\d-\\d\\d · UTC$`));
         await expect(dialog.getByRole('timer')).toHaveCount(1);
         const sheet = await expectSheetShape(page, size);

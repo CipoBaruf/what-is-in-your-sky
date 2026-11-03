@@ -61,7 +61,7 @@ test("a pass link over a saved, named place is a visit: storage is untouched and
   // The reload, with no hash: the reader's own place, by its own name, in its own zone.
   await page.goto('about:blank');
   await page.goto('/');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
   const stored = JSON.parse((await page.evaluate((key) => localStorage.getItem(key), PREFS_KEY)) ?? 'null') as { observer?: typeof SAVED } | null;
   expect(stored?.observer).toEqual(SAVED);
   expect(stored?.observer?.timeZone).toBe('America/Argentina/Salta');
@@ -94,7 +94,7 @@ test('a pass link shows the visit notice, and [ back to my place ] restores the 
 
   await notice.getByRole('button', { name: 'back to my place' }).click();
   await expect(page.getByTestId('visit-notice')).toHaveCount(0);
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
   expect(new URL(page.url()).hash).toBe('');
   expect(await storedPrefs(page)).toBe(SAVED_PREFS);
 });
@@ -123,7 +123,7 @@ test('#live?lat=999 lands on home with "That link could not be read." and the ha
   await page.goto('about:blank');
   await page.goto('/#live?lat=999');
   await expect(page.getByTestId('link-note')).toContainText('That link could not be read.');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
   expect(new URL(page.url()).hash).toBe('');
   await expect(page.getByTestId('visit-notice')).toHaveCount(0);
   await page.getByTestId('link-note-dismiss').click();
@@ -131,7 +131,7 @@ test('#live?lat=999 lands on home with "That link could not be read." and the ha
 
   await page.goto('about:blank');
   await page.goto('/#nonsense');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
   await expect.poll(() => new URL(page.url()).hash).toBe('');
   await expect(page.getByTestId('link-note')).toHaveCount(0);
   expect(await storedPrefs(page)).toBe(SAVED_PREFS);

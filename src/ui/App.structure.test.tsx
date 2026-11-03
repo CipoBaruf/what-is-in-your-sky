@@ -153,7 +153,7 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
 });
 
 describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
-  it('home and settings have one of each, live its banner and main, at both widths', async () => {
+  it('home and settings have one of each, live its banner and main and on a desk its footer, at both widths', async () => {
     for (const width of [390, WIDE_PX]) {
       media = stubMatchMedia(width);
       withPasses();
@@ -165,7 +165,8 @@ describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
       expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: width === 390 ? 0 : 1, contentinfo: 1 });
       go('#live');
       await screen.findByTestId('live-page');
-      expect(landmarks()).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: 0 });
+      // D-1023: on a desk the live page ends in the footer's row, its `contentinfo`; on a phone the row is the sheet's, a `div`.
+      expect(landmarks()).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: width === 390 ? 0 : 1 });
       unmount();
       media.restore();
       media = null;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { browserLanguages, INTL_LOCALE, isLocale, LOCALE_NAMES, LOCALES, resolveLocale } from './locale';
+import { browserLanguages, INTL_LOCALE, LOCALE_NAMES, LOCALES, resolveLocale } from './locale';
 
 /** FR-I18N-1 (PLAN §9.1 "Locale resolution"). */
 describe('resolveLocale', () => {
@@ -32,13 +32,6 @@ describe('the locale table', () => {
     expect(LOCALES).toEqual(['en', 'es']);
     expect(LOCALE_NAMES).toEqual({ en: 'English', es: 'Español' });
     for (const locale of LOCALES) expect(new Intl.DateTimeFormat(INTL_LOCALE[locale]).resolvedOptions().locale).toContain(locale);
-  });
-
-  it('recognises its own tags and nothing else', () => {
-    expect(isLocale('en')).toBe(true);
-    expect(isLocale('es')).toBe(true);
-    expect(isLocale('fr')).toBe(false);
-    expect(isLocale('es-AR')).toBe(false);
   });
 });
 

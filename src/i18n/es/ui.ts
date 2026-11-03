@@ -85,9 +85,6 @@ const moonPhase = {
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
 
-/** R82 (D-513): la cuenta del paso **qué** en palabras, de uno a doce; cifras después. "Un" y no "uno": va antes de "pase". */
-const numberWords = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'];
-
 
 export const ui: typeof EnUi = {
   app: {
@@ -95,8 +92,8 @@ export const ui: typeof EnUi = {
     tagline: 'Pases de satélites visibles a simple vista para la próxima noche: cuáles, cuándo y hacia dónde mirar.',
     language: 'Idioma',
     theme: 'Tema',
-    // R156 (FR-PHONE-15): «Nocturno» becomes «Noche», the spec's word, so `Tema [x] Oscuro [ ] Noche [ ] Auto` fits 36 cells.
-    themes: { dark: 'Oscuro', night: 'Noche', auto: 'Auto' },
+    // R156: «Noche», the spec's word. v2.12 (D-1020): Auto withdrawn, so the row is `Tema [x] Oscuro [ ] Noche`.
+    themes: { dark: 'Oscuro', night: 'Noche' },
     shortTitle: 'Tu cielo',
   },
 
@@ -104,7 +101,7 @@ export const ui: typeof EnUi = {
     back: '←',
     backName: 'Volver',
     nav: 'Páginas',
-    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', pass: 'pase', settings: 'ajustes' },
+    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', settings: 'ajustes' },
   },
 
   starsHeading: 'Estrellas esta noche',
@@ -130,7 +127,6 @@ export const ui: typeof EnUi = {
     skyLabel: 'Cielo',
     sunGlow: 'brillo del sol',
     sunGlowName: 'El brillo del Sol en el horizonte',
-    privacy: 'Sin rastreo. La ubicación se guarda solo en este navegador.',
   },
 
   compass,
@@ -202,11 +198,6 @@ export const ui: typeof EnUi = {
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
     moonRow: (p) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     upNow: (p) => `${p.name}${p.left === null ? '' : ` · quedan ${p.left}`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    count: (n) => {
-      if (n === 0) return 'Esta noche no hay pases';
-      if (n === 1) return 'Esta noche hay un pase';
-      return `Esta noche hay ${n <= 12 ? (numberWords[n] ?? String(n)) : String(n)} pases`;
-    },
     whenStep: {
       heading: '¿Cuándo está lo bastante oscuro?',
       sentence: (place) => `${place}, esta noche. Los satélites solo se ven iluminados en la banda oscura entre el anochecer y el amanecer.`,
@@ -219,18 +210,27 @@ export const ui: typeof EnUi = {
       passesValue: (p) => `${String(p.tonight)} esta noche, ${String(p.total)} en ${String(p.hours)} h`,
       /* "Nubes esta noche" and "Probablemente cubierto" are 39 cells. */
       clouds: 'Nubes',
-      cloudsMoment: 'a mitad de la banda oscura',
+      cloudsMoment: 'en la banda oscura',
+      /* D-1028: "Nubes hasta las 02:00" y "Probablemente cubierto" son 43 celdas; "Hasta 02:00" deja 34. */
+      cloudsUntil: (at) => `Hasta ${at}`,
+      cloudsFrom: (at) => `Desde ${at}`,
+      cloudsMomentUntil: (at) => `hasta las ${at}`,
+      cloudsMomentFrom: (at) => `desde las ${at}`,
       moon: 'Luna',
       /* "gibosa menguante, 99 % iluminada" and its label are 38 cells. */
       moonValue: (p) => `${moonPhase[p.phase]}, ${p.illumination} % de luz`,
       moonNote: (note) => `Una luna brillante apaga los más tenues. ${note === 'bright' ? 'Esta noche lo hará.' : 'Esta noche no lo hará.'}`,
-      next: 'Ver qué cruza',
+      next: 'Elegir qué ver',
     },
     whatStep: {
-      sentence: 'Cada uno es un punto de luz fijo, que se mueve más o menos tan rápido como un avión alto, sin parpadear.',
-      moreTonight: (n) => `${String(n)} más esta noche`,
-      moreNights: (n) => (n === 1 ? '1 en otra noche' : `${String(n)} en otras noches`),
-      foot: (p) => [p.place, ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]), cloudState[p.cloud].toLowerCase()],
+      title: '¿Qué querés ver?',
+      foot: (p) => [
+        p.place,
+        ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]),
+        ...(p.cloud.kind === 'change'
+          ? [`${cloudState[p.cloud.before].toLowerCase()} hasta las ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} después`]
+          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
+      ],
       edit: 'editar',
     },
   },
@@ -271,7 +271,6 @@ export const ui: typeof EnUi = {
     save: 'Guardar este lugar',
     empty: 'Todavía no hay lugares guardados.',
     use: (label) => `Usar ${label}`,
-    current: 'en uso',
     remove: (label) => `Quitar ${label}`,
     limit: (max) => `Hasta ${String(max)} lugares. Al guardar otro se olvida el que hace más tiempo que no se usa.`,
   },
@@ -425,7 +424,9 @@ export const ui: typeof EnUi = {
     momentPeak: 'en el máximo del pase',
     tooltipHead: (p) => (p.percent === null ? `Sin pronóstico de nubes ${p.moment}.` : `${p.percent} % de nubosidad efectiva ${p.moment}.`),
     thresholds: (p) =>
-      `Despejado por debajo del ${p.clear} %, parcialmente nublado entre el ${p.clear} y el ${p.obscured} %, probablemente cubierto por encima del ${p.obscured} % de nubosidad efectiva (las nubes bajas y medias pesan más que las altas).`,
+      `Despejado por debajo del ${p.clear} %, parcialmente nublado entre el ${p.clear} y el ${p.obscured} %, probablemente cubierto por encima del ${p.obscured} % de nubosidad efectiva (la capa más espesa; las nubes altas cuentan al 70 %).`,
+    tonight: (cloud) =>
+      cloud.kind === 'steady' ? cloudState[cloud.state] : cloud.kind === 'variable' ? 'Variable' : `${cloudState[cloud.before]} hasta las ${cloud.at} · ${cloudState[cloud.after].toLowerCase()} después`,
     source: (p) => `Pronóstico de ${p.provider}, obtenido ${p.fetched}.`,
     noForecast: 'No hay pronóstico disponible.',
   },
@@ -507,7 +508,7 @@ export const ui: typeof EnUi = {
   footer: {
     celestrak: { before: 'Elementos orbitales de ', link: 'CelesTrak', after: '.' },
     openMeteo: { before: 'Datos meteorológicos de ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' },
-    geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
+    geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, y la ciudad que nombra la ubicación del dispositivo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
     privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
     credit: { before: 'Hecho por ', link: 'Ezequiel Baruf', after: '.' },
     chart: { before: 'Carta del cielo: ', link: 'glyphcss', after: '.' },

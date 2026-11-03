@@ -41,7 +41,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
-import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, footerBelowPx, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -172,8 +172,8 @@ for (const [width, height] of [
       const wrapped = playback.y >= clock.y + clock.height - 1 && Math.abs(playback.x - clock.x) <= 1;
       expect(beside || wrapped, `the playback row is beside the clock or wrapped under it (clock ${String(clock.x)},${String(clock.y)} ${String(clock.width)}×${String(clock.height)}; playback ${String(playback.x)},${String(playback.y)} ${String(playback.width)}×${String(playback.height)})`).toBe(true);
 
-      // The page never scrolls to make room: the box was cut from what fits.
-      expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
+      // The page never scrolls to make room: the box was cut from what fits. D-1023: the footer's row follows under the fold.
+      expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height + (await footerBelowPx(page))]);
 
       // …and the drawing in it: at least 90 % of the box's shorter side (FR-DOME-1), centred, not two thirds of it with
       // the top cut off. R133 (FR-FLOW-9, D-850): the box is the room and not the drawing's own shape any more, so the

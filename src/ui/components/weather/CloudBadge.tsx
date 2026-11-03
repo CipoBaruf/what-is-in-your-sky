@@ -26,6 +26,8 @@ export interface CloudBadgeProps {
    * (`Clear`), unbracketed, with the percentage and the source still in the tooltip (US-7 AC3).
    */
   form?: 'badge' | 'word';
+  /** The `word` form's text in place of the state's word: `Variable` for a night whose cloud changes more than once (D-1028). */
+  word?: string | undefined;
   /**
    * R84 (FR-FIRST-10 as amended v2.1, D-548): text inside a control, as on a pass card whose whole box opens
    * the pass — not a tab stop and not a pointer target of its own. The tooltip stays its description.
@@ -55,7 +57,7 @@ export function tooltipText(verdict: CloudVerdict, forecast: CloudBadgeProps['fo
   return `${head} ${thresholds} ${source}`;
 }
 
-export function CloudBadge({ verdict, forecast, timeZone, moment, form = 'badge', asText = false }: CloudBadgeProps) {
+export function CloudBadge({ verdict, forecast, timeZone, moment, form = 'badge', word, asText = false }: CloudBadgeProps) {
   const t = useT();
   const locale = useLocale();
   const tipId = useId();
@@ -67,7 +69,7 @@ export function CloudBadge({ verdict, forecast, timeZone, moment, form = 'badge'
         {...(asText ? {} : { tabIndex: 0 })}
         aria-describedby={tipId}
       >
-        {form === 'word' ? t.weather.state[verdict.state] : badgeText(verdict, t)}
+        {form === 'word' ? (word ?? t.weather.state[verdict.state]) : badgeText(verdict, t)}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>
         {tooltipText(verdict, forecast, timeZone, moment, t, locale)}

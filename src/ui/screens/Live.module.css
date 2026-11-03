@@ -25,6 +25,16 @@
   color: var(--fg);
 }
 
+/* D-1023 (FR-X-2 as amended 2026-11-02): on a desk the live page is still one viewport high, its box and rail cut
+   from that height as before, and the app's footer (D-120's one row, the shell's `contentinfo`) follows it under the
+   fold: the page scrolls by the footer's height and no more. Inside the viewport the row would come out of the rail,
+   which has no height to give on a short window (FR-SHP-3). So the shell's one-viewport grid (global.css, D-119)
+   steps aside for this route, and `#root` is the page and then the footer, in flow. */
+:global(#root):has(> .page[data-compact='false']) {
+  display: block;
+  height: auto;
+}
+
 /* R132 (FR-FLOW-4) → R144 (FR-TONIGHT-9): the portrait phone's column no longer scrolls past its box. The page is
    one viewport high in every shape; the layout fills the body (`fill`) and measures the room its rows leave the
    drawing (`SkyViewLayout`, `--sky-drawing-room`), so the box is what the rows leave, up to the bowl's cut or the
@@ -146,6 +156,8 @@
   display: flex;
   align-items: center;
   gap: 0 var(--cell);
+  /* D-1026: half a cell inside each end, as the head's box has (SkyHead.module.css), so the brackets do not touch the overlay's edges. */
+  padding-inline: calc(var(--cell) / 2);
   background: var(--screen-overlay);
   pointer-events: auto;
 }

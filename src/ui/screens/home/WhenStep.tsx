@@ -21,7 +21,7 @@ import { useMoonNote, useNight } from './useNight';
  * component) and the night's three rows — `Dark from`, `Until` and `Passes in
  * it`, the last value in the accent; a second box holding `Clouds tonight`,
  * `Moon` and the Moon's sentence (`lib/moonNote`); and at the foot of the
- * screen `[ See what crosses ]`, which moves on to **what**.
+ * screen `[ Choose what to see ]`, which moves on to **what**.
  *
  * The step is one screen tall, as the cold open is, so the control stands at
  * the bottom of it.
@@ -52,6 +52,8 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
   }, [focus]);
 
   const zone = observer.timeZone;
+  const forecast = night.snapshot ? { provider: night.snapshot.provider, fetchedAt: night.snapshot.fetchedAt } : null;
+  const changeAt = night.clouds.kind === 'change' ? formatShortClock(night.clouds.at, zone, locale) : '';
   const split = splitTonight(passes, zone, clock);
   const state = nowSlice.observer === observer ? nowSlice.state : null;
   const moon = state ? moonFacts(state.moon) : null;
@@ -94,12 +96,37 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
       </div>
       <div className={`${styles.box} ${styles.sky}`} data-testid="when-sky">
         <dl className={styles.rows} aria-label={t.home.whenStep.skyLabel}>
-          <div className={styles.row} data-row="clouds">
-            <dt>{t.home.whenStep.clouds}</dt>
-            <dd>
-              <CloudBadge form="word" verdict={night.clouds} forecast={night.snapshot ? { provider: night.snapshot.provider, fetchedAt: night.snapshot.fetchedAt } : null} timeZone={zone} moment={t.home.whenStep.cloudsMoment} />
-            </dd>
-          </div>
+          {night.clouds.kind === 'change' ? (
+            // D-1028: a night whose cloud changes once is two rows, the stretch until the change and the stretch from it.
+            <>
+              <div className={styles.row} data-row="clouds">
+                <dt>{t.home.whenStep.cloudsUntil(changeAt)}</dt>
+                <dd>
+                  <CloudBadge form="word" verdict={night.clouds.before} forecast={forecast} timeZone={zone} moment={t.home.whenStep.cloudsMomentUntil(changeAt)} />
+                </dd>
+              </div>
+              <div className={styles.row} data-row="clouds-after">
+                <dt>{t.home.whenStep.cloudsFrom(changeAt)}</dt>
+                <dd>
+                  <CloudBadge form="word" verdict={night.clouds.after} forecast={forecast} timeZone={zone} moment={t.home.whenStep.cloudsMomentFrom(changeAt)} />
+                </dd>
+              </div>
+            </>
+          ) : (
+            <div className={styles.row} data-row="clouds">
+              <dt>{t.home.whenStep.clouds}</dt>
+              <dd>
+                <CloudBadge
+                  form="word"
+                  verdict={night.clouds.verdict}
+                  word={night.clouds.kind === 'variable' ? t.weather.tonight({ kind: 'variable' }) : undefined}
+                  forecast={forecast}
+                  timeZone={zone}
+                  moment={t.home.whenStep.cloudsMoment}
+                />
+              </dd>
+            </div>
+          )}
           {moon && (
             <div className={styles.row} data-row="moon">
               <dt>{t.home.whenStep.moon}</dt>

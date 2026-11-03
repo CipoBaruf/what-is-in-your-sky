@@ -5,7 +5,7 @@
  */
 import { nextEvent } from '../../src/lib/nextEvent';
 import type { DoorInput, DoorSky } from '../../src/ui/screens/home/doorLines';
-import type { EpochMs, Pass } from '../../src/model';
+import type { EpochMs, Pass, TonightCloud } from '../../src/model';
 import { NO_MOON_AT_PEAK } from './moonFixtures';
 
 const DOOR_ZONE = 'America/Argentina/Salta'; // UTC−3, no DST
@@ -54,7 +54,7 @@ export function doorInput(over: Partial<Omit<DoorInput, 'event'>> = {}): DoorInp
     hours: 72,
     bandsKnown: true,
     dark: DOOR_NIGHT,
-    cloud: 'clear' as const,
+    cloud: { kind: 'steady', state: 'clear' } as TonightCloud,
     sky: DOOR_SKY,
     ...over,
   };

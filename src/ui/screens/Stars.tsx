@@ -3,14 +3,14 @@ import { starCatalog } from '../../data/stars/catalog';
 import type { Messages } from '../../i18n/messages';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
-import { cloudVerdict } from '../../lib/cloudVerdict';
+import { nightClouds, tonightCloud } from '../../lib/nightClouds';
 import { fitBox, hintFitsBeside, RAIL_MIN_CELLS, SHELL_PADDING_CELLS } from '../../lib/layout';
 import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
 import { formatShortClock } from '../../lib/timeFormat';
 import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
-import type { ChartView, CloudState, EpochMs, Locale, Observer } from '../../model';
+import type { ChartView, EpochMs, Locale, Observer, TonightCloud } from '../../model';
 import { useActiveObserver, useAppStore } from '../../state';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
@@ -665,17 +665,18 @@ const TONIGHT_AHEAD_MS = 36 * HOUR_MS;
 
 /**
  * `useNight`'s reading, on the page's own clock: the stars page already ticks (`STARS_TICK_MS`), so the lines take
- * that `now` rather than a second timer, and sample the bands once an hour, when the span moves. The cloud word is
- * the forecast's at the middle of tonight's stretch (`nightWindow`), as the home's doors word it.
+ * that `now` rather than a second timer, and sample the bands once an hour, when the span moves. The cloud is the
+ * forecast's hour by hour across tonight's stretch (`nightWindow`, `nightClouds`, D-1028), as the home's doors word it.
  */
-function useStarsNight(observer: Observer, now: EpochMs): { bands: readonly SkyBand[]; span: Span; cloud: CloudState } {
+function useStarsNight(observer: Observer, now: EpochMs): { bands: readonly SkyBand[]; span: Span; cloud: TonightCloud } {
+  const locale = useLocale();
   const hour = Math.floor(now / HOUR_MS) * HOUR_MS;
   const span = useMemo<Span>(() => ({ start: hour - TONIGHT_BACK_MS, end: hour + TONIGHT_AHEAD_MS }), [hour]);
   const bands = useSkyBands(observer, span);
   const weather = useAppStore((s) => s.weather);
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const night = bands.length > 0 ? nightWindow(bands, observer, now) : null;
-  return { bands, span, cloud: cloudVerdict(snapshot, night ? (night.start + night.end) / 2 : now).state };
+  return { bands, span, cloud: tonightCloud(nightClouds(snapshot, night, now), (at) => formatShortClock(at, observer.timeZone, locale)) };
 }
 
 function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
@@ -687,7 +688,7 @@ function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
   const dark = !known ? null : darkBand === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(darkBand, span.start, observer.timeZone, locale, t)}`;
   return (
     <p className={styles.tonight} data-testid="stars-tonight">
-      {[dark, t.weather.state[cloud]].filter((piece) => piece !== null).join(' · ')}
+      {[dark, t.weather.tonight(cloud)].filter((piece) => piece !== null).join(' · ')}
     </p>
   );
 }
@@ -697,7 +698,7 @@ export interface StarsHeadLineInput {
   now: EpochMs;
   zone: string | null;
   bands: readonly SkyBand[];
-  cloud: CloudState;
+  cloud: TonightCloud;
   /** The twilight step draws nothing (`drawnRungs` 0): the Sun is up, and the stars come later. */
   sunUp: boolean;
 }
@@ -712,7 +713,7 @@ export interface StarsHeadLineInput {
  */
 export function starsHeadLine(t: Messages, locale: Locale, { now, zone, bands, cloud, sunUp }: StarsHeadLineInput): string {
   const cloudWord = zone === null ? null : cloud;
-  if (bands.length === 0) return cloudWord === null ? '' : t.weather.state[cloudWord];
+  if (bands.length === 0) return cloudWord === null ? '' : t.weather.tonight(cloudWord);
   const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
   const starsFrom = tonightsStarsFrom(bands, now);
   if (sunUp && starsFrom !== null && starsFrom.from > now) return t.doors.stars.from(clock(starsFrom.from, true));

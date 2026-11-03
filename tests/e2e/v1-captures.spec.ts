@@ -85,7 +85,8 @@ test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CA
  * R135 (FR-FLOW-2, D-844): on the compact home the readiness line is inside the folded Where's closed panel and not
  * in the document, so the "finished run stored" signal `captureSeeds.ts`'s wait reads is the folded line's instead.
  * R156 (FR-PHONE-12, D-972): a ready line is `[ details ]` alone, so the signal is its `data-state="ready"` — the same
- * readiness, which reads `pending` until it has an answer.
+ * readiness, which reads `pending` until it has an answer. D-1024: with no fault there is no line at all, so the
+ * `data-state` is the folded Where's own (`where-folded`).
  */
 
 /**
@@ -96,11 +97,11 @@ async function listSettled(page: Page): Promise<void> {
   await settledList(page, readyOrFolded);
 }
 
-/** The finished run stored: the readiness line where it is drawn, else the folded Where's ready line. */
+/** The finished run stored: the readiness line where it is drawn, else the folded Where's `data-state` (D-1024). */
 async function readyOrFolded(page: Page): Promise<void> {
-  await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
-  if ((await page.getByTestId('where-status').count()) === 0) await readinessShown(page);
-  else await expect(page.getByTestId('where-status')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  await expect(page.locator('[data-testid="readiness"], [data-testid="where-folded"]').first()).toBeVisible({ timeout: 60_000 });
+  if ((await page.getByTestId('where-folded').count()) === 0) await readinessShown(page);
+  else await expect(page.getByTestId('where-folded')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
 }
 
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
@@ -548,11 +549,11 @@ async function homeAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   if (noPass) await noPassCatalogue(page);
   await page.goto('/');
   if (noPass) {
-    await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('[data-testid="readiness"], [data-testid="where-folded"]').first()).toBeVisible({ timeout: 60_000 });
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
     // A finished search with nothing in it stores no run, so the readiness answer is not-ready ("no passes stored
     // yet") — the state a reader with no pass is in, and a finding in RELEASE §18 — and the fold shows that fault.
-    if ((await page.getByTestId('where-status').count()) > 0) await expect(page.getByTestId('where-status')).toHaveAttribute('data-fault', 'not-ready', { timeout: 60_000 });
+    if ((await page.getByTestId('where-folded').count()) > 0) await expect(page.getByTestId('where-status')).toHaveAttribute('data-fault', 'not-ready', { timeout: 60_000 });
     else await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
     // The search finished: the Satellites door reads `none` only once the run is `done` (`usePassContext`'s
     // `pending`, `doorLines`); before and during it the door reads its pending line, and every check above holds
@@ -715,18 +716,18 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R135 (FR-FLOW-2, FR-FLOW-12; D-844): the compact Where opened by its `[ details ]` — the place, the status line's
-   * button pressed and the panel in FR-FIRST-11's order under it. The folded Where is the top of the home's own
-   * 360 and 390 files, and of their `-view` twins.
+   * R135 (FR-FLOW-2, FR-FLOW-12; D-844) as amended by D-1024: the compact Where opened by its one control, `[ change ]`
+   * — the place, the control pressed and the status in FR-FIRST-11's order at the top of the group, above the inputs.
+   * The folded Where is the top of the home's own 360 and 390 files, and of their `-view` twins.
    */
   async 'where-opened'(page, width, theme, locale) {
     await homeAt(page, width, theme, locale, CLOCK);
-    const details = page.getByTestId('where-details');
-    await details.click();
-    await expect(details).toHaveAttribute('aria-expanded', 'true');
-    // The panel mounts its readiness and elements lines only on open (`WherePlace`'s `details`), and each draws
+    const change = page.getByTestId('location-summary-change');
+    await change.click();
+    await expect(change).toHaveAttribute('aria-expanded', 'true');
+    // The status mounts its readiness and elements lines only on open (`WhereOpenedStatus`), and each draws
     // nothing until its store answers, so the clock is ticked until both are there, then put back (F-48).
-    const panel = page.getByTestId('where-details-panel');
+    const panel = page.getByTestId('where-opened-status');
     await expect
       .poll(async () => {
         await page.clock.runFor(FRAME_MS);

@@ -228,12 +228,13 @@ function expectNoOverlap(found: Map<string, Rect>, at: string): void {
 
 const fmt = (r: Rect): string => `${String(Math.round(r.x))},${String(Math.round(r.y))} ${String(Math.round(r.width))}×${String(Math.round(r.height))}`;
 
+/** D-1023: `innerHeight` here is the viewport plus the footer's row, which on a desk follows the live page under the fold. */
 async function scroll(page: Page): Promise<{ scrollWidth: number; clientWidth: number; scrollHeight: number; innerHeight: number }> {
   return page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
     scrollHeight: document.documentElement.scrollHeight,
-    innerHeight: window.innerHeight,
+    innerHeight: window.innerHeight + Math.round(document.querySelector('#root > footer')?.getBoundingClientRect().height ?? 0),
   }));
 }
 

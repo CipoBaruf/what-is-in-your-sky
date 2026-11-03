@@ -46,8 +46,9 @@ describe('the following window’s field', () => {
     const view: View = { fovDeg: fov, width: 390, height: 844, screenAngleDeg: 0, aimShiftPx: followAimShiftPx(844) };
     expect(2 * verticalHalfFieldDeg(view)).toBeCloseTo(FOLLOW_VERTICAL_FIELD_DEG, 6);
     // Level: the box's top edge, straight up from the aim, is well under the zenith.
-    const top = project(handRotation({ azDeg: 0, altDeg: 0 }), 0, 63, view);
-    expect(top.y).toBeGreaterThan(0);
+    const level = handRotation({ azDeg: 0, altDeg: 0 });
+    expect(project(level, 0, 50, view).y).toBeGreaterThan(0);
+    expect(project(level, 0, 56, view).y).toBeLessThan(0);
     expect(project(handRotation({ azDeg: 0, altDeg: 0 }), 0, 0, view).y).toBeCloseTo(844 * (1 - FOLLOW_HORIZON_SHARE), 6);
   });
 

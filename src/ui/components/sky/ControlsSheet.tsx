@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState, type PointerEvent, type React
 import { useT } from '../../../i18n/useT';
 import { SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../../lib/layout';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
+import { Footer } from '../common/Footer';
 import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
@@ -40,6 +41,10 @@ import styles from './ControlsSheet.module.css';
  *
  * R162 (FR-CLEAN-9; D-996): moved from `components/live/` to `components/sky/`, unchanged, so the stars page and the
  * pass detail mount the same sheet without the `live` chunk.
+ *
+ * D-1023 (FR-X-2 as amended 2026-11-02): the body ends in the footer's one row (`Footer`'s `short` form), after the
+ * page's last section, so the three sky pages credit their sources on the phone as every other page does. It is a
+ * `div`, not a second `contentinfo`; it scrolls with the body, and the focus that moves in on open skips its links.
  */
 export interface ControlsSheetProps {
   open: boolean;
@@ -94,9 +99,9 @@ function swipeCloses(travel: number, samples: readonly Sample[]): boolean {
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
-/** The first element in `root` the keyboard can reach, in document order. */
+/** The first element in `root` the keyboard can reach, in document order — the page's rows, never the footer's links (D-1023). */
 function firstFocusable(root: HTMLElement | null): HTMLElement | null {
-  return root?.querySelector<HTMLElement>(FOCUSABLE) ?? null;
+  return Array.from(root?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).find((element) => !element.closest('[data-testid="app-footer"]')) ?? null;
 }
 
 export function ControlsSheet({ open, onOpenChange, place, children, beside, className }: ControlsSheetProps) {
@@ -217,6 +222,7 @@ export function ControlsSheet({ open, onOpenChange, place, children, beside, cla
         </div>
         <div ref={bodyRef} className={styles.body} data-testid="sheet-body">
           {children}
+          <Footer form="short" className={styles.foot} />
         </div>
         {open && armed && <FocusIn body={bodyRef} fallback={closeRef} />}
       </section>

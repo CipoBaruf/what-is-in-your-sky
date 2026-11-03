@@ -12,7 +12,7 @@ import { ElementsLine } from '../components/elements/ElementsLine';
 import { Favourites } from '../components/location/Favourites';
 import { LocationInput } from '../components/location/LocationInput';
 import type { GeolocationEnv } from '../components/location/UseMyLocation';
-import { WherePlace } from '../components/location/WherePlace';
+import { WhereOpenedStatus, WherePlace } from '../components/location/WherePlace';
 import type { MoonLore as MoonLoreComponent } from '../components/moon/MoonLore';
 import { ConditionsTable } from '../components/now/ConditionsTable';
 import { TonightStripe } from '../components/now/TonightStripe';
@@ -56,7 +56,8 @@ import { WhenStep } from './home/WhenStep';
  * stand over the Where reading on compact (R156, FR-PHONE-12, D-972) and in one
  * row over the panes on wide; the next event and the When pane's stars line are theirs now, and the
  * Where pane's dome is gone, whose job the Both door does. On compact the Where
- * reading is two lines, the rest behind `[ details ]` (`WherePlace`'s `folded`).
+ * reading is the place with `[ change ]`, the rest at the top of the group it opens (`WherePlace`'s `folded`,
+ * D-1024).
  *
  * The two columns' wrappers (`col-left`, `col-right`) are kept, because between
  * the wide breakpoint and the three-pane width the page *is* those two columns
@@ -191,7 +192,7 @@ export interface WhereReadingProps {
  * FR-FIRST-1, FR-FIRST-2, FR-FIRST-11: the Where reading — the cold open with
  * no observer, and with one the place and its sentence (`WherePlace`), the
  * readiness line, the elements line and the saved places, each one line (R81,
- * D-511) — on compact folded behind `[ details ]` (R130, D-844).
+ * D-511) — on compact folded behind `[ change ]`, at the top of the group it opens (R130, D-844; D-1024).
  *
  * The input group is one mounted instance across the two states, in the same
  * place in the tree, and only shown or hidden (D-467). A coordinate pair
@@ -219,7 +220,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const cold = observer === null || step !== undefined;
-  // R130 (FR-FLOW-2, D-844): on compact the populated Where is two lines, the rest behind `[ details ]`.
+  // R130 (FR-FLOW-2, D-844; D-1024): on compact the populated Where is the place with `[ change ]`, which opens the group with
+  // the rest at its top.
   const folded = mode === 'compact';
   const rest = (
     <>
@@ -280,7 +282,6 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
       {!cold && (
         <WherePlace
           folded={folded}
-          {...(folded ? { details: rest } : {})}
           open={open}
           controls={groupId}
           onToggle={() => {
@@ -289,6 +290,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
         />
       )}
       <div id={groupId} ref={group} hidden={!cold && !open} className={styles.locationGroup}>
+        {/* D-1024: on compact the status heads the group `[ change ]` opens, mounted only while it is open. */}
+        {!cold && folded && open ? <WhereOpenedStatus>{rest}</WhereOpenedStatus> : null}
         {/* The saved places are the cold open's inside the group; with a place they are the reading's own line (FR-FIRST-11). */}
         <LocationInput
           variant="group"
@@ -358,8 +361,8 @@ export interface HomeProps {
   steps: HomeSteps;
 }
 
-/** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it). */
-const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.label}`);
+/** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it, and D-1025's town name a device fix's label). */
+const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.source === 'device' ? 'device' : observer.label}`);
 
 /** Whether a text field has the focus: a coordinate pair that parsed under the reader's fingers (D-467). */
 function typingInAField(): boolean {
@@ -414,7 +417,13 @@ export function useSteps(observer: Observer | null, offHome = false) {
       else go('when');
     }
   }
-  return { step, reached, moved, held, go };
+  /** v2.12 (D-1021): leave the steps for the stacked page — the third step's Satellites door with no pass to open. */
+  const finish = (): void => {
+    setStep(null);
+    setMoved(false);
+    setHeld(false);
+  };
+  return { step, reached, moved, held, go, finish };
 }
 
 type HomeSteps = ReturnType<typeof useSteps>;
@@ -436,7 +445,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   const placeRequest = placeRequested();
   const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
   if (current !== null) {
-    const { reached, moved, go } = steps;
+    const { reached, moved, go, finish } = steps;
     const head = (step: Step) => (
       <>
         <UpdateBanner inert={offersInert} />
@@ -484,7 +493,19 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
               onEdit={() => {
                 go('where');
               }}
-              onOpenPass={onOpenPass}
+              onList={() => {
+                finish();
+                // The stacked page lands on the next frame; its What reading then takes the scroll and the focus.
+                requestAnimationFrame(() => {
+                  const what = document.getElementById(WHAT_ID);
+                  if (what && 'scrollIntoView' in what) what.scrollIntoView({ block: 'start' });
+                  const title = what?.querySelector<HTMLElement>('h2');
+                  if (title) {
+                    title.tabIndex = -1;
+                    title.focus({ preventScroll: true });
+                  }
+                });
+              }}
               selectedPassId={selectedPassId}
             />
           )}

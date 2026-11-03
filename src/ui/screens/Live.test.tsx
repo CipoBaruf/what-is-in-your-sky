@@ -1178,7 +1178,7 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     inventory('watching', true);
     const open = present();
-    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
     expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
     expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
     // Held: a key on the track holds the instant; nothing appears, nothing disappears.
@@ -1243,11 +1243,11 @@ describe('<LivePage>', () => {
     await waitFor(() => {
       expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^(Facing|Following) /);
     });
-    // The dome's drag clause fits beside the button in English (`hintFitsBeside`: 35.75 cells with a mouse).
+    // The dome's drag clause for a mouse no longer fits beside the button in English: 36.75 cells with the row's padding cell (D-1026).
     act(() => {
       appStore.getState().setChartView('dome');
     });
-    expect(within(overlay).getByTestId('sky-hint').parentElement).toHaveAttribute('data-beside', 'true');
+    expect(within(overlay).getByTestId('sky-hint').parentElement).toHaveAttribute('data-beside', 'false');
     // Seen: gone for good.
     act(() => {
       appStore.getState().setSkyHintSeen(true);
@@ -1270,7 +1270,7 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     const body = screen.getByTestId('sheet-body');
     // R150 (FR-GYRO-10, D-949): the satellites last, open, under their heading.
-    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
     expect(within(screen.getByTestId('live-satellites')).getByRole('heading', { name: 'Satellites (1)' })).toBeInTheDocument();
     expect(within(screen.getByTestId('live-satellites')).getByTestId('chart-legend-slot')).toBeInTheDocument();
     // R150 (FR-GYRO-11, D-950): the window first in the view row.
@@ -1846,7 +1846,7 @@ describe('<LivePage>', () => {
       withPhone(() => Promise.resolve('granted'));
       render(<LivePage link={null} onLeave={() => undefined} />);
       const body = screen.getByTestId('sheet-body');
-      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites']);
+      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
       expect(screen.getByTestId('live-follow')).toHaveAttribute('data-rhythm', 'group');
       expect(within(screen.getByTestId('live-follow')).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');

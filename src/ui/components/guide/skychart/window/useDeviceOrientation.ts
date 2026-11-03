@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orientationApiPresent, orientationEventName, screenAngle } from '../../../live/compassHeading';
 import { orientationAnswer, orientationGestureNeeded, orientationRequestInFlight, requestOrientationAccess, type OrientationAnswer } from './orientationAccess';
-import { alphaFor, calibrationSample, converged, OffsetEstimate, rotationMatrix, settling, smoothRotation, WINDOW_SMOOTHING, windowReadingFrom, type Mat3 } from './projection';
+import { alphaFor, calibrationSample, converged, OffsetEstimate, RotationFilter, rotationMatrix, settling, windowReadingFrom, type Mat3 } from './projection';
 import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
 
 /**
@@ -17,7 +17,8 @@ import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
  *     the picture is computed in an animation frame, never in the event: the
  *     fused heading (`alphaFor`, corrected to true north by the observer's
  *     declination, R44), the W3C rotation from the three angles, then
- *     `smoothRotation` by `WINDOW_SMOOTHING` toward it. One state update per
+ *     one step of `RotationFilter` toward it (D-1027: timed by the frame's
+ *     clock, steadier held still than turning). One state update per
  *     frame at most, and where the sensor is slower than the display (iOS
  *     Chrome's 10 readings a second) the frames keep coming, easing toward
  *     the latest reading until `converged` — so the window draws at the
@@ -133,9 +134,9 @@ export function useDeviceOrientation(declinationDeg = 0, enabled = true): Device
     if (!armed) return;
     const latest: { reading: ReturnType<typeof windowReadingFrom> | null } = { reading: null };
     const offset = new OffsetEstimate();
-    let smoothed: Mat3 | null = null;
+    const filter = new RotationFilter();
     let frame = 0;
-    const draw = (): void => {
+    const draw = (now: number): void => {
       frame = 0;
       const reading = latest.reading;
       if (!reading) return;
@@ -145,8 +146,7 @@ export function useDeviceOrientation(declinationDeg = 0, enabled = true): Device
         return;
       }
       const target = rotationMatrix(alpha, reading.beta, reading.gamma);
-      const next = smoothRotation(smoothed, target, WINDOW_SMOOTHING);
-      smoothed = next;
+      const next = filter.step(target, now);
       setRotation(next);
       // FR-FSC-10 (D-424): one fold step per frame, from the quarter it is on. React bails out on the same
       // value, so a phone held still costs no render for this and a turn of the hand costs one.
@@ -154,6 +154,7 @@ export function useDeviceOrientation(declinationDeg = 0, enabled = true): Device
       setState('on');
       // The sensor may be slower than the display: keep easing toward the latest reading until it has arrived.
       if (!converged(next, target)) frame = requestAnimationFrame(draw);
+      else filter.rest();
     };
     const onReading = (event: Event): void => {
       const reading = windowReadingFrom(event as DeviceOrientationEvent);
