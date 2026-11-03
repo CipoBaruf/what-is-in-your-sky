@@ -263,6 +263,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       aria-activedescendant={activeId}
       aria-describedby={confirming ? noteId : undefined}
     >
+      <div className={styles.anchor}>
       <ul id={listId} role="listbox" aria-label={t.location.placeList} className={home ? `${styles.list} ${styles.listFull}` : styles.list} hidden={!showList}>
         {showList &&
           places.map((place, i) => {
@@ -295,6 +296,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
             );
           })}
       </ul>
+      </div>
       <p role="status" className={styles.status} data-testid="place-search-status">
         {offline && linked(t.location.searchOffline)}
         {!offline && list.kind === 'searching' && t.location.searching(list.query)}

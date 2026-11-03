@@ -454,6 +454,10 @@ test.describe('on a desk only the pick list scrolls (D-1033)', () => {
     await expect(list.getByRole('option')).toHaveCount(8);
     expect(await scrollers(page, 'y')).toEqual([...before, 'listbox']);
     expect(await scrollers(page, 'x')).toEqual([]);
+    // It hangs under the field and never covers what the reader is typing.
+    const field = await page.getByRole('combobox', { name: 'Nombre del lugar' }).boundingBox();
+    const box = await list.boundingBox();
+    expect(box!.y).toBeGreaterThanOrEqual(field!.y + field!.height - 1);
   });
 
   test('the home’s Where pane with a saved place in use never scrolls sideways', async ({ page }) => {
