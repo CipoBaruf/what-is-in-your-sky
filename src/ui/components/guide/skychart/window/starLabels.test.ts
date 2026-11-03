@@ -14,7 +14,7 @@ import { handRotation } from './camera';
 import { project, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import { frameOf, labelInput, prepare } from './StarField';
-import { ADVANCE_EM, FIGURE_NAME_PX, placeLabels, SEGMENT_SAMPLE_PX, spaced, STAR_NAME_PX, textWidth, type Box, type LabelInput, type LabelMark, type PlacedLabel } from './starLabels';
+import { ADVANCE_EM, FIGURE_NAME_PX, placeLabels, SEGMENT_SAMPLE_PX, spaced, STAR_NAME_PX, textWidth, type Box, type FixedLabel, type LabelInput, type LabelMark, type PlacedLabel } from './starLabels';
 
 const W = 400;
 const H = 300;
@@ -290,7 +290,8 @@ describe('a fixed label: a body’s name (FR-GLOBE-11, D-1041)', () => {
     const without = placeLabels(input);
     expect(texts(without)).toEqual(['star:Regulus Prime']);
     expect(side(without[0] as PlacedLabel, star)).toBe('right');
-    const placed = placeLabels(input, { fixed: [{ key: 1, mark: 0, text: 'Jupiter' }] });
+    const body: FixedLabel = { key: 1, mark: 0, text: 'Jupiter' };
+    const placed = placeLabels(input, { fixed: [body] });
     expect(texts(placed)).toEqual(['fixed:Jupiter', 'star:Regulus Prime']);
     const [fixed, moved] = placed as [PlacedLabel, PlacedLabel];
     expect(side(fixed, jupiter)).toBe('right');
