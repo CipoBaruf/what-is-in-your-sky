@@ -1,11 +1,14 @@
 /* R132 (FR-FLOW-4, FR-FLOW-6, FR-FLOW-7; D-842, D-851): one layout for every sky view. The slots are grid items
-   named by area, so one DOM order serves the three forms; the gap above a slot is its rhythm's token and nothing
-   else (FR-FLOW-10). Every length is a token or a count of cells (FR-DS-2). */
+   named by area, so one DOM order serves the rail and the panel; the gap above a slot is its rhythm's token and
+   nothing else (FR-FLOW-10). Every length is a token or a count of cells (FR-DS-2). R165 (D-1000): the compact column
+   and the landscape phone's compact rail are gone — compact is the full form — with the corner readout and the
+   bowl's cut that were theirs. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  /* A size container, so the column's box can be as tall as the layout is wide in CSS alone (`cqw`, below). */
+  /* A size container (the column's box was as tall as the layout was wide, in `cqw`); kept, so the wide forms lay
+     out as they did. */
   container-type: inline-size;
   --sky-corner-surface: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
 }
@@ -82,141 +85,13 @@
   display: contents;
 }
 
-/* R139 (FR-FLOW-10 as amended, D-885, D-892): an empty slot is not a block. In the column, a slot that holds only the
-   place for a chart's part, which the chart left empty (the dome has no facing picker), is 0 px tall and takes no gap
-   of its own: the drawing and the hint stand one row apart, as in the window. It stays in the grid as the chart's
-   portal target. A slot with anything else in it is the page's and keeps its gap. */
-.layout[data-shape='column'] > .slot:has(> .chartSlot:empty):not(:has(> :not(.chartSlot))) {
-  margin-top: 0;
-}
-
-/* --- The column: compact, FR-FLOW-4's order top to bottom. --- */
-.layout[data-shape='column'] {
-  grid-template-areas:
-    'answer'
-    'viewRow'
-    'readout'
-    'drawing'
-    'picker'
-    'hint'
-    'timeline'
-    'action'
-    'layers'
-    'list'
-    'foot';
-  /* The square's length, named once: the layout's width plus the page padding the full-bleed box breaks out of. */
-  --sky-square: calc(100cqw + 2 * var(--page-pad-x, calc(2 * var(--cell))));
-}
-
-/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is as tall as the full-bleed box is wide, whichever way
-   the phone is held — the layout's own width (`100cqw`) plus the page padding the frame breaks out of on each side
-   (`--page-pad-x`, D-187's device). A height, not a floor, and from CSS alone: a `fill` chart's 100 % has it to
-   resolve against from the first frame, with nothing measured and nothing to feed back.
-
-   R144 (FR-TONIGHT-9, FR-COMP-5): …and never more than the room the page's rows leave it where the column fills its
-   page (`--sky-drawing-room`, measured by `SkyViewLayout` on a `fill` column alone; elsewhere the fallback is the
-   square itself). The gaps are already at their tokens, so the box is what gives (FR-LIVE-7 as amended v1.2), and
-   the live page does not scroll at any compact size. */
-.layout[data-shape='column'] .drawing {
-  height: min(var(--sky-square), var(--sky-drawing-room, var(--sky-square)));
-}
-
-/* The column that fills its page packs its rows at the top: the room the box does not take (a tall phone, the
-   bowl's cut under the square) stays under the last row, not between them (FR-FLOW-10). */
-.layout[data-shape='column'][data-fill] {
-  align-content: start;
-}
-
-/* R133 (FR-FLOW-9, D-850): …unless the chart cuts its own box — the dome's, from the bowl (`ChartFrame`'s
-   `data-bowl`, its height written as `--chart-bowl-h`) — in which case the slot is as tall as the chart, and the
-   picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square.
-   `min-height: auto`, not the slot's 0: the chart's box is the slot's content and the slot is never shorter than it.
-   A grid shorter than its rows hands an auto row its items' minimum (D-881), and this column can be shorter than its
-   rows for a frame — Chromium re-lays the layout (`container-type`, above) at the height it had when a row the reader
-   opens arrives, the legend's two rows at 390 × 667, and the one row whose minimum was 0 gave the 96 px: the box
-   stood over `[ list (n) ]` (`live-compact.spec.ts`). With the box as the slot's minimum the rows overflow the stale
-   height instead and the page grows to them, which is what a column that scrolls past its box means (R132). */
-.layout[data-shape='column'] .drawing:has([data-bowl='true']) {
-  height: auto;
-  min-height: auto;
-}
-
-/* R144 (FR-TONIGHT-9): the bowl's cut reads the room too, on the frame's own box — the slot follows the chart (above),
-   so the cap has to be the chart's. `ChartFrame.module.css` writes the bowl's height; this outweighs it by the
-   layout's selectors, as the frame's emptied rows are hidden below. Without a room (a column that does not fill its
-   page) the fallback is the bowl's own height. */
-.layout[data-shape='column'][data-fill] .drawing :global([data-testid='chart-frame'][data-bowl='true'] > [data-testid='chart-box']) {
-  height: min(var(--chart-bowl-h), var(--sky-drawing-room, var(--chart-bowl-h)));
-}
-
-/* --- R144 (FR-TONIGHT-6, D-904): the readout in the box's corner, as a button that opens the picker. The drawing slot
-   is its containing block; it stands at the slot's top-left (the column's content edge, two cells inside the
-   full-bleed box) at `--small` on the screen's overlay surface, over the drawing, with `--space-1` of padding round
-   the words and a `--target` floor on the hit area (FR-FLOW-11). The surface is the words' box, not the whole hit
-   area, so a one-line readout does not draw a 44 px band. --- */
-.layout[data-shape='column'][data-readout='corner'] .drawing {
-  position: relative;
-}
-
-.cornerReadout {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: var(--z-raised);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  min-height: var(--target);
-  min-width: var(--target);
-  max-width: 100%;
-}
-
-.cornerLabel {
-  display: block;
-  min-width: 0;
-  padding: var(--space-1);
-  background: var(--sky-corner-surface);
-}
-
-/* The button is laid over the words at the corner's whole size, so the hit area is the corner's and a tap on the
-   words is a tap on it; it is empty, named by them (a button holds phrasing content only, the readout is a `p`). */
-.cornerHit {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  appearance: none;
-}
-
-/* The chart's readout is a paragraph at the live readout's size; in the corner it is `--small` (FR-TONIGHT-6). */
-.cornerReadout :global(p) {
-  margin: 0;
-  font-size: var(--small);
-  line-height: var(--small-row);
-}
-
-/* The bowl's box is shorter than the square, so a page that gives the column a height (`fill`, the live page at
-   390 × 844) leaves it room over: it stays under the last row rather than stretching every auto row, which would
-   draw the empty picker slot (1 px) and put a fraction on each FR-FLOW-10 gap. */
-.layout[data-shape='column']:has(.drawing [data-bowl='true']) {
-  align-content: start;
-}
-
-/* --- R148 (FR-FULL-1, FR-FULL-6; D-919): the full form, the compact live page's in both shapes. The layout is a
+/* --- R148 (FR-FULL-1, FR-FULL-6; D-919): the full form, compact's on all three pages in both shapes. The layout is a
    block with no height of its own; the drawing stands in a wrapper fixed to the viewport, `100dvh` tall so a phone
    browser's bars resize the box and never scroll the page, padded by the safe-area insets so the box is the
    screen inside them. The overlay and the sheet slots stand over the box inside the same insets, at `--z-raised`
    and `--z-sheet`, and let the pointer through where they hold nothing: what stands in them takes it back
    (`Live.module.css`, `ControlsSheet.module.css`). The box has no page padding to break out of (`--page-pad-x`),
-   is the wrapper's whole height — the bowl's cut, the square and every floor are the column's, not this
-   form's — and each view fills it by its own rule: the window across its width, the dome and the polar chart at
+   is the wrapper's whole height, and each view fills it by its own rule: the window across its width, the dome and the polar chart at
    the largest size that fits, centred. --- */
 .layout[data-shape='full'] {
   display: block;
@@ -303,8 +178,8 @@
   grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto auto auto;
   /* The box spans every rail row and the hint has a row of its own under it, so the box's height is the layout's
      less the hint's and nothing the rail does — a foot that grows, a fold that lets air out — can change what the
-     frame measures for the box (D-448) and feed the fold back on itself. R144: the timeline (the landscape live
-     page's track and taps, FR-FLOW-15) stands between the list and the action. */
+     frame measures for the box (D-448) and feed the fold back on itself. R144: the timeline stands between the list
+     and the action. */
   grid-template-areas:
     'drawing answer'
     'drawing viewRow'
@@ -321,7 +196,7 @@
 }
 
 /* R133 (FR-FLOW-9, D-868): the wide page that gives the layout a height (`fill`, the live page) cuts the box to the
-   layout's height less the hint's row, the landscape phone's rule below, so the box never follows a rail that
+   layout's height less the hint's row (`--sky-hint-h`, measured by `SkyViewLayout`), so the box never follows a rail that
    overflows a short window (D-448, FR-WATCH-6). With no hint (the polar chart) the box runs to the layout's foot. */
 .layout[data-shape='rail'][data-mode='wide'][data-fill] {
   container-type: size;
@@ -333,71 +208,6 @@
 
 .layout[data-shape='rail'][data-mode='wide'][data-fill]:not(:has(.hint)) .drawing {
   height: 100cqh;
-}
-
-/* --- The landscape phone (R136: FR-FLOW-15, D-877; FR-WATCH-5): the rail form at the compact type size, for the
-   live page, the stars page and the pass detail alike. The drawing takes the left at `--sky-drawing-share` of the
-   viewport's width (`LANDSCAPE_DRAWING_MIN_SHARE`, written by `SkyViewLayout`) and the rail the rest. The layout
-   breaks out of the page's column to the viewport's side padding (the stars page and the sheet keep a 60-cell
-   column for the portrait phone; both centre it, so half the column less half the viewport is the way out), and
-   it is one viewport high under the page's top row: the page gives it that height (`fill`, the live page), or
-   `SkyViewLayout` measures it (`--sky-landscape-h`, with `--sky-landscape-trail` taking back the page's padding
-   under it). The layout is the scroll box: the rail's rows scroll inside it, the box keeps the layout's height less
-   the hint's row and never grows with the rail (FR-WATCH-7), and the box and the hint stay put while the rail
-   scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's, which is
-   as tall as the rail's rows are. --- */
-.layout[data-shape='rail'][data-mode='compact'] {
-  /* The fallback is `LANDSCAPE_DRAWING_MIN_SHARE`, for any frame before `SkyViewLayout` writes the property. */
-  grid-template-columns: calc(var(--sky-drawing-share, 0.55) * 100vw) minmax(0, 1fr);
-  /* `max-content`, not `auto`: the grid is shorter than its rows, so an auto row is its items' minimum contribution,
-     which for a slot with a `min-height` of its own (the view row's `--tap`) is that minimum — a view row that wraps
-     in the narrow rail would keep one line's height and lie over the facing row. */
-  grid-template-rows: repeat(9, max-content);
-  margin-inline: calc(50% - 50vw + 2 * var(--cell));
-  height: var(--sky-landscape-h, 100%);
-  margin-bottom: calc(-1 * var(--sky-landscape-trail, 0px));
-  min-height: 0;
-  overflow-y: auto;
-  container-type: size;
-  /* The containing block of the rail's absolutely placed text (the visually hidden labels), so the scroll box clips
-     it: a size container is not one, and without this the document grew by what the rail scrolls past (FR-LIVE-1). */
-  position: relative;
-  /* The rail's rows swap with the state (watching to scrubbing changes the head and the foot); with the browser's
-     scroll anchoring off, a swap above the scroll position never moves the rail under the reader's thumb. */
-  overflow-anchor: none;
-}
-
-/* The page that gives the layout its height has the viewport's padding already (the live page). */
-.layout[data-shape='rail'][data-mode='compact'][data-fill] {
-  height: 100%;
-  margin: 0;
-}
-
-/* The grid is shorter than its rows and has no free space to hand out, so an auto row is its items' minimum
-   contribution: the list's is its content again here, not the wide rail's zero (the row that gives, above). */
-.layout[data-shape='rail'][data-mode='compact'] .list {
-  min-height: auto;
-  overflow: visible;
-}
-
-.layout[data-shape='rail'][data-mode='compact'] .drawing,
-.layout[data-shape='rail'][data-mode='compact'] .readout {
-  position: sticky;
-  top: 0;
-}
-
-/* The box beside the rail has no page padding under it to escape (the compact frame's full bleed, D-187). */
-.layout[data-shape='rail'][data-mode='compact'] .drawing {
-  --page-pad-x: 0px;
-  align-self: start;
-  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
-}
-
-/* The hint wraps to its own lines rather than cutting the follow clause; `SkyViewLayout` measures it (`--sky-hint-h`).
-   No min-height of its own: the grid is shorter than its rows, so a set one would be the row's whole height. */
-.layout[data-shape='rail'][data-mode='compact'] .hint {
-  position: sticky;
-  bottom: 0;
 }
 
 .layout[data-shape='rail'] .drawing,

@@ -543,7 +543,6 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
   );
   return (
     <SkyViewLayout
-      form="full"
       readoutIn="sheet"
       readoutLines={2}
       onFirstTouch={follow.firstTouch}

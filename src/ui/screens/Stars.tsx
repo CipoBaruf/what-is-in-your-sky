@@ -592,7 +592,6 @@ function StarsSky({ observer }: { observer: Observer }) {
           <VisuallyHidden as="h1">{t.starsHeading}</VisuallyHidden>
           <SkyViewLayout
             ref={headRoom}
-            form="full"
             readoutIn="sheet"
             readoutLines={2}
             onFirstTouch={follow.firstTouch}

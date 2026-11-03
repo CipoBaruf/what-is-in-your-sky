@@ -690,7 +690,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);
-  // R144 (FR-FSC-2, D-914): the corner picker's open state is the page's, not the layout's, so a turn of the phone keeps it.
+  // R144 (FR-FSC-2, D-914): the sheet's facing picker's open state is the page's, so a turn of the phone keeps it.
   const [pickerOpen, setPickerOpen] = useState(false);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
   // R77 (FR-WATCH-4, V20-8): the toggle's saved state applies in both states wherever the control stands.
@@ -1164,7 +1164,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         className={styles.layout}
         data-testid="live-layout"
         fill
-        form="full"
         readoutIn="sheet"
         onFirstTouch={follow.firstTouch}
         drawing={drawing}
@@ -1181,8 +1180,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       fill
       readoutIn="row"
       onFirstTouch={follow.firstTouch}
-      pickerOpen={pickerOpen}
-      onPickerOpen={setPickerOpen}
       answer={answer}
       viewRow={viewRow}
       readout={<SkyViewChartSlot name="readout" />}

@@ -381,6 +381,32 @@ export interface Budget {
  * `PolarStars-*.js` grew 0.8 → 5.3 with the chart's star map (FR-PHONE-16 lets
  * it land where `SkyPolar` lands) and stays unbudgeted beside it.
  *
+ * R165 re-sets every row on the 2.11.0 branch (SPEC §9 Phase 2t, FR-CLEAN-9;
+ * D-178, D-1016), beside `77b3df3e`'s (2.10.0, the release commit) built on the
+ * same machine, both plain. **No budget moves:** every row's measure × 1.1,
+ * rounded up to the next 5 KB, is the budget it already has, and `main`'s rule
+ * (205) is past its 185 ceiling, so the row stays at the ceiling.
+ *
+ * | chunk          | file                  | `77b3df3e` | measured | budget | was | ceiling |
+ * |----------------|-----------------------|-----------:|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |      180.3 |    182.0 |    185 | 185 |     185 |
+ * | chart          | `SkyDome-*.js`        |       97.1 |     97.1 |    110 | 110 |     110 |
+ * | stars-deep     | `deep-*.js`           |       41.8 |     41.8 |     50 |  50 |      60 |
+ * | worker         | `passes.worker-*`     |       36.1 |     36.1 |     40 |  40 |     130 |
+ * | stars          | `Stars-*.js`          |       29.2 |     29.9 |     35 |  35 |      40 |
+ * | astronomy      | `astronomy-*` + `skyBodies-*` | 24.1 | 24.1 |     30 |  30 |      30 |
+ * | live           | `Live-*.js`           |       15.8 |     14.7 |     20 |  20 |      40 |
+ * | window         | `SkyWindow-*.js`      |       13.1 |     13.2 |     15 |  15 |       — |
+ * | service worker | `workbox-*.js`        |        5.0 |      5.0 |     10 |  10 |      15 |
+ * | settings       | `Settings-*.js`       |        1.1 |      1.2 |     10 |  10 |       — |
+ *
+ * `main` is +1,716 bytes over 2.10.0 (184,678 → 186,394): +2,697 across R162,
+ * R166, R163 and R164 (most of it the shared sheet, head and bottom row folding
+ * into `main` once the pass detail mounts them, D-1013), +281 for the owner's
+ * notes of 2026-11-02 (#255, #256), and −1,262 for R165's removals (the column,
+ * the compact rail, the corner readout, the bowl's cut). `live` is 1,135 bytes
+ * lighter, the sheet and the head having left it (D-1006); `stars` +745.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *

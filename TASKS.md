@@ -4709,7 +4709,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
 
 ### Wave 3
 
-- [ ] **R165 — The column retired, the captures and 2.11.0: the two passes screens removed from the set, `SkyViewLayout`'s `column` and compact `rail` removed with their constants and tests, `rhythm` and `targets` on the sheets, the capture set, the budget rows, `package.json` 2.11.0, `docs/RELEASE.md` §24, no tag**
+- [x] **R165 — The column retired, the captures and 2.11.0: the two passes screens removed from the set, `SkyViewLayout`'s `column` and compact `rail` removed with their constants and tests, `rhythm` and `targets` on the sheets, the capture set, the budget rows, `package.json` 2.11.0, `docs/RELEASE.md` §24, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -4726,6 +4726,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.54 who
     - FR-CAP-5's diff against 2.10.0 lists only the named moves, the two additions and the two removals; two runs agree but for F-99's noise; every live and every untouched wide capture byte-identical.
     - `npm run bundle:budget`, `npm run check:dead`, `npx vitest run tests/docs` green; `rhythm` and `targets` green at the compact sizes with the sheets.
     - The Done note lists the changed, added and removed files, the budget rows against 2.10.0, and "tag the squash merge of this PR".
+  - *Done:* as written, plus D-1015..D-1016, with one reading of FR-CAP-5's diff. **Removed:** `SkyViewLayout`'s `column` and compact `rail` with their styles, `form` (compact is always `full`), `readoutIn: 'corner'` and `pickerOpen` / `onPickerOpen`, the room, landscape and hint-row measurements; the bowl's cut whole (`ChartFrame`'s `bowl` / `data-bowl`, `SkyDome`'s `bowl`, `compactBowlBoxPx`, `bowlHeightPx`), and `DOME_COMPACT_SLACK_PX`, `compactDomeBoxHeightPx`, `COMPACT_BOX_MIN_SHORT_PX`, `LANDSCAPE_DRAWING_MIN_SHARE` from `lib/layout.ts` with their tests (`DETAIL_DRAWING_TOP_PX` had gone in R164); no message key; `check:dead` clean. **Measures:** `rhythm.spec.ts` and `targets.spec.ts` add the stars page and the pass detail (both views) with the sheet closed at 390 × 844 and open and closed at 844 × 390, green in both languages. **Captures:** 416 files (− `stars-passes` 12, − `stars-whole-passes` 8, + `stars-sheet` 8, + `guide-sheet` 8), shot by `captures.yml` runs 41574871766 and 41574895009 (393 identical, 23 apart by F-99's noise); run 1 committed, the README hero and social preview re-drawn from it. The diff against 2.10.0 lists every file: R166's header and width, the owner's notes of 2026-11-02 (the footer on every page, the bottom row's padding, the Where, settings) and R161's container-shot base moved them all, so FR-CLEAN-10's check is the branch against `main`'s own `captures.yml` set (RELEASE §24.1). **Budget** (gzip, 2.10.0 → 2.11.0, D-178, no row moves): `main` 180.3 → 182.0 of 185 (+1,716 bytes, of which #255/#256 +281 and R165 −1,262), `stars` 29.2 → 29.9 of 35, `live` 15.8 → 14.7 of 20, `window` 13.1 → 13.2 of 15, `settings` 1.1 → 1.2. `package.json` 2.11.0; RELEASE §24. Tag the squash merge of this PR.
 
 ### Requirement coverage (v2.11)
 

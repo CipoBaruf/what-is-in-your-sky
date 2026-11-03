@@ -19,8 +19,7 @@ import styles from './ControlsSheet.module.css';
  *
  * R150 (FR-GYRO-7, D-947): one form, a bottom sheet the full width of the box in both shapes, as tall as its content
  * up to `SHEET_MAX_SHARE` of `100dvh`; v2.8's side panel on the landscape phone is gone. The share reaches the
- * stylesheet as a custom property written through the CSSOM (the CSP allows no style attribute), as `SkyViewLayout`
- * writes `LANDSCAPE_DRAWING_MIN_SHARE`.
+ * stylesheet as a custom property written through the CSSOM (the CSP allows no style attribute).
  *
  * R150 (FR-GYRO-8, D-948): the head ends in a `×` (FR-FSC-2's form: the character alone, a 44 px target) named
  * "Close controls", and the head row is a handle: a downward drag that starts on it moves the sheet with the finger

@@ -12,10 +12,14 @@
  * them on, the window (a fresh profile) and the dome (a saved `chartView`), and no gap is a known exception: the
  * dome's empty `picker` slot takes no gap, so its drawing and its hint stand one row apart.
  *
+ * R165 (FR-CLEAN-8, D-1000): the stars page and the pass detail are the sky with a sheet on the phone, upright and
+ * turned, so their rows are measured with the sheet open and with it closed at 390 × 844 and at 844 × 390. With the
+ * sheet closed what stands over the sky may carry no mark at all; whatever is marked and drawn keeps the gaps.
+ *
  *   npx playwright test rhythm --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
-import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE } from './flowPages';
+import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE, SHEET_CASES, TURNED, type SheetState } from './flowPages';
 
 type Rhythm = 'row' | 'group' | 'section';
 const TOKEN: Record<Rhythm, string> = { row: '--space-1', group: '--space-3', section: '--space-5' };
@@ -68,26 +72,51 @@ async function measure(root: Locator): Promise<{ tokens: Record<Rhythm, number>;
   }, TOKEN);
 }
 
+/** The gaps under `root` are the three tokens, and row ≤ group ≤ section as measured; `some` asks for at least one gap. */
+async function threeGaps(root: Locator, some: boolean): Promise<void> {
+  const { tokens, gaps } = await measure(root);
+  if (some) expect(gaps.length, 'marked blocks on the page').toBeGreaterThan(0);
+  const wrong = gaps.filter(({ rhythm, gap }) => Math.abs(gap - tokens[rhythm]) > 1).map(({ above, below, rhythm, gap }) => `${above} → ${below}: ${gap.toFixed(1)} px, ${rhythm} is ${String(tokens[rhythm])} px`);
+  expect(wrong).toEqual([]);
+  // row ≤ group ≤ section, as measured.
+  const widest = (r: Rhythm): number => Math.max(-Infinity, ...gaps.filter((g) => g.rhythm === r).map((g) => g.gap));
+  const narrowest = (r: Rhythm): number => Math.min(Infinity, ...gaps.filter((g) => g.rhythm === r).map((g) => g.gap));
+  expect(widest('row')).toBeLessThanOrEqual(narrowest('group') + 1);
+  expect(widest('row')).toBeLessThanOrEqual(narrowest('section') + 1);
+  expect(widest('group')).toBeLessThanOrEqual(narrowest('section') + 1);
+}
+
 for (const locale of LOCALES) {
   test.describe(`FR-FLOW-10 at 390 × 844, ${locale}`, () => {
     test.use({ viewport: PHONE });
 
     for (const flow of FLOW_CASES) {
       test(`the ${caseName(flow)} page keeps three gaps`, async ({ page }) => {
-        const root = await openFlowPage(page, flow.page, locale, flow.view);
-        const { tokens, gaps } = await measure(root);
-        expect(gaps.length, 'marked blocks on the page').toBeGreaterThan(0);
-        const wrong = gaps.filter(({ rhythm, gap }) => Math.abs(gap - tokens[rhythm]) > 1).map(({ above, below, rhythm, gap }) => `${above} → ${below}: ${gap.toFixed(1)} px, ${rhythm} is ${String(tokens[rhythm])} px`);
-        expect(wrong).toEqual([]);
-        // row ≤ group ≤ section, as measured.
-        const widest = (r: Rhythm): number => Math.max(-Infinity, ...gaps.filter((g) => g.rhythm === r).map((g) => g.gap));
-        const narrowest = (r: Rhythm): number => Math.min(Infinity, ...gaps.filter((g) => g.rhythm === r).map((g) => g.gap));
-        expect(widest('row')).toBeLessThanOrEqual(narrowest('group') + 1);
-        expect(widest('row')).toBeLessThanOrEqual(narrowest('section') + 1);
-        expect(widest('group')).toBeLessThanOrEqual(narrowest('section') + 1);
+        await threeGaps(await openFlowPage(page, flow.page, locale, flow.view), true);
       });
     }
   });
+}
+
+/** R165 (FR-CLEAN-8): the two sheets, open and closed, upright and turned (the open sheet upright is the case above). */
+const SHEET_RUNS: readonly { viewport: typeof PHONE; sheet: SheetState }[] = [
+  { viewport: PHONE, sheet: 'closed' },
+  { viewport: TURNED, sheet: 'open' },
+  { viewport: TURNED, sheet: 'closed' },
+];
+
+for (const locale of LOCALES) {
+  for (const { viewport, sheet } of SHEET_RUNS) {
+    test.describe(`FR-CLEAN-8 at ${String(viewport.width)} × ${String(viewport.height)}, the sheet ${sheet}, ${locale}`, () => {
+      test.use({ viewport });
+
+      for (const flow of SHEET_CASES) {
+        test(`the ${caseName(flow)} page keeps three gaps`, async ({ page }) => {
+          await threeGaps(await openFlowPage(page, flow.page, locale, flow.view, sheet), sheet === 'open');
+        });
+      }
+    });
+  }
 }
 
 /**

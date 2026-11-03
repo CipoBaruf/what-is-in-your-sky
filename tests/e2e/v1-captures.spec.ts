@@ -160,9 +160,10 @@ async function settled(page: Page): Promise<void> {
 // R157 (D-966, D-980): the compact live screens are marked `touch` in `captureSet.ts`; this set is what is touch at every
 // width — the sheet's files at 844 too — and `stars-following`, which is not a live screen.
 // R161 (FR-PHONE-16, D-993): and `stars-whole-following`, the stars page following under the whole sky.
-const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following', 'stars-whole-following']);
+// R165 (FR-CLEAN-9, D-1001): and the stars page's and the pass detail's sheets, at 844 too, as the live sheet is.
+const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following', 'stars-whole-following', 'stars-sheet', 'guide-sheet']);
 /** R161 (FR-PHONE-16, FR-LOOK-12, D-993): the stars page's other screens, a touch phone at 390 as `stars` is. */
-const STARS_PAGE = new Set<string>(['stars', 'stars-passes', 'stars-whole', 'stars-whole-passes', 'stars-zoom']);
+const STARS_PAGE = new Set<string>(['stars', 'stars-whole', 'stars-zoom']);
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
@@ -178,9 +179,6 @@ const isTouch = (screen: string, width: CaptureWidth): boolean =>
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
-/** R128: the stars page's layer and its facing picker, by their names (R126's). */
-const PASSES = { en: 'passes', es: 'pases' } as const;
-const FACING = { en: 'Facing', es: 'Mirando' } as const;
 /** R161 (FR-PHONE-7): the stars page's view row, the polar chart's option by its name. */
 const WHOLE_SKY = { en: 'Whole sky', es: 'Cielo entero' } as const;
 const FRAME_MS = 16;
@@ -612,32 +610,32 @@ async function windowInTheBox(page: Page, scope: Locator, locale: CaptureLocale,
 }
 
 /**
- * R128 (FR-SKY-6, D-829): the stars page at `SHOWN` with `[ passes ]` on, faced to the first of the eight points
- * whose field lists a pass — R126's route (`r126-captures.spec.ts`) on the set's night. At `CLOCK` no pass is up or
- * near, so the page is shot three minutes into the night's brightest pass, the instant the chart screens are of.
- * Returns the azimuth faced, which the screen is then aimed at.
+ * R165 (FR-CLEAN-4, FR-CLEAN-5, D-1001): on a phone the stars page and the pass detail are the sky with a sheet, as the
+ * live page is, so a control a capture presses — the view row, `[ follow the phone ]` — is the sheet's: the sheet is
+ * opened, `act` is run, and the sheet is closed again by its `×`, leaving the sky. On a desk there is no sheet and
+ * `act` runs on the rail.
  */
-async function starsWithPasses(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<number> {
-  await starsAt(page, width, theme, locale, SHOWN);
-  await page.getByTestId('stars-layers').getByRole('button', { name: PASSES[locale] }).click();
-  const picker = page.getByTestId('stars-page').getByRole('group', { name: FACING[locale] });
-  let azDeg = 0;
-  for (const [index, name] of ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].entries()) {
-    azDeg = index * 45;
-    await picker.getByRole('button', { name, exact: true }).click();
-    let found = 0;
-    for (let step = 0; step < 10 && found === 0; step += 1) {
-      await page.clock.runFor(100);
-      found = await page.getByTestId('field-list').locator('[data-kind="pass"]').count();
-    }
-    if (found > 0) break;
-  }
-  await expect(page.getByTestId('field-list').locator('[data-kind="pass"]').first()).toBeAttached();
-  await pinnedAt(page, SHOWN);
-  await expect(page.getByTestId('stars-sky').locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
+async function inSheet<T>(page: Page, act: () => Promise<T>): Promise<T> {
+  await openSheet(page);
+  const done = await act();
+  await closeSheet(page);
+  return done;
+}
+
+/**
+ * R165 (FR-CLEAN-9, D-1001): a page's sheet open at the top of its body, the focus ring off, the instant pinned — the
+ * stars page's or the pass detail's, as `liveSheet` shoots the live page's.
+ */
+async function sheetOpen(page: Page, shown: number): Promise<void> {
+  await openSheet(page);
+  await expect(page.getByTestId('follow-toggle')).toBeVisible();
+  await page.getByTestId('sheet-body').evaluate((body) => {
+    body.scrollTop = 0;
+  });
+  await page.clock.runFor(1000);
+  await pinnedAt(page, shown);
   await blurFocus(page);
   await page.mouse.move(0, 0);
-  return azDeg;
 }
 
 /**
@@ -937,14 +935,23 @@ const REACH: Record<string, Reach> = {
    */
   async stars(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    if (isTouch('stars', width)) await expect(page.getByTestId('follow-toggle')).toBeVisible();
+    // R165 (FR-CLEAN-4): on a phone the sky with the sheet closed, `[ controls ]` at its foot; on a desk the rail.
+    if (isTouch('stars', width)) await expect(page.getByTestId('live-controls')).toBeVisible();
     else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
+    await blurFocus(page);
+  },
+
+  /** R165 (FR-CLEAN-4, FR-CLEAN-9): the stars page as it opens, `[ controls ]` pressed — the sheet over the sky. */
+  async 'stars-sheet'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await sheetOpen(page, CLOCK);
   },
 
   /** R153 (FR-GYRO-9; US-44 AC1): the stars page as `stars` opens it at 390, `[ follow the phone ]` on, aimed where it faced. */
   async 'stars-following'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    await followed(page, page.getByTestId('stars-sky'));
+    await inSheet(page, () => followed(page, page.getByTestId('stars-sky')));
+    await blurFocus(page);
     await pinnedAt(page, CLOCK);
     await page.mouse.move(0, 0);
   },
@@ -1001,33 +1008,33 @@ const REACH: Record<string, Reach> = {
   async 'guide-window'(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'dome');
     const figure = guide(page).getByRole('figure');
-    await windowInTheBox(page, figure, locale, SHOWN);
+    // R165 (FR-CLEAN-5): on a phone the view row is the sheet's, so the sheet is opened for it and closed after.
+    const compact = (await page.getByTestId('live-controls').count()) > 0;
+    if (compact) {
+      await inSheet(page, () => windowInTheBox(page, figure, locale, SHOWN));
+      await pinnedAt(page, SHOWN);
+      await blurFocus(page);
+    } else await windowInTheBox(page, figure, locale, SHOWN);
     await expect(figure).toHaveAttribute('data-view', 'window');
-    // R132 (D-864): the facing picker is the layout's `picker` slot, outside the figure.
-    await expect(guide(page).locator('[data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    // R132 (D-864): the facing picker is the layout's `picker` slot, outside the figure; on a phone it is the sheet's.
+    if (!compact) await expect(guide(page).locator('[data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(figure.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     // The box's foot to the panel's edge, as `sky-window.spec.ts` does: on wide the sheet scrolls on its own.
-    await figure.getByTestId('chart-box').evaluate((el) => {
-      el.scrollIntoView({ block: 'end' });
-    });
+    if (!compact) {
+      await figure.getByTestId('chart-box').evaluate((el) => {
+        el.scrollIntoView({ block: 'end' });
+      });
+    }
     await page.mouse.move(0, 0);
   },
 
   /** R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. */
   async 'stars-whole'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    await wholeSky(page, locale);
+    // R165 (FR-CLEAN-4): on a phone the view row is the sheet's.
+    if (isTouch('stars-whole', width)) await inSheet(page, () => wholeSky(page, locale));
+    else await wholeSky(page, locale);
     await pinnedAt(page, CLOCK);
-    await page.mouse.move(0, 0);
-  },
-
-  /** R161 (FR-PHONE-8, FR-PHONE-16): the whole sky three minutes into the night's brightest pass, `[ passes ]` on. */
-  async 'stars-whole-passes'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale, SHOWN);
-    await page.getByTestId('stars-layers').getByRole('button', { name: PASSES[locale] }).click();
-    const polar = await wholeSky(page, locale);
-    await pinnedAt(page, SHOWN);
-    await expect(polar.locator('[data-pass-id]').first()).toBeAttached();
     await page.mouse.move(0, 0);
   },
 
@@ -1037,8 +1044,11 @@ const REACH: Record<string, Reach> = {
    */
   async 'stars-whole-following'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    await followed(page, page.getByTestId('stars-sky'));
-    const polar = await wholeSky(page, locale);
+    // R165 (FR-CLEAN-4): the toggle and the view row are the sheet's.
+    const polar = await inSheet(page, async () => {
+      await followed(page, page.getByTestId('stars-sky'));
+      return wholeSky(page, locale);
+    });
     const outline = polar.locator('[data-field-outline]');
     await expect(outline).toHaveAttribute('data-following', 'true');
     // FR-CAP-5: the following outline eases onto the readings, so the wait is for its path to hold across half a second
@@ -1054,7 +1064,9 @@ const REACH: Record<string, Reach> = {
         return still;
       }, { timeout: 30_000 })
       .toBe(true);
-    await expect(page.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+    // The sheet is closed: following shows on the bottom row's `[ follow ]`.
+    await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
+    await blurFocus(page);
     await pinnedAt(page, CLOCK);
     await page.mouse.move(0, 0);
   },
@@ -1062,8 +1074,15 @@ const REACH: Record<string, Reach> = {
   /** R161 (FR-PHONE-13, FR-PHONE-16): the `guide` screen's pass at 390 × 667, `shoot` having set the height. */
   async 'guide-short'(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'dome');
-    // The times row is the file's subject, so it must be on the short screen, not scrolled above it by the dome's wait.
-    await expect(guide(page).getByTestId('pass-times')).toBeInViewport({ ratio: 1 });
+    // R165 (FR-CLEAN-5): the times are the sheet's; the short screen shows the sky, the countdown head and the bottom row.
+    await expect(page.getByTestId('live-controls')).toBeInViewport({ ratio: 1 });
+    await blurFocus(page);
+  },
+
+  /** R165 (FR-CLEAN-5, FR-CLEAN-9): the `guide` screen's pass with the pass detail's sheet open. */
+  async 'guide-sheet'(page, width, theme, locale) {
+    await openChart(page, width, theme, locale, 'dome');
+    await sheetOpen(page, SHOWN);
   },
 
   /**
@@ -1076,11 +1095,6 @@ const REACH: Record<string, Reach> = {
     if ((await chart.getAttribute('data-view')) !== 'window') await windowInTheBox(page, chart, locale, TWILIGHT);
     await expect(chart.locator('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
     await page.mouse.move(0, 0);
-  },
-
-  /** R128 (FR-SKY-6; US-40 AC5): the stars page with `[ passes ]` on, faced to the pass. */
-  async 'stars-passes'(page, width, theme, locale) {
-    await starsWithPasses(page, width, theme, locale);
   },
 
   /**
