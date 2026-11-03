@@ -114,7 +114,9 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toHaveCount(1);
-  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11).
+  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11) — on compact at
+  // the top of the group `[ change ]` opens (D-1024).
+  if (compact) await page.getByTestId('location-summary-change').click();
   await expect(page.getByTestId('where-sentence')).toContainText("Using your device's location (±2000 m).");
   await page.screenshot({ path: 'test-results/r10-device-390.png' });
 
