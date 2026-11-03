@@ -30,6 +30,15 @@
  *    star names it covers are removed,
  *    faintest first — so `Ori` is not lost to `Betelgeuse`. A removed star name
  *    is not retried, and no mark and no compass point is ever dropped for a name.
+ *
+ * R168 (FR-GLOBE-11, D-1041): two options the globe passes and the window and
+ * the polar chart do not, so with neither the placement is exactly 2.11.0's.
+ * `fixed` — the Sun's, the Moon's and the planets' names — is placed right
+ * after the compass, each at the first free of the four places (else the first
+ * inside the box, else right), and never dropped: no star name, landmark or
+ * figure name lands on one. `figureStart: 'vertex'` starts a figure's walk at
+ * the vertex its `anchor` carries (the caller's `figureAnchor`) instead of the
+ * centroid of its drawn endpoints; a figure without an anchor keeps the centroid.
  */
 
 export interface Box {
@@ -72,6 +81,18 @@ export interface FigureLabel {
   /** How many of its segments are drawn: a figure is named from two. */
   segments: number;
   endpoints: readonly LabelPoint[];
+  /** R168 (D-1041): the drawn vertex the walk starts at under `figureStart: 'vertex'`; ignored otherwise. */
+  anchor?: LabelPoint;
+}
+
+/** R168 (FR-GLOBE-11, D-1041): a body's name beside its mark (the Sun, the Moon, a planet), placed after the compass and never dropped. */
+export type FixedLabel = MarkLabel;
+
+/** R168 (D-1041): the globe's two additions; the window and the polar chart pass neither. */
+export interface LabelOptions {
+  fixed?: readonly FixedLabel[];
+  /** Where a figure's walk starts: the centroid of its drawn endpoints (the default) or its `anchor` vertex. */
+  figureStart?: 'centroid' | 'vertex';
 }
 
 export interface LabelInput {
@@ -94,7 +115,7 @@ export interface LabelInput {
   lang?: string;
 }
 
-type LabelKind = 'named' | 'landmark' | 'star' | 'figure';
+type LabelKind = 'fixed' | 'named' | 'landmark' | 'star' | 'figure';
 
 /** A placed label: drawn centred on (`x`, `y`) with `text-anchor: middle` and `dominant-baseline: central`. */
 export interface PlacedLabel {
@@ -203,7 +224,7 @@ function gridOffsets(cx: number, cy: number, extent: Box, cell: number, row: num
 
 const centre = (box: Box): LabelPoint => ({ x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 });
 
-export function placeLabels(input: LabelInput): PlacedLabel[] {
+export function placeLabels(input: LabelInput, options: LabelOptions = {}): PlacedLabel[] {
   const { width, height, marks } = input;
   const inside = (b: Box): boolean => b.x0 >= 0 && b.y0 >= 0 && b.x1 <= width && b.y1 <= height;
 
@@ -234,6 +255,19 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
 
   const named = input.named;
   const namedMark = named ? marks[named.mark] : undefined;
+
+  // R168 (D-1041): the bodies' names, right after the compass and never dropped; a tap's label on the same mark takes its place.
+  const fixedMarks = new Set<number>();
+  for (const body of options.fixed ?? []) {
+    const mark = marks[body.mark];
+    if (!mark || fixedMarks.has(body.mark) || (named !== null && body.mark === named.mark)) continue;
+    const places = besideMark(mark, body.text);
+    const box = places.find(free) ?? places.find(inside) ?? places[0];
+    if (box) {
+      put('fixed', body.key, body.text, box);
+      fixedMarks.add(body.mark);
+    }
+  }
   if (named && namedMark) {
     const places = besideMark(namedMark, named.text);
     const box = places.find(free) ?? places.find(inside) ?? places[0];
@@ -251,7 +285,7 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
   input.stars.forEach((star, i) => {
     const mark = marks[star.mark];
     // The named mark carries its label already, and so does the landmark's; its name is not drawn twice.
-    if (!mark || (named !== null && star.mark === named.mark) || (landmark !== null && star.mark === landmark.mark)) return;
+    if (!mark || (named !== null && star.mark === named.mark) || (landmark !== null && star.mark === landmark.mark) || fixedMarks.has(star.mark)) return;
     const box = besideMark(mark, star.text).find(free);
     if (box) rank.set(put('star', star.key, star.text, box), i);
   });
@@ -273,8 +307,10 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
       sx += p.x;
       sy += p.y;
     }
-    const cx = sx / f.endpoints.length;
-    const cy = sy / f.endpoints.length;
+    // R168 (D-1041): under 'vertex' the walk starts at the caller's drawn vertex; the extent stays the drawn endpoints'.
+    const start = options.figureStart === 'vertex' && f.anchor ? f.anchor : { x: sx / f.endpoints.length, y: sy / f.endpoints.length };
+    const cx = start.x;
+    const cy = start.y;
     const full = spaced(f.name, input.lang);
     const abbr = spaced(f.con, input.lang);
     const cell = ADVANCE_EM * FIGURE_NAME_PX;
