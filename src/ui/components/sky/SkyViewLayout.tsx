@@ -142,12 +142,6 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   pickerOpen?: boolean | undefined;
   onPickerOpen?: ((open: boolean) => void) | undefined;
   /**
-   * R144 (FR-TONIGHT-9): a value that changes when a slot's content changes height on the reader's tap — the live
-   * page's list opening — so a `fill` column re-measures the drawing's room in that commit, before the paint, and
-   * not a frame later from the resize observer (the page would scroll for that frame, or keep the open list's room).
-   */
-  roomKey?: string | undefined;
-  /**
    * R159 (FR-PHONE-2, D-963, D-986): while given, the lift of the reader's first tap on the sky calls it inside the
    * gesture — the page's `useFollow().firstTouch` while a saved grant has it armed. Capture-phase listeners on the
    * drawing slot, removed after their one use; a drag or a pinch leaves them armed, and the touch goes on to the sky.
@@ -172,7 +166,7 @@ const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
 const PICK = PICK_SELECTOR;
 
-export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, pickerOpen: heldOpen, onPickerOpen, roomKey, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, pickerOpen: heldOpen, onPickerOpen, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -381,7 +375,7 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
    * rows are text, a track and a panel of fixed height, none of which the drawing's height can change. Re-run as
    * slots come and go (the hint, the picker on tap) and re-measured as any of them resizes (the list's head). The
    * observer answers a frame after the change, which is a frame of scroll, so the commits that change a row's
-   * height measure before the paint too: a slot coming or going, the picker's tap, the page's `roomKey`, and
+   * height measure before the paint too: a slot coming or going, the picker's tap, and
    * `targets` — a slot the chart portals into is filled in the commit after it registers (the opened picker).
    */
   const roomMeasured = shape === 'column' && fill;
@@ -406,7 +400,7 @@ export function SkyViewLayout({ wide = 'rail', form, describedBy, labelledBy, fi
       observer.disconnect();
       root.style.removeProperty('--sky-drawing-room');
     };
-  }, [roomMeasured, slotKey, pickerOpen, roomKey, targets]);
+  }, [roomMeasured, slotKey, pickerOpen, targets]);
 
   const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {
