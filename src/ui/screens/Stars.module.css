@@ -244,3 +244,10 @@
   gap: var(--space-1);
 }
 
+/* R170 (FR-GLOBE-7..12, D-1035): the globe's rail in the layout's scrolling row — the groups, the layers and the list,
+   a group apart (D-851's rhythm). */
+.globeRail {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}

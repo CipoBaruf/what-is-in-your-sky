@@ -539,7 +539,8 @@ function StarsSky({ observer }: { observer: Observer }) {
           {LAYER_KEYS.slice(0, firstRow).map((key, index) => layer(key, index > 0))}
         </div>
         <div className={styles.row} data-testid="stars-layers-row" {...(compact ? { 'data-rhythm': 'row' } : {})}>
-          {LAYER_KEYS.slice(firstRow).map((key, index) => layer(key, index > 0))}
+          {/* The last option of a row stands alone (no trailing cell); with `[ ] faint` after them, `names` is not the last. */}
+          {LAYER_KEYS.slice(firstRow).map((key, index) => layer(key, index > 0 && faintToggle === null))}
           {faintToggle}
         </div>
       </div>
@@ -750,12 +751,25 @@ function StarsSky({ observer }: { observer: Observer }) {
           // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
           // chart's window. It names itself (`Facing`); the layout labels its row (D-846). R160: on the whole sky the row is the
           // polar chart's own, its looking-up / map toggle, as FR-FLOW-4 has it on the live page and the pass detail.
-          // R170 (D-1035): the globe has no facing, so its rail draws no picker row; its time, turn and place are the timeline slot.
-          {...(globeShown ? { timeline: globeGroups } : { picker: view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" /> })}
+          // R170 (D-1035): the globe has no facing, so its rail draws no picker row.
+          {...(globeShown ? {} : { picker: view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" /> })}
           hint={hintShown && <SkyHint view={chartView} />}
           {...(action === null ? {} : { action })}
-          layers={layerRows}
-          list={globeShown ? globeField : field}
+          // R170 (FR-GLOBE-7..10, FR-GLOBE-12): on the globe the rail's groups, the layer rows and the list are the layout's
+          // one scrolling row, in reading order — Time, Turn, Place (up to nine options), the layers, then the count and
+          // `Up from <place>` — so no fixed row outgrows a short window and the list keeps the room that is left.
+          {...(globeShown ? {} : { layers: layerRows })}
+          list={
+            globeShown ? (
+              <div className={styles.globeRail} data-testid="globe-rail">
+                {globeGroups}
+                {layerRows}
+                {globeField}
+              </div>
+            ) : (
+              field
+            )
+          }
         />
       </div>
     </div>
