@@ -32,10 +32,6 @@
   cursor: default;
 }
 
-.key {
-  color: var(--fg);
-}
-
 .row[aria-pressed='true'] .name {
   color: var(--accent);
 }

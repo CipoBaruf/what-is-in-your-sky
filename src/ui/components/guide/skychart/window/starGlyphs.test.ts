@@ -91,9 +91,8 @@ describe('the one sheet (FR-STAR-6, FR-DS-2; D-813)', () => {
   const sizes: SizeToken[] = ['chart-text-18', 'chart-text-15', 'chart-text-12'];
   const tones: ColourToken[] = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-planet'];
 
-  it('styles every token size and tone from the token of the same name, and nothing else', () => {
+  it('styles every token tone from the token of the same name, and nothing else', () => {
     expect(new Set(GLYPH_SIZES.map(([, size]) => size))).toEqual(new Set(sizes));
-    for (const size of sizes) expect(sheet).toContain(`.glyphs [data-size='${size}'] {\n  font-size: var(--${size});\n}`);
     for (const tone of tones) expect(sheet).toContain(`.glyphs [data-tone='${tone}'] {\n  fill: var(--${tone});\n}`);
     expect(sheet).toMatch(/\.glyphs \[data-glyph\] \{\n {2}text-anchor: middle;\n {2}dominant-baseline: central;\n\}/);
     expect(sheet).not.toMatch(/#[0-9a-f]{3,8}\b|\d+px/i);

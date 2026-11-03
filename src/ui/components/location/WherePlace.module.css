@@ -17,10 +17,6 @@
   color: var(--fg);
 }
 
-.coords {
-  color: var(--fg-dim);
-}
-
 .sentence {
   margin: 0;
   font-size: var(--small);

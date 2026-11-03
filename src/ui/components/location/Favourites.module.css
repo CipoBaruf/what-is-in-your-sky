@@ -42,8 +42,7 @@
 }
 
 .empty,
-.limit,
-.current {
+.limit {
   color: var(--fg-dim);
 }
 
