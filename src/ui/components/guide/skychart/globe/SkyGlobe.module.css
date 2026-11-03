@@ -1,0 +1,206 @@
+/* R169 (FR-GLOBE-14, FR-DS-2, FR-DS-4; D-1038): the globe's look — every
+   colour one of the tokens FR-GLOBE-14 names, every length the sheet's, the
+   opacities attributes the renderer writes from `globe/constants.ts`. The
+   focus ring is `global.css`'s `:focus-visible`, on the box, untouched. */
+.box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.box[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-mono);
+  touch-action: none;
+  user-select: none;
+}
+
+/* FR-GLOBE-13: the disc takes FR-LOOK-2's surface for the Sun's altitude at the shown place and instant. */
+.disc {
+  stroke: none;
+}
+
+.disc[data-tint='deep'] {
+  fill: var(--chart-sky-deep);
+}
+
+.disc[data-tint='twilight'] {
+  fill: var(--chart-sky-twilight);
+}
+
+.disc[data-tint='day'] {
+  fill: var(--chart-sky-day);
+}
+
+/* FR-GLOBE-3: the ground side's shade; its opacity is `GLOBE_GROUND_OPACITY`, an attribute. */
+.ground {
+  fill: var(--chart-ground);
+  stroke: none;
+}
+
+/* FR-GLOBE-2: the grid as hairlines, the ecliptic dashed in the Sun's tone, the Milky Way dotted in the haze's. */
+.grid {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: var(--chart-hairline);
+}
+
+.ecliptic {
+  fill: none;
+  stroke: var(--chart-sun);
+  stroke-width: var(--chart-hairline);
+  stroke-dasharray: 4 3;
+}
+
+.milky {
+  fill: none;
+  stroke: var(--chart-haze);
+  stroke-width: var(--chart-hairline);
+  stroke-dasharray: 0 3;
+  stroke-linecap: round;
+}
+
+.figures {
+  fill: none;
+  stroke: var(--chart-figure);
+  stroke-width: 1;
+}
+
+/* FR-GLOBE-4: a dot is a zero-length round-capped segment; the tone is the path's `data-tone`, the size its stroke width. */
+.dot {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dot[data-tone='chart-star'] {
+  stroke: var(--chart-star);
+}
+
+.dot[data-tone='chart-star-blue'] {
+  stroke: var(--chart-star-blue);
+}
+
+.dot[data-tone='chart-star-yellow'] {
+  stroke: var(--chart-star-yellow);
+}
+
+.dot[data-tone='chart-star-orange'] {
+  stroke: var(--chart-star-orange);
+}
+
+/* The `*` and `@` marks, the em box centred on the point as `starGlyphs.module.css` centres the window's. */
+.mark {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.mark[data-tone='chart-star'] {
+  fill: var(--chart-star);
+}
+
+.mark[data-tone='chart-star-blue'] {
+  fill: var(--chart-star-blue);
+}
+
+.mark[data-tone='chart-star-yellow'] {
+  fill: var(--chart-star-yellow);
+}
+
+.mark[data-tone='chart-star-orange'] {
+  fill: var(--chart-star-orange);
+}
+
+.mark[data-tone='chart-planet'] {
+  fill: var(--chart-planet);
+}
+
+.sun {
+  fill: var(--chart-sun);
+  stroke: none;
+}
+
+/* FR-LOOK-7: the Moon's disc as the window draws it — the dark part in the deep sky's tone with a hairline rim, the lit part filled. */
+.moonDark {
+  fill: var(--chart-sky-deep);
+  stroke: var(--chart-moon);
+  stroke-width: var(--chart-hairline);
+}
+
+.moonLit {
+  fill: var(--chart-moon);
+  stroke: none;
+}
+
+/* FR-GLOBE-3: the horizon's near half; the compass points, the zenith and the poles in the compass tone. */
+.horizon {
+  fill: none;
+  stroke: var(--chart-horizon);
+  stroke-width: 1.5;
+}
+
+.compass,
+.cross {
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--chart-compass);
+}
+
+.compass {
+  font-size: var(--chart-text-12);
+  font-weight: 700;
+}
+
+.cross {
+  font-size: var(--chart-text-15);
+}
+
+/* FR-GLOBE-11: the names, centred on the box `starLabels` placed them in, at the window's sizes and tones. */
+.starName,
+.starLabel,
+.figureName {
+  text-anchor: middle;
+  dominant-baseline: central;
+  white-space: pre;
+}
+
+.starName,
+.starLabel {
+  font-size: var(--chart-text-12);
+  fill: var(--chart-star-dim);
+}
+
+.figureName {
+  font-size: var(--chart-text-11);
+  fill: var(--chart-figure-name);
+}
+
+/* FR-GLOBE-3: what is under the horizon keeps its node; the renderer puts this class and `GLOBE_DIM_OPACITY` on it. */
+.dim {
+  pointer-events: none;
+}
+
+.names,
+.frame,
+.lines,
+.dots,
+.marks {
+  pointer-events: none;
+}
+
+/* FR-GLOBE-11: the readout line under the box — the named object's words, or nothing. */
+.readout {
+  margin: 0;
+  color: var(--fg);
+}
+
+.named {
+  color: var(--fg-dim);
+}

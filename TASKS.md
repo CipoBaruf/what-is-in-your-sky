@@ -4805,7 +4805,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
 
 ### Wave 2
 
-- [ ] **R169 — The renderer and the hand: `GlobeRenderer` and `SkyGlobe`, its stylesheet on the sheet's tokens, the renderer's and the component's tests; nothing mounted on a page**
+- [x] **R169 — The renderer and the hand: `GlobeRenderer` and `SkyGlobe`, its stylesheet on the sheet's tokens, the renderer's and the component's tests; nothing mounted on a page**
   - **Lane:** chart
   - **Model:** fable
   - **Review:** opus
@@ -4823,6 +4823,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
     - `GlobeRenderer.test.ts` and `SkyGlobe.test.tsx` pass with the cases above; R167's and R168's tests still pass.
     - The Done note gives the node count at mount (faint off and on) and the frames per second of a local drag on a test harness or the spike's `capture.ts` method, against the spike's 76–86.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green (a page mounts `SkyGlobe` only in R170; the Done note names how `check:dead` holds until then).
+  - **Done (2026-11-03, D-1047..D-1049):** 288 SVG nodes at mount, faint off and on alike (the deep chunk's 7 373 stars go into the 40 dot paths' member arrays; `GLOBE_MAX_NODES` is 400). Draw rate by the spike's method (`GlobeRenderer` alone, turned 0.6°/frame, best of three 5 s sweeps, Apple silicon, headless Chromium): 1280 × 800 faint off 76.6/s at 1× and 76.6/s at 4×, faint on 79.1/s and 59.3/s; 1920 × 1080 faint off 76.4/s and 73.3/s, faint on 78.5/s and 62.4/s; the ×3600 time-lapse at 4× 63.7–70.3/s — against the spike's 76–86 at 1×, and every case over FR-GLOBE-15's 30 at 4×. `check:dead` holds because the two test files import `SkyGlobe` and `GlobeRenderer` (knip's vitest plugin reads tests as entries) and the module-only helpers are not exported. The drawing's words are `chart.globe` in `i18n/{en,es}/chart.ts` (the chart lane's file, D-283), not a top-level `globe` section: the rail's words are R170's and may join or move them. One known limit: at the opening view about 8 of the 13 named stars on the near side get a name; the rest are dropped by D-755's rule (a figure line or a mark in the way), and zooming names them.
 
 ### Wave 3
 
