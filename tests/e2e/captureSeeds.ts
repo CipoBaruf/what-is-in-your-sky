@@ -22,8 +22,9 @@
  * screens are of the night's brightest pass instead.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
+import { favouriteCellKey } from '../../src/data/favourites';
 import type { Observer } from '../../src/model';
-import { SHOWCASE_NIGHT } from './observers';
+import { LONDON, SHOWCASE_NIGHT } from './observers';
 import { BRIGHTEST_PASS, SHOWCASE_SHOWN } from './promoFlows';
 
 export const DAY_MS = 86_400_000;
@@ -44,6 +45,15 @@ export const CLOCK = SHOWCASE_NIGHT;
 export const SHOWN = SHOWCASE_SHOWN;
 /** The ten-second tick the strip reads the clock at (FR-VIS-5). */
 export const TICK_MS = 10_000;
+
+/**
+ * R171 (FR-GLOBE-9, FR-GLOBE-18; D-1042): the saved place `stars-globe-place` moves the globe to — London, in a zone of
+ * its own and on the other side of the equator from Bariloche, so the globe's south is the ground side there. The
+ * observer is the showcase's (`observers.ts`, the geocoder's first answer for `london`, as P9's dome flows use it); the
+ * favourite is saved a day before the set's night and not used since, as `addFavourite` leaves it (`lastUsedAt` is
+ * `addedAt`); the rail lists it under the app's place, which `GlobePlaces` puts first whatever the dates.
+ */
+export const LONDON_FAVOURITE = { cellKey: favouriteCellKey(LONDON), observer: LONDON, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - DAY_MS };
 
 export const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 

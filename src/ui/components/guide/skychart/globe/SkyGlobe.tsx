@@ -6,6 +6,7 @@ import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
+import { PLANETS } from '../../../../../lib/skyStars';
 import { coordsIn, dragTurn, EQUATORIAL, openView } from './projection';
 import { globeSky } from './scene';
 import styles from './SkyGlobe.module.css';
@@ -59,6 +60,11 @@ export interface SkyGlobeProps {
   language: Locale;
   /** FR-GLOBE-10: the deep chunk would not load; the page unpresses `faint`. */
   onFaintFailed?: () => void;
+  /**
+   * FR-GLOBE-12 (FR-LEG-4's rule): the `Up from <place>` row the page has named, by `upList`'s index — a star's
+   * catalogue index, or a planet's past the catalogue's length (D-750). A hover or a press on the globe comes first.
+   */
+  named?: number | null;
   className?: string;
 }
 
@@ -102,7 +108,15 @@ function measure(box: HTMLElement): { width: number; height: number } {
   return { width: Math.round(rect.width), height: Math.round(rect.height) };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, className }: SkyGlobeProps) {
+/** FR-GLOBE-12: a list row's index as the globe's target — a star's, else the planet `PLANETS` holds past the catalogue. */
+function listTarget(index: number | null, size: number): GlobeTarget | null {
+  if (index === null) return null;
+  if (index < size) return { kind: 'star', index };
+  const body = PLANETS[index - size];
+  return body === undefined ? null : { kind: 'planet', body };
+}
+
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -110,6 +124,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const viewRef = useViewRef(() => openingView(turn, place, instant));
   const [named, setNamed] = useState<GlobeTarget | null>(null);
   const [hovered, setHovered] = useState<GlobeTarget | null>(null);
+  const listed = useMemo(() => listTarget(listNamed, catalog.size), [listNamed, catalog]);
   const [dragging, setDragging] = useState(false);
   const readoutId = `${useId()}-readout`;
 
@@ -164,8 +179,8 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         view.lat = opened.lat;
       }
     }
-    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named });
-  }, [place, instant, turn, layers, faint, language, hovered, named, viewRef]);
+    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named ?? listed });
+  }, [place, instant, turn, layers, faint, language, hovered, named, listed, viewRef]);
 
   // FR-GLOBE-10: the deep chunk, once, the first time `faint` is on; a failure tells the page. The callback is read through a ref, so a new one does not re-run the load.
   const askedRef = useRef(false);
@@ -419,7 +434,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     move();
   };
 
-  const shown = hovered ?? named;
+  const shown = hovered ?? named ?? listed;
   const line = shown === null ? null : readoutLine(catalog, { place, t: instant, lang: language }, shown);
   return (
     <>

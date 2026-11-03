@@ -329,6 +329,23 @@ describe('naming (FR-GLOBE-11)', () => {
     expect(container.querySelector('[data-testid="globe-named"]')).toBeNull();
   });
 
+  it('FR-GLOBE-12: a row the list names names its mark on the globe — a star, a planet past the catalogue — and none clears it', () => {
+    const { container, rerender, q } = mount();
+    const star = centreStar(container);
+    rerender({ named: star.index });
+    frames.frame();
+    expect(q('[data-label]')).toHaveAttribute('visibility', 'visible');
+    expect(q('[data-label]').textContent).toBe(`${catalog.name[star.index] || catalog.desig[star.index]} · mag ${formatStarMag(catalog.mag[star.index] ?? 0, 'en')}`);
+    expect(q('[data-testid="globe-named"]').textContent).toBe(readoutLine(catalog, { place: BUENOS_AIRES, t: T, lang: 'en' }, { kind: 'star', index: star.index }));
+    rerender({ named: catalog.size + 4 });
+    frames.frame();
+    expect(q('[data-testid="globe-named"]').textContent).toBe(readoutLine(catalog, { place: BUENOS_AIRES, t: T, lang: 'en' }, { kind: 'planet', body: 'Saturn' }));
+    rerender({ named: null });
+    frames.frame();
+    expect(q('[data-label]')).toHaveAttribute('visibility', 'hidden');
+    expect(container.querySelector('[data-testid="globe-named"]')).toBeNull();
+  });
+
   it('reads out in Spanish, with the zenith and the pole in Spanish too', () => {
     const { container, box, q } = mount({ language: 'es' });
     expect(q('[data-zenith-name]').textContent).toBe('cenit');

@@ -407,6 +407,40 @@ export interface Budget {
  * the compact rail, the corner readout, the bowl's cut). `live` is 1,135 bytes
  * lighter, the sheet and the head having left it (D-1006); `stars` +745.
  *
+ * R171 re-sets every row on the 2.12.0 branch (SPEC §9 Phase 2u, FR-GLOBE-15;
+ * D-178, D-1042), beside `8413d978`'s (2.11.0, the release commit) built on the
+ * same machine, both plain, and moves R170's `globe` row out of `PHASE_BUDGETS`
+ * into the table. **No budget moves:** `globe` comes in at the GLOBE_BUDGET_KB
+ * it already had, every other row's measure × 1.1, rounded up to the next 5 KB,
+ * is the budget it already has, and `main`'s rule (205) is past its 185 ceiling.
+ *
+ * | chunk          | file                  | `8413d978` | measured | budget | was | ceiling |
+ * |----------------|-----------------------|-----------:|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |      182.0 |    182.8 |    185 | 185 |     185 |
+ * | chart          | `SkyDome-*.js`        |       97.1 |     97.1 |    110 | 110 |     110 |
+ * | stars-deep     | `deep-*.js`           |       41.8 |     41.8 |     50 |  50 |      60 |
+ * | worker         | `passes.worker-*`     |       36.1 |     36.1 |     40 |  40 |     130 |
+ * | stars          | `Stars-*.js`          |       29.9 |     31.4 |     35 |  35 |      40 |
+ * | astronomy      | `astronomy-*` + `skyBodies-*` | 24.1 | 24.1 |     30 |  30 |      30 |
+ * | live           | `Live-*.js`           |       14.7 |     13.7 |     20 |  20 |      40 |
+ * | window         | `SkyWindow-*.js`      |       13.2 |     13.0 |     15 |  15 |       — |
+ * | globe          | `SkyGlobe-*` + `GlobeRail-*` + `scene-*` | — | 13.5 | **15** | 15 | 15 |
+ * | service worker | `workbox-*.js`        |        5.0 |      5.0 |     10 |  10 |      15 |
+ * | settings       | `Settings-*.js`       |        1.2 |      1.2 |     10 |  10 |       — |
+ *
+ * `main` is +762 bytes over 2.11.0 (186,383 → 187,145), the globe's strings in
+ * both catalogs and the lazy import, inside GLOBE_MAIN_KB (1.5); `stars` +1,536
+ * (30,611 → 32,147), the view row's third value, the rail's wiring and the
+ * named row handed to the globe, at GLOBE_STARS_KB (1,536 bytes) exactly.
+ * 2.11.0's `main` reads 186,383 beside this branch and 186,394 in R165's note
+ * above and in D-1050: one `src/`, built in other checkouts on other days; the
+ * delta of record is the one read beside a base built in the same run
+ * (`docs/RELEASE.md` §25.2). `live` gives back 1,074 bytes and `window`
+ * 135: the modules the globe shares with them (`shownTime`, `useWallThrottle`,
+ * `skySurface`, `starGlyphs.module`, `deepChunk`) are chunks of their own now,
+ * listed unbudgeted as every shared lazy chunk is. `docs/RELEASE.md` §25.2 has
+ * the byte counts.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -466,7 +500,9 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 20 }, // R149 (FR-FULL-9 as amended, V28-9, D-940): 15.3 on the 2.8.0 branch against 13.3 on 2.7.0 (15,658 bytes against 13,596, +2,062) — `ControlsSheet`, `SkyHead`, `OpeningCard` and the card's effect; the owner accepted the measure and D-178's × 1.1 (16.8) re-sets the row to 20; R145 (D-178): 13.3 on 2.7.0 against 9.7 on 2.6.1 (+3,681 bytes) — the track, the taps, the shown time and the jump are imported only by the lazy `Live.tsx`, so Rollup puts them here and not in main (FR-TONIGHT-10 as amended, V27-9); × 1.1 = 14.6, so 15 stays; R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R161 (D-178, D-993): 13.1 on 2.10.0 against 26.1 on 2.9.0 (13,370 bytes against 26,725) — what the window shares with the polar chart went to the shared `starLabels-*` chunk (12.9) and the constellation table to `camera-*` (4.5), both unbudgeted; × 1.1 = 14.4, down to 15; R128 (D-831): 25.7 on 2.5.0, re-set by D-178's rule (× 1.1 = 28.3, up to 30) — the hand camera on every page, the picker, the zoom and the landmark (R121, R125, R127); R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
-  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 35 }, // R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
+  // R170 (FR-GLOBE-15, D-1035): the stars page's globe — `SkyGlobe-*.js` (the renderer and the hand), `GlobeRail-*.js` (the rail's groups and list, lazy with it so `stars` keeps the wiring alone) and `scene-*.js` (`globe/scene.ts` and the projection, which the two share), one total. R171 (D-178, D-1042): 13.5 on 2.12.0 (13,807 bytes), moved here from `PHASE_BUDGETS`; × 1.1 = 14.9, so 15, GLOBE_BUDGET_KB, the ceiling.
+  { name: 'globe', match: (file) => /^(SkyGlobe|GlobeRail|scene)-.*\.js$/.test(file), limitKb: 15 },
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 35 }, // R171 (D-178): 31.4 on 2.12.0 against 29.9 on 2.11.0 (32,147 bytes against 30,611, +1,536) — the view row's third value, the globe's wiring and its named row, at GLOBE_STARS_KB; × 1.1 = 34.5, so 35 stays; R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
 /**
@@ -478,12 +514,8 @@ export const BUDGETS: readonly Budget[] = [
  * D-178).
  */
 // R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
-// R170 (FR-GLOBE-15, D-1035): the stars page's globe at GLOBE_BUDGET_KB (15) — `SkyGlobe-*.js` (the renderer and the
-// hand), `GlobeRail-*.js` (the rail's groups and list, lazy with it so `stars` keeps the wiring alone) and `scene-*.js`
-// (`globe/scene.ts` and the projection, which the two share), one total. 13.4 on the R170 branch (9,215 + 1,895 +
-// 2,602 bytes); `main` 187,143 bytes (+749 over 2.11.0's 186,394, within GLOBE_MAIN_KB), `stars` 32,143 (+1.5 KB over
-// 2.11.0's 29.9, within GLOBE_STARS_KB). R171 moves the row into `BUDGETS` with the release's measure.
-export const PHASE_BUDGETS: readonly Budget[] = [{ name: 'globe', match: (file) => /^(SkyGlobe|GlobeRail|scene)-.*\.js$/.test(file), limitKb: 15 }];
+// R171 (D-178, D-1042): empty again; R170's `globe` row is in `BUDGETS` with the 2.12.0 measure.
+export const PHASE_BUDGETS: readonly Budget[] = [];
 
 /** Every row the script measures: the release's and the phase's. */
 const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];

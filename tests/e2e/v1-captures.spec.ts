@@ -53,12 +53,12 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
-import { BARILOCHE, FIXTURE_DATE, NEUQUEN } from './observers';
+import { BARILOCHE, FIXTURE_DATE, LONDON, NEUQUEN } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
@@ -574,8 +574,8 @@ async function homeAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
  * the window's Suspense reveals, which the paused clock holds (R32), and a star in the field. Then the
  * instant is put back on `CLOCK` (F-48), since the positions move with it.
  */
-async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time = CLOCK): Promise<void> {
-  await open(page, width, { locale, theme, observer: BARILOCHE }, time);
+async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time = CLOCK, prefs: Partial<SeedPrefs> = {}): Promise<void> {
+  await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, time);
   await page.goto('/');
   await listSettled(page);
   await page.evaluate(() => {
@@ -651,6 +651,34 @@ async function wholeSky(page: Page, locale: CaptureLocale): Promise<Locator> {
   await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/);
   await blurFocus(page);
   return polar;
+}
+
+/** R171 (FR-GLOBE-1, FR-GLOBE-5, FR-GLOBE-10): the wide stars page's view row and rail words, in both languages. */
+const GLOBE_OPTION = { en: 'Globe', es: 'Globo' } as const;
+const TURN_STARS = { en: 'with the stars', es: 'con las estrellas' } as const;
+
+/**
+ * R171 (FR-GLOBE-1, FR-GLOBE-18; D-1042): `Globe` pressed in the wide stars page's view row. The globe and its rail
+ * groups are lazy chunks whose Suspense reveal the paused clock holds (R32), so the wait ticks the clock until the
+ * globe's SVG has had its first frame — `GlobeRenderer` builds every node hidden at mount and writes the `viewBox` only
+ * in a frame — and the rail's groups are drawn, then a second more, and the instant is
+ * put back on `CLOCK` (F-48) — the globe's own clock opens at now and ticks with real time (FR-GLOBE-7), so the pin is
+ * its instant too. The focus ring leaves the row's button.
+ */
+async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
+  await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_OPTION[locale] }).click();
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await page.locator('svg[data-globe][viewBox]').count()) > 0 && (await page.getByTestId('globe-groups').count()) > 0;
+    }, { timeout: 30_000 })
+    .toBe(true);
+  await page.clock.runFor(1000);
+  await pinnedAt(page, CLOCK);
+  await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
+  await expect(page.getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
+  await blurFocus(page);
+  await page.mouse.move(0, 0);
 }
 
 /** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the eastern horizon by the page's own reading — civil twilight, near the middle of its step. */
@@ -1028,12 +1056,13 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /** R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. */
+  /**
+   * R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. R171 (FR-GLOBE-18):
+   * at 390 alone — the wide page's whole sky is the globe — where the view row is the sheet's (R165, FR-CLEAN-4).
+   */
   async 'stars-whole'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    // R165 (FR-CLEAN-4): on a phone the view row is the sheet's.
-    if (isTouch('stars-whole', width)) await inSheet(page, () => wholeSky(page, locale));
-    else await wholeSky(page, locale);
+    await inSheet(page, () => wholeSky(page, locale));
     await pinnedAt(page, CLOCK);
     await page.mouse.move(0, 0);
   },
@@ -1113,6 +1142,98 @@ const REACH: Record<string, Reach> = {
     await expect(w).toHaveAttribute('data-look-az', '180');
     await expect(page.getByTestId('window-readout')).toContainText(`${String(WINDOW_FOV_MIN_DEG)}°`);
     await pinnedAt(page, CLOCK);
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */
+  async 'stars-globe'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await globeShown(page, locale);
+    await expect(page.getByTestId('globe-turn-row').getByRole('button', { name: TURN_STARS[locale] })).toHaveAttribute('aria-pressed', 'false');
+  },
+
+  /** R171 (FR-GLOBE-5, FR-GLOBE-18): `stars-globe`, then `with the stars` in the `Turn` row. */
+  async 'stars-globe-stars'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await globeShown(page, locale);
+    const stars = page.getByTestId('globe-turn-row').getByRole('button', { name: TURN_STARS[locale] });
+    await stars.click();
+    await expect(stars).toHaveAttribute('aria-pressed', 'true');
+    await page.clock.runFor(FRAME_MS);
+    await pinnedAt(page, CLOCK);
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R171 (FR-GLOBE-10, FR-GLOBE-18): `stars-globe`, then `[ ] faint` pressed. The deep catalogue is `deepChunk.ts`'s
+   * lazy fetch, so the wait ticks the clock until the count's total ("… of N stars") is past the bright catalogue's —
+   * the total moves only when the deep chunk is in (the visible number moves with the instant too) — then gives the
+   * renderer, handed the same chunk, a second for its frame and pins the instant again.
+   */
+  async 'stars-globe-faint'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await globeShown(page, locale);
+    const count = page.getByTestId('globe-count');
+    const total = async (): Promise<number> => Number(/ (?:of|de) (\d+) /.exec((await count.textContent()) ?? '')?.[1] ?? NaN);
+    const bright = await total();
+    expect(bright).toBeGreaterThan(0);
+    const faint = page.locator('[data-layer="faint"]');
+    await faint.click();
+    await expect(faint).toHaveAttribute('aria-pressed', 'true');
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(200);
+        return total();
+      }, { timeout: 30_000 })
+      .toBeGreaterThan(bright);
+    await page.clock.runFor(1000);
+    await pinnedAt(page, CLOCK);
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R171 (FR-GLOBE-9, FR-GLOBE-18; D-1042): `stars-globe` over the seeds' saved London, pressed in the `Place` group —
+   * the globe's place only; the app's stays Bariloche.
+   */
+  async 'stars-globe-place'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale, CLOCK, { favourites: [LONDON_FAVOURITE] });
+    await globeShown(page, locale);
+    // The whole label after the option's box (`[ ]`, then `[x]` once pressed), so no other saved London matches.
+    const label = LONDON.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const london = page.getByTestId('globe-place').getByRole('button', { name: new RegExp(`^\\[.\\] ${label}$`) });
+    await london.click();
+    await expect(london).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /London/);
+    // At 1280 × 800 the rail scrolls inside itself and London's row is past its foot: the picture has the pressed
+    // place whole at the rail's end, whatever the click's own scroll left.
+    await london.evaluate((button) => {
+      button.scrollIntoView({ block: 'end' });
+    });
+    await page.clock.runFor(FRAME_MS);
+    await pinnedAt(page, CLOCK);
+    await expect(page.getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R171 (FR-GLOBE-11, FR-GLOBE-12, FR-GLOBE-18): `stars-globe` with the first row of `Up from <place>` pressed. The
+   * name holds for `STAR_LABEL_HOLD_S` and a pin is a ten-second tick, so the instant is pinned first (`globeShown`)
+   * and the row pressed after it; the one frame here and the shot's settle are well inside the hold. The list's name
+   * is the globe's too (FR-GLOBE-12): the label beside Sirius with its magnitude, and the readout line under the box.
+   */
+  async 'stars-globe-named'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await globeShown(page, locale);
+    const first = page.locator('[data-testid="stars-field"][data-field="globe"] [data-testid="field-list"] button').first();
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await page.clock.runFor(FRAME_MS);
+    await expect(page.getByTestId('globe-named')).toBeVisible();
+    await expect(page.locator('svg[data-globe] [data-label]')).toHaveAttribute('visibility', 'visible');
     await blurFocus(page);
     await page.mouse.move(0, 0);
   },

@@ -4849,7 +4849,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
 
 ### Wave 4
 
-- [ ] **R171 — Captures and 2.12.0: the London favourite in the seeds, the five globe screens and `stars-whole` at 390 only, the capture set re-shot and diffed against 2.11.0, every budget row re-set, `package.json` 2.12.0, `docs/RELEASE.md` §25, no tag**
+- [x] **R171 — Captures and 2.12.0: the London favourite in the seeds, the five globe screens and `stars-whole` at 390 only, the capture set re-shot and diffed against 2.11.0, every budget row re-set, `package.json` 2.12.0, `docs/RELEASE.md` §25, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -4867,6 +4867,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
     - FR-CAP-5's diff against 2.11.0 lists only the wide `stars` row's word, the globe's additions and `stars-whole`'s 1280 removals; two runs agree but for F-99's noise.
     - `captureIds.test.ts`, `npm run bundle:budget`, `npm run check:dead` and `npx vitest run tests/docs` green.
     - The Done note lists the changed, added and removed files, the budget rows against 2.11.0, and "tag the squash merge of this PR".
+  - **Done:** the set is 436 files (D-1052, D-1053). Added 24: `v1-stars-globe-{1280,1920}-*`, `v1-stars-globe-stars-1280-*`, `v1-stars-globe-faint-1920-*`, `v1-stars-globe-place-1280-*`, `v1-stars-globe-named-1280-*`. Changed 12, the view row's word alone: `v1-stars-{1280,1920}-*`, `v1-stars-zoom-1280-*`. Removed 4: `v1-stars-whole-1280-*`. Against 2.11.0, both shot on one Mac (headless, no `captures.yml` dispatch): 379 identical, the 12 moved and 21 of F-99's noise; two branch runs 20 apart, all F-99. Budget rows against 2.11.0 (`8413d978`): main 182.0 → 182.8 (+762 bytes), stars 29.9 → 31.4 (+1,536, GLOBE_STARS_KB exactly), live 14.7 → 13.7, window 13.2 → 13.0, globe 13.5 new into `BUDGETS` at 15; no budget moves. `captureIds.test.ts` needed no change (it reads the specs). Fixed in review: a list row's naming now reaches the globe (FR-GLOBE-12, `SkyGlobe`'s `named`), `v1-stars-globe-named-1280-*` re-shot. Tag the squash merge of this PR.
 
 ### Requirement coverage (v2.12)
 
