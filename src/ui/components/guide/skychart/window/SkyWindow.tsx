@@ -36,7 +36,7 @@ import { useViewRotation, type HandPose } from './useViewRotation';
  * points, in SVG (FR-GUIDE-5), from `SkyChartProps` and nothing else
  * (FR-LIVE-10). The picks are the R38 spike's (`docs/window/FINDINGS.md`):
  * stereographic, `WINDOW_FOV` 60° across the shorter side, the rotation
- * smoothed on its axes by `WINDOW_SMOOTHING`.
+ * smoothed by `RotationFilter` (D-1027; `WINDOW_SMOOTHING` a frame at its fastest).
  *
  * What it draws (FR-WIN-2): the horizon with the compass names where they
  * are in view, the 30° and 60° altitude lines and a zenith mark, azimuth

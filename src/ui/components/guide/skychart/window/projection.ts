@@ -301,6 +301,70 @@ export function smoothRotation(previous: Mat3 | null, next: Mat3, weight: number
   return fromColumns(x, y, z);
 }
 
+/** D-1027: the smoothing's cutoff with the phone held still, Hz — a time constant of 0.23 s, which irons out a hand's tremor and iOS Chrome's 10 steps a second. */
+const FOLLOW_STILL_CUTOFF_HZ = 0.7;
+/** D-1027: how much the cutoff rises per degree a second the phone turns past `FOLLOW_TREMOR_DEG_S`, Hz, so a turn is followed with no more lag than `WINDOW_SMOOTHING`'s. */
+const FOLLOW_SPEED_CUTOFF_HZ = 0.3;
+/** D-1027: the turning speed a held hand's tremor reaches, degrees a second; only what is faster than it opens the cutoff. */
+const FOLLOW_TREMOR_DEG_S = 15;
+/** D-1027: the cutoff of the turning speed's own smoothing, Hz. */
+const FOLLOW_SPEED_SMOOTH_HZ = 1;
+/**
+ * D-1027: the most the cutoff opens to, Hz: at 60 frames a second the picture keeps exp(−2π · 5 / 60) = 0.59 of itself
+ * a frame, `WINDOW_SMOOTHING`'s 0.6 — a fast turn is followed as before, and a single big step is still eased, not jumped.
+ */
+const FOLLOW_FAST_CUTOFF_HZ = 5;
+/** D-1027: the frame time read when there is no previous frame (the loop had stopped) and the most one frame may count for, seconds. */
+const FRAME_S = 1 / 60;
+const FRAME_MAX_S = 0.1;
+
+/** The angle of the turn from one rotation to another, degrees. */
+function turnDeg(a: Mat3, b: Mat3): number {
+  let trace = 0;
+  for (const c of [0, 1, 2] as const) trace += a[0][c] * b[0][c] + a[1][c] * b[1][c] + a[2][c] * b[2][c];
+  return Math.acos(Math.max(-1, Math.min(1, (trace - 1) / 2))) / RAD;
+}
+
+/**
+ * D-1027 (FR-WIN-3 as amended): the sensor's smoothing, timed by the clock rather than by the frame and steadier when
+ * the phone is still than when it turns — a one-euro filter (Casiez et al., 2012) on the rotation. Each frame the
+ * previous picture keeps `exp(−2π f dt)` of itself, `smoothRotation`'s weight, where the cutoff `f` is
+ * `FOLLOW_STILL_CUTOFF_HZ` plus `FOLLOW_SPEED_CUTOFF_HZ` per degree a second by which the target's own (smoothed)
+ * turning speed passes `FOLLOW_TREMOR_DEG_S`. `WINDOW_SMOOTHING`'s 0.6 a frame was a time constant of 33 ms at 60 frames a second: it took each of iOS
+ * Chrome's readings, 100 ms apart, in two or three frames and then held, which is a picture that steps ten times a
+ * second, and it let a hand's tremor through whole.
+ */
+export class RotationFilter {
+  private smoothed: Mat3 | null = null;
+  private target: Mat3 | null = null;
+  private atMs: number | null = null;
+  private speedDegS = 0;
+
+  /** One frame toward `target` at `nowMs` (a frame's timestamp). */
+  step(target: Mat3, nowMs: number): Mat3 {
+    // A frame with no usable timestamp (a test's stubbed animation frame) counts as one frame.
+    const elapsed = this.atMs === null || !Number.isFinite(nowMs) ? NaN : (nowMs - this.atMs) / 1000;
+    const dt = Number.isFinite(elapsed) && elapsed > 0 ? Math.min(FRAME_MAX_S, elapsed) : FRAME_S;
+    this.atMs = Number.isFinite(nowMs) ? nowMs : null;
+    if (this.smoothed === null || this.target === null) {
+      this.smoothed = target;
+      this.target = target;
+      return target;
+    }
+    const raw = turnDeg(this.target, target) / dt;
+    this.target = target;
+    this.speedDegS += (1 - Math.exp(-2 * Math.PI * FOLLOW_SPEED_SMOOTH_HZ * dt)) * (raw - this.speedDegS);
+    const cutoff = Math.min(FOLLOW_FAST_CUTOFF_HZ, FOLLOW_STILL_CUTOFF_HZ + FOLLOW_SPEED_CUTOFF_HZ * Math.max(0, this.speedDegS - FOLLOW_TREMOR_DEG_S));
+    this.smoothed = smoothRotation(this.smoothed, target, Math.exp(-2 * Math.PI * cutoff * dt));
+    return this.smoothed;
+  }
+
+  /** The frame loop stopped: the next frame is timed as one frame, not as the pause since. */
+  rest(): void {
+    this.atMs = null;
+  }
+}
+
 /** Within a tenth of a degree on every axis: nothing left to ease toward. */
 export function converged(a: Mat3, b: Mat3): boolean {
   for (const r of [0, 1, 2] as const) for (const c of [0, 1, 2] as const) if (Math.abs(a[r][c] - b[r][c]) > 0.0017) return false;
@@ -366,27 +430,64 @@ export function alphaFor(reading: WindowReading, offsetDeg: number | null, decli
   return magnetic === null ? null : normalizeAzimuthDeg(magnetic - declinationDeg);
 }
 
-/** The compass is trustworthy for calibrating alpha: the phone roughly upright, top up, and the accuracy in [0, 30] (R38, measured). */
+/** The calibration's window: the back of the phone within this many degrees of the horizon (R38's beta 45–135 for a phone not rolled). */
+const CALIBRATION_ALT_DEG = 45;
+
+/**
+ * The compass is trustworthy for calibrating alpha: the phone roughly upright, its back within `CALIBRATION_ALT_DEG`
+ * of the horizon, and the accuracy in [0, 30] (R38, measured). D-1027: the offset is the azimuth of the back as the
+ * whole relative rotation gives it, less the compass's — not `360 − heading − alpha`, which is that only while gamma is
+ * 0. Upright is where the W3C angles lock (beta 90 puts alpha and gamma on the same vertical axis), so a hand's tremor
+ * swings gamma across its whole ±90° range and alpha the other way; the old sample swung with it, and the heading
+ * wandered by tens of degrees exactly when the phone was held at the horizon.
+ */
 export function calibrationSample(reading: WindowReading): number | null {
   const alpha = finite(reading.alpha);
   const beta = finite(reading.beta);
+  const gamma = finite(reading.gamma);
   const webkit = finite(reading.webkitCompassHeading);
   const accuracy = reading.webkitCompassAccuracy;
-  if (alpha === null || beta === null || webkit === null) return null;
+  if (alpha === null || beta === null || gamma === null || webkit === null) return null;
   if (accuracy !== null && (accuracy < 0 || accuracy > 30)) return null;
-  if (beta < 45 || beta > 135) return null;
-  return normalizeAzimuthDeg(360 - webkit - alpha);
+  const look = lookDirection(rotationMatrix(alpha, beta, gamma));
+  if (Math.abs(look.altDeg) > CALIBRATION_ALT_DEG) return null;
+  return normalizeAzimuthDeg(look.azDeg - webkit);
 }
 
-/** A circular running mean of the calibration offset: a unit vector per sample, blended by `weight`, so 359° and 1° average to 0° and not 180°. */
+/** D-1027: the weight a calibration sample keeps once the running mean has more samples than its inverse — 5 s at iOS Chrome's 10 a second. */
+const CALIBRATION_WEIGHT_FLOOR = 0.02;
+/** D-1027: a sample this far from a settled estimate is the compass's noise, not the offset (settled accuracy is 12–17°, R38). */
+const CALIBRATION_OUTLIER_DEG = 20;
+/** D-1027: samples before the estimate is settled enough to reject any. */
+const CALIBRATION_SETTLED_SAMPLES = 10;
+/** D-1027: rejected samples in a row that say the estimate, not the samples, is wrong (a magnet near the phone at the start): it starts over. */
+const CALIBRATION_RESTART_RUN = 30;
+
+const separationDeg = (a: number, b: number): number => Math.abs(((a - b + 540) % 360) - 180);
+
+/**
+ * A circular running mean of the calibration offset: a unit vector per sample, blended by `weight`, so 359° and 1°
+ * average to 0° and not 180°. D-1027: by default the weight is the plain mean's `1 / n` down to
+ * `CALIBRATION_WEIGHT_FLOOR`, so the estimate settles fast and then holds still while still following the relative
+ * alpha's slow drift; once settled, a sample `CALIBRATION_OUTLIER_DEG` away is dropped, and a run of
+ * `CALIBRATION_RESTART_RUN` of them starts the estimate over.
+ */
 export class OffsetEstimate {
   private x = 0;
   private y = 0;
   private count = 0;
+  private rejected = 0;
 
-  add(offsetDeg: number, weight = 0.1): void {
+  add(offsetDeg: number, weight?: number): void {
+    const current = this.get();
+    if (current !== null && this.count >= CALIBRATION_SETTLED_SAMPLES && separationDeg(offsetDeg, current) > CALIBRATION_OUTLIER_DEG) {
+      this.rejected += 1;
+      if (this.rejected < CALIBRATION_RESTART_RUN) return;
+      this.count = 0;
+    }
+    this.rejected = 0;
     const r = offsetDeg * RAD;
-    const w = this.count === 0 ? 1 : weight;
+    const w = this.count === 0 ? 1 : (weight ?? Math.max(CALIBRATION_WEIGHT_FLOOR, 1 / (this.count + 1)));
     this.x = (1 - w) * this.x + w * Math.cos(r);
     this.y = (1 - w) * this.y + w * Math.sin(r);
     this.count += 1;
@@ -441,18 +542,36 @@ export function followFovDeg(fovDeg: number, width: number, height: number): num
 export const FOLLOW_LIFT_BAND_DEG = 50;
 
 /**
- * v2.12 (D-1022): how many degrees a following window raises a pose that points `altDeg` up. Nothing at or above the
- * horizon; half the depth inside the band, up to `FOLLOW_LIFT_BAND_DEG / 2` at its foot; and from there back to
- * nothing at the nadir, so straight down — where the azimuth, and with it the axis of the lift, has no answer — is
- * drawn as it is. The drawn tilt (`altDeg + lift`) rises with the phone's everywhere, so the picture never holds still
- * or runs backwards (the floor D-1018 withdrew did the first).
+ * D-1027: the depth under the horizon over which the lift eases in, degrees. A phone held level at the horizon wobbles
+ * across 0° all the time; with the lift's slope jumping from 0 to ½ there, the picture moved at full rate on every
+ * wobble up and half rate on every wobble down. Eased in over this band the slope grows smoothly from 0.
+ */
+export const FOLLOW_LIFT_EASE_DEG = 8;
+/** D-1027: the lift's slope where it reaches the nadir, degrees of lift per degree of depth (a Hermite end, so no corner at −50° either). */
+const FOLLOW_LIFT_NADIR_SLOPE = -0.5;
+
+/**
+ * v2.12 (D-1022, D-1027): how many degrees a following window raises a pose that points `altDeg` up. Nothing at or
+ * above the horizon; then a lift that eases in over `FOLLOW_LIFT_EASE_DEG` (`depth² / 4·ease`), half the depth less
+ * `ease / 4` down to the band's foot, and from there back to nothing at the nadir along a cubic that meets both ends
+ * with their slopes, so straight down — where the azimuth, and with it the axis of the lift, has no answer — is drawn as
+ * it is. The lift and its slope are continuous everywhere (no corner at 0° or at the foot), and the drawn tilt
+ * (`altDeg + lift`) rises with the phone's everywhere, so the picture never holds still or runs backwards (the floor
+ * D-1018 withdrew did the first).
  */
 export function followLiftDeg(altDeg: number): number {
   if (altDeg >= 0) return 0;
-  const foot = -FOLLOW_LIFT_BAND_DEG;
-  const most = FOLLOW_LIFT_BAND_DEG / 2;
-  if (altDeg >= foot) return -altDeg / 2;
-  return Math.max(0, (most * (altDeg + 90)) / (90 + foot));
+  const depth = Math.min(90, -altDeg);
+  const ease = FOLLOW_LIFT_EASE_DEG;
+  if (depth <= ease) return (depth * depth) / (4 * ease);
+  const foot = FOLLOW_LIFT_BAND_DEG;
+  if (depth <= foot) return depth / 2 - ease / 4;
+  // Hermite from (foot, foot/2 − ease/4) with slope ½ to (90, 0) with `FOLLOW_LIFT_NADIR_SLOPE`.
+  const h = 90 - foot;
+  const s = (depth - foot) / h;
+  const p0 = foot / 2 - ease / 4;
+  const lift = (2 * s ** 3 - 3 * s ** 2 + 1) * p0 + (s ** 3 - 2 * s ** 2 + s) * h * 0.5 + (s ** 3 - s ** 2) * h * FOLLOW_LIFT_NADIR_SLOPE;
+  return Math.max(0, lift);
 }
 
 /**
