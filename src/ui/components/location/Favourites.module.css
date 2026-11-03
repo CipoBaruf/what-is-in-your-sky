@@ -75,3 +75,10 @@
 .remove {
   margin-inline-start: auto;
 }
+
+/* `(en uso)` is one word to the reader and never breaks: a long place name wraps in what it leaves (the owner's phone,
+   2026-11-02, `Berlin, State of Berlin, Germany` in Spanish). */
+.current {
+  flex: none;
+  white-space: nowrap;
+}

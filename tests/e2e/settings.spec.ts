@@ -260,6 +260,22 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     expect(await fitsTheViewport(save)).toBe(true);
   });
 
+  test('a long saved place in use wraps its name and keeps `(en uso)` on one line, at 390 in Spanish', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const observer = { ...NEUQUEN_OBSERVER, label: 'Berlin, State of Berlin, Germany' };
+    await openSettingsWith(page, { locale: 'es', observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }] });
+    const current = page.getByTestId('favourite').filter({ hasText: '(en uso)' }).getByText('(en uso)');
+    await expect(current).toBeVisible();
+    // The lines its text is laid out on: one, where the phone showed `(en` over `uso)`.
+    const lines = await current.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return new Set(Array.from(range.getClientRects()).map((box) => Math.round(box.top))).size;
+    });
+    expect(lines).toBe(1);
+    expect(await fitsTheViewport(page.getByTestId('favourite'))).toBe(true);
+  });
+
   test('"enter coordinates instead" opens the closed fields and focuses them, and stays on the page', async ({ page }) => {
     await openSettingsWith(page, { locale: 'en' });
     await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } }));
