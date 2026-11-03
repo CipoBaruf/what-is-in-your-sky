@@ -1195,10 +1195,15 @@ const REACH: Record<string, Reach> = {
   async 'stars-globe-place'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale, CLOCK, { favourites: [LONDON_FAVOURITE] });
     await globeShown(page, locale);
-    const london = page.getByTestId('globe-place').getByRole('button', { name: /^London/ });
+    const london = page.getByTestId('globe-place').getByRole('button', { name: 'London' });
     await london.click();
     await expect(london).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /London/);
+    // At 1280 × 800 the rail scrolls inside itself and London's row is past its foot: the picture has the pressed
+    // place whole at the rail's end, whatever the click's own scroll left.
+    await london.evaluate((button) => {
+      button.scrollIntoView({ block: 'end' });
+    });
     await page.clock.runFor(FRAME_MS);
     await pinnedAt(page, CLOCK);
     await expect(page.getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));

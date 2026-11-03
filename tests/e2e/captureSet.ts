@@ -365,7 +365,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'stars-globe-stars',
     widths: [1280],
-    what: "`stars-globe` with `with the stars` pressed in the `Turn` row (FR-GLOBE-5): the frame the equatorial one, the north celestial pole up and the horizon across the stars, the centre direction kept, so the same stars stand where they stood and the horizon and the zenith move. FR-GLOBE-18 names 1280.",
+    what: "`stars-globe` with `with the stars` pressed in the `Turn` row (FR-GLOBE-5): the frame the equatorial one, the north celestial pole up: the direction at the view's centre is kept (the south celestial pole near it) and the globe is rolled under it, so the horizon crosses the stars with the ground above it, the zenith low and the Sun, Mercury and Venus on the far side of the ground. FR-GLOBE-18 names 1280.",
   },
   {
     name: 'stars-globe-faint',
@@ -380,7 +380,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'stars-globe-named',
     widths: [1280],
-    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon named, its row pressed, shot inside `STAR_LABEL_HOLD_S`. FR-GLOBE-18 names 1280.",
+    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon (Sirius) named, its row pressed and the rail scrolled to the list, shot inside `STAR_LABEL_HOLD_S`. FR-GLOBE-18 names 1280. The globe draws no mark for the list's naming (R171's finding: `SkyGlobe` takes no `named` prop, so FR-GLOBE-12's \"a row's focus or activation naming its mark on the globe\" is not met); Sirius's label on the globe is the `names` layer's.",
   },
   {
     name: 'stars-whole-following',
