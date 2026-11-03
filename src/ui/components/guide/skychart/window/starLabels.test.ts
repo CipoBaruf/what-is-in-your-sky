@@ -331,6 +331,30 @@ describe('a fixed label: a body’s name (FR-GLOBE-11, D-1041)', () => {
     expect(texts(placed)).toEqual(['named:Venus · mag −4.1']);
   });
 
+  it('names a landmark on its mark once: the body’s name, not the landmark’s too', () => {
+    const placed = placeLabels(base({ marks: [bright], landmark: { key: 3, mark: 0, text: 'Moon' } }), { fixed: [{ key: 3, mark: 0, text: 'Moon' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon']);
+  });
+
+  // Two marks on the same spot with all four places taken: the first body falls back to the right.
+  const crowded = (): LabelMark[] => [bright, { ...bright }, ...(['right', 'left', 'above', 'below'] as const).map((place) => blockAt(bright, 'Moon', place))];
+
+  it('does not write a body’s fallback over another body’s name', () => {
+    const placed = placeLabels(base({ marks: crowded() }), { fixed: [{ key: 1, mark: 0, text: 'Moon' }, { key: 2, mark: 1, text: 'Mars' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon', 'fixed:Mars']);
+    const [moon, mars] = placed as [PlacedLabel, PlacedLabel];
+    expect(side(moon, bright)).toBe('right');
+    expect(side(mars, bright)).toBe('left');
+    expect(overlaps(moon.box, mars.box)).toBe(false);
+  });
+
+  it('keeps the tap’s fallback off a body’s name', () => {
+    const placed = placeLabels(base({ marks: crowded(), named: { key: 2, mark: 1, text: 'Mars · mag 1.2' } }), { fixed: [{ key: 1, mark: 0, text: 'Moon' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon', 'named:Mars · mag 1.2']);
+    const [moon, tap] = placed as [PlacedLabel, PlacedLabel];
+    expect(overlaps(moon.box, tap.box)).toBe(false);
+  });
+
   it('never yields to a figure’s name, as a star name does', () => {
     // Jupiter's name, to its right, covers every place of `L E O`'s walk; without the option the figure sits on its centroid.
     const lone = { key: 5, name: 'Leo', con: 'Leo', segments: 2, endpoints: [{ x: 196, y: 150 }, { x: 204, y: 150 }] };

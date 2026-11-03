@@ -35,8 +35,10 @@
  * the polar chart do not, so with neither the placement is exactly 2.11.0's.
  * `fixed` — the Sun's, the Moon's and the planets' names — is placed right
  * after the compass, each at the first free of the four places (else the first
- * inside the box, else right), and never dropped: no star name, landmark or
- * figure name lands on one. `figureStart: 'vertex'` starts a figure's walk at
+ * inside the box clear of the labels placed, else the first inside, else
+ * right), and never dropped: no other body's, star, landmark or figure name
+ * lands on one, and the tap's label, placed next, avoids them the same way. A
+ * landmark on a body's mark is not named twice. `figureStart: 'vertex'` starts a figure's walk at
  * the vertex its `anchor` carries (the caller's `figureAnchor`) instead of the
  * centroid of its drawn endpoints; a figure without an anchor keeps the centroid.
  */
@@ -256,27 +258,32 @@ export function placeLabels(input: LabelInput, options: LabelOptions = {}): Plac
   const named = input.named;
   const namedMark = named ? marks[named.mark] : undefined;
 
+  /**
+   * A never-dropped label's place: the first free of the four, else the first inside the box clear of the labels
+   * already placed (so two bodies, or the tap and a body, do not write over each other), else the first inside,
+   * else the right. With no `fixed` nothing is placed before the tap's label, so its place is 2.11.0's.
+   */
+  const keptPlace = (places: Box[]): Box | undefined => places.find(free) ?? places.find((b) => inside(b) && !labelHit(b)) ?? places.find(inside) ?? places[0];
+
   // R168 (D-1041): the bodies' names, right after the compass and never dropped; a tap's label on the same mark takes its place.
   const fixedMarks = new Set<number>();
   for (const body of options.fixed ?? []) {
     const mark = marks[body.mark];
     if (!mark || fixedMarks.has(body.mark) || (named !== null && body.mark === named.mark)) continue;
-    const places = besideMark(mark, body.text);
-    const box = places.find(free) ?? places.find(inside) ?? places[0];
+    const box = keptPlace(besideMark(mark, body.text));
     if (box) {
       put('fixed', body.key, body.text, box);
       fixedMarks.add(body.mark);
     }
   }
   if (named && namedMark) {
-    const places = besideMark(namedMark, named.text);
-    const box = places.find(free) ?? places.find(inside) ?? places[0];
+    const box = keptPlace(besideMark(namedMark, named.text));
     if (box) put('named', named.key, named.text, box);
   }
 
-  // R127 (FR-SKY-11): the landmark's name, unless the tap's label is on its mark; dropped where no place is free.
+  // R127 (FR-SKY-11): the landmark's name, unless the tap's label or (R168) a body's is on its mark; dropped where no place is free.
   const landmark = input.landmark ?? null;
-  const landmarkMark = landmark && (named === null || named.mark !== landmark.mark) ? marks[landmark.mark] : undefined;
+  const landmarkMark = landmark && (named === null || named.mark !== landmark.mark) && !fixedMarks.has(landmark.mark) ? marks[landmark.mark] : undefined;
   if (landmark && landmarkMark) {
     const box = besideMark(landmarkMark, landmark.text).find(free);
     if (box) put('landmark', landmark.key, landmark.text, box);
