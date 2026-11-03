@@ -11,6 +11,8 @@
  *   opens); back on the window the camera is where it was, and a reload opens on the window with nothing saved.
  * - The window's field is outlined on the whole sky and moves with injected readings while following
  *   (`stubOrientation`), and with the hand's camera by hand.
+ * - R170 (FR-GLOBE-1): on wide the second value is the globe (`globe.spec.ts`); the first case runs on compact only,
+ *   and on wide a pinch past the widest field opens the globe.
  * - A pinch past the window's widest field opens the whole sky, and a pinch on the whole sky returns to the window at
  *   the widest field facing the sky under the pinch's midpoint, within 1° (the error is printed for the Done note);
  *   the pinches are synthetic (`windowZoom.ts`), so they run at both sizes.
@@ -111,6 +113,8 @@ for (const size of SIZES) {
       test.use({ viewport: { width: size.width, height: size.height }, hasTouch: size.touch });
 
       test('the view row, the whole sky with the layers on and off, In this field, the camera kept, nothing saved (FR-PHONE-7)', async ({ page }) => {
+        // R170 (FR-GLOBE-1): on wide the second value is the globe, the polar chart not offered there — `globe.spec.ts`.
+        test.skip(size.wide, 'on wide the whole sky is the globe (FR-GLOBE-1): globe.spec.ts');
         const layout = await openStarsWithRun(page, locale);
         const words = WORDS[locale];
         // The row: `[ Window ] Whole sky`, one line — between the answer and the readout on wide, the sheet's first row on compact (R163); the window pressed.
@@ -196,6 +200,12 @@ for (const size of SIZES) {
         const box = page.getByTestId('stars-sky').locator('div[data-dragging]');
         // Out past the end by the ratio: from 60°, fingers from 200 px to 100 px ask for 120°, past 103.5°.
         await pinch(box, 200, 100);
+        // R170 (FR-GLOBE-1): on wide the whole sky is the globe, so the pinch out opens it, and the globe has no pinch back.
+        if (size.wide) {
+          await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
+          await expect(viewRow(page).locator('button', { hasText: locale === 'en' ? 'Globe' : 'Globo' })).toHaveAttribute('aria-pressed', 'true');
+          return;
+        }
         await expect(chart(page)).toHaveAttribute('data-view', 'polar');
         // R163: the row is the closed sheet's on compact, hidden from the accessibility tree, so the button is found by its words.
         await expect(viewRow(page).locator('button', { hasText: WORDS[locale].wholeSky })).toHaveAttribute('aria-pressed', 'true');
