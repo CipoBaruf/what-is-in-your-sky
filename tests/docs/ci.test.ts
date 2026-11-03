@@ -168,3 +168,31 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     expect(captureSpec).not.toMatch(/timeZone: '/);
   });
 });
+
+/** D-1031 (FR-CI-1 as amended 2026-11-02): a pull request runs the tests its change reaches; `main` runs them all. */
+describe('the tests a change reaches (D-1031)', () => {
+  it('selects from the merge commit against its first parent, and runs everything on main or under `full-ci`', () => {
+    expect(ci).toMatch(/fetch-depth: 2/);
+    expect(ci).toContain('node scripts/ci-affected.ts HEAD^1');
+    expect(ci).toContain("github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')");
+    expect(ci).toContain('node scripts/ci-affected.ts --all');
+    expect(ci).toMatch(/types: \[opened, synchronize, reopened, labeled\]/);
+  });
+
+  it('hands the selection to Vitest and Playwright, and an empty shard passes', () => {
+    expect(ci).toContain('npx vitest related --run --passWithNoTests $UNIT_FILES');
+    expect(ci).toContain('--pass-with-no-tests $E2E_SPECS');
+    // Every stage that needs the build waits for an e2e selection, and the unit tests run once, on shard 1.
+    for (const stage of ['build', 'bundle', 'e2e']) {
+      expect(ci, stage).toMatch(new RegExp(`if: steps\\.affected\\.outputs\\.e2e != 'none'\\n(\\s+\\S.*\\n){0,3}\\s+run: bash \\.github/workflows/stage\\.sh ${stage} `));
+    }
+    expect(ci).toMatch(/if: matrix\.shard == 1 && steps\.affected\.outputs\.unit != 'none'/);
+  });
+
+  it('keeps the whole-program checks on every pull request', () => {
+    expect(ci).toMatch(/^ {2}trailers:$/m);
+    expect(ci).toMatch(/^ {2}dead-code:$/m);
+    expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh typecheck /);
+    expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh lint /);
+  });
+});
