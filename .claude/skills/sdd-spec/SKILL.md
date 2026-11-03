@@ -17,7 +17,7 @@ The spec is the contract; the plan follows it; TASKS.md follows both. This skill
 
 ## Writing the spec
 
-- Amend in place. Bump the status line (version, one-line summary of what changed, the new Decision Log range) and the date.
+- Amend in place. Bump the status line (version, one-line summary of what changed, the new Decision Log range) and the date. The status line it replaces moves, unchanged, to the top of the Revision history at the end of the document, and its date joins the Dates line there, so the header stays short.
 - New requirements get new stable IDs in a new family (`FR-<FAMILY>-<n>`); an existing requirement that changes keeps its ID and gets an "*(amended v<x>)*" note with the old rule in one clause so history stays readable.
 - Every user story gets acceptance criteria that a test can check. "Looks good" is not a criterion; "the list has two columns at 100 cells and one below" is.
 - Thresholds are constants with a documented default and rationale (FR-VIS-6 style).
@@ -29,7 +29,7 @@ The spec is the contract; the plan follows it; TASKS.md follows both. This skill
 
 After the owner approves the spec:
 
-- Bump PLAN.md's status line and input line (spec version).
+- Bump PLAN.md's status line, date and input line (spec version); the lines they replace move to the top of PLAN.md's Revision history.
 - Add a decisions subsection for the phase (`§2.<n> <phase> decisions`) with `D-<n>` rows continuing the numbering.
 - Extend §4 project structure, §5 data model, §6 worker contract, §7 data layer, §9 testing and §11 build only where the new requirements need it; each addition cites the FR it serves.
 - Update §12 traceability so every new FR names a module.
