@@ -33,7 +33,7 @@ for (const width of [390, 1280] as const) {
       await shot('home');
 
       await page.getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ }).first().click();
-      if (width === 390) await expect(page.getByTestId('pass-date')).toBeVisible();
+      if (width === 390) await expect(page.getByTestId('pass-head')).toBeVisible();
       else await expect(page.getByTestId('guide-panel')).toBeVisible();
       await shot('pass');
       await page.keyboard.press('Escape');
