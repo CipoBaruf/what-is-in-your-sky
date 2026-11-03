@@ -1,5 +1,6 @@
 import type { CompassPoint } from '../../lib/compass';
-import type { CloudState, PassBoundaryReason } from '../../model';
+import { laterIsBetter } from '../../lib/nightClouds';
+import type { CloudState, PassBoundaryReason, TonightCloud } from '../../model';
 
 /**
  * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): the home's three doors and the
@@ -9,6 +10,9 @@ import type { CloudState, PassBoundaryReason } from '../../model';
  * the dark window).
  */
 const cloudWord = { clear: 'Clear', partly: 'Partly cloudy', obscured: 'Cloudy', unknown: 'No forecast' } satisfies Record<CloudState, string>;
+
+/** One word for the night on a door's line: the state, or `Variable` for any night whose cloud changes (D-1028). */
+const doorCloud = (cloud: TonightCloud): string => (cloud.kind === 'steady' ? cloudWord[cloud.state] : 'Variable');
 
 const landmarkWord = { above: 'above', below: 'below', beside: 'beside' } as const;
 
@@ -30,10 +34,18 @@ export const home = {
     },
     stars: {
       title: 'Stars',
-      /** `cloud` is null with no zone yet: the stamp says UTC (F-27), and with no forecast there is no word to give. */
-      dark: (p: { from: string; to: string; cloud: CloudState | null }) => `Dark ${p.from} → ${p.to}${p.cloud === null ? '' : ` · ${cloudWord[p.cloud]}`}`,
-      /** As `dark`'s: no cloud word with no zone yet. */
-      noDark: (cloud: CloudState | null) => `No full dark${cloud === null ? '' : ` · ${cloudWord[cloud]}`}`,
+      /**
+       * `cloud` is null with no zone yet: the stamp says UTC (F-27), and with no forecast there is no word to give.
+       * D-1028: a night whose cloud changes names its better part with that stretch of the dark — `Dark, clear 02:00 → 07:05`
+       * — since `Dark 20:25 → 07:05 · Partly cloudy` is already 34 cells and the change's own words would not fit after it.
+       */
+      dark: (p: { from: string; to: string; cloud: TonightCloud | null }) => {
+        const c = p.cloud;
+        if (c?.kind === 'change') return laterIsBetter(c) ? `Dark, ${cloudWord[c.after].toLowerCase()} ${c.at} → ${p.to}` : `Dark, ${cloudWord[c.before].toLowerCase()} ${p.from} → ${c.at}`;
+        return `Dark ${p.from} → ${p.to}${c === null ? '' : ` · ${doorCloud(c)}`}`;
+      },
+      /** As `dark`'s: no cloud word with no zone yet. With no dark band to name a stretch of, a change is `Variable`. */
+      noDark: (cloud: TonightCloud | null) => `No full dark${cloud === null ? '' : ` · ${doorCloud(cloud)}`}`,
       brightest: (p: { name: string; point: CompassPoint }) => `Brightest now: ${p.name}, ${p.point}`,
       from: (time: string) => `Stars from ${time}`,
       /** The Sun up and no dark band tonight to wait for (a polar summer). */

@@ -2,6 +2,8 @@ import type { MouseEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { passIdHash, STARS_HASH } from '../../../lib/shareLinks';
 import { isNoEvent, nextEvent } from '../../../lib/nextEvent';
+import { tonightCloud } from '../../../lib/nightClouds';
+import { formatShortClock } from '../../../lib/timeFormat';
 import type { Observer } from '../../../model';
 import { SEARCH_WINDOW_HOURS } from '../../../state';
 import { NEXT_EVENT_TICK_MS } from '../../components/passes/NextEventBlock';
@@ -95,7 +97,7 @@ export function HomeDoors({ observer, selectedPassId, className, onWhat }: HomeD
   const event = nextEvent(passes, now, { elementCount, hasDarkness });
   const sky = useDoorSky(observer, now, isNoEvent(event) ? null : event.pass);
   const doors = doorLines(
-    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, starsFrom: night.starsFrom, cloud: night.clouds.state, sky },
+    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, starsFrom: night.starsFrom, cloud: tonightCloud(night.clouds, (at) => formatShortClock(at, observer.timeZone, locale)), sky },
     t,
   );
   const { passId } = doors.satellites;

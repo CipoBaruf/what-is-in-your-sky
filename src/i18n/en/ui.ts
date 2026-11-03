@@ -6,7 +6,7 @@ import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phras
 import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
-import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
+import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme, TonightCloud } from '../../model';
 import type { CountdownPhase, HeaderPage, LinkedText } from '../messages';
 
 /**
@@ -295,8 +295,17 @@ export const ui = {
       passesIn: 'Passes in it',
       passesValue: (p: { tonight: number; total: number; hours: number }) => `${String(p.tonight)} tonight, ${String(p.total)} in ${String(p.hours)} h`,
       clouds: 'Clouds tonight',
-      /** The cloud word's tooltip: the instant it is judged at. */
-      cloudsMoment: 'in the middle of the dark band',
+      /** The cloud word's tooltip: what it is judged over (D-1028: the dark band's hours). */
+      cloudsMoment: 'across the dark band',
+      /**
+       * D-1028: a night whose cloud changes once is two rows, `Until 02:00` · `Likely obscured` and `From 02:00` · `Clear`;
+       * "Clouds until 02:00" and "Likely obscured" would be 34 cells, but the Spanish pair would not fit, and the two
+       * languages keep one shape. Never with a UTC clock: with no zone there is no forecast (D-859).
+       */
+      cloudsUntil: (at: string) => `Until ${at}`,
+      cloudsFrom: (at: string) => `From ${at}`,
+      cloudsMomentUntil: (at: string) => `until ${at}`,
+      cloudsMomentFrom: (at: string) => `from ${at}`,
       moon: 'Moon',
       moonValue: (p: { phase: MoonPhaseName; illumination: string }) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
       /** D-513: by whether the Moon is up and at least `MOON_BRIGHT_PCT` lit inside the dark window (`lib/moonNote`). */
@@ -312,10 +321,13 @@ export const ui = {
        * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
        * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).
        */
-      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: CloudState }): string[] => [
+      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: TonightCloud }): string[] => [
         p.place,
         ...(p.dark === null ? [] : [p.dark === 'none' ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`]),
-        cloudState[p.cloud].toLowerCase(),
+        // D-1028: a change is two pieces, `likely obscured until 02:00 · clear after`, so the line breaks between them.
+        ...(p.cloud.kind === 'change'
+          ? [`${cloudState[p.cloud.before].toLowerCase()} until ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} after`]
+          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
       ],
       edit: 'edit',
     },
@@ -608,7 +620,13 @@ export const ui = {
     momentPeak: 'at the pass peak',
     tooltipHead: (p: { percent: string | null; moment: string }) => (p.percent === null ? `No cloud forecast ${p.moment}.` : `${p.percent} % effective cloud ${p.moment}.`),
     thresholds: (p: { clear: string; obscured: string }) =>
-      `Clear below ${p.clear} %, partly cloudy ${p.clear}–${p.obscured} %, likely obscured above ${p.obscured} % effective cloud (low and mid cloud weigh more than high cloud).`,
+      `Clear below ${p.clear} %, partly cloudy ${p.clear}–${p.obscured} %, likely obscured above ${p.obscured} % effective cloud (the thickest layer, high cloud counted at 70 %).`,
+    /**
+     * D-1028: tonight's cloud as one phrase — the state, `Variable`, or the change, `Likely obscured until 02:00 · clear after`.
+     * The wide lines' form; the compact ones have their own (the door's `dark`, the when step's rows, the foot's pieces).
+     */
+    tonight: (cloud: TonightCloud): string =>
+      cloud.kind === 'steady' ? cloudState[cloud.state] : cloud.kind === 'variable' ? 'Variable' : `${cloudState[cloud.before]} until ${cloud.at} · ${cloudState[cloud.after].toLowerCase()} after`,
     source: (p: { provider: string; fetched: string }) => `Forecast by ${p.provider}, fetched ${p.fetched}.`,
     noForecast: 'No forecast is available.',
   },

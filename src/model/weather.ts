@@ -26,3 +26,9 @@ export interface CloudVerdict {
   effectivePct: number | null;
   at: EpochMs;
 }
+
+/**
+ * D-1028: tonight's cloud as the lines word it — one state all night, one change at a clock time (`at`, already
+ * formatted), or `variable` when it changes more than once. `nightClouds` (lib) works it out from the hourly states.
+ */
+export type TonightCloud = { kind: 'steady'; state: CloudState } | { kind: 'change'; before: CloudState; after: CloudState; at: string } | { kind: 'variable' };

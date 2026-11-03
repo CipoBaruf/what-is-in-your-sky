@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useId, useRef, type ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
+import { tonightCloud } from '../../../lib/nightClouds';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Observer } from '../../../model';
 import { coordsLabel } from '../../../lib/place';
@@ -46,7 +47,7 @@ export function WhatStep({ observer, head, onEdit, onList, selectedPassId, focus
   const foot = t.home.whatStep.foot({
     place: placeName(observer) ?? coordsLabel(observer.lat, observer.lon),
     dark: night.bands.length === 0 ? null : dark ? { from: formatShortClock(dark.from, zone, locale), to: formatShortClock(dark.to, zone, locale, zone === null) } : 'none',
-    cloud: night.clouds.state,
+    cloud: tonightCloud(night.clouds, (at) => formatShortClock(at, zone, locale)),
   });
 
   return (

@@ -219,7 +219,12 @@ export const ui: typeof EnUi = {
       passesValue: (p) => `${String(p.tonight)} esta noche, ${String(p.total)} en ${String(p.hours)} h`,
       /* "Nubes esta noche" and "Probablemente cubierto" are 39 cells. */
       clouds: 'Nubes',
-      cloudsMoment: 'a mitad de la banda oscura',
+      cloudsMoment: 'en la banda oscura',
+      /* D-1028: "Nubes hasta las 02:00" y "Probablemente cubierto" son 43 celdas; "Hasta 02:00" deja 34. */
+      cloudsUntil: (at) => `Hasta ${at}`,
+      cloudsFrom: (at) => `Desde ${at}`,
+      cloudsMomentUntil: (at) => `hasta las ${at}`,
+      cloudsMomentFrom: (at) => `desde las ${at}`,
       moon: 'Luna',
       /* "gibosa menguante, 99 % iluminada" and its label are 38 cells. */
       moonValue: (p) => `${moonPhase[p.phase]}, ${p.illumination} % de luz`,
@@ -228,7 +233,13 @@ export const ui: typeof EnUi = {
     },
     whatStep: {
       title: '¿Qué querés ver?',
-      foot: (p) => [p.place, ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]), cloudState[p.cloud].toLowerCase()],
+      foot: (p) => [
+        p.place,
+        ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]),
+        ...(p.cloud.kind === 'change'
+          ? [`${cloudState[p.cloud.before].toLowerCase()} hasta las ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} después`]
+          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
+      ],
       edit: 'editar',
     },
   },
@@ -423,7 +434,9 @@ export const ui: typeof EnUi = {
     momentPeak: 'en el máximo del pase',
     tooltipHead: (p) => (p.percent === null ? `Sin pronóstico de nubes ${p.moment}.` : `${p.percent} % de nubosidad efectiva ${p.moment}.`),
     thresholds: (p) =>
-      `Despejado por debajo del ${p.clear} %, parcialmente nublado entre el ${p.clear} y el ${p.obscured} %, probablemente cubierto por encima del ${p.obscured} % de nubosidad efectiva (las nubes bajas y medias pesan más que las altas).`,
+      `Despejado por debajo del ${p.clear} %, parcialmente nublado entre el ${p.clear} y el ${p.obscured} %, probablemente cubierto por encima del ${p.obscured} % de nubosidad efectiva (la capa más espesa; las nubes altas cuentan al 70 %).`,
+    tonight: (cloud) =>
+      cloud.kind === 'steady' ? cloudState[cloud.state] : cloud.kind === 'variable' ? 'Variable' : `${cloudState[cloud.before]} hasta las ${cloud.at} · ${cloudState[cloud.after].toLowerCase()} después`,
     source: (p) => `Pronóstico de ${p.provider}, obtenido ${p.fetched}.`,
     noForecast: 'No hay pronóstico disponible.',
   },

@@ -6,7 +6,7 @@ import { passPath } from '../../../lib/passPath';
 import type { MoonNow } from '../../../lib/skyStars';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { SkyBand } from '../../../lib/timeStripe';
-import type { CloudState, EpochMs, Locale, Pass } from '../../../model';
+import type { EpochMs, Locale, Pass, TonightCloud } from '../../../model';
 
 /**
  * R130 (FR-FLOW-1, D-843): the home's three doors' lines, from what the home
@@ -53,7 +53,8 @@ export interface DoorInput {
   dark: SkyBand | null;
   /** When tonight's stars come out (`tonightsStarsFrom`, D-884): the dark band, else the bright-twilight band, else `null`. */
   starsFrom: SkyBand | null;
-  cloud: CloudState;
+  /** Tonight's cloud across the dark (D-1028), its change's clock already in the zone's time. */
+  cloud: TonightCloud;
   /** `null` until the `stars` chunk has loaded. */
   sky: DoorSky | null;
 }

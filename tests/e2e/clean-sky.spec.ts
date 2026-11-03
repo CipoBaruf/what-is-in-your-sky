@@ -40,8 +40,8 @@ const TURNED = [
 ] as const;
 
 const WORDS = {
-  en: { window: 'Window', wholeSky: 'Whole sky', field: 'In this field', orientationGroup: 'Chart orientation', facing: 'Facing', headLine: /^(Dark \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|No full dark( · .+)?|Stars from \d\d:\d\d.*|No dark sky tonight|Weather unknown)$/ },
-  es: { window: 'Ventana', wholeSky: 'Cielo entero', field: 'En este campo', orientationGroup: 'Orientación del gráfico', facing: 'Mirando', headLine: /^(Oscuro \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Sin oscuridad total( · .+)?|Estrellas desde las \d\d:\d\d.*|Sin cielo oscuro esta noche|Sin datos)$/ },
+  en: { window: 'Window', wholeSky: 'Whole sky', field: 'In this field', orientationGroup: 'Chart orientation', facing: 'Facing', headLine: /^(Dark \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Dark, [a-z ]+ \d\d:\d\d → \d\d:\d\d|No full dark( · .+)?|Stars from \d\d:\d\d.*|No dark sky tonight|Weather unknown)$/ },
+  es: { window: 'Ventana', wholeSky: 'Cielo entero', field: 'En este campo', orientationGroup: 'Orientación del gráfico', facing: 'Mirando', headLine: /^(Oscuro \d\d:\d\d → \d\d:\d\d( UTC)?( · .+)?|Oscuro y [a-z ]+ \d\d:\d\d → \d\d:\d\d|Sin oscuridad total( · .+)?|Estrellas desde las \d\d:\d\d.*|Sin cielo oscuro esta noche|Sin datos)$/ },
 } as const;
 
 const PREFS_KEY = 'wiys:prefs:v1';

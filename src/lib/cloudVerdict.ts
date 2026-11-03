@@ -2,14 +2,17 @@ import type { CloudState, CloudVerdict, EpochMs, HourlyCloud, WeatherSnapshot } 
 
 /**
  * FR-WX-2 / FR-WX-4 / spec §6.3: cloud cover interpolated linearly, per
- * layer, to the instant asked for (a pass peak, or "now"), then weighted
- * `0.6·low + 0.3·mid + 0.1·high` when the layers are present, else the total.
+ * layer, to the instant asked for (a pass peak, or "now"), then the effective
+ * cover is `max(low, mid, 0.7·high)` when the layers are present, else the
+ * total (D-1028: a covering layer counts even when it is high; a weighted sum
+ * read 98 % high cloud as 18 %, clear).
  * Three states at < 30 / 30–70 / > 70 %; `unknown` without a snapshot or
  * outside the hours it covers. Pure: time is a parameter (D-15).
  */
 export const CLEAR_BELOW_PCT = 30;
 export const OBSCURED_ABOVE_PCT = 70;
-const LAYER_WEIGHTS = { low: 0.6, mid: 0.3, high: 0.1 } as const;
+/** D-1028: high cloud alone tops out at 70 %, partly cloudy — thin cirrus still lets the bright things through. */
+const HIGH_CLOUD_FACTOR = 0.7;
 
 export function cloudState(effectivePct: number): CloudState {
   if (effectivePct < CLEAR_BELOW_PCT) return 'clear';
@@ -23,7 +26,7 @@ function hasLayers(sample: HourlyCloud): sample is HourlyCloud & { lowPct: numbe
 }
 
 export function effectiveCloudPct(sample: HourlyCloud): number {
-  if (hasLayers(sample)) return LAYER_WEIGHTS.low * sample.lowPct + LAYER_WEIGHTS.mid * sample.midPct + LAYER_WEIGHTS.high * sample.highPct;
+  if (hasLayers(sample)) return Math.max(sample.lowPct, sample.midPct, HIGH_CLOUD_FACTOR * sample.highPct);
   return sample.totalPct;
 }
 

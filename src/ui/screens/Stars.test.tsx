@@ -277,7 +277,7 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
       dark,
       { from: dark.to, to: dark.to + 12 * H, sky: 'day' },
     ];
-    const zoned = { zone: 'UTC', cloud: 'clear' as const };
+    const zoned = { zone: 'UTC', cloud: { kind: 'steady', state: 'clear' } as const };
     expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, ...zoned })).toBe(locale === 'en' ? 'Dark 20:25 → 07:05 · Clear' : 'Oscuro 20:25 → 07:05 · Despejado');
     // The Sun up and the stars still to come: the door's second line, "Stars from"; once the night is in, the window.
     expect(starsHeadLine(t, locale, { now: noon, bands, sunUp: true, ...zoned })).toBe(locale === 'en' ? 'Stars from 20:25' : 'Estrellas desde las 20:25');
@@ -287,10 +287,16 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
       { from: noon + 12 * H, to: noon + 24 * H, sky: 'bright-twilight' },
     ];
     expect(starsHeadLine(t, locale, { now: noon + 13 * H, bands: bright, sunUp: false, ...zoned })).toBe(locale === 'en' ? 'No full dark · Clear' : 'Sin oscuridad total · Despejado');
-    expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, zone: null, cloud: 'clear' })).toMatch(locale === 'en' ? /^Dark 20:25 → 07:05 UTC$/ : /^Oscuro 20:25 → 07:05 UTC$/);
+    expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, zone: null, cloud: { kind: 'steady', state: 'clear' } })).toMatch(locale === 'en' ? /^Dark 20:25 → 07:05 UTC$/ : /^Oscuro 20:25 → 07:05 UTC$/);
+    // D-1028: a night whose cloud changes once names its better part with that stretch of the dark; more than once, Variable.
+    const clearing = { zone: 'UTC', cloud: { kind: 'change', before: 'obscured', after: 'clear', at: '02:00' } as const };
+    expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, ...clearing })).toBe(locale === 'en' ? 'Dark, clear 02:00 → 07:05' : 'Oscuro y despejado 02:00 → 07:05');
+    const closing = { zone: 'UTC', cloud: { kind: 'change', before: 'clear', after: 'obscured', at: '01:00' } as const };
+    expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, ...closing })).toBe(locale === 'en' ? 'Dark, clear 20:25 → 01:00' : 'Oscuro y despejado 20:25 → 01:00');
+    expect(starsHeadLine(t, locale, { now: dark.from + H, bands, sunUp: false, zone: 'UTC', cloud: { kind: 'variable' } })).toBe(locale === 'en' ? 'Dark 20:25 → 07:05 · Variable' : 'Oscuro 20:25 → 07:05 · Variable');
     // Before the bands are known: the cloud word alone, and with no zone (no forecast) nothing.
     expect(starsHeadLine(t, locale, { now: noon, bands: [], sunUp: false, ...zoned })).toBe(t.weather.state.clear);
-    expect(starsHeadLine(t, locale, { now: noon, bands: [], sunUp: false, zone: null, cloud: 'unknown' })).toBe('');
+    expect(starsHeadLine(t, locale, { now: noon, bands: [], sunUp: false, zone: null, cloud: { kind: 'steady', state: 'unknown' } })).toBe('');
   });
 
   it.each(['en', 'es'] as const)('holds the sheet’s rows in FR-CLEAN-4’s order in %s — the view row, the facing row, the layer rows, In this field open — the readout moving into the facing row and its tap opening the picker', async (locale) => {

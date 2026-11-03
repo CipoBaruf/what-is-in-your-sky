@@ -73,7 +73,12 @@ function cases(locale: Locale): [string, DoorInput][] {
     ['a long star', at({ sky: { ...DOOR_SKY, brightest: { name: 'Rigil Kentaurus Alpha Centauri', dir: 'WNW' } } })],
     ['a planet', at({ sky: { ...DOOR_SKY, brightest: { name: locale === 'es' ? 'Júpiter' : 'Jupiter', dir: 'SSW' } } })],
   ];
-  for (const cloud of CLOUDS) out.push([`the cloud word ${cloud}`, at({ cloud })], [`no dark band, ${cloud}`, at({ cloud, dark: null })]);
+  for (const state of CLOUDS) out.push([`the cloud word ${state}`, at({ cloud: { kind: 'steady', state } })], [`no dark band, ${state}`, at({ cloud: { kind: 'steady', state }, dark: null })]);
+  // D-1028: a night whose cloud changes — the better part with its stretch of the dark, either way round — and Variable.
+  const MOVES = ['clear', 'partly', 'obscured'] as const;
+  for (const before of MOVES)
+    for (const after of MOVES.filter((state) => state !== before)) out.push([`the cloud ${before} then ${after}`, at({ cloud: { kind: 'change', before, after, at: '23:00' } })]);
+  out.push(['a variable night', at({ cloud: { kind: 'variable' } })], ['no dark band, a variable night', at({ cloud: { kind: 'variable' }, dark: null })]);
   for (const reason of REASONS) {
     const pass: Pass = { ...doorPass('up', rise, LONG), endReason: reason };
     out.push([`up now, ending by ${reason}`, at({ passes: [pass], now: rise + 3 * 60_000 })]);

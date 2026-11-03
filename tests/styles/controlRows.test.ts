@@ -35,7 +35,7 @@ import { LOCALES } from '../../src/i18n/locale';
 import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
-import type { Locale, Observer } from '../../src/model';
+import type { Locale, Observer, TonightCloud } from '../../src/model';
 import { appStore } from '../../src/state';
 import { Header } from '../../src/ui/components/common/Header';
 import { ElementsLine } from '../../src/ui/components/elements/ElementsLine';
@@ -452,9 +452,20 @@ function longestPassHead(t: Messages): string {
   return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
 }
 
+/**
+ * D-1028: every form tonight's cloud takes — each state all night, `variable`, and a change between every pair of the
+ * three states at a two-digit hour (with no zone there is no forecast, so a change never carries a UTC clock, D-859).
+ */
+const STATES = ['clear', 'partly', 'obscured'] as const;
+const TONIGHT_CLOUDS: TonightCloud[] = [
+  ...(['clear', 'partly', 'obscured', 'unknown'] as const).map((state): TonightCloud => ({ kind: 'steady', state })),
+  { kind: 'variable' },
+  ...STATES.flatMap((before) => STATES.filter((after) => after !== before).map((after): TonightCloud => ({ kind: 'change', before, after, at: '23:00' }))),
+];
+
 /** R163: the longest of the head line's forms (`starsHeadLine`'s three, over every cloud word), in the catalog's language. */
 function longestStarsLine(t: Messages): string {
-  const clouds = ['clear', 'partly', 'obscured', 'unknown'] as const;
+  const clouds = TONIGHT_CLOUDS;
   const forms = [...clouds.map((cloud) => t.doors.stars.dark({ from: '20:25', to: '07:05', cloud })), ...clouds.map((cloud) => t.doors.stars.noDark(cloud)), t.doors.stars.from('20:25')];
   return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
 }
@@ -652,7 +663,10 @@ describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 
     ['Dark from', () => row(t.home.whenStep.darkFrom, clock)],
     ['Until', () => row(t.home.whenStep.until, clock)],
     ['Passes in it', () => row(t.home.whenStep.passesIn, t.home.whenStep.passesValue({ tonight: 99, total: 99, hours: 72 }))],
-    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])))],
+    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])), row(t.home.whenStep.clouds, t.weather.tonight({ kind: 'variable' })))],
+    // D-1028: a night whose cloud changes is two rows, `Until 23:00` and `From 23:00`, each with any state's word.
+    ['Until 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsUntil('23:00'), t.weather.state[cloud])))],
+    ['From 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsFrom('23:00'), t.weather.state[cloud])))],
     ['Moon', () => Math.max(...phases.map((phase) => row(t.home.whenStep.moon, t.home.whenStep.moonValue({ phase, illumination: '100' }))))],
     ['[ Choose what to see ]', () => control(t.home.whenStep.next)],
     // R97 (FR-FAINT-2): the faint control, in its longer state.
@@ -662,13 +676,13 @@ describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 
   });
 
   it('the foot line, piece by piece at --small, with [ edit ] on its last line', () => {
-    for (const cloud of clouds) {
+    for (const cloud of TONIGHT_CLOUDS) {
       const pieces = t.home.whatStep.foot({ place: '−38.93, −67.99', dark: { from: '20:14', to: clock }, cloud });
       const last = pieces[pieces.length - 1] ?? '';
       for (const piece of pieces.slice(0, -1)) expect(`${piece} ·`.length, piece).toBeLessThanOrEqual(SMALL_BUDGET);
       expect(last.length + 1 + control(t.home.whatStep.edit), last).toBeLessThanOrEqual(SMALL_BUDGET);
     }
-    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: 'unknown' })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
+    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: { kind: 'steady', state: 'unknown' } })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
   });
 });
 
