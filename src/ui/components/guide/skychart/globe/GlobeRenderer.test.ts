@@ -321,6 +321,41 @@ describe('the names (FR-GLOBE-11, D-1041)', () => {
     expect(r.targetAt(1, 1)).toBeNull();
   });
 
+  it('draws the named figure’s lines and name in the emphasis, names off too, and clears both (V212-13, D-1056)', () => {
+    const { r } = mount({ layers: { stars: true, figures: true, planets: true, names: false } });
+    const emphasis = q(r, '[data-figure-named]');
+    expect(emphasis.getAttribute('d')).toBe('');
+    expect(emphasis.classList.contains(styles.figureNamed ?? 'figureNamed')).toBe(true);
+    const segment = r.lines.findIndex((line) => line !== null);
+    const line = r.lines[segment];
+    if (!line) throw new Error('no drawn figure line');
+    const target = r.targetAt((line.x1 + line.x2) / 2, (line.y1 + line.y2) / 2);
+    if (target?.kind !== 'figure') throw new Error('the line’s middle names its figure');
+    r.set({ named: target });
+    r.draw();
+    const drawn = segments(emphasis.getAttribute('d') ?? '');
+    const all = segments(q(r, '[data-figures="above"]').getAttribute('d') ?? '') + segments(q(r, '[data-figures="below"]').getAttribute('d') ?? '');
+    expect(drawn).toBeGreaterThan(0);
+    expect(drawn).toBeLessThan(all);
+    const label = q(r, '[data-label]');
+    expect(label.getAttribute('visibility')).toBe('visible');
+    expect(label.hasAttribute('data-figure')).toBe(true);
+    expect(label.textContent).toBe(r.labelFor(target));
+    // With the names on, the figure's own name is the named label and is not drawn twice.
+    r.set({ layers: { stars: true, figures: true, planets: true, names: true } });
+    r.draw();
+    expect(q(r, `[data-figure-name="${String(target.index)}"]`).getAttribute('visibility')).toBe('hidden');
+    // A star named instead: no figure emphasis, the label in its own tone.
+    r.set({ named: { kind: 'star', index: catalog.name.indexOf('Canopus') } });
+    r.draw();
+    expect(emphasis.getAttribute('d')).toBe('');
+    expect(label.hasAttribute('data-figure')).toBe(false);
+    r.set({ named: null });
+    r.draw();
+    expect(emphasis.getAttribute('d')).toBe('');
+    expect(label.getAttribute('visibility')).toBe('hidden');
+  });
+
   it('reads the named object out as FR-STAR-7 does, with "below" on the ground side', () => {
     const { r } = mount();
     const sky = globeSky(BUENOS_AIRES, T);

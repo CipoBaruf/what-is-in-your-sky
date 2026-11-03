@@ -581,7 +581,17 @@ async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loc
   await page.evaluate(() => {
     location.hash = '#stars';
   });
-  await starsDrawn(page, page.getByTestId('stars-sky').locator('[data-drawing="window"]'), SHOWN_WINDOW_STAR, 500);
+  // V212-11 (D-1054): a desk opens on the globe. The window's screens press `Window`, and the globe's press `Globe`
+  // after it (`globeShown`), the route R171 shot them by.
+  const sky = page.getByTestId('stars-sky');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return sky.count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  if ((await sky.getAttribute('data-view')) === 'globe') await page.getByTestId('stars-view-row').getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  await starsDrawn(page, sky.locator('[data-drawing="window"]'), SHOWN_WINDOW_STAR, 500);
   await pinnedAt(page, time);
   // The opening facing is the pole side, which over Bariloche is south, 35° up (FR-STAR-3).
   await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-az', '180');

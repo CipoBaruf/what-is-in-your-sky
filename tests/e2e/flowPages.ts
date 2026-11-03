@@ -6,6 +6,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { onWindow } from './globeHelpers';
 
 export const PHONE = { width: 390, height: 844 };
 /** R165 (FR-CLEAN-8, D-1000): the phone turned, where the stars page and the pass detail are the full form too. */
@@ -83,6 +84,7 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
     case 'stars': {
       await seedReader(page, locale);
       await page.goto('/#stars');
+      await onWindow(page);
       const layout = page.getByTestId('stars-layout');
       await expect(layout).toBeVisible();
       await expect(layout.locator('[data-drawing="window"]')).toBeAttached();

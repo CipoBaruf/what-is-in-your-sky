@@ -26,6 +26,7 @@ import { FULL_OVERLAY_MAX_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { pinch } from './windowZoom';
+import { onWindow } from './globeHelpers';
 
 type Locale = 'en' | 'es';
 const LOCALES: readonly Locale[] = ['en', 'es'];
@@ -81,6 +82,7 @@ async function seedReader(page: Page, locale: Locale): Promise<void> {
 async function openStars(page: Page, locale: Locale): Promise<Locator> {
   await seedReader(page, locale);
   await page.goto('/#stars');
+  await onWindow(page);
   const layout = page.getByTestId('stars-layout');
   await expect(layout).toBeVisible();
   await expect(layout).toHaveAttribute('data-shape', 'full');

@@ -325,6 +325,8 @@ export class GlobeRenderer {
   private readonly milkyPath: SVGPathElement;
   private readonly figuresAbove: SVGPathElement;
   private readonly figuresBelow: SVGPathElement;
+  /** FR-GLOBE-11 as amended (V212-13, D-1056): the named figure's lines again, over the rest, in the emphasis. */
+  private readonly figureNamed: SVGPathElement;
   private readonly horizon: SVGPathElement;
   private readonly glyphs: GlyphStar[] = [];
   private readonly starNames = new Map<number, SVGTextElement>();
@@ -372,6 +374,7 @@ export class GlobeRenderer {
     this.milkyPath = el('path', { class: cls('milky'), 'data-milky-way': '' }, lines);
     this.figuresBelow = el('path', { class: `${cls('figures')} ${DIM}`, 'data-figures': 'below', opacity: GLOBE_DIM_OPACITY }, lines);
     this.figuresAbove = el('path', { class: cls('figures'), 'data-figures': 'above' }, lines);
+    this.figureNamed = el('path', { class: cls('figureNamed'), 'data-figure-named': '' }, lines);
 
     // FR-GLOBE-4: the 40 dot paths, 4 tones × 5 sizes × 2 sides; a bucket's stroke is twice its radius.
     const dots = g(cls('dots'), { 'data-dots': '' });
@@ -633,6 +636,8 @@ export class GlobeRenderer {
     // one shorter than the two gaps is not drawn.
     let dAbove = '';
     let dBelow = '';
+    let dNamed = '';
+    const namedFigure = s.named?.kind === 'figure' ? s.named.index : -1;
     const drawnSegments: LabelSegment[] = [];
     this.segments.forEach((seg, k) => {
       const x1 = xs[seg.a] ?? 0;
@@ -649,12 +654,14 @@ export class GlobeRenderer {
       this.lines[k] = line;
       drawnSegments.push(line);
       const d = `M${fmt(line.x1)} ${fmt(line.y1)}L${fmt(line.x2)} ${fmt(line.y2)}`;
+      if (seg.figure === namedFigure) dNamed += d;
       const mid = add(this.starDir(seg.a), this.starDir(seg.b));
       if (segmentBelow(mid, sky.zenith)) dBelow += d;
       else dAbove += d;
     });
     this.figuresAbove.setAttribute('d', dAbove);
     this.figuresBelow.setAttribute('d', dBelow);
+    this.figureNamed.setAttribute('d', dNamed);
 
     // The dots (FR-GLOBE-4): one path per bucket and side; the deep members past `bright` only while `faint` is on.
     for (const bucket of this.buckets) {
@@ -788,7 +795,8 @@ export class GlobeRenderer {
       if (s.layers.figures) {
         for (const f of this.figureNodes) {
           const figure = this.catalog.figures[f.index];
-          if (!figure) continue;
+          // The named figure's name is the named label, in the emphasis; it is not drawn twice.
+          if (!figure || f.index === namedFigure) continue;
           let count = 0;
           const ends = new Set<number>();
           for (let k = 0; k < f.count; k += 1) {
@@ -814,6 +822,7 @@ export class GlobeRenderer {
       if (label.kind === 'named') {
         node = this.label;
         if (node.textContent !== label.text) node.textContent = label.text;
+        node.toggleAttribute('data-figure', target?.kind === 'figure');
         below = target !== null && this.isBelow(target, sky);
       } else if (label.kind === 'fixed') {
         node = this.bodies.find((b) => b.slot === label.key)?.name;

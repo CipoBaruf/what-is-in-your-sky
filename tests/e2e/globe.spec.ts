@@ -5,7 +5,7 @@
  * order through the rail, the hash unchanged throughout; and at 390 × 844 the compact page, which never asks for
  * `SkyGlobe-*.js`.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { globeAt, GLOBE_WORD, LONDON, openStarsPage, showGlobe } from './globeHelpers';
 
 const HOUR_MS = 3_600_000;
@@ -20,6 +20,19 @@ async function zenith(page: Page): Promise<string> {
   return `${await read('[data-zenith]')} ${await read('[data-pole="north"]')}`;
 }
 
+/** A node's centre on the page. */
+async function centre(node: Locator): Promise<{ x: number; y: number }> {
+  const rect = await node.boundingBox();
+  if (!rect) throw new Error('the node has no box');
+  return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
+/** The globe's box and its disc's radius: what a hover must leave as it was (V212-13, D-1055). */
+async function globeSize(page: Page): Promise<string> {
+  const rect = await page.getByTestId('globe-box').boundingBox();
+  return JSON.stringify([rect, await page.locator('[data-globe] [data-disc]').getAttribute('r')]);
+}
+
 const DESKS = [
   { width: 1280, height: 800 },
   { width: 1920, height: 1080 },
@@ -29,11 +42,16 @@ for (const viewport of DESKS) {
   test.describe(`the globe at ${String(viewport.width)} × ${String(viewport.height)}`, () => {
     test.use({ viewport });
 
-    test('reads [ Window ] Globe, draws the globe in the box, and keeps the choice across the breakpoint (FR-GLOBE-1)', async ({ page }) => {
+    test('opens on the globe, reads [ Window ] Globe, and keeps the choice across the breakpoint (FR-GLOBE-1 as amended, V212-11)', async ({ page }) => {
       await openStarsPage(page);
       const hash = await page.evaluate(() => window.location.hash);
       const row = page.getByTestId('stars-view-row');
       await expect(row.getByRole('button')).toHaveText(['Window', 'Globe']);
+      // A desk opens on the globe, unsaved; the window is one press away.
+      await expect(row.getByRole('button', { name: 'Globe' })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('globe-box')).toBeVisible();
+      await row.getByRole('button', { name: 'Window' }).click();
+      await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
       await showGlobe(page);
       await expect(page.locator('[data-drawing]')).toHaveCount(0);
       // The globe's box is the window's: it stands where the window stood, beside the rail.
@@ -81,6 +99,72 @@ for (const viewport of DESKS) {
       await expect.poll(() => zenith(page)).not.toBe(opening);
       await page.keyboard.press('Home');
       await expect.poll(() => zenith(page)).toBe(opening);
+    });
+
+    test('a hover on a star or a planet names it and never changes the globe’s size (FR-GLOBE-11 as amended, V212-13, D-1055)', async ({ page }) => {
+      await openStarsPage(page);
+      await showGlobe(page);
+      await page.mouse.move(2, 2);
+      await expect(page.getByTestId('globe-named')).toHaveCount(0);
+      const before = await globeSize(page);
+      const star = page.locator('[data-globe] [data-stars] text[visibility="visible"]').first();
+      const starAt = await centre(star);
+      await page.mouse.move(starAt.x, starAt.y);
+      await expect(page.getByTestId('globe-named')).toHaveText(/ · mag /);
+      expect(await globeSize(page)).toBe(before);
+      await page.mouse.move(2, 2);
+      await expect(page.getByTestId('globe-named')).toHaveCount(0);
+      const planet = page.locator('[data-globe] [data-planet][visibility="visible"]').first();
+      await expect(planet).toBeAttached();
+      const planetAt = await centre(planet);
+      await page.mouse.move(planetAt.x, planetAt.y);
+      await expect(page.getByTestId('globe-named')).toHaveText(/ · mag /);
+      expect(await globeSize(page)).toBe(before);
+    });
+
+    test('a hovered figure is drawn in the emphasis, its name shown with the names off, and leaving restores it (FR-GLOBE-11 as amended, V212-13)', async ({ page }) => {
+      await openStarsPage(page);
+      await showGlobe(page);
+      await page.getByTestId('stars-layers').getByRole('button', { name: 'names' }).click();
+      const emphasis = page.locator('[data-globe] [data-figure-named]');
+      await expect(emphasis).toHaveAttribute('d', '');
+      const before = await globeSize(page);
+      // The middles of the figures' drawn lines, in the box's own pixels; the first that names a figure is hovered.
+      const middles = await page.locator('[data-globe] [data-figures="above"]').evaluate((path) =>
+        [...(path.getAttribute('d') ?? '').matchAll(/M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({ x: (Number(m[1]) + Number(m[3])) / 2, y: (Number(m[2]) + Number(m[4])) / 2, length: Math.hypot(Number(m[3]) - Number(m[1]), Number(m[4]) - Number(m[2])) })).sort((a, b) => b.length - a.length),
+      );
+      const rect = await page.getByTestId('globe-box').boundingBox();
+      if (!rect) throw new Error('the globe has no box');
+      let found = false;
+      for (const middle of middles.slice(0, 40)) {
+        await page.mouse.move(rect.x + middle.x, rect.y + middle.y);
+        if (((await emphasis.getAttribute('d')) ?? '') !== '') {
+          found = true;
+          break;
+        }
+      }
+      expect(found).toBe(true);
+      await expect(page.locator('[data-globe] [data-label][data-figure]')).toHaveAttribute('visibility', 'visible');
+      await expect(page.getByTestId('globe-named')).not.toHaveText(/ · mag /);
+      expect(await globeSize(page)).toBe(before);
+      await page.mouse.move(2, 2);
+      await expect(emphasis).toHaveAttribute('d', '');
+      await expect(page.locator('[data-globe] [data-label]')).toHaveAttribute('visibility', 'hidden');
+    });
+
+    test('[ + ] and [ − ] zoom one step a press and leave the box as it was (FR-GLOBE-6 as amended, V212-12)', async ({ page }) => {
+      await openStarsPage(page);
+      await showGlobe(page);
+      const box = await page.getByTestId('globe-box').boundingBox();
+      const disc = page.locator('[data-globe] [data-disc]');
+      const r = Number(await disc.getAttribute('r'));
+      await page.getByRole('button', { name: 'Zoom in' }).click();
+      await expect.poll(async () => Number(await disc.getAttribute('r'))).toBeCloseTo(r * 1.25, 0);
+      await page.getByRole('button', { name: 'Zoom out' }).click();
+      await expect.poll(async () => Number(await disc.getAttribute('r'))).toBeCloseTo(r, 0);
+      for (let i = 0; i < 4; i += 1) await page.getByRole('button', { name: 'Zoom out' }).click();
+      await expect(page.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
+      expect(await page.getByTestId('globe-box').boundingBox()).toEqual(box);
     });
 
     test('moves only the globe’s clock by the steps; the hash and the prefs stay (FR-GLOBE-7)', async ({ page }) => {

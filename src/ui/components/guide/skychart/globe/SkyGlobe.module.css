@@ -182,6 +182,18 @@
   fill: var(--chart-figure-name);
 }
 
+/* FR-GLOBE-11 as amended (V212-13, D-1056): the named figure — hovered, tapped or clicked — its lines again in the
+   accent and a stroke heavier, its name the named label in the accent. */
+.figureNamed {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.starLabel[data-figure] {
+  fill: var(--accent);
+}
+
 /* FR-GLOBE-3: what is under the horizon keeps its node; the renderer puts this class and `GLOBE_DIM_OPACITY` on it. */
 .dim {
   pointer-events: none;
@@ -195,10 +207,24 @@
   pointer-events: none;
 }
 
-/* FR-GLOBE-11: the readout line under the box — the named object's words, or nothing. */
+/* FR-GLOBE-11: the readout line under the box — the named object's words, or nothing — and FR-GLOBE-6's zoom
+   buttons beside it. D-1055: the row's height is the buttons' whether a name is shown or not, and the line never wraps,
+   so naming an object never takes room from the box above it. */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .readout {
+  flex: 1;
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--fg);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .named {

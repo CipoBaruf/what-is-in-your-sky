@@ -34,6 +34,9 @@ export const chart: typeof EnChart = {
     readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
     liveLabel: 'Todo el cielo en el instante mostrado',
     globe: {
+      /** FR-GLOBE-6 as amended (V212-12): the zoom buttons' accessible names; the labels are `+` and `−`. */
+      zoomIn: 'Acercar',
+      zoomOut: 'Alejar',
       label: 'El globo celeste: arrastrarlo, o usar las flechas del teclado',
       zenith: 'cenit',
       poles: { north: 'PCN', south: 'PCS' },
