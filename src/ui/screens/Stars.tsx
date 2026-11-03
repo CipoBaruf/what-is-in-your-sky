@@ -554,7 +554,7 @@ function StarsSky({ observer }: { observer: Observer }) {
     <div className={globeShown ? `${styles.sky} ${styles.globeSky}` : styles.sky} ref={skyRef} role="group" aria-label={globeShown ? globeLabel : p.drawing} data-testid="stars-sky" data-view={globeShown ? 'globe' : chartView} onPointerDownCapture={markSkyHintSeen}>
       {globeShown ? (
         <Suspense fallback={null}>
-          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} />
+          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} />
         </Suspense>
       ) : (
         <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={STARS_VIEWS} view={chartView} onViewChange={onChartView} />

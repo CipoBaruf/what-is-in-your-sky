@@ -58,7 +58,7 @@ import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSh
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
-import { BARILOCHE, FIXTURE_DATE, NEUQUEN } from './observers';
+import { BARILOCHE, FIXTURE_DATE, LONDON, NEUQUEN } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
@@ -660,7 +660,8 @@ const TURN_STARS = { en: 'with the stars', es: 'con las estrellas' } as const;
 /**
  * R171 (FR-GLOBE-1, FR-GLOBE-18; D-1042): `Globe` pressed in the wide stars page's view row. The globe and its rail
  * groups are lazy chunks whose Suspense reveal the paused clock holds (R32), so the wait ticks the clock until the
- * zenith's mark is in the globe's SVG and the rail's groups are drawn, then a second for the frame, and the instant is
+ * globe's SVG has had its first frame — `GlobeRenderer` builds every node hidden at mount and writes the `viewBox` only
+ * in a frame — and the rail's groups are drawn, then a second more, and the instant is
  * put back on `CLOCK` (F-48) — the globe's own clock opens at now and ticks with real time (FR-GLOBE-7), so the pin is
  * its instant too. The focus ring leaves the row's button.
  */
@@ -669,7 +670,7 @@ async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      return (await page.locator('[data-globe] [data-zenith]').count()) > 0 && (await page.getByTestId('globe-groups').count()) > 0;
+      return (await page.locator('svg[data-globe][viewBox]').count()) > 0 && (await page.getByTestId('globe-groups').count()) > 0;
     }, { timeout: 30_000 })
     .toBe(true);
   await page.clock.runFor(1000);
@@ -1055,12 +1056,13 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /** R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. */
+  /**
+   * R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. R171 (FR-GLOBE-18):
+   * at 390 alone — the wide page's whole sky is the globe — where the view row is the sheet's (R165, FR-CLEAN-4).
+   */
   async 'stars-whole'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    // R165 (FR-CLEAN-4): on a phone the view row is the sheet's.
-    if (isTouch('stars-whole', width)) await inSheet(page, () => wholeSky(page, locale));
-    else await wholeSky(page, locale);
+    await inSheet(page, () => wholeSky(page, locale));
     await pinnedAt(page, CLOCK);
     await page.mouse.move(0, 0);
   },
@@ -1166,22 +1168,26 @@ const REACH: Record<string, Reach> = {
 
   /**
    * R171 (FR-GLOBE-10, FR-GLOBE-18): `stars-globe`, then `[ ] faint` pressed. The deep catalogue is `deepChunk.ts`'s
-   * lazy fetch, so the wait ticks the clock until the count reads the whole drawn set, then pins the instant again.
+   * lazy fetch, so the wait ticks the clock until the count's total ("… of N stars") is past the bright catalogue's —
+   * the total moves only when the deep chunk is in (the visible number moves with the instant too) — then gives the
+   * renderer, handed the same chunk, a second for its frame and pins the instant again.
    */
   async 'stars-globe-faint'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
     await globeShown(page, locale);
     const count = page.getByTestId('globe-count');
-    const before = await count.textContent();
+    const total = async (): Promise<number> => Number(/ (?:of|de) (\d+) /.exec((await count.textContent()) ?? '')?.[1] ?? NaN);
+    const bright = await total();
+    expect(bright).toBeGreaterThan(0);
     const faint = page.locator('[data-layer="faint"]');
     await faint.click();
     await expect(faint).toHaveAttribute('aria-pressed', 'true');
     await expect
       .poll(async () => {
         await page.clock.runFor(200);
-        return count.textContent();
+        return total();
       }, { timeout: 30_000 })
-      .not.toBe(before);
+      .toBeGreaterThan(bright);
     await page.clock.runFor(1000);
     await pinnedAt(page, CLOCK);
     await blurFocus(page);
@@ -1195,7 +1201,9 @@ const REACH: Record<string, Reach> = {
   async 'stars-globe-place'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale, CLOCK, { favourites: [LONDON_FAVOURITE] });
     await globeShown(page, locale);
-    const london = page.getByTestId('globe-place').getByRole('button', { name: 'London' });
+    // The whole label after the option's box (`[ ]`, then `[x]` once pressed), so no other saved London matches.
+    const label = LONDON.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const london = page.getByTestId('globe-place').getByRole('button', { name: new RegExp(`^\\[.\\] ${label}$`) });
     await london.click();
     await expect(london).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /London/);
@@ -1213,8 +1221,9 @@ const REACH: Record<string, Reach> = {
 
   /**
    * R171 (FR-GLOBE-11, FR-GLOBE-12, FR-GLOBE-18): `stars-globe` with the first row of `Up from <place>` pressed. The
-   * name holds for `STAR_LABEL_HOLD_S` and a pin is a ten-second tick, so the instant is pinned first and the row
-   * pressed after it; `settled`'s two frames are well inside the hold.
+   * name holds for `STAR_LABEL_HOLD_S` and a pin is a ten-second tick, so the instant is pinned first (`globeShown`)
+   * and the row pressed after it; the one frame here and the shot's settle are well inside the hold. The list's name
+   * is the globe's too (FR-GLOBE-12): the label beside Sirius with its magnitude, and the readout line under the box.
    */
   async 'stars-globe-named'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
@@ -1223,9 +1232,10 @@ const REACH: Record<string, Reach> = {
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true');
     await page.clock.runFor(FRAME_MS);
+    await expect(page.getByTestId('globe-named')).toBeVisible();
+    await expect(page.locator('svg[data-globe] [data-label]')).toHaveAttribute('visibility', 'visible');
     await blurFocus(page);
     await page.mouse.move(0, 0);
-    await expect(first).toHaveAttribute('aria-pressed', 'true');
   },
 
 };

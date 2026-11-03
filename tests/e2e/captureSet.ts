@@ -380,7 +380,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'stars-globe-named',
     widths: [1280],
-    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon (Sirius) named, its row pressed and the rail scrolled to the list, shot inside `STAR_LABEL_HOLD_S`. FR-GLOBE-18 names 1280. The globe draws no mark for the list's naming (R171's finding: `SkyGlobe` takes no `named` prop, so FR-GLOBE-12's \"a row's focus or activation naming its mark on the globe\" is not met); Sirius's label on the globe is the `names` layer's.",
+    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon (Sirius) named, its row pressed and the rail scrolled to the list, shot inside `STAR_LABEL_HOLD_S`, and the row's naming is the globe's too (FR-GLOBE-12, FR-LEG-4's rule): the label beside Sirius's mark with its magnitude, and the readout line under the box. FR-GLOBE-18 names 1280.",
   },
   {
     name: 'stars-whole-following',

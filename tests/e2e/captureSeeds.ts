@@ -50,10 +50,10 @@ export const TICK_MS = 10_000;
  * R171 (FR-GLOBE-9, FR-GLOBE-18; D-1042): the saved place `stars-globe-place` moves the globe to — London, in a zone of
  * its own and on the other side of the equator from Bariloche, so the globe's south is the ground side there. The
  * observer is the showcase's (`observers.ts`, the geocoder's first answer for `london`, as P9's dome flows use it); the
- * favourite is saved a day before the set's night and used last before Bariloche, so the rail lists it under the
- * app's place.
+ * favourite is saved a day before the set's night and not used since, as `addFavourite` leaves it (`lastUsedAt` is
+ * `addedAt`); the rail lists it under the app's place, which `GlobePlaces` puts first whatever the dates.
  */
-export const LONDON_FAVOURITE = { cellKey: favouriteCellKey(LONDON), observer: LONDON, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - 2 * DAY_MS };
+export const LONDON_FAVOURITE = { cellKey: favouriteCellKey(LONDON), observer: LONDON, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - DAY_MS };
 
 export const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 

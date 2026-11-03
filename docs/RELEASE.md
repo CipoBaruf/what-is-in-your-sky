@@ -2723,7 +2723,9 @@ opens, turning with you (8); `stars-globe-stars` at 1280, turning with the stars
 `stars-globe-faint` at 1920, the faint stars on (4); `stars-globe-place` at 1280, the seeds' saved
 London pressed — London's horizon, the south the ground side, the clock in London's zone at the
 same instant (4); and `stars-globe-named` at 1280, the first row of `Up from Bariloche` (Sirius)
-pressed (4). `captureSeeds.ts` carries the London favourite (`LONDON_FAVOURITE`, the showcase's
+pressed, which names Sirius on the globe — the label beside its mark with its magnitude and the
+readout line under the box (4; FR-GLOBE-12, fixed in R171's review: `SkyGlobe` takes the page's
+named row, and the four files were re-shot on the same Mac). `captureSeeds.ts` carries the London favourite (`LONDON_FAVOURITE`, the showcase's
 geocoded London).
 
 **How it was measured.** R171 ran headless, with no `gh`, so it could not dispatch
@@ -2776,30 +2778,38 @@ whether that run's artefact replaces the set.
 
 `npm run bundle:budget` on the branch, gzip level 9, beside `8413d978` (2.11.0) built on the
 same machine, both plain. D-178 re-sets every row and **none moves**: R170's `globe` row leaves
-`PHASE_BUDGETS` for the table at the GLOBE_BUDGET_KB it had (13.4 × 1.1 = 14.7, so 15), every
+`PHASE_BUDGETS` for the table at the GLOBE_BUDGET_KB it had (13.5 × 1.1 = 14.9, so 15), every
 other row's measure × 1.1, rounded up to the next 5 KB, is the budget it already has, and
 `main`'s (205) is past its 185 ceiling. The budget column is `scripts/bundle-budget.ts`'s rows;
 `tests/docs/accuracy.test.ts` checks it against them:
 
 | Chunk | gzip KB | Budget KB | `8413d978` | Change |
 |---|---|---|---|---|
-| main | 182.8 | 185 | 182.0 | +759 bytes |
-| chart (`SkyDome`) | 97.1 | 110 | 97.1 | −2 bytes |
+| main | 182.8 | 185 | 182.0 | +762 bytes |
+| chart (`SkyDome`) | 97.1 | 110 | 97.1 | +6 bytes |
 | stars-deep (`deep`) | 41.8 | 50 | 41.8 | 0 |
 | worker | 36.1 | 40 | 36.1 | 0 |
-| stars | 31.4 | 35 | 29.9 | +1,529 bytes |
-| astronomy (`astronomy` + `skyBodies`) | 24.1 | 30 | 24.1 | −3 bytes |
-| live | 13.7 | 20 | 14.7 | −1,075 bytes |
-| window (`SkyWindow`) | 13.0 | 15 | 13.2 | −137 bytes |
-| globe (`SkyGlobe` + `GlobeRail` + `scene`) | 13.4 | 15 | — | +13,724 bytes |
-| service worker | 5.0 | 10 | 5.0 | +152 bytes (the worker script) |
-| settings | 1.2 | 10 | 1.2 | −5 bytes |
+| stars | 31.4 | 35 | 29.9 | +1,536 bytes |
+| astronomy (`astronomy` + `skyBodies`) | 24.1 | 30 | 24.1 | −2 bytes |
+| live | 13.7 | 20 | 14.7 | −1,074 bytes |
+| window (`SkyWindow`) | 13.0 | 15 | 13.2 | −135 bytes |
+| globe (`SkyGlobe` + `GlobeRail` + `scene`) | 13.5 | 15 | — | +13,807 bytes |
+| service worker | 5.0 | 10 | 5.0 | +157 bytes (the worker script) |
+| settings | 1.2 | 10 | 1.2 | −3 bytes |
 
 The service worker row is per file, so its measure is the larger, `workbox-*.js`, unchanged;
-the worker script (1.2 → 1.4 KB) grows by the globe's chunks in the precache list (FR-OFF-1). **`main`** is +759 bytes (186,383 → 187,142), the globe's strings in both catalogs
-and the lazy import, inside GLOBE_MAIN_KB (1.5 KB). **`stars`** is +1,529 bytes
-(30,611 → 32,140), the view row's third value and the rail's wiring, inside GLOBE_STARS_KB
-(1,536 bytes) by 7. **`live` and `window` move down**, which FR-GLOBE-15's "no other row moves"
+the worker script (1.2 → 1.4 KB) grows by the globe's chunks in the precache list (FR-OFF-1). **`main`** is +762 bytes (186,383 → 187,145), the globe's strings in both catalogs
+and the lazy import, inside GLOBE_MAIN_KB (1.5 KB). **`stars`** is +1,536 bytes
+(30,611 → 32,147), the view row's third value, the rail's wiring and the named row handed to the
+globe (FR-GLOBE-12, +7 in the review), at GLOBE_STARS_KB (1,536 bytes) exactly: the next byte
+the page adds to `stars` before 2.12.0 is past it. The rows that hold no change move by a few
+bytes with the chunk names they import (`chart` +6 here against −2 before the review).
+
+**`main`'s 2.11.0 measure is 186,383 here, 186,394 in §24.2 and D-1050.** Both are builds of
+the same `src/` (it does not differ between R165's branch and `8413d978`), made in other
+checkouts on other days; the 11 bytes are the build's, not the code's. FR-GLOBE-15's delta is
+read beside a base built in the same run on the same machine, so this section's +762 is the one
+of record; D-1050's +749 (R170's branch against §24.2's figure) agrees within those 11 bytes. **`live` and `window` move down**, which FR-GLOBE-15's "no other row moves"
 did not foresee: what the globe shares with them — `shownTime`, `useWallThrottle`, `skySurface`,
 `starGlyphs.module` and `deepChunk` — became chunks of their own, unbudgeted as every shared lazy
 chunk is, so the bytes left the two rows without leaving the pages.
@@ -2815,11 +2825,6 @@ became `Globe` in R170, and the polar chart is the compact page's still. The cap
 
 - [ ] **The capture set's raster** (§25.1): commit `captures.yml`'s run 1 as the whole set, or
       keep the mixed set R171 committed (2.11.0's Linux files and 36 Mac files).
-- [ ] **`stars-globe-named` and FR-GLOBE-12:** pressing a row of `Up from <place>` presses the
-      row and names nothing on the globe — `SkyGlobe` takes no `named` prop, so "a row's focus or
-      activation naming its mark on the globe" is not met. The capture shows that state (Sirius's
-      label on the globe is the `names` layer's). A follow-up task in `src/`, or the requirement
-      amended.
 - [ ] **`live` and `window` down by the shared chunks** (§25.2): accept the reading of
       FR-GLOBE-15's "no other row moves" as "no row grows".
 - [ ] **F-99** stays open with §25.1's noise files; no new kind.
@@ -2845,7 +2850,7 @@ showed beside it.
 - [ ] **The faint stars:** `[ ] faint` fills the globe with the deep catalogue; the count reads
       the whole drawn set; off on the next visit.
 - [ ] **A star named:** a hover, a tap or a click on a star names it beside its mark and in the
-      readout; a row of the list pressed (§25.4).
+      readout; a row of `Up from <place>` pressed names its star or planet on the globe the same way.
 - [ ] **The phone's stars page unchanged:** `Window` and `Whole sky` in the sheet, the polar
       chart, no globe.
 

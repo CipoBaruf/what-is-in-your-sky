@@ -84,8 +84,9 @@ describe('the v1 capture set', () => {
     // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
     // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
     // R161 (FR-PHONE-16, D-993): and the whole sky's outline while following, at the same one size.
-    // R171 (FR-GLOBE-18, D-1042): and the whole sky itself, whose wide file left for the globe.
-    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following', 'stars-whole']);
+    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following']);
+    // R171 (FR-GLOBE-18, D-1042): the whole sky keeps its 390 alone — its wide file left for the globe.
+    const UPRIGHT_ONLY = new Set(['stars-whole']);
     // R171 (FR-GLOBE-18, D-1042): the globe is a desk's screen — the compact stars page draws the whole sky as the polar
     // chart — at the sizes FR-GLOBE-18 names for each.
     const GLOBE: ReadonlyMap<string, readonly number[]> = new Map([
@@ -118,6 +119,10 @@ describe('the v1 capture set', () => {
         continue;
       }
       if (FOLLOWING.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([390]);
+        continue;
+      }
+      if (UPRIGHT_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([390]);
         continue;
       }
