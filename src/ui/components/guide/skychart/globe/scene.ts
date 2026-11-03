@@ -30,7 +30,7 @@ const RAD = Math.PI / 180;
 type PlanetName = (typeof PLANETS)[number];
 
 /** A body on the globe: its J2000 direction and where it stands in the place's sky. */
-export interface GlobeBody {
+interface GlobeBody {
   dir: Vec3;
   /** Geometric altitude, degrees. */
   altDeg: number;
