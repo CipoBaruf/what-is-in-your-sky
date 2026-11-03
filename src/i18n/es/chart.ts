@@ -33,5 +33,13 @@ export const chart: typeof EnChart = {
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
     liveLabel: 'Todo el cielo en el instante mostrado',
+    globe: {
+      label: 'El globo celeste: arrastrarlo, o usar las flechas del teclado',
+      zenith: 'cenit',
+      poles: { north: 'PCN', south: 'PCS' },
+      sun: 'Sol',
+      moon: 'Luna',
+      namedBelow: (p) => `${p.name} · mag ${p.mag} · ${p.altitude} bajo el horizonte · ${p.point}`,
+    },
   },
 };

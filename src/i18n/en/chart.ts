@@ -62,5 +62,21 @@ export const chart = {
     /** FR-LIVE-1 (R32): the live page's chart has no pass to caption, so the figure is named instead; the status strip carries the facts. */
     liveLabel: 'The whole sky at the shown instant',
     // R152 (FR-GYRO-6, FR-GYRO-9): `screenClose`, the sky screen's `×`, went with the screen; the sheet's `×` is `sheet.close`.
+    /**
+     * R169 (FR-GLOBE-2, FR-GLOBE-3, FR-GLOBE-11, FR-GLOBE-16; D-1042): the words the celestial globe's drawing
+     * carries — the SVG's label, the zenith's and the poles' marks, the Sun's and the Moon's names, and the readout's
+     * second line for an object on the ground side (the sky side's is the stars page's `named`). The rail's words
+     * (the view's name, the groups, the turn's values, the steps, `faint`) are the page's (R170).
+     */
+    globe: {
+      label: 'The celestial globe: drag it, or use the arrow keys',
+      zenith: 'zenith',
+      /** FR-GLOBE-2: the two celestial poles, as abbreviations. */
+      poles: { north: 'NCP', south: 'SCP' },
+      sun: 'Sun',
+      moon: 'Moon',
+      /** FR-GLOBE-11: "Canopus · mag −0.7 · 12° below · S" — the object is under the shown place's horizon by `altitude`. */
+      namedBelow: (p: { name: string; mag: string; altitude: string; point: CompassPoint }) => `${p.name} · mag ${p.mag} · ${p.altitude} below · ${p.point}`,
+    },
   },
 };
