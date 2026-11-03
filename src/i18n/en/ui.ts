@@ -227,6 +227,8 @@ export const ui = {
     summaryChange: 'change',
     /** FR-FIRST-2 (R76): the one line under the primary action's label. */
     useMyLocationNote: 'Fastest. Your browser asks first; nothing is sent anywhere.',
+    /** FR-LOC-1 (c) as amended 2026-11-02 (D-1025): a device location's label once the nearest town is known, `Near Cipolletti, Argentina`. */
+    nearPlace: (place: string) => `Near ${place}`,
   },
 
   /**
@@ -703,7 +705,7 @@ export const ui = {
   footer: {
     celestrak: { before: 'Orbital elements by ', link: 'CelesTrak', after: '.' } satisfies LinkedText,
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
-    geonames: { before: 'Place search by Open-Meteo geocoding, with data from ', link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
+    geonames: { before: "Place search by Open-Meteo geocoding, and the town named for your device's location, with data from ", link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
     credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
     /* R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): the library

@@ -170,6 +170,7 @@ export const ui: typeof EnUi = {
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros.',
     summaryChange: 'cambiar',
     useMyLocationNote: 'Lo más rápido. El navegador pregunta antes; no se envía nada a ningún lado.',
+    nearPlace: (place) => `Cerca de ${place}`,
   },
 
   home: {
@@ -505,7 +506,7 @@ export const ui: typeof EnUi = {
   footer: {
     celestrak: { before: 'Elementos orbitales de ', link: 'CelesTrak', after: '.' },
     openMeteo: { before: 'Datos meteorológicos de ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' },
-    geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
+    geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, y la ciudad que nombra la ubicación del dispositivo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
     privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
     credit: { before: 'Hecho por ', link: 'Ezequiel Baruf', after: '.' },
     chart: { before: 'Carta del cielo: ', link: 'glyphcss', after: '.' },

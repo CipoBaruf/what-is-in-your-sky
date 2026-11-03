@@ -75,6 +75,16 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
     expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Using your device's location\. Saved/);
   });
 
+  it('the device, once the nearest town is known: "Near" the town and the coordinates (D-1025)', () => {
+    set({ ...coords, source: 'device', accuracyM: 12_000 });
+    const { rerender } = render(<Host />);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^−38\.93, −67\.99$/);
+    set({ ...coords, source: 'device', accuracyM: 12_000, label: 'Near Cipolletti, Argentina' });
+    rerender(<Host />);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(/^Near Cipolletti \(−38\.93, −67\.99\)$/);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Using your device's location \(±12000 m\)\./);
+  });
+
   it('in Spanish, each sentence', () => {
     set(cipolletti);
     render(

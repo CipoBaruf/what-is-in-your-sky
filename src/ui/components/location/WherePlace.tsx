@@ -42,9 +42,14 @@ export interface WherePlaceProps {
   folded?: boolean;
 }
 
-/** A geocoded label's first part is the place itself ("Cipolletti, Río Negro, Argentina" → "Cipolletti"). */
+/**
+ * A geocoded label's first part is the place itself ("Cipolletti, Río Negro, Argentina" → "Cipolletti"), and so
+ * is a named device fix's (D-1025: "Near Cipolletti, Argentina" → "Near Cipolletti"). Typed coordinates, and a
+ * device fix still labelled with its coordinates, have none.
+ */
 export function placeName(observer: Observer): string | null {
-  if (observer.source !== 'geocode') return null;
+  if (observer.source === 'coords') return null;
+  if (observer.source === 'device' && observer.label === coordsLabel(observer.lat, observer.lon)) return null;
   return observer.label.split(',')[0]?.trim() || observer.label;
 }
 

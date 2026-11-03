@@ -361,8 +361,8 @@ export interface HomeProps {
   steps: HomeSteps;
 }
 
-/** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it). */
-const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.label}`);
+/** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it, and D-1025's town name a device fix's label). */
+const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.source === 'device' ? 'device' : observer.label}`);
 
 /** Whether a text field has the focus: a coordinate pair that parsed under the reader's fingers (D-467). */
 function typingInAField(): boolean {

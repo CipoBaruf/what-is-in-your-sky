@@ -4,6 +4,7 @@ import { localPrefs, type LocalPrefs } from '../data/localPrefs';
 import { appPassesCache, type PassesCache } from '../data/passesCache';
 import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
+import { startDeviceNaming } from './deviceName';
 import { documentVisibility, startEffects, type EffectDeps } from './effects';
 import { applyLink, followHash as followHashIn, openLink } from './openLink';
 import { setLiveNowClient } from './liveNow';
@@ -129,7 +130,10 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
     now,
     visibility: overrides.visibility ?? documentVisibility(document),
   });
+  // D-1025: a device location is named after the nearest town, on the device, once its coordinates are on screen.
+  const stopNaming = startDeviceNaming(store);
   return () => {
+    stopNaming();
     stop();
     setLiveNowClient(null);
     client.terminate();

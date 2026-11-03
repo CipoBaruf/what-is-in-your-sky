@@ -97,7 +97,7 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   await homeWithPasses(page);
   await expect(page.getByRole('contentinfo')).toContainText('Orbital elements by CelesTrak.');
   await expect(page.getByRole('contentinfo')).toContainText('Weather data by Open-Meteo.com (CC BY 4.0).');
-  await expect(page.getByRole('contentinfo')).toContainText('Place search by Open-Meteo geocoding, with data from GeoNames (CC BY 4.0).');
+  await expect(page.getByRole('contentinfo')).toContainText("Place search by Open-Meteo geocoding, and the town named for your device's location, with data from GeoNames (CC BY 4.0).");
   await expectIdentity(page, 'r12-home-passes-390.png');
 
   await page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }).getByRole('button', { name: /Open guide/ }).click();
