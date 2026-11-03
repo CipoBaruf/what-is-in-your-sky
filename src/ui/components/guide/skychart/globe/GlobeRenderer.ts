@@ -10,7 +10,7 @@ import type { EpochMs, Locale, Observer } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkOffsetPx } from '../window/inkOffsets';
 import { limbAngleDeg, litPath } from '../window/MoonDisc';
-import { dotRadiusPx, hitLine, hitTest, markFor, planetMarkFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';
+import { COLLISION_PX, dotRadiusPx, hitLine, hitTest, markFor, planetMarkFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';
 import { ADVANCE_EM, placeLabels, STAR_NAME_PX, textWidth, type Box, type FigureLabel, type FixedLabel, type LabelMark, type LabelSegment, type MarkLabel } from '../window/starLabels';
 import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE } from './constants';
 import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Projector, type Vec3 } from './projection';
@@ -594,16 +594,24 @@ export class GlobeRenderer {
       ys[i] = p.cy - p.radius * (x * au[0] + y * au[1] + z * au[2]);
     }
 
-    // The figures: a segment with both ends on the near side, on the side of the horizon its middle is on.
+    // The figures: a segment with both ends on the near side, on the side of the horizon its middle is on, each end
+    // moved toward the other by the collision distance so a line never touches a star (D-754, as the window draws);
+    // one shorter than the two gaps is not drawn.
     let dAbove = '';
     let dBelow = '';
     const drawnSegments: LabelSegment[] = [];
     this.segments.forEach((seg, k) => {
-      if (!s.layers.figures || !near[seg.a] || !near[seg.b]) {
+      const x1 = xs[seg.a] ?? 0;
+      const y1 = ys[seg.a] ?? 0;
+      const x2 = xs[seg.b] ?? 0;
+      const y2 = ys[seg.b] ?? 0;
+      const length = Math.hypot(x2 - x1, y2 - y1);
+      if (!s.layers.figures || !near[seg.a] || !near[seg.b] || length <= 2 * COLLISION_PX) {
         this.lines[k] = null;
         return;
       }
-      const line = { x1: xs[seg.a] ?? 0, y1: ys[seg.a] ?? 0, x2: xs[seg.b] ?? 0, y2: ys[seg.b] ?? 0 };
+      const gap = COLLISION_PX / length;
+      const line = { x1: x1 + (x2 - x1) * gap, y1: y1 + (y2 - y1) * gap, x2: x2 - (x2 - x1) * gap, y2: y2 - (y2 - y1) * gap };
       this.lines[k] = line;
       drawnSegments.push(line);
       const d = `M${fmt(line.x1)} ${fmt(line.y1)}L${fmt(line.x2)} ${fmt(line.y2)}`;
