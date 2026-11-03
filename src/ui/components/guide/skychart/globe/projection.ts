@@ -223,7 +223,10 @@ function nearestTurn(deg: number, near: number): number {
  * In the view's own terms a direction at frame longitude λ and latitude φ has
  * screen x = cos φ·sin(λ − lon), whatever the latitude; so the longitude is
  * fixed by x alone, and the latitude is then the turn about screen right that
- * takes the direction's (depth, y) to the target's.
+ * takes the direction's (depth, y) to the target's. With the pole kept up a
+ * direction at latitude φ never stands further than cos φ (in radii) from the
+ * screen's vertical through the centre; a target past that is unreachable, and
+ * the turn takes the grabbed point to the nearest x it can reach.
  */
 export function dragTurn(p: Projector, from: readonly [number, number], to: readonly [number, number]): { lon: number; lat: number } {
   const g = lonLatIn(p.frame, unproject(p, from[0], from[1]));
