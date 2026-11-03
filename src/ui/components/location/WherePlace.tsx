@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import type { Messages } from '../../../i18n/messages';
 import { formatList } from '../../../lib/format';
@@ -35,14 +35,11 @@ export interface WherePlaceProps {
   /** The id of the group `[ change ]` opens. */
   controls: string;
   /**
-   * R130 (FR-FLOW-2, D-844): compact's two lines — the place with `[ change ]` at the row's end, and one status
-   * line ending in `[ details ]`, which opens the sentence and then `details` (the readiness line, the elements
-   * line and the saved places) in place. A fault takes the status line whole and is never folded away; with none
-   * the line is `[ details ]` alone (R156, FR-PHONE-12).
+   * R130 (FR-FLOW-2, D-844) as amended by D-1024: compact's form — the place with `[ change ]` at the row's end, its
+   * one control, and a fault line under it only while there is a fault, never folded away. The sentence and the rest
+   * head the group `[ change ]` opens (`WhereOpenedStatus`).
    */
   folded?: boolean;
-  /** What `[ details ]` opens under the sentence, in FR-FIRST-11's order; the folded form's only. */
-  details?: ReactNode;
 }
 
 /** A geocoded label's first part is the place itself ("Cipolletti, Río Negro, Argentina" → "Cipolletti"). */
@@ -76,23 +73,19 @@ function PlaceText({ observer }: { observer: Observer }) {
 }
 
 /**
- * R130 (FR-FLOW-2, D-844): the folded Where's second line. A fault takes the line whole, in its own tone: the
- * elements load's failure first, with its `[ retry ]` (a failed load is always a not-ready state too, which would
- * otherwise hide it, D-858), then the readiness line's not-ready state, then the elements warning. Either way it ends in `[ details ]`, which opens the rest.
+ * R130 (FR-FLOW-2, D-844): the folded Where's fault line, under the place. A fault takes the line whole, in its own
+ * tone: the elements load's failure first, with its `[ retry ]` (a failed load is always a not-ready state too, which
+ * would otherwise hide it, D-858), then the readiness line's not-ready state, then the elements warning.
  *
- * R156 (FR-PHONE-12, D-972): with no fault the line is `[ details ]` alone at the row's right end, under the place —
- * the readiness and the elements' age are inside it, where they already were. `data-state` says whether the
- * readiness has answered (`ready`) or not yet (`pending`), which the line no longer says in words and a capture's
- * wait still needs.
+ * D-1024 (FR-FLOW-2 amended 2026-11-02): the line has no `[ details ]` and there is no line at all without a fault —
+ * the place line's `[ change ]` is the Where's one control, and the status it used to fold away heads the group it
+ * opens (`WhereOpenedStatus`).
  */
-function WhereStatus({ open, onToggle, controls }: { open: boolean; onToggle: () => void; controls: string }) {
+function WhereFault({ readiness, age }: { readiness: ReturnType<typeof useReadiness>; age: ReturnType<typeof useElementsAge> }) {
   const t = useT();
   const locale = useLocale();
-  const readiness = useReadiness();
-  const age = useElementsAge();
   const elements = useAppStore((s) => s.elements);
   const retryElements = useAppStore((s) => s.retryElements);
-  const details = <TextButton inline label={t.elements.details} aria-expanded={open} aria-controls={controls} data-testid="where-details" onClick={onToggle} />;
   if (elements.status === 'error') {
     return (
       <Line
@@ -100,12 +93,7 @@ function WhereStatus({ open, onToggle, controls }: { open: boolean; onToggle: ()
         tone="failure"
         ink="tone"
         rows="controls"
-        actions={
-          <>
-            <TextButton label={t.failure.retry} data-testid="where-retry" onClick={retryElements} />
-            {details}
-          </>
-        }
+        actions={<TextButton label={t.failure.retry} data-testid="where-retry" onClick={retryElements} />}
         data-testid="where-status"
         data-fault="failure"
       >
@@ -116,60 +104,47 @@ function WhereStatus({ open, onToggle, controls }: { open: boolean; onToggle: ()
   const state = readiness?.state;
   if (state && !(state.missing.length === 0 && state.offlineUntil !== null)) {
     return (
-      <Line size="small" tone="notice" ink="tone" dot actions={details} data-testid="where-status" data-fault="not-ready">
+      <Line size="small" tone="notice" ink="tone" dot data-testid="where-status" data-fault="not-ready">
         {t.readiness.notReady(formatList(state.missing.map((gap) => t.readiness.gaps[gap]), locale))}
       </Line>
     );
   }
   if (age?.warn) {
     return (
-      <Line size="small" tone="notice" ink="tone" dot actions={details} data-testid="where-status" data-fault="elements-warning">
+      <Line size="small" tone="notice" ink="tone" dot data-testid="where-status" data-fault="elements-warning">
         {age.age === null ? t.elements.lineNone : t.elements.line(age.age)}
       </Line>
     );
   }
+  return null;
+}
+
+/**
+ * D-1024 (FR-FLOW-2 amended 2026-11-02): what the compact `[ change ]` shows at the top of the group it opens, above
+ * the inputs, in FR-FIRST-11's order — the observer's sentence, then `children` (the readiness line, the elements line
+ * with its own `[ details ]`, and the saved places). The Where reading mounts it only while the group is open, so
+ * closed, the fault line is the one reader of the readiness and the elements' age.
+ */
+export function WhereOpenedStatus({ children }: { children?: ReactNode }) {
+  const t = useT();
+  const observer = useActiveObserver();
+  if (observer === null) return null;
   return (
-    <p className={styles.status} data-testid="where-status" data-state={readiness ? 'ready' : 'pending'}>
-      {details}
-    </p>
+    <Stack gap={2} className={styles.opened} data-testid="where-opened-status">
+      <p className={styles.sentence} data-testid="where-sentence">
+        {whereSentence(observer, t)} {t.location.savedHere}
+      </p>
+      {children}
+    </Stack>
   );
 }
 
-export function WherePlace({ open, onToggle, controls, folded = false, details }: WherePlaceProps) {
+export function WherePlace({ open, onToggle, controls, folded = false }: WherePlaceProps) {
   const t = useT();
   const observer = useActiveObserver();
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const detailsId = useId();
   if (observer === null) return null;
   const change = <TextButton inline label={t.location.summaryChange} aria-expanded={open} aria-controls={controls} data-testid="location-summary-change" onClick={onToggle} />;
-  if (folded) {
-    return (
-      <div className={styles.where} data-folded="">
-        <div className={styles.placeRow}>
-          <p className={styles.place} data-testid="location-summary">
-            <PlaceText observer={observer} />
-          </p>
-          {change}
-        </div>
-        <WhereStatus
-          open={detailsOpen}
-          controls={detailsId}
-          onToggle={() => {
-            setDetailsOpen((o) => !o);
-          }}
-        />
-        {/* FR-FIRST-11's order: the observer's sentence, then the readiness line, the elements line and the saved places.
-            `details` is mounted only while open: folded, the status line is the one reader of the readiness and the
-            elements' age, not a second set of timers and store reads under it. */}
-        <Stack gap={2} id={detailsId} hidden={!detailsOpen} className={styles.details} data-testid="where-details-panel">
-          <p className={styles.sentence} data-testid="where-sentence">
-            {whereSentence(observer, t)} {t.location.savedHere}
-          </p>
-          {detailsOpen ? details : null}
-        </Stack>
-      </div>
-    );
-  }
+  if (folded) return <FoldedWhere observer={observer} change={change} />;
   return (
     <div className={styles.where}>
       <p className={styles.place} data-testid="location-summary">
@@ -178,6 +153,28 @@ export function WherePlace({ open, onToggle, controls, folded = false, details }
       <p className={styles.sentence} data-testid="where-sentence">
         {whereSentence(observer, t)} {t.location.savedHere} {change}
       </p>
+    </div>
+  );
+}
+
+/**
+ * R130 (FR-FLOW-2, D-844) as amended by D-1024: compact's Where — the place with `[ change ]` at the row's end, its
+ * one control, and under it a fault line only while there is a fault. `data-state` says whether the readiness has
+ * answered (`ready`) or not yet (`pending`), which nothing on the folded Where says in words and a capture's wait
+ * still needs (R156).
+ */
+function FoldedWhere({ observer, change }: { observer: Observer; change: ReactNode }) {
+  const readiness = useReadiness();
+  const age = useElementsAge();
+  return (
+    <div className={styles.where} data-folded="" data-testid="where-folded" data-state={readiness ? 'ready' : 'pending'}>
+      <div className={styles.placeRow} data-testid="where-place-row">
+        <p className={styles.place} data-testid="location-summary">
+          <PlaceText observer={observer} />
+        </p>
+        {change}
+      </div>
+      <WhereFault readiness={readiness} age={age} />
     </div>
   );
 }

@@ -257,16 +257,25 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     // When: the table (the stripe once the astronomy chunk lands); no Now panel.
     expect(within(when).getByTestId('conditions')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Right now' })).toBeNull();
-    // Where (FR-FLOW-2): two lines, the readiness, the elements and the saved places behind `[ details ]`; no dome.
-    expect(within(where).getByTestId('where-status')).toBeVisible();
-    const panel = within(where).getByTestId('where-details-panel');
-    expect(panel).not.toBeVisible();
-    // Mounted only while open: folded, the status line is the one reader of the readiness and the elements' age.
-    expect(within(panel).queryByTestId('elements-line')).toBeNull();
-    fireEvent.click(within(where).getByTestId('where-details'));
-    expect(panel).toBeVisible();
-    expect(within(panel).getByTestId('favourites')).toBeInTheDocument();
-    expect(within(panel).getByTestId('elements-line')).toBeInTheDocument();
+    // Where (FR-FLOW-2 amended, D-1024): the place with `[ change ]`, its one control; the readiness, the elements and the
+    // saved places at the top of the group `[ change ]` opens, above the inputs; no `[ details ]`; no dome.
+    const row = within(where).getByTestId('where-place-row');
+    expect(within(row).getAllByRole('button')).toEqual([within(where).getByTestId('location-summary-change')]);
+    expect(within(where).queryByTestId('where-details')).toBeNull();
+    expect(within(where).queryByRole('button', { name: 'details' })).toBeNull();
+    // Mounted only while open: closed, the fault line is the one reader of the readiness and the elements' age.
+    expect(within(where).queryByTestId('where-opened-status')).toBeNull();
+    expect(within(where).queryByTestId('elements-line')).toBeNull();
+    fireEvent.click(within(where).getByTestId('location-summary-change'));
+    const opened = within(where).getByTestId('where-opened-status');
+    expect(opened).toBeVisible();
+    const group = opened.parentElement as HTMLElement;
+    expect(group.firstElementChild).toBe(opened);
+    expect(group.querySelectorAll('input').length).toBeGreaterThan(0);
+    expect(precedes(opened, group.querySelector('input') as HTMLElement)).toBe(true);
+    expect(within(opened).getByTestId('where-sentence')).toBeInTheDocument();
+    expect(within(opened).getByTestId('favourites')).toBeInTheDocument();
+    expect(within(opened).getByTestId('elements-line')).toBeInTheDocument();
     expect(within(where).queryByTestId('where-dome')).toBeNull();
     // What: the tag in place of the hero card.
     expect(screen.queryByTestId('iss-hero')).toBeNull();

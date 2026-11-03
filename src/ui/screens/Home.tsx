@@ -12,7 +12,7 @@ import { ElementsLine } from '../components/elements/ElementsLine';
 import { Favourites } from '../components/location/Favourites';
 import { LocationInput } from '../components/location/LocationInput';
 import type { GeolocationEnv } from '../components/location/UseMyLocation';
-import { WherePlace } from '../components/location/WherePlace';
+import { WhereOpenedStatus, WherePlace } from '../components/location/WherePlace';
 import type { MoonLore as MoonLoreComponent } from '../components/moon/MoonLore';
 import { ConditionsTable } from '../components/now/ConditionsTable';
 import { TonightStripe } from '../components/now/TonightStripe';
@@ -56,7 +56,8 @@ import { WhenStep } from './home/WhenStep';
  * stand over the Where reading on compact (R156, FR-PHONE-12, D-972) and in one
  * row over the panes on wide; the next event and the When pane's stars line are theirs now, and the
  * Where pane's dome is gone, whose job the Both door does. On compact the Where
- * reading is two lines, the rest behind `[ details ]` (`WherePlace`'s `folded`).
+ * reading is the place with `[ change ]`, the rest at the top of the group it opens (`WherePlace`'s `folded`,
+ * D-1024).
  *
  * The two columns' wrappers (`col-left`, `col-right`) are kept, because between
  * the wide breakpoint and the three-pane width the page *is* those two columns
@@ -191,7 +192,7 @@ export interface WhereReadingProps {
  * FR-FIRST-1, FR-FIRST-2, FR-FIRST-11: the Where reading — the cold open with
  * no observer, and with one the place and its sentence (`WherePlace`), the
  * readiness line, the elements line and the saved places, each one line (R81,
- * D-511) — on compact folded behind `[ details ]` (R130, D-844).
+ * D-511) — on compact folded behind `[ change ]`, at the top of the group it opens (R130, D-844; D-1024).
  *
  * The input group is one mounted instance across the two states, in the same
  * place in the tree, and only shown or hidden (D-467). A coordinate pair
@@ -219,7 +220,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const cold = observer === null || step !== undefined;
-  // R130 (FR-FLOW-2, D-844): on compact the populated Where is two lines, the rest behind `[ details ]`.
+  // R130 (FR-FLOW-2, D-844; D-1024): on compact the populated Where is the place with `[ change ]`, which opens the group with
+  // the rest at its top.
   const folded = mode === 'compact';
   const rest = (
     <>
@@ -280,7 +282,6 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
       {!cold && (
         <WherePlace
           folded={folded}
-          {...(folded ? { details: rest } : {})}
           open={open}
           controls={groupId}
           onToggle={() => {
@@ -289,6 +290,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
         />
       )}
       <div id={groupId} ref={group} hidden={!cold && !open} className={styles.locationGroup}>
+        {/* D-1024: on compact the status heads the group `[ change ]` opens, mounted only while it is open. */}
+        {!cold && folded && open ? <WhereOpenedStatus>{rest}</WhereOpenedStatus> : null}
         {/* The saved places are the cold open's inside the group; with a place they are the reading's own line (FR-FIRST-11). */}
         <LocationInput
           variant="group"

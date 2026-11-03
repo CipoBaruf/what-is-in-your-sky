@@ -120,11 +120,17 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(page.getByTestId('step-when')).toHaveCount(0);
     // FR-FIRST-11: the coordinates alone, and the sentence by the source with the accuracy the device gave.
     await expect(page.getByTestId('location-summary')).toHaveText('−38.93, −67.99');
-    // R130 (FR-FLOW-2): the sentence is behind the folded Where's `[ details ]`.
+    // R130 (FR-FLOW-2): the sentence is at the top of the group the folded Where's `[ change ]` opens, above the inputs (D-1024).
     await expect(page.getByTestId('where-sentence')).toBeHidden();
-    await page.getByTestId('where-details').click();
+    // `[ change ]` is the place line's one control; there is no `[ details ]`.
+    await expect(page.getByTestId('where-place-row').getByRole('button')).toHaveCount(1);
+    await expect(page.getByTestId('where-details')).toHaveCount(0);
+    await page.getByTestId('location-summary-change').click();
     await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\.$/);
-    await page.getByTestId('where-details').click();
+    const [statusBox, fieldBox] = await Promise.all([page.getByTestId('where-opened-status').boundingBox(), page.getByRole('combobox', { name: 'Place name' }).boundingBox()]);
+    if (!statusBox || !fieldBox) throw new Error('the opened group is not laid out');
+    expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(fieldBox.y);
+    await page.getByTestId('location-summary-change').click();
     // The group folded away under the line.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
 

@@ -29,7 +29,7 @@
 }
 
 /* R130 (FR-FLOW-2, D-844): folded, the place and `[ change ]` share a row, the place clipped and the control at
-   the row's right end; the status line under it, and the panel `[ details ]` opens half a row below that. */
+   the row's right end; a fault line under it while there is one (D-1024). */
 .placeRow {
   display: flex;
   align-items: baseline;
@@ -42,17 +42,10 @@
   min-width: 0;
 }
 
-.details {
-  margin-top: var(--space-1);
-}
-
-/* R156 (FR-PHONE-12, D-972): a ready status line is `[ details ]` alone, at the row's right end under `[ change ]`,
-   at `--small` on its row as the fault lines are. */
-.status {
-  margin: 0;
-  font-size: var(--small);
-  line-height: var(--small-row);
-  text-align: end;
+/* D-1024 (FR-FLOW-2 amended 2026-11-02): the status `[ change ]` shows at the top of the group it opens, a row
+   above the inputs. */
+.opened {
+  margin-bottom: var(--space-3);
 }
 
 /* The change control — a button that opens the group in place — is an inline `TextButton` (R104, D-704); nothing here draws on it. */

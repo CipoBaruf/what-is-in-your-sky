@@ -182,15 +182,8 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
     },
   },
-  // R156 (FR-PHONE-12): folded and ready, the Where's second line is `[ details ]` alone.
-  {
-    name: 'the folded Where, ready: [ details ] alone (FR-PHONE-12)',
-    element: createElement(WherePlace, { open: false, onToggle: () => undefined, controls: 'where-group', folded: true }),
-    find: () => screen.getByTestId('where-status'),
-    setUp: () => {
-      appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
-    },
-  },
+  // D-1024 (FR-FLOW-2 amended): the folded Where has no ready line of its own any more (R156's `[ details ]` alone is
+  // gone); its place row clips the place, as the place line above does.
   // R156 (FR-PHONE-13): the third door's two fixed lines, each within FR-FLOW-1's 34 cells (its state line is `doorRows.test.ts`'s).
   ...(['title', 'line'] as const).map(
     (key): Row => ({
