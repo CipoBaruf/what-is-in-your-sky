@@ -27,6 +27,21 @@
   display: none;
 }
 
+/* D-1033 (the owner's call 2026-11-02, on a desk): on wide the pick list floats over what follows it, at its static
+   place under the field, and scrolls inside itself past five rows, so a long answer never makes the page scroll.
+   On a phone it stays in the flow, as before. */
+@media (width >= 964px) {
+  .list {
+    position: absolute;
+    z-index: var(--z-raised-2);
+    width: calc(48 * var(--cell));
+    max-height: calc(5 * (var(--tap) + var(--hairline)) + var(--tap) / 2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg);
+  }
+}
+
 /* G6: a row is two text rows (48 px at the 16 px base), above the 44 px tap target. */
 .option,
 .optionActive {
