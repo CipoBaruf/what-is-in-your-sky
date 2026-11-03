@@ -77,6 +77,9 @@ export const chart = {
       moon: 'Moon',
       /** FR-GLOBE-11: "Canopus · mag −0.7 · 12° below · S" — the object is under the shown place's horizon by `altitude`. */
       namedBelow: (p: { name: string; mag: string; altitude: string; point: CompassPoint }) => `${p.name} · mag ${p.mag} · ${p.altitude} below · ${p.point}`,
+      /** FR-GLOBE-11: the Sun's and the Moon's lines, which carry no magnitude — "Moon · 28° up · E", "Sun · 12° below · W". */
+      bodyUp: (p: { name: string; altitude: string; point: CompassPoint }) => `${p.name} · ${p.altitude} up · ${p.point}`,
+      bodyBelow: (p: { name: string; altitude: string; point: CompassPoint }) => `${p.name} · ${p.altitude} below · ${p.point}`,
     },
   },
 };

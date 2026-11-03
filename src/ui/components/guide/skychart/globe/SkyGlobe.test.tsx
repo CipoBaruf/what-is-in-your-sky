@@ -207,6 +207,25 @@ describe('the wheel and the pinch (FR-GLOBE-6)', () => {
     expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_MIN, 0);
   });
 
+  it('a trackpad’s small deltas zoom their share of a notch, a line-mode notch is one, and ctrl or cmd + wheel is the browser’s', () => {
+    const { box, q } = mount();
+    const disc = q('[data-disc]');
+    for (let k = 0; k < 10; k += 1) fireEvent.wheel(box, { deltaY: -10 });
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP, 0);
+    fireEvent.wheel(box, { deltaY: -3, deltaMode: 1 });
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP ** 2, 0);
+    // One event never zooms past a notch, whatever its size.
+    fireEvent.wheel(box, { deltaY: -5000 });
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP ** 3, 0);
+    expect(fireEvent.wheel(box, { deltaY: -100, ctrlKey: true })).toBe(true);
+    expect(fireEvent.wheel(box, { deltaY: -100, metaKey: true })).toBe(true);
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP ** 3, 0);
+  });
+
   it('a pinch zooms by the fingers’ distance, and ends the drag', () => {
     const { box, q } = mount();
     const disc = q('[data-disc]');
@@ -343,6 +362,15 @@ describe('the frame and the place (FR-GLOBE-5, FR-GLOBE-9)', () => {
     expect(Math.hypot(num(node, 'x') - back.x, num(node, 'y') - back.y)).toBeGreaterThan(5);
   });
 
+  it('a switch that comes with a new place converts the centre from the frame last drawn, so nothing jumps', () => {
+    const { container, rerender } = mount();
+    const star = centreStar(container);
+    const node = starNode(container, star.index);
+    const before = Math.hypot(num(node, 'x') - W / 2, num(node, 'y') - H / 2);
+    rerender({ turn: 'stars', place: LONDON, instant: T + 6 * 3_600_000 });
+    expect(Math.hypot(num(node, 'x') - W / 2, num(node, 'y') - H / 2)).toBeCloseTo(before, 0);
+  });
+
   it('a new place re-opens the view while turning with you, and keeps it while turning with the stars', () => {
     const { q, rerender } = mount();
     expect(q('[data-pole="south"]')).toHaveAttribute('visibility', 'visible');
@@ -378,6 +406,30 @@ describe('the faint stars (FR-GLOBE-10)', () => {
     expect(dotLength(container)).toBe(before);
     rerender({ faint: true });
     expect(loadDeepChunk).toHaveBeenCalledTimes(1);
+    expect(dotLength(container)).toBeGreaterThan(before);
+  });
+
+  it('a load cut short by faint off and on again is asked for again, and a new callback does not re-run it', async () => {
+    const resolvers: ((deep: typeof DEEP) => void)[] = [];
+    vi.mocked(loadDeepChunk).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+    const { container, rerender } = mount();
+    const before = dotLength(container);
+    rerender({ faint: true, onFaintFailed: () => undefined });
+    rerender({ faint: true, onFaintFailed: () => undefined });
+    expect(loadDeepChunk).toHaveBeenCalledTimes(1);
+    rerender({ faint: false });
+    rerender({ faint: true });
+    expect(loadDeepChunk).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      for (const resolve of resolvers) resolve(DEEP);
+      await Promise.resolve();
+    });
+    frames.frame();
     expect(dotLength(container)).toBeGreaterThan(before);
   });
 

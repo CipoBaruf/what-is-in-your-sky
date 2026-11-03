@@ -13,7 +13,7 @@ import { limbAngleDeg, litPath } from '../window/MoonDisc';
 import { COLLISION_PX, dotRadiusPx, hitLine, hitTest, markFor, planetMarkFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';
 import { ADVANCE_EM, placeLabels, STAR_NAME_PX, textWidth, type Box, type FigureLabel, type FixedLabel, type LabelMark, type LabelSegment, type MarkLabel } from '../window/starLabels';
 import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE } from './constants';
-import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Projector, type Vec3 } from './projection';
+import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Frame, type Projector, type Vec3 } from './projection';
 import { altAz, figureAnchor, globeSky, starVectors, surfaceAt, type GlobeSky } from './scene';
 import styles from './SkyGlobe.module.css';
 
@@ -170,7 +170,7 @@ interface FigureNode {
 }
 
 interface BodyNode {
-  target: GlobeTarget;
+  target: BodyTarget;
   /** The hit slot: `n + k` for a planet, then the Sun's and the Moon's. */
   slot: number;
   mark: SVGElement;
@@ -197,20 +197,35 @@ interface Words {
   mag: (p: { mag: string }) => string;
   named: (p: NamedParts) => string;
   namedBelow: (p: NamedParts) => string;
+  bodyUp: (p: BodyParts) => string;
+  bodyBelow: (p: BodyParts) => string;
 }
+
+type BodyParts = Omit<NamedParts, 'mag'>;
+type BodyTarget = Extract<GlobeTarget, { kind: 'planet' | 'sun' | 'moon' }>;
+
+/** A planet's, the Sun's or the Moon's name in `w`'s language. */
+const bodyWord = (w: Words, target: BodyTarget): string => (target.kind === 'planet' ? w.planets[target.body] : target.kind === 'sun' ? w.sun : w.moon);
 
 function wordsFor(lang: Locale): Words {
   const page = STARS_PAGE_CATALOGS[lang];
   return { ...CATALOGS[lang].chart.globe, planets: page.planets, mag: page.mag, named: page.named };
 }
 
+/** FR-GLOBE-5: the frame the view is held in — the equatorial one turning with the stars, the place's local one at `t` turning with you. */
+export function frameFor(turn: Turn, place: Observer, t: EpochMs): Frame {
+  return turn === 'stars' ? EQUATORIAL : globeSky(place, t).frame;
+}
+
 /** The projector a state draws with: the frame by `turn`, the centre of the box, the radius by `GLOBE_RADIUS_SHARE` and the zoom. */
 export function projectorFor(s: Pick<GlobeState, 'place' | 't' | 'turn' | 'lon' | 'lat' | 'zoom' | 'width' | 'height'>): Projector {
-  const sky = globeSky(s.place, s.t);
   const w = Math.max(0, s.width);
   const h = Math.max(0, s.height);
-  return projector({ frame: s.turn === 'stars' ? EQUATORIAL : sky.frame, lon: s.lon, lat: s.lat }, w / 2, h / 2, Math.min(w, h) * GLOBE_RADIUS_SHARE * s.zoom);
+  return projector({ frame: frameFor(s.turn, s.place, s.t), lon: s.lon, lat: s.lat }, w / 2, h / 2, Math.min(w, h) * GLOBE_RADIUS_SHARE * s.zoom);
 }
+
+/** A figure segment is on the ground side when its midpoint (the sum of its ends) is: one rule for its line and its name. */
+const segmentBelow = (mid: Vec3, zenith: Vec3): boolean => dot(mid, zenith) < 0;
 
 const starDirOf = (dirs: Float64Array, i: number): Vec3 => [dirs[3 * i] ?? 0, dirs[3 * i + 1] ?? 0, dirs[3 * i + 2] ?? 0];
 
@@ -240,12 +255,11 @@ function labelLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'la
       return `${starName(catalog, target.index, s.lang)} · ${w.mag({ mag: formatStarMag(catalog.mag[target.index] ?? 0, s.lang) })}`;
     case 'planet': {
       const planet = globeSky(s.place, s.t).planets.find((p) => p.body === target.body);
-      return planet ? `${w.planets[target.body]} · ${w.mag({ mag: formatStarMag(planet.mag, s.lang) })}` : w.planets[target.body];
+      return planet ? `${bodyWord(w, target)} · ${w.mag({ mag: formatStarMag(planet.mag, s.lang) })}` : bodyWord(w, target);
     }
     case 'sun':
-      return w.sun;
     case 'moon':
-      return w.moon;
+      return bodyWord(w, target);
     default:
       return figureWord(catalog, target.index, s.lang);
   }
@@ -254,7 +268,7 @@ function labelLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'la
 /**
  * FR-GLOBE-11: the readout's second line — "Canopus · mag −0.7 · 28° up · S", or "· 12° below · S" on the ground
  * side, the altitude and point at the shown place and instant; a figure's is its name. The Sun and the Moon carry
- * no magnitude: their line is the same with its `mag` part left out.
+ * no magnitude: their line is `chart.globe`'s `bodyUp` / `bodyBelow`, the same sentence without the `mag` part.
  */
 export function readoutLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'lang'>, target: GlobeTarget): string {
   const w = wordsFor(s.lang);
@@ -270,14 +284,15 @@ export function readoutLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 
     ({ altDeg, azDeg } = altAz(sky, starDirOf(starVectors(catalog), target.index)));
   } else {
     const body = bodyOf(sky, target);
-    name = target.kind === 'planet' ? w.planets[target.body] : target.kind === 'sun' ? w.sun : w.moon;
+    name = bodyWord(w, target);
     mag = target.kind === 'planet' ? (sky.planets.find((p) => p.body === target.body)?.mag ?? 0) : null;
     altDeg = body?.altDeg ?? 0;
     azDeg = body?.azDeg ?? 0;
   }
-  const parts: NamedParts = { name, mag: mag === null ? '' : formatStarMag(mag, s.lang), altitude: degrees(Math.abs(altDeg)), point: compassPoint(azDeg) };
-  const line = altDeg >= 0 ? w.named(parts) : w.namedBelow(parts);
-  return mag === null ? line.replace(` · ${w.mag({ mag: '' })}`, '') : line;
+  const where: BodyParts = { name, altitude: degrees(Math.abs(altDeg)), point: compassPoint(azDeg) };
+  if (mag === null) return altDeg >= 0 ? w.bodyUp(where) : w.bodyBelow(where);
+  const parts: NamedParts = { ...where, mag: formatStarMag(mag, s.lang) };
+  return altDeg >= 0 ? w.named(parts) : w.namedBelow(parts);
 }
 
 export class GlobeRenderer {
@@ -424,6 +439,8 @@ export class GlobeRenderer {
     this.grid = [...meridians, ...parallels];
     this.ecliptic = greatCircle(ECLIPTIC_POLE);
     this.milky = catalog.milkyWay.map((ring) => ring.map(([ra, dec]) => radec(ra ?? 0, dec ?? 0)));
+    // The first frame: a `set` that repeats the opening state changes nothing and schedules none.
+    this.request();
   }
 
   /** The bucket a dot of `tone` and radius `r` goes in: the nearest of `DOT_STEPS`. */
@@ -545,7 +562,7 @@ export class GlobeRenderer {
     this.svg.setAttribute('aria-label', this.words.label);
     for (const [i, node] of this.starNames) node.textContent = starName(this.catalog, i, lang);
     for (const f of this.figureNodes) f.node.textContent = this.figureWord(f.index);
-    for (const b of this.bodies) b.name.textContent = b.target.kind === 'planet' ? this.words.planets[b.target.body] : b.target.kind === 'sun' ? this.words.sun : this.words.moon;
+    for (const b of this.bodies) b.name.textContent = bodyWord(this.words, b.target);
     this.zenithName.textContent = this.words.zenith;
     const [north, south] = this.poleNames;
     north.textContent = this.words.poles.north;
@@ -633,8 +650,8 @@ export class GlobeRenderer {
       drawnSegments.push(line);
       const d = `M${fmt(line.x1)} ${fmt(line.y1)}L${fmt(line.x2)} ${fmt(line.y2)}`;
       const mid = add(this.starDir(seg.a), this.starDir(seg.b));
-      if (mid[0] * zx + mid[1] * zy + mid[2] * zz >= 0) dAbove += d;
-      else dBelow += d;
+      if (segmentBelow(mid, sky.zenith)) dBelow += d;
+      else dAbove += d;
     });
     this.figuresAbove.setAttribute('d', dAbove);
     this.figuresBelow.setAttribute('d', dBelow);
@@ -825,25 +842,27 @@ export class GlobeRenderer {
     this.frames += 1;
   }
 
-  /** The named figure's line: the segment hit while it is drawn, else the figure's first drawn one, else none. */
-  private figureLine(target: { index: number; segment: number }): LabelSegment | null {
-    const hit = this.lines[target.segment];
-    if (hit) return hit;
+  /** The named figure's segment: the one hit while it is drawn, else the figure's first drawn one, else none. */
+  private figureLineIndex(target: { index: number; segment: number }): number | null {
+    if (this.lines[target.segment]) return target.segment;
     const f = this.figureNodes[target.index];
     if (!f) return null;
-    for (let k = 0; k < f.count; k += 1) {
-      const line = this.lines[f.first + k];
-      if (line) return line;
-    }
+    for (let k = 0; k < f.count; k += 1) if (this.lines[f.first + k]) return f.first + k;
     return null;
   }
 
-  /** Whether the named target is on the ground side, for its label's dimming. */
+  /** The named figure's line, the label's segment. */
+  private figureLine(target: { index: number; segment: number }): LabelSegment | null {
+    const k = this.figureLineIndex(target);
+    return k === null ? null : (this.lines[k] ?? null);
+  }
+
+  /** Whether the named target is on the ground side, for its label's dimming; a figure's by the side its line is drawn on (the segment's midpoint, as `draw` splits the lines). */
   private isBelow(target: GlobeTarget, sky: GlobeSky): boolean {
     if (target.kind === 'star') return this.up[target.index] === 0;
     if (target.kind === 'figure') {
-      const seg = this.segments[target.segment];
-      return seg !== undefined && this.up[seg.a] === 0 && this.up[seg.b] === 0;
+      const seg = this.segments[this.figureLineIndex(target) ?? target.segment];
+      return seg !== undefined && segmentBelow(add(this.starDir(seg.a), this.starDir(seg.b)), sky.zenith);
     }
     return (bodyOf(sky, target)?.altDeg ?? 0) < 0;
   }

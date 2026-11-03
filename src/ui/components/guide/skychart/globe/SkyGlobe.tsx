@@ -5,8 +5,8 @@ import type { EpochMs, Locale, Observer } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
-import { GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
-import { coordsIn, dragTurn, EQUATORIAL, openView, type Frame } from './projection';
+import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
+import { coordsIn, dragTurn, EQUATORIAL, openView } from './projection';
 import { globeSky } from './scene';
 import styles from './SkyGlobe.module.css';
 
@@ -72,9 +72,14 @@ const clampZoom = (zoom: number): number => Math.max(GLOBE_ZOOM_MIN, Math.min(GL
 const clampLat = (lat: number): number => Math.max(-90, Math.min(90, lat));
 /** The keys ctrl or cmd makes the browser's own zoom, left to it (as the window leaves them). */
 const ZOOM_KEYS = new Set(['+', '=', '-']);
+/** FR-GLOBE-6: one wheel notch, in pixels (a mouse's notch is about 100 in Chromium and Safari, 3 lines in Firefox); a trackpad's small deltas zoom their share of a step. */
+const WHEEL_NOTCH_PX = 100;
+const WHEEL_LINE_PX = WHEEL_NOTCH_PX / 3;
 
-function frameOf(turn: Turn, place: Observer, t: EpochMs): Frame {
-  return turn === 'stars' ? EQUATORIAL : globeSky(place, t).frame;
+/** The wheel's delta in notches, by its `deltaMode` (pixels, lines or pages), at most one notch an event. */
+function wheelNotches(event: WheelEvent, pagePx: number): number {
+  const px = event.deltaMode === 1 ? event.deltaY * WHEEL_LINE_PX : event.deltaMode === 2 ? event.deltaY * pagePx : event.deltaY;
+  return Math.max(-1, Math.min(1, px / WHEEL_NOTCH_PX));
 }
 
 /** FR-GLOBE-5, D-1036: the opening view in `turn`'s frame — the local frame's opening view, carried into the equatorial one when turning with the stars. */
@@ -83,6 +88,13 @@ function openingView(turn: Turn, place: Observer, t: EpochMs): View {
   const view = openView(sky);
   const inFrame = turn === 'stars' ? coordsIn(EQUATORIAL, sky.frame, view.lon, view.lat) : view;
   return { lon: inFrame.lon, lat: inFrame.lat, zoom: 1 };
+}
+
+/** A ref filled once, on the first render: `openingView` runs `globeSky`, which a render under the lapse should not pay for again. */
+function useViewRef(init: () => View): { current: View } {
+  const ref = useRef<View | null>(null);
+  if (ref.current === null) ref.current = init();
+  return ref as { current: View };
 }
 
 function measure(box: HTMLElement): { width: number; height: number } {
@@ -95,7 +107,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const rendererRef = useRef<GlobeRenderer | null>(null);
-  const viewRef = useRef<View>(openingView(turn, place, instant));
+  const viewRef = useViewRef(() => openingView(turn, place, instant));
   const [named, setNamed] = useState<GlobeTarget | null>(null);
   const [hovered, setHovered] = useState<GlobeTarget | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -127,19 +139,22 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   }, [catalog]);
 
   // FR-GLOBE-5: a turn switch carries the view centre into the new frame; FR-GLOBE-9: a new place re-opens the view while turning with you.
+  // The source frame is the one last drawn — the previous turn at the previous place and instant — so a place or a time that changes with the switch does not move the centre.
   const turnRef = useRef(turn);
   const placeRef = useRef(place);
+  const instantRef = useRef(instant);
   useLayoutEffect(() => {
     const renderer = rendererRef.current;
     const view = viewRef.current;
     if (turnRef.current !== turn) {
-      const from = frameOf(turnRef.current, place, instant);
-      const to = frameOf(turn, place, instant);
+      const from = frameFor(turnRef.current, placeRef.current, instantRef.current);
+      const to = frameFor(turn, place, instant);
       const moved = coordsIn(to, from, view.lon, view.lat);
       view.lon = moved.lon;
       view.lat = moved.lat;
       turnRef.current = turn;
     }
+    instantRef.current = instant;
     const was = placeRef.current;
     if (was.lat !== place.lat || was.lon !== place.lon || was.altM !== place.altM) {
       placeRef.current = place;
@@ -150,27 +165,37 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
       }
     }
     renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named });
-  }, [place, instant, turn, layers, faint, language, hovered, named]);
+  }, [place, instant, turn, layers, faint, language, hovered, named, viewRef]);
 
-  // FR-GLOBE-10: the deep chunk, once, the first time `faint` is on; a failure tells the page.
+  // FR-GLOBE-10: the deep chunk, once, the first time `faint` is on; a failure tells the page. The callback is read through a ref, so a new one does not re-run the load.
   const askedRef = useRef(false);
+  const onFaintFailedRef = useRef(onFaintFailed);
+  useEffect(() => {
+    onFaintFailedRef.current = onFaintFailed;
+  }, [onFaintFailed]);
   useEffect(() => {
     if (!faint || askedRef.current) return;
     askedRef.current = true;
     let live = true;
+    let settled = false;
     loadDeepChunk().then(
       (deep) => {
+        settled = true;
         if (live) rendererRef.current?.setDeep(deep);
       },
       () => {
+        settled = true;
+        if (!live) return;
         askedRef.current = false;
-        if (live) onFaintFailed?.();
+        onFaintFailedRef.current?.();
       },
     );
     return () => {
       live = false;
+      // A load cut short (faint off and on again before it came back) is asked for again on the next run, not dropped.
+      if (!settled) askedRef.current = false;
     };
-  }, [faint, onFaintFailed]);
+  }, [faint]);
 
   // FR-GLOBE-11: a pressed name holds for `STAR_LABEL_HOLD_S`, as the window's own does.
   useEffect(() => {
@@ -190,24 +215,26 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (change.lat !== undefined) view.lat = clampLat(change.lat);
     if (change.zoom !== undefined) view.zoom = clampZoom(change.zoom);
     rendererRef.current?.set({ lon: view.lon, lat: view.lat, zoom: view.zoom });
-  }, []);
+  }, [viewRef]);
 
   const zoomBy = useCallback(
     (factor: number): void => {
       if (!(factor > 0) || !Number.isFinite(factor) || factor === 1) return;
       writeView({ zoom: viewRef.current.zoom * factor });
     },
-    [writeView],
+    [writeView, viewRef],
   );
 
-  // FR-GLOBE-6: the wheel zooms about the box's centre by `GLOBE_ZOOM_STEP` per notch. A native listener with `passive: false`, so the page does not scroll under the globe.
+  // FR-GLOBE-6: the wheel zooms about the box's centre by `GLOBE_ZOOM_STEP` per notch, a trackpad's small deltas by their share of one. A native listener with `passive: false`, so the page does not scroll under the globe; ctrl or cmd + wheel stays the browser's zoom, as ctrl or cmd + `+`/`-` do.
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     const onWheel = (event: WheelEvent): void => {
+      if (event.ctrlKey || event.metaKey) return;
       event.preventDefault();
-      if (event.deltaY === 0) return;
-      zoomBy(event.deltaY < 0 ? GLOBE_ZOOM_STEP : 1 / GLOBE_ZOOM_STEP);
+      const notches = wheelNotches(event, box.clientHeight || WHEEL_NOTCH_PX);
+      if (notches === 0) return;
+      zoomBy(GLOBE_ZOOM_STEP ** -notches);
     };
     box.addEventListener('wheel', onWheel, { passive: false });
     return () => {
@@ -251,16 +278,24 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const pinch = pinchRef.current;
     if (pinch && (pinch.a === pointerId || pinch.b === pointerId)) pinchRef.current = null;
   };
+  /** The drag is over (an up, a cancel, a lost capture, a pinch or a new contact). */
+  const stopDrag = (): void => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragging(false);
+  };
+  /** `pointerId` is gone: forgotten, and its drag stopped if it had one. */
+  const dropPointer = (pointerId: number): void => {
+    forget(pointerId);
+    if (dragRef.current?.pointerId === pointerId) stopDrag();
+  };
   const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
-    forget(event.pointerId);
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
       // jsdom and old browsers: the drag still works while the pointer stays over the box.
     }
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    setDragging(false);
+    dropPointer(event.pointerId);
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -268,10 +303,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (event.isPrimary) {
       // A primary pointer starts a new contact: whatever was left over from a capture that failed is forgotten.
       for (const id of [...pointers.keys()]) forget(id);
-      if (dragRef.current) {
-        dragRef.current = null;
-        setDragging(false);
-      }
+      stopDrag();
     }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     try {
@@ -282,10 +314,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (pointers.size === 2 && pinchRef.current === null) {
       const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
       pinchRef.current = { a: first[0], b: second[0], distance: Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y) };
-      if (dragRef.current) {
-        dragRef.current = null;
-        setDragging(false);
-      }
+      stopDrag();
       return;
     }
     if (pointers.size !== 1 || pinchRef.current !== null || dragRef.current) return;
@@ -351,10 +380,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (pointersRef.current.has(event.pointerId) && !captured) endDrag(event);
   };
   const onLostPointerCapture = (event: PointerEvent<HTMLDivElement>): void => {
-    forget(event.pointerId);
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    setDragging(false);
+    dropPointer(event.pointerId);
   };
 
   // FR-GLOBE-6: the keys while the box has focus; none of them is a page shortcut (FR-DESK-4's list is letters, Enter and Escape).

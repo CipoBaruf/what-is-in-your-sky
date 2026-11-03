@@ -40,6 +40,8 @@ export const chart: typeof EnChart = {
       sun: 'Sol',
       moon: 'Luna',
       namedBelow: (p) => `${p.name} · mag ${p.mag} · ${p.altitude} bajo el horizonte · ${p.point}`,
+      bodyUp: (p) => `${p.name} · ${p.altitude} de altura · ${p.point}`,
+      bodyBelow: (p) => `${p.name} · ${p.altitude} bajo el horizonte · ${p.point}`,
     },
   },
 };

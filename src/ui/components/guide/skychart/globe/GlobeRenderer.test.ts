@@ -345,12 +345,64 @@ describe('the names (FR-GLOBE-11, D-1041)', () => {
     expect(r.readoutFor({ kind: 'figure', index: orion, segment: 0 })).toBe('Orión');
     expect(r.labelFor({ kind: 'moon' })).toBe('Luna');
   });
+
+  it('reads the Sun and the Moon out by their own sentence, with no magnitude, in both languages', () => {
+    const { r } = mount();
+    const sky = globeSky(BUENOS_AIRES, T);
+    const line = (alt: number, az: number, name: string, up: string, below: string): string => `${name} · ${degrees(Math.abs(alt))} ${alt >= 0 ? up : below} · ${compassPoint(az)}`;
+    expect(r.readoutFor({ kind: 'sun' })).toBe(line(sky.sun.altDeg, sky.sun.azDeg, 'Sun', 'up', 'below'));
+    expect(r.readoutFor({ kind: 'moon' })).toBe(line(sky.moon.altDeg, sky.moon.azDeg, 'Moon', 'up', 'below'));
+    r.set({ lang: 'es' });
+    expect(r.readoutFor({ kind: 'moon' })).toBe(line(sky.moon.altDeg, sky.moon.azDeg, 'Luna', 'de altura', 'bajo el horizonte'));
+  });
+
+  it('dims a named figure’s label by the side its line is drawn on, the segment’s midpoint, not by its ends', () => {
+    const { r } = mount({ layers: { stars: true, figures: true, planets: true, names: false } });
+    const sky = globeSky(BUENOS_AIRES, T);
+    const ends: { a: number; b: number; figure: number }[] = [];
+    catalog.figures.forEach((figure, f) => {
+      for (let k = 0; k + 1 < figure.segments.length; k += 2) ends.push({ a: figure.segments[k] ?? 0, b: figure.segments[k + 1] ?? 0, figure: f });
+    });
+    const height = (i: number): number => starDir(i).reduce((sum, v, k) => sum + v * (sky.zenith[k] ?? 0), 0);
+    // A drawn segment across the horizon with its midpoint on the ground side: one end up, so "both ends below" says up.
+    const k = ends.findIndex((seg, j) => r.lines[j] !== null && (height(seg.a) >= 0) !== (height(seg.b) >= 0) && height(seg.a) + height(seg.b) < 0);
+    const seg = ends[k];
+    if (!seg) throw new Error('no drawn segment across the horizon with its midpoint below');
+    r.set({ named: { kind: 'figure', index: seg.figure, segment: k } });
+    r.draw();
+    const label = q(r, '[data-label]');
+    expect(label).toHaveAttribute('visibility', 'visible');
+    expect(label.classList.contains(styles.dim ?? 'dim')).toBe(true);
+    expect(label).toHaveAttribute('opacity', String(GLOBE_DIM_OPACITY));
+  });
 });
 
 describe('frames (D-1038)', () => {
+  it('schedules the first frame itself, so a set that repeats the opening state still draws', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    document.body.appendChild(svg);
+    const r = new GlobeRenderer(svg, catalog, stateAt());
+    made.push(r);
+    expect(raf).toHaveBeenCalledTimes(1);
+    expect(r.set({ width: W, height: H })).toBe(false);
+    expect(raf).toHaveBeenCalledTimes(1);
+    const first = raf.mock.calls[0]?.[0];
+    first?.(16);
+    expect(r.frames).toBe(1);
+    expect(svg.getAttribute('viewBox')).toBe(`0 0 ${String(W)} ${String(H)}`);
+    raf.mockRestore();
+  });
+
   it('schedules one frame for a change and none for a set that changes nothing', () => {
-    const raf = vi.spyOn(window, 'requestAnimationFrame');
+    let pending: FrameRequestCallback | null = null;
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      pending = callback;
+      return 1;
+    });
     const { r } = mount();
+    // The constructor's own first frame, run, so the next request is a new one.
+    (pending as FrameRequestCallback | null)?.(16);
     raf.mockClear();
     const same = stateAt();
     expect(r.set({ lon: same.lon, lat: same.lat, zoom: 1, layers: { ...same.layers }, place: { ...BUENOS_AIRES }, named: null })).toBe(false);
