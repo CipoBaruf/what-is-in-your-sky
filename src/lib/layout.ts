@@ -499,6 +499,13 @@ export function foldBelowPx(row: LiveFold): number {
 export const SETTINGS_FIT_PLACES = 2;
 
 /**
+ * v2.12 (FR-SET-2 as amended, FR-SET-5, D-1019): how far past 390 × 844 the settings page may run in its fullest state
+ * — an observer, `SETTINGS_FIT_PLACES` places, the coordinates open and the install offer — since the Sun's glow row
+ * joined the browser rows: one row of the page's (32 px measured), with a little room for a font's rounding.
+ */
+export const SETTINGS_SKY_ROW_PX = 40;
+
+/**
  * R132 (FR-FLOW-7, D-849): on wide the guide panel's drawing is at least this share of the area the panel has under
  * its head band — its body — at 1280 × 800. The panel is the home's right-hand column, 818 × 442 px there; the band
  * (the name, the countdown at the headline size, the landmark line, the three times) is a third of it, and the one

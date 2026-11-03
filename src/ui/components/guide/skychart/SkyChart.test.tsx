@@ -475,6 +475,21 @@ describe('the offered views, the page’s own view and the pinch handoff (R160)'
   });
 });
 
+describe('the Sun’s glow (FR-SET-5, D-1019)', () => {
+  it('is off by default and drawn once the setting is on, the Sun still the legend’s', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+    act(() => {
+      appStore.getState().setChartView('polar');
+    });
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} />);
+    expect(container.querySelector('svg [data-body="sun"]')).toBeNull();
+    act(() => {
+      appStore.getState().setSunGlow(true);
+    });
+    expect(container.querySelector('svg [data-body="sun"]')).not.toBeNull();
+  });
+});
+
 describe('the legend’s Moon line (FR-MOON-3 as amended v2.0)', () => {
   /**
    * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and the illumination are the *compact* live page's,

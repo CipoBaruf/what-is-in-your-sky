@@ -69,6 +69,8 @@ interface Prefs {
    * written before v2.5 loads with the stars on.
    */
   starsLayer?: boolean;
+  /** v2.12 (FR-SET-5, D-1019): the Sun's glow on the sky views. Only `true` is stored; absent or malformed is off. */
+  sunGlow?: boolean;
   /**
    * R132 (FR-FLOW-6, D-848): the reader has made a first drag, pinch or tap on a
    * sky view, so the hint under the drawing is gone for good. Only `true` is
@@ -111,6 +113,8 @@ const storedPrefsSchema = z.object({
   showFaint: z.boolean().catch(false),
   // FR-SKY-3 (D-791): the same, the other way up — absent, malformed or true all mean the stars on.
   starsLayer: z.boolean().catch(true),
+  // FR-SET-5 (D-1019): absent, malformed or false all mean no glow.
+  sunGlow: z.boolean().catch(false),
   // FR-FLOW-6 (D-848): absent, malformed or false all mean the hint has not been seen.
   skyHintSeen: z.boolean().catch(false),
   // FR-PHONE-2 (D-962): absent, malformed or false all mean no saved grant.
@@ -142,7 +146,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, sunGlow, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -155,6 +159,8 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (showFaint) prefs.showFaint = true;
         // Only `false` is a choice (FR-SKY-3): the stars are on unless the toggle turned them off.
         if (!starsLayer) prefs.starsLayer = false;
+        // Only `true` is a choice (FR-SET-5): the glow is off unless the settings page turned it on.
+        if (sunGlow) prefs.sunGlow = true;
         // Only `true` is a choice (FR-FLOW-6): the hint shows until the first gesture.
         if (skyHintSeen) prefs.skyHintSeen = true;
         // Only `true` is a grant (FR-PHONE-2): a refusal clears the key, and no grant is what an absent key means.

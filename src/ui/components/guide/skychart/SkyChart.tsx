@@ -198,6 +198,8 @@ export function SkyChart(props: SkyChartProps) {
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const chartView = useAppStore((s) => s.chartView);
+  // v2.12 (FR-SET-5, D-1019): the Sun's glow on every view, the settings page's switch, off by default.
+  const sunGlow = useAppStore((s) => s.sunGlow);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
   // FR-FOL-2: the one line the last answer left.
@@ -421,7 +423,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} {...handoff} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
     </figure>
   );
 }
