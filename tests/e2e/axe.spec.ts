@@ -17,6 +17,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON } from './observers';
 import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
+import { LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { WIDE_MIN_PX } from '../../src/lib/layout';
 
 /** FR-A11Y-7: the WCAG 2.0 and 2.1 A and AA rules. */
 export const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
@@ -64,7 +66,8 @@ async function toLive(page: Page, theme: Theme): Promise<void> {
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
 }
 
-const SCREENS: { name: string; open: (page: Page, theme: Theme) => Promise<void> }[] = [
+/** R170: a screen only the wide layout has (`wideOnly`) is skipped at the phone's width. */
+const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: Theme) => Promise<void> }[] = [
   {
     name: 'home, cold',
     open: async (page, theme) => {
@@ -111,6 +114,15 @@ const SCREENS: { name: string; open: (page: Page, theme: Theme) => Promise<void>
       await expect(page.getByTestId('settings-back')).toBeVisible();
     },
   },
+  // R170 (FR-GLOBE-16, D-1042): the stars page with the globe shown, its rail's groups and list, a saved place among them, in both languages.
+  ...((['en', 'es'] as const).map((locale) => ({
+    name: `#stars, the globe (${locale})`,
+    wideOnly: true,
+    open: async (page: Page, theme: Theme) => {
+      await openStarsPage(page, { locale, theme, favourites: [LONDON] });
+      await showGlobe(page, locale);
+    },
+  }))),
 ];
 
 test.use({ bypassCSP: true, serviceWorkers: 'block' });
@@ -120,7 +132,7 @@ for (const viewport of WIDTHS) {
     test.describe(`at ${String(viewport.width)} px, ${theme}`, () => {
       test.use({ viewport });
 
-      for (const screen of SCREENS) {
+      for (const screen of SCREENS.filter((s) => !s.wideOnly || viewport.width >= WIDE_MIN_PX)) {
         test(`${screen.name} has no WCAG A/AA violation (FR-A11Y-7)`, async ({ page }) => {
           await screen.open(page, theme);
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);

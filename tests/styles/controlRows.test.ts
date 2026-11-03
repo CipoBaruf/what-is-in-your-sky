@@ -32,7 +32,7 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
-import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer, TonightCloud } from '../../src/model';
@@ -585,6 +585,53 @@ describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) 
     expect(rowParts(row, textButtonTable)).toEqual([`####${views.window}`, views.wholeSky]);
     expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
     expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
+  });
+});
+
+/**
+ * R170 (FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-16; D-1035): the wide stars page's globe rail — the view row
+ * `[ Window ] Globe`, the clock line, the steps, `[ now ]` with the three speeds, the turn and the layer rows with
+ * `[ ] faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
+ * cut at the rail's width with an ellipsis (FR-GLOBE-9) and are not counted.
+ */
+describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', (locale: Locale) => {
+  const t = CATALOGS[locale];
+  const place: Observer = { ...observer, label: 'Buenos Aires', timeZone: 'America/Argentina/Buenos_Aires' };
+
+  beforeEach(async () => {
+    media.restore();
+    media = stubMatchMedia(1280);
+    appStore.setState({ observer: place });
+    render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
+    fireEvent.click(within(screen.getByTestId('stars-view-row')).getByRole('button', { name: t.globe.view }));
+    await screen.findByTestId('globe-groups', {}, { timeout: 5_000 });
+  });
+
+  it('the view row reads [ Window ] Globe', () => {
+    const row = screen.getByTestId('stars-view-row');
+    // The globe pressed: its brackets are drawn, the window's are not.
+    expect(rowParts(row, textButtonTable)).toEqual([t.chart.views.window, `####${t.globe.view}`]);
+    expect(rowCells(row, textButtonTable)).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+  });
+
+  it.each([
+    ['the steps', () => screen.getByTestId('globe-steps')],
+    ['[ now ] and the speeds', () => screen.getByTestId('globe-speeds')],
+    ['the turn', () => screen.getByTestId('globe-turn-row')],
+    ['the first layer row', () => screen.getAllByTestId('stars-layers-row')[0] as Element],
+    ['the second layer row, with faint', () => screen.getAllByTestId('stars-layers-row')[1] as Element],
+  ] as const)('%s', (name, find) => {
+    const row = find();
+    const cells = rowCells(row, table);
+    expect(cells, `${name} in ${locale}: ${rowParts(row, table).join(' | ')}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+  });
+
+  it('the clock line, with its chip', () => {
+    const line = screen.getByTestId('globe-clock').textContent ?? '';
+    expect(line).toMatch(/^.+: \d\d:\d\d:\d\d GMT[−-]3 · \d{4}-\d\d-\d\d · .+$/);
+    // The accessible prefix is visually hidden; the drawn line is what follows it.
+    const drawn = line.slice(line.indexOf(': ') + 2);
+    expect([...drawn].length, drawn).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 });
 

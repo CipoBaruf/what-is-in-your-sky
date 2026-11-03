@@ -1,5 +1,6 @@
 import { chart } from './es/chart';
 import { failure } from './es/failure';
+import { globe } from './es/globe';
 import { home } from './es/home';
 import { live } from './es/live';
 import { stars } from './es/stars';
@@ -16,4 +17,4 @@ import type { Messages } from './messages';
  * missing anywhere is still a `tsc -b` failure and never a runtime fallback
  * to English (D-69).
  */
-export const es: Messages = { ...ui, ...chart, ...live, ...windowMessages, ...stars, ...failure, ...home, ...track, ...sheet };
+export const es: Messages = { ...ui, ...chart, ...live, ...windowMessages, ...stars, ...failure, ...home, ...track, ...sheet, ...globe };

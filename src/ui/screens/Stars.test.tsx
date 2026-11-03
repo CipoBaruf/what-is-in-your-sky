@@ -215,8 +215,8 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Vista', 'Hacia', p.layersHeading, p.fieldHeading]);
     expect(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'arriba' })).toBeInTheDocument();
     expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres']);
-    // R160 (FR-PHONE-7): the view row's two words.
-    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Ventana', 'Cielo entero']);
+    // R160 (FR-PHONE-7) → R170 (FR-GLOBE-1): the view row's two words on wide.
+    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Ventana', 'Globo']);
   });
 });
 
@@ -455,7 +455,8 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
   });
 
   it('names the whole sky’s twelve brightest in In this field', async () => {
-    media = stubMatchMedia(WIDE_PX);
+    // R170: on wide the second view is the globe; the whole sky is compact's.
+    media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     await opened();
     const list = () => screen.getByRole('list', { name: STARS_PAGE_CATALOGS.en.fieldHeading });
@@ -475,20 +476,25 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
     expect(list().querySelector('[data-kind="pass"]')).toBeNull();
   });
 
-  it('defaults the names on for the whole sky on wide, and the [x] names toggle drives both views once tapped (FR-PHONE-8)', async () => {
+  it('defaults the names on for the globe on wide, and the [x] names toggle drives both views once tapped (FR-PHONE-8, FR-GLOBE-10)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
     await opened();
     const names = () => screen.getByRole('button', { name: 'names' });
     expect(names()).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(viewRow().getByRole('button', { name: 'Whole sky' }));
-    await drawn('polar');
-    await polarMarks();
+    // R170 (FR-GLOBE-1): on wide the second value is the globe; the names are on for it by default.
+    fireEvent.click(viewRow().getByRole('button', { name: 'Globe' }));
+    await screen.findByTestId('globe-box', {}, { timeout: 5_000 });
     expect(names()).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('stars-sky').querySelector('[data-drawing="polar"] [data-names] text')).not.toBeNull();
+    const globeNames = () => screen.getByTestId('stars-sky').querySelectorAll('[data-names] text[visibility="visible"]');
+    await waitFor(() => {
+      expect(globeNames().length).toBeGreaterThan(0);
+    });
     fireEvent.click(names());
     expect(names()).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByTestId('stars-sky').querySelector('[data-drawing="polar"] [data-names] text')).toBeNull();
+    await waitFor(() => {
+      expect(globeNames()).toHaveLength(0);
+    });
     // The choice holds for the window too.
     fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
     await drawn('window');

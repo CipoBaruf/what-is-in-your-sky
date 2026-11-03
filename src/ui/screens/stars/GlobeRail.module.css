@@ -1,0 +1,76 @@
+/* R170 (FR-GLOBE-7..9, FR-GLOBE-12; D-1035): the globe's rail groups on the wide stars page — each a block of
+   `--space-1` rows like the page's own (`Stars.module.css`), every control row one line at the tap height. Every
+   length is a token or a count of cells (FR-DS-2). */
+
+.block {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* One control row: the controls at the tap height, never wrapping (`controlRows.test.ts` counts them against the rail). */
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+  white-space: nowrap;
+}
+
+.speeds {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+/* FR-GLOBE-8: the clock line; the chip in the dim ink after it, the accent while it is `now` (FR-TONIGHT-7). */
+.clock {
+  margin: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  color: var(--fg-dim);
+}
+
+.chip[data-kind='now'] {
+  color: var(--accent);
+}
+
+/* FR-GLOBE-9: the places as one column, each option cut at the rail's width with its full name as its accessible name. */
+.places {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.places > button {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: start;
+}
+
+/* FR-GLOBE-12: the count and the planets' line, at `--small` in the dim ink. */
+.counts {
+  display: grid;
+  gap: 0;
+}
+
+.counts p {
+  margin: 0;
+  font-size: var(--small);
+  color: var(--fg-dim);
+}
+
+/* The three groups, a group apart (D-851's rhythm). */
+.groups {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
