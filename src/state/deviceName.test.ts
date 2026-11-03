@@ -22,7 +22,7 @@ function setup(nearestTown: NearestTown) {
 }
 
 describe('deviceLabel', () => {
-  it('reads "Cipolletti, Argentina", the country in the reader's language ("Berlin, Alemania"), with no "Near" (D-1029)', () => {
+  it('reads "Cipolletti, Argentina", the country in the reader’s language ("Berlin, Alemania"), with no "Near" (D-1029)', () => {
     expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'en')).toBe('Cipolletti, Argentina');
     expect(deviceLabel(cipolletti, fix.lat, fix.lon, 'es')).toBe('Cipolletti, Argentina');
     expect(deviceLabel({ name: 'Berlin', country: 'DE', km: 0.2 }, 52.52, 13.4, 'es')).toBe('Berlin, Alemania');
