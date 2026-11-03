@@ -27,6 +27,11 @@
   display: none;
 }
 
+/* D-1033: the list's anchor is a row of the field's grid only while the list shows; hidden, it takes no row and no gap. */
+.anchor[hidden] {
+  display: none;
+}
+
 /* D-1033 (the owner's call 2026-11-02, on a desk): on wide the pick list floats over what follows it, at its static
    place under the field, and scrolls inside itself past five rows, so a long answer never makes the page scroll.
    On a phone it stays in the flow, as before. The field is a grid, and a grid's absolutely positioned child takes the
