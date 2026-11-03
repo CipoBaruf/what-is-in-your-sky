@@ -9,10 +9,14 @@
  * D-500's ring round its text line, which takes the inline control's tap box away while the ring is drawn — the
  * keyboard's state, held by `settings.spec.ts` — so the focus is let go before the measure.
  *
+ * R165 (FR-CLEAN-8, D-1000): the stars page and the pass detail are the sky with a sheet on the phone, upright and
+ * turned, so their controls are measured with the sheet open and with it closed (the bottom row and the head over the
+ * sky) at 390 × 844 and at 844 × 390.
+ *
  *   npx playwright test targets --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
-import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE } from './flowPages';
+import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE, SHEET_CASES, TURNED, type SheetState } from './flowPages';
 
 /** WCAG 2.5.5 (target size, enhanced) and Apple's guideline. */
 const TARGET_PX = 44;
@@ -106,4 +110,26 @@ for (const locale of LOCALES) {
       });
     });
   });
+}
+
+/** R165 (FR-CLEAN-8): the two sheets, open and closed, upright and turned (the open sheet upright is the case above). */
+const SHEET_RUNS: readonly { viewport: typeof PHONE; sheet: SheetState }[] = [
+  { viewport: PHONE, sheet: 'closed' },
+  { viewport: TURNED, sheet: 'open' },
+  { viewport: TURNED, sheet: 'closed' },
+];
+
+for (const locale of LOCALES) {
+  for (const { viewport, sheet } of SHEET_RUNS) {
+    test.describe(`FR-CLEAN-8 at ${String(viewport.width)} × ${String(viewport.height)}, the sheet ${sheet}, ${locale}`, () => {
+      test.use({ viewport });
+
+      for (const flow of SHEET_CASES) {
+        test(`every control on the ${caseName(flow)} page is a 44 × 44 target or a meeting row`, async ({ page }) => {
+          const root = await openFlowPage(page, flow.page, locale, flow.view, sheet);
+          expect(await misses(root)).toEqual([]);
+        });
+      }
+    });
+  }
 }

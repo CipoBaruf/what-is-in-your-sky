@@ -8,6 +8,8 @@ import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 export const PHONE = { width: 390, height: 844 };
+/** R165 (FR-CLEAN-8, D-1000): the phone turned, where the stars page and the pass detail are the full form too. */
+export const TURNED = { width: 844, height: 390 };
 export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
 export type FlowPage = 'home' | 'live' | 'stars' | 'detail' | 'settings';
@@ -24,6 +26,10 @@ export interface FlowCase {
   view: FlowView | null;
 }
 export const FLOW_CASES: readonly FlowCase[] = FLOW_PAGES.flatMap((page): FlowCase[] => (page === 'live' || page === 'detail' ? FLOW_VIEWS.map((view) => ({ page, view })) : [{ page, view: null }]));
+/** R165 (FR-CLEAN-8): the two sky pages whose sheets the specs measure open and closed, in each view they open on. */
+export const SHEET_CASES: readonly FlowCase[] = FLOW_CASES.filter(({ page }) => page === 'stars' || page === 'detail');
+/** Whether `openFlowPage` opens the page's sheet (the default) or leaves the sky with the sheet closed. */
+export type SheetState = 'open' | 'closed';
 /** A case's name in a test title: `live (window)`, `home`. */
 export const caseName = ({ page, view }: FlowCase): string => (view === null ? page : `${page} (${view})`);
 
@@ -50,7 +56,7 @@ async function seedReader(page: Page, locale: Locale): Promise<void> {
  * Opens one of the five pages, settled, and returns the element its measures are taken under. `view` is the chart's
  * view on the live page and the pass detail (D-885); the other pages have one form and ignore it.
  */
-export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, view: FlowView | null = 'dome'): Promise<Locator> {
+export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, view: FlowView | null = 'dome', sheet: SheetState = 'open'): Promise<Locator> {
   const drawn = view ?? 'dome';
   switch (which) {
     case 'home': {
@@ -81,7 +87,9 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       await expect(layout).toBeVisible();
       await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
       // R163 (FR-CLEAN-4, FR-CLEAN-8): the compact stars page is measured with its sheet open, as the live page is — its rows are the sheet's.
-      await openSheet(page);
+      // R165: or closed, the sky and what stands over it.
+      if (sheet === 'open') await openSheet(page);
+      else await expect(page.getByTestId('live-controls')).toBeVisible();
       return page.locator('body');
     }
     case 'detail': {
@@ -93,7 +101,9 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
       // The compact guide stands over the home, which it makes inert: the dialog is the page. R164 (FR-CLEAN-5,
       // FR-CLEAN-8): it is measured with its sheet open, as the live page and the stars page are — its rows are the sheet's.
-      await openSheet(page);
+      // R165: or closed, the sky and what stands over it.
+      if (sheet === 'open') await openSheet(page);
+      else await expect(page.getByTestId('live-controls')).toBeVisible();
       return page.locator('[role="dialog"][data-pass-id]');
     }
     case 'settings': {

@@ -6,7 +6,7 @@ import { DEFAULT_TILT_DEG, DOME_RADIUS, DRAWING_HEIGHT_UNITS, GROUND_RADIUS, ZOO
 import { COMPASS_LABEL_RADIUS, projectToScreen, type Tuple3 } from './domeGeometry';
 
 /** R135 (D-882): the bowl's numbers live in `bowl.ts`, which `ChartFrame` imports without this module. */
-export { bowlHeightPx, DEFAULT_TILT_DEG, DOME_BOX_ASPECT, DOME_RADIUS, DRAWING_HEIGHT_UNITS, ZOOM_HEIGHT_DIVISOR, ZOOM_WIDTH_DIVISOR } from './bowl';
+export { DEFAULT_TILT_DEG, DOME_BOX_ASPECT, DOME_RADIUS, DRAWING_HEIGHT_UNITS, ZOOM_HEIGHT_DIVISOR, ZOOM_WIDTH_DIVISOR } from './bowl';
 
 /**
  * PLAN §8.3/§8.4 (R15): the dome's camera as two numbers the user controls,

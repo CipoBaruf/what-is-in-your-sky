@@ -274,31 +274,11 @@ export function viewportAspect(viewportWidthPx: number, viewportHeightPx: number
   return viewportWidthPx > 0 && viewportHeightPx > 0 ? viewportWidthPx / viewportHeightPx : 1;
 }
 
-/**
- * R133 (FR-FLOW-9, D-850; F4, D5): the compact dome's box is cut from the bowl.
- * On a phone the box is width-bound (FR-DOME-1: the zoom is the width over
- * `ZOOM_WIDTH_DIVISOR`), and a square box left a band of blank over and under
- * the drawing — 66 px of a 390 px square at 390 × 844. So the box is the
- * bowl's drawn height at that zoom — `DRAWING_HEIGHT_UNITS` of it, F-61's
- * silhouette-to-ground extent, which `dome/bowl.ts` `bowlHeightPx` gives for
- * a width — plus this slack above and below it: one `--space-3`, the group
- * rhythm (D-851), so the rows over and under the drawing stand a group away
- * from the bowl and not from an empty corner of its box. The scene's cell
- * snap takes part of the slack (the raster's rows are whole cells, D-293),
- * so the blank the reader sees is at most this and usually less; the e2e test
- * (`sky-box.spec.ts`) reads the drawn cells and holds both gaps to it.
+/*
+ * R133 (FR-FLOW-9, D-850): `DOME_COMPACT_SLACK_PX` and `compactDomeBoxHeightPx`, the compact dome's box cut from the
+ * bowl, stood here. R165 (FR-CLEAN-8, D-1000): every compact sky page is the full form, whose box is the screen, so
+ * the cut and its slack had no reader and went.
  */
-export const DOME_COMPACT_SLACK_PX = 24;
-
-/**
- * The compact dome's box height: the bowl plus the slack above and below it,
- * and never under the floor the caller names — FR-LIVE-7's compact floor,
- * `COMPACT_BOX_MIN_SHORT_PX`, which binds under about 313 px of box width
- * (where the rounding is whole px, as every box length here is).
- */
-export function compactDomeBoxHeightPx({ bowlHeightPx, floorPx }: { bowlHeightPx: number; floorPx: number }): number {
-  return Math.max(Math.round(floorPx), Math.round(bowlHeightPx + 2 * DOME_COMPACT_SLACK_PX));
-}
 
 /**
  * R142 (FR-TONIGHT-3, D-896, D-900): the compact live page's time track is
@@ -345,22 +325,10 @@ export const ROW_PX = 1.5 * BASE_FONT_PX;
 export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
-/**
- * R95 (FR-COMP-5 as amended v2.1, V21-23, F-62; D-615; v2.5, V25-18): the compact box's
- * floor on the short phone, while watching. On a compact portrait page at least
- * 844 px tall the box is never shorter than it is wide (374 px at 390 × 844); at
- * 390 × 667 every gap is already at its minimum and the box is what the rows
- * leave: 329 with a one-line path on the headline, 306 when the pass's words
- * wrap to two. R127 (FR-COMP-5 as amended v2.5, V25-18; D-839): the landmark
- * line (FR-SKY-11) is the headline's fourth line and takes 23 px — 306 with a
- * one-line path, 282 with two — so the floor is 280, which holds either.
- * Scrubbing's stripe block takes it to about 220, so the floor is
- * not asserted there. Kept beside `LIVE_BOX_MIN_PX` so the two floors are
- * found together. R133 (FR-FLOW-9, D-850): the layout reads it now — it is
- * the floor `ChartFrame` holds the compact dome's bowl-cut box to
- * (`compactDomeBoxHeightPx`), which at the 390 px phone is 337 and well over it.
+/*
+ * R95 (FR-COMP-5 as amended, D-615, D-839): `COMPACT_BOX_MIN_SHORT_PX`, the compact column's box floor on the short
+ * phone (280), stood here; R165 (D-1000) removed it with the column and the bowl's cut, its last reader.
  */
-export const COMPACT_BOX_MIN_SHORT_PX = 280;
 
 /** FR-WATCH-1: the live page's two states. `ui/screens/liveRows.ts` is the inventory of each. */
 export type LiveState = 'watching' | 'scrubbing';
@@ -370,12 +338,10 @@ export type PageShape = 'portrait' | 'landscape-phone';
 export const SIDEWAYS_MAX_HEIGHT_PX = 500;
 export const LANDSCAPE_PHONE_QUERY = `(orientation: landscape) and (height <= ${String(SIDEWAYS_MAX_HEIGHT_PX)}px)`;
 
-/**
- * R136 (FR-FLOW-15, D-877): on the landscape phone the live page, the stars page and the pass detail stand the
- * drawing at the left, at least this share of the viewport's width; the rail takes the rest. `SkyViewLayout`
- * writes it as `--sky-drawing-share` and `sky-layout.spec.ts` asserts it at 844 × 390 and 667 × 375.
+/*
+ * R136 (FR-FLOW-15, D-877): `LANDSCAPE_DRAWING_MIN_SHARE`, the landscape phone's drawing share beside its compact
+ * rail, stood here; R165 (D-1000) removed it with that rail.
  */
-export const LANDSCAPE_DRAWING_MIN_SHARE = 0.55;
 
 /** Which shape a `matchMedia(LANDSCAPE_PHONE_QUERY)` result means. The mode is asked separately (FR-SHP-1). */
 export function pageShape(matchesLandscapePhone: boolean): PageShape {
