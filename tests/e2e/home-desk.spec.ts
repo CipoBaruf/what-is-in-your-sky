@@ -72,7 +72,11 @@ async function overflowPx(pane: Locator): Promise<number> {
 
 async function openHome(page: Page, width: number, height: number, locale: Locale): Promise<void> {
   await page.setViewportSize({ width, height });
-  await seedStoredRun(page, { locale });
+  // The recompute has ended before anything is measured. While it runs, the list — and the Satellites door,
+  // which reads it — is the new job's first objects (R24, `listSettled`): at 1118 px a partial list whose next
+  // pass is Tiangong wraps two door lines, the doors grow from D-1017's 172 px to 196 and When's box loses that
+  // row, which a slow runner measured as When 12 px over. The page FR-HOME-3 is about is the settled one.
+  await seedStoredRun(page, { locale, settled: true });
   await expect(page.getByTestId('reading-when')).toBeVisible();
   await expect(page.getByTestId('door-satellites')).toBeVisible();
   // The When pane's late blocks — the flag's tradition line rides on a lazy chunk and the Moon's state — are
