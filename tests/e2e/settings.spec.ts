@@ -457,7 +457,8 @@ test.describe('on a desk only the pick list scrolls (D-1033)', () => {
     // It hangs under the field and never covers what the reader is typing.
     const field = await page.getByRole('combobox', { name: 'Nombre del lugar' }).boundingBox();
     const box = await list.boundingBox();
-    expect(box!.y).toBeGreaterThanOrEqual(field!.y + field!.height - 1);
+    if (!field || !box) throw new Error('the field or the list has no box');
+    expect(box.y).toBeGreaterThanOrEqual(field.y + field.height - 1);
   });
 
   test('the home’s Where pane with a saved place in use never scrolls sideways', async ({ page }) => {
