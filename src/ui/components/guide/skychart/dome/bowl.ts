@@ -1,12 +1,9 @@
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx } from '../../../../../lib/layout';
-
 /**
- * R135 (D-882): the bowl's size, apart from the camera. `ChartFrame` is in the
- * `main` chunk and cuts the compact dome's box from `compactBowlBoxPx`; taking
- * it from `camera.ts` pulled the camera module and `domeGeometry` out of their
- * lazy chunks. This module holds only the numbers the box is cut from and
- * imports nothing but `lib/layout`; `camera.ts` and `domeGeometry.ts` re-export
- * what they used to define, so their importers are unchanged.
+ * R135 (D-882): the bowl's size, apart from the camera. `ChartFrame`, in the
+ * `main` chunk, cut the compact dome's box from it until R165 (D-1000) retired
+ * that cut with the compact column; the module keeps the bowl's numbers and
+ * imports nothing, and `camera.ts` and `domeGeometry.ts` re-export what they
+ * used to define, so their importers are unchanged.
  */
 
 /**
@@ -78,32 +75,3 @@ export const DRAWING_HEIGHT_UNITS = EXTENT_TOP_UNITS + EXTENT_BOTTOM_UNITS;
 export const ZOOM_HEIGHT_DIVISOR = 2.0;
 /** R61 (D-314): the box shape at which both divisors bind at once. No box is cut to it since R133 (D-868); the e2e helpers read it to check the bowl's fit. */
 export const DOME_BOX_ASPECT = ZOOM_WIDTH_DIVISOR / ZOOM_HEIGHT_DIVISOR;
-
-/**
- * R133 (FR-FLOW-9, D-850): the bowl's drawn height, in CSS px, in a box of
- * `widthPx` where the width binds — the compact box (FR-COMP-5's full-bleed
- * width). `DRAWING_HEIGHT_UNITS` at the width's zoom: the silhouette a radius
- * over the observer and the ground disc's near edge under it, the extent
- * F-61 derived the height divisor from. `lib/layout.ts` `compactDomeBoxHeightPx`
- * adds the slack above and below it, and `ChartFrame` cuts the box to that.
- * 288.9 at 390 px.
- */
-export function bowlHeightPx(widthPx: number): number {
-  return (widthPx / ZOOM_WIDTH_DIVISOR) * DRAWING_HEIGHT_UNITS;
-}
-
-/**
- * R133 (FR-FLOW-9, D-867): the compact dome's box height for a box `widthPx`
- * wide — the bowl plus `DOME_COMPACT_SLACK_PX` above and below, never under
- * FR-LIVE-7's floor, and never under the height at which the width still binds
- * the zoom, so `bowlHeightPx` is the bowl the scene draws. Past about 525 px
- * of width (a tablet's column) the bowl and its slack are shorter than that,
- * and a box cut to them would be height-bound and draw the bowl smaller than
- * it was cut for; there the blank over and under the bowl is the height
- * divisor's own margin (0.045 of the width) and FR-FLOW-9's 24 px, which is
- * the phone's, is over. 337 at 390 px, 640 at 768.
- */
-export function compactBowlBoxPx(widthPx: number): number {
-  const widthBoundPx = Math.ceil((widthPx / ZOOM_WIDTH_DIVISOR) * ZOOM_HEIGHT_DIVISOR);
-  return compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(widthPx), floorPx: Math.max(COMPACT_BOX_MIN_SHORT_PX, widthBoundPx) });
-}
