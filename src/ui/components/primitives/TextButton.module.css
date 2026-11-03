@@ -168,7 +168,7 @@
   width: 100%;
 }
 
-/* `tall`: the when step's `[ See what crosses ]`, 56 px at the foot of the screen (board 1B). */
+/* `tall`: the when step's `[ Choose what to see ]`, 56 px at the foot of the screen (board 1B). */
 .tall {
   min-height: calc(var(--tap) + var(--row) / 3);
 }

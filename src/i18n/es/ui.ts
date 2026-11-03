@@ -224,12 +224,10 @@ export const ui: typeof EnUi = {
       /* "gibosa menguante, 99 % iluminada" and its label are 38 cells. */
       moonValue: (p) => `${moonPhase[p.phase]}, ${p.illumination} % de luz`,
       moonNote: (note) => `Una luna brillante apaga los más tenues. ${note === 'bright' ? 'Esta noche lo hará.' : 'Esta noche no lo hará.'}`,
-      next: 'Ver qué cruza',
+      next: 'Elegir qué ver',
     },
     whatStep: {
-      sentence: 'Cada uno es un punto de luz fijo, que se mueve más o menos tan rápido como un avión alto, sin parpadear.',
-      moreTonight: (n) => `${String(n)} más esta noche`,
-      moreNights: (n) => (n === 1 ? '1 en otra noche' : `${String(n)} en otras noches`),
+      title: '¿Qué querés ver?',
       foot: (p) => [p.place, ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]), cloudState[p.cloud].toLowerCase()],
       edit: 'editar',
     },

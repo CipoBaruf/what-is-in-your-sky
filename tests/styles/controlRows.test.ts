@@ -661,10 +661,8 @@ describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 
     ['Passes in it', () => row(t.home.whenStep.passesIn, t.home.whenStep.passesValue({ tonight: 99, total: 99, hours: 72 }))],
     ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])))],
     ['Moon', () => Math.max(...phases.map((phase) => row(t.home.whenStep.moon, t.home.whenStep.moonValue({ phase, illumination: '100' }))))],
-    ['[ See what crosses ]', () => control(t.home.whenStep.next)],
-    ['[ n more tonight ]', () => control(t.home.whatStep.moreTonight(99))],
-    ['[ n more nights ]', () => control(t.home.whatStep.moreNights(99))],
-    // R97 (FR-FAINT-2): the faint control after `[<n> more tonight]`, in its longer state.
+    ['[ Choose what to see ]', () => control(t.home.whenStep.next)],
+    // R97 (FR-FAINT-2): the faint control, in its longer state.
     ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
   ] as const)('the %s row', (_name, cells) => {
     expect(cells()).toBeLessThanOrEqual(BUDGET);

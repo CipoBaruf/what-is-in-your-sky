@@ -78,7 +78,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(when.getByTestId('moon-note')).toHaveText(/^A bright moon washes out the faint ones\. Tonight it will( not)?\.$/);
     // One screen tall: the control stands at the foot of the step, which is the 844 px screen less the footer's
     // one row (R87, D-548 — the step shares its screen with the footer), so it is measured against the step's main.
-    const next = when.getByRole('button', { name: 'See what crosses' });
+    const next = when.getByRole('button', { name: 'Choose what to see' });
     const nextBox = await next.boundingBox();
     const stepBox = await page.locator('main[data-step]').boundingBox();
     const stepFoot = (stepBox?.y ?? 0) + (stepBox?.height ?? 0);
@@ -87,14 +87,12 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     expect((nextBox?.y ?? Infinity) + (nextBox?.height ?? 0)).toBeLessThanOrEqual(stepFoot);
     await next.click();
 
-    // what: the count in words, the first card, the foot line with `[ edit ]`.
+    // what (v2.12, FR-FIRST-4 as amended, D-1021): the choice — the question, the home's three doors, the foot line with `[ edit ]`.
     const what = page.getByTestId('step-what');
     await expect(what).toBeVisible();
     await expect(steps).toHaveText(['01 where ✓', '02 when ✓', '[03] what']);
-    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText(/^(One thing crosses|(Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+) things cross|Nothing crosses) tonight$/);
-    const first = what.getByTestId('next-event');
-    await expect(first).toHaveAttribute('data-form', 'card');
-    await expect(first.getByTestId('next-event-label')).toHaveText(/^(First up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/);
+    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText('What do you want to see?');
+    await expect(what.getByTestId('home-doors').getByRole('link')).toHaveText([/^Satellites/, /^Stars/, /^Live sky/]);
     const foot = what.getByTestId('what-foot');
     await expect(foot).toContainText(/^−38\.93, −67\.99 · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
 

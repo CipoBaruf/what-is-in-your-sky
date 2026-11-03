@@ -96,7 +96,7 @@ const guideFor = (page: Page, passId: string): Locator => page.locator(`[role="d
 test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3 as amended v2.1)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('a typed pair offers [ continue ], and the third step’s first card opens its pass from its bottom row', async ({ page }) => {
+  test('a typed pair offers [ continue ], and the third step’s Satellites door opens the next pass', async ({ page }) => {
     await coldWithRun(page);
     const cold = page.getByTestId('cold-open');
     // FR-FIRST-2 as amended: no field looks filled — the placeholders are the format and 0, and both fields are empty.
@@ -126,22 +126,14 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3 as amended v2.1)
     await recomputed(page, when.getByTestId('when-passes'));
     await when.getByTestId('see-what').click();
 
+    // v2.12 (FR-FIRST-4 as amended, D-1021): the third step is the choice; its Satellites door opens the next pass.
     const what = page.getByTestId('step-what');
-    const first = what.getByTestId('next-event');
-    await expect(first).toHaveAttribute('data-form', 'card');
-    const control = first.getByRole('button', { name: /^Open guide → / });
-    await expect(control).toHaveCount(1);
-    const name = ((await control.getAttribute('aria-labelledby')) ?? '').split(' ')[1] ?? '';
-    const passName = await page.locator(`[id="${name}"]`).textContent();
-    // The bottom row is the brightness line; the tap there opens the first card's pass, which the list under it leaves out.
-    await tapBottomRow(first);
-    await expect(page).toHaveURL(/#pass=/);
-    const opened = new URL(page.url()).hash.slice('#pass='.length);
-    const guide = guideFor(page, opened);
-    await expect(guide).toBeVisible();
-    // R132 (FR-FLOW-7, D-866): on the phone the pass's name is the sheet's `h1`.
-    await expect(guide.getByRole('heading', { level: 1 }).first()).toContainText(passName ?? '');
-    await expect(what.locator(`article[data-pass-id="${opened}"]`)).toHaveCount(0);
+    const door = what.getByTestId('door-satellites');
+    await expect(door).toHaveAttribute('href', /^#pass=/);
+    const href = (await door.getAttribute('href')) ?? '';
+    await door.click();
+    await expect(page).toHaveURL(new RegExp(`${href}$`));
+    await expect(guideFor(page, href.slice('#pass='.length))).toBeVisible();
   });
 });
 

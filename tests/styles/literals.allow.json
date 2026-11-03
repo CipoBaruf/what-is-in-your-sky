@@ -100,8 +100,8 @@
     "reason": "R110 (D-736): 1 the sheet names — the page's z-index 10 (--z-sheet); R164 took the compact heading's 1.25rem with the column."
   },
   "src/ui/screens/home/Steps.module.css": {
-    "count": 13,
-    "reason": "R110 (D-736): 10 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), two 0.75rem gaps and a padding (--space-2), the box's 1px border (--border); 3 off the scale — a 0.5rem margin, a 0.25rem gap and the line's 2.75rem min-height (OQ-37)."
+    "count": 11,
+    "reason": "R110 (D-736): 9 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), a 0.75rem gap and a padding (--space-2), the box's 1px border (--border); 2 off the scale — a 0.5rem margin and a 0.25rem gap (OQ-37). D-1021 took the cards' gap and the more row's 2.75rem min-height."
   },
   "src/ui/styles/global.css": {
     "count": 10,

@@ -380,20 +380,21 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(within(night).getByTestId('when-passes')).toHaveTextContent('1 tonight, 1 in 72 h');
     expect(within(sky).getByText(en.home.whenStep.clouds)).toBeInTheDocument();
 
-    // [ See what crosses ] moves on to what.
+    // [ Choose what to see ] moves on to what.
     fireEvent.click(next);
     const what = screen.getByTestId('step-what');
     expect(items().map((item) => item.textContent)).toEqual(['01 where ✓', '02 when ✓', '[03] what']);
-    const count = within(what).getByRole('heading', { level: 2, name: en.home.count(1) });
-    expect(count).toHaveTextContent('One thing crosses tonight');
-    expect(count).toHaveFocus();
-    const whatSentence = within(what).getByText(en.home.whatStep.sentence);
-    const cards = within(what).getByTestId('what-cards');
+    // v2.12 (FR-FIRST-4 as amended, D-1021): the step is the choice — the question, the home's three doors, the foot.
+    const title = within(what).getByRole('heading', { level: 2, name: en.home.whatStep.title });
+    expect(title).toHaveFocus();
+    const doors = within(what).getByTestId('home-doors');
     const foot = within(what).getByTestId('what-foot');
-    expect([...what.children]).toEqual([screen.getByTestId('step-line'), count, whatSentence, cards, foot]);
-    // The first card is FR-FIRST-3's first-card form; the foot is ruled off with `[ edit ]` at its end.
-    expect(within(cards).getByTestId('next-event')).toHaveAttribute('data-form', 'card');
-    expect(within(cards).getByTestId('next-event-label')).toHaveTextContent(/^First up · in 12:00$/);
+    expect([...what.children]).toEqual([screen.getByTestId('step-line'), title, doors, foot]);
+    expect(within(doors).getAllByRole('link').map((link) => link.getAttribute('data-testid'))).toEqual(['door-satellites', 'door-stars', 'door-live']);
+    // Satellites opens the next pass; Stars and Live sky their pages.
+    expect(within(doors).getByTestId('door-satellites')).toHaveAttribute('href', `#pass=${pass.id}`);
+    expect(within(doors).getByTestId('door-stars')).toHaveAttribute('href', '#stars');
+    expect(within(doors).getByTestId('door-live')).toHaveAttribute('href', '#live');
     expect(foot).toHaveTextContent(/^−38\.93, −67\.99 · .+edit$/);
     expect(foot.lastElementChild).toBe(within(foot).getByRole('button', { name: en.home.whatStep.edit }));
 
@@ -512,98 +513,25 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(screen.queryByTestId('step-when')).toBeNull();
   });
 
-  it('shows the what step’s more controls, each opening its cards in place', () => {
-    const at = (minutes: number, id: string) => ({ ...pass, id, start: { ...pass.start, t: pass.start.t + minutes * 60_000 }, peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 }, end: { ...pass.end, t: pass.end.t + minutes * 60_000 } });
-    const tonight = [pass, at(30, 'b'), at(60, 'c'), at(90, 'd'), at(120, 'e')];
-    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
-    const later = [at(24 * 60, 'f'), at(48 * 60, 'g')];
+  it('leaves the steps for the stacked page when the Satellites door has no pass to open, and opens the What reading (D-1021)', () => {
+    const span = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
     render(home());
     fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
     act(() => {
-      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [...tonight, ...later], hasDarkness: true, window } });
-    });
-    expect(screen.getByTestId('when-passes')).toHaveTextContent('5 tonight, 7 in 72 h');
-    fireEvent.click(screen.getByTestId('see-what'));
-    const what = screen.getByTestId('step-what');
-    expect(within(what).getByRole('heading', { level: 2, name: 'Five things cross tonight' })).toHaveFocus();
-    // The first card and two more, then `[ 2 more tonight ]   [ 2 more nights ]` (board 1B).
-    const cards = within(what).getByTestId('what-cards');
-    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c']);
-    expect(within(cards).getAllByRole('article')[0]).toHaveTextContent(/like|brighter|faint/i);
-    const more = within(what).getByTestId('what-more');
-    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['2 more tonight', '2 more nights']);
-    fireEvent.click(within(more).getByTestId('more-tonight'));
-    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'd', 'e']);
-    fireEvent.click(within(what).getByTestId('more-nights'));
-    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'd', 'e', 'f', 'g']);
-    expect(within(what).getAllByTestId('what-night')).toHaveLength(2);
-    expect(within(what).queryByTestId('what-more')).toBeNull();
-    // A card is the control that opens its pass.
-    fireEvent.click(within(within(cards).getAllByRole('article')[0] as HTMLElement).getByRole('button'));
-    expect(onOpenPass).toHaveBeenCalledWith('b');
-    // R84 (FR-FIRST-3 as amended v2.1, US-26 AC7, F-84): and so is the first card, whose pass the list leaves out.
-    const first = within(cards).getByTestId('next-event');
-    fireEvent.click(within(first).getByRole('button', { name: `Open guide → ${pass.name}` }));
-    expect(onOpenPass).toHaveBeenLastCalledWith(pass.id);
-  });
-
-  it('counts what is shown on the what step, and puts the faint control after [<n> more tonight] (R97, FR-FAINT-2)', () => {
-    const at = (minutes: number, id: string, faint = false) => ({
-      ...pass,
-      id,
-      ...(faint ? { noradId: 2, name: `Faint ${id}`, peakMagnitude: 4 } : {}),
-      start: { ...pass.start, t: pass.start.t + minutes * 60_000 },
-      peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 },
-      end: { ...pass.end, t: pass.end.t + minutes * 60_000 },
-    });
-    const tonight = [pass, at(30, 'b'), at(60, 'c'), at(75, 'x', true), at(90, 'd'), at(105, 'y', true)];
-    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
-    render(home());
-    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
-    act(() => {
-      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [...tonight, at(24 * 60, 'f')], hasDarkness: true, window } });
-    });
-    expect(screen.getByTestId('when-passes')).toHaveTextContent('4 tonight, 5 in 72 h');
-    fireEvent.click(screen.getByTestId('see-what'));
-    const what = screen.getByTestId('step-what');
-    expect(within(what).getByRole('heading', { level: 2, name: 'Four things cross tonight' })).toBeInTheDocument();
-    const more = within(what).getByTestId('what-more');
-    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['1 more tonight', 'show 2 faint', '1 more night']);
-    fireEvent.click(within(more).getByTestId('faint-toggle'));
-    expect(within(what).getByRole('heading', { level: 2, name: 'Six things cross tonight' })).toBeInTheDocument();
-    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['3 more tonight', 'hide 2 faint', '1 more night']);
-    fireEvent.click(within(more).getByTestId('more-tonight'));
-    const cards = within(what).getByTestId('what-cards');
-    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'x', 'd', 'y']);
-    expect(within(cards).getAllByTestId('card-faint')).toHaveLength(2);
-  });
-
-  it('keeps the faint control on a night left with only faint passes, under `0 passes · n faint` (R97, FR-FAINT-2)', () => {
-    // Every pass has ended but still lingers, so none is the next event's and neither is exempt.
-    const dim = (minutes: number, id: string) => ({
-      ...pass,
-      id,
-      noradId: 2,
-      name: `Faint ${id}`,
-      peakMagnitude: 4,
-      start: { ...pass.start, t: pass.start.t + minutes * 60_000 },
-      peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 },
-      end: { ...pass.end, t: pass.end.t + minutes * 60_000 },
-    });
-    const last = dim(0.5, 'y');
-    const faint = [dim(0, 'x'), last];
-    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
-    render(home());
-    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
-    act(() => {
-      appStore.setState({ nowMs: last.end.t + 1000, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: faint, hasDarkness: true, window } });
+      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [], hasDarkness: true, window: span } });
     });
     fireEvent.click(screen.getByTestId('see-what'));
-    const what = screen.getByTestId('step-what');
-    expect(within(what).getByRole('heading', { level: 2, name: '0 passes · 2 faint' })).toBeInTheDocument();
-    const more = within(what).getByTestId('what-more');
-    fireEvent.click(within(more).getByTestId('faint-toggle'));
-    expect(within(more).getByTestId('faint-toggle')).toHaveTextContent('hide 2 faint');
+    const door = within(screen.getByTestId('step-what')).getByTestId('door-satellites');
+    expect(door).toHaveAttribute('href', '#what');
+    // A new-tab gesture is still the browser's.
+    expect(fireEvent.click(door, { metaKey: true })).toBe(true);
+    expect(screen.getByTestId('step-what')).toBeInTheDocument();
+    const hash = window.location.hash;
+    expect(fireEvent.click(door)).toBe(false);
+    expect(screen.queryByTestId('step-what')).toBeNull();
+    expect(screen.queryByTestId('step-line')).toBeNull();
+    expect(screen.getByTestId('list-column')).toBeInTheDocument();
+    expect(window.location.hash).toBe(hash);
   });
 });
 

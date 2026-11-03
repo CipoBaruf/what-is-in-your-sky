@@ -301,13 +301,13 @@ export const ui = {
       moonValue: (p: { phase: MoonPhaseName; illumination: string }) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
       /** D-513: by whether the Moon is up and at least `MOON_BRIGHT_PCT` lit inside the dark window (`lib/moonNote`). */
       moonNote: (note: MoonNote) => `A bright moon washes out the faint ones. ${note === 'bright' ? 'Tonight it will.' : 'Tonight it will not.'}`,
-      next: 'See what crosses',
+      /** v2.12 (FR-FIRST-4 as amended, D-1021): the when step's action leads to the choice of what to see. */
+      next: 'Choose what to see',
     },
     /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **what** step. */
     whatStep: {
-      sentence: 'Each one is a steady point of light, moving about as fast as a high aircraft, with no blinking.',
-      moreTonight: (n: number) => `${String(n)} more tonight`,
-      moreNights: (n: number) => (n === 1 ? '1 more night' : `${String(n)} more nights`),
+      /** v2.12 (FR-FIRST-4 as amended, D-1021): the third step asks, and the home's three doors answer. */
+      title: 'What do you want to see?',
       /**
        * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
        * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).

@@ -21,7 +21,7 @@ import { useMoonNote, useNight } from './useNight';
  * component) and the night's three rows — `Dark from`, `Until` and `Passes in
  * it`, the last value in the accent; a second box holding `Clouds tonight`,
  * `Moon` and the Moon's sentence (`lib/moonNote`); and at the foot of the
- * screen `[ See what crosses ]`, which moves on to **what**.
+ * screen `[ Choose what to see ]`, which moves on to **what**.
  *
  * The step is one screen tall, as the cold open is, so the control stands at
  * the bottom of it.

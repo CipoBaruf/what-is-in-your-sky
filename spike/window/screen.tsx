@@ -20,7 +20,7 @@ import { createRoot } from 'react-dom/client';
 import { applyLocale, I18nProvider } from '../../src/i18n/useT';
 import type { Locale, Observer } from '../../src/model';
 import { SkyWindow } from '../../src/ui/components/guide/skychart/window/SkyWindow';
-import { applyTheme, type ResolvedTheme } from '../../src/ui/styles/theme';
+import { applyTheme } from '../../src/ui/styles/theme';
 import '../../src/ui/styles/tokens.css';
 import '../../src/ui/styles/global.css';
 
@@ -29,7 +29,7 @@ const OBSERVER: Observer = { lat: 48.8566, lon: 2.3522, altM: 35, label: 'Paris'
 
 const query = new URLSearchParams(window.location.search);
 const locale = (query.get('locale') === 'es' ? 'es' : 'en') as Locale;
-const theme = (query.get('theme') === 'night' ? 'night' : 'dark') as ResolvedTheme;
+const theme = (query.get('theme') === 'night' ? 'night' : 'dark') as 'dark' | 'night';
 
 applyLocale(locale);
 applyTheme(theme);

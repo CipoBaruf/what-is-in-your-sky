@@ -294,7 +294,7 @@ for (const theme of THEMES) {
  * element's size, spacing, type and colour read from the browser and held to
  * the numbers FR-FIRST-4 gives — a heading at 22 px on 28 and its sentence at
  * `--small` half a rem under it, 1.2 rem between blocks, boxes ruled in
- * `--rule` 12 px by a cell inside, `[ See what crosses ]` in the accent's
+ * `--rule` 12 px by a cell inside, `[ Choose what to see ]` in the accent's
  * border at the foot of the screen, the first card ruled in the accent and the
  * foot line ruled off in `--rule` at `--small`.
  */
@@ -367,17 +367,12 @@ test("the phone's steps at 390 measured against FR-FIRST-4", async ({ page, cont
   await page.getByTestId('see-what').click();
   await expect(page.getByTestId('step-what')).toBeVisible();
   const whatGaps = await gaps('step-what');
-  expect(whatGaps.slice(0, 3)).toEqual([19, 8, 19]);
+  // The step line, the question and the doors 19 px apart; the foot stands at the screen's foot.
+  expect(whatGaps.slice(0, 2)).toEqual([19, 19]);
   const whatHeading = await style('step-what', 'h2');
   expect([whatHeading.size, whatHeading.line]).toEqual(['22px', '28px']);
-  // The first card ruled in the accent, the cards 12 px apart.
-  const first = await style('next-event', '');
-  expect([first.border, first.borderWidth]).toEqual([accent, '1px']);
-  const cardGap = await page.getByTestId('what-cards').evaluate((el) => {
-    const [a, b] = Array.from(el.children).map((child) => child.getBoundingClientRect());
-    return a && b ? Math.round(b.top - a.bottom) : null;
-  });
-  expect(cardGap).toBe(12);
+  // v2.12 (FR-FIRST-4 as amended, D-1021): the step is the choice, the home's three doors under the question.
+  for (const door of ['door-satellites', 'door-stars', 'door-live']) await expect(page.getByTestId('step-what').getByTestId(door)).toBeVisible();
   // The foot: ruled off in --rule, 12 px above its text, at --small in --fg-dim, at the bottom of the screen.
   // R139: since R105 (D-720) the rule is the foot's own `Rule` and the 12 px its margin under, not a border and padding.
   const foot = await style('what-foot', '');

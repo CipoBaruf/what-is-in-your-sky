@@ -414,7 +414,13 @@ export function useSteps(observer: Observer | null, offHome = false) {
       else go('when');
     }
   }
-  return { step, reached, moved, held, go };
+  /** v2.12 (D-1021): leave the steps for the stacked page — the third step's Satellites door with no pass to open. */
+  const finish = (): void => {
+    setStep(null);
+    setMoved(false);
+    setHeld(false);
+  };
+  return { step, reached, moved, held, go, finish };
 }
 
 type HomeSteps = ReturnType<typeof useSteps>;
@@ -436,7 +442,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   const placeRequest = placeRequested();
   const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
   if (current !== null) {
-    const { reached, moved, go } = steps;
+    const { reached, moved, go, finish } = steps;
     const head = (step: Step) => (
       <>
         <UpdateBanner inert={offersInert} />
@@ -484,7 +490,19 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
               onEdit={() => {
                 go('where');
               }}
-              onOpenPass={onOpenPass}
+              onList={() => {
+                finish();
+                // The stacked page lands on the next frame; its What reading then takes the scroll and the focus.
+                requestAnimationFrame(() => {
+                  const what = document.getElementById(WHAT_ID);
+                  if (what && 'scrollIntoView' in what) what.scrollIntoView({ block: 'start' });
+                  const title = what?.querySelector<HTMLElement>('h2');
+                  if (title) {
+                    title.tabIndex = -1;
+                    title.focus({ preventScroll: true });
+                  }
+                });
+              }}
               selectedPassId={selectedPassId}
             />
           )}

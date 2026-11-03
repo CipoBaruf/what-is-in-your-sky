@@ -107,7 +107,7 @@ for (const theme of THEMES) {
       await next.click();
       await expect(page.getByTestId('when-passes')).toHaveText(/^\d/, { timeout: 60_000 });
       await page.getByTestId('see-what').click();
-      await expect(page.getByTestId('step-what').getByTestId('next-event')).toBeVisible();
+      await expect(page.getByTestId('step-what').getByTestId('door-satellites')).toBeVisible();
       await settle(page);
       await page.screenshot({ path: `${CAPTURE_DIR}/r84-what-390-${theme}-${locale}.png`, fullPage: true });
     });

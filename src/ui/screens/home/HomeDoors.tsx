@@ -34,6 +34,12 @@ export interface HomeDoorsProps {
   /** The open pass, which the shown passes keep whether or not it is faint (FR-FAINT-1), as the list does. */
   selectedPassId: string | null;
   className?: string;
+  /**
+   * v2.12 (FR-FIRST-4 as amended, D-1021): what a plain click on the Satellites door does when it leads to the What
+   * reading — on the phone's third step the reading is not on the page, so the step hands its own (leave the steps
+   * for the stacked page, then open the reading there). Absent, the reading is opened in place.
+   */
+  onWhat?: () => void;
 }
 
 /** A plain click opens the What reading in place; a new-tab or new-window gesture is the browser's, with the href. */
@@ -50,6 +56,15 @@ function openWhat(event: MouseEvent<HTMLAnchorElement>): void {
     heading.focus({ preventScroll: true });
   }
 }
+
+/** v2.12 (D-1021): a plain click handed to the caller; a new-tab gesture is still the browser's. */
+const whatBy =
+  (onWhat: () => void) =>
+  (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onWhat();
+  };
 
 function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: string; wide: boolean; testId: string; onClick?: (event: MouseEvent<HTMLAnchorElement>) => void }) {
   const lines = wide && door.wide !== undefined ? [...door.lines, door.wide] : door.lines;
@@ -68,7 +83,7 @@ function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: stri
   );
 }
 
-export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProps) {
+export function HomeDoors({ observer, selectedPassId, className, onWhat }: HomeDoorsProps) {
   const t = useT();
   const locale = useLocale();
   const wide = useLayoutMode() === 'wide';
@@ -88,7 +103,7 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
     // A labelled list of links and not a `nav`: the page's one navigation landmark is the header's (FR-A11Y-1).
     <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors" data-rhythm="section">
       <ul aria-label={t.doors.region} className={styles.list}>
-        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: openWhat } : {})} />
+        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: onWhat ? whatBy(onWhat) : openWhat } : {})} />
         <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" />
         <DoorBox door={doors.live} href="#live" wide={wide} testId="door-live" />
       </ul>

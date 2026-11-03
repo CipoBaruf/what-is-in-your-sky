@@ -337,7 +337,6 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
     const shared = new Set([
       en.location.coordsPlaceholder,
       en.settings.installLabel, // "App" in both (FR-SET-1 as amended v2.1)
-      en.app.themes.auto, // "Auto" in both: the spec's word for the third theme (FR-PHONE-15)
       en.chart.view.polar,
       en.live.pending, // an ellipsis is an ellipsis (R32)
       en.footer.celestrak.link,
