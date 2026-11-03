@@ -11,12 +11,6 @@ import type { EpochMs, NoradId, Pass, PassSort } from '../model';
  * are stable and never mutate their input.
  */
 export const DEFAULT_PASS_SORT: PassSort = 'chronological';
-const PASS_SORTS: readonly PassSort[] = ['chronological', 'best'];
-
-export function isPassSort(value: unknown): value is PassSort {
-  return typeof value === 'string' && (PASS_SORTS as readonly string[]).includes(value);
-}
-
 /** Brightness × elevation, higher is better. */
 export function bestScore(pass: Pass): number {
   return 10 ** (-0.4 * pass.peakMagnitude) * pass.peak.elDeg;

@@ -24,10 +24,6 @@ export const INTL_LOCALE: Record<Locale, string> = { en: 'en-GB', es: 'es' };
 /** The language's own name, never translated: a switch is read by someone who cannot read the other language. */
 export const LOCALE_NAMES: Record<Locale, string> = { en: 'English', es: 'Español' };
 
-export function isLocale(value: string): value is Locale {
-  return (LOCALES as readonly string[]).includes(value);
-}
-
 /** The primary subtag of a BCP 47 tag, lowercased: `es-419` → `es`, `EN-GB` → `en`. */
 function primarySubtag(tag: string): string {
   return (tag.split('-')[0] ?? '').toLowerCase();

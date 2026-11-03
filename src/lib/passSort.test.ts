@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Pass } from '../model';
 import { NO_MOON_AT_PEAK } from '../../tests/support/moonFixtures';
-import { bestScore, isPassSort, nextFeaturedPass, sortPasses } from './passSort';
+import { bestScore, nextFeaturedPass, sortPasses } from './passSort';
 
 const T0 = 1_789_120_000_000;
 function pass(id: string, noradId: number, startOffsetS: number, elDeg: number, magnitude: number): Pass {
@@ -66,14 +66,5 @@ describe('nextFeaturedPass', () => {
     expect(nextFeaturedPass([issLater, ...three], featured, issLow.end.t - 1)?.id).toBe('iss-low'); // in progress still counts
     expect(nextFeaturedPass([faintHigh, average], featured, T0)).toBeNull();
     expect(nextFeaturedPass(three, featured, issLow.end.t)).toBeNull();
-  });
-});
-
-describe('isPassSort', () => {
-  it('accepts the two orders only', () => {
-    expect(isPassSort('best')).toBe(true);
-    expect(isPassSort('chronological')).toBe(true);
-    expect(isPassSort('soonest')).toBe(false);
-    expect(isPassSort(1)).toBe(false);
   });
 });
