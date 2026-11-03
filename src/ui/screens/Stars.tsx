@@ -10,10 +10,10 @@ import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
 import { BODIES_EVERY_MS } from '../../lib/playback';
 import { formatShortClock } from '../../lib/timeFormat';
-import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
+import { DAY_MS, HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
-import { MAX_FAVOURITES, type ChartView, type EpochMs, type Locale, type Observer, type TonightCloud } from '../../model';
-import { favouriteCellKey, useActiveObserver, useAppStore } from '../../state';
+import type { ChartView, EpochMs, Locale, Observer, TonightCloud } from '../../model';
+import { favouriteCellKey, mostRecentlyUsed, useActiveObserver, useAppStore } from '../../state';
 import { GLOBE_SPAN_DAYS } from '../components/guide/skychart/globe/constants';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
@@ -151,8 +151,6 @@ const SkyGlobe = lazy(loadGlobe);
 /** R170 (FR-GLOBE-15, `GLOBE_STARS_KB`): the globe's rail groups and its list, lazy with the globe so `stars` keeps the wiring alone. */
 const GlobeGroups = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeGroups })));
 const GlobeField = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
-
-const DAY_MS = 24 * HOUR_MS;
 
 /** FR-STAR-3 as amended v2.11: the four layer toggles in this order, over two rows. */
 const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
@@ -302,15 +300,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   const favourites = useAppStore((s) => s.favourites);
   const places = useMemo(() => {
     const own = favouriteCellKey(observer);
-    // `data/favourites.ts`'s `mostRecentlyUsed` order (newest use first), which `src/ui` may not import (PLAN §3).
-    return [...favourites]
-      .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
-      .filter((place) => place.cellKey !== own)
-      .slice(0, MAX_FAVOURITES);
+    return mostRecentlyUsed(favourites).filter((place) => place.cellKey !== own);
   }, [favourites, observer]);
-  const [placeChoice, setPlaceChoice] = useState<PlaceChoice>('observer');
-  const chosenPlace = placeChoice === 'observer' ? undefined : places.find((place) => place.cellKey === placeChoice);
-  const shownChoice: PlaceChoice = chosenPlace === undefined ? 'observer' : placeChoice;
+  const [placeChoice, setPlaceChoice] = useState<PlaceChoice>(null);
+  const chosenPlace = placeChoice === null ? undefined : places.find((place) => place.cellKey === placeChoice);
+  const shownChoice: PlaceChoice = chosenPlace === undefined ? null : placeChoice;
   const shownPlace = chosenPlace?.observer ?? observer;
   // FR-GLOBE-10: `[ ] faint`, off on every visit and not saved; a failed load unpresses it.
   const [faint, setFaint] = useState(false);
@@ -465,47 +459,35 @@ function StarsSky({ observer }: { observer: Observer }) {
    * R163 (FR-CLEAN-6; D-999, D-1011): `Esc` in two steps. The first step is the page's: with the sheet open a capture
    * listener on the window closes it and stops the event there, before the app's one `keydown` listener on the
    * document (D-73) can read it; with the sheet closed the page lets the key through, and that listener leaves the
-   * page as it has since R115 (`stars.leave`, §4.37's rule). One listener per page, read through a ref so the open
-   * state does not rebuild it.
+   * page as it has since R115 (`stars.leave`, §4.37's rule). One listener per page, read through refs so the open
+   * state and the width do not rebuild it.
+   * R170 (FR-GLOBE-1, FR-DESK-4): the same listener takes `v`, which cycles the page's two views at both widths before
+   * the app's listener reads it (which would switch the saved chart view of the other pages); a typing target is left
+   * to it, as `shortcutFor`'s guard has it.
    */
   const sheetOpenRef = useRef(sheetOpen);
+  const compactRef = useRef(compact);
   useLayoutEffect(() => {
     sheetOpenRef.current = sheetOpen;
+    compactRef.current = compact;
   });
   useEffect(() => {
-    if (!compact) return;
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || !sheetOpenRef.current) return;
+      const closes = event.key === 'Escape' && compactRef.current && sheetOpenRef.current;
+      const cycles = !closes && shortcutFor(event)?.id === 'view';
+      if (!closes && !cycles) return;
       // The shortcuts overlay over the page makes the page inert (D-73's "overlay first"): the key is the overlay's.
       if (layoutRef.current?.closest('[inert]')) return;
       event.preventDefault();
       event.stopPropagation();
-      closeSheet();
+      if (closes) closeSheet();
+      else setView((was) => (was === 'window' ? 'whole' : 'window'));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [compact, closeSheet]);
-
-  /*
-   * R170 (FR-GLOBE-1, FR-DESK-4): on this page `v` cycles the page's two views, at both widths, before the app's
-   * listener reads it (which would switch the saved chart view of the other pages); the overlay's inert page and a
-   * typing target are left to it, as `shortcutFor`'s guard has it.
-   */
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (shortcutFor(event)?.id !== 'view') return;
-      if (layoutRef.current?.closest('[inert]')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      setView((was) => (was === 'window' ? 'whole' : 'window'));
-    };
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, []);
+  }, [closeSheet]);
 
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);

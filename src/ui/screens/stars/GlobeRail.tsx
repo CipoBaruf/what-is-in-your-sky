@@ -7,7 +7,7 @@ import { compassPoint } from '../../../lib/compass';
 import { BODIES_EVERY_MS } from '../../../lib/playback';
 import { chipFor } from '../../../lib/shownTime';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
-import { HOUR_MS, shortWeekday } from '../../../lib/timeStripe';
+import { DAY_MS, HOUR_MS, shortWeekday } from '../../../lib/timeStripe';
 import type { EpochMs, Favourite, Observer } from '../../../model';
 import { GLOBE_SPEEDS } from '../../components/guide/skychart/globe/constants';
 import { globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
@@ -30,9 +30,11 @@ import styles from './GlobeRail.module.css';
  */
 
 export type GlobeTurn = 'you' | 'stars';
-export type PlaceChoice = 'observer' | string;
+/** The `Place` group's choice: `null` for the observer, else a saved place's `cellKey` (D-1051). */
+export type PlaceChoice = string | null;
+/** The observer's button value inside the group; a cell key is `"lat,lon"`, so it never collides. */
+const OBSERVER_VALUE = 'observer';
 
-const DAY_MS = 24 * HOUR_MS;
 const STEPS = [
   { id: 'dayBack', ms: -DAY_MS },
   { id: 'hourBack', ms: -HOUR_MS },
@@ -48,9 +50,8 @@ export function GlobeClock({ playback, zone }: { playback: Playback; zone: strin
   const locale = useLocale();
   const clock = useNow(CLOCK_TICK_MS);
   // The offset is read against the same one-second clock, so the chip moves with the seconds and not per render.
-  const now = clock;
   const shown = playback.realTime ? clock : playback.t;
-  const chip = chipFor(shown, now, playback.realTime, null, zone);
+  const chip = chipFor(shown, clock, playback.realTime, null, zone);
   const words = t.live.chip(chip.kind === 'now' ? chip : { ...chip, weekday: chip.weekday ? shortWeekday(shown, zone, locale) : null });
   return (
     <p className={styles.clock} data-testid="globe-clock" data-at={String(playback.t)}>
@@ -149,11 +150,11 @@ export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn:
 export function GlobePlaces({ observer, places, choice, onChoice }: { observer: Observer; places: readonly Favourite[]; choice: PlaceChoice; onChoice: (choice: PlaceChoice) => void }) {
   const t = useT();
   const headingId = useId();
-  const options = [{ value: 'observer', label: observer.label }, ...places.map((place) => ({ value: place.cellKey, label: place.observer.label }))];
+  const options = [{ value: OBSERVER_VALUE, label: observer.label }, ...places.map((place) => ({ value: place.cellKey, label: place.observer.label }))];
   return (
     <section aria-labelledby={headingId} className={styles.block} data-testid="globe-place">
       <SectionHeading id={headingId}>{t.globe.placeHeading}</SectionHeading>
-      <ToggleGroup name={t.globe.placeHeading} options={options} value={choice} onChange={onChoice} className={styles.places} />
+      <ToggleGroup name={t.globe.placeHeading} options={options} value={choice ?? OBSERVER_VALUE} onChange={(value) => { onChoice(value === OBSERVER_VALUE ? null : value); }} className={styles.places} />
     </section>
   );
 }

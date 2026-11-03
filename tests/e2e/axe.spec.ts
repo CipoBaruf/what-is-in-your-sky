@@ -18,6 +18,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON } from './observers';
 import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
 import { LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { WIDE_MIN_PX } from '../../src/lib/layout';
 
 /** FR-A11Y-7: the WCAG 2.0 and 2.1 A and AA rules. */
 export const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
@@ -131,7 +132,7 @@ for (const viewport of WIDTHS) {
     test.describe(`at ${String(viewport.width)} px, ${theme}`, () => {
       test.use({ viewport });
 
-      for (const screen of SCREENS.filter((s) => !s.wideOnly || viewport.width >= 964)) {
+      for (const screen of SCREENS.filter((s) => !s.wideOnly || viewport.width >= WIDE_MIN_PX)) {
         test(`${screen.name} has no WCAG A/AA violation (FR-A11Y-7)`, async ({ page }) => {
           await screen.open(page, theme);
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);

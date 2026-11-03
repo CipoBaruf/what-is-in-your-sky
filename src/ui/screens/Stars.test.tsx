@@ -486,8 +486,15 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
     fireEvent.click(viewRow().getByRole('button', { name: 'Globe' }));
     await screen.findByTestId('globe-box', {}, { timeout: 5_000 });
     expect(names()).toHaveAttribute('aria-pressed', 'true');
+    const globeNames = () => screen.getByTestId('stars-sky').querySelectorAll('[data-names] text[visibility="visible"]');
+    await waitFor(() => {
+      expect(globeNames().length).toBeGreaterThan(0);
+    });
     fireEvent.click(names());
     expect(names()).toHaveAttribute('aria-pressed', 'false');
+    await waitFor(() => {
+      expect(globeNames()).toHaveLength(0);
+    });
     // The choice holds for the window too.
     fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
     await drawn('window');

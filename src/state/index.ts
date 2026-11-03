@@ -46,6 +46,8 @@ export { DEFAULT_MOON_GLARE_THRESHOLDS } from '../physics/constants';
  * comparing coordinates of its own (PLAN §3: `src/ui` never imports `src/data`).
  */
 export { favouriteCellKey } from '../data/favourites';
+/** R170 (FR-GLOBE-9, D-1051): the saved places' one order, newest use first and capped, for the globe's `Place` group. */
+export { mostRecentlyUsed } from '../data/favourites';
 /** R9: place-name search (PLAN §7.2, session-cached in `src/data`), handed to the UI through `src/state` so `src/ui` never imports `src/data` (PLAN §3). */
 export { searchPlaces };
 /** R11: the display name of a catalog object by NORAD id, for the banner that lists objects without elements (the store carries ids only). */
