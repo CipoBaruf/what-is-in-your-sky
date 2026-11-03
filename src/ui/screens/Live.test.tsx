@@ -1243,11 +1243,11 @@ describe('<LivePage>', () => {
     await waitFor(() => {
       expect(within(overlay).getByTestId('sky-corner-readout')).toHaveTextContent(/^(Facing|Following) /);
     });
-    // The dome's drag clause fits beside the button in English (`hintFitsBeside`: 35.75 cells with a mouse).
+    // The dome's drag clause for a mouse no longer fits beside the button in English: 36.75 cells with the row's padding cell (D-1026).
     act(() => {
       appStore.getState().setChartView('dome');
     });
-    expect(within(overlay).getByTestId('sky-hint').parentElement).toHaveAttribute('data-beside', 'true');
+    expect(within(overlay).getByTestId('sky-hint').parentElement).toHaveAttribute('data-beside', 'false');
     // Seen: gone for good.
     act(() => {
       appStore.getState().setSkyHintSeen(true);
