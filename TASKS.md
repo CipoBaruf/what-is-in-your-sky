@@ -4784,7 +4784,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
     - Nothing imports `skychart/globe/` yet, and `npm run check:dead` passes with the new modules (an allow-list entry or test-only use as the repo's rule has it, written in the Done note).
     - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
 
-- [ ] **R168 — The labels' two options: `starLabels.ts`'s `fixed` bodies and `figureStart: 'vertex'`, off by default, with the globe's cases; the window's and the polar chart's placement and snapshots unchanged**
+- [x] **R168 — The labels' two options: `starLabels.ts`'s `fixed` bodies and `figureStart: 'vertex'`, off by default, with the globe's cases; the window's and the polar chart's placement and snapshots unchanged**
   - **Lane:** window
   - **Model:** opus
   - **Review:** opus

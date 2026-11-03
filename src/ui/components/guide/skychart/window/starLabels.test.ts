@@ -14,7 +14,7 @@ import { handRotation } from './camera';
 import { project, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import { frameOf, labelInput, prepare } from './StarField';
-import { ADVANCE_EM, FIGURE_NAME_PX, placeLabels, SEGMENT_SAMPLE_PX, spaced, STAR_NAME_PX, textWidth, type Box, type LabelInput, type LabelMark, type PlacedLabel } from './starLabels';
+import { ADVANCE_EM, FIGURE_NAME_PX, placeLabels, SEGMENT_SAMPLE_PX, spaced, STAR_NAME_PX, textWidth, type Box, type FixedLabel, type LabelInput, type LabelMark, type PlacedLabel } from './starLabels';
 
 const W = 400;
 const H = 300;
@@ -274,5 +274,136 @@ describe('frameOf’s hit lines (FR-STAR-14)', () => {
     // The drawn line runs on under the horizon (the clip hides it); the tap's stops there.
     expect(drawn?.y2 ?? 0).toBeGreaterThan(horizon.y + 20);
     expect(frame.hitLines[1]).toEqual(frame.lines[1]);
+  });
+});
+
+// --- The globe's two options (R168, FR-GLOBE-11, D-1041) ---------------------
+
+type Place = 'right' | 'left' | 'above' | 'below';
+
+describe('a fixed label: a body’s name (FR-GLOBE-11, D-1041)', () => {
+  it('keeps the planet’s name beside a star’s, and moves the star’s off it', () => {
+    // The star's right-hand name covers where Jupiter's goes; given as fixed, Jupiter's is placed first and the star's moves left.
+    const jupiter: LabelMark = { x: 200, y: 150, sizePx: 15 };
+    const star: LabelMark = { x: 200, y: 144, sizePx: 12 };
+    const input = base({ marks: [jupiter, star], stars: [{ key: 7, mark: 1, text: 'Regulus Prime' }] });
+    const without = placeLabels(input);
+    expect(texts(without)).toEqual(['star:Regulus Prime']);
+    expect(side(without[0] as PlacedLabel, star)).toBe('right');
+    const body: FixedLabel = { key: 1, mark: 0, text: 'Jupiter' };
+    const placed = placeLabels(input, { fixed: [body] });
+    expect(texts(placed)).toEqual(['fixed:Jupiter', 'star:Regulus Prime']);
+    const [fixed, moved] = placed as [PlacedLabel, PlacedLabel];
+    expect(side(fixed, jupiter)).toBe('right');
+    expect(side(moved, star)).toBe('left');
+    expect(overlaps(fixed.box, moved.box)).toBe(false);
+  });
+
+  it('is kept where a star’s name, its four places taken, is dropped', () => {
+    const text = 'Saturn';
+    const marks = [bright, ...(['right', 'left', 'above', 'below'] as const).map((place) => blockAt(bright, text, place))];
+    expect(placeLabels(base({ marks, stars: [{ key: 3, mark: 0, text }] }))).toEqual([]);
+    const placed = placeLabels(base({ marks }), { fixed: [{ key: 3, mark: 0, text }] });
+    expect(texts(placed)).toEqual(['fixed:Saturn']);
+    expect(side(placed[0] as PlacedLabel, bright)).toBe('right');
+  });
+
+  it.each<[readonly Place[], Place]>([
+    [[], 'right'],
+    [['right'], 'left'],
+    [['right', 'left'], 'above'],
+    [['right', 'left', 'above'], 'below'],
+  ])('with %j taken takes %s: the first free of right, left, above, below', (taken, expected) => {
+    const marks = [bright, ...taken.map((place) => blockAt(bright, 'Mars', place))];
+    const placed = placeLabels(base({ marks }), { fixed: [{ key: 4, mark: 0, text: 'Mars' }] });
+    expect(side(placed[0] as PlacedLabel, bright)).toBe(expected);
+  });
+
+  it('is placed after the compass, and a star name on the body’s mark is not drawn twice', () => {
+    const compass: Box = { x0: 210, y0: 140, x1: 260, y1: 160 };
+    const placed = placeLabels(base({ marks: [bright], compass: [compass], stars: [{ key: 9, mark: 0, text: 'Moon' }] }), { fixed: [{ key: 9, mark: 0, text: 'Moon' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon']);
+    expect(side(placed[0] as PlacedLabel, bright)).toBe('left');
+  });
+
+  it('gives way to the tap’s label on its own mark', () => {
+    const placed = placeLabels(base({ marks: [bright], named: { key: 2, mark: 0, text: 'Venus · mag −4.1' } }), { fixed: [{ key: 2, mark: 0, text: 'Venus' }] });
+    expect(texts(placed)).toEqual(['named:Venus · mag −4.1']);
+  });
+
+  it('names a landmark on its mark once: the body’s name, not the landmark’s too', () => {
+    const placed = placeLabels(base({ marks: [bright], landmark: { key: 3, mark: 0, text: 'Moon' } }), { fixed: [{ key: 3, mark: 0, text: 'Moon' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon']);
+  });
+
+  // Two marks on the same spot with all four places taken: the first body falls back to the right.
+  const crowded = (): LabelMark[] => [bright, { ...bright }, ...(['right', 'left', 'above', 'below'] as const).map((place) => blockAt(bright, 'Moon', place))];
+
+  it('does not write a body’s fallback over another body’s name', () => {
+    const placed = placeLabels(base({ marks: crowded() }), { fixed: [{ key: 1, mark: 0, text: 'Moon' }, { key: 2, mark: 1, text: 'Mars' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon', 'fixed:Mars']);
+    const [moon, mars] = placed as [PlacedLabel, PlacedLabel];
+    expect(side(moon, bright)).toBe('right');
+    expect(side(mars, bright)).toBe('left');
+    expect(overlaps(moon.box, mars.box)).toBe(false);
+  });
+
+  it('keeps the tap’s fallback off a body’s name', () => {
+    const placed = placeLabels(base({ marks: crowded(), named: { key: 2, mark: 1, text: 'Mars · mag 1.2' } }), { fixed: [{ key: 1, mark: 0, text: 'Moon' }] });
+    expect(texts(placed)).toEqual(['fixed:Moon', 'named:Mars · mag 1.2']);
+    const [moon, tap] = placed as [PlacedLabel, PlacedLabel];
+    expect(overlaps(moon.box, tap.box)).toBe(false);
+  });
+
+  it('never yields to a figure’s name, as a star name does', () => {
+    // Jupiter's name, to its right, covers every place of `L E O`'s walk; without the option the figure sits on its centroid.
+    const lone = { key: 5, name: 'Leo', con: 'Leo', segments: 2, endpoints: [{ x: 196, y: 150 }, { x: 204, y: 150 }] };
+    const body: LabelMark = { x: 170, y: 150, sizePx: 12 };
+    expect(placeLabels(base({ marks: [body], figures: [lone] }))[0]).toMatchObject({ kind: 'figure', x: 200, y: 150 });
+    expect(texts(placeLabels(base({ marks: [body], figures: [lone] }), { fixed: [{ key: 1, mark: 0, text: 'Jupiter' }] }))).toEqual(['fixed:Jupiter']);
+  });
+});
+
+describe('a figure’s walk from a vertex (FR-GLOBE-11, D-1041)', () => {
+  // A bent figure: the centroid of its endpoints, (200, 137.5), is off its lines; its anchor is one of its vertices.
+  const endpoints = [
+    { x: 120, y: 100 },
+    { x: 200, y: 100 },
+    { x: 200, y: 100 },
+    { x: 280, y: 250 },
+  ];
+  const anchor = { x: 200, y: 100 };
+  const figure = { key: 6, name: 'Hydra', con: 'Hya', segments: 2, endpoints, anchor };
+
+  it('starts at the anchor vertex under figureStart vertex', () => {
+    expect(placeLabels(base({ figures: [figure] }), { figureStart: 'vertex' })[0]).toMatchObject({ kind: 'figure', text: 'H Y D R A', x: 200, y: 100 });
+  });
+
+  it('then walks one row above the vertex where the vertex is taken', () => {
+    const placed = placeLabels(base({ marks: [{ ...anchor, sizePx: 12 }], figures: [figure] }), { figureStart: 'vertex' });
+    expect(placed[0]).toMatchObject({ kind: 'figure', x: 200, y: 100 - FIGURE_NAME_PX });
+  });
+
+  it('keeps the centroid by default, under centroid, and for a figure with no anchor', () => {
+    const atCentroid = { kind: 'figure', x: 200, y: 137.5 };
+    expect(placeLabels(base({ figures: [figure] }))[0]).toMatchObject(atCentroid);
+    expect(placeLabels(base({ figures: [figure] }), { figureStart: 'centroid' })[0]).toMatchObject(atCentroid);
+    expect(placeLabels(base({ figures: [{ key: figure.key, name: figure.name, con: figure.con, segments: figure.segments, endpoints }] }), { figureStart: 'vertex' })[0]).toMatchObject(atCentroid);
+  });
+});
+
+describe('with neither option the placement is 2.11.0’s (D-1041)', () => {
+  it.each([
+    ['Orion over Paris', PARIS, '2026-12-15T23:00:00Z', 'Ori'],
+    ['Crux over Neuquén', NEUQUEN, '2027-04-15T03:00:00Z', 'Cru'],
+  ] as const)('%s: empty options and centroid give the same labels as none', (_, site, iso, con) => {
+    for (const [width, height] of [
+      [390, 390],
+      [798, 498],
+    ] as const) {
+      const { input, placed } = sky(site, iso, con, width, height);
+      expect(placeLabels(input, {})).toEqual(placed);
+      expect(placeLabels(input, { fixed: [], figureStart: 'centroid' })).toEqual(placed);
+    }
   });
 });
