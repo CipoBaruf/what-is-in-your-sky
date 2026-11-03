@@ -1,6 +1,6 @@
 import { useCallback, useInsertionEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { clampWindowTilt, handRotation, type HandState, type SkyCamera } from './camera';
-import { lookDirection, WINDOW_FOV, type Mat3 } from './projection';
+import { followLiftRotation, lookDirection, WINDOW_FOV, type Mat3 } from './projection';
 import { useDeviceOrientation, type DeviceOrientationHandle } from './useDeviceOrientation';
 
 /**
@@ -70,7 +70,11 @@ export function useViewRotation(camera: SkyCamera, declinationDeg: number, fallb
   const sensorDrives = !byHand || follow;
   const orientation = useDeviceOrientation(declinationDeg, sensorDrives);
   const hand: HandState | null = useSyncExternalStore(byHand ? camera.subscribe : neverChanges, byHand ? camera.get : noHand, byHand ? camera.get : noHand);
-  const sensed = orientation.rotation;
+  // v2.12 (FR-GYRO-2 as amended, D-1022): following, the pose drawn is the phone's with a downward tilt lifted
+  // (`followLiftRotation`); everything after this — the drawing, the star field, the readout, the hand handed back
+  // when following ends — reads the lifted pose, so the picture does not jump when the finger takes it.
+  const raw = orientation.rotation;
+  const sensed = useMemo(() => (follow && byHand && raw !== null ? followLiftRotation(raw) : raw), [follow, byHand, raw]);
   const rotation = useMemo(() => (sensorDrives && sensed !== null ? sensed : hand ? handRotation(hand) : fallback), [sensorDrives, sensed, hand, fallback]);
 
   // R151 (D-942): the last reading of this spell of following, kept past the render that turns following off (the

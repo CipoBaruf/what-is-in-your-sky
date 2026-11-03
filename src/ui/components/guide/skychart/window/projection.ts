@@ -431,3 +431,50 @@ export function followFovDeg(fovDeg: number, width: number, height: number): num
   const opening = (4 * Math.atan((width / height) * Math.tan((FOLLOW_VERTICAL_FIELD_DEG / 4) * RAD))) / RAD;
   return Math.min(WINDOW_FOV_MAX_DEG, Math.max(WINDOW_FOV_MIN_DEG, (opening * fovDeg) / WINDOW_FOV));
 }
+
+/**
+ * v2.12 (FR-GYRO-2 as amended, D-1022): the band under the horizon where a following window lifts the picture. A phone
+ * is held pointing a little down to read its screen, and drawn exactly that pose puts ground over the lower part of
+ * the box; inside the band the drawn tilt is half the phone's, so the sky goes on moving, at half the rate, and the
+ * ground takes half as much of the screen.
+ */
+export const FOLLOW_LIFT_BAND_DEG = 50;
+
+/**
+ * v2.12 (D-1022): how many degrees a following window raises a pose that points `altDeg` up. Nothing at or above the
+ * horizon; half the depth inside the band, up to `FOLLOW_LIFT_BAND_DEG / 2` at its foot; and from there back to
+ * nothing at the nadir, so straight down — where the azimuth, and with it the axis of the lift, has no answer — is
+ * drawn as it is. The drawn tilt (`altDeg + lift`) rises with the phone's everywhere, so the picture never holds still
+ * or runs backwards (the floor D-1018 withdrew did the first).
+ */
+export function followLiftDeg(altDeg: number): number {
+  if (altDeg >= 0) return 0;
+  const foot = -FOLLOW_LIFT_BAND_DEG;
+  const most = FOLLOW_LIFT_BAND_DEG / 2;
+  if (altDeg >= foot) return -altDeg / 2;
+  return Math.max(0, (most * (altDeg + 90)) / (90 + foot));
+}
+
+/**
+ * v2.12 (D-1022): the pose a following window draws for the phone's `m`: turned up by `followLiftDeg` about the
+ * horizontal axis square to where it points, so the facing and the screen's roll against the horizon are the phone's
+ * and only the tilt is raised.
+ */
+export function followLiftRotation(m: Mat3): Mat3 {
+  const look = lookDirection(m);
+  const lift = followLiftDeg(look.altDeg) * RAD;
+  if (lift === 0) return m;
+  const az = look.azDeg * RAD;
+  // The axis on the reader's right as they face the look; a positive turn about it raises the look.
+  const r: Vec3 = [Math.cos(az), -Math.sin(az), 0];
+  const c = Math.cos(lift);
+  const sn = Math.sin(lift);
+  const turn = (v: Vec3): Vec3 => {
+    const cross: Vec3 = [r[1] * v[2] - r[2] * v[1], r[2] * v[0] - r[0] * v[2], r[0] * v[1] - r[1] * v[0]];
+    const dot = r[0] * v[0] + r[1] * v[1] + r[2] * v[2];
+    return [v[0] * c + cross[0] * sn + r[0] * dot * (1 - c), v[1] * c + cross[1] * sn + r[1] * dot * (1 - c), v[2] * c + cross[2] * sn + r[2] * dot * (1 - c)];
+  };
+  const cols = [0, 1, 2].map((i) => turn([m[0][i] ?? 0, m[1][i] ?? 0, m[2][i] ?? 0] as Vec3));
+  const at = (row: 0 | 1 | 2): Vec3 => [cols[0]?.[row] ?? 0, cols[1]?.[row] ?? 0, cols[2]?.[row] ?? 0];
+  return [at(0), at(1), at(2)];
+}
