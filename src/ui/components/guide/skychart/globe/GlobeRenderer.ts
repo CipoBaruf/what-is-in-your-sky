@@ -64,12 +64,12 @@ export interface GlobeLayers {
   names: boolean;
 }
 
-export type PlanetName = (typeof PLANETS)[number];
+type PlanetName = (typeof PLANETS)[number];
 
 /** FR-GLOBE-11: what a hover, a tap or a click names. A figure keeps the segment hit, so its label stands beside that line. */
 export type GlobeTarget = { kind: 'star'; index: number } | { kind: 'planet'; body: PlanetName } | { kind: 'sun' } | { kind: 'moon' } | { kind: 'figure'; index: number; segment: number };
 
-export function targetKey(target: GlobeTarget | null): string {
+function targetKey(target: GlobeTarget | null): string {
   if (target === null) return '';
   switch (target.kind) {
     case 'star':
@@ -233,7 +233,7 @@ function bodyOf(sky: GlobeSky, target: GlobeTarget): Body | undefined {
 }
 
 /** The label beside a named mark: a star's or a planet's name with its magnitude, the Sun's or the Moon's word, a figure's name. */
-export function labelLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'lang'>, target: GlobeTarget): string {
+function labelLine(catalog: StarCatalog, s: Pick<GlobeState, 'place' | 't' | 'lang'>, target: GlobeTarget): string {
   const w = wordsFor(s.lang);
   switch (target.kind) {
     case 'star':
