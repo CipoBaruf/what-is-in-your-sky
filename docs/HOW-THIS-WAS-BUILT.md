@@ -37,8 +37,8 @@ session that disagrees has to argue with a written reason rather than with a sil
 The section to read is [§16, Delivery](../PLAN.md#16-delivery-of-the-v1-and-v11-tasks-v1-11-v11-9).
 It opens with the v1 contract — lanes (which files a task may touch), waves (which tasks
 can run at once), what an entry must carry, the driver, the merge policy and the model
-policy — and then carries one delivery section per phase, §16.9 to §16.23, v1.2 through
-v2.5, each with its wave table and the block of decision numbers its tasks may spend.
+policy — and then carries one delivery section per phase, §16.9 to §16.30, v1.2 through
+v2.11, each with its wave table and the block of decision numbers its tasks may spend.
 
 ## 3. [TASKS.md](../TASKS.md) — the ordered slices
 
@@ -177,7 +177,7 @@ The app itself is well under a megabyte; nothing in `docs/` reaches the bundle.
 
 ## By the numbers
 
-Read at `2b6ff66`, `main` on 2026-09-25, the commit this page was rewritten from. Each
+Read at `498a0ca`, `main` on 2026-11-03, the commit this table was last refreshed from. Each
 figure is the output of the command beside it at that commit; a later commit moves the
 lines and the counts, not the commands. `tests/docs/accuracy.test.ts` asserts the shape
 of this table — a command and a commit on every row — and does not recount the tree,
@@ -186,19 +186,19 @@ because a test that did would make this page wrong the moment the next task merg
 
 | Figure | Value | Command | Read at |
 |---|---|---|---|
-| Tasks merged | 106 (R1–R102, H, P1, P2, P6) | `grep -c '^- \[x\] \*\*' TASKS.md` | `2b6ff66` |
-| Tasks open | 3 (P3, P4, P5) | `grep -c '^- \[ \] \*\*' TASKS.md` | `2b6ff66` |
-| Pull requests merged into `main` | 136 | `git log --oneline origin/main \| grep -cE '\(#[0-9]+\)$'` | `2b6ff66` |
-| Commits on `main` | 232 | `git rev-list --count origin/main` | `2b6ff66` |
-| Requirement ids named in the spec | 260 | `grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' SPEC.md \| sort -u \| wc -l` | `2b6ff66` |
-| Highest decision id | `D-681` | `grep -oE '\bD-[0-9]+' PLAN.md \| sort -t- -k2 -n \| tail -1` | `2b6ff66` |
-| Findings recorded (SPEC §4.20) | 100 (`F-1` … `F-100`) | `grep -c '^\| \**F-[0-9]' SPEC.md` | `2b6ff66` |
-| Decision Log rows (SPEC §12) | 139 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' SPEC.md` | `2b6ff66` |
-| Lines in the three documents | 1850, 2435, 2748 | `wc -l SPEC.md PLAN.md TASKS.md` | `2b6ff66` |
-| The driver | 396 lines, plus 7 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `2b6ff66` |
-| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `2b6ff66` |
-| Test files | 194 Vitest files, 83 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `2b6ff66` |
-| Tests | 2165 in 194 files, 5 of them skipped — the last two lines of its output | `npm test` | `2b6ff66` |
-| Tracked files | 1703 | `git ls-files \| wc -l` | `2b6ff66` |
-| Captures | 756 PNGs under `docs/screenshots/`, 254 of them the `v1-*` release set | `git ls-files 'docs/screenshots/*.png' \| wc -l; git ls-files 'docs/screenshots/v1-*.png' \| wc -l` | `2b6ff66` |
-| Size of `docs/` | 101 MB, of which `docs/screenshots/` is 83 MB | `du -sm docs docs/screenshots` | `2b6ff66` |
+| Tasks merged | 175 (R1–R164, R166, H, P1–P9) | `grep -c '^- \[x\] \*\*' TASKS.md` | `498a0ca` |
+| Tasks open | 1 (R165) | `grep -c '^- \[ \] \*\*' TASKS.md` | `498a0ca` |
+| Pull requests merged into `main` | 231 | `git log --oneline origin/main \| grep -cE '\(#[0-9]+\)$'` | `498a0ca` |
+| Commits on `main` | 329 | `git rev-list --count origin/main` | `498a0ca` |
+| Requirement ids named in the spec | 392 | `grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' SPEC.md \| sort -u \| wc -l` | `498a0ca` |
+| Highest decision id | `D-1033` | `grep -oE '\bD-[0-9]+' PLAN.md \| sort -t- -k2 -n \| tail -1` | `498a0ca` |
+| Findings recorded (SPEC §4.20) | 102 rows, the highest `F-103` | `grep -c '^\| \**F-[0-9]' SPEC.md` | `498a0ca` |
+| Decision Log rows (SPEC §12) | 274 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' SPEC.md` | `498a0ca` |
+| Lines in the three documents | 2784, 3373, 4751 | `wc -l SPEC.md PLAN.md TASKS.md` | `498a0ca` |
+| The driver | 415 lines, plus 7 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `498a0ca` |
+| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `498a0ca` |
+| Test files | 268 Vitest files, 112 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `498a0ca` |
+| Tests | 3271 in 269 files, 7 of them skipped — the last two lines of its output | `npm test` | `498a0ca` |
+| Tracked files | 2339 | `git ls-files \| wc -l` | `498a0ca` |
+| Captures | 1078 PNGs under `docs/screenshots/`, 420 of them the `v1-*` release set | `git ls-files 'docs/screenshots/*.png' \| wc -l; git ls-files 'docs/screenshots/v1-*.png' \| wc -l` | `498a0ca` |
+| Size of `docs/` | 138 MB, of which `docs/screenshots/` is 115 MB | `du -sm docs docs/screenshots` | `498a0ca` |
