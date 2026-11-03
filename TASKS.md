@@ -4765,7 +4765,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
 
 ### Wave 1
 
-- [ ] **R167 — The globe's geometry: `globe/constants.ts`, `projection.ts` and `scene.ts` as pure modules with their tests; nothing mounted**
+- [x] **R167 — The globe's geometry: `globe/constants.ts`, `projection.ts` and `scene.ts` as pure modules with their tests; nothing mounted**
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
@@ -4783,6 +4783,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.55 who
     - `globe/projection.test.ts` and `globe/scene.test.ts` pass with the cases above; the golden fixtures pass unchanged.
     - Nothing imports `skychart/globe/` yet, and `npm run check:dead` passes with the new modules (an allow-list entry or test-only use as the repo's rule has it, written in the Done note).
     - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
+  - **Done note (R167):** `check:dead` passes by test-only use — knip counts the tests as entries, so no allow-list entry; `GlobeBody` stays unexported. A `constants.test.ts` holds §4.55's table. `BODIES_EVERY_MS` is re-exported from `lib/playback.ts`; `unproject` added beside `dragTurn` (D-1044); planets by `skyStars.ts`'s calls, not `starsAt` (D-1045).
 
 - [ ] **R168 — The labels' two options: `starLabels.ts`'s `fixed` bodies and `figureStart: 'vertex'`, off by default, with the globe's cases; the window's and the polar chart's placement and snapshots unchanged**
   - **Lane:** window
