@@ -363,7 +363,7 @@ describe('a figure’s walk from a vertex (FR-GLOBE-11, D-1041)', () => {
     const atCentroid = { kind: 'figure', x: 200, y: 137.5 };
     expect(placeLabels(base({ figures: [figure] }))[0]).toMatchObject(atCentroid);
     expect(placeLabels(base({ figures: [figure] }), { figureStart: 'centroid' })[0]).toMatchObject(atCentroid);
-    expect(placeLabels(base({ figures: [{ ...figure, anchor: undefined }] }), { figureStart: 'vertex' })[0]).toMatchObject(atCentroid);
+    expect(placeLabels(base({ figures: [{ key: figure.key, name: figure.name, con: figure.con, segments: figure.segments, endpoints }] }), { figureStart: 'vertex' })[0]).toMatchObject(atCentroid);
   });
 });
 
