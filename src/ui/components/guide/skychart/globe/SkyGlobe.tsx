@@ -93,6 +93,7 @@ function measure(box: HTMLElement): { width: number; height: number } {
 export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, className }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const rendererRef = useRef<GlobeRenderer | null>(null);
   const viewRef = useRef<View>(openingView(turn, place, instant));
   const [named, setNamed] = useState<GlobeTarget | null>(null);
@@ -100,12 +101,13 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const [dragging, setDragging] = useState(false);
   const readoutId = `${useId()}-readout`;
 
-  // The renderer, once: the SVG is built into the box and lives until unmount. The box is measured here and by the observer.
+  // The renderer, once: React renders the empty `<svg>`, the renderer fills it and writes it until unmount. The box is measured here and by the observer.
   useLayoutEffect(() => {
     const box = boxRef.current;
-    if (!box) return;
+    const svg = svgRef.current;
+    if (!box || !svg) return;
     const view = viewRef.current;
-    const renderer = new GlobeRenderer(box, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null });
+    const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null });
     rendererRef.current = renderer;
     let observer: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
@@ -410,7 +412,10 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         onPointerLeave={onPointerLeave}
         onLostPointerCapture={onLostPointerCapture}
         onKeyDown={onKeyDown}
-      />
+      >
+        {/* FR-GLOBE-14: one SVG, its children the renderer's by ref (never React's), its label the renderer's words. */}
+        <svg ref={svgRef} className={styles.svg} role="img" data-globe="" />
+      </div>
       <p className={styles.readout} id={readoutId} data-testid="globe-readout">
         {line !== null && (
           <span className={styles.named} data-testid="globe-named">

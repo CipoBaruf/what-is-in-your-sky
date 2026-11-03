@@ -109,7 +109,6 @@ export interface GlobeState {
 type Body = GlobeSky['sun'];
 type Attrs = Record<string, string | number | undefined>;
 
-const NS = 'http://www.w3.org/2000/svg';
 const TONES: readonly ToneToken[] = ['chart-star-blue', 'chart-star', 'chart-star-yellow', 'chart-star-orange'];
 /** FR-GLOBE-4: the five dot sizes a bucket stands for, `DOT_RADIUS_PX.faint` to `.bright` in even steps; a dot takes the nearest. */
 export const DOT_STEPS: readonly number[] = Array.from({ length: 5 }, (_, k) => Math.round((DOT_RADIUS_PX.faint + ((DOT_RADIUS_PX.bright - DOT_RADIUS_PX.faint) * k) / 4) * 100) / 100);
@@ -131,10 +130,11 @@ const fmt = (n: number): string => n.toFixed(1);
 const cls = (name: string): string => styles[name] ?? name;
 const DIM = cls('dim');
 
-function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Attrs, parent?: Element): SVGElementTagNameMap[K] {
-  const node = document.createElementNS(NS, tag);
+/** A child of `parent` in the SVG namespace — the root `<svg>`'s own, so no namespace string is written here. */
+function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Attrs, parent: Element): SVGElementTagNameMap[K] {
+  const node = parent.ownerDocument.createElementNS(parent.namespaceURI, tag) as SVGElementTagNameMap[K];
   for (const [k, v] of Object.entries(attrs)) if (v !== undefined) node.setAttribute(k, String(v));
-  parent?.appendChild(node);
+  parent.appendChild(node);
   return node;
 }
 
@@ -333,7 +333,8 @@ export class GlobeRenderer {
   private readonly near: Uint8Array;
   private readonly up: Uint8Array;
 
-  constructor(host: Element, catalog: StarCatalog, state: GlobeState) {
+  /** `svg` is the caller's empty `<svg>` (React's, in `SkyGlobe`): the renderer fills it and owns every child, never the root. */
+  constructor(svg: SVGSVGElement, catalog: StarCatalog, state: GlobeState) {
     this.catalog = catalog;
     this.state = state;
     this.dirs = starVectors(catalog);
@@ -344,8 +345,7 @@ export class GlobeRenderer {
     this.up = new Uint8Array(n);
     this.words = wordsFor(state.lang);
     this.wordsLang = state.lang;
-    this.svg = el('svg', { class: cls('svg'), role: 'img', 'aria-label': this.words.label, 'data-globe': '' });
-    host.appendChild(this.svg);
+    this.svg = svg;
     const g = (className: string, attrs: Attrs = {}): SVGGElement => el('g', { class: className, ...attrs }, this.svg);
 
     const base = g(cls('base'));
@@ -487,11 +487,13 @@ export class GlobeRenderer {
     });
   }
 
-  /** Stop: the pending frame is dropped and the SVG leaves the host. */
+  /** Stop: the pending frame is dropped and the SVG is emptied; the root stays the caller's. */
   dispose(): void {
     if (this.pending !== null) cancelAnimationFrame(this.pending);
     this.pending = null;
-    this.svg.remove();
+    this.svg.replaceChildren();
+    this.svg.removeAttribute('aria-label');
+    this.svg.removeAttribute('viewBox');
   }
 
   /** The last frame's projector, for the hand (a drag turns the globe in it) — `null` before the first frame. */

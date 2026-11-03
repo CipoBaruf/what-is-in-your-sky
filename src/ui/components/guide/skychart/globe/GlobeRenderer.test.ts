@@ -49,10 +49,14 @@ const DEEP = parseDeepCatalog({
 });
 
 let made: GlobeRenderer[] = [];
+/** The component's shape: an empty `<svg>` in a box, the renderer filling it. */
 function mount(over: Partial<GlobeState> = {}): { host: HTMLDivElement; r: GlobeRenderer } {
   const host = document.createElement('div');
   document.body.appendChild(host);
-  const r = new GlobeRenderer(host, catalog, stateAt(over));
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('role', 'img');
+  host.appendChild(svg);
+  const r = new GlobeRenderer(svg, catalog, stateAt(over));
   r.draw();
   made.push(r);
   return { host, r };
@@ -357,13 +361,16 @@ describe('frames (D-1038)', () => {
     raf.mockRestore();
   });
 
-  it('counts its frames, and dispose drops the pending one and the SVG', () => {
+  it('counts its frames, and dispose drops the pending frame and empties the SVG, which stays the caller’s', () => {
     const { host, r } = mount();
     expect(r.frames).toBe(1);
+    expect(r.svg.namespaceURI).toBe(r.svg.firstElementChild?.namespaceURI);
     r.draw();
     expect(r.frames).toBe(2);
     r.set({ zoom: 2 });
     r.dispose();
-    expect(host.querySelector('svg')).toBeNull();
+    expect(host.querySelector('svg')).toBe(r.svg);
+    expect(r.svg.childElementCount).toBe(0);
+    expect(r.svg.hasAttribute('aria-label')).toBe(false);
   });
 });
