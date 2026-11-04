@@ -26,6 +26,9 @@ const DECLINATION = 'src/lib/declination.ts';
 const NO_GEOMAGNETISM = { name: 'geomagnetism', message: `Only ${DECLINATION} may import geomagnetism (PLAN §3, D-185).` };
 const NO_REACT = { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'This directory must not import React (PLAN §3).' };
 
+/** FR-SDD-19: SPEC §4.56's `FILE_WARN_LINES`. */
+export const FILE_WARN_LINES = 600;
+
 /** R141 (D-896): the two `src/lib` modules that read FR-TONIGHT's constants from `physics/constants.ts`. */
 const TONIGHT_CONSTANTS = ['src/lib/playback.ts', 'src/lib/tonightJump.ts'];
 
@@ -46,6 +49,9 @@ export default defineConfig([
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
       '@typescript-eslint/no-restricted-imports': restrictedImports(),
+      // FR-SDD-19 (D-1069): ESLint's own rule, a warning past FILE_WARN_LINES (`scripts/sdd/limits.ts`;
+      // this file is plain JS and cannot import it, so `tests/sdd/check-sdd.test.ts` holds the two equal).
+      'max-lines': ['warn', { max: FILE_WARN_LINES }],
     },
   },
   {
