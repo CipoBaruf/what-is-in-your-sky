@@ -19,6 +19,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { prune, run as runCommand } from './prune-merged-branches';
 import { loadAgents, modelTiers, nextTier, pickAgent, toolLists, type Agent, type AgentsConfig, type SessionKind, type Tier } from './sdd/agents';
 import { buildBrief } from './sdd/brief';
 import { layoutLookup } from './sdd/ids';
@@ -507,6 +508,15 @@ async function main(): Promise<number> {
   }
 
   printPlanned(planned, skipped, agentOf, consoleLogger);
+  // FR-SDD-27 (D-1071): the previous wave's PRs are merged by now; clear their branches and worktrees before this wave adds its own.
+  if (options.prune && options.mode === 'wave') {
+    consoleLogger.line('\nPruning merged branches and worktrees:');
+    try {
+      for (const line of prune(runCommand, false)) consoleLogger.line(`  ${line}`);
+    } catch (error) {
+      consoleLogger.line(`  (prune skipped: ${error instanceof Error ? error.message.split('\n')[0] : String(error)})`);
+    }
+  }
   const startedAt = new Date();
   const reports: TaskReport[] = [];
   // D-132: the wave runs concurrently; each task has its own worktree, log, port and PR.

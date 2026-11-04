@@ -167,6 +167,43 @@ export interface Brief {
   missing: readonly string[];
 }
 
+/** FR-SDD-17: a digest of docs/sdd/gotchas.md, fixed text so it stays byte-stable; the file has the rest. */
+const GOTCHAS_DIGEST: readonly string[] = [
+  '- Read the section of `docs/sdd/gotchas.md` for the work at hand; `rg -n "<word>" docs/sdd/gotchas.md` finds it.',
+  '- Do not run prettier here: there is no config and it rewrites every file.',
+  '- Lint after the last edit (`eslint .` also lints `sdd-run/`) and run `npx knip` before the last commit: the dead-code CI job has failed tasks alone.',
+  '- A headless session refuses `VAR=1 cmd`, `rm`, `git checkout`, redirects outside the worktree and edits under the agent config folder; write files with the file tools or `node -e`.',
+  '- A session cannot add npm dependencies (no network); a full e2e run rewrites committed captures, so restore them with `git show HEAD:<path>`.',
+];
+
+/** FR-SDD-17: the part of a brief every task shares, in the fixed order rules, tool policy, gotchas digest. Task-neutral: `<id>` is the id in the heading below it. */
+export function sharedPrefix(options: BriefOptions): string[] {
+  const list = (tools: readonly string[]): string => tools.map((tool) => `\`${tool}\``).join(', ');
+  return [
+    'This brief replaces SPEC.md, PLAN.md and TASKS.md for this session (PLAN D-198). It carries the task entry and every requirement, story, finding and decision the entry names. Do not read the three documents in full. For an id or a section the brief does not carry, run `rg -n "<ID>" SPEC.md PLAN.md TASKS.md` and read only the lines it points at.',
+    '',
+    '## Headless rules (PLAN §16.4)',
+    '',
+    '- Decide and record rather than ask. An ambiguous task takes the reading closest to the spec text, noted under "Assumptions" in the summary.',
+    '- A task that cannot be done as written: write why to `sdd-run/<id>.blocked.md` and exit. Never diverge from the documents silently.',
+    '- Commit each coherent step as it is finished (D-89 below). An uncommitted working tree is what the turn cap and the wall clock throw away.',
+    '- Run narrow tests while iterating (`npx vitest run <file>`, `npx playwright test <spec>`); run the full `npm test` and `npm run typecheck` once before the last commit (D-199).',
+    '- Check the task off in TASKS.md on this branch. Write the summary (files touched, requirement ids covered, assumptions, follow-ups) to `sdd-run/<id>.summary.md`; the driver makes it the PR body.',
+    '- Never push, never call `gh`, never `git add -A`: the driver rebases, pushes and opens the PR.',
+    '',
+    '## Tools',
+    '',
+    `Allowed: ${list(options.allowedTools)}.`,
+    '',
+    `Denied (a denial wins over the allowlist): ${list(options.deniedTools)}.`,
+    '',
+    '## Gotchas (docs/sdd/gotchas.md)',
+    '',
+    ...GOTCHAS_DIGEST,
+    '',
+  ];
+}
+
 /** The brief for one task. */
 export function buildBrief(task: Task, sources: BriefSources, options: BriefOptions): Brief {
   const tasksText = sources.textFor(task.id);
@@ -194,10 +231,10 @@ export function buildBrief(task: Task, sources: BriefSources, options: BriefOpti
   const lanes = sources.textFor(LANES_SECTION);
   const lane = task.lane && lanes !== null ? laneRow(lanes, task.lane) : null;
 
+  // FR-SDD-17: what every session shares comes first and is the same bytes for every task (no id in it), so a wave's sessions share a cached prefix.
   const lines = [
+    ...sharedPrefix(options),
     `# ${task.id} — ${task.title}`,
-    '',
-    'This brief replaces SPEC.md, PLAN.md and TASKS.md for this session (PLAN D-198). It carries the task entry and every requirement, story, finding and decision the entry names. Do not read the three documents in full. For an id or a section the brief does not carry, run `rg -n "<ID>" SPEC.md PLAN.md TASKS.md` and read only the lines it points at.',
     '',
     '## The task (TASKS.md)',
     '',
@@ -209,21 +246,6 @@ export function buildBrief(task: Task, sources: BriefSources, options: BriefOpti
     ...section('Open questions and decision-log rows (SPEC.md)', specRows),
     ...section('Decisions (PLAN.md)', decisions),
     ...section(`Lane \`${String(task.lane)}\` (PLAN §16.1: what this task may touch)`, lane ? ['| Lane | Owns | Typical tasks |', '|---|---|---|', lane] : []),
-    '## Headless rules (PLAN §16.4)',
-    '',
-    '- Decide and record rather than ask. An ambiguous task takes the reading closest to the spec text, noted under "Assumptions" in the summary.',
-    `- A task that cannot be done as written: write why to \`sdd-run/${task.id}.blocked.md\` and exit. Never diverge from the documents silently.`,
-    '- Commit each coherent step as it is finished (D-89 above). An uncommitted working tree is what the turn cap and the wall clock throw away.',
-    '- Run narrow tests while iterating (`npx vitest run <file>`, `npx playwright test <spec>`); run the full `npm test` and `npm run typecheck` once before the last commit (D-199).',
-    `- Check ${task.id} off in TASKS.md on this branch. Write the summary (files touched, requirement ids covered, assumptions, follow-ups) to \`sdd-run/${task.id}.summary.md\`; the driver makes it the PR body.`,
-    '- Never push, never call `gh`, never `git add -A`: the driver rebases, pushes and opens the PR.',
-    '',
-    '## Tools',
-    '',
-    `Allowed: ${options.allowedTools.map((tool) => `\`${tool}\``).join(', ')}.`,
-    '',
-    `Denied (a denial wins over the allowlist): ${options.deniedTools.map((tool) => `\`${tool}\``).join(', ')}.`,
-    '',
   ];
   if (missing.length > 0) lines.push(`_Cited but not found in the documents: ${missing.join(', ')}._`, '');
   return { markdown: lines.join('\n'), missing };
