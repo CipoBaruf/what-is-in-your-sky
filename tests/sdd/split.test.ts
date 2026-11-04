@@ -55,7 +55,7 @@ describe('FR-SDD-3: the lossless test', () => {
   it('leaves TASKS.md the v2.13 block and the status table', () => {
     const tasks = files.get('TASKS.md') ?? '';
     expect(tasks.match(/^## .*$/gm)).toEqual(['## Status', '## v2.13 tasks']);
-    expect(tasks).toContain('| v2.12 | R167–R171 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.12/tasks.md) |');
+    expect(tasks).toContain('| v2.12 | R167 … R171 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.12/tasks.md) |');
     expect(files.get('docs/sdd/archive.json')).toBe('{}\n');
   });
 });

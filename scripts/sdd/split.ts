@@ -208,7 +208,7 @@ function statusSection(open: readonly Piece[], phaseTasks: ReadonlyMap<string, s
   const row = (phase: string, text: string, file: string): string => {
     const { tasks } = parseTasks(text);
     const done = tasks.filter((task) => task.done).length;
-    const ids = tasks.length === 0 ? '—' : `${tasks[0]?.id ?? ''}–${tasks[tasks.length - 1]?.id ?? ''}`;
+    const ids = tasks.length === 0 ? '—' : `${tasks[0]?.id ?? ''} … ${tasks[tasks.length - 1]?.id ?? ''}`;
     return `| ${phase} | ${ids} | ${String(done)} of ${String(tasks.length)} | ${file} |`;
   };
   const openText = open.map((piece) => piece.lines.join('\n')).join('\n');
@@ -218,7 +218,7 @@ function statusSection(open: readonly Piece[], phaseTasks: ReadonlyMap<string, s
     `This file holds the open phase, ${OPEN_PHASE}; each closed phase's tasks are in its folder, moved byte for byte (FR-SDD-3).`,
     "Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/breakdown-inputs.md`](docs/sdd/reference/breakdown-inputs.md).",
     '',
-    '| Phase | Tasks | Merged | File |',
+    '| Phase | First … last task | Merged | File |',
     '|---|---|---|---|',
     ...[...phaseTasks].map(([phase, text]) => row(phase, text, `[tasks.md](${SDD_DIR}/phases/${phase}/tasks.md)`)),
     row(OPEN_PHASE, openText, 'this file'),
