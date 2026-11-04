@@ -1,7 +1,7 @@
 /**
  * FR-SDD-4, D-1060: one sentence per line. `rewrap` breaks a line after `.`, `?` or `!` plus
- * one space when the next character opens a sentence; `unwrapItems` is its inverse for list
- * items, which is what the brief needs to come out byte for byte (FR-SDD-7). Whitespace only.
+ * one space when the next character opens a sentence; `unwrap` is its inverse, block by
+ * block, which is what the brief needs to come out byte for byte (FR-SDD-7). Whitespace only.
  */
 
 /** SPEC §4.56's `DOC_LINE_MAX`; R179's `limits.ts` takes the constants over. */
@@ -100,11 +100,12 @@ export function rewrap(lines: readonly string[]): string[] {
 }
 
 /**
- * The inverse of `rewrap` for list items: a line indented to the enclosing item's text that
- * opens a sentence, after a line that ended one, is joined back with one space. Lines at the
- * margin are never joined, since a paragraph's lines were separate before the split too.
+ * The inverse of `rewrap`: a line at the column `rewrap` gives continuations (the enclosing
+ * item's text, else the paragraph's own indent) that opens a sentence, after a line that ended
+ * one, is joined back with one space. The split keeps a block rewrapped only where this gives
+ * the block back exactly (`roundTrips`), so the brief can read the old text (FR-SDD-7).
  */
-export function unwrapItems(lines: readonly string[]): string[] {
+export function unwrap(lines: readonly string[]): string[] {
   const out: string[] = [];
   let fenced = false;
   let column: number | null = null;
@@ -115,7 +116,7 @@ export function unwrapItems(lines: readonly string[]): string[] {
       out.push(line);
       continue;
     }
-    if (fenced || line.trim() === '' || isHeading(line) || isTableRow(line)) {
+    if (fenced || line.trim() === '' || isHeading(line) || isTableRow(line) || isBlockquote(line)) {
       column = null;
       out.push(line);
       continue;
@@ -128,12 +129,47 @@ export function unwrapItems(lines: readonly string[]): string[] {
     }
     const indent = leadingSpace(line);
     const previous = out[out.length - 1];
-    if (column !== null && indent === column && indent > 0 && OPENER.test(line[indent] ?? '') && previous !== undefined && SENTENCE_END.test(previous)) {
+    if (column !== null && indent === column && OPENER.test(line[indent] ?? '') && previous !== undefined && SENTENCE_END.test(previous)) {
       out[out.length - 1] = `${previous} ${line.slice(indent)}`;
       continue;
     }
-    if (column === null || indent < column) column = null;
+    if (column === null || indent < column) column = indent;
     out.push(line);
+  }
+  return out;
+}
+
+const same = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((line, index) => line === b[index]);
+
+/** The blocks of a file: runs of lines between blank lines, a fenced block never cut. */
+export function blocksOf(lines: readonly string[]): string[][] {
+  const blocks: string[][] = [];
+  let current: string[] = [];
+  let fenced = false;
+  for (const line of lines) {
+    if (isFence(line)) fenced = !fenced;
+    if (!fenced && line.trim() === '') {
+      if (current.length > 0) blocks.push(current);
+      blocks.push([line]);
+      current = [];
+      continue;
+    }
+    current.push(line);
+  }
+  if (current.length > 0) blocks.push(current);
+  return blocks;
+}
+
+/**
+ * D-1060 as the split applies it: each block rewrapped where `unwrap` gives it back exactly,
+ * left as it is where not (a block already one sentence per line, or one whose inverse is
+ * ambiguous). Lossless either way: only whitespace moves.
+ */
+export function rewrapBlocks(lines: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const block of blocksOf(lines)) {
+    const wrapped = rewrap(block);
+    out.push(...(same(unwrap(wrapped), block) ? wrapped : block));
   }
   return out;
 }
