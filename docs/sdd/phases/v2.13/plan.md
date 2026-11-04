@@ -99,6 +99,12 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   The brief's shared part is rules, tool policy, then a fixed gotchas digest, with no task id in it (`<id>` stands for the id in the heading that follows), so the first section is the same bytes for every task.
   R175's fixtures differ from before by that order, the `<id>` wording, "D-89 below" and the added digest section.
 
+- **D-1093 — The report, the ceilings, and the archive left to the owner.** (FR-SDD-1, FR-SDD-2, FR-SDD-26, FR-SDD-28; R181.)
+  `report.md` counts a session's tokens as `entryTokens` does, the number the ceiling is checked against. A ceiling is 2 × the p90 of the tier's sessions, set for `light` and `standard`; `hard` has one session (ended on a limit) and stays unset until the next ledger gives five.
+  The archive was not built: a headless session cannot run `git worktree add`, so no `archive` branch exists and nothing left `main`.
+  `spike/mark/` (the `build:icons` generator) and `spike/window/projection.ts` (read by `tests/spike`) are live code and stay or move with their callers.
+  `tests/docs/public.test.ts` reads `docs/stars/FINDINGS.md` and `docs/spike-glyphcss/*`, so the move changes it too.
+
 ---
 
 ### 9.15 v2.13 additions *(FR-SDD)*
