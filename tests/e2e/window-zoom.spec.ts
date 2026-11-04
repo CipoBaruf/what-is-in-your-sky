@@ -300,7 +300,8 @@ test.describe('zoom on a compact page without a sensor', () => {
     const at60 = await drawnStars(w).count();
     const deepAt60 = await deep.count();
     const names60 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
-    expect(names60.filter((name) => DESIGNATION.test(name))).toEqual([]);
+    // R185 (FR-NAME-2): a nameless star brighter than `BAYER_LABEL_MAG` is named at every field; ζ Ara (V 3.1) is not, at any.
+    expect(names60).not.toContain('ζ Ara');
     await pinch(box(w), 40, 120);
     await expect(w).toHaveAttribute('data-fov', '20');
     const at20 = await drawnStars(w).count();
@@ -309,6 +310,7 @@ test.describe('zoom on a compact page without a sensor', () => {
     const names20 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
     console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
     expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
+    expect(names20).not.toContain('ζ Ara');
     expect(chunks).toEqual(['Stars', 'deep']);
   });
 
