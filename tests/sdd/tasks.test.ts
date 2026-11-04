@@ -6,10 +6,14 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { branchName, byId, fallbackFor, layoutTasksText, limitsFor, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
+import { loadAgents, modelTiers, pickAgent } from '../../scripts/sdd/agents';
+import { branchName, byId, fallbackFor, layoutTasksText, limitsFor, ownerDriven, parseTasks, runBlockers, tierFor, type Task } from '../../scripts/sdd/tasks';
 
-const real = parseTasks(layoutTasksText(readFileSync('TASKS.md', 'utf8'), (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null)));
-const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
+/** FR-SDD-11: the default agent's model → tier map, which closed phases' `Model:` is read through. */
+const models = modelTiers(pickAgent(loadAgents()));
+
+const real = parseTasks(layoutTasksText(readFileSync('TASKS.md', 'utf8'), (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null)), models);
+const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'), models);
 
 /** The MVP block is everything up to and including H; the v1 block is what `sdd-breakdown` appended after it. */
 const mvpEnd = real.tasks.findIndex((task) => task.id === 'H') + 1;
@@ -51,7 +55,7 @@ describe('the real TASKS.md', () => {
   });
 
   it('leaves the v1 fields null on the MVP tasks, since they predate them', () => {
-    for (const task of mvpTasks) expect([task.lane, task.model, task.gate]).toEqual([null, null, null]);
+    for (const task of mvpTasks) expect([task.lane, task.model, task.tier, task.gate]).toEqual([null, null, null, null]);
   });
 
   it('gives every v1 task a lane and a gate, so the driver can run it (§16.3)', () => {
@@ -62,7 +66,7 @@ describe('the real TASKS.md', () => {
 
 describe('the v1 task shape', () => {
   it('reads the lane, model, gate and dependencies', () => {
-    expect(byId(sample.tasks, 'R17')).toMatchObject({ lane: 'chart', model: 'fable', gate: 'owner', deps: ['R16'], done: false });
+    expect(byId(sample.tasks, 'R17')).toMatchObject({ lane: 'chart', model: 'fable', tier: 'hard', gate: 'owner', deps: ['R16'], done: false });
     expect(byId(sample.tasks, 'R16')?.done).toBe(true);
     expect(byId(sample.tasks, 'R21')?.deps).toEqual(['R19', 'R20']);
   });
@@ -74,16 +78,16 @@ describe('the v1 task shape', () => {
     expect(runBlockers(sampleTask('R17'))).toEqual([]);
   });
 
-  it('defaults the model to Opus (§16.6)', () => {
-    expect(modelFor(sampleTask('R22'))).toBe('opus');
-    expect(modelFor(sampleTask('R17'))).toBe('fable');
+  it('FR-SDD-11: defaults the tier to standard, the tier of the old default model (§16.6)', () => {
+    expect(tierFor(sampleTask('R22'))).toBe('standard');
+    expect(tierFor(sampleTask('R17'))).toBe('hard');
   });
 
   it('reads the v1.1 fields: a precondition, the findings, and the owner-driven model (§16.3, D-197)', () => {
     expect(sampleTask('R23')).toMatchObject({ lane: 'window', model: 'interactive', precondition: null, findings: [] });
     expect(ownerDriven(sampleTask('R23'))).toBe(true);
-    expect(modelFor(sampleTask('R23'))).toBe('opus');
-    expect(sampleTask('R24')).toMatchObject({ lane: 'docs', model: 'sonnet', precondition: 'docs/window/FINDINGS.md', findings: ['F-3', 'F-35'] });
+    expect(tierFor(sampleTask('R23'))).toBe('standard');
+    expect(sampleTask('R24')).toMatchObject({ lane: 'docs', model: 'sonnet', tier: 'light', precondition: 'docs/window/FINDINGS.md', findings: ['F-3', 'F-35'] });
     expect(ownerDriven(sampleTask('R24'))).toBe(false);
     expect(sampleTask('R17')).toMatchObject({ precondition: null, findings: [] });
   });
@@ -97,13 +101,13 @@ describe('the v1 task shape', () => {
 });
 
 describe('bad values', () => {
-  const bad = parseTasks(['- [ ] **R30 — A task**', '  - **Lane:** everything', '  - **Model:** gemini', '  - **Gate:** maybe', '  - **Depends on:** R99', '  - **Findings:** F-1, bug-2', '', '- [ ] **R30 — Again**'].join('\n'));
+  const bad = parseTasks(['- [ ] **R30 — A task**', '  - **Lane:** everything', '  - **Model:** gemini', '  - **Gate:** maybe', '  - **Depends on:** R99', '  - **Findings:** F-1, bug-2', '', '- [ ] **R30 — Again**'].join('\n'), models);
 
   it('names each one against its task and leaves the field null', () => {
     expect(bad.tasks[0]).toMatchObject({ lane: null, model: null, gate: null });
     expect(bad.problems).toEqual([
       'R30: `Lane: everything` is not one of ui, chart, data, physics, live, window, docs.',
-      'R30: `Model: gemini` is not one of opus, fable, sonnet, haiku, interactive.',
+      'R30: `Model: gemini` is not one of fable, opus, sonnet, haiku, interactive.',
       'R30: `Gate: maybe` is not one of auto, owner.',
       'R30: `Findings: bug-2` is not an F-<n> id.',
       'R30: appears twice in TASKS.md.',
@@ -116,19 +120,30 @@ describe('bad values', () => {
   });
 });
 
-describe('the model chain and the review model (§16.6, D-197)', () => {
-  it('falls back fable → opus → sonnet and stops there', () => {
-    expect(nextModel('fable')).toBe('opus');
-    expect(nextModel('opus')).toBe('sonnet');
-    expect(nextModel('sonnet')).toBeNull();
-    expect(nextModel('haiku')).toBeNull();
+describe('FR-SDD-10, FR-SDD-11: `Tier:`, `Agent:` and a closed `Model:`', () => {
+  const read = (lines: string[]): ReturnType<typeof parseTasks> => parseTasks(['- [ ] **R90 — A task**', ...lines].join('\n'), models);
+
+  it('reads `Tier:` and `Agent:`', () => {
+    expect(read(['  - **Tier:** hard', '  - **Agent:** `claude`']).tasks[0]).toMatchObject({ tier: 'hard', model: null, agent: 'claude' });
+    expect(read(['  - **Tier:** light']).tasks[0]).toMatchObject({ tier: 'light', agent: null });
   });
 
-  it('reviews on Opus where the review is the gate and on Sonnet where the owner reads the PR', () => {
-    expect(reviewModelFor(sampleTask('R17'))).toBe('sonnet');
-    expect(sampleTask('R17').gate).toBe('owner');
-    expect(reviewModelFor(sampleTask('R19'))).toBe('opus');
-    expect(sampleTask('R19').gate).toBe('auto');
+  it('reads each closed `Model:` through the map: fable→hard, opus→standard, sonnet→light, haiku→light', () => {
+    const tiers = ['fable', 'opus', 'sonnet', 'haiku'].map((model) => read([`  - **Model:** ${model}`]).tasks[0]?.tier);
+    expect(tiers).toEqual(['hard', 'standard', 'light', 'light']);
+  });
+
+  it('lets `Tier:` win over `Model:` in either order, and keeps `interactive` owner-driven', () => {
+    expect(read(['  - **Model:** fable', '  - **Tier:** light']).tasks[0]?.tier).toBe('light');
+    expect(read(['  - **Tier:** light', '  - **Model:** fable']).tasks[0]?.tier).toBe('light');
+    const owner = read(['  - **Model:** interactive']).tasks[0] as Task;
+    expect(ownerDriven(owner)).toBe(true);
+    expect(owner.tier).toBeNull();
+  });
+
+  it('names a bad tier, and reads a model as unknown without the map', () => {
+    expect(read(['  - **Tier:** huge']).problems).toEqual(['R90: `Tier: huge` is not one of hard, standard, light.']);
+    expect(parseTasks('- [ ] **R91 — A task**\n  - **Model:** opus').problems).toEqual(['R91: `Model: opus` is not one of interactive.']);
   });
 });
 
@@ -136,29 +151,28 @@ describe('the v2.2 fields: `Review:`, `Turns:` and `Fallback:` (§16.3, D-659)',
   const base = { implement: { maxTurns: 250, timeoutMs: 45 * 60_000 }, review: { maxTurns: 40, timeoutMs: 15 * 60_000 } };
   const full = parseTasks(
     ['- [ ] **P6 — The address**', '  - **Lane:** docs', '  - **Model:** fable', '  - **Gate:** owner', '  - **Review:** opus', '  - **Turns:** 500', '  - **Fallback:** off'].join('\n'),
+    models,
   ).tasks[0] as Task;
 
-  it('reads all three and lets them win over the gate rule, the driver defaults and the flag', () => {
-    expect(full).toMatchObject({ review: 'opus', turns: 500, fallback: false });
-    expect(reviewModelFor(full)).toBe('opus');
+  it('reads all three and lets them win over the D-1065 rule, the driver defaults and the flag', () => {
+    expect(full).toMatchObject({ review: 'standard', turns: 500, fallback: false });
     expect(fallbackFor(full, true)).toBe(false);
     expect(limitsFor(full, base)).toEqual({ implement: { maxTurns: 500, timeoutMs: 90 * 60_000 }, review: { maxTurns: 80, timeoutMs: 30 * 60_000 } });
   });
 
-  it('leaves a task without them on the old rules: the gate picks the review, the flag decides the fallback, the defaults cap the turns', () => {
+  it('leaves a task without them on the old rules: D-1065 picks the review, the flag decides the fallback, the defaults cap the turns', () => {
     const plain = sampleTask('R17');
     expect(plain).toMatchObject({ review: null, turns: null, fallback: null });
-    expect(reviewModelFor(plain)).toBe('sonnet');
     expect(fallbackFor(plain, true)).toBe(true);
     expect(fallbackFor(plain, false)).toBe(false);
     expect(limitsFor(plain, base)).toEqual(base);
   });
 
   it('names a bad value against its task and leaves the field null', () => {
-    const bad = parseTasks(['- [ ] **P7 — A task**', '  - **Review:** interactive', '  - **Turns:** many', '  - **Fallback:** maybe'].join('\n'));
+    const bad = parseTasks(['- [ ] **P7 — A task**', '  - **Review:** interactive', '  - **Turns:** many', '  - **Fallback:** maybe'].join('\n'), models);
     expect(bad.tasks[0]).toMatchObject({ review: null, turns: null, fallback: null });
     expect(bad.problems).toEqual([
-      'P7: `Review: interactive` is not one of opus, fable, sonnet, haiku.',
+      'P7: `Review: interactive` is not one of hard, standard, light, fable, opus, sonnet, haiku.',
       'P7: `Turns: many` is not a positive whole number.',
       'P7: `Fallback: maybe` is not one of on, off.',
     ]);

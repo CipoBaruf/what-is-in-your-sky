@@ -5,10 +5,11 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { loadAgents, modelTiers, pickAgent } from '../../scripts/sdd/agents';
 import { parseTasks, type Task } from '../../scripts/sdd/tasks';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from '../../scripts/sdd/waves';
 
-const { tasks } = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
+const { tasks } = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'), modelTiers(pickAgent(loadAgents())));
 
 const facts = (openPrs: [string, number][] = [], branches: string[] = [], onMain?: string[]): TaskStatus[] =>
   statusOf({ tasks, openPrs: new Map(openPrs), remoteBranches: new Set(branches), ...(onMain ? { fileOnMain: (path: string) => onMain.includes(path) } : {}) });
@@ -79,7 +80,7 @@ describe('the wave', () => {
 
   it('is empty when everything is merged', () => {
     // The real TASKS.md with every checkbox ticked: a whole-file corpus with nothing left to run.
-    const merged = parseTasks(readFileSync('TASKS.md', 'utf8').replaceAll('- [ ] **', '- [x] **')).tasks;
+    const merged = parseTasks(readFileSync('TASKS.md', 'utf8').replaceAll('- [ ] **', '- [x] **'), modelTiers(pickAgent(loadAgents()))).tasks;
     expect(selectWave(statusOf({ tasks: merged, openPrs: new Map(), remoteBranches: new Set() }))).toEqual({ wave: [], skipped: [] });
   });
 });

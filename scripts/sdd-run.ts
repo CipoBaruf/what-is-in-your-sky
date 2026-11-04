@@ -406,7 +406,6 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
 
   let reviewed = await runReview(context, brief, changed, limits.review);
   if (options.fix && !fixed && reviewed.findings !== null && reviewed.findings.count > 0) {
-    fixed = true;
     if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null })) {
       if (!(await watch())) return finish('failed', 'CI is red after the fix session');
       reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
