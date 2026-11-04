@@ -37,6 +37,20 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   A failure is its name, the error's lines before the first frame or snippet (at most four, colours stripped), and the frames outside `node_modules` and Node, relative to the root. `check` prints five frames; the digest prints two message lines and one frame, whole entries only, and says how many did not fit.
   Warnings per tool: lint's warnings and e2e's flaky tests; tsc and Vitest report none. `check` reads the e2e selection from the merge base with `origin/main` (`--base`) to the working tree, untracked files included, and `--no-e2e` skips it.
   CI's lint stage writes `eslint.json` and runs ESLint again for the log only when it failed; trailers and dead-code tee their output, which the digest quotes (last 15 lines) only for a failed job.
+- **D-1078 — Where each section went.** (FR-SDD-3, D-1059; R175.)
+  Folders follow SPEC §9's phases; a point release with none of its own goes into the phase before it (v1.3.1 → v1.3, v1.3.3 → v1.3.2, v1.4.1 → v1.4, v2.0.2 and v2.0.3 → v2.0, v2.4.1 → v2.4), PLAN §2.26–§2.34 (R74–R82) to v2.0 and the first §2.39 (R103, R104) to v2.3.
+  Reference: PLAN §4 `project-structure.md` (15.4 KB, so not in PLAN.md), §5 `data-model.md`, §6 `worker-contract.md`, §7 `data-layer.md`, §9.1–§9.3 `testing.md` (§9.4–§9.15 to their phases), §11 `build-and-deploy.md`, §16.1–§16.8 `delivery.md`; SPEC §10 `glossary.md`; TASKS.md's header table `breakdown-inputs.md`.
+  SPEC.md keeps §1, §2.1, §2.2, the open phase's §2.20, §9's Phase 2v and Phase 3; untagged sections go to `mvp`.
+- **D-1079 — The rewrap keeps only what it can undo.** (FR-SDD-4, FR-SDD-7; R175.)
+  `rewrapBlocks` rewraps a block (the lines between blank lines) only where `unwrap`, its exact inverse, gives the block back; two PLAN blocks already one sentence per line stay as they were.
+  No break inside a `**…**` span (`**G1. Zero-friction start.**`). TASKS text, closed and open, moves byte for byte.
+  About 230 SPEC and 500 PLAN lines are single sentences over `DOC_LINE_MAX`, and 385 TASKS lines moved as they were; R179's check meets them.
+- **D-1080 — The brief reads through a lookup.** (FR-SDD-7; R175.)
+  `buildBrief` takes `textFor(key)`: `layoutLookup` finds the file through `ids.md` and returns SPEC and PLAN text unwrapped, TASKS text as it is; `documentSources` serves the pre-split files, the fixture test's before side. The lane row is `PLAN §16.1`'s.
+  The driver's waves read TASKS.md and every closed phase's `tasks.md` at `origin/main` (`layoutTasksText`, `readFileAtRef`), so a dependency on a closed task reads as merged.
+- **D-1081 — `ids.md`'s kinds, and TASKS.md over its ceiling.** (FR-SDD-6, FR-SDD-13; R175.)
+  A kind is read only from its document (SPEC: FR, G, US, F, OQ, V; PLAN: D; TASKS: tasks), first definition first; an old section is listed for each numbered heading of a one-document file. `--check` checks staleness; whether every cited id resolves is R179's.
+  SPEC.md and PLAN.md are under `INDEX_MAX_KB`; TASKS.md is about 25 KB because the open v2.13 block alone is 23.8 KB, so FR-SDD-3 and FR-SDD-13 cannot both hold for it without rewording a task. Proposed: the ceiling binds TASKS.md from the next phase, when the closed v2.13 block leaves.
 
 ---
 

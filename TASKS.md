@@ -29,7 +29,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.10 | R154 … R161 | 8 of 8 | [tasks.md](docs/sdd/phases/v2.10/tasks.md) |
 | v2.11 | R162 … R165 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | R167 … R171 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.12/tasks.md) |
-| v2.13 | R172 … R181 | 3 of 10 | this file |
+| v2.13 | R172 … R181 | 4 of 10 | this file |
 
 ## v2.13 tasks
 
@@ -104,7 +104,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 3
 
-- [ ] **R175 — The split: the three documents cut by phase into `docs/sdd/`, rewrapped one sentence per line, the Decision Log moved whole, `ids.md` and `sdd:id`, and the driver reading the new layout**
+- [x] **R175 — The split: the three documents cut by phase into `docs/sdd/`, rewrapped one sentence per line, the Decision Log moved whole, `ids.md` and `sdd:id`, and the driver reading the new layout**
   - **Lane:** docs
   - **Model:** fable
   - **Review:** opus
@@ -123,6 +123,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
     - `brief.test.ts` regenerates R167–R171's briefs from the new layout equal to the fixtures, byte for byte.
     - The index files are each ≤ 15 KB; TASKS.md holds only the v2.13 block and the status table; `npm run sdd:id V212-13` prints the row.
     - `npm test`, lint and typecheck green; no `src/` path in the diff.
+  - **Note (as done):** SPEC.md and PLAN.md are under 15 KB, TASKS.md is about 25 KB because the open block alone is 23.8 KB (D-1081); PLAN §4 went to `reference/project-structure.md` to keep PLAN.md under the ceiling (D-1078); `sdd-run.ts` and `git.ts` read the closed phases' tasks.md too (D-1080).
 
 ### Wave 4
 
