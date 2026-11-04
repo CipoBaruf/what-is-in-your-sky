@@ -34,7 +34,7 @@ const ARROW_HALF = 4.5;
 /** A key stands this far right of its marker, px. */
 const KEY_DX = 9;
 /** FR-WIDE-7: an arc is under the pointer within this distance of its drawn line, px. */
-export const ARC_HIT_PX = 8;
+const ARC_HIT_PX = 8;
 
 const ring = (x: number, y: number, r: number): string => `M${fmt(x - r)} ${fmt(y)}a${String(r)} ${String(r)} 0 1 0 ${String(2 * r)} 0a${String(r)} ${String(r)} 0 1 0 ${String(-2 * r)} 0`;
 
