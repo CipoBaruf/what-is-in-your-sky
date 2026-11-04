@@ -508,7 +508,7 @@ export const BUDGETS: readonly Budget[] = [
 /**
  * R154 (FR-LOOK-8, PLAN D-973, D-976): a row a phase adds before its release
  * has measured it. `BUDGETS` is the last release's table, row for row
- * (`tests/docs/accuracy.test.ts` holds `docs/RELEASE.md`'s to it); a row here
+ * (`tests/docs/accuracy.test.ts` holds the last release record's table, `docs/sdd/phases/<version>/release.md`, to it); a row here
  * is measured and printed the same way, and the phase's release task moves it
  * into `BUDGETS` with its measure and into the release table with it (R161,
  * D-178).
