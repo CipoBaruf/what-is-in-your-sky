@@ -4909,7 +4909,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 1
 
-- [ ] **R172 — The usage ledger and the short PR body: every driver session is a line in `sdd-run/usage.jsonl`, and the PR body has FR-SDD-20's shape with a usage line**
+- [x] **R172 — The usage ledger and the short PR body: every driver session is a line in `sdd-run/usage.jsonl`, and the PR body has FR-SDD-20's shape with a usage line**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
