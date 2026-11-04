@@ -60,9 +60,10 @@ name: Captures
 # R178 (FR-SDD-22, FR-SDD-23; PLAN D-1068): the set leaves `main`'s history for the orphan `captures` branch,
 # which mirrors `docs/screenshots/`'s layout (the `v1-*.png` files at its root) and is squashed at each release.
 # The `pick` job reads `scripts/captures/manifest.json` through `node scripts/ci-affected.ts --captures`: a push to
-# `main` shoots only the screens its diff reaches, and no screen means no `captures` job at all. A dispatch shoots
-# the screens its `screens` input names, or the whole set when that is empty (release prep), and so does the first
-# run, when the branch does not exist yet. The `captures` job restores the branch's set into `docs/screenshots/`,
+# `main` shoots only the screens its diff reaches, and no screen means no `captures` job at all. The diff runs from the commit the branch records in `SOURCE_SHA` (the `main` commit it was last shot from) to the run's,
+# so a failed, skipped or cancelled run is made up by the next. A dispatch shoots the screens its `screens` input names,
+# or the whole set when that is empty (release prep); with no branch or no recorded commit every event shoots the whole
+# set. A run with named screens leaves `SOURCE_SHA` where it was. The `captures` job restores the branch's set into `docs/screenshots/`,
 # clears the files of the screens it shoots (a capture that fails to be written must not be answered by the file
 # the last run left), shoots them compressed, checks the set is complete, and diffs it against the branch by pixels
 # (`scripts/captures/diff.ts`): every capture past `CAPTURE_DIFF_SHARE` gets one image, base and this run side by
@@ -110,21 +111,30 @@ jobs:
         id: pick
         shell: bash
         env:
-          EVENT: ${{ github.event_name }}
           SCREENS: ${{ inputs.screens }}
-          BEFORE: ${{ github.event.before }}
         run: |
-          if [ "$EVENT" = workflow_dispatch ]; then
-            if [ -n "$SCREENS" ]; then mode=some; else mode=all; fi
-            printf 'captures=%s\ncapture_screens=%s\n' "$mode" "$SCREENS" | tee -a "$GITHUB_OUTPUT"
-          elif ! git ls-remote --exit-code --heads origin captures > /dev/null; then
-            echo 'the captures branch does not exist yet: the whole set'
+          # The branch records the `main` commit its set was last shot from (`SOURCE_SHA`), so a failed, skipped or
+          # cancelled run is made up by the next one: the diff is from that commit to this run's, not from the push's
+          # BEFORE. No branch, no recorded commit, or one this history does not lead on from: the whole set, a dispatch too.
+          full() {
+            echo "$1: the whole set"
             printf 'captures=all\ncapture_screens=\n' | tee -a "$GITHUB_OUTPUT"
-          elif ! git cat-file -e "$BEFORE^{commit}" 2> /dev/null; then
-            echo "the push's base $BEFORE is not in the history: the whole set"
+          }
+          if ! git fetch --quiet origin captures 2> /dev/null; then
+            full 'the captures branch does not exist yet'
+            exit 0
+          fi
+          recorded=$(git show FETCH_HEAD:SOURCE_SHA 2> /dev/null | tr -d '[:space:]' || true)
+          if [ -z "$recorded" ] || ! git cat-file -e "$recorded^{commit}" 2> /dev/null; then
+            full 'the captures branch records no usable source commit'
+          elif ! git merge-base --is-ancestor "$recorded" "$GITHUB_SHA"; then
+            full "the recorded source $recorded is not behind this run"
+          elif [ -n "$SCREENS" ]; then
+            printf 'captures=some\ncapture_screens=%s\n' "$SCREENS" | tee -a "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = workflow_dispatch ]; then
             printf 'captures=all\ncapture_screens=\n' | tee -a "$GITHUB_OUTPUT"
           else
-            node scripts/ci-affected.ts --captures "$BEFORE" "$GITHUB_SHA"
+            node scripts/ci-affected.ts --captures "$recorded" "$GITHUB_SHA"
           fi
 
   captures:
@@ -159,7 +169,7 @@ jobs:
           mkdir -p base
           if git fetch --quiet origin captures; then
             git archive FETCH_HEAD | tar -x -C base
-            rm -rf base/diff base/README.md
+            rm -rf base/diff base/README.md base/SOURCE_SHA
           fi
           find base -maxdepth 1 -name 'v1-*.png' -exec cp {} docs/screenshots/ \;
           echo "base: $(find base -name 'v1-*.png' | wc -l) files"
@@ -203,6 +213,7 @@ jobs:
         shell: bash
         env:
           SQUASH: ${{ inputs.squash }}
+          SCREENS: ${{ inputs.screens }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -219,6 +230,8 @@ jobs:
           cp "$GITHUB_WORKSPACE"/set/v1-*.png .
           mkdir -p diff
           cp -R "$GITHUB_WORKSPACE"/sides/. diff/
+          # A run that shot named screens only does not move the recorded commit: the screens skipped before it are still owed.
+          if [ -z "$SCREENS" ]; then echo "$GITHUB_SHA" > SOURCE_SHA; fi
           printf '# Captures\n\nThe capture set (`tests/e2e/captureSet.ts`), shot by `.github/workflows/captures.yml` off `main` (PLAN D-1068). `diff/` holds the last run'"'"'s side-by-side images, base on the left. Squashed at each release.\n' > README.md
           git add -A
           if git diff --cached --quiet; then

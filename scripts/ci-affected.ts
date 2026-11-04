@@ -174,32 +174,43 @@ export function readerTests(root: string): string[] {
  */
 export function globToRegExp(glob: string): RegExp {
   let source = '';
+  let inBraces = false;
   for (let i = 0; i < glob.length; i += 1) {
     const char = glob.charAt(i);
-    if (char === '*' && glob[i + 1] === '*') {
+    if (char === '{') {
+      if (inBraces) throw new Error(`nested { in ${glob}`);
+      inBraces = true;
+      source += '(?:';
+    } else if (char === '}' && inBraces) {
+      inBraces = false;
+      source += ')';
+    } else if (char === ',' && inBraces) source += '|';
+    else if (char === '*' && glob[i + 1] === '*') {
       const slash = glob[i + 2] === '/';
       source += slash ? '(?:.*/)?' : '.*';
       i += slash ? 2 : 1;
     } else if (char === '*') source += '[^/]*';
     else if (char === '?') source += '[^/]';
-    else if (char === '{') {
-      const end = glob.indexOf('}', i);
-      if (end === -1) throw new Error(`unclosed { in ${glob}`);
-      source += `(?:${glob
-        .slice(i + 1, end)
-        .split(',')
-        .map((part) => part.replace(/[.+^$()|[\]\\]/g, '\\$&').replaceAll('*', '[^/]*'))
-        .join('|')})`;
-      i = end;
-    } else source += char.replace(/[.+^$()|[\]\\]/g, '\\$&');
+    else source += char.replace(/[.+^$(){}|[\]\\]/g, '\\$&');
   }
+  if (inBraces) throw new Error(`unclosed { in ${glob}`);
   return new RegExp(`^${source}$`);
 }
 
-/** `scripts/captures/manifest.json`: the globs every capture draws, and each screen's own. */
+/** `scripts/captures/manifest.json`: the globs every capture draws, one list per route, and each screen's route and extras. */
 export interface CaptureManifest {
   readonly all: readonly string[];
-  readonly screens: Readonly<Record<string, readonly string[]>>;
+  readonly routes: Readonly<Record<string, readonly string[]>>;
+  readonly screens: Readonly<Record<string, { readonly route: string; readonly extras: readonly string[] }>>;
+}
+
+/** What a screen draws beyond `all`: its route's shared list and its own extras. */
+export function screenGlobs(manifest: CaptureManifest, screen: string): readonly string[] {
+  const entry = manifest.screens[screen];
+  if (!entry) return [];
+  const shared = manifest.routes[entry.route];
+  if (!shared) throw new Error(`screen ${screen} names the unknown route ${entry.route}`);
+  return [...shared, ...entry.extras];
 }
 
 /** A unit test or a snapshot under `src/` is not shipped, so it draws nothing. */
@@ -211,10 +222,12 @@ const drawsNothing = (path: string): boolean => /^src\//.test(path) && (/\.test\
  */
 export function capturesReached(changes: readonly Change[], manifest: CaptureManifest): Pick {
   const paths = changes.map((change) => change.path).filter((path) => !drawsNothing(path));
-  const matches = (globs: readonly string[]): boolean => globs.some((glob) => paths.some((path) => globToRegExp(glob).test(path)));
+  const compiled = new Map<string, RegExp>();
+  const regexp = (glob: string): RegExp => compiled.get(glob) ?? (compiled.set(glob, globToRegExp(glob)), compiled.get(glob) as RegExp);
+  const matches = (globs: readonly string[]): boolean => globs.some((glob) => paths.some((path) => regexp(glob).test(path)));
   if (matches(manifest.all)) return 'all';
   return Object.keys(manifest.screens)
-    .filter((screen) => matches(manifest.screens[screen] ?? []))
+    .filter((screen) => matches(screenGlobs(manifest, screen)))
     .sort();
 }
 
@@ -253,7 +266,7 @@ function report(selection: Selection): void {
 
 /** `--captures`: the screens `captures.yml` re-shoots, as `captures=all|some|none` and `capture_screens=a,b`. */
 function reportCaptures(pick: Pick): void {
-  console.log(`captures: ${describe(pick)}`);
+  console.log(`captures: ${pick === 'all' ? 'all' : pick.length === 0 ? 'none' : `${pick.length} screen(s)`}`);
   if (pick !== 'all') for (const screen of pick) console.log(`  ${screen}`);
   const out = process.env['GITHUB_OUTPUT'];
   if (!out) return;
