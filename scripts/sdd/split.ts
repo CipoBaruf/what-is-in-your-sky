@@ -7,7 +7,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DOCS, OPEN_PHASE, PHASES, SPLIT_MAP, type Destination, type Doc, type DocMap } from './splitMap';
-import { IDS_PATH, generateIds } from './ids';
+import { IDS_PATH, SDD_DIR, generateIds } from './ids';
 import { rewrapBlocks } from './rewrap';
 import { parseTasks } from './tasks';
 
@@ -21,7 +21,6 @@ export interface Piece {
   lines: readonly string[];
 }
 
-export const SDD_DIR = 'docs/sdd';
 const KIND: Record<Doc, string> = { SPEC: 'spec', PLAN: 'plan', TASKS: 'tasks' };
 
 /** The file a destination names for a document's piece. */

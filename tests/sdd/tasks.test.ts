@@ -1,14 +1,14 @@
 /**
- * PLAN §16.3: the driver reads TASKS.md, so the parser is pinned against the
- * real file — the MVP block (R1–R15 and H, which carry no
+ * PLAN §16.3: the driver reads TASKS.md and, since the split, each closed
+ * phase's tasks.md (FR-SDD-7), so the parser is pinned against the real layout — the MVP block (R1–R15 and H, which carry no
  * `Lane:`/`Model:`/`Gate:`) and the v1 block, which carries all three — and
  * against the v1 shape `sdd-breakdown` emits.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { branchName, byId, fallbackFor, limitsFor, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
+import { branchName, byId, fallbackFor, layoutTasksText, limitsFor, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
 
-const real = parseTasks(readFileSync('TASKS.md', 'utf8'));
+const real = parseTasks(layoutTasksText(readFileSync('TASKS.md', 'utf8'), (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null)));
 const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
 
 /** The MVP block is everything up to and including H; the v1 block is what `sdd-breakdown` appended after it. */

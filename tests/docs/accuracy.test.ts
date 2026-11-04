@@ -261,7 +261,8 @@ describe('the address (FR-ADDR-1, FR-ADDR-4)', () => {
       .filter((path) => readFileSync(path, 'utf8').includes(OLD_HOST))
       .sort();
     expect(named).toContain('docs/DEPLOY.md');
-    expect(named.filter((path) => !['docs/DEPLOY.md', 'SPEC.md', 'PLAN.md', 'TASKS.md'].includes(path))).toEqual([]);
+    // The three documents: since the split, their phase and reference files, and the parent's copies R175 pinned.
+    expect(named.filter((path) => !['docs/DEPLOY.md', 'SPEC.md', 'PLAN.md', 'TASKS.md'].includes(path) && !path.startsWith('docs/sdd/') && !path.startsWith('scripts/sdd/__fixtures__/'))).toEqual([]);
   });
 
   it('docs/DEPLOY.md carries the Domain heading and the renewal date', () => {
