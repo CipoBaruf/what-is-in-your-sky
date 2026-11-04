@@ -126,11 +126,12 @@ export default defineConfig([
     // in the plan itself: `lib/skyBodies.ts` runs `sun.ts` and `moon.ts` on the
     // main thread so the charts' Sun and Moon can follow the clock without a
     // worker round trip (D-80, FR-DOME-6, FR-LIVE-5), `lib/skyStars.ts` does the
-    // same for the stars and the planets (D-749, FR-STAR-2), and
+    // same for the stars and the planets (D-749, FR-STAR-2), `lib/riseSet.ts` reads
+    // `astronomy-engine` for rise and set beside it (D-1101, FR-FACT-3), and
     // `lib/arcReveal.ts` reads the two FR-TRAJ-2 thresholds that D-189 keeps in
     // `physics/constants.ts` beside the other thresholds (R45).
     files: ['src/lib/**'],
-    ignores: [...TESTS, 'src/lib/skyBodies.ts', 'src/lib/skyStars.ts', 'src/lib/arcReveal.ts', ...TONIGHT_CONSTANTS],
+    ignores: [...TESTS, 'src/lib/skyBodies.ts', 'src/lib/skyStars.ts', 'src/lib/riseSet.ts', 'src/lib/arcReveal.ts', ...TONIGHT_CONSTANTS],
     rules: {
       '@typescript-eslint/no-restricted-imports': restrictedImports({
         patterns: [NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],
