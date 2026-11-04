@@ -582,7 +582,7 @@
 | FR-SDD-17 | `tests/sdd/brief.test.ts` |
 | FR-SDD-18 | `tests/sdd/review.test.ts` |
 | FR-SDD-19 | `tests/sdd/check-sdd.test.ts` |
-| FR-SDD-20 | `tests/sdd/check-sdd.test.ts` |
+| FR-SDD-20 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/git.test.ts` |
 | FR-SDD-21 | `tests/docs/sdd-workflows.test.ts` |
 | FR-SDD-22 | `tests/docs/captures.test.ts`, `tests/docs/ci.test.ts`, `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-23 | `tests/captures/diff.test.ts` |

@@ -3,7 +3,8 @@
  * here reaches the network — the probe is what `gh pr checks` would have said.
  */
 import { describe, expect, it } from 'vitest';
-import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, checksExist, DIGEST_WAIT_MS, runForHead, waitForChecks, type ExecResult } from '../../scripts/sdd/git';
+import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, checksExist, DIGEST_WAIT_MS, pullRequestTitle, runForHead, waitForChecks, type ExecResult } from '../../scripts/sdd/git';
+import { COMMIT_TITLE_MAX } from '../../scripts/sdd/limits';
 
 /** A probe whose checks appear on call `times + 1`. */
 function appearsAfter(times: number): { exists: () => Promise<boolean>; calls: () => number } {
@@ -102,5 +103,17 @@ describe('FR-SDD-16: the digest picks the run by the PR head', () => {
 
   it('waits at most 20 minutes for the run', () => {
     expect(DIGEST_WAIT_MS).toBe(20 * 60_000);
+  });
+});
+
+describe('FR-SDD-20: pullRequestTitle', () => {
+  it('keeps a short title and cuts a long one at a word, leaving room for the squash suffix', () => {
+    expect(pullRequestTitle('R183: The numbers')).toBe('R183: The numbers');
+    const long = "R182: The saved choices underneath: `globe` as a view, `viewFor`, the new prefs keys with their defaults, and the privacy note's flag";
+    const cut = pullRequestTitle(long);
+    expect(`${cut} (#12345)`.length).toBeLessThanOrEqual(COMMIT_TITLE_MAX);
+    expect(cut.endsWith('…')).toBe(true);
+    expect(long.startsWith(cut.slice(0, -1))).toBe(true);
+    expect(cut.slice(0, -1)).not.toMatch(/[\s,:;]$/u);
   });
 });
