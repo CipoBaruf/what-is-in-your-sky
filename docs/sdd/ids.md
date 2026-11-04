@@ -1838,11 +1838,13 @@ D-1093	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 de
 G62	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G63	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G64	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
+G65	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-52	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-53	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-54	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-55	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-56	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
+US-57	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 FR-WIDE-1	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-2	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-3	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
@@ -1859,6 +1861,10 @@ FR-FACT-3	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky 
 FR-NAME-1	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-NAME-2	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-NAME-3	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-KEEP-1	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-KEEP-2	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-KEEP-3	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-KEEP-4	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-11	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-12	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2178,6 +2184,9 @@ V214-11	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-12	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-13	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-17	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

@@ -10,6 +10,8 @@ Written by `sdd-spec` as a phase folder (V213-2); ids resolve through `docs/sdd/
   On a desk every satellite, star and planet the reader picks says what it is: a satellite's country, operator, purpose, age, size and height; a star's or a planet's names, brightness, place and rise and set; in Spanish, by its Spanish name.
 - **G64. A desk that works like a desk.**
   The list and the drawing answer each other under the pointer, the stripe shows when the sky is clear, every common action has a key, and the sky can fill the screen.
+- **G65. Your sky as you left it.**
+  On a phone and on a desk the views, layers and settings the reader chose are there on the next open, while the time is always now; the privacy note is read once and closed for good.
 
 **US-52 — One sky layout on a desk** *(v2.14)*
 As a reader at a desk, I move between the satellites, the live sky and the stars and find the same sky in the same box, the same rail and the same time control.
@@ -19,7 +21,7 @@ As a reader at a desk, I move between the satellites, the live sky and the stars
 - AC4: The three pages share one time control: the overview row, the stripe while scrubbing and the playback row; the stars page adds `−1 d` `−1 h` `+1 h` `+1 d` under it (FR-WIDE-4).
 - AC5: The zoom buttons, the facing readout and the hint stand in the same corner of the box on every page and view that has them (FR-WIDE-5).
 - AC6: The dome is drawn only after `Dome` is chosen, and its chunk is not requested before (FR-WIDE-6).
-- AC7: At 390 × 844 every page is as on 2.13's `main` except the star names of FR-NAME-1 and FR-NAME-2 (FR-WIDE-12).
+- AC7: At 390 × 844 every page is as on 2.13's `main` except the star names of FR-NAME-1 and FR-NAME-2, the remembered choices of FR-KEEP-1..3 and the privacy note's `[ × ]` (FR-WIDE-12).
 
 **US-53 — What is that satellite** *(v2.14)*
 As a reader at a desk, I open a pass or click a satellite on the live page and read who flies it, what for, since when, how big it is and how high.
@@ -46,6 +48,13 @@ As a reader at a desk, I drive the sky from the keyboard and can give it the who
 - AC1: `g`, `w` and `d` choose the view; `,` and `.` step the shown instant an hour; `t` returns to now; `Space` plays and pauses; `a` faces the highlighted pass; `?` lists every key (FR-WIDE-9).
 - AC2: `f` or the box's `[ full screen ]` control gives the box the whole screen with the time readout and an exit control; `Esc` leaves it; the view, the camera and the instant do not change across it (FR-WIDE-10).
 
+**US-57 — As I left it** *(v2.14)*
+As a reader on a phone or at a desk, I find my views and layers as I left them when I come back, the sky at now, and the privacy note gone once I closed it.
+- AC1: Each choice of FR-KEEP-1 survives a reload and a new tab, at 390 × 844 and at 1280 × 800 (FR-KEEP-1).
+- AC2: A reload opens at now with the opening aim and the reader's own place, whatever was scrubbed, turned or picked (FR-KEEP-2).
+- AC3: An empty store opens on FR-KEEP-3's table (FR-KEEP-3).
+- AC4: After `[ × ]` on either privacy line, neither shows on any page after a reload; the settings page still states it (FR-KEEP-4).
+
 ### 4.57 One sky on a desk *(v2.14)*
 
 The owner, 2026-11-04, at the desk: "We have different ways to view the stars, the live sky and the satellites on desktop."
@@ -55,7 +64,8 @@ The live page draws a full-height dome beside a rail, with a squeezed header and
 The stars page draws the globe beside a rail, with its own time buttons.
 The views on offer differ (`Window Polar Dome` against `Window Globe`), the defaults differ (the saved view against the globe, unsaved), the time controls differ (the stripe against the day and hour steps), and the dome draws a monochrome braille mesh with the twenty brightest stars where the globe draws every star, figure and name in colour.
 The owner chose one layout, the globe as every desk page's whole sky, the dome kept as a choice, the stripe as the one time control (V214-2..V214-5), and on top of it the facts, names and desk controls of G63 and G64 (V214-6..V214-13).
-The phone is unchanged except for the corrected and added star names (V214-11).
+The phone is unchanged except for the corrected and added star names (V214-11), the remembered choices and the privacy note (V214-15..V214-17).
+Later the same day the owner asked that every choice be kept on the device for the next open, phone included, and that the privacy note be read once (FR-KEEP-1..4).
 
 Constants (FR-VIS-6 style, centralised with the others):
 
@@ -93,13 +103,15 @@ Constants (FR-VIS-6 style, centralised with the others):
 
 - **FR-WIDE-3** *(V214-3)* **The globe on every desk page, with the passes on it.**
   The live page and the pass detail draw the globe at the page's shown instant `t`, over the observer's place, turning with you (FR-GLOBE-5), opening on the view FR-GLOBE-1's opening rule gives; the `Turn` and `Place` groups are the stars page's alone.
-  Each pass the page draws (FR-LIVE-2's set on the live page, the explained pass on the pass detail) is a polyline on the globe through its track's points, each point's azimuth and altitude turned into a direction at the shown place, in its legend colour (FR-LEG-5), drawn per FR-TRAJ-1's states at `t`, with its marker and its legend key (`A`, `B`, …) beside the marker; only the near side is drawn, as for the figures.
+  Each pass the page draws (FR-LIVE-2's set on the live page, the explained pass on the pass detail) is a polyline on the globe through its track's points, each point's azimuth and altitude turned into a direction at the shown place.
+  It is drawn in its legend colour (FR-LEG-5) per FR-TRAJ-1's states at `t`, with its marker and its legend key (`A`, `B`, …) beside the marker; only the near side is drawn, as for the figures.
   The globe takes the layers the window takes on the page (FR-SKY-1's table gains a `globe` row equal to the window's, with `fieldOutline` off), so the stars toggle (FR-SKY-3) turns the stars off under the arcs here too.
   *Verification:* `globe/arcs.test.ts` — a fixed pass's polyline at three instants of FR-TRAJ-1's states; `globe.spec.ts` on the live page at the capture set's instant: three arcs, their colours the legend's.
 
 - **FR-WIDE-4** *(V214-5)* **One time control.**
   The live page's time control — the overview row (FR-SPAN-2), the stripe while scrubbing (FR-WATCH-4, FR-LIVE-4) and the playback row (FR-LIVE-5) — is the `Time` group on all three desk pages, over the same span, FR-LIVE-4's `now` to `now + 24 h`.
-  On the stars page it replaces FR-GLOBE-7's clock row and steps: the globe's instant is the stripe's `t`; `−1 d` `−1 h` `+1 h` `+1 d` stay as a row of small controls under the playback row, and a day step past the span moves the span with it (the stripe then draws the 24 h from the stepped day's noon), up to `GLOBE_SPAN_DAYS` either way, with `[ now ]` bringing it back; the time-lapse speeds are the playback row's.
+  On the stars page it replaces FR-GLOBE-7's clock row and steps: the globe's instant is the stripe's `t`; `−1 d` `−1 h` `+1 h` `+1 d` stay as a row of small controls under the playback row; the time-lapse speeds are the playback row's.
+  A day step past the span moves the span with it (the stripe then draws the 24 h from the stepped day's noon), up to `GLOBE_SPAN_DAYS` either way, and `[ now ]` brings it back.
   On the pass detail `t` opens at now and the pass's rise, peak and set cells (FR-FLOW-7) are buttons that set `t` to their instant.
   The clock reads in the place's zone on every page (FR-GLOBE-8).
   *Verification:* `sky-layout.spec.ts` — the three pages' `Time` groups have the same controls in the same order; `stars.spec.ts` — `+1 d` twice moves the globe two days and the stripe to that night; `guide.spec.ts` — the peak cell sets the readout to the peak time.
@@ -149,7 +161,9 @@ Constants (FR-VIS-6 style, centralised with the others):
   *Verification:* `fullscreen.spec.ts` — enter and leave on each view, the camera and `t` read back equal.
 
 - **FR-FACT-1** *(V214-6)* **The satellite facts.**
-  `src/data/catalog/facts.json` holds, for every NORAD id in the catalogue (FR-SAT-1) and no other, keyed by that id: `countries` (ISO 3166-1 alpha-2 codes, or `ESA`, in the order the operators are named), `operator` (its short name, the same in both languages), `purpose` (one key of the purpose table below), `launched` (the launch date, `YYYY-MM-DD`), `sizeM` (the largest dimension in metres, rounded to two figures), `descriptionEs` beside the catalogue's `description`, and `source` per fact (`{ source, date }`, as `stdMagSource`).
+  `src/data/catalog/facts.json` holds an entry for every NORAD id in the catalogue (FR-SAT-1) and no other, keyed by that id.
+  An entry has `countries` (ISO 3166-1 alpha-2 codes, or `ESA`, in the order the operators are named), `operator` (its short name, the same in both languages), `purpose` (one key of the purpose table below), `launched` (the launch date, `YYYY-MM-DD`), `sizeM` (the largest dimension in metres, rounded to two figures),
+  `descriptionEs` beside the catalogue's `description`, and `source` per fact (`{ source, date }`, as `stdMagSource`).
   The purpose keys are `crewed-station`, `space-telescope`, `earth-observation`, `ocean-observation`, `radar-observation`, `military`, `rocket-stage`; each has a phrase in both languages, and a `rocket-stage` entry names the payload it launched from the catalogue's name.
   *(amends FR-SAT-5)* The catalogue stays the single source of the orbit-relevant metadata; the facts are a second file, validated against it, lazy on wide only.
   The height is not data: it is the perigee and the apogee from the object's current elements, rounded to `FACT_HEIGHT_STEP_KM`, shown as one number when they round equal.
@@ -163,7 +177,8 @@ Constants (FR-VIS-6 style, centralised with the others):
   *Verification:* `factsGroup.test.tsx` in both languages, a rocket stage and a station; `live.spec.ts` — click the arc, the group; `Esc`, gone.
 
 - **FR-FACT-3** *(V214-12)* **What is that star.**
-  On wide a click or `Enter` on a star, a planet or the Moon that FR-GLOBE-11 or FR-STAR-7 names, on the globe or the window, shows its facts in the page group with `[ × ]`, until `Esc`, `[ × ]` or another pick: the name in the reader's language and, where it differs, the other (`Sirio · Sirius`); the designation (`α CMa`) and the constellation by its name in the reader's language; the magnitude; the altitude and the 16-point direction at `t`; and the rise and set at the shown place on the night that holds `t`, or `never sets` / `never rises`.
+  On wide a click or `Enter` on a star, a planet or the Moon that FR-GLOBE-11 or FR-STAR-7 names, on the globe or the window, shows its facts in the page group with `[ × ]`, until `Esc`, `[ × ]` or another pick.
+  The facts are the name in the reader's language and, where it differs, the other (`Sirio · Sirius`); the designation (`α CMa`) and the constellation by its name in the reader's language; the magnitude; the altitude and the 16-point direction at `t`; and the rise and set at the shown place on the night that holds `t`, or `never sets` / `never rises`.
   A planet adds `planet` and its constellation now; the Moon adds its phase and lit share (FR-MOON-*).
   Rise and set are the geometric horizon crossings at `t`'s night, from the star's J2000 position (FR-GLOBE-17's rule) and from `astronomy-engine` for the planets and the Moon, to the minute.
   *Verification:* `lib/riseSet.test.ts` — Sirius over Bariloche on a fixed night against JPL Horizons to ±2 min, a circumpolar star, a never-rising star; `stars.spec.ts` — click the list's first row's mark, the group.
@@ -185,13 +200,62 @@ Constants (FR-VIS-6 style, centralised with the others):
   On compact the planets are as on 2.13.
   *Verification:* `contrast.ts` — each token against the sky surface in every theme at the chart's ratio; `globe.spec.ts` — with names off, five planet labels and no star label.
 
+- **FR-KEEP-1** *(V214-15)* **Your choices, kept on the device.**
+  Every choice in this table is saved in the device's local store (FR-LOC-5's `wiys:prefs:v1`) when the reader makes it, and every page opens on it at every width, phone and desk alike:
+
+  | Choice | Where it is made | Saved as |
+  |---|---|---|
+  | the view | every page's `View` row | `chartView` (FR-WIDE-2), one value for all pages; a page that does not offer the saved view opens on the one that stands for it (`dome` is the whole sky on the stars page; `globe` the polar chart on compact, and back) |
+  | the stars under the arcs | `[x] stars` (FR-SKY-3) | `starsLayer`, as on 2.13 |
+  | the stars page's layers | `stars`, `figures`, `planets` | `starLayers`, the three switches |
+  | the names | `[x] names` | `namesChoice`, once tapped; until then R160's default by view and width holds (FR-KEEP-3) |
+  | the faint stars | `[ ] faint` on the globe and the window | `faintStars` |
+  | the globe's turn | `with you` / `with the stars` | `globeTurn` |
+  | the zoom | the globe's and the window's `+`, `-`, wheel and pinch | `globeZoom` and `windowFov`, each clamped to its range on read |
+  | the playback speed | the playback row's speeds and the globe's | `playSpeed`, the rate `play` starts at |
+
+  The hidden objects, the faint passes, the sort, the sun glow, the theme and the language stay saved as on 2.13.
+  A value the reader has not chosen is not written, so a later change to a default reaches them.
+  *(amends FR-PHONE-7 and FR-GLOBE-10)* The stars page's view and the faint stars are saved, not reset at each open.
+  *Verification:* `localPrefs.test.ts` — each key's round trip and its clamp; `keep.spec.ts` at 390 × 844 and 1280 × 800 — make every choice, reload, find it.
+
+- **FR-KEEP-2** *(V214-15)* **Moments are not kept.**
+  Every page opens at now, watching (real time, `t` = now), whatever speed is saved; the window's camera opens by its page's rule (FR-STAR-3, FR-FLOW-14, FR-SKY-7) and the globe's view by FR-GLOBE-1's; the globe's place is the reader's own place on every open.
+  A share link's instant and pass (FR-SHARE-1) win over the saved values for that open and are not saved.
+  Following the phone (FR-WIN-5's mode) is never saved.
+  *Verification:* `keep.spec.ts` — scrub, turn the camera, pick a saved place on the globe, reload: now, the opening aim, the reader's place.
+
+- **FR-KEEP-3** *(V214-16)* **The first visit's defaults.**
+  With nothing saved, the pages open on:
+
+  | Choice | Phone | Desk |
+  |---|---|---|
+  | view | Window | Globe |
+  | stars under the arcs | on | on |
+  | stars, figures, planets | on | on |
+  | names | on in the window, off in the polar chart (R160) | on |
+  | faint stars | off | off |
+  | globe's turn | — | with you |
+  | zoom | `WINDOW_FOV` | 1× and `WINDOW_FOV` |
+  | speed | ×1 | ×1 |
+  | sun glow, theme | off, dark | off, dark |
+
+  These are 2.13's defaults with FR-WIDE-2's globe on the desk; they are held as constants in `src/model/prefs.ts` beside the others, one place.
+  *Verification:* `prefs.test.ts` pins the table; `keep.spec.ts` opens each page with an empty store at both widths.
+
+- **FR-KEEP-4** *(V214-17)* **The privacy notice, once.**
+  The line under the place search on the first visit (`Saved in this browser only. No account, no tracking.`) and the footer's privacy sentence and word (`No analytics, no tracking: …`, `No tracking`) each carry `[ × ]` / `[ × ]` with the accessible name "Close the privacy note" / its Spanish.
+  Either `[ × ]` hides both, on every page and every later visit on the device (`privacyNoteClosed`); the footer's row closes up with no gap.
+  The settings page keeps the privacy sentence as plain text with no `[ × ]`, so the fact stays one tap away.
+  *Verification:* `Footer.test.tsx` and `LocationInput.test.tsx` — shown, closed by either control, gone from both; `keep.spec.ts` — close on the home, reload, open the stars page: no note; the settings page still has the sentence.
+
 - **FR-WIDE-11** **The rate and the bundles.**
   With the arcs, the ticks and the planets on, the globe holds ≥ 30 updates/s under a drag and under ×3600 at 1280 × 800 and 1920 × 1080 with the CPU throttled 4× on the live page as FR-GLOBE-15 measures it on the stars page (`globe-perf.spec.ts` gains the live page, best of three, D-817).
   `main` grows by at most `SKY_MAIN_KB` over 2.13.0's measure, `globe` by at most `SKY_GLOBE_KB`; the new `facts` chunk has its own row at `FACTS_BUDGET_KB`, loaded on wide when a facts group first opens and prefetched on idle after the globe; compact requests neither; the release re-sets every row by D-178.
   *Verification:* `npm run bundle:budget`; `globe-perf.spec.ts`; a test that the compact pages request no `facts-*.js` and no `SkyGlobe-*.js`.
 
 - **FR-WIDE-12** **Named moves and captures.**
-  The phase's visible changes are the three wide pages' layout and views, the arcs, ticks and clouds, the facts groups, the planets on wide, the key overlay, and the names of FR-NAME-1 and FR-NAME-2 at every width; every other capture is byte-identical to 2.13.0's under FR-CAP-5's comparison.
+  The phase's visible changes are the three wide pages' layout and views, the arcs, ticks and clouds, the facts groups, the planets on wide, the key overlay, and at every width the names of FR-NAME-1 and FR-NAME-2 and the privacy note's `[ × ]` (FR-KEEP-4); every other capture is byte-identical to 2.13.0's under FR-CAP-5's comparison.
   The capture set's wide dome captures are re-shot with `Dome` chosen, and it gains at 1280 × 800 over Bariloche at the set's instant: `sky-live-globe`, `sky-pass-globe`, `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts`, `sky-hover`, `sky-clouds` and `sky-fullscreen`, in the set's languages and themes.
   Every string is in both catalogs, every rail row fits the rail in both (`controlRows.test.ts`), and the axe run (FR-A11Y-7) covers the three pages with the globe and with a facts group open.
   *Verification:* `captureIds.test.ts`; `axe.spec.ts`; the release's diff against 2.13.0 (FR-CAP-5).
@@ -208,18 +272,19 @@ Constants (FR-VIS-6 style, centralised with the others):
 ### Phase 2w — v2.14 ("one sky on a desk", as decided 2026-11-04, V214-1)
 
 After v2.13 is on `main`.
-Wide pages only, except the star names, which reach every width.
+Wide pages only, except the star names, the remembered choices and the privacy note, which reach every width.
 
 - Before the breakdown, in an interactive session with the owner: `facts.json` and the reviewed `names-es.tsv`, sourced (FR-FACT-1, FR-NAME-1).
 - The views and the layout: the saved globe, the three-value row, the one shell, the corners, the dome by choice (FR-WIDE-1, FR-WIDE-2, FR-WIDE-5, FR-WIDE-6).
 - The globe's passes, the hover, the ticks and the arrow; the one time control and the clouds (FR-WIDE-3, FR-WIDE-4, FR-WIDE-7, FR-WIDE-8).
 - The facts groups, the names and the planets (FR-FACT-1..3, FR-NAME-1..3).
 - The keys and the full sky (FR-WIDE-9, FR-WIDE-10).
+- The remembered choices, the first visit's defaults and the privacy note, at every width (FR-KEEP-1..4).
 - The rate, the bundles, the captures and 2.14.0 (FR-WIDE-11, FR-WIDE-12).
 
 Definition of done:
-- FR-WIDE-1..12, FR-FACT-1..3 and FR-NAME-1..3 met, each by its verification line; US-52..US-56's criteria green.
-- `sky-layout.spec.ts`, `globe.spec.ts`, `globe-perf.spec.ts`, `keys.spec.ts`, `fullscreen.spec.ts`, `legend-hover.spec.ts`, `axe.spec.ts`, `dome.spec.ts` and `stars.spec.ts` green; every compact spec green with only the names' captures moved.
+- FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3 and FR-KEEP-1..4 met, each by its verification line; US-52..US-57's criteria green.
+- `sky-layout.spec.ts`, `globe.spec.ts`, `globe-perf.spec.ts`, `keys.spec.ts`, `fullscreen.spec.ts`, `legend-hover.spec.ts`, `keep.spec.ts`, `axe.spec.ts`, `dome.spec.ts` and `stars.spec.ts` green; every compact spec green with only the names' and the privacy note's captures moved.
 - Every task `Gate: auto`, merged on CI green and a clean review, at most one `hard` task per wave, the driver's wait-and-resume on (V213-11's rule).
 - `npm run bundle:budget`: every row inside its budget, `main` within `SKY_MAIN_KB`, `globe` within `SKY_GLOBE_KB`, the new `facts` row inside `FACTS_BUDGET_KB`.
 - The owner's desk run written into the phase's `release.md`; `package.json` reads 2.14.0; the owner tags v2.14.0 and deploys.
