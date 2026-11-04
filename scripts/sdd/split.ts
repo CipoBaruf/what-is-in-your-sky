@@ -2,11 +2,12 @@
  * FR-SDD-3..5 (D-1059, D-1060): SPEC.md, PLAN.md and TASKS.md cut by heading into the phase
  * folders, the Decision Log, the reference files and the three index files.
  * `split(sources)` is pure; `npx tsx scripts/sdd/split.ts <dir>` reads the three files from
- * `<dir>` (default `.`) and writes the layout into the repository root.
+ * `<dir>` (default `.`) and writes the layout, then `docs/sdd/ids.md`, into the repository root.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { DOCS, SPLIT_MAP, type Destination, type Doc, type DocMap } from './splitMap';
+import { DOCS, OPEN_PHASE, PHASES, SPLIT_MAP, type Destination, type Doc, type DocMap } from './splitMap';
+import { IDS_PATH, generateIds } from './ids';
 import { rewrapBlocks } from './rewrap';
 import { parseTasks } from './tasks';
 
@@ -19,11 +20,6 @@ export interface Piece {
   /** The lines as they came. */
   lines: readonly string[];
 }
-
-/** Every phase folder, in release order (FR-SDD-3). */
-export const PHASES = ['mvp', 'v1', 'v1.1', 'v1.2', 'v1.3', 'v1.3.2', 'v1.4', 'v2.0', 'v2.1', 'v2.2', 'v2.2.1', 'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v2.6.1', 'v2.7', 'v2.8', 'v2.9', 'v2.10', 'v2.11', 'v2.12', 'v2.13'] as const;
-/** The phase TASKS.md holds open; its spec and plan sections already live in its folder. */
-export const OPEN_PHASE = 'v2.13';
 
 export const SDD_DIR = 'docs/sdd';
 const KIND: Record<Doc, string> = { SPEC: 'spec', PLAN: 'plan', TASKS: 'tasks' };
@@ -254,5 +250,6 @@ if (process.argv[1]?.endsWith('split.ts')) {
   const sources = Object.fromEntries(DOCS.map((doc) => [doc, readFileSync(join(from, `${doc}.md`), 'utf8')])) as Record<Doc, string>;
   const { files } = split(sources);
   writeLayout('.', files);
+  writeFileSync(IDS_PATH, generateIds('.'));
   console.log(`split: ${String(files.size)} files written`);
 }
