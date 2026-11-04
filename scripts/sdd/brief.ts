@@ -168,7 +168,7 @@ export interface Brief {
 }
 
 /** FR-SDD-17: a digest of docs/sdd/gotchas.md, fixed text so it stays byte-stable; the file has the rest. */
-export const GOTCHAS_DIGEST: readonly string[] = [
+const GOTCHAS_DIGEST: readonly string[] = [
   '- Read the section of `docs/sdd/gotchas.md` for the work at hand; `rg -n "<word>" docs/sdd/gotchas.md` finds it.',
   '- Do not run prettier here: there is no config and it rewrites every file.',
   '- Lint after the last edit (`eslint .` also lints `sdd-run/`) and run `npx knip` before the last commit: the dead-code CI job has failed tasks alone.',
