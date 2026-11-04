@@ -6,7 +6,7 @@ import { useLocale } from '../../../../../i18n/useT';
 import { useStarsPageT, type StarsPageMessages } from '../../../../../i18n/starsPageT';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
-import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
+import { figureName, starLabelKind, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { whenIdle } from '../../../../screens/whenIdle';
@@ -180,7 +180,7 @@ export interface Prepared {
   figureRanges: readonly (readonly [number, number])[];
   /** Each figure's name in the reader's language (D-832). */
   figureNames: readonly string[];
-  /** The stars that may be named, brightest first: every star to `MAX_NAMED_MAG` (the frame cuts to its row's). */
+  /** The stars that may be named, brightest first: `starLabelKind` at `MAX_NAMED_MAG` (the frame cuts the proper names to its row's; R185, FR-NAME-2). */
   nameStars: readonly number[];
   /** Each named star's name in the reader's language, by catalogue index. */
   starNames: ReadonlyMap<number, string>;
@@ -219,8 +219,9 @@ export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
   const figureNames = catalog.figures.map((figure) => figureLabelName(names, figure.con, figure.part, lang));
   const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
   const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
-  // FR-LOOK-9: by designation where the star has no proper name (`starName` falls back to it).
-  const nameStars = order.filter((k) => k < n && mag(k) <= MAX_NAMED_MAG);
+  // FR-LOOK-9, R185 (FR-NAME-2): a proper name to the faintest row's magnitude, a designation brighter than `BAYER_LABEL_MAG`.
+  const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
+  const nameStars = order.filter((k) => k < n && starLabelKind(labelSource, k, MAX_NAMED_MAG) !== null);
   const starNames = new Map(nameStars.map((i) => [i, starName(names, i, lang)]));
   return { marks, planetMarks, bloomStars, frame, haze, segments, figureRanges, figureNames, nameStars, starNames, order };
 }
@@ -472,11 +473,12 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
   const stars: MarkLabel[] = [];
   const figures: FigureLabel[] = [];
   if (layers.names) {
-    // FR-LOOK-9: named to the field's row — the stars are brightest first, so the first past the row ends the walk.
+    // FR-LOOK-9: a proper name to the field's row; R185 (FR-NAME-2): a designation at every row, placed after them.
+    const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
     for (const i of prepared.nameStars) {
-      if ((catalog.mag[i] ?? 0) > nameMag) break;
+      const kind = starLabelKind(labelSource, i, nameMag);
       const mark = markOf.get(i);
-      if (mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '' });
+      if (kind !== null && mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '', ...(kind === 'designation' ? { designation: true } : {}) });
     }
     if (layers.figures) {
       catalog.figures.forEach((figure, f) => {

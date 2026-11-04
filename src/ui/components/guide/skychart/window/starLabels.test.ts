@@ -100,6 +100,28 @@ describe('a star name: right, left, above, below, or dropped', () => {
     expect(texts(placed)).toEqual(['star:Alpha', 'star:Beta']);
     expect(placed.every((p, i) => placed.every((q, j) => i === j || !overlaps(p.box, q.box)))).toBe(true);
   });
+
+  it('FR-NAME-2: a designation never displaces a proper name, even a brighter designation listed first', () => {
+    // Two marks 6 px apart, one above the other: their right-hand places overlap, so whichever goes first takes it.
+    const a: LabelMark = { x: 100, y: 150, sizePx: 12 };
+    const b: LabelMark = { x: 100, y: 156, sizePx: 15 };
+    const stars = [{ key: 0, mark: 1, text: 'γ² Vel', designation: true }, { key: 1, mark: 0, text: 'Beta' }];
+    const placed = placeLabels(base({ marks: [a, b], stars }));
+    expect(side(placed[1] as PlacedLabel, b)).toBe('left');
+    expect(texts(placed)[0]).toBe('star:Beta');
+    const beta = placed.find((p) => p.text === 'Beta') as PlacedLabel;
+    const without = placeLabels(base({ marks: [a, b], stars: [stars[1] as (typeof stars)[1]] }));
+    expect(beta.box).toEqual(without[0]?.box);
+    expect(placed.every((p, i) => placed.every((q, j) => i === j || !overlaps(p.box, q.box)))).toBe(true);
+  });
+
+  it('D-1113: measures a label at its own size where it carries one', () => {
+    const plain = placeLabels(base({ marks: [bright], stars: [{ key: 0, mark: 0, text: 'Venus' }] }))[0] as PlacedLabel;
+    const big = placeLabels(base({ marks: [bright], stars: [{ key: 0, mark: 0, text: 'Venus', sizePx: 14 }] }))[0] as PlacedLabel;
+    expect(plain.box.x1 - plain.box.x0).toBeCloseTo(textWidth('Venus', 12));
+    expect(big.box.x1 - big.box.x0).toBeCloseTo(textWidth('Venus', 14));
+    expect(big.box.y1 - big.box.y0).toBeCloseTo(14);
+  });
 });
 
 describe('the named mark (FR-STAR-7)', () => {

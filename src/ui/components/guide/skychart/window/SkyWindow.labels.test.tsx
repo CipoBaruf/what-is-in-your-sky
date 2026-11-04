@@ -21,7 +21,7 @@ const view: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg
 /**
  * Four stars around a hand camera at S 35° up, and Jupiter: 0 (Canopus-like,
  * named) at the centre, 1 named and 6° up, 2 with no proper name 6° to the
- * east, 3 faint, 6° to the west. The figure joins 0–2 and 0–3, so it has two
+ * east (a designation label, FR-NAME-2), 3 named and faint, 6° to the west. The figure joins 0–2 and 0–3, so it has two
  * drawn segments and is named.
  */
 const field: StarFieldData = {
@@ -29,7 +29,7 @@ const field: StarFieldData = {
     ra: [0, 0, 0, 0],
     dec: [0, 0, 0, 0],
     mag: [-0.7, 1.2, 2.0, 3.0],
-    name: ['Canopus', 'Bravo', '', ''],
+    name: ['Canopus', 'Bravo', '', 'Iota'],
     desig: ['α Car', 'β Car', 'ε Car', 'ι Car'],
     con: ['Car', 'Car', 'Car', 'Car'],
     figures: [{ con: 'Car', part: '', segments: [[0, 2], [0, 3]] }],
@@ -63,23 +63,23 @@ describe('the names (FR-STAR-6 as amended, D-755)', () => {
   });
 
   /** R155 (FR-LOOK-9): the names follow the field's row — at 20° every star to 3.2, a designation where there is no proper name. */
-  it('names to the field’s row: a pinch to 20° brings in ε Car by its designation', () => {
+  it('names to the field’s row: a pinch to 20° brings in Iota; FR-NAME-2: ε Car is named by its designation at both', () => {
     const { container, box, q } = mount();
+    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'visible');
     for (let i = 0; i < 5; i += 1) fireEvent.keyDown(box, { key: '+' });
     expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-fov', '20');
     const shown = [...container.querySelectorAll('[data-star-name][visibility="visible"]')].map((n) => n.textContent);
     expect(shown).toContain('ε Car');
-    expect(shown).toContain('ι Car');
-    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'visible');
+    expect(shown).toContain('Iota');
     fireEvent.keyDown(box, { key: '0' });
-    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'hidden');
+    expect(q('[data-star-name="3"]')).toHaveAttribute('visibility', 'hidden');
+    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'visible');
   });
 
-  it('makes one name node per star to the deepest row’s named magnitude (by designation where there is no name) and one per figure, writes them by ref, and at 60° names to 1.5', () => {
+  it('makes one name node per star to the deepest row’s named magnitude (a designation where there is no name, FR-NAME-2) and one per figure, writes them by ref, and at 60° names proper names to 1.5', () => {
     const { container, q } = mount();
     // R155 (FR-LOOK-9): the nodes reach to 3.2, the 20° row's; the 60° row draws the names to 1.5 (below).
-    expect([...container.querySelectorAll('[data-star-name]')].map((n) => n.textContent)).toEqual(['Canopus', 'Bravo', 'ε Car', 'ι Car']);
-    expect(q('[data-star-name="2"]')).toHaveAttribute('visibility', 'hidden');
+    expect([...container.querySelectorAll('[data-star-name]')].map((n) => n.textContent)).toEqual(['Canopus', 'Bravo', 'ε Car', 'Iota']);
     expect(q('[data-star-name="3"]')).toHaveAttribute('visibility', 'hidden');
     expect(container.querySelectorAll('[data-figure-name]')).toHaveLength(1);
     // Bravo's name to the right of its mark, the first free place, and not on it.

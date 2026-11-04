@@ -19,7 +19,8 @@
  *    below that is free. The reader asked for it, so it is never dropped: with
  *    no free place it takes the first of the four that is inside the box.
  * 3. The star names, brightest first, at the first free place of the same four;
- *    a name with no free place is dropped.
+ *    a name with no free place is dropped. R185 (FR-NAME-2): the proper names
+ *    first, then the designations (`γ Vel`), so a designation never displaces one.
  * 4. The figure names, the figure with the most drawn segments first: the full
  *    spaced name where its width fits the drawn endpoints' width plus two
  *    cells, else the abbreviation; at the centroid of the drawn endpoints, then
@@ -73,6 +74,10 @@ export interface MarkLabel {
   key: number;
   mark: number;
   text: string;
+  /** R185 (D-1113): the label's type size, px, where it is not the star names' (`STAR_NAME_PX`): a planet's, one step over. */
+  sizePx?: number;
+  /** R185 (FR-NAME-2): a designation (`γ Vel`), placed after every proper name, so it never displaces one. */
+  designation?: boolean;
 }
 
 /** A figure that may be named: its Latin name and abbreviation as data, and its drawn endpoints. */
@@ -187,11 +192,11 @@ class Obstacles {
 }
 
 /** The four places beside a mark, in FR-STAR-6's order: right, left, above, below. */
-function besideMark(mark: LabelMark, text: string): Box[] {
-  const w = textWidth(text, STAR_NAME_PX);
-  const h = STAR_NAME_PX;
+function besideMark(mark: LabelMark, text: string, sizePx = STAR_NAME_PX): Box[] {
+  const w = textWidth(text, sizePx);
+  const h = sizePx;
   const half = (ADVANCE_EM * mark.sizePx) / 2;
-  const gap = GAP_EM * STAR_NAME_PX;
+  const gap = GAP_EM * sizePx;
   return [
     boxAt(mark.x + half + gap + w / 2, mark.y, w, h),
     boxAt(mark.x - half - gap - w / 2, mark.y, w, h),
@@ -270,14 +275,14 @@ export function placeLabels(input: LabelInput, options: LabelOptions = {}): Plac
   for (const body of options.fixed ?? []) {
     const mark = marks[body.mark];
     if (!mark || fixedMarks.has(body.mark) || (named !== null && body.mark === named.mark)) continue;
-    const box = keptPlace(besideMark(mark, body.text));
+    const box = keptPlace(besideMark(mark, body.text, body.sizePx));
     if (box) {
       put('fixed', body.key, body.text, box);
       fixedMarks.add(body.mark);
     }
   }
   if (named && namedMark) {
-    const box = keptPlace(besideMark(namedMark, named.text));
+    const box = keptPlace(besideMark(namedMark, named.text, named.sizePx));
     if (box) put('named', named.key, named.text, box);
   }
 
@@ -285,15 +290,18 @@ export function placeLabels(input: LabelInput, options: LabelOptions = {}): Plac
   const landmark = input.landmark ?? null;
   const landmarkMark = landmark && (named === null || named.mark !== landmark.mark) && !fixedMarks.has(landmark.mark) ? marks[landmark.mark] : undefined;
   if (landmark && landmarkMark) {
-    const box = besideMark(landmarkMark, landmark.text).find(free);
+    const box = besideMark(landmarkMark, landmark.text, landmark.sizePx).find(free);
     if (box) put('landmark', landmark.key, landmark.text, box);
   }
 
-  input.stars.forEach((star, i) => {
+  // R185 (FR-NAME-2): the proper names first, then the designations, each in the caller's order; the rank follows, so a
+  // figure removes a designation before any proper name.
+  const starOrder = [...input.stars.filter((s) => !s.designation), ...input.stars.filter((s) => s.designation)];
+  starOrder.forEach((star, i) => {
     const mark = marks[star.mark];
     // The named mark carries its label already, and so does the landmark's; its name is not drawn twice.
     if (!mark || (named !== null && star.mark === named.mark) || (landmark !== null && star.mark === landmark.mark) || fixedMarks.has(star.mark)) return;
-    const box = besideMark(mark, star.text).find(free);
+    const box = besideMark(mark, star.text, star.sizePx).find(free);
     if (box) rank.set(put('star', star.key, star.text, box), i);
   });
 
