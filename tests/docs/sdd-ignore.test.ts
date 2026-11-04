@@ -10,23 +10,31 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname, '../..');
 
-/** FR-SDD-14's ignored paths, as patterns over `rg --files` output. */
-const IGNORED = [
-  /(^|\/)dist\//,
-  /(^|\/)node_modules\//,
-  /^docs\/screenshots\//,
-  /(^|\/)__snapshots__\//,
-  /(^|\/)fixtures\//,
-  /^public\/data\//,
-  /^src\/data\/.*\.json$/,
-  /^src\/data\/places\/places\.txt$/,
-  /^data-src\//,
-  /(^|\/)package-lock\.json$/,
-  /\.lock$/,
-];
+/** FR-SDD-14's ignored classes, as patterns over tracked paths. */
+const IGNORED: Record<string, RegExp> = {
+  dist: /(^|\/)dist\//,
+  node_modules: /(^|\/)node_modules\//,
+  screenshots: /^docs\/screenshots\//,
+  snapshots: /(^|\/)__snapshots__\//,
+  fixtures: /(^|\/)fixtures\//,
+  'public/data': /^public\/data\//,
+  'catalogue json': /^src\/data\/.*\.json$/,
+  'places catalogue': /^src\/data\/places\/places\.txt$/,
+  'data-src': /^data-src\//,
+  'package-lock': /(^|\/)package-lock\.json$/,
+  lockfiles: /\.lock$/,
+};
 
-const rg = spawnSync('rg', ['--version'], { encoding: 'utf8' });
-const hasRg = rg.error === undefined && rg.status === 0;
+/** Tracked files, through git's gitignore matcher with `.ignore` as the exclude list. */
+function lsFiles(...args: string[]): string[] {
+  const out = spawnSync('git', ['ls-files', '-z', '--cached', '--exclude-from=.ignore', ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 1e8,
+  });
+  expect(out.status, out.stderr).toBe(0);
+  return out.stdout.split('\0').filter(Boolean);
+}
 
 describe('.ignore', () => {
   it('names every ignored class FR-SDD-14 lists', () => {
@@ -36,16 +44,26 @@ describe('.ignore', () => {
     }
   });
 
-  // Without rg the test skips locally, but fails on CI, so a broken .ignore never passes CI silently.
-  it.skipIf(!hasRg && !process.env.CI)('leaves `rg --files` from the root with none of the ignored paths and with the sources', () => {
-    expect(hasRg, 'rg (ripgrep) must be installed where CI runs').toBe(true);
-    const out = spawnSync('rg', ['--files'], { cwd: root, encoding: 'utf8', maxBuffer: 1e8 });
-    expect(out.status).toBe(0);
-    const files = out.stdout.split('\n').filter(Boolean).map((f) => f.replace(/^\.\//, ''));
-    expect(files.filter((f) => IGNORED.some((re) => re.test(f)))).toEqual([]);
-    expect(files).toContain('src/main.tsx');
-    expect(files).toContain('docs/sdd/map.md');
-    expect(files).toContain('src/data/stars/catalog.ts');
+  // `.ignore` is gitignore syntax, so git's own matcher decides what a search
+  // (ripgrep, the Grep tool) would hide; no rg needed, so this always runs.
+  it('hides a tracked example of every ignored class, and leaves none of them searchable', () => {
+    const tracked = lsFiles();
+    const ignored = new Set(lsFiles('--ignored'));
+    const searchable = tracked.filter((f) => !ignored.has(f));
+    for (const [name, re] of Object.entries(IGNORED)) {
+      const examples = tracked.filter((f) => re.test(f));
+      if (examples.length === 0) continue; // nothing of this class is tracked (dist/, node_modules/, public/data/)
+      expect(examples.filter((f) => !ignored.has(f)), `${name} files left searchable`).toEqual([]);
+    }
+    expect(searchable.filter((f) => Object.values(IGNORED).some((re) => re.test(f)))).toEqual([]);
+    // the classes that do have tracked files are really matched as ignored
+    for (const name of ['screenshots', 'snapshots', 'fixtures', 'catalogue json', 'places catalogue', 'data-src', 'package-lock']) {
+      const re = IGNORED[name];
+      expect(re && [...ignored].some((f) => re.test(f)), `${name}: no tracked example ignored`).toBe(true);
+    }
+    expect(searchable).toContain('src/main.tsx');
+    expect(searchable).toContain('docs/sdd/map.md');
+    expect(searchable).toContain('src/data/stars/catalog.ts');
   });
 });
 
