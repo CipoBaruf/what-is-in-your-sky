@@ -27,7 +27,7 @@ const NO_GEOMAGNETISM = { name: 'geomagnetism', message: `Only ${DECLINATION} ma
 const NO_REACT = { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'This directory must not import React (PLAN §3).' };
 
 /** FR-SDD-19: SPEC §4.56's `FILE_WARN_LINES`. */
-export const FILE_WARN_LINES = 600;
+const FILE_WARN_LINES = 600;
 
 /** R141 (D-896): the two `src/lib` modules that read FR-TONIGHT's constants from `physics/constants.ts`. */
 const TONIGHT_CONSTANTS = ['src/lib/playback.ts', 'src/lib/tonightJump.ts'];

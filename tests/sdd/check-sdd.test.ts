@@ -9,7 +9,6 @@ import { dirname, join } from 'node:path';
 import { ESLint } from 'eslint';
 import { PNG } from 'pngjs';
 import { describe, expect, it } from 'vitest';
-import config, { FILE_WARN_LINES as ESLINT_WARN_LINES } from '../../eslint.config.js';
 import { compressPng } from '../../scripts/captures/compress';
 import { CAPTURE_DIFF_SHARE } from '../../scripts/captures/diff';
 import { longTitles, type Commit } from '../../scripts/check-trailers';
@@ -245,9 +244,11 @@ describe('FR-SDD-13: the constants are SPEC §4.56 table, held in one place', ()
 
 describe('FR-SDD-19: lint warns past FILE_WARN_LINES', () => {
   it("uses ESLint's own max-lines at warn, with limits.ts's number", async () => {
-    expect(ESLINT_WARN_LINES).toBe(FILE_WARN_LINES);
-    expect(config.some((block) => JSON.stringify(block.rules?.['max-lines']) === JSON.stringify(['warn', { max: FILE_WARN_LINES }]))).toBe(true);
     const eslint = new ESLint();
+    for (const file of ['scripts/x.ts', 'src/ui/x.tsx', 'tests/x.test.ts']) {
+      const effective = (await eslint.calculateConfigForFile(file)) as { rules?: Record<string, unknown> };
+      expect(effective.rules?.['max-lines'], file).toEqual([1, { max: FILE_WARN_LINES }]);
+    }
     const lines = (count: number): string => Array.from({ length: count }, (_, index) => `export const a${String(index)} = ${String(index)};`).join('\n') + '\n';
     const [over] = await eslint.lintText(lines(FILE_WARN_LINES + 1), { filePath: 'scripts/long-fixture.ts' });
     expect(over?.messages.map((message) => [message.ruleId, message.severity])).toEqual([['max-lines', 1]]);
