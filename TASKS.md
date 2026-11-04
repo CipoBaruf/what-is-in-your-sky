@@ -238,10 +238,11 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
   - **Fallback:** off
   - **Gate:** auto
   - **Depends on:** R179, R180
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-1, FR-SDD-2, FR-SDD-26, FR-SDD-28; PLAN D-1058, D-1070; the knip config and `package.json` scripts; `sdd-run/usage.jsonl` and the phase's PR bodies (`gh pr view`).
+  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-1, FR-SDD-2, FR-SDD-26, FR-SDD-28; PLAN D-1058, D-1070; the knip config and `package.json` scripts; the ledger, which is the driver checkout's file `/Volumes/Data/Projects/what-is-in-your-sky-right-now/sdd-run/usage.jsonl` (read it by that absolute path; the worktree's `sdd-run/` has none), and the phase's PR bodies (`gh pr view` is not allowed in a session; the PR bodies' usage lines are in the ledger already).
   - **Goal:** the phase ends with numbers: its tokens in total and per task, the most expensive task, the baseline against the post-split tasks, findings, flakes and CI reruns, and each tier's ceiling written into `sdd.agents.json`.
   - **Satisfies:** FR-SDD-1 (the report), FR-SDD-2 (the ceilings), FR-SDD-26, FR-SDD-28; US-51 AC6, AC8.
   - **Scope (PLAN D-1070):** the orphan `archive` branch with `spike/`, `docs/{dome-composition,mockups,stars,spike-glyphcss,window}/` and the local branches kept at the 2026-11-03 cleanup (listed in `gotchas.md`, else the PR asks the owner); `archive.json` filled and `ids.md` regenerated; the `spike:*` scripts and their knip entries removed; `docs/sdd/phases/v2.13/report.md`; each tier's ceiling = `TIER_BUDGET_FACTOR` × the phase's 90th percentile for that tier; FR-SDD-28's checks (no `src/` or `public/` path in the phase's diff, `dist/` asset names equal the base's); a line for the owner's memory trim.
+  - **Note:** a session cannot push. Build the `archive` branch locally (an orphan branch in a separate `git worktree`, its commit holding the archived paths) and leave it unpushed; the owner's session pushes it after review. The report says the ledger has only the driver's own sessions: reviews run by hand and the subagents that fixed findings are not in it.
   - **Touches outside the lane:** `sdd.agents.json` (the ceilings only), `package.json` (the `spike:*` scripts removed), the knip config, `spike/`.
   - **Out of scope:** a tag, a deploy, a version bump (V213-1).
   - **Done when:**
