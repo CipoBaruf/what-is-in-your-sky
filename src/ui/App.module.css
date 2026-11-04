@@ -308,26 +308,6 @@
     grid-column: 1 / -1;
   }
 
-  /* R50 (FR-DESK-3 as amended, F-6, D-253): between the wide breakpoint and
-     the width where both floors fit, an open guide takes the whole right
-     column and the list is one `[ list ]` control away — the way the compact
-     sheet works. Before this the column split at every wide width, so the
-     list sat pinned at its 44-cell floor and the guide got whatever was left,
-     which between 960 px and about 1350 px was 43 to 107 px of chart.
-     Only one of the two tracks is on the page here, so the column keeps its
-     single-track grid and the other is simply not displayed. */
-  .column[data-guide='open'] > .listColumn,
-  .column[data-guide='list'] > [data-guide-panel] {
-    display: none;
-  }
-
-  .column[data-guide='open'],
-  .column[data-guide='list'] {
-    grid-template-rows: minmax(0, 1fr);
-    align-content: stretch;
-    align-items: stretch;
-  }
-
   /* The list scrolls itself rather than the page, whether or not a guide is
      open beside it: it is 72 h of passes and the one thing on the screen long
      enough to need it. Its height is the shell's (D-119) and no longer a
@@ -400,11 +380,10 @@
 /* R76 (FR-FIRST-5, D-443, D-444): from `HOME_THREE_PANE_MIN_CELLS` — three
    panes of 36 cells, the two gutters and one shell padding — the readings are
    three equal panes, Where, When and What. The two columns' wrappers step out
-   of the way (`display: contents`) so the three readings and the guide panel
-   are this grid's own items, and each pane scrolls itself inside the
-   one-viewport shell (D-119). An open pass (`data-guide='pane'`) takes the
-   Where and When panes together — at least 72 cells, so the panel's 40-cell
-   floor holds with room — and What keeps the list with the card highlighted.
+   of the way (`display: contents`) so the three readings are this grid's own
+   items, and each pane scrolls itself inside the one-viewport shell (D-119).
+   R186 (FR-WIDE-1, D-1098): an open pass is the desk shell in the home's
+   place, so no rule here places a guide; the split at 1272 px went with it.
    `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
 @media (width >= 1118px) {
   .main:is([data-home='readings'], [data-home='cold']) {
@@ -439,53 +418,7 @@
   .main:is([data-home='readings'], [data-home='cold']) .listColumn {
     grid-column: 3;
   }
-
-  .main[data-guide='pane'] .where,
-  .main[data-guide='pane'] .when {
-    display: none;
-  }
-
-  .main[data-guide='pane'] [data-guide-panel] {
-    grid-column: 1 / span 2;
-    grid-row: 1;
-  }
-
-  .main[data-home='readings'][data-guide='pane'] [data-guide-panel] {
-    grid-row: 2;
-  }
 }
-
-/* R50 (FR-DESK-3 as amended, D-253): the split returns at
-   `WIDE_SPLIT_MIN_CELLS` — 40 cells of left column, 44 of list and 40 of
-   guide, plus the two gutters between them and the shell's own padding. The
-   list keeps at least 44 cells — the width the cards were designed at, and the
-   chart's own square — and the guide at least 40, which is the width FR-DESK-3
-   says it may never be under while open; above the threshold the leftover goes
-   to the guide, a shade faster, so the chart is not the narrower of the two.
-   Both floors are real minima, so just above the threshold the pair is a few
-   pixels wider than the column and leans into the shell's right margin: that
-   is what the twin of the constant is calculated to keep inside
-   (`lib/layout.ts`, `tests/styles/breakpoint.test.ts`). */
-@media (width >= 1272px) {
-  /* Both tracks are on the page again. The values are the two elements' own —
-     the list column is a plain block, the panel is the grid of head and body
-     that `GuidePanel.module.css` gives it — because `display` has no keyword
-     for "whatever the earlier rule said". */
-  .column[data-guide='open'] > .listColumn {
-    display: block;
-  }
-
-  .column[data-guide='list'] > [data-guide-panel] {
-    display: grid;
-  }
-
-  .column[data-guide='open'],
-  .column[data-guide='list'] {
-    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(calc(40 * var(--cell)), 1.05fr);
-    gap: calc(3 * var(--cell));
-  }
-}
-
 
 /* R115 (FR-STAR-3, D-756): the stars page's `main`. On wide it is the shell's middle row and holds the page at its
    height (the page does not scroll there, its rail does); the page's own layout is `Stars.module.css`'s, in its chunk. */

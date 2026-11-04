@@ -68,30 +68,6 @@ export const GUTTER_CELLS = 3;
 export const SHELL_PADDING_CELLS = 2;
 
 /**
- * FR-DESK-3 as amended (V11-13, D-192): the width at which the right column
- * can hold the 44-cell list and a 40-cell guide side by side. Below it an open
- * guide takes the whole right column and the list is one `[ list ]` control
- * away, the way the compact sheet works (F-6).
- *
- * The constant is D-192's, and it counts the three columns: 40 left + 44 list
- * + 40 guide. Its pixel twin counts what the reader's screen also has to find
- * for them to be three columns (D-253) — the two 3-cell gutters between them,
- * and the shell's own side padding. Only the left half of that padding: the
- * shell is 2 cells clear on each side, and where the tracks are a few pixels
- * wider than the space between them the panel leans into the right margin
- * rather than the layout folding, which costs the guide's border a few pixels
- * of air and nothing else. Counting both halves instead would put the
- * threshold at 1291 px and take the split away from 1280 — the width of the
- * approved desktop mockup (FR-DESK-5), where the two columns have been since
- * R23. The one thing the twin may never do is let that lean become a page
- * that scrolls sideways, which is what `WIDE_SPLIT_MIN_CELLS` + the gutters +
- * one padding is exactly the width for; `tests/styles/breakpoint.test.ts`
- * holds it there and `tests/e2e/wide.spec.ts` looks for the scrollbar.
- */
-export const WIDE_SPLIT_MIN_CELLS = 124;
-export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
-
-/**
  * R76 (FR-FIRST-5, D-443): the width from which the wide home is three equal
  * panes — Where, When, What — rather than FR-DESK-2's two columns. 108 cells
  * of content is three panes of 36, the compact card's width and the least a
@@ -104,12 +80,8 @@ export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_C
  * engage before 108 cells of content exist on any font. 1024 × 768 is under it
  * and 1280 × 800 over it either way, which is what the requirement asks of it.
  *
- * It sits between the other two: under it the two columns stand, as the
- * layout the wide breakpoint starts; and since the Where and When panes are
- * what an open pass takes at this width (D-444), `WIDE_SPLIT_MIN_PX`'s split of
- * the right column only ever applies below it — which is to say, on the home
- * page, never. The rule stays, and the breakpoint test keeps the three literals
- * in order.
+ * R186 (FR-WIDE-1, D-1098): `WIDE_SPLIT_MIN_CELLS` and its split of the right column are retired, since an open
+ * pass on wide is the desk shell in the home's place; the breakpoint test keeps the two literals in order.
  */
 export const HOME_THREE_PANE_MIN_CELLS = 108;
 export const HOME_THREE_PANE_MIN_PX = thresholdPx(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
