@@ -28,7 +28,7 @@ export function testTitles(source: string): string[] {
 export const titleIds = (title: string): string[] => title.match(ID) ?? [];
 
 /** Tracked test files: unit tests and e2e specs, the driver's own fixtures left out. */
-export function listTestFiles(root: string): string[] {
+function listTestFiles(root: string): string[] {
   return execFileSync('git', ['-C', root, 'ls-files', '-z', '--', '*.test.ts', '*.test.tsx', '*.spec.ts'], { encoding: 'utf8', maxBuffer: 1e8 })
     .split('\0')
     .filter((path) => path !== '' && !path.includes('__fixtures__/') && existsSync(join(root, path)))
