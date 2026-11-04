@@ -1,0 +1,304 @@
+{
+ "config": {
+  "rootDir": "/repo/.sdd-cache/r174/pw",
+  "version": "1.62.1"
+ },
+ "suites": [
+  {
+   "title": "sample.spec.ts",
+   "file": "sample.spec.ts",
+   "column": 0,
+   "line": 0,
+   "specs": [],
+   "suites": [
+    {
+     "title": "the sample page",
+     "file": "sample.spec.ts",
+     "line": 2,
+     "column": 6,
+     "specs": [
+      {
+       "title": "shows the title",
+       "ok": true,
+       "tags": [],
+       "tests": [
+        {
+         "timeout": 30000,
+         "annotations": [],
+         "expectedStatus": "passed",
+         "projectId": "",
+         "projectName": "",
+         "results": [
+          {
+           "workerIndex": 0,
+           "parallelIndex": 0,
+           "status": "passed",
+           "duration": 2,
+           "errors": [],
+           "stdout": [],
+           "stderr": [],
+           "retry": 0,
+           "startTime": "2026-11-04T01:43:55.766Z",
+           "annotations": [],
+           "attachments": []
+          }
+         ],
+         "status": "expected"
+        }
+       ],
+       "id": "b92766bcf73bd5c029a8-abc5fa5ab4933ccbbf0d",
+       "file": "sample.spec.ts",
+       "line": 3,
+       "column": 3
+      },
+      {
+       "title": "counts the passes",
+       "ok": false,
+       "tags": [],
+       "tests": [
+        {
+         "timeout": 30000,
+         "annotations": [],
+         "expectedStatus": "passed",
+         "projectId": "",
+         "projectName": "",
+         "results": [
+          {
+           "workerIndex": 0,
+           "parallelIndex": 0,
+           "status": "failed",
+           "duration": 1,
+           "error": {
+            "message": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m",
+            "stack": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\n    at /repo/tests/e2e/sample.spec.ts:7:34",
+            "location": {
+             "file": "/repo/tests/e2e/sample.spec.ts",
+             "column": 34,
+             "line": 7
+            },
+            "snippet": "   5 |   });\n   6 |   test('counts the passes', () => {\n>  7 |     expect.soft(3, 'pass count').toBe(4);\n     |                                  ^\n   8 |     expect(1).toBe(1);\n   9 |   });\n  10 |   test('is flaky', () => {"
+           },
+           "errors": [
+            {
+             "location": {
+              "file": "/repo/tests/e2e/sample.spec.ts",
+              "column": 34,
+              "line": 7
+             },
+             "message": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\n\n   5 |   });\n   6 |   test('counts the passes', () => {\n>  7 |     expect.soft(3, 'pass count').toBe(4);\n     |                                  ^\n   8 |     expect(1).toBe(1);\n   9 |   });\n  10 |   test('is flaky', () => {\n    at /repo/tests/e2e/sample.spec.ts:7:34"
+            }
+           ],
+           "stdout": [],
+           "stderr": [],
+           "retry": 0,
+           "startTime": "2026-11-04T01:43:55.781Z",
+           "annotations": [],
+           "attachments": [
+            {
+             "name": "error-context",
+             "contentType": "text/markdown",
+             "path": "/repo/test-results/sample-the-sample-page-counts-the-passes/error-context.md"
+            }
+           ],
+           "errorLocation": {
+            "file": "/repo/tests/e2e/sample.spec.ts",
+            "column": 34,
+            "line": 7
+           }
+          },
+          {
+           "workerIndex": 1,
+           "parallelIndex": 0,
+           "status": "failed",
+           "duration": 2,
+           "error": {
+            "message": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m",
+            "stack": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\n    at /repo/tests/e2e/sample.spec.ts:7:34",
+            "location": {
+             "file": "/repo/tests/e2e/sample.spec.ts",
+             "column": 34,
+             "line": 7
+            },
+            "snippet": "   5 |   });\n   6 |   test('counts the passes', () => {\n>  7 |     expect.soft(3, 'pass count').toBe(4);\n     |                                  ^\n   8 |     expect(1).toBe(1);\n   9 |   });\n  10 |   test('is flaky', () => {"
+           },
+           "errors": [
+            {
+             "location": {
+              "file": "/repo/tests/e2e/sample.spec.ts",
+              "column": 34,
+              "line": 7
+             },
+             "message": "Error: pass count\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\n\n   5 |   });\n   6 |   test('counts the passes', () => {\n>  7 |     expect.soft(3, 'pass count').toBe(4);\n     |                                  ^\n   8 |     expect(1).toBe(1);\n   9 |   });\n  10 |   test('is flaky', () => {\n    at /repo/tests/e2e/sample.spec.ts:7:34"
+            }
+           ],
+           "stdout": [],
+           "stderr": [],
+           "retry": 1,
+           "startTime": "2026-11-04T01:43:55.965Z",
+           "annotations": [],
+           "attachments": [
+            {
+             "name": "error-context",
+             "contentType": "text/markdown",
+             "path": "/repo/test-results/sample-the-sample-page-counts-the-passes-retry1/error-context.md"
+            }
+           ],
+           "errorLocation": {
+            "file": "/repo/tests/e2e/sample.spec.ts",
+            "column": 34,
+            "line": 7
+           }
+          }
+         ],
+         "status": "unexpected"
+        }
+       ],
+       "id": "b92766bcf73bd5c029a8-8aa2294026a677db9da4",
+       "file": "sample.spec.ts",
+       "line": 6,
+       "column": 3
+      },
+      {
+       "title": "is flaky",
+       "ok": true,
+       "tags": [],
+       "tests": [
+        {
+         "timeout": 30000,
+         "annotations": [],
+         "expectedStatus": "passed",
+         "projectId": "",
+         "projectName": "",
+         "results": [
+          {
+           "workerIndex": 2,
+           "parallelIndex": 0,
+           "status": "failed",
+           "duration": 2,
+           "error": {
+            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m",
+            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at /repo/tests/e2e/sample.spec.ts:11:31",
+            "location": {
+             "file": "/repo/tests/e2e/sample.spec.ts",
+             "column": 31,
+             "line": 11
+            },
+            "snippet": "   9 |   });\n  10 |   test('is flaky', () => {\n> 11 |     expect(test.info().retry).toBe(1);\n     |                               ^\n  12 |   });\n  13 |   test.skip('is skipped', () => {});\n  14 | });"
+           },
+           "errors": [
+            {
+             "location": {
+              "file": "/repo/tests/e2e/sample.spec.ts",
+              "column": 31,
+              "line": 11
+             },
+             "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n   9 |   });\n  10 |   test('is flaky', () => {\n> 11 |     expect(test.info().retry).toBe(1);\n     |                               ^\n  12 |   });\n  13 |   test.skip('is skipped', () => {});\n  14 | });\n    at /repo/tests/e2e/sample.spec.ts:11:31"
+            }
+           ],
+           "stdout": [],
+           "stderr": [],
+           "retry": 0,
+           "startTime": "2026-11-04T01:43:56.161Z",
+           "annotations": [],
+           "attachments": [
+            {
+             "name": "error-context",
+             "contentType": "text/markdown",
+             "path": "/repo/test-results/sample-the-sample-page-is-flaky/error-context.md"
+            }
+           ],
+           "errorLocation": {
+            "file": "/repo/tests/e2e/sample.spec.ts",
+            "column": 31,
+            "line": 11
+           }
+          },
+          {
+           "workerIndex": 3,
+           "parallelIndex": 0,
+           "status": "passed",
+           "duration": 2,
+           "errors": [],
+           "stdout": [],
+           "stderr": [],
+           "retry": 1,
+           "startTime": "2026-11-04T01:43:56.351Z",
+           "annotations": [],
+           "attachments": []
+          }
+         ],
+         "status": "flaky"
+        }
+       ],
+       "id": "b92766bcf73bd5c029a8-091ba6692fc9f1950abb",
+       "file": "sample.spec.ts",
+       "line": 10,
+       "column": 3
+      },
+      {
+       "title": "is skipped",
+       "ok": true,
+       "tags": [],
+       "tests": [
+        {
+         "timeout": 30000,
+         "annotations": [
+          {
+           "type": "skip",
+           "location": {
+            "file": "/repo/tests/e2e/sample.spec.ts",
+            "line": 13,
+            "column": 8
+           }
+          }
+         ],
+         "expectedStatus": "skipped",
+         "projectId": "",
+         "projectName": "",
+         "results": [
+          {
+           "workerIndex": 3,
+           "parallelIndex": 0,
+           "status": "skipped",
+           "duration": 0,
+           "errors": [],
+           "stdout": [],
+           "stderr": [],
+           "retry": 0,
+           "startTime": "2026-11-04T01:43:56.370Z",
+           "annotations": [
+            {
+             "type": "skip",
+             "location": {
+              "file": "/repo/tests/e2e/sample.spec.ts",
+              "line": 13,
+              "column": 8
+             }
+            }
+           ],
+           "attachments": []
+          }
+         ],
+         "status": "skipped"
+        }
+       ],
+       "id": "b92766bcf73bd5c029a8-a2659da9c1c401a4f2bb",
+       "file": "sample.spec.ts",
+       "line": 13,
+       "column": 8
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "errors": [],
+ "stats": {
+  "startTime": "2026-11-04T01:43:55.580Z",
+  "duration": 795.608,
+  "expected": 1,
+  "skipped": 1,
+  "unexpected": 1,
+  "flaky": 1
+ }
+}
