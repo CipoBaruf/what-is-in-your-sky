@@ -148,7 +148,7 @@ Token cost is a requirement, not a habit. Every workflow, document, script and c
 
 ### What a session writes and runs
 
-6. **Quiet commands.** `npm run check` runs typecheck, lint, unit tests and the affected e2e tests (`scripts/ci-affected.ts`). It prints only failures: the test name, the first assertion and five lines of stack, and nothing on success. The workflows tell every agent to run it in place of the raw tools.
+6. **Quiet commands.** `npm run check` runs typecheck, lint, unit tests and the affected e2e tests (`scripts/ci-affected.ts`). It prints only failures: the test name, the first assertion and five lines of stack. On success it prints one line: what passed and the count of warnings by tool. A warning count that rises is reported in the handoff. The workflows tell every agent to run it in place of the raw tools.
 7. **Failure digests for fix sessions.** When CI fails, the driver hands the fix session a digest of the failing jobs (test names and first errors, capped at 4 KB), not the job log.
 8. **Pixel diffs before images.** Visual review compares captures with a pixel-diff script first. An agent looks only at the captures that differ past a threshold, at reduced size, and side by side in one image. An image costs about as much as a page of text.
 9. **Comments.** A comment cites the id and says in one line what the code can't. A new file keeps a header of at most five lines. Existing comments are left alone; this rule is for new code.
@@ -157,7 +157,12 @@ Token cost is a requirement, not a habit. Every workflow, document, script and c
 ### How sessions run
 
 11. **A stable prefix for the prompt cache.** The brief puts the parts every session shares first, in a fixed order: rules, tool policy, gotchas digest. The task's own parts come last. Sessions in one wave then share a cached prefix, and cached input costs a fraction of fresh input.
-12. **The cheapest tier that works.** Review runs on `light` unless the task's tier is `hard`. A task that changes only docs or tests gets no review session; CI and the owner's read cover it. `hard` is kept for tasks marked hard in the breakdown.
+12. **The cheapest tier that works.** Review runs on `light`, except that it stays on `standard` for:
+    - `hard` tasks;
+    - tasks with `Gate: owner`;
+    - any diff that touches `src/physics/`, the worker or `scripts/sdd/`.
+
+    A task that changes only docs gets no review session. A task that changes only tests keeps one, because a weakened test passes CI. `hard` is kept for tasks marked hard in the breakdown. If the findings per phase rise after the switch, review goes back to `standard`.
 13. **One task per session, no re-reading.** The workflows repeat this: read once, locate before reading, slice large files, delegate broad searches to a search subagent where the agent has one, and keep the handoff file under 2 KB.
 
 ## 3b. The rest of the development loop, at the same quality
@@ -174,7 +179,7 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 ### Images
 
 - **Committed images live outside git history.** `docs/screenshots` is 116 MB in 1,099 PNGs, `.git` is 878 MB, and each full re-shoot adds a few dozen MB forever. The capture set moves to an orphan `captures` branch whose history is squashed at each release (owner, 2026-11-03). Only the README, design and promo images stay on `main`.
-- **Re-shoot only what changed.** A capture manifest maps each capture to the source files it draws, the way `ci-affected.ts` does for specs. A task re-shoots only the captures its diff reaches. The full set is shot once, at release prep.
+- **Re-shoot only what changed.** A capture manifest maps each capture to the source files it draws, the way `ci-affected.ts` does for specs. A task re-shoots only the captures its diff reaches. The full set is shot once, at release prep. `check:sdd` fails when a capture spec has no manifest entry, or when an entry names a file that no longer exists, so no screen goes unwatched until release.
 - **Lossless compression** (`oxipng` or lossless WebP) at capture time, enforced in `check:sdd`.
 - **Diffs, not sets.** The PR shows the captures that changed past the pixel threshold, side by side, in the job summary. That's the same diff the agent looks at (§3a 8).
 
@@ -209,6 +214,7 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 
 ## 5. Order of work
 
+0. **The usage ledger, alone and first** (§3a, "Measure first"). It runs on one or two tasks of the current driver before anything else changes, and the result is the baseline every later step is judged against. It records findings per phase, flakes and CI retries next to tokens.
 1. The split script and its lossless test. Then the phase folders, the index files, `decisions.md`, `reference/` and the `ids.md` generator with `sdd:id`.
 2. `brief.ts` and `tasks.ts` read the new layout: a task's entry from the open TASKS.md or its phase's `tasks.md`, and ids through `ids.md`. Briefs for the last phase's tasks must come out byte-for-byte the same as before the split. That's the test.
 3. `AGENTS.md`, `CLAUDE.md` as an import, and the workflows, with the skills reduced to pointers.
@@ -222,6 +228,26 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task.
 
 ## 6. Cost and risk
+
+### Expected effect (estimates until the ledger measures them)
+
+| Session kind | Reduction in tokens | Main levers |
+|---|---|---|
+| Spec and breakdown | 50–70 % | phase folders, `ids.md`, one sentence per line, area files |
+| Ad-hoc and interactive | 40–60 % | `.ignore`, code map, `sdd:id` |
+| Headless implementation | 20–35 % | quiet `check`, code map, smaller tasks, pixel diffs, cache-friendly brief |
+| Fix sessions | 30–50 %, and fewer of them | failure digests, flake quarantine |
+| Review | similar tokens, lower cost per token | light tier, docs-only PRs skipped |
+
+Per phase that's roughly 30–45 % fewer tokens, plus a lower cost per token from tiers and prompt caching.
+
+### Quality risks and their guards
+
+- **Light-tier review misses more.** Guard: `standard` for hard, owner-gated, physics, worker and driver diffs, and a revert if findings per phase rise.
+- **Affected-only captures miss an unmapped screen.** Guard: the manifest-coverage check, and the full set at release.
+- **Deleting superseded tests drops coverage that's still valid.** Guard: the breakdown lists the tests to delete, and the review checks that list.
+- **Quiet output hides warnings.** Guard: the warning count on success.
+- **Reading less context misses a decision that cuts across areas.** Guard: `ids.md`, the area files and `check:sdd`. The brief has already proved that reading by id works for headless sessions.
 
 - **Cost:** the split itself costs little in tokens, because a script does it. The main costs are the `brief.ts` change with its byte-for-byte test, the config-driven `session.ts`, and writing the four seed area files. The rough estimate is 5–8 % of a weekly limit, spread over four to five tasks.
 - **Risk: the driver.** If briefs or sessions change behaviour, the next phase's waves fail. That's mitigated by the byte-for-byte brief test and by keeping the `claude` entry's command line identical to today's.
