@@ -80,7 +80,7 @@ Constants (FR-VIS-6 style, centralised with the others):
 | `BAYER_LABEL_MAG` | 3.0 | The faintest unnamed star that gets its designation as a label: 33 stars on 2.13's catalogue, the ones bright enough to be asked about in a city sky. |
 | `PLANET_MARK_PX` | 5 px | A planet's disc radius on the globe and the window at zoom 1: one step over the brightest star's mark (`STAR_SIZES_PX`), so a planet reads as a planet. |
 | `FACT_HEIGHT_STEP_KM` | 10 km | The height range's rounding: orbits drift by kilometres a week, so a finer number would be false precision. |
-| `SKY_MAIN_KB` | 1.0 KB | What `main` may grow over 2.13.0's measure: the view row's third value and the key table; every other string rides in a lazy chunk, because `main` has about 2 KB left under its 185 ceiling. |
+| `SKY_MAIN_KB` | 2.0 KB | What `main` may grow over 2.13.0's measure: the view row's third value, the key table, the saved choices and the privacy note's `[ × ]`; every other string rides in a lazy chunk. `main` has about 2.2 KB left under its 185 ceiling; if the release measures over it, the ceiling goes to the next 5 KB line at the owner's gate (V214-20). |
 | `FACTS_BUDGET_KB` | 6 KB gzipped | The `facts` chunk: 31 objects' facts and descriptions in two languages and the facts groups' code. |
 | `SKY_GLOBE_KB` | 4 KB | What the `globe` chunk may grow: the arcs, the ticks, the arrow, the planet marks and the hover hit test. |
 
@@ -160,7 +160,7 @@ Constants (FR-VIS-6 style, centralised with the others):
   On wide, `f` or the box's `[ full screen ]` / `[ pantalla completa ]` control puts the layout's box element in full screen (the Fullscreen API): the box fills the screen, refitted by `fitBox` with the rail's width at zero, with the time readout (FR-TRAJ-4) and `[ × ]` over its top edge; `Esc`, `f` or `[ × ]` returns.
   The view, the camera, the zoom, the instant and the playback do not change across it; the globe and the window are not remounted (the dome may be, by FR-DOME-* sizing).
   Where the API is missing the control is absent and `f` does nothing.
-  *Verification:* `fullscreen.spec.ts` — enter and leave on each view, the camera and `t` read back equal.
+  *Verification:* `fullscreen.spec.ts` — enter and leave on each view, the camera and `t` read back equal; the test drives the page's own full-screen state with `requestFullscreen` stubbed, since a headless browser may not grant it.
 
 - **FR-FACT-1** *(V214-6)* **The satellite facts.**
   `src/data/catalog/facts.json` holds an entry for every NORAD id in the catalogue (FR-SAT-1) and no other, keyed by that id.
@@ -169,7 +169,7 @@ Constants (FR-VIS-6 style, centralised with the others):
   The purpose keys are `crewed-station`, `space-telescope`, `earth-observation`, `ocean-observation`, `radar-observation`, `military`, `rocket-stage`; each has a phrase in both languages, and a `rocket-stage` entry names the payload it launched from the catalogue's name.
   *(amends FR-SAT-5)* The catalogue stays the single source of the orbit-relevant metadata; the facts are a second file, validated against it, lazy on wide only.
   The height is not data: it is the perigee and the apogee from the object's current elements, rounded to `FACT_HEIGHT_STEP_KM`, shown as one number when they round equal.
-  Sessions have no network, so the file is compiled and its sources checked by an interactive session with the owner before the phase's breakdown (V22-17's reason, as FR-STAR-1's raw files).
+  Sessions have no network, so an interactive session compiles the file with web search before the phase's breakdown and opens one pull request with it, and the owner spot-checks the sources before it merges (V22-17's reason, V214-19).
   *Verification:* `facts.test.ts` — one entry per catalogue id, every field present and sourced, every country a known code, every purpose a key; `lib/orbitHeight.test.ts` against a fixed OMM.
 
 - **FR-FACT-2** *(V214-7)* **This satellite.**
@@ -183,13 +183,13 @@ Constants (FR-VIS-6 style, centralised with the others):
   The facts are the name in the reader's language and, where it differs, the other (`Sirio · Sirius`); the designation (`α CMa`) and the constellation by its name in the reader's language; the magnitude; the altitude and the 16-point direction at `t`; and the rise and set at the shown place on the night that holds `t`, or `never sets` / `never rises`.
   A planet adds `planet` and its constellation now; the Moon adds its phase and lit share (FR-MOON-*).
   Rise and set are the geometric horizon crossings at `t`'s night, from the star's J2000 position (FR-GLOBE-17's rule) and from `astronomy-engine` for the planets and the Moon, to the minute.
-  *Verification:* `lib/riseSet.test.ts` — Sirius over Bariloche on a fixed night against JPL Horizons to ±2 min, a circumpolar star, a never-rising star; `stars.spec.ts` — click the list's first row's mark, the group.
+  *Verification:* `lib/riseSet.test.ts` — Sirius over Bariloche on a fixed night against JPL Horizons to ±2 min (the reference fetched in FR-FACT-1's session and committed as a fixture), a circumpolar star, a never-rising star; `stars.spec.ts` — click the list's first row's mark, the group.
 
 - **FR-NAME-1** *(V214-8)* **The Spanish names, checked.**
   `data-src/stars/names-es.tsv` gains a row for every one of the 289 named stars (FR-STAR-1) and keeps one for every constellation: each row is the Spanish form or `=` (the IAU name is the Spanish one), and a source key; the file's head lists the sources by key.
   The build step fails if a named star or a constellation has no row (D-832's check, widened).
   *(amends FR-STAR-10)* V25-16's list of fourteen becomes the rows' Spanish forms, whatever their count; every other star keeps its IAU name in both languages, now by a sourced row and not by absence.
-  The review is compiled and sourced in the same interactive session as FR-FACT-1's file.
+  The review is compiled and sourced in the same interactive session and pull request as FR-FACT-1's file (V214-19).
   *Verification:* `build-stars.test.ts` — the missing-row failure; `starCatalog.test.ts` — the count of Spanish forms pinned.
 
 - **FR-NAME-2** *(V214-9)* **A label for every bright star.**
@@ -199,6 +199,7 @@ Constants (FR-VIS-6 style, centralised with the others):
 
 - **FR-NAME-3** *(V214-10)* **The planets stand out.**
   On wide, on the globe and the window, each planet is a filled disc of `PLANET_MARK_PX` in its own token (`--chart-planet-mercury`, `-venus`, `-mars`, `-jupiter`, `-saturn`, night restating them as the sheet's night ramp, V23-3), with its name one type step over the star names in `--fg`, drawn with the `names` layer off; the planets' boxes keep FR-GLOBE-11's precedence over every star name.
+  In the night theme the five tokens are one, the night ramp's brightest, and the label tells the planets apart (V23-3 holds, V214-21).
   On compact the planets are as on 2.13.
   *Verification:* `contrast.ts` — each token against the sky surface in every theme at the chart's ratio; `globe.spec.ts` — with names off, five planet labels and no star label.
 
@@ -220,6 +221,7 @@ Constants (FR-VIS-6 style, centralised with the others):
   A value the reader has not chosen is not written, so a later change to a default reaches them.
   *(amends FR-PHONE-7 and FR-GLOBE-10)* The stars page's view and the faint stars are saved, not reset at each open.
   *Verification:* `localPrefs.test.ts` — each key's round trip and its clamp; `keep.spec.ts` at 390 × 844 and 1280 × 800 — make every choice, reload, find it.
+  The task that adds the keys also checks every e2e spec that reloads or re-navigates after a choice and expects a default, and clears the store there, since a reload now keeps the choice.
 
 - **FR-KEEP-2** *(V214-15)* **Moments are not kept.**
   Every page opens at now, watching (real time, `t` = now), whatever speed is saved; the window's camera opens by its page's rule (FR-STAR-3, FR-FLOW-14, FR-SKY-7) and the globe's view by FR-GLOBE-1's; the globe's place is the reader's own place on every open.
@@ -277,7 +279,8 @@ Constants (FR-VIS-6 style, centralised with the others):
   *Verification:* `npm run bundle:budget`; `globe-perf.spec.ts`; a test that the compact pages request no `facts-*.js` and no `SkyGlobe-*.js`.
 
 - **FR-WIDE-12** **Named moves and captures.**
-  The phase's visible changes are the three wide pages' layout and views, the arcs, ticks and clouds, the facts groups, the planets on wide, the key overlay, and at every width the names of FR-NAME-1 and FR-NAME-2 and the privacy note's `[ × ]` (FR-KEEP-4); every other capture is byte-identical to 2.13.0's under FR-CAP-5's comparison.
+  The phase's visible changes are the three wide pages' layout and views, the arcs, ticks and clouds, the facts groups, the planets on wide, the key overlay, and at every width the names of FR-NAME-1 and FR-NAME-2 and the privacy note's `[ × ]` (FR-KEEP-4); the phase moves most of the set, so it is not held byte-identical to 2.13.0's (V214-22).
+  The release re-shoots the whole set by `captures.yml` on the `captures` branch, the reading of record (not a Mac run), with the pixel-diff report of FR-SDD-22; the owner reads the moved files at the release, and a file that moved for no named reason is a finding.
   The capture set's wide dome captures are re-shot with `Dome` chosen, and it gains at 1280 × 800 over Bariloche at the set's instant: `sky-live-globe`, `sky-pass-globe`, `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts`, `sky-hover`, `sky-clouds` and `sky-fullscreen`, in the set's languages and themes.
   Every string is in both catalogs, every rail row fits the rail in both (`controlRows.test.ts`), and the axe run (FR-A11Y-7) covers the three pages with the globe and with a facts group open.
   *Verification:* `captureIds.test.ts`; `axe.spec.ts`; the release's diff against 2.13.0 (FR-CAP-5).
@@ -296,7 +299,7 @@ Constants (FR-VIS-6 style, centralised with the others):
 After v2.13 is on `main`.
 Wide pages only, except the star names, the remembered choices and the privacy note, which reach every width.
 
-- Before the breakdown, in an interactive session with the owner: `facts.json` and the reviewed `names-es.tsv`, sourced (FR-FACT-1, FR-NAME-1).
+- Before the breakdown, in an interactive session with web search, one pull request the owner spot-checks: `facts.json`, the reviewed `names-es.tsv` and the JPL Horizons rise and set fixture, sourced (FR-FACT-1, FR-NAME-1, FR-FACT-3; V214-19).
 - The views and the layout: the saved globe, the three-value row, the one shell, the corners, the dome by choice (FR-WIDE-1, FR-WIDE-2, FR-WIDE-5, FR-WIDE-6).
 - The globe's passes, the hover, the ticks and the arrow; the one time control and the clouds (FR-WIDE-3, FR-WIDE-4, FR-WIDE-7, FR-WIDE-8).
 - The facts groups, the names and the planets (FR-FACT-1..3, FR-NAME-1..3).
