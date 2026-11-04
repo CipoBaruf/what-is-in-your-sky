@@ -1,7 +1,9 @@
 /**
  * FR-SDD-14: `scripts/sdd-map.ts` builds one map line per source file from a
- * fixture tree, and `--check` fails when the file on disk is stale.
+ * fixture tree (a git repository, so the production path runs), and `--check`
+ * fails when the file on disk is stale.
  */
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -14,6 +16,8 @@ function tree(files: Record<string, string>): string {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   }
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  execFileSync('git', ['add', '--', ...Object.keys(files).filter((f) => !f.startsWith('untracked/') && f !== 'src/scratch.ts')], { cwd: root });
   return root;
 }
 
@@ -25,6 +29,9 @@ const FIXTURE = {
   'src/ui/__snapshots__/s.ts': 'export const s = 1;\n',
   'scripts/tool.ts': 'export { alpha, type Beta, gamma as delta };\n',
   'docs/ignored.ts': 'export const nope = 1;\n',
+  'src/scratch.ts': '/** Untracked, never in the map. */\nexport const scratch = 1;\n',
+  'src/barrel.ts': "export * from './a';\nexport * as b from \"./b/c\";\n",
+  'src/ünï.ts': '#!/usr/bin/env node\n// eslint line\n/** Non-ASCII path, e.g. a name. Not this. */\nexport const u = 1;\n',
 };
 
 describe('firstSentence', () => {
@@ -34,8 +41,16 @@ describe('firstSentence', () => {
   it('joins a wrapped sentence and keeps colons inside it', () => {
     expect(firstSentence('/**\n * Run `a.ts:` it\n * works. Rest.\n */')).toBe('Run `a.ts:` it works.');
   });
-  it('falls back to a leading line-comment block', () => {
-    expect(firstSentence('// Hello\n// world. More.\nconst a = 1;')).toBe('Hello world.');
+  it('takes only a leading doc comment, past a shebang and // lines', () => {
+    expect(firstSentence('#!/usr/bin/env node\n// a\n/* plain */\n/** Lead. */\nx')).toBe('Lead.');
+    expect(firstSentence('// Hello\n// world. More.\nconst a = 1;')).toBe('');
+    expect(firstSentence('import x from "y";\n/** A function\'s JSDoc. */\nexport function f() {}')).toBe('');
+    expect(firstSentence("const g = 'src/**/*.ts';\n/** Later. */")).toBe('');
+  });
+  it('does not end a sentence at e.g., i.e., vs., etc. or No.', () => {
+    expect(firstSentence('/** Uses e.g. this, i.e. that, a vs. b, x etc. and No. 5 here. Not this. */')).toBe(
+      'Uses e.g. this, i.e. that, a vs. b, x etc. and No. 5 here.',
+    );
   });
   it('is empty for a file with no comment, and truncates a very long sentence', () => {
     expect(firstSentence('const a = 1;\n')).toBe('');
@@ -55,6 +70,9 @@ describe('exportNames', () => {
       'default',
     ]);
   });
+  it('lists export * and export * as ns', () => {
+    expect(exportNames("export * from './x';\nexport * as ns from \"./y\";\n")).toEqual(["* from './x'", '* as ns from "./y"']);
+  });
   it('does not read an indented export in a string or comment', () => {
     expect(exportNames('const s = `\n  export const nope = 1;\n`;\n')).toEqual([]);
   });
@@ -64,18 +82,27 @@ describe('mapLine', () => {
   it('shows path, sentence and exports, and counts the rest past eight', () => {
     const names = Array.from({ length: 10 }, (_, i) => `export const n${i} = ${i};`).join('\n');
     const line = mapLine('src/x.ts', `/** Does x. */\n${names}\n`);
-    expect(line).toBe('- `src/x.ts` — Does x. — exports: n0, n1, n2, n3, n4, n5, n6, n7, +2');
+    expect(line).toBe('- `src/x.ts` — exports: n0, n1, n2, n3, n4, n5, n6, n7, +2 — Does x.');
+  });
+  it('always has the exports field, and a description with " — " stays whole after the second separator', () => {
+    const line = mapLine('src/y.ts', '/** Path — `NW → SE`. */\nconst y = 1;\n');
+    expect(line).toBe('- `src/y.ts` — exports: none — Path — `NW → SE`.');
+    const [path, exports, ...rest] = line.split(' — ');
+    expect([path, exports, rest.join(' — ')]).toEqual(['- `src/y.ts`', 'exports: none', 'Path — `NW → SE`.']);
+    expect(mapLine('src/z.ts', 'const z = 1;\n')).toBe('- `src/z.ts` — exports: none');
   });
 });
 
 describe('renderMap', () => {
-  it('lists src and scripts sources only, sorted, without tests, d.ts or snapshots', () => {
+  it('lists tracked src and scripts sources only, sorted, without tests, d.ts, snapshots or untracked files', () => {
     const out = renderMap(tree(FIXTURE));
     const lines = out.split('\n').filter((l) => l.startsWith('- '));
     expect(lines).toEqual([
       '- `scripts/tool.ts` — exports: alpha, Beta, delta',
-      '- `src/a.ts` — Parses the thing. — exports: parse, load, Shape',
-      '- `src/b/c.tsx` — Line-comment header that runs over two lines. — exports: default',
+      '- `src/a.ts` — exports: parse, load, Shape — Parses the thing.',
+      '- `src/b/c.tsx` — exports: default',
+      `- \`src/barrel.ts\` — exports: * from './a', * as b from "./b/c"`,
+      '- `src/ünï.ts` — exports: u — Non-ASCII path, e.g. a name.',
     ]);
   });
 });
@@ -88,6 +115,9 @@ describe('run', () => {
     expect(run(root, false, (m) => log.push(m))).toBe(0);
     expect(readFileSync(join(root, MAP_PATH), 'utf8')).toContain('`src/a.ts`');
     expect(run(root, true, (m) => log.push(m))).toBe(0);
+    const map = join(root, MAP_PATH);
+    writeFileSync(map, readFileSync(map, 'utf8').replace(/\n/g, '\r\n'));
+    expect(run(root, true, (m) => log.push(m))).toBe(0); // a CRLF checkout is not stale
     writeFileSync(join(root, 'src/a.ts'), '/** Changed. */\nexport const parse = 1;\n');
     log.length = 0;
     expect(run(root, true, (m) => log.push(m))).toBe(1);

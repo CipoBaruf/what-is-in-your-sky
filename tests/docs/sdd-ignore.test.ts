@@ -31,13 +31,14 @@ const hasRg = rg.error === undefined && rg.status === 0;
 describe('.ignore', () => {
   it('names every ignored class FR-SDD-14 lists', () => {
     const text = readFileSync(resolve(root, '.ignore'), 'utf8');
-    for (const entry of ['dist/', 'node_modules/', 'docs/screenshots/', '**/__snapshots__/', 'fixtures/', 'public/data/', 'package-lock.json', '*.lock']) {
+    for (const entry of ['dist/', 'node_modules/', 'docs/screenshots/', '**/__snapshots__/', 'fixtures/', 'public/data/', 'src/data/**/*.json', 'src/data/places/places.txt', 'data-src/', 'package-lock.json', '*.lock']) {
       expect(text.split('\n')).toContain(entry);
     }
   });
 
-  // rg is on the CI image and on the owner's Mac, not guaranteed everywhere: skip, don't fail.
-  it.skipIf(!hasRg)('leaves `rg --files` from the root with none of the ignored paths and with the sources', () => {
+  // Without rg the test skips locally, but fails on CI, so a broken .ignore never passes CI silently.
+  it.skipIf(!hasRg && !process.env.CI)('leaves `rg --files` from the root with none of the ignored paths and with the sources', () => {
+    expect(hasRg, 'rg (ripgrep) must be installed where CI runs').toBe(true);
     const out = spawnSync('rg', ['--files'], { cwd: root, encoding: 'utf8', maxBuffer: 1e8 });
     expect(out.status).toBe(0);
     const files = out.stdout.split('\n').filter(Boolean).map((f) => f.replace(/^\.\//, ''));
