@@ -1,6 +1,11 @@
 {
-  "note": "FR-FACT-3's rise and set reference, fetched 2026-11-04 in P10's session (V214-19, V214-23). Geometric horizon crossings (no refraction, the body's centre at 0°) over Bariloche on the night of 2026-01-15 (ART, UTC-3), to the minute. JPL Horizons has no stars, so Sirius comes from the US Naval Observatory's celestial-navigation API: its computed altitude `hc` (apparent place, before refraction) sampled each minute, the API drops a star below about 1°, so the crossing is a straight-line fit over the ten minutes nearest the horizon (0.18° a minute, linear to 0.001°). The planet and the Moon are Horizons' own rise and set (`R_T_S_ONLY`, `APPARENT=AIRLESS`, `TVH` at 0°). Never edit by hand.",
-  "observer": { "lat": -41.14557, "lon": -71.30822, "altM": 839, "label": "Bariloche" },
+  "note": "FR-FACT-3's rise and set reference, fetched 2026-11-04 (V214-19, V214-23; Jupiter and the Moon re-fetched in R183, D-1111). Geometric horizon crossings (no refraction, no dip, the body's centre at 0°) over Bariloche at ground level on the night of 2026-01-15 (ART, UTC-3), to the minute. JPL Horizons has no stars, so Sirius comes from the US Naval Observatory's celestial-navigation API: its computed altitude `hc` (apparent place, before refraction) sampled each minute, the API drops a star below about 1°, so the crossing is a straight-line fit over the ten minutes nearest the horizon (0.18° a minute, linear to 0.001°). Jupiter and the Moon are Horizons' topocentric elevation (`QUANTITIES=4`, `APPARENT=AIRLESS`, site elevation 0) sampled each minute, the crossing interpolated between the two minutes either side of 0°; Horizons' own `R_T_S_ONLY` was not used, since with `TVH` it reports the refracted upper limb over the site's dip. Never edit by hand.",
+  "observer": {
+    "lat": -41.14557,
+    "lon": -71.30822,
+    "altM": 0,
+    "label": "Bariloche"
+  },
   "night": "2026-01-15",
   "toleranceMin": 2,
   "bodies": [
@@ -18,23 +23,23 @@
     {
       "name": "Jupiter",
       "kind": "planet",
-      "rise": "2026-01-15T23:43Z",
-      "set": "2026-01-16T09:11Z",
+      "rise": "2026-01-15T23:51Z",
+      "set": "2026-01-16T09:02Z",
       "source": {
-        "source": "NASA/JPL Horizons API, COMMAND=599, CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0.839, R_T_S_ONLY=YES, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
+        "source": "NASA/JPL Horizons API, COMMAND=599, CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0, QUANTITIES=4, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
         "date": "2026-11-04",
-        "note": "Transit 2026-01-16T04:27Z at 26.5°."
+        "note": "Elevation −0.077° at 23:51Z, +0.086° at 23:52Z: 23:51:28Z. +0.098° at 09:01Z, −0.065° at 09:02Z: 09:01:36Z."
       }
     },
     {
       "name": "Moon",
       "kind": "moon",
-      "rise": "2026-01-16T06:54Z",
-      "set": "2026-01-15T22:32Z",
+      "rise": "2026-01-16T07:05Z",
+      "set": "2026-01-15T22:19Z",
       "source": {
-        "source": "NASA/JPL Horizons API, COMMAND=301 (DE441), CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0.839, R_T_S_ONLY=YES, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
+        "source": "NASA/JPL Horizons API, COMMAND=301, CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0, QUANTITIES=4, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
         "date": "2026-11-04",
-        "note": "The Moon sets in the evening and rises before dawn on this night; the centre's crossing, not the upper limb's."
+        "note": "The Moon sets in the evening and rises before dawn on this night. Elevation +0.132° at 22:18Z, −0.011° at 22:19Z: 22:18:55Z. −0.067° at 07:05Z, +0.076° at 07:06Z: 07:05:27Z."
       }
     }
   ]

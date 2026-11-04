@@ -384,6 +384,8 @@
 | FR-DS-3 | `tests/styles/breakpoint.test.ts` |
 | FR-DS-6 | `tests/docs/design.test.ts` |
 | FR-DS-8 | `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/styles/tokens.test.ts` |
+| FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts` |
+| FR-FACT-3 | `src/lib/riseSet.test.ts` |
 | FR-FAIL-1 | `src/state/effects.test.ts`, `src/ui/screens/Live.test.tsx` |
 | FR-FAIL-3 | `src/state/effects.test.ts` |
 | FR-FAIL-4 | `src/state/effects.test.ts`, `src/state/workerClient.test.ts`, `src/ui/components/passes/PassList.test.tsx`, `tests/e2e/failure-line.spec.ts` |
@@ -667,6 +669,7 @@
 | FR-WATCH-8 | `src/ui/components/live/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
 | FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/screens/viewFor.test.ts` |
+| FR-WIDE-8 | `src/lib/cloudBand.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
