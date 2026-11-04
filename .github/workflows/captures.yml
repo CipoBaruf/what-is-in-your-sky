@@ -57,32 +57,91 @@ name: Captures
 # `live-window` at 360 and 390, which a phone opening on the window made `live-watching`'s picture. v2.6 dispatches
 # with `base` 89a8e5b, v2.5's release preparation.
 #
-# This job commits nothing. It uploads the set as an artefact and fails when a
-# capture is missing — the committed files under `docs/screenshots/` are cleared
-# before the run, so the check is about what this run produced and not about
-# what someone committed last month. `tests/docs/captures.test.ts` keeps
-# checking the committed set in the unit suite, which is the other half of it.
+# R178 (FR-SDD-22, FR-SDD-23; PLAN D-1068): the set leaves `main`'s history for the orphan `captures` branch,
+# which mirrors `docs/screenshots/`'s layout (the `v1-*.png` files at its root) and is squashed at each release.
+# The `pick` job reads `scripts/captures/manifest.json` through `node scripts/ci-affected.ts --captures`: a push to
+# `main` shoots only the screens its diff reaches, and no screen means no `captures` job at all. A dispatch shoots
+# the screens its `screens` input names, or the whole set when that is empty (release prep), and so does the first
+# run, when the branch does not exist yet. The `captures` job restores the branch's set into `docs/screenshots/`,
+# clears the files of the screens it shoots (a capture that fails to be written must not be answered by the file
+# the last run left), shoots them compressed, checks the set is complete, and diffs it against the branch by pixels
+# (`scripts/captures/diff.ts`): every capture past `CAPTURE_DIFF_SHARE` gets one image, base and this run side by
+# side at half size. On `main` the set and those images (under `diff/`) are committed to the branch and the job
+# summary shows the images from that commit; a dispatch on another ref commits nothing and uploads them instead.
+# `squash: true` (the release) replaces the branch's history with the one commit. R128's `base` input is gone: the
+# base is always the branch, which holds the set the last run on `main` left.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      base:
-        description: The commit the set is compared against (PLAN D-742, a SHA, never a tag); empty is the commit being shot
+      screens:
+        description: Comma-separated screen names from tests/e2e/captureSet.ts; empty shoots the whole set
         required: false
         default: ''
+      squash:
+        description: Replace the captures branch's history with this run's one commit (release prep)
+        type: boolean
+        required: false
+        default: false
+
+# One writer to the `captures` branch at a time; a queued run waits rather than racing the push.
+concurrency:
+  group: captures-branch
+  cancel-in-progress: false
 
 jobs:
-  captures:
+  pick:
     runs-on: ubuntu-latest
-    # About 1.7 × the expected 35 min (R94, from R80's measured 22 min for 161 files): this job is off the
-    # PR path, so its ceiling is a stuck run, not a budget (FR-CI-1 is `ci.yml`'s).
-    timeout-minutes: 60
+    timeout-minutes: 5
+    outputs:
+      captures: ${{ steps.pick.outputs.captures }}
+      capture_screens: ${{ steps.pick.outputs.capture_screens }}
     steps:
       - uses: actions/checkout@v5
         with:
-          # The base's committed set is read with `git show`, so the history must be there.
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # ci-affected.ts imports nothing outside Node, so this job needs no `npm ci`.
+      - name: the screens to shoot
+        id: pick
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          SCREENS: ${{ inputs.screens }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            if [ -n "$SCREENS" ]; then mode=some; else mode=all; fi
+            printf 'captures=%s\ncapture_screens=%s\n' "$mode" "$SCREENS" | tee -a "$GITHUB_OUTPUT"
+          elif ! git ls-remote --exit-code --heads origin captures > /dev/null; then
+            echo 'the captures branch does not exist yet: the whole set'
+            printf 'captures=all\ncapture_screens=\n' | tee -a "$GITHUB_OUTPUT"
+          elif ! git cat-file -e "$BEFORE^{commit}" 2> /dev/null; then
+            echo "the push's base $BEFORE is not in the history: the whole set"
+            printf 'captures=all\ncapture_screens=\n' | tee -a "$GITHUB_OUTPUT"
+          else
+            node scripts/ci-affected.ts --captures "$BEFORE" "$GITHUB_SHA"
+          fi
+
+  captures:
+    needs: pick
+    if: needs.pick.outputs.captures != 'none'
+    runs-on: ubuntu-latest
+    # About 1.7 × the expected 35 min for the whole set (R94, from R80's measured 22 min for 161 files): this job is
+    # off the PR path, so its ceiling is a stuck run, not a budget (FR-CI-1 is `ci.yml`'s).
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      MODE: ${{ needs.pick.outputs.captures }}
+      CAPTURE_SCREENS: ${{ needs.pick.outputs.capture_screens }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
           fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
@@ -92,72 +151,95 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # The spec runs against the production build served by `vite preview` (playwright.config.ts).
       - run: npm run build
+      # The branch's set is the base: restored into `docs/screenshots/` so the set is whole after a partial run,
+      # and kept apart under `base/` for the diff. No branch yet is an empty base.
+      - name: restore the set from the captures branch
+        shell: bash
+        run: |
+          mkdir -p base
+          if git fetch --quiet origin captures; then
+            git archive FETCH_HEAD | tar -x -C base
+            rm -rf base/diff base/README.md
+          fi
+          find base -maxdepth 1 -name 'v1-*.png' -exec cp {} docs/screenshots/ \;
+          echo "base: $(find base -name 'v1-*.png' | wc -l) files"
       # A capture that fails to be written must not be answered by the file the last run left behind.
-      - name: clear the committed set
-        run: find docs/screenshots -name 'v1-*.png' -delete
+      - name: clear the files this run shoots
+        shell: bash
+        run: |
+          if [ "$MODE" = all ]; then
+            find docs/screenshots -maxdepth 1 -name 'v1-*.png' -delete
+          else
+            IFS=',' read -ra names <<< "$CAPTURE_SCREENS"
+            for name in "${names[@]}"; do find docs/screenshots -maxdepth 1 -name "v1-$name-[0-9]*.png" -delete; done
+          fi
       - name: clear the design captures
         run: find docs/screenshots/design -name 'design-*.png' -delete
       - name: shoot the set
         env:
           CAPTURES: '1'
         run: npx playwright test v1-captures --reporter=list
-      # R108 (FR-DS-6, D-706): the dev page's four captures, after the set. The page is not in the
-      # build, so `playwright.design.config.ts` serves it with `vite` itself; the files join the
-      # set's diff (FR-CAP-1's rule), so a token's or a primitive's change is visible in review
-      # before any screen is touched. Cleared with the set, up front, so a failed set shoot never
-      # leaves the committed files to be uploaded as this run's.
+      # R108 (FR-DS-6, D-706): the dev page's four captures. They stay on `main` (docs/DESIGN.md shows them), so
+      # this run only shoots them for the artefact; a change to them ships with the task that made it.
       - name: shoot the design captures
         run: npm run design:captures
-      # FR-CI-2: incomplete is a failure. The same check the unit suite runs, now against this run's files.
+      # FR-CI-2: incomplete is a failure. `CAPTURES_SET=1` holds the restored-and-shot directory to the whole set.
       - name: check the set is complete
+        env:
+          CAPTURES_SET: '1'
         run: npx vitest run tests/docs/captures.test.ts
-      # R128 (PLAN D-742, D-799): the release's diff list, this run's files against the base's committed
-      # ones, with the changed pixels and the largest channel step of each so F-99's noise reads as noise.
-      # A push to `main` has no input and compares against its own commit. `shell: bash` is GitHub's
-      # `bash -eo pipefail`: without it the default shell has no pipefail, `tee` answers for the pipe, and a
-      # failing script (a base that does not resolve, a bad PNG) would leave the step green with a short list.
-      # `pngjs` is a direct devDependency for this step, not one reached through glyphcss (`knip.json` ignores it:
-      # this script is its only importer).
-      - name: diff against the base
+      # FR-SDD-23: by pixels first. The side-by-side images go to `sides/`; the report's image links carry a
+      # placeholder until the commit that holds them exists.
+      - name: diff against the branch
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p set sides
+          find docs/screenshots -maxdepth 1 -name 'v1-*.png' -exec cp {} set/ \;
+          npx tsx scripts/captures/diff.ts base set --out sides --url '@URL@' --title "The set against the captures branch ($MODE)" > report.md
+      - name: commit to the captures branch
+        id: publish
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          SQUASH: ${{ inputs.squash }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$SQUASH" != true ] && git ls-remote --exit-code --heads origin captures > /dev/null; then
+            git fetch --quiet origin captures
+            git worktree add -B captures ../publish FETCH_HEAD
+          else
+            git worktree add --detach ../publish
+            git -C ../publish switch --orphan captures
+          fi
+          cd ../publish
+          find . -maxdepth 1 -name 'v1-*.png' -delete
+          rm -rf diff
+          cp "$GITHUB_WORKSPACE"/set/v1-*.png .
+          mkdir -p diff
+          cp -R "$GITHUB_WORKSPACE"/sides/. diff/
+          printf '# Captures\n\nThe capture set (`tests/e2e/captureSet.ts`), shot by `.github/workflows/captures.yml` off `main` (PLAN D-1068). `diff/` holds the last run'"'"'s side-by-side images, base on the left. Squashed at each release.\n' > README.md
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'the set is unchanged'
+          else
+            git commit --quiet -m "captures: $GITHUB_SHA ($MODE)"
+            if [ "$SQUASH" = true ]; then git push --force origin captures; else git push origin captures; fi
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: the job summary
         if: always()
         shell: bash
         env:
-          BASE: ${{ inputs.base || github.sha }}
+          PUBLISHED: ${{ steps.publish.outputs.sha }}
         run: |
-          node --input-type=module <<'EOF' | tee -a "$GITHUB_STEP_SUMMARY"
-          import { execFileSync } from 'node:child_process';
-          import { existsSync, readdirSync, readFileSync } from 'node:fs';
-          import { PNG } from 'pngjs';
-          const base = process.env.BASE;
-          const dir = 'docs/screenshots';
-          const listed = execFileSync('git', ['ls-tree', '--name-only', base, `${dir}/`]).toString().split('\n').filter((f) => /\/v1-[^/]*\.png$/.test(f));
-          const before = new Map(listed.map((f) => [f.slice(dir.length + 1), f]));
-          const now = readdirSync(dir).filter((f) => /^v1-.*\.png$/.test(f)).sort();
-          const rows = [];
-          let same = 0;
-          for (const file of now) {
-            if (!before.has(file)) { rows.push(`| new | ${file} | | |`); continue; }
-            const a = execFileSync('git', ['show', `${base}:${before.get(file)}`], { maxBuffer: 1 << 28 });
-            const b = readFileSync(`${dir}/${file}`);
-            if (a.equals(b)) { same += 1; continue; }
-            const p = PNG.sync.read(a);
-            const q = PNG.sync.read(b);
-            if (p.width !== q.width || p.height !== q.height) { rows.push(`| size | ${file} | ${p.width}×${p.height} → ${q.width}×${q.height} | |`); continue; }
-            let pixels = 0;
-            let step = 0;
-            for (let i = 0; i < p.data.length; i += 4) {
-              let d = 0;
-              for (let c = 0; c < 4; c += 1) d = Math.max(d, Math.abs(p.data[i + c] - q.data[i + c]));
-              if (d > 0) { pixels += 1; step = Math.max(step, d); }
-            }
-            if (pixels === 0) same += 1;
-            else rows.push(`| changed | ${file} | ${pixels} | ${step} |`);
-          }
-          for (const file of before.keys()) if (!existsSync(`${dir}/${file}`)) rows.push(`| gone | ${file} | | |`);
-          console.log(`### The set against \`${base}\`\n\n${now.length} files: ${same} byte- or pixel-identical, ${rows.length} listed.\n`);
-          console.log('| | File | Pixels | Step |\n|---|---|---|---|');
-          for (const row of rows) console.log(row);
-          EOF
+          [ -f report.md ] || exit 0
+          if [ -n "$PUBLISHED" ]; then
+            sed "s#@URL@#https://github.com/$GITHUB_REPOSITORY/raw/$PUBLISHED/diff#g" report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            sed 's#!\[\([^]]*\)\](@URL@/[^)]*)#`\1` in the side-by-side artefact#' report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v5
         # Even on a failure: the captures that were shot are how the missing one gets diagnosed.
         if: always()
@@ -166,6 +248,13 @@ jobs:
           path: docs/screenshots/v1-*.png
           retention-days: 30
           if-no-files-found: error
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: side-by-side
+          path: sides/
+          retention-days: 30
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v5
         if: always()
         with:
