@@ -332,6 +332,11 @@ export interface SkyChartProps {
   view?: ChartView;
   onViewChange?: (view: ChartView) => void;
   /**
+   * R186 (FR-WIDE-2, D-1095): the page the chart stands on, for `viewFor` — the saved view mapped to what the page and
+   * the width offer. Absent, the live page's. Read by `SkyChart` alone.
+   */
+  page?: 'live' | 'pass' | 'stars';
+  /**
    * R160 (FR-PHONE-10; D-970): the pinch across the limit, by callback. The window calls it with no aim on a pinch's
    * release that reached `WINDOW_FOV_MAX_DEG` and went on widening past `PINCH_HANDOFF_RATIO`; the polar chart calls it
    * with the aim under the pinch's midpoint — its inverse projection — on a pinch's release that narrowed past the same

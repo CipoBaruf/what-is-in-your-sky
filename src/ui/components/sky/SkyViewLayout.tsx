@@ -12,13 +12,13 @@ import styles from './SkyViewLayout.module.css';
  * and lay out none of their sky parts themselves; this component renders the
  * slots in FR-FLOW-4's order and owns the gap between them.
  *
- * **Wide** is the box at the left and the rail at the right (`rail`): the
- * readout stands in the box's top-left corner (V25-17) and the hint under the
- * box at the box's width; the rail holds `answer`, the `View` row, the
- * `Facing` row, `layers`, `list`, and at its foot `action` and `foot`. The pass
- * detail's wide shell asks for `panel` (D-849): one column where the view row
- * and the picker share a line and the drawing takes the panel's remaining
- * height (`--sky-drawing-h`, measured here).
+ * **Wide** (R186, FR-WIDE-1, FR-WIDE-5; D-1098) is the box at the left and the
+ * rail at the right on all three pages: the box is the room the grid leaves
+ * beside the rail, with its four corners over it (`CORNERS`: the readout
+ * top-left, full screen top-right, the hint bottom-left, the zoom
+ * bottom-right); the rail is `SLOT_ORDER` — the head, `View`, `Time`, the
+ * page group, the list — and scrolls as one where a short window leaves the
+ * list fewer than its minimum rows. The guide's panel (D-849) is gone.
  *
  * **Compact** is the `full` form on all three pages, upright and turned (R148,
  * R163, R164): the drawing in a wrapper fixed to the viewport, the `overlay` and
@@ -45,33 +45,35 @@ import styles from './SkyViewLayout.module.css';
  * the action, a group away from each, for the time track and the taps; a page
  * that passes nothing renders no row.
  */
-export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'timeline' | 'action' | 'layers' | 'list' | 'foot' | 'overlay' | 'sheet';
+/** R186 (D-1098): the wide rail's rows, in `SLOT_ORDER`. */
+export type SkyViewRailSlot = 'answer' | 'viewRow' | 'timeline' | 'action' | 'layers' | 'list';
+
+/** R186 (FR-WIDE-5, D-1098): the box's four corners on wide — the readout top-left, full screen top-right, the hint bottom-left, the zoom bottom-right. */
+export type SkyViewCorner = 'readout' | 'fullscreen' | 'hint' | 'zoom';
+
+export type SkyViewSlotName = SkyViewRailSlot | SkyViewCorner | 'drawing' | 'overlay' | 'sheet';
 
 /** D-851: how far a slot stands from the one above it — a row (`--space-1`), a group (`--space-3`) or a section (`--space-5`). */
 export type SkyViewRhythm = 'row' | 'group' | 'section';
 
-export const SLOT_RHYTHM: Readonly<Record<SkyViewSlotName, SkyViewRhythm>> = {
+export const SLOT_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = {
   answer: 'section',
   viewRow: 'group',
-  readout: 'row',
-  drawing: 'row',
-  picker: 'row',
-  hint: 'row',
   timeline: 'group',
   action: 'group',
   layers: 'group',
   list: 'section',
-  foot: 'section',
-  // R148 (D-919): the full form's two slots stand over the box and take no gap; they carry no rhythm mark.
-  overlay: 'row',
-  sheet: 'row',
 };
 
 /**
- * FR-FLOW-4's order (FR-TONIGHT-6's for `timeline`), which is also the DOM order the slots are rendered in. The full
- * form's `overlay` and `sheet` (R148) are not rows of the rail or the panel and are not in it.
+ * R186 (FR-WIDE-1, D-1098): the wide rail's order on every page — the head (`answer`), `View`, `Time` (`timeline`),
+ * the page group (`action`, then `layers`) and the list — which is also the DOM order the rows are rendered in, so
+ * the three pages cannot drift. The corners and the full form's `overlay` and `sheet` are not rows and are not in it.
  */
-export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'timeline', 'action', 'layers', 'list', 'foot'];
+export const SLOT_ORDER: readonly SkyViewRailSlot[] = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
+
+/** R186 (FR-WIDE-5): the corners in the order they are rendered over the box. */
+export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint', 'zoom'];
 
 /**
  * Where the readout stands — in its slot (the default: on wide, the box's top-left corner), or, R148 (D-923),
@@ -80,30 +82,21 @@ export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'rea
 type SkyViewReadoutPlace = 'row' | 'sheet';
 
 /** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
-export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';
+export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list' | 'zoom';
 
-/** R165 (D-1000): compact is always `full`; the column and the compact rail are gone. */
-type SkyViewShape = 'rail' | 'panel' | 'full';
+/** R165 (D-1000): compact is always `full`; R186 (D-1098): wide is always the rail, the guide's panel gone. */
+type SkyViewShape = 'rail' | 'full';
 
 /** R148 (D-904, D-923): what counts as a pick in an opened facing picker — one of its options, not a control beside them. */
 export const PICK_SELECTOR = '[role="group"] button, [role="radiogroup"] [role="radio"], [role="listbox"] [role="option"]';
 
 export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, ReactNode>> {
   drawing: ReactNode;
-  /**
-   * The wide form: the box and the rail (the default), or the guide panel's one column (D-849). Compact is always
-   * the `full` form (R148, D-919; R165, D-1000): the drawing in a wrapper fixed to the viewport inside the safe area,
-   * the `overlay` and `sheet` slots over it, and no other slot rendered but the readout.
-   */
-  wide?: 'rail' | 'panel';
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
   describedBy?: string | undefined;
   /** The id of the heading that names the drawing on the page — the pass's name — for the chart's figure (`aria-labelledby`). */
   labelledBy?: string | undefined;
-  /**
-   * The page gives the layout a height and the layout fills it (the wide live page: one viewport high, FR-LIVE-7);
-   * the rail's box is then cut to the layout's height less the hint's row (D-869).
-   */
+  /** The page gives the layout a height and the layout fills it; written as `data-fill`. R186: every wide layout fills its page. */
   fill?: boolean | undefined;
   /** R148 (D-923): `'sheet'` where the page places the readout and the picker in its sheet's facing row. */
   readoutIn?: SkyViewReadoutPlace | undefined;
@@ -135,11 +128,11 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
-  // R165 (D-1000): wide is the rail or the panel; compact is the full form, in both shapes.
-  const shape: SkyViewShape = mode === 'wide' ? wide : 'full';
+  // R165 (D-1000): compact is the full form, in both shapes; R186 (D-1098): wide is the rail on every page.
+  const shape: SkyViewShape = mode === 'wide' ? 'rail' : 'full';
   const [targets, setTargets] = useState<Partial<Record<ChartSlotName, HTMLElement>>>({});
   const register = useCallback((name: ChartSlotName, element: HTMLElement | null, previous: HTMLElement | null = null) => {
     setTargets((was) => {
@@ -153,14 +146,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   }, []);
   const context = useMemo<SkyViewContextValue>(() => ({ shape, targets, register, describedBy, labelledBy }), [shape, targets, register, describedBy, labelledBy]);
   const viewId = useId();
-  const facingId = useId();
 
-  /*
-   * D-849 (FR-FLOW-7): on the panel the drawing takes the height the panel's scroll box leaves under the control
-   * line, and the prose and the table follow under it. Measured, since the rows above the drawing are text in
-   * either language and the box is whatever the panel's column leaves: the drawing slot's top in the layout, the
-   * hint's row under it, and the scroll box's height, written once per change as `--sky-drawing-h`.
-   */
   const rootRef = useRef<HTMLDivElement | null>(null);
   const setRoot = useCallback(
     (element: HTMLDivElement | null) => {
@@ -170,32 +156,6 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
     },
     [ref],
   );
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || typeof ResizeObserver === 'undefined') return;
-    if (shape !== 'panel') return;
-    const measure = (): void => {
-      const drawing = root.querySelector<HTMLElement>('[data-slot="drawing"]');
-      if (!drawing) return;
-      const scrollBox = root.parentElement;
-      if (!scrollBox) return;
-      const hint = root.querySelector<HTMLElement>('[data-slot="hint"]');
-      const hintPx = hint ? hint.getBoundingClientRect().height + (parseFloat(getComputedStyle(hint).marginTop) || 0) : 0;
-      const top = drawing.getBoundingClientRect().top - root.getBoundingClientRect().top;
-      const height = Math.max(0, Math.floor(scrollBox.clientHeight - top - hintPx));
-      const next = `${String(height)}px`;
-      if (root.style.getPropertyValue('--sky-drawing-h') !== next) root.style.setProperty('--sky-drawing-h', next);
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(root);
-    if (root.parentElement) observer.observe(root.parentElement);
-    measure();
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty('--sky-drawing-h');
-    };
-  }, [shape]);
-
   /*
    * R159 (FR-PHONE-2, D-963, D-986): the first touch asks. While the page passes `onFirstTouch` (a saved grant, nothing
    * asked yet this visit), capture-phase listeners on the drawing slot watch the touches on the sky and, at the lift
@@ -255,49 +215,40 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
     return remove;
   }, [armed, shape]);
 
-  /*
-   * R133 (FR-FLOW-9, D-869): the wide `fill` rail cuts its box to the layout's height less the hint's measured rows —
-   * `--sky-hint-h`, unset (one row) while there is no hint; the Spanish window hint is two lines at 1280 × 800.
-   */
-  const hasHint = slots.hint !== undefined && slots.hint !== null && slots.hint !== false;
-  const measuresHint = shape === 'rail' && fill;
-  useEffect(() => {
-    const root = rootRef.current;
-    const hint = root?.querySelector<HTMLElement>('[data-slot="hint"]');
-    if (!root || !hint || !measuresHint || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => {
-      const next = `${String(Math.ceil(hint.getBoundingClientRect().height))}px`;
-      if (root.style.getPropertyValue('--sky-hint-h') !== next) root.style.setProperty('--sky-hint-h', next);
-    });
-    observer.observe(hint);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty('--sky-hint-h');
-    };
-  }, [measuresHint, hasHint]);
-
-  const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {
     const node = slots[name];
     return node !== undefined && node !== null && node !== false;
   };
-  const slot = (name: SkyViewSlotName): ReactNode => {
+  const slot = (name: SkyViewRailSlot): ReactNode => {
     const node = slots[name];
     if (node === undefined || node === null || node === false) return null;
-    // D-846: on wide the rail labels the view row and the facing row; the drawing's corner and the panel do not.
-    const label = labelled && name === 'viewRow' ? { id: viewId, text: t.skyView.view } : labelled && name === 'picker' ? { id: facingId, text: t.skyView.facing } : null;
-    // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`, `Facing`).
+    // D-846: the rail labels the view row; the page group names its own groups (`Facing`, `Turn`, …).
+    const label = name === 'viewRow' ? { id: viewId, text: t.skyView.view } : null;
+    // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`).
     // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
-    const scrolls = name === 'list' && shape === 'rail';
+    const scrolls = name === 'list';
     return (
-      <div
-        key={name}
-        className={[styles.slot, styles[name]].join(' ')}
-        data-slot={name}
-        data-rhythm={SLOT_RHYTHM[name]}
-        {...(scrolls ? { tabIndex: 0 } : {})}
-      >
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
+        {node}
+      </div>
+    );
+  };
+  /*
+   * R186 (FR-WIDE-5, D-1098): the box's corners. The readout and the zoom are the chart's parts — a view portals them
+   * here (`useChartSlot('readout' | 'zoom')`) unless the page gives a readout of its own; full screen is R189's and
+   * empty until then; the hint is the page's. The readout and the hint carry `data-slot` as their rows did.
+   */
+  const cornerNode = (name: SkyViewCorner): ReactNode => {
+    if (name === 'readout') return given('readout') ? slots.readout : <SkyViewChartSlot name="readout" />;
+    if (name === 'zoom') return <SkyViewChartSlot name="zoom" />;
+    return given(name) ? slots[name] : null;
+  };
+  const corner = (name: SkyViewCorner): ReactNode => {
+    const node = cornerNode(name);
+    if (node === null) return null;
+    return (
+      <div key={name} className={[styles.corner, styles[`corner-${name}`]].join(' ')} data-corner={name} {...(name === 'readout' || name === 'hint' ? { 'data-slot': name } : {})}>
         {node}
       </div>
     );
@@ -344,7 +295,14 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   return (
     <SkyViewContext.Provider value={context}>
       <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
-        {SLOT_ORDER.map(slot)}
+        {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners. */}
+        <div className={[styles.slot, styles.drawing].join(' ')} data-slot="drawing">
+          {slots.drawing}
+          {CORNERS.map(corner)}
+        </div>
+        <div className={styles.rail} data-rail="">
+          {SLOT_ORDER.map(slot)}
+        </div>
       </div>
     </SkyViewContext.Provider>
   );

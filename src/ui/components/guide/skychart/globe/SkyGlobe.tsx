@@ -6,6 +6,7 @@ import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { CATALOGS } from '../../../../../i18n/useT';
 import { TextButton } from '../../../primitives/TextButton';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
+import { useChartSlot } from '../../../sky/SkyViewLayout';
 import type { ArcColorBy } from './arcLayer';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
@@ -536,6 +537,29 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const shown = hovered ?? named ?? listed;
   const words = CATALOGS[language].chart.globe;
   const line = shown === null ? null : readoutLine(catalog, { place, t: instant, lang: language }, shown);
+  /*
+   * R186 (FR-WIDE-5, D-1098): inside a desk layout the readout and the zoom are the box's corners — the readout
+   * top-left, `[ + ] [ − ]` bottom-right — portaled into the layout's slots; elsewhere (the stars page's own globe
+   * outside a layout, a test) they are the row under the box, as D-1055 had them.
+   */
+  const readoutSlot = useChartSlot('readout');
+  const zoomSlot = useChartSlot('zoom');
+  const cornered = readoutSlot.target !== null && zoomSlot.target !== null;
+  const readout = (
+    <p className={cornered ? undefined : styles.readout} id={readoutId} data-testid="globe-readout">
+      {line !== null && (
+        <span className={styles.named} data-testid="globe-named">
+          {line}
+        </span>
+      )}
+    </p>
+  );
+  const zoom = (
+    <>
+      <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
+      <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
+    </>
+  );
   return (
     <>
       <div
@@ -558,17 +582,17 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         <svg ref={svgRef} className={styles.svg} role="img" data-globe="" />
       </div>
       {/* D-1055: the row under the box keeps its height named or not — the readout one ellipsised line, the zoom buttons beside it — so a hover never re-measures the box. */}
-      <div className={styles.foot}>
-        <p className={styles.readout} id={readoutId} data-testid="globe-readout">
-          {line !== null && (
-            <span className={styles.named} data-testid="globe-named">
-              {line}
-            </span>
-          )}
-        </p>
-        <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
-        <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
-      </div>
+      {cornered ? (
+        <>
+          {readoutSlot.place(readout)}
+          {zoomSlot.place(zoom)}
+        </>
+      ) : (
+        <div className={styles.foot}>
+          {readout}
+          {zoom}
+        </div>
+      )}
     </>
   );
 }
