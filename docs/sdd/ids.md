@@ -1839,6 +1839,7 @@ G62	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v
 G63	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G64	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G65	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
+G66	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-52	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-53	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 US-54	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
@@ -1865,6 +1866,9 @@ FR-KEEP-1	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky 
 FR-KEEP-2	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-KEEP-3	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-KEEP-4	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-PUB-14	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-PUB-15	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
+FR-PUB-16	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-11	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 FR-WIDE-12	docs/sdd/phases/v2.14/spec.md#457-one-sky-on-a-desk-v214	4.57 One sky on a desk *(v2.14)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2187,6 +2191,7 @@ V214-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-17	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-18	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

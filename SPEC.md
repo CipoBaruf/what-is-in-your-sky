@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.14 — for review.** Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, US-52..US-57, G62–G65, Decision Log V214-1..V214-17 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`; the owner's answers of 2026-11-04 are V214-1..V214-14. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
+| Status | **Draft v2.14 — for review.** Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57, G62–G66, Decision Log V214-1..V214-18 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`; the owner's answers of 2026-11-04 are V214-1..V214-14. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
 | Date | 2026-11-04 (v2.14). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
@@ -70,7 +70,8 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 After v2.13 is on `main`.
 On a desk the satellites, the live sky and the stars become one layout with the globe as their whole sky, the dome by choice and one time control; the satellites, stars and planets the reader picks say what they are, the Spanish star names are reviewed, and the desk gains hover, clouds on the stripe, keys and a full-screen sky.
 On the phone and the desk every choice is kept for the next open and the privacy note is read once; otherwise the phone changes only by the star names.
-Goals G62–G65, §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, US-52..US-57 and roadmap §9 Phase 2w are in [the phase spec](docs/sdd/phases/v2.14/spec.md); the decisions are V214-1..V214-17.
+With the release the README, its images, the reading order and the repository's description and topics are brought up to date.
+Goals G62–G66, §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57 and roadmap §9 Phase 2w are in [the phase spec](docs/sdd/phases/v2.14/spec.md); the decisions are V214-1..V214-18.
 
 ### Phase 3 — Later
 - Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.

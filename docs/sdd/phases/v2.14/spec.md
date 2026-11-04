@@ -12,6 +12,8 @@ Written by `sdd-spec` as a phase folder (V213-2); ids resolve through `docs/sdd/
   The list and the drawing answer each other under the pointer, the stripe shows when the sky is clear, every common action has a key, and the sky can fill the screen.
 - **G65. Your sky as you left it.**
   On a phone and on a desk the views, layers and settings the reader chose are there on the next open, while the time is always now; the privacy note is read once and closed for good.
+- **G66. The repository says what the app is now.**
+  The README, its images, the reading order and the repository's description and topics describe 2.14.0 as released, not an earlier one.
 
 **US-52 — One sky layout on a desk** *(v2.14)*
 As a reader at a desk, I move between the satellites, the live sky and the stars and find the same sky in the same box, the same rail and the same time control.
@@ -65,7 +67,7 @@ The stars page draws the globe beside a rail, with its own time buttons.
 The views on offer differ (`Window Polar Dome` against `Window Globe`), the defaults differ (the saved view against the globe, unsaved), the time controls differ (the stripe against the day and hour steps), and the dome draws a monochrome braille mesh with the twenty brightest stars where the globe draws every star, figure and name in colour.
 The owner chose one layout, the globe as every desk page's whole sky, the dome kept as a choice, the stripe as the one time control (V214-2..V214-5), and on top of it the facts, names and desk controls of G63 and G64 (V214-6..V214-13).
 The phone is unchanged except for the corrected and added star names (V214-11), the remembered choices and the privacy note (V214-15..V214-17).
-Later the same day the owner asked that every choice be kept on the device for the next open, phone included, and that the privacy note be read once (FR-KEEP-1..4).
+Later the same day the owner asked that the repository's README, description and topics be brought up to date (FR-PUB-14..16), and that every choice be kept on the device for the next open, phone included, and that the privacy note be read once (FR-KEEP-1..4).
 
 Constants (FR-VIS-6 style, centralised with the others):
 
@@ -249,6 +251,26 @@ Constants (FR-VIS-6 style, centralised with the others):
   The settings page keeps the privacy sentence as plain text with no `[ × ]`, so the fact stays one tap away.
   *Verification:* `Footer.test.tsx` and `LocationInput.test.tsx` — shown, closed by either control, gone from both; `keep.spec.ts` — close on the home, reload, open the stars page: no note; the settings page still has the sentence.
 
+- **FR-PUB-14** *(V214-18)* **The README for 2.14.0.**
+  The release task rewrites `README.md` for the release it prepares, under FR-PUB-1's four questions.
+  The prologue's sentence names the satellites, the stars and the planets and the desk's globe; the live line names the release (`2.14.0`), read from `package.json`.
+  The hero (FR-PUB-2) and the social preview (FR-PUB-11) are composed again by `scripts/readme-hero.ts` from 2.14's captures: a phone in the window over a pass and a desk on the globe with a pass's arc and a satellite's facts.
+  "How it is built" names the v2.13 layout: `AGENTS.md`, the index files, the phase folders under `docs/sdd/phases/`, the Decision Log, `ids.md` and the tiers of `sdd.agents.json`, and that any agent a config entry describes can run it.
+  "By the numbers" is regenerated on the release commit by the commands `docs/HOW-THIS-WAS-BUILT.md` lists, with that date.
+  "Stack" describes the views as they are: the globe on a desk, the window, the polar chart on a phone and the dome by choice, SVG and DOM, no canvas or WebGL; nothing is described as in progress.
+  *Verification:* `readme.test.ts` — the live line's version equals `package.json`'s; no "in progress"; every relative link resolves; each figure of "By the numbers" carries the release date.
+
+- **FR-PUB-15** *(V214-18)* **The reading order follows the layout.**
+  *(amends FR-PUB-3)* `docs/HOW-THIS-WAS-BUILT.md`'s reading order starts at `AGENTS.md`, then `SPEC.md` and `PLAN.md` as indexes, a phase folder, `ids.md` and `npm run sdd:id`, the driver and one task end to end; its example task's links resolve on `main`.
+  *Verification:* `readme.test.ts` covers its relative links too.
+
+- **FR-PUB-16** *(V214-18)* **The repository's description and topics.**
+  *(amends FR-PUB-11)* The release's `release.md` holds the exact text, and the owner applies it with `gh repo edit` (sessions have no network):
+  the description "Naked-eye sky in the browser: which satellites cross your sky tonight, when and where to look, and the stars, constellations and planets on a celestial globe."; the homepage `https://inyoursky.app`;
+  and these twenty topics, the twelve of 2.13 kept: `astronomy`, `iss`, `orbital-mechanics`, `pwa`, `react`, `satellite`, `satellite-tracking`, `sgp4`, `spec-driven-development`, `stargazing`, `typescript`, `web-worker`, `star-chart`, `constellations`, `celestial-globe`, `offline-first`, `i18n`, `cloudflare-workers`, `claude-code`, `ai-agents`.
+  Tags and GitHub Releases are not in this phase: the release keeps the project's rule that the owner tags it.
+  *Verification:* the release's checklist reads `gh repo view --json description,repositoryTopics` back equal to the text.
+
 - **FR-WIDE-11** **The rate and the bundles.**
   With the arcs, the ticks and the planets on, the globe holds ≥ 30 updates/s under a drag and under ×3600 at 1280 × 800 and 1920 × 1080 with the CPU throttled 4× on the live page as FR-GLOBE-15 measures it on the stars page (`globe-perf.spec.ts` gains the live page, best of three, D-817).
   `main` grows by at most `SKY_MAIN_KB` over 2.13.0's measure, `globe` by at most `SKY_GLOBE_KB`; the new `facts` chunk has its own row at `FACTS_BUDGET_KB`, loaded on wide when a facts group first opens and prefetched on idle after the globe; compact requests neither; the release re-sets every row by D-178.
@@ -280,11 +302,12 @@ Wide pages only, except the star names, the remembered choices and the privacy n
 - The facts groups, the names and the planets (FR-FACT-1..3, FR-NAME-1..3).
 - The keys and the full sky (FR-WIDE-9, FR-WIDE-10).
 - The remembered choices, the first visit's defaults and the privacy note, at every width (FR-KEEP-1..4).
+- With the release: the README, the reading order, the images, and the description and topics for the owner to apply (FR-PUB-14..16).
 - The rate, the bundles, the captures and 2.14.0 (FR-WIDE-11, FR-WIDE-12).
 
 Definition of done:
-- FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3 and FR-KEEP-1..4 met, each by its verification line; US-52..US-57's criteria green.
-- `sky-layout.spec.ts`, `globe.spec.ts`, `globe-perf.spec.ts`, `keys.spec.ts`, `fullscreen.spec.ts`, `legend-hover.spec.ts`, `keep.spec.ts`, `axe.spec.ts`, `dome.spec.ts` and `stars.spec.ts` green; every compact spec green with only the names' and the privacy note's captures moved.
+- FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4 and FR-PUB-14..16 met, each by its verification line; US-52..US-57's criteria green.
+- `sky-layout.spec.ts`, `globe.spec.ts`, `globe-perf.spec.ts`, `keys.spec.ts`, `fullscreen.spec.ts`, `legend-hover.spec.ts`, `keep.spec.ts`, `readme.test.ts`, `axe.spec.ts`, `dome.spec.ts` and `stars.spec.ts` green; every compact spec green with only the names' and the privacy note's captures moved.
 - Every task `Gate: auto`, merged on CI green and a clean review, at most one `hard` task per wave, the driver's wait-and-resume on (V213-11's rule).
 - `npm run bundle:budget`: every row inside its budget, `main` within `SKY_MAIN_KB`, `globe` within `SKY_GLOBE_KB`, the new `facts` row inside `FACTS_BUDGET_KB`.
 - The owner's desk run written into the phase's `release.md`; `package.json` reads 2.14.0; the owner tags v2.14.0 and deploys.
