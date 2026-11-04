@@ -160,6 +160,41 @@ Token cost is a requirement, not a habit. Every workflow, document, script and c
 12. **The cheapest tier that works.** Review runs on `light` unless the task's tier is `hard`. A task that changes only docs or tests gets no review session; CI and the owner's read cover it. `hard` is kept for tasks marked hard in the breakdown.
 13. **One task per session, no re-reading.** The workflows repeat this: read once, locate before reading, slice large files, delegate broad searches to a search subagent where the agent has one, and keep the handoff file under 2 KB.
 
+## 3b. The rest of the development loop, at the same quality
+
+None of these rules lowers the bar. The golden fixtures, the axe cases, the bundle budgets, the contrast checks and the owner's release reading all stay. The rules remove repetition and waste. **Quality is watched with the same ledger as cost:** the findings (F-ids) per phase, the flake rate and the CI retries per PR. A rule that raises any of them is reverted.
+
+### Pull requests
+
+- **A short body.** The body is 1.5 KB at most, with a fixed shape: what changed (three lines at most), the ids it closes, the checks that ran, the image diff summary and the usage line. Today's bodies run 5–6 KB, and the task's brief and handoff already carry the detail.
+- **Short commit titles.** A title is 72 characters at most, with the ids in the body.
+- **Smaller tasks.** The breakdown aims at a diff of about 600 changed lines per task, not counting generated files and captures. R169 added 2,482. Smaller diffs make cheaper reviews, cheaper fix sessions and fewer review misses.
+- **Structured review findings.** Each finding is file, line, claim and failure scenario. The fix session reads the findings, not the review transcript.
+
+### Images
+
+- **Committed images live outside git history.** `docs/screenshots` is 116 MB in 1,099 PNGs, `.git` is 878 MB, and each full re-shoot adds a few dozen MB forever. The capture set moves to a `captures` branch whose history is cut at each release, or to CI artifacts plus one release-time archive. Only the README, design and promo images stay on `main`.
+- **Re-shoot only what changed.** A capture manifest maps each capture to the source files it draws, the way `ci-affected.ts` does for specs. A task re-shoots only the captures its diff reaches. The full set is shot once, at release prep.
+- **Lossless compression** (`oxipng` or lossless WebP) at capture time, enforced in `check:sdd`.
+- **Diffs, not sets.** The PR shows the captures that changed past the pixel threshold, side by side, in the job summary. That's the same diff the agent looks at (§3a 8).
+
+### Tests
+
+- **One test per acceptance criterion, at the lowest level that proves it.** Unit before component before e2e. An e2e spec covers a flow, not a single rule a unit test can hold.
+- **The test name carries the id** (`FR-GLOBE-12: …`). The requirement-traceability table (PLAN §12, about 300 hand-kept lines) is then generated from the test names, and a requirement with no test fails `check:sdd`.
+- **Superseded tests are removed with the behaviour they tested.** When a phase replaces a requirement, its breakdown lists the tests to delete, the same way it lists the files to change.
+- **No large snapshots.** A snapshot over 5 KB is replaced by assertions on what matters, because agents read snapshot files. Today's total is small, at 168 KB, so this is a rule for new tests.
+- **Flakes get quarantined with an F-id** and a fix task, not retried in place. A flaky test costs a fix session every time it fires.
+
+### GitHub Actions
+
+- **`concurrency` with `cancel-in-progress`** on CI for pull requests, so a superseded push stops running.
+- **Build once.** One job builds and uploads `dist/`, and the e2e shards download it. Today all five shards run `npm run build`.
+- **Cache the Playwright browsers**, keyed on the Playwright version.
+- **Skip what a change can't break.** A docs-only or `docs/sdd/`-only PR runs `check:sdd` and the trailers job, not the build or e2e. A test-only PR runs only the tests it touched.
+- **Captures only when captured screens change.** `captures.yml` uses the capture manifest on `main` instead of running for 20 minutes on every push, plus `workflow_dispatch` at release.
+- **The failure digest is a CI artifact** (§3a 7), written by the job, so neither the fix session nor the owner opens a raw log.
+
 ## 4. Checks
 
 - `npm run check:sdd` in CI:
@@ -181,7 +216,8 @@ Token cost is a requirement, not a habit. Every workflow, document, script and c
 5. `gotchas.md` and the memory trim.
 6. `check:sdd` in CI.
 6a. The token rules of §3a: the usage ledger and tier budgets in the driver, the rewrap (inside step 1), `.ignore`, `map.md`, the quiet `npm run check`, CI failure digests, the pixel-diff step in visual review, the cache-friendly brief order.
-7. Seed the area files for chart-views, stars, globe and live, ready for the renderer phase.
+
+6b. §3b: the PR template and title rule, the capture manifest and the captures move, compression, test-name ids with the generated traceability, the CI changes (concurrency, build once, browser cache, path skips, captures by manifest). The captures move needs the owner's call on where they live.7. Seed the area files for chart-views, stars, globe and live, ready for the renderer phase.
 
 Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task. Step 7 can be the first task of the renderer phase instead.
 
