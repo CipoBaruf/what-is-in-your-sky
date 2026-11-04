@@ -11,7 +11,7 @@ import { usageFromResult, type ResultUsage } from './ledger';
 /** `limit` (D-197): the session ended on a usage limit; `budget` (FR-SDD-2): it passed its tier's token ceiling. */
 export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit' | 'budget';
 
-export interface ParsedResult {
+interface ParsedResult {
   ok: boolean;
   outcome: SessionOutcome;
   /** The session's final message, where the agent leaves one. */
@@ -20,7 +20,7 @@ export interface ParsedResult {
   limit: LimitInfo | null;
 }
 
-export interface ParseContext {
+interface ParseContext {
   limit: LimitConfig;
   stderr: string;
 }

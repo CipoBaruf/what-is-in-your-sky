@@ -168,7 +168,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 5
 
-- [ ] **R177 — An agent is a config entry: `sdd.agents.json`, the config-driven session, tiers, the review tier and structured findings**
+- [x] **R177 — An agent is a config entry: `sdd.agents.json`, the config-driven session, tiers, the review tier and structured findings**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
@@ -192,7 +192,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 - [ ] **R179 — `npm run check:sdd` in CI, the generated traceability, the `max-lines` warning and the commit-title check**
   - **Lane:** ui
-  - **Model:** opus
+  - **Tier:** standard
   - **Review:** opus
   - **Turns:** 500
   - **Fallback:** off
@@ -211,7 +211,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 - [ ] **R180 — Pruning at each wave and the brief's stable prefix**
   - **Lane:** data
-  - **Model:** sonnet
+  - **Tier:** light
   - **Review:** opus
   - **Turns:** 500
   - **Fallback:** off
@@ -232,7 +232,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 - [ ] **R181 — The archive and the phase report: closed evidence off `main`, the tier ceilings set from the ledger, the phase's totals and quality, and the app unchanged**
   - **Lane:** docs
-  - **Model:** sonnet
+  - **Tier:** light
   - **Review:** opus
   - **Turns:** 500
   - **Fallback:** off

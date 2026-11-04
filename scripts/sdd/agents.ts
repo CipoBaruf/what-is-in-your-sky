@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 /** The config file, relative to the driver's working directory. */
-export const AGENTS_PATH = 'sdd.agents.json';
+const AGENTS_PATH = 'sdd.agents.json';
 
 /** FR-SDD-11: what a task's `Tier:` may say, cheapest last. */
 export const TIERS = ['hard', 'standard', 'light'] as const;
