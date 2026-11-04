@@ -15,14 +15,14 @@
  *
  * Pure: the caller supplies the files' text, so the tests need no git.
  */
-import { PHASES } from './splitMap';
+import { OPEN_PHASE, PHASES } from './splitMap';
 
 /** FR-SDD-7: a closed phase's tasks file. */
 export const phaseTasksPath = (phase: string): string => `docs/sdd/phases/${phase}/tasks.md`;
 
 /** FR-SDD-7: every task of the layout as one text, the closed phases in release order and then the open TASKS.md. */
 export function layoutTasksText(open: string, read: (path: string) => string | null): string {
-  const closed = PHASES.map((phase) => read(phaseTasksPath(phase))).filter((text): text is string => text !== null);
+  const closed = PHASES.filter((phase) => phase !== OPEN_PHASE).map((phase) => read(phaseTasksPath(phase))).filter((text): text is string => text !== null);
   return [...closed, open].join('\n');
 }
 

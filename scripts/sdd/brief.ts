@@ -19,6 +19,8 @@ import type { Task } from './tasks';
 export interface BriefSources {
   /** The text an id, a task or an old section (`PLAN §16.1`) lives in, SPEC and PLAN text unwrapped; `null` when no file has it. */
   textFor: (key: string) => string | null;
+  /** The open TASKS.md text the driver already parsed: where the task entry comes from when ids.md has no line for it. */
+  fallbackTasks?: string;
 }
 
 /** The lane table's section. */
@@ -168,7 +170,7 @@ export interface Brief {
 /** The brief for one task. */
 export function buildBrief(task: Task, sources: BriefSources, options: BriefOptions): Brief {
   const tasksText = sources.textFor(task.id);
-  const entry = (tasksText === null ? null : taskEntry(tasksText, task.id)) ?? `- [ ] **${task.id} — ${task.title}** _(entry not found in TASKS.md)_`;
+  const entry = (tasksText === null ? null : taskEntry(tasksText, task.id)) ?? (sources.fallbackTasks === undefined ? null : taskEntry(sources.fallbackTasks, task.id)) ?? `- [ ] **${task.id} — ${task.title}** _(entry not found in TASKS.md)_`;
   const ids = citedIds(entry);
   for (const finding of task.findings) if (!ids.includes(finding)) ids.push(finding);
   for (const decision of ALWAYS_DECISIONS) if (!ids.includes(decision)) ids.push(decision);

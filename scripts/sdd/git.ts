@@ -74,6 +74,12 @@ export async function readFileAtRef(ref: string, path: string, logger: Logger): 
   return ok(result) ? result.stdout : null;
 }
 
+/** The files under `dir` on `ref`, in one `git ls-tree`; empty where the ref or the directory is missing. */
+export async function listFilesAtRef(ref: string, dir: string, logger: Logger): Promise<Set<string>> {
+  const result = await git(['ls-tree', '-r', '--name-only', ref, '--', dir], { logger });
+  return new Set(ok(result) ? result.stdout.split('\n').filter(Boolean) : []);
+}
+
 /** §16.3 `Precondition:`: whether `path` exists on `ref`. */
 export async function fileExistsAtRef(ref: string, path: string, logger: Logger): Promise<boolean> {
   return ok(await git(['cat-file', '-e', `${ref}:${path}`], { logger }));

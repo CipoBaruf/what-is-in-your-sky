@@ -182,5 +182,18 @@ export function rewrapBlocks(lines: readonly string[]): string[] {
   return out;
 }
 
+/**
+ * `rewrapBlocks`' inverse (FR-SDD-7): a block is unwrapped only where it is what `rewrapBlocks`
+ * would have written for the unwrapped text; a block it left as it was comes back unchanged.
+ */
+export function unwrapBlocks(lines: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const block of blocksOf(lines)) {
+    const joined = unwrap(block);
+    out.push(...(same(rewrapBlocks(joined), block) ? joined : block));
+  }
+  return out;
+}
+
 /** Whitespace removed: what the lossless test compares (D-1060). */
 export const collapse = (text: string): string => text.replace(/\s+/g, '');

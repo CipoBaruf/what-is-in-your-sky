@@ -5,7 +5,7 @@
  */
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { unwrap } from './rewrap';
+import { unwrapBlocks } from './rewrap';
 import { DOCS, PHASES, SPLIT_MAP, type Doc } from './splitMap';
 
 export const SDD_DIR = 'docs/sdd';
@@ -57,6 +57,17 @@ export function originOf(path: string): Doc[] {
   return DOCS.filter((doc) => SPLIT_MAP[doc].preamble === ref || SPLIT_MAP[doc].sections.some((section) => section.to === ref || (section.sub ?? []).some((sub) => typeof sub !== 'string' && sub[1] === ref)));
 }
 
+/** The document an old section number belongs to in a file: the only origin, or, for a file fed from several, the document whose map sends that section there. */
+function sectionDoc(path: string, number: string, origins: readonly Doc[]): Doc | undefined {
+  if (origins.length <= 1) return origins[0];
+  const name = /\/reference\/(.+)\.md$/.exec(path)?.[1];
+  const ref = `ref:${name ?? ''}`;
+  const heading = (h: string): boolean => h.startsWith(`${number}. `) || h.startsWith(`${number} `);
+  return origins.find((doc) =>
+    SPLIT_MAP[doc].sections.some((section) => (heading(section.h) && section.to === ref) || (section.sub ?? []).some((sub) => (typeof sub === 'string' ? heading(sub) && section.to === ref : heading(sub[0]) && sub[1] === ref))),
+  );
+}
+
 /** The documents of the layout, in a fixed order: the index files, the phases in release order, the Decision Log, the reference files. */
 export function layoutPaths(root: string): string[] {
   const paths: string[] = DOCS.map((doc) => `${doc}.md`);
@@ -71,9 +82,11 @@ export function layoutPaths(root: string): string[] {
   return paths.filter((path) => existsSync(join(root, path)));
 }
 
-/** GitHub's heading anchor: lower case, punctuation dropped, spaces to hyphens. */
+/** GitHub's heading anchor: link URLs dropped (the link text stays), code-span text kept without its backticks, lower case, punctuation dropped, spaces to hyphens. */
 export function slug(heading: string): string {
   return heading
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/(`+)([\s\S]*?[^`])\1(?!`)/g, '$2')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s_-]/gu, '')
     .replace(/ /g, '-');
@@ -85,6 +98,12 @@ export interface IdLine {
   anchor: string;
   heading: string;
 }
+
+/** A fence line's marker, or `null`: the character and the run's length. */
+const fenceMarker = (line: string): { char: string; length: number; closes: boolean } | null => {
+  const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+  return match ? { char: (match[1] ?? '')[0] ?? '', length: (match[1] ?? '').length, closes: (match[2] ?? '').trim() === '' } : null;
+};
 
 const HEADING = /^(#{1,6})\s+(.*)$/;
 const OLD_SECTION = /^#{2,3} (\d+(?:\.\d+)?)[. ]/;
@@ -100,10 +119,15 @@ export function collectIds(files: ReadonlyMap<string, string>, archive: Record<s
     const anchors = new Map<string, number>();
     let heading = '';
     let anchor = '';
-    let fenced = false;
+    let fence: { char: string; length: number } | null = null;
     for (const line of text.split('\n')) {
-      if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-      const match = fenced ? null : HEADING.exec(line);
+      const marker = fenceMarker(line);
+      const wasFenced = fence !== null;
+      if (marker) {
+        if (fence === null) fence = { char: marker.char, length: marker.length };
+        else if (marker.char === fence.char && marker.length >= fence.length && marker.closes) fence = null;
+      }
+      const match = wasFenced || marker ? null : HEADING.exec(line);
       if (match) {
         heading = match[2] ?? '';
         const base = slug(heading);
@@ -112,7 +136,8 @@ export function collectIds(files: ReadonlyMap<string, string>, archive: Record<s
         anchor = count === 0 ? base : `${base}-${String(count)}`;
         const old = OLD_SECTION.exec(line)?.[1];
         // The index files keep their numbered sections too; a phase or reference file names the document it came from.
-        if (old !== undefined && origins.length === 1) sections.push({ key: `${origins[0] ?? ''} §${old}`, path, anchor, heading });
+        const doc = old === undefined ? undefined : sectionDoc(path, old, origins);
+        if (old !== undefined && doc !== undefined) sections.push({ key: `${doc} §${old}`, path, anchor, heading });
         continue;
       }
       for (const kind of kinds) {
@@ -170,7 +195,7 @@ export function layoutLookup(root: string): (key: string) => string | null {
     let text = cache.get(entry.path);
     if (text === undefined) {
       const raw = readFileSync(join(root, entry.path), 'utf8');
-      text = originOf(entry.path).includes('TASKS') ? raw : unwrap(raw.split('\n')).join('\n');
+      text = originOf(entry.path).includes('TASKS') ? raw : unwrapBlocks(raw.split('\n')).join('\n');
       cache.set(entry.path, text);
     }
     return text;
@@ -208,7 +233,9 @@ export function extract(text: string, key: string): string | null {
 /** `npm run sdd:id <id>`: the id's heading and file, then its text. */
 export function printId(root: string, key: string): string | null {
   const index = parseIds(readFileSync(join(root, IDS_PATH), 'utf8'));
-  const normal = /^(spec|plan|tasks) §/i.test(key) ? key.replace(/^\w+/, (word) => word.toUpperCase()) : key.toUpperCase();
+  const sectionKey = /^(spec|plan|tasks) §/i.test(key) ? key.replace(/^\w+/, (word) => word.toUpperCase()) : key;
+  // Exact first; then case-insensitively against the stored key (`fr-guide-2b` finds `FR-GUIDE-2b`).
+  const normal = index.has(sectionKey) ? sectionKey : [...index.keys()].find((stored) => stored.toLowerCase() === sectionKey.toLowerCase()) ?? sectionKey;
   const entry = index.get(normal);
   if (!entry) return null;
   if (!entry.path.endsWith('.md')) return `${entry.key}: archived at ${entry.path}`;

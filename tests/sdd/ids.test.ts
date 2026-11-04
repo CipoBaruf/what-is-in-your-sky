@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { collectIds, extract, generateIds, IDS_PATH, kindOf, originOf, parseIds, printId, renderIds, slug } from '../../scripts/sdd/ids';
+import { rewrapBlocks, unwrapBlocks } from '../../scripts/sdd/rewrap';
 
 const committed = readFileSync(IDS_PATH, 'utf8');
 const index = parseIds(committed);
@@ -47,6 +48,33 @@ describe('FR-SDD-6: ids.md', () => {
     expect(originOf('docs/sdd/reference/revision-history.md')).toEqual(['SPEC', 'PLAN']);
     expect(originOf('docs/sdd/reference/breakdown-inputs.md')).toEqual(['TASKS']);
     expect(slug('16.4 `scripts/sdd-run.ts`')).toBe('164-scriptssdd-runts');
+  });
+});
+
+describe('FR-SDD-6: review fixes', () => {
+  it('prints an id with a lower-case suffix, and matches case-insensitively against the stored key', () => {
+    expect(printId('.', 'FR-GUIDE-2b')).toMatch(/^FR-GUIDE-2b — /);
+    expect(printId('.', 'fr-guide-2b')).toMatch(/^FR-GUIDE-2b — /);
+  });
+
+  it('gives back a block rewrapBlocks left alone exactly as it is', () => {
+    // Unwrapping this block would join its two lines and not give it back, so rewrapBlocks left it.
+    const left = ['Line one. Second.', 'Next line. Plus more.'];
+    expect(rewrapBlocks(left)).toEqual(left);
+    expect(unwrapBlocks(left)).toEqual(left);
+    expect(unwrapBlocks(rewrapBlocks(['One. Two. Three.']))).toEqual(['One. Two. Three.']);
+  });
+
+  it('closes a fence only on the same marker and at least its length, and slugs as GitHub does', () => {
+    const text = ['````', '```', '## not a heading', '````', '## Real [link](http://x.y) `code`', '- **D-1 — A.**'].join('\n');
+    const { ids } = collectIds(new Map([['docs/sdd/phases/v1/plan.md', text]]));
+    expect(ids[0]).toMatchObject({ key: 'D-1', anchor: 'real-link-code', heading: 'Real [link](http://x.y) `code`' });
+    expect(slug('A [b](http://c) `d_e`')).toBe('a-b-d_e');
+  });
+
+  it('records old sections of a file fed from two documents under the document that holds each', () => {
+    const { sections } = collectIds(new Map([['docs/sdd/reference/delivery.md', '## 16. Delivery\n\n### 16.1 Lanes\n']]));
+    expect(sections.map((entry) => entry.key)).toEqual(['PLAN §16', 'PLAN §16.1']);
   });
 });
 
