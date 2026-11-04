@@ -73,7 +73,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - A slice test: an untouched choice writes nothing to the store.
     - `npm run check` green; no capture moves.
 
-- [ ] **R183 — The numbers: a satellite's height range, rise and set for a star, a planet and the Moon, and the cloud bands**
+- [x] **R183 — The numbers: a satellite's height range, rise and set for a star, a planet and the Moon, and the cloud bands**
   - **Lane:** physics
   - **Tier:** standard
   - **Turns:** 500

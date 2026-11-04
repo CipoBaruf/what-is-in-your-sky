@@ -77,6 +77,18 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   R186 retires the harness when the spec gains the live page.
 - **D-1115 — The `globe` row's accepted overrun (R184).**
   (FR-WIDE-11, D-178.) The arcs, the ticks, the arrow, the planet discs and the hit test take the `globe` row from 13.8 KB to 15.9 KB gzipped: +2.1 KB, inside `SKY_GLOBE_KB`, over the row's 15 KB (`GLOBE_BUDGET_KB`). `bundle:budget` warns and exits 0; the row is not moved here (the script is not the chart lane's) — the release re-sets it by D-178 to at least 2.13.0's measure plus `SKY_GLOBE_KB`.
+- **D-1111 — Rise and set: geometric, at ground level, over the night from local mean noon.** *(R183)*
+  (FR-FACT-3.) A crossing is the body's centre at 0° altitude with no refraction and no dip (`SearchAltitude(body, observer at 0 m, dir, start, 1, 0)`; a star by `cos H₀ = −tan φ tan δ`), so the three bodies share one convention.
+  The night that holds `t` is the 24 h from the local mean noon before it, by the place's longitude, so an evening set and a pre-dawn rise are one night's.
+  P10's fixture had Jupiter and the Moon from Horizons' `R_T_S_ONLY` with `TVH`, which is the refracted upper limb over the site's dip, 8 to 13 min off; R183 re-fetched them as Horizons' airless elevation each minute at site elevation 0, interpolated to the crossing.
+- **D-1112 — `CLOUD_STEPS` stays 20 / 50 / 80 %.** *(R183)*
+  (FR-WIDE-8.) The constant's rationale says the cuts are FR-WX-3's, but `lib/cloudVerdict.ts` cuts at 30 / 70 %, so a 25 % hour reads `some` on the stripe and `clear` on the pass card.
+  `lib/cloudBand.ts` follows the table's value; aligning the two (the band to 30 / 70 with overcast split off, or the card to the band) is the owner's call at R191's gate.
+- **D-1132 — CI runs six shards.**
+  (FR-CI-1; D-526, D-833, D-836.) v2.14's wave 1: shard 1 was cancelled at the ten-minute budget on main's run after #287 (22:19–22:29) and on #288 and #289 when a change selected every spec, each time with every test it reached green.
+  Shard 1 carries the typecheck, lint and the whole unit suite (about 3 min, 3 700 tests) before its share of the e2e, so it is the one that outgrows the budget first.
+  `CI_E2E_SHARDS` goes from 5 to 6 and the matrix to `[1, 2, 3, 4, 5, 6]`; the budget is not raised (D-526).
+  Numbered after the task blocks because it came after they were reserved (§16.33).
 
 ### 8.21 One sky on a desk *(v2.14, FR-WIDE-1..12, D-1094..D-1108)*
 

@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand/vanilla';
 import type { EpochMs, NoradId, SatelliteRecord } from '../../model';
 import type { RejectedElement } from '../../worker/protocol';
+import { orbitHeight, type OrbitHeight } from '../../lib/orbitHeight';
 import type { Failure } from '../failure';
 
 /**
@@ -42,3 +43,10 @@ export const createElementsSlice: StateCreator<ElementsSlice, [], [], ElementsSl
     set((state) => (state.elements.status === 'ready' ? { elements: { ...state.elements, rejected } } : {}));
   },
 });
+
+/** FR-FACT-1 (R183, D-1101): a satellite's height range from the record this slice holds; null until it is loaded. */
+export function selectOrbitHeight(elements: ElementsState, id: NoradId): OrbitHeight | null {
+  if (elements.status !== 'ready') return null;
+  const record = elements.records.find((r) => r.catalog.noradId === id);
+  return record ? orbitHeight(record.omm) : null;
+}

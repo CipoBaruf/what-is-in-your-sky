@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { COMMIT_TITLE_MAX } from './limits';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -193,9 +194,24 @@ export async function editPullRequestBody(dir: string, id: string, pr: number, b
   if (!ok(result)) logger.line(`  gh pr edit failed: ${result.stderr.trim().split('\n')[0] ?? ''}`);
 }
 
+/** Room GitHub's squash merge takes after the title: ` (#12345)`. */
+const SQUASH_SUFFIX = 9;
+
+/**
+ * FR-SDD-20: the PR title is the squash commit's title, so it is cut at a word to leave `COMMIT_TITLE_MAX` room for
+ * the ` (#n)` GitHub adds; a task's one-line goal is often longer (R182's merged at 140 characters).
+ */
+export function pullRequestTitle(title: string): string {
+  const max = COMMIT_TITLE_MAX - SQUASH_SUFFIX;
+  if (title.length <= max) return title;
+  const cut = title.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,:;—-]+$/u, '')}…`;
+}
+
 /** §16.4 step 4; returns the PR number. */
 export async function createPullRequest(dir: string, id: string, title: string, body: string, logger: Logger): Promise<number | null> {
-  const result = await gh(['pr', 'create', '--title', title, '--body-file', bodyFile(id, 'pr', body)], { cwd: dir, logger });
+  const result = await gh(['pr', 'create', '--title', pullRequestTitle(title), '--body-file', bodyFile(id, 'pr', body)], { cwd: dir, logger });
   if (!ok(result)) {
     logger.line(`  gh pr create failed: ${result.stderr.trim().split('\n')[0] ?? ''}`);
     return null;
