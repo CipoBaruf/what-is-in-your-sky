@@ -19,7 +19,7 @@ function fixture(): Fixture {
   const repo = join(root, 'repo');
   execFileSync('git', ['init', '-q', '--bare', '-b', 'main', origin]);
   execFileSync('git', ['init', '-q', '-b', 'main', repo]);
-  git(repo, 'config', 'user.email', 't@example.com');
+  git(repo, 'config', 'user.email', 'fixture');
   git(repo, 'config', 'user.name', 't');
   git(repo, 'remote', 'add', 'origin', origin);
   writeFileSync(join(repo, 'a.txt'), 'a');

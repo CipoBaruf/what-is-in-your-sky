@@ -209,7 +209,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
     - `traceability.md` lists every FR-SDD id with a test; the earlier rows are byte for byte the moved table.
     - `npm test`, lint (warnings counted, none new as errors) and typecheck green.
 
-- [ ] **R180 — Pruning at each wave and the brief's stable prefix**
+- [x] **R180 — Pruning at each wave and the brief's stable prefix**
   - **Lane:** data
   - **Tier:** light
   - **Review:** opus

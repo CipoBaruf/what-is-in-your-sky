@@ -78,5 +78,7 @@ describe('--agent (FR-SDD-10) and --fix (FR-SDD-16)', () => {
     expect(parseArgs(['--wave']).fix).toBe(false);
     expect(parseArgs(['--wave', '--fix']).fix).toBe(true);
     expect(parseArgs(['--fix', '--wave', '--no-fix']).fix).toBe(false);
+    expect(parseArgs(['--wave']).prune).toBe(true);
+    expect(parseArgs(['--wave', '--no-prune']).prune).toBe(false);
   });
 });
