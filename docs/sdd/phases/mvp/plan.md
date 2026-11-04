@@ -1,0 +1,765 @@
+# mvp — PLAN.md sections
+
+Cut from `PLAN.md` by `scripts/sdd/split.ts` (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
+
+## 2. Decisions (challenges to the spec's architecture proposal)
+
+| ID | Spec proposal (§5) | Decision | Why |
+|---|---|---|---|
+| **D-1** | Magnitude formula: `m = m_std − 15.75 + 5·log10(range_km) − 2.5·log10(sin β + (π−β)·cos β)` | **Corrected to** `m = m_std + 5·log10(range_km / 1000) − 2.5·log10( p(β) / p(90°) )` with `p(β) = sin β + (π−β)·cos β`. | The spec's constant is inconsistent with its phase term. The `−15.75` constant belongs to the *fraction-illuminated* form (`+2.5·log10(r²/f)`, where `f = 0.5` at half phase contributes the 0.75). Combining it with a Lambert phase function that also encodes half-phase double-counts 0.75 mag, making every object appear ~0.75 mag brighter than intended. The corrected form returns exactly `m_std` at 1 000 km and 90° phase, which is the definition of standard magnitude. Unit test pins this anchor point. **Spec §5.4 should be amended at the next revision.** |
+| **D-2** | Sun position from `astronomy-engine` *or* `suncalc` | **`astronomy-engine`**, wrapped behind a local `sun.ts` module exposing exactly two functions: sun altitude at an observer (geometric, no refraction) and sun unit vector in the true-equator-of-date frame. | `suncalc` is ~1° class accuracy and has no vector output; the shadow test needs a sun vector. astronomy-engine's equator-of-date (EQD) frame is within arcseconds of the TEME frame satellite.js uses, which is far below what the shadow and twilight tests need. Wrapping it keeps the physics module swappable and keeps the rest of the code free of the library's API. Refraction is off because twilight definitions (−6°, −12°) are geometric. |
+| **D-3** | `date-fns`/`date-fns-tz` or a Temporal polyfill; `tz-lookup` as optional | **No date library and no `tz-lookup`.** All times are epoch milliseconds (`number`); display formatting uses `Intl.DateTimeFormat` with the observer's IANA zone from Open-Meteo. | Every formatting need in the spec (HH:MM:SS in a named zone, zone abbreviation, countdowns) is covered by `Intl`. A date library adds bundle weight and a second notion of time. Pure-coordinate input has no zone until the forecast response arrives; until then the UI shows UTC with an explicit "UTC" label — a few hundred milliseconds of latency, not worth a 100 KB timezone database. |
+| **D-4** | Zustand *or* React context + `useReducer` | **Zustand** (vanilla store + React bindings). | Worker messages, the 10 s "now" tick, and IndexedDB events all arrive outside the React tree. A vanilla store that can be written from a plain module (the worker client) is simpler than threading dispatch functions into non-React code. Slices stay small and typed. |
+| **D-5** | Tailwind *or* CSS Modules | **CSS Modules + CSS custom properties.** No Tailwind. | The UI has a handful of screens and a strong single theme (dark, high contrast, later red night mode). Design tokens as custom properties make the night mode a one-selector swap and carry the monospace/terminal identity (FR-X-6): one `--font-mono` stack, a `--cell` unit equal to one character advance so layout aligns to the same grid the sky dome is drawn on. Avoids a build-time framework and keeps the CSP free of `unsafe-inline` styles. |
+| **D-6** | "Web Worker" with an AbortController-style cancel; no protocol defined | **Hand-written typed `postMessage` protocol** (discriminated unions, §6), job IDs, and **cooperative cancellation** by yielding between objects. No Comlink. | Comlink hides the message boundary, which makes streaming partial results and cancellation awkward. A 12-message protocol is small enough to type by hand and test as a pure function in Node. The worker yields to its event loop between objects so a `cancel` message can be observed. |
+| **D-7** | Refine peak by golden-section search; sample visibility "every 1–5 s" | **Sample every 1 s inside each above-horizon segment; bisection only for the two 10° crossings.** Peak taken from the 1 s samples with a parabolic refinement across the three samples around the maximum. | With ~30 objects and passes of ≤ 12 min, 1 s sampling is ≈ 20 k propagations per night — trivial. It yields ≤ 1 s precision (FR-VIS-2) for shadow and twilight crossings for free, removes one algorithm (golden section) and its failure modes, and gives the sky-chart track as a by-product. |
+| **D-8** | Cylindrical umbra, Earth radius 6371 km, "optional atmosphere fudge" | **Cylindrical umbra, radius 6371.0 km, no fudge, no penumbra in MVP.** The "fading" flag is dropped from MVP. | Keep the model simple until the Task Zero comparison shows a systematic shadow-entry offset versus Heavens-Above. A fudge factor without evidence is a guess. Penumbral fading lasts seconds for LEO and the 1 min acceptance criterion does not resolve it. |
+| **D-9** | Fetch `visual` + `stations`, filter client-side | Adopted, plus: **store the raw group payloads unfiltered in IndexedDB**, keyed by group, and filter to the catalog at load time. | Lets v1 widen the catalog to the full `visual` group with no cache schema change and no re-fetch. Costs ~100 KB of storage. |
+| **D-10** | "Enforced against the stored timestamp, across tabs and reloads" | **Web Locks API (`navigator.locks`) single-flight around the refresh check**, with fallback to timestamp-only when Web Locks is unavailable. | Two tabs opened together would otherwise both see a stale timestamp and both fetch. A named lock makes the check-then-fetch atomic across tabs. Web Locks is available in all evergreen browsers and Safari ≥ 15.4. |
+| **D-11** | Clock-skew warning using a server `Date` header | **Dropped from MVP.** Moves to v1 behind the proxy. | With no backend, the only servers are cross-origin, and `Date` is not a CORS-safelisted response header, so the browser cannot read it. Open-Meteo's `current.time` is a model slot, not a clock. No honest way to implement it in MVP. |
+| **D-12** | Hosting: any of Cloudflare Pages / Netlify / Vercel / GitHub Pages | **Cloudflare Pages** — amended 2026-09-02 to **Cloudflare Workers static assets**, same `_headers` file (§2.5). | It supports a `_headers` file for a strict CSP, sits on the same platform as the v1 edge worker, and its free tier is sufficient. GitHub Pages remains a zero-config fallback for previews. |
+| **D-13** | Not addressed | **No client-side router in MVP.** Single screen; pass detail is a full-screen sheet. The selected pass ID is mirrored to the URL hash so v1 share links have somewhere to land. | One screen does not justify a router. The hash keeps the door open. |
+| **D-14** | "Now" state "using the cached propagation" | **"Now" is computed in the worker on request** (30 propagations at `t = now`), not from cached tracks. | Cached tracks only cover passes; the "Now" panel must also explain *why* nothing is visible (daylight / in shadow / below horizon), which needs live sun altitude and per-object state. Thirty propagations every 10 s is negligible. |
+| **D-15** | Not addressed | **Every physics function takes time as an explicit parameter; nothing in `src/physics` or `src/worker` reads `Date.now()`.** | Determinism for golden tests and for Playwright with a fixed clock. |
+| **D-16** | UX-1: 3D ASCII sky dome, DOM-only (library-neutral in the spec) | **Render the dome with `@glyphcss/react` (v0.1.x, MIT), confined to one component behind the `SkyChartProps` interface (§8).** Triggers for replacing it: (a) it cannot meet FR-GUIDE-6 (≥ 30 updates/s while dragging on a mid-range phone) at a grid of ~60×30 cells after the §8.5 spike; (b) a needed capability is missing and unfixable from outside (interior camera or backface control if the observer-centred view is later required, hotspot precision, clamped orbit limits); (c) the package stops being maintained — no release or response for 6 months while we carry a blocking bug; (d) a licence or security problem. Replacement path is a hand-written rasteriser behind the same props, and the 2D polar sibling is the interim fallback. | It is the only DOM-text 3D mesh renderer with a React binding that we found; it satisfies FR-GUIDE-5 by construction (one `<pre>`, no canvas, no WebGL, no per-polygon elements). Writing an equivalent rasteriser is a real project. The pre-1.0 API, single-maintainer fork lineage (forked from polycss) and small user base are accepted **only because** the boundary in §8 makes it swappable. |
+| **D-17** | UX-1: "rotate/tilt the view toward the horizon they'll face" | **Default camera is an external "over-the-shoulder" orthographic view of the dome** (`GlyphOrthographicCamera` + `GlyphOrbitControls` with `clampPitch`), yaw set to the pass's rise azimuth so the user sees the dome from behind the observer, looking toward that horizon. The strictly observer-centred view (camera at the dome centre looking outward, perspective) is **not** the MVP default; recorded as open question P-OQ-1 in §8.6. | The external view uses only documented camera behaviour (`rotX`/`rotY`/`zoom`) and keeps left/right correct relative to the real horizon (facing south, east appears on the left, as in life). An interior camera needs the perspective camera inside a mesh with inward-facing polygons visible; glyphcss documents neither interior placement nor backface culling. We will test it in the spike, but the plan cannot depend on it. |
+
+### 2.1 Task Zero findings (R1, 2026-09-02)
+
+Recorded by the R1 implementation.
+**Comparison result (fixture `2026-09-02-neuquen-iss.json`): OVERALL PASS** — the one visible ISS pass in the window matches Heavens-Above within 4 s / 1.0° / 0.2° at start, peak and end, end reason `horizon` on both sides, no unpaired or extra passes.
+Details in `tests/fixtures/heavens-above/README.md`.
+
+- **`json2satrec` accepts CelesTrak's OMM field names as-is.**
+  No mapping layer is needed.
+  `sgp4.ts` only narrows two fields for satellite.js's types (`EPHEMERIS_TYPE` must be `0`, `CLASSIFICATION_TYPE` is dropped unless `U`/`C`) and rejects other ephemeris types.
+  `json2satrec` and `twoline2satrec` give identical satrecs and positions for the Vallado verification case (satellite 00005, t = 0 and 360 min, positions reproduced to 1e-8 km). satellite.js 7.1.0, astronomy-engine 2.1.19.
+- **CelesTrak `EPOCH` has no zone suffix** (`2026-09-01T19:42:22.677120`); `time.ts` appends `Z` and truncates to milliseconds, otherwise `Date.parse` would read it as local time.
+- **Runtime:** ISS × 10 days (coarse scan at 30 s plus dense sampling of every candidate) takes ≈ 120 ms in Node 24 on the development machine.
+  Extrapolated, 30 objects × 24 h is well under the 1.5 s CI budget in §9.1; measure it properly once the worker exists (R4).
+- **Shadow model vs an independent conical model:** over 10 days at 1 s, `inUmbra` (cylinder, 6371 km, D-8) and satellite.js's own `shadowFraction ≥ 0.5` (conical, penumbra) disagree on 0.19 % of samples, all at transitions; entry/exit instants differ by 0.05 s on average, 7 s at most, with no systematic sign.
+  Our sun vector and satellite.js's low-precision sun differ by ≤ 0.006°.
+  **Not checked against Heavens-Above:** the only pass in the window is horizon-bounded at both ends, so no shadow-entry offset could be measured.
+  D-8 stands; re-examine when a fixture contains a shadow-bounded pass (the next northern-mid-latitude fixture in the MVP phase is the natural place).
+- **Sun altitude:** two independent paths (astronomy-engine topocentric `Equator` + `Horizon`, and satellite.js `sunPos` pushed through `frames.ts`) agree within 0.002°; the −6° and −12° instants from sunrise-sunset.org agree within 0.15°. astronomy-engine's `Horizon` takes no refraction when the argument is omitted; the string `'none'` is rejected.
+- **Window content:** with the 2026-09-02 elements, every ISS culmination above 10° at Neuquén in the ten days from 2026-09-02T03:51Z falls in daylight except one marginal twilight pass on 2026-09-11 09:48Z (peak 10.2°).
+  Heavens-Above lists exactly the same single pass.
+  A ten-day window with one pass is a thin validation; the two further golden fixtures planned for the MVP phase (§10.4) should be captured when several dark passes fall inside the window.
+- **Brightness (informational, D-1 + `stdMag` seed −1.8):** we predict +1.2 at the pass peak where Heavens-Above prints −0.1 to −0.3 (range 1 505 km, phase angle back-lit in morning twilight).
+  The 1.3–1.5 mag gap is outside the acceptance criterion but large enough that R3 should settle the ISS `stdMag` (and its provenance) against more than one pass before the magnitude cut goes live.
+- **Heavens-Above quirks worth knowing:** the summary table and the detail page differ by up to 5 s for the same event, and the detail page prints altitudes as whole degrees.
+  The detail page is the reference.
+- **Package manager:** `npm` (CLAUDE.md left the choice open; `pnpm` is not installed and TASKS.md already uses `npm test` / `npx`).
+
+### 2.2 R2 decisions (2026-09-02)
+
+- **D-18 — Worker chunks are ES modules** (`worker.format = 'es'` in `vite.config.ts`). satellite.js 7 ships an optional WASM/pthreads build behind `#wasm-multi-thread`, whose worker entry uses top-level await; Vite's default IIFE worker format refuses it and the production build fails.
+  We never call `createWasmModule`, so the chunk is emitted (~300 KB, uncompressed) but never fetched.
+  Module workers are supported by every evergreen browser and Safari ≥ 15, so the R5 worker is a module worker too.
+  R11's bundle-budget check should exclude or drop that dead chunk.
+- **D-19 — Vite 7.x with Vitest 3.2**, upgraded together.
+  Vitest 3.2's peer range stops at Vite 7 while the current `@vitejs/plugin-react` needs Vite 8; the pair is pinned (`vite@7`, `@vitejs/plugin-react@5`) until Vitest 4 is adopted deliberately.
+  Vitest's `projects` splits `src/ui` (jsdom, Testing Library, MSW) from everything else (Node, MSW); both projects start the MSW server with `onUnhandledRequest: 'error'` so no unit test can reach the network (§9.3).
+- **ESLint** uses `typescript-eslint` `strict` + `stylistic` (non-type-checked) and `react-hooks` flat recommended; `no-unused-vars` ignores `_`-prefixed names and rest siblings.
+  The type-checked variants and the §3 boundary rules are R5's.
+- **R2 crosses the §3 boundaries on purpose:** `src/ui/components/passes/nextPass.ts` imports `src/physics` and `App.tsx` imports `src/data` directly, running `findPasses` on the main thread with the ISS `stdMag` seed (−1.8) hard-coded.
+  The catalog (R3), store and worker (R5) replace this; the lint boundary rules land only then.
+- **`lib/timeFormat.ts`** builds strings from `Intl.DateTimeFormat.formatToParts` (locale `en-GB`, `hourCycle: 'h23'`) so output is `HH:MM:SS` regardless of locale punctuation; with `timeZone === null` the label is the literal `UTC` (D-3).
+  Zone abbreviations come from Intl's `short` name and may read `GMT-3` rather than `ART`; revisit in R8 if the spec's "zone abbreviation" needs more.
+- **E2E runs against the production build** (`vite preview` on port 4173, or `E2E_PORT` when the driver sets one — D-132); `npm run e2e` builds first, CI builds in the previous step.
+  Cross-origin CelesTrak calls are fulfilled with `access-control-allow-origin: *` by the Playwright route.
+
+### 2.3 R3 decisions (2026-09-02)
+
+- **D-20 — The pass list window is 24 h from "now"** (`SEARCH_WINDOW_HOURS` in `ui/components/passes/passSearch.ts`), FR-VIS-1's MVP minimum and the window the §9.1 performance budget is written for.
+  R2's 10-day ISS-only search is gone: 31 objects × 10 days on the main thread measured ≈ 3.6 s per recompute, and R2 recomputes on every valid keystroke. 31 objects × 24 h takes ≈ 350 ms in Node; the worker (R5) removes the freeze, the multi-night window is v1 (spec §8 rank 6).
+  Tests that need the R1 golden pass (nine days after `capturedAt`) start the 24 h window at `capturedAt + 9 d`: an offset that is a multiple of the 30 s coarse step keeps the scan grid in phase with R1's, so start/peak/end reproduce exactly rather than to within one sample.
+  `tests/support/catalogFixtures.ts` holds this.
+  *(Amended v1, R24: `state/passWindow.ts` — where the constant has lived since R5 — makes it 72 h in three 24 h nights, FR-VIS-1 amended and FR-OFF-2.
+  The worker cuts it into nights and searches them night-outer, so the first night still arrives inside the MVP's budget, D-77 and D-95.
+  The golden-fixture offset above is unchanged: the first night of a 72 h window at `capturedAt + 9 d` is the same 24 h search on the same grid.)*
+- **D-21 — `src/data` imports `parseOmmEpoch` from `src/physics/time`.**
+  `SatelliteRecord.epochMs` (FR-SAT-4) has to be parsed somewhere on the main thread, and §3 allows `src/data` neither `src/physics` nor `src/lib`.
+  `physics/time.ts` is a dependency-free leaf (no satellite.js, no DOM), so the R5 boundary rules should whitelist `src/physics/time` for `src/data` rather than duplicate the parser.
+  Revisit if a second physics leaf is ever needed there.
+- **D-22 — Intrinsic magnitudes come from Mike McCants' Quicksat `qs.mag` (2020-09-14, mmccants.org/programs/qsmag.zip)**, the source spec §6.1 (OQ-3) names.
+  Its definition — magnitude at 1 000 km range and half phase — is exactly the D-1 standard magnitude, so values are used unconverted; each entry's `stdMagSource.note` cites the `qs.mag` row and any comment (flares, "sometimes very bright").
+  The **ISS is −2.5** there, 0.7 mag brighter than the R1 seed (−1.8): on the R1 golden pass we now predict +0.5 against Heavens-Above's −0.1 to −0.3, closing half the gap noted in §2.1.
+  The remaining ~0.7 mag is consistent with the station having grown since 2020 (iROSA arrays) and with the back-lit geometry of that pass; a fixture with a well-lit ISS pass (§10.4's northern mid-latitude capture, task H) is the place to settle it, not a hand-tuned constant.
+  **Tiangong (48274) post-dates the file** and carries a project estimate (−1.0, back-solved through D-1 from reported overhead brightness of about −2.5 to −3) marked as such in its provenance.
+  Docked modules and visiting vehicles (Wentian, Mengtian, Nauka, Progress, Dragon, Soyuz…) are deliberately absent so each station appears once.
+  Membership is 31 objects: 2 stations, 11 payloads, 18 rocket bodies (eight of them SL-16 Zenit stages at magnitude 2.0), all present in the R1 fixtures and, per `scripts/check-catalog.ts` on 2026-09-02, in the live `visual`/`stations` groups.
+  **The magnitude cut (MAG_LIMIT 4.5) is live from R3** for every object; R2 already applied it to the ISS.
+- **Loader without cache** (`data/elementsLoader.ts`): both groups are fetched in parallel; if either request fails the load fails, because §7.1's "use the cached set" branch does not exist until R11.
+  `unavailable` carries catalog ids absent from both groups; the UI does not show them yet (R11's banners).
+- `tests/e2e/next-pass.spec.ts` is replaced by `pass-list.spec.ts`; `ui/components/passes/nextPass.ts` and `NextPassLine.tsx` are deleted, `ISS_STD_MAG_SEED` survives only in `tests/support/heavensAbove.ts` for the R1 comparison script.
+
+### 2.4 H decisions and findings (2026-09-02)
+
+Recorded by the H implementation (physics hardening).
+Fixtures: `2026-09-02-paris-iss` (48.86° N) and `2026-09-02-singapore-iss` (1.35° N), captured 13:27–13:28 UTC with a CelesTrak capture at 13:27:43 UTC whose ISS element set is the very one Heavens-Above was using (epoch 2026-09-02T03:26:53 on both sides).
+**Both OVERALL: PASS** — 12/12 and 7/7 passes paired within 6 s / 3.3° / 4.2° at every point, no unpaired passes, no extras, all start and end reasons matching.
+Details in `tests/fixtures/heavens-above/README.md`.
+
+- **D-23 — Golden fixtures are named by place and carry their own pairing metadata.**
+  `tests/fixtures/heavens-above/<date>-<place>-iss.json`; the fixture's `ommFixture` names its OMM capture (a second capture on the same date is `<date>T<HH>`), `searchPeriod` is Heavens-Above's own search window and clips the comparison window, `location` is the observer label.
+  The R1 fixture keeps working through defaults (`neuquen`, same-date OMM, no clipping).
+  `validate-iss.ts --fixture <name>` / `--all`; `passes.golden.test.ts` runs every fixture and asserts that the set covers ≤ −30°, 45–52° N and |lat| ≤ 5°.
+- **D-24 — A Heavens-Above pass without a "Maximum altitude" row is compared at the higher of its start / end rows** (end on a tie).
+  Heavens-Above omits the row when the highest point is a shadow boundary above 10°; its summary table repeats that row in the Highest column.
+  Seven of the nineteen new passes are of this kind.
+  `summary.highest` in the fixture overrides the rule.
+- **D-8 evidence — shadow boundaries are systematically offset by 4–6 s.**
+  Across all 19 shadow-bounded boundaries in the two new fixtures we exit the umbra 3–5 s earlier and enter it 4–6 s later than Heavens-Above, never the other way round: our cylindrical umbra of 6371.0 km with no atmosphere is slightly narrower than theirs.
+  That is ≈ 30–45 km along track, well inside the 60 s criterion, and the visible pass we report is a few seconds *longer* than theirs at the shadow end (safe side for a user).
+  D-8 stands for MVP; the evidence is now on record for a v1 decision (candidates: a larger effective radius of ≈ 6371 + 20–40 km, or a conical penumbra midpoint — both to be checked against these fixtures, which are the tripwire).
+- **Brightness (informational, seed `stdMag = −1.8`, D-1 form):** with 19 more passes the pattern is clear: relative to Heavens-Above we are 0.3–0.6 mag too bright at high elevation and 0.8–1.3 mag too faint on low, distant passes — Heavens-Above's magnitude varies less with range and phase than the diffuse-sphere law does.
+  The catalog value of −2.5 (R3, McCants) would fix the low passes and worsen the high ones.
+  Not an acceptance criterion; the magnitude cut at +4.5 is unaffected for the ISS.
+  Left for the v1 brightness work with these fixtures as the data set.
+- **Passes of 1–2 s** (Paris 7 Sep and 11 Sep: reaches 10° and enters shadow within two seconds) are found by the 1 s dense grid (D-7) without special handling and pair within 6 s.
+  No sub-resolution rule was needed.
+- **Unit references.**
+  Every `src/physics/*.test.ts` now asserts its module's slice of `reference-values.json` (which gained `inUmbra` and names the fixture in full; all pinned numbers unchanged).
+  Sunset reference: NOAA's published spreadsheet algorithm is embedded in `sun.test.ts` (sunrise-sunset.org's sunset instant is ~2 min later than the geometric −0.833° and is not used).
+  Coverage gate: `npm run test:coverage:physics` (`@vitest/coverage-v8`, 90 % lines per file; measured 100 % lines on every file).
+- **Runtime:** ISS × 10 days takes 54–122 ms per fixture in Node 24; the whole golden suite runs in ≈ 0.6 s.
+
+### 2.5 R4 decisions (2026-09-02)
+
+- **D-12 amended — hosting is Cloudflare Workers static assets, not Cloudflare Pages.**
+  The dashboard's *import a repository* flow now creates a Worker with static assets built by Workers Builds; Cloudflare steers new projects there and documents a Pages → Workers migration.
+  D-12's reasons hold: the `_headers` file has the same format and semantics (parsed at upload, never served, `/*` and `/assets/*` rules stack), the free tier is the same, and the v1 edge worker lives on the same platform.
+  `wrangler.jsonc` is committed so Workers Builds skips wrangler's autoconfig, which otherwise installs `@cloudflare/vite-plugin` and rewrites `vite.config.ts` inside the build sandbox on every build: assets-only Worker, `not_found_handling: "404-page"` (hash routing, D-13, needs no SPA fallback), `preview_urls` on, observability off (FR-X-3).
+  Production is `https://in-your-sky.ezequiel-baruf.workers.dev`, built from `main`; a preview per branch comes from Workers Builds' *non-production branch builds* (`npx wrangler versions upload`, aliased by branch name as `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`), enabled per project under *Settings → Builds*.
+  Verified 2026-09-02 on the `r4-deploy` preview: all three §11 headers on `/`, the immutable `Cache-Control` on `/assets/*`, and 404 for `/_headers` and unknown paths.
+  The first production build ran from `main` before this branch merged and served no headers, as expected: `public/_headers` does not exist on `main` yet.
+- **Worker renamed to `in-your-sky` (2026-09-03).**
+  The public URL is `<worker>.<account subdomain>.workers.dev`, and only the worker half is ours to choose: the account subdomain (`ezequiel-baruf`) is a one-time change per account, already spent, and Cloudflare answers a second attempt with *Account already has an associated subdomain*.
+  Renaming the worker is therefore the whole of the free URL improvement, from `what-is-in-your-sky.ezequiel-baruf.workers.dev` to `in-your-sky.ezequiel-baruf.workers.dev`.
+  A rename in `wrangler.jsonc` creates a **new** worker rather than moving the old one, so the Workers Builds connection must be re-pointed at it and the old worker deleted by hand; steps in `README.md`.
+  Branch previews follow the same shape, `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`.
+  A custom domain stays open as a later step: it needs a zone in this Cloudflare account, which means either a registered domain or a free one from a registry on the Public Suffix List (`eu.org`, `is-a.dev`), and then a `routes` entry with `custom_domain: true`.
+- **D-739 — Production is the `release` branch, fast-forwarded at each tag (2026-10-19).**
+  Until now Workers Builds deployed every push to `main`, so every merged task shipped the moment it landed — fine while a phase was one or two tasks, wrong for v2.3's eight waves of one and the phases after it, where the owner wants the site to move only at a tag.
+  The production branch in *Settings → Builds* is `release`; nothing is ever committed to it, and the deploy step of a phase's checklist becomes `git push origin <release-sha>:release` with the tag's SHA (so the squash-merge caveat of V22-12 holds for the branch as for the tag).
+  `main` keeps a preview like any branch, which is the build the next release will ship; the capture workflow, CI and the branch previews are unchanged.
+  `release` was created at `ed8748a`, the build that was live when the switch was made.
+  Numbered after the v2.3 phase's reserved blocks (D-700..D-738, PLAN §16.20 on its branch) so the two land without a collision.
+- **D-25 — `vite preview` serves `public/_headers` the way Cloudflare does.**
+  A small plugin in `vite.config.ts` parses the Pages format (unindented path pattern, indented `Name: value` lines, `*` matching across `/`, matching rules stacked) and sets the headers on every preview response.
+  The Playwright suite therefore runs the production build under the strict CSP: `tests/e2e/deploy-headers.spec.ts` asserts the §11 values on `/`, the immutable `Cache-Control` on `/assets/*`, zero `securitypolicyviolation` events during the R3 flow, and requests only to the site origin and CelesTrak.
+  It is the offline twin of R4's `curl -sI` and DevTools checks, and it fails CI before a violation reaches the site.
+  The dev server is untouched: React Fast Refresh injects inline scripts the CSP forbids.
+  `tests/deploy/headers.test.ts` (Node project, typechecked through `tsconfig.node.json`) pins the file to the §11 block verbatim, so a change to either the doc or the file without the other fails a test, and checks that every `https://` host referenced in `src/**/*.ts(x)` is in `connect-src` (FR-X-3).
+- **D-26 — zod runs jitless.** zod 4.5 compiles object parsers with `new Function` and probes for it once with a caught call; under `script-src 'self'` the caught probe is still reported as a CSP violation (the D-25 e2e caught it on its first run).
+  `src/data/zod.ts` calls `z.config({ jitless: true })` and re-exports `z`; it is the only module that may import `zod` (enforced by `src/data/zod.test.ts`), because the flag is read when a schema is *built*, so the configuring module has to evaluate before any schema module.
+  Cost: the interpreted parser on a few hundred records per group, not measurable next to the pass search.
+  `unsafe-eval` is not an option (§11).
+- **Workers Builds project:** Git integration (production on `main`, a preview version per non-production branch), worker name `in-your-sky`, build command `npm run build`, deploy command `npx wrangler deploy`, Node from `.node-version` (24, same as `ci.yml`).
+  There is no framework preset and no output-directory field: `wrangler.jsonc` names `dist/` as the assets directory, which is why it is committed.
+  Created once in the dashboard; steps in `README.md`.
+  The GitHub Actions alternative (`wrangler deploy` from `ci.yml`, gated on the tests) was not taken: the task asks for the repo wiring, and Workers Builds' own build keeps a single source of truth for what is deployed.
+  Revisit in R15 if deploys should wait for CI.
+
+### 2.6 R5 decisions (2026-09-02)
+
+Recorded by the R5 implementation (worker, store, streaming list).
+
+- **`jobDone.hasDarkness: boolean`** is added to the §6.2 protocol: whether the observer's sun altitude reaches `sunAltMaxDeg` anywhere in the window, computed by `physics/darkness.ts` (sampled every 10 min plus the window end; the sun moves ≤ 0.25°/min, so the grid resolves twilight to ~2.5° and the end check catches a window that ends just after dusk).
+  The list shows spec §5.6's "no darkness tonight at this latitude" when a finished job has no passes and `hasDarkness` is false; R7's Now panel reuses the flag.
+- **Error semantics (§6.2 rules, made precise):** `PROPAGATION_FAILED` carries the job id, the object is skipped and the job goes on; `NO_ELEMENTS` and `INTERNAL` carry the job id and end the job **without** a `jobDone`.
+  The client treats those two as terminal, drops the job's handlers and reports the error; the passes slice shows "Could not compute passes: CODE: message".
+  A `cancel` for a job the worker does not know is ignored; a cancelled job's `jobDone` is dropped by the client because the job was forgotten the moment `cancel` was posted.
+- **`computeNow` answers `INTERNAL`** ("not implemented until R7"); the protocol type is complete so R7 only adds the handler and `physics/now.ts`.
+- **D-27 — `src/state` may import `src/physics/constants`.**
+  The `computePasses` request carries the thresholds, and their defaults are a value (`DEFAULT_THRESHOLDS`), which `src/model` (types only) cannot hold.
+  Same pattern as D-21: a dependency-free leaf whitelisted in the boundary rule (`except: ['./constants.ts']`) rather than a duplicated constant.
+  `src/state` may also import `src/worker/protocol` (types) and references `passes.worker.ts` by URL only.
+- **D-28 — `eslint-plugin-import-x` instead of `eslint-plugin-import`.**
+  The original plugin's peer range stops at ESLint 9; import-x supports ESLint 10, ships the same `no-restricted-paths` rule and a built-in node resolver. §3 is enforced as one zone per table row, plus `@typescript-eslint/no-restricted-imports` for the rows a path zone cannot express: React banned in `physics`, `worker`, `data`, `lib`, `model`; physics **types only** in `lib` (`allowTypeImports`); `@glyphcss/react` allowed only under `ui/components/guide/skychart/dome/`; `*canvas*` / `*webgl*` banned everywhere (FR-GUIDE-5).
+  `no-restricted-globals` bans `Date` in `physics`, `worker` and `lib` (D-15); the one exception is `physics/time.ts`, the epoch-ms ↔ `Date` converter itself, and `lib/timeFormat.ts` now hands `Intl` the number.
+  Test files are exempt from the boundary rules.
+  Verified with the four probe files the task asks for (React in physics, `Date.now()` in lib, `src/data` from `src/ui`, a `*canvas*` import) — each fails `npm run lint`; none is committed.
+- **D-29 — Progressive rendering is proven from a DOM log, not a slow worker.** 31 objects × 24 h take ≈ 375 ms in the worker, too fast to watch cards land.
+  The Playwright test installs a `MutationObserver` before the app boots that records every distinct set of card ids the DOM went through; "one at a time, ISS first" is asserted on that log (first non-empty entry is exactly one ISS card; the second location goes through more than one set before its final one; no set after the switch contains a first-location id).
+  The "throttled worker route" delays the worker script by 1.5 s, which is what shows the page responsive and `aria-busy` with zero cards before the first one lands.
+  The store test with the scripted fake worker covers the cancel-and-ignore-late-messages path exactly (`cancel` for job 1 posted, job 1's late `passes` and `jobDone` never reach the slice).
+- **Vitest browser project** (`--project browser`, `@vitest/browser` + Playwright Chromium, headless) runs `src/**/*.integration.test.ts` as part of `npm test`; CI therefore installs Chromium before the unit tests.
+  Fixtures are imported as modules there (no `node:fs`). satellite.js and astronomy-engine are listed in `optimizeDeps.include` so Vite does not reload the test mid-run.
+- **Store shape** (`state/store.ts`, D-4): one vanilla store with `location` (observer + the `nowMs` read from an injected clock when it was set), `elements` (`idle | loading | error | ready`, the latter also carrying the worker's `rejected` list) and `passes` (job id, status `idle | computing | done | error`, the observer and window the results belong to, passes kept sorted by start as they stream, `done/total`, `hasDarkness`, `elapsedMs`, skipped objects).
+  Every passes action carries the job id and is ignored for any other job.
+  `createAppStore({ now })` for tests, `appStore` for the app; `startApp()` in `main.tsx` creates the worker and wires `state/effects.ts`.
+  Elements are still prefetched on start, as in R3; the effect loads them once, hands them to the worker once, and starts a job per observer change with a generation counter so a stale chain never writes.
+- **Runtime:** 31 objects × 24 h in `findPasses` (Node 24, development machine): 378, 373, 377 ms in three consecutive runs of `passes.perf.test.ts` against a 1 500 ms budget; the worker integration test reports the same order in Chromium (≈ 520 ms including boot).
+  The main-thread freeze noted in D-20 is gone.
+- `PassCard` carries `data-pass-id` (the pass id) for the e2e; R6's detail screen can use it as its hook.
+
+### 2.7 R7 decisions (2026-09-02)
+
+Recorded by the R7 implementation ("Now" panel).
+
+- **D-30 — `visibleUntil` is found by a look-ahead on the pass search's own 1 s grid.**
+  `physics/now.ts` steps forward from `t` in 10 s coarse steps until the visibility predicate fails, then refines the last coarse step at `DENSE_STEP_MS`; `visibleUntil` is the last visible sample and `endReason` is `failingReason` of the first invisible one.
+  Because the grid is `t + k·1 s`, a request made on a pass's grid returns exactly that pass's `end` (asserted on the R1 golden pass).
+  The look-ahead is capped at 30 min (`MAX_LOOKAHEAD_MS`, longer than any LEO pass above 10°); an item still visible at the cap carries no `visibleUntil` and the panel says "visible for a while yet".
+  Cost: ≈ 70 + 10 samples per visible object per tick, for at most a handful of visible objects.
+  `magnitude` is `null` below the horizon (`elDeg < 0`) or in shadow, as the §5 comment says; between 0° and 10° it is still reported.
+- **D-31 — The 10 s tick lives in `state/effects.ts` with an injected clock and an injected `VisibilitySource`.**
+  `startEffects` gains `now: () => EpochMs` and `visibility: { hidden, subscribe }` (`documentVisibility(document)` in the app, a flag in tests), so the effects never read `Date.now()` or `document` themselves and the Node test drives both with fake timers.
+  The first `computeNow` goes out the moment the worker holds the elements for the current observer (right after `computePasses` is issued); `setInterval(NOW_TICK_MS)` runs from then, is cleared while `document.hidden`, and a tab becoming visible refreshes at once and re-anchors the interval.
+  Only the latest request's reply is written (a sequence number), and an observer change bumps both the sequence and the generation so a previous location's in-flight answer is dropped; the slice records the observer each state belongs to and the panel ignores a state for another observer.
+  Errors are recorded without dropping the last good state.
+- **`computeNow` semantics (§6.2):** `NO_ELEMENTS` (with the request id) when nothing is loaded; otherwise one `nowState` with every loaded object in `computeOrder` (featured first).
+  It is one-shot and cannot be cancelled; because the handler yields between objects (D-6) a `computeNow` posted during a `computePasses` job is answered between two objects, which the handler test checks.
+  In the client, one-shot requests share a typed `request()` helper keyed by request id; a reply of the wrong type rejects.
+- **`src/state` re-exports `DEFAULT_THRESHOLDS`** (extends D-27): the panel quotes the elevation floor ("no catalog satellite is above 10°") from the thresholds the state actually sent, and `src/ui` still never imports `src/physics`.
+- **Empty-state precedence in `NowPanel`:** visible items win; then `hasDarkness === false` from the finished job (spec §5.6, R5 flag) regardless of `sky`; then `sky === 'day'` (sun altitude quoted); then "nothing above 10°" when no item is `aboveMinElevation`; else "N up but all in Earth's shadow".
+  `bright-twilight` is not an empty state: the observer is dark enough for visibility under the −6° rule (§1), so its items are judged like `dark` ones.
+  Cloud cover joins the panel in R8 (FR-WX-3).
+- **`jest-axe`** (`jest-axe` + `@types/jest-axe`) is installed; `tests/setup/vitest.jsdom.ts` extends `expect` and augments vitest's `Matchers<T = any>` (the parameter must match vitest's own declaration).
+  Component tests for the panel run `axe` on the no-observer, visible and daylight states.
+- **Playwright and the tick:** `page.clock.install` + `pauseAt` + `runFor(10_000)` fires the app's interval with the page clock 10 s later, so the countdown moves by 10 s without a reload — US-4 AC2 proven end to end.
+  The older specs now scope `getByRole('status')` to the "Upcoming passes" region, since the panel adds a second live status line.
+- **`lib/timeFormat.formatCountdown(ms)`** ("3:12", clamped at "0:00") is the one countdown formatter; R6's `Countdown` can reuse it.
+
+### 2.8 R6 decisions (2026-09-02)
+
+Recorded by the R6 implementation (pass detail sheet, guide text, countdown).
+
+- **D-32 — Band boundaries.**
+  FR-GUIDE-1 lists the elevation bands as 10–25 / 25–50 / 50–75 / > 75, which leaves 25, 50 and 75 in two bands; a value on a boundary belongs to the **higher** band (25° is mid-sky, 50° is high, 75° is almost overhead).
+  FR-GUIDE-3's magnitude bands are read the same way in the direction magnitudes grow: a boundary belongs to the **brighter** band (−4 is "brighter than Venus", −1.4 "brighter than any star", +1 "like a bright star", +3 "like an average star").
+  Pinned in `lib/phrases.test.ts`.
+- **Sentence template (US-6 AC1).**
+  `guideSentence(pass, timeZone)` = `<Start> <elevation word> in the <compass name> at <time>, climbs to <peak °> (<elevation phrase>) in the <compass name> at <time>, <end phrase> in the <compass name> at <time>. <Brightness phrase> (magnitude <±n.n>).` plus ` The sky will still be bright, so it may be hard to spot.` when `twilight` (FR-VIS-7).
+  Start phrases by reason: `Appears` (horizon), `Emerges from Earth's shadow` (shadow), `Becomes visible as the sky darkens,` (twilight); end phrases: `drops below the horizon`, `disappears into Earth's shadow`, `fades into the brightening sky` (US-6 AC4).
+  Compass points are spelled out in prose (`west-southwest`) and abbreviated in the card and table.
+  Times carry the zone label `formatClock` gives (`UTC` until the zone is known, D-3).
+  The magnitude number is in the sentence so it stands alone as the chart caption (R13, FR-GUIDE-7).
+- **D-33 — Hash ids match with a 2 min tolerance.**
+  Pass ids are `${noradId}-${start.t}`; a recompute from a new "now" moves the 30 s coarse grid and can shift a refined boundary by a second, so `#pass=<id>` with no exact match opens the same object's pass whose start is within `SAME_PASS_TOLERANCE_MS` (120 000).
+  Opening assigns `location.hash` (a history entry, so the browser's Back closes the sheet); closing clears the hash with `replaceState`.
+  The hash is the only selection state (D-13: no router, no store slice).
+- **D-34 — Golden guide strings use the catalog's `stdMag`.**
+  `reference-values.json` pins the golden pass's `peakMagnitude` as computed with the R1 seed (−1.8); the app computes it with the catalog's −2.5 (D-22).
+  D-1 is linear in `stdMag`, so `tests/support/catalogFixtures.ts#goldenPassFixture` shifts the reference magnitude by `stdMag − ISS_STD_MAG_SEED` and the golden strings say "+0.5, like a bright star", which is what the screen shows and what the Playwright test compares against.
+  A change to the ISS `stdMag` therefore changes the golden strings deliberately; the reference file stays untouched.
+- **Detail sheet accessibility (FR-X-5).**
+  `PassDetail` is `role="dialog" aria-modal="true"` labelled by its heading; the heading takes focus on open (`tabIndex={-1}`), the element focused before opening gets focus back on close, Escape and the "Back to the list" control both close, and `<main>` is `inert` while the sheet is up so the list leaves the tab order.
+  `jest-axe` (`toHaveNoViolations`, wired in `tests/setup/vitest.jsdom.ts` with a `vitest` module augmentation) runs on the sheet alone and on `App` with the sheet open.
+- **Countdown.**
+  `Countdown` is pure display: `countdownState(pass, now)` walks rise → peak → set → ended with the label after the boundary reason ("Appears in", "Peak in", "Sets in" / "Enters shadow in" / "Fades in", "Ended … ago"); `PassDetail` owns the 1 s tick through `useNow` (UI code may read the clock; `src/lib` may not, D-15).
+  `lib/format.ts` is new (the §4 tree's number formatting: degrees, duration, magnitude, range, clock durations), moved out of `PassCard.tsx` so the card, the table and the countdown share it.
+- The sky chart mounts in the labelled `data-slot="sky-chart"` block of the sheet from R13 on; until then it shows a dashed placeholder.
+  `GuideText` carries `data-testid="guide-sentence"` so R13's `<figcaption>` can reuse the same golden assertion.
+- R7 (`r7-now-panel`) merged first; the overlap on `package.json` (jest-axe), `App.tsx` (NowPanel between the input and the list) and `tests/setup/vitest.jsdom.ts` (R7's `Matchers` augmentation kept) was resolved on this branch.
+
+### 2.9 R8 decisions (2026-09-02)
+
+Recorded by the R8 implementation (cloud verdict, local time).
+
+- **D-35 — The forecast fills `Observer.timeZone` by replacing the observer object, and that is not a location change.**
+  `weather.fillTimeZone` builds `{ ...observer, timeZone }` only when the zone was null (a geocoded observer keeps its own) and re-points `passes.observer`, `now.observer` and `weather.observer` to the new object in the same `set`, so the identity checks the panel and the list rely on keep holding.
+  The effects subscribe on `nowMs` and on `sameLocation` (everything but the zone) rather than on observer identity, so the fill triggers no recompute, no cancel and no second forecast; the `computeNow` reply is written against the store's observer at reply time for the same reason.
+  Alternative considered: leaving the observer alone and deriving the display zone from the weather slice in a selector — rejected because §7.3 and D-3 say the forecast fills the observer, and R9/R10 read `Observer.timeZone` as the one source of the zone.
+- **D-36 — The zone abbreviation is Intl's `short` zone name in `en-GB`.**
+  `GMT-3` for `America/Argentina/Salta` (CLDR has no English abbreviation for Argentina), `BST` / `CEST` for London / Paris, `GMT+9` for Tokyo; pinned in `timeFormat.test.ts`.
+  Open-Meteo's `timezone_abbreviation` field is parsed but not used: it varies between the offset form and letters across releases, and the IANA `timezone` is what `Intl` needs.
+  This closes the D-3 note left by R2.
+  Every time on screen — cards, Now panel, tooltip, detail sheet — switches to the zone the moment the forecast arrives; until then it is `UTC`, labelled.
+- **D-37 — The forecast is requested for the 0.1° cell, not the exact coordinates.**
+  `forecastUrl` sends the cell centre with one decimal (`latitude=-38.9&longitude=-68.0`), so the cache key (`cellKey`, `"-38.9,-68.0"`) and the request agree and two observers in one cell get the same bytes.
+  The cell is ≈ 11 km, the resolution of the best Open-Meteo models.
+  Concurrent loads for one cell share the in-flight promise; the 30 min TTL (FR-WX-5) counts from the client clock at fetch time and is enforced on read (memory, then `localStorage` `wiys:wx:v1`) and on write (stale entries pruned).
+  Storage is optional and its failures are swallowed: private mode and quota errors never fail a load.
+- **Verdict (`lib/cloudVerdict.ts`):** each layer is interpolated linearly between the two bracketing hourly samples, then the thickest layer, `max(low, mid, 0.7·high)` (D-1028; it was `0.6·low + 0.3·mid + 0.1·high`); layers are used only when both neighbours carry all three, else the total (FR-WX-4 "where the provider supplies").
+  Boundaries: 29.9 % clear, 30 and 70 % partly, 70.1 % obscured.
+  `unknown` without a snapshot and outside the covered hours (a pass beyond the three forecast days, or a stale fixture).
+  The Now panel uses the same function at `state.t`; a separate "latest hourly value" path was not worth a second rule.
+- **Weather is requested the moment the observer changes**, before the elements load, in parallel with the CelesTrak fetch, and never blocks the pass job; a rejection sets `weather.status = 'error'` and leaves the passes and the zone alone (US-7 AC4, FR-X-4).
+  A late snapshot for a previous observer is dropped by the generation check.
+- **Open-Meteo failure modes seen live on 2026-09-02, 19:20–19:40 UTC** (the fixture capture ran into an outage): HTTP 200 with a plain-text body (`Unexpected error while streaming data: allEndpointsUnavailable` / `timeoutReached`), HTTP 200 with `{"error":true,"reason":"The service is overloaded"}`, and 30 s connection timeouts.
+  `fetchCloudForecast` therefore treats a non-JSON body and a body matching `{ error: true, reason }` as failures whatever the status; both are tested with MSW.
+- **`CloudBadge`:** a focusable `[Clear, 12 % cloud]` span with the tooltip as its `aria-describedby` target (`role="tooltip"`), shown on hover and on keyboard focus (FR-X-5); the tooltip states the thresholds, the effective figure, the provider name and the fetch time in the display zone (US-7 AC2/AC3).
+  It is laid out in flow under the badge, not absolutely positioned, so it can never overflow a 390 px screen; the wrapper sits above the card's "Open guide" overlay so hover reaches it.
+- **Fixture:** `tests/fixtures/open-meteo/2026-09-02-neuquen-forecast.json` is the verbatim response to the PLAN §7.3 URL for cell `-38.9,-68.0`, captured at 2026-09-02T19:51:17Z with `access-control-allow-origin: *` confirmed on the response; `.meta.json` records the URL, the time and the cell.
+  MSW serves it for every forecast request whose query is exactly the §7.3 one and answers 400 otherwise.
+- **Playwright:** `weather.spec.ts` fixes the page clock at the fixture's fetch time so the 24 h window lies inside the three forecast days, and checks every card and the Now panel against the badge states, the `GMT-3` times and the tooltip; its second test aborts the route.
+  The older specs abort the Open-Meteo route explicitly and keep asserting `UTC` (a fulfilled route would switch their times to the Salta zone).
+  `deploy-headers.spec.ts` fulfils it and now expects three hosts.
+
+### 2.10 R9 decisions (2026-09-02)
+
+Recorded by the R9 implementation (place-name search).
+
+- **D-38 — Place search reaches the UI as a function, not a store slice.**
+  `src/data/openMeteo/geocode.ts` owns the client and the session cache (`searchPlaces`, created on first use like `loadCloudForecast`); `src/state/index.ts` re-exports it so `src/ui` keeps to the §3 rule, and `App` passes it to `PlacePicker` as a prop (tests pass a stub).
+  The 500 ms debounce, the in-flight `AbortController` and the list state are component-local, as §7.2 says; only the chosen observer goes to the store through `setObserver`.
+  A slice was considered and rejected: the query and the pick list are transient UI state that no other component reads.
+  `Place.admin1` and `country` are optional (a country-level result such as "Singapore" carries no `admin1`, verified live) and `placeLabel` joins whatever is present; `elevation` defaults to 0 when absent, and the geocoded observer stands at the place's elevation (`altM`), which the pass search is insensitive to at this scale.
+- **D-39 — Cache and request rules.**
+  The key is the normalised query: NFC, trimmed, inner whitespace collapsed, lower-cased; the same text is also what is sent, so identical keys mean identical URLs.
+  Queries shorter than two characters never reach the network (Open-Meteo answers nothing for one character, verified live).
+  Concurrent searches for one key share the in-flight request; a rejection is not cached, so the next keystroke retries.
+  A caller's signal only detaches that caller — the shared request runs to completion so its answer is cached for the next keystroke.
+  Failure handling mirrors the forecast client (D-37's outage shapes): non-JSON bodies and `{ error: true, reason }` bodies are errors whatever the status; the error schema is now `openMeteoErrorSchema`, shared by both clients.
+  The no-match response has no `results` key (verified live), which the schema accepts as an empty list.
+- **D-40 — Picker behaviour.**
+  The field is a `combobox` over a `listbox` (`aria-activedescendant`, `aria-expanded`); ArrowDown / ArrowUp walk and wrap, Escape closes, Enter picks the highlighted row, else the first, and with the list closed searches at once instead of waiting for the debounce.
+  Picking writes the label into the field, closes the list and sets the observer; the confirmation line ("Using the centre of <label> (<lat>, <lon>)", also the FR-LOC-6 note) is driven by the store's observer and shows only while `source === 'geocode'`, so typing coordinates afterwards hides it.
+  Editing the text after a pick does not clear the observer: clearing is R10's action, and a keystroke must not cancel the running pass job.
+  The empty and error states carry an `enter coordinates instead` link to the coordinates input (`id="coords"`, a new `CoordsInput` prop) that moves focus on click.
+  Rows are two text rows (48 px at the 16 px base) and the list flows under the field, never positioned, so nothing can overflow 390 px.
+  The empty-state prompts of the pass list and the Now panel now read "Enter a place name or coordinates …".
+- **Testing note:** testing-library's async wrapper waits on a real `setTimeout` and advances only Jest's fake timers, so `user-event` hangs under Vitest fake timers.
+  The timing tests (debounce, superseded search) fake `setTimeout` / `clearTimeout` only and drive the input with `fireEvent` inside `act`; the interaction tests use `user-event` with real timers and press Enter, which searches at once.
+- **Fixtures:** two verbatim responses to the §7.2 URL, both captured 2026-09-02 with `access-control-allow-origin: *` confirmed.
+  `2026-09-02-cipolletti-geocode.json` (`name=cipolletti`, 20:18:49Z) is the example place: one result, "Cipolletti, Rio Negro, Argentina" at −38.93392, −67.99032 in `America/Argentina/Salta` — the R1 golden observer to two decimals, so the pass list for the picked place contains the golden ISS pass.
+  `2026-09-02-rosario-geocode.json` (`name=rosario`, 20:03:55Z) is the ambiguous pick list: eight results across five countries.
+  MSW serves each for its name, the provider's no-match shape for any other, and 400 for a request that is not the §7.2 one.
+- **Playwright:** `place-search.spec.ts` runs at 390 px with the forecast route aborted.
+  The main flow types "Cipolletti" key by key and expects one request, picks the row, and expects "Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99)" and a pass list with the golden ISS pass whose start time is already `GMT-3` — the zone came from the geocoding result (FR-LOC-3).
+  The second test types "Rosario" and checks every row of the eight-row list (name, region, height ≥ 44 px, inside the viewport, font ≥ 16 px) and the keyboard pick.
+  Screenshot in `docs/screenshots/r9-place-picker-390.png`.
+
+### 2.11 R10 decisions (2026-09-02)
+
+Recorded by the R10 implementation (device geolocation, saved location, coordinate forms).
+
+- **D-41 — The saved location is the store's observer, written through.**
+  `src/data/localPrefs.ts` owns `wiys:prefs:v1` (a zod-checked `{ observer? }` object; more preferences join it later, and a body that fails the schema reads as empty rather than repaired) over the `StorageLike` that `weatherCache` already used, now in `src/data/storage.ts`.
+  `createAppStore` subscribes to the observer object and rewrites the prefs on every change, so a zone the forecast fills in (D-35) is remembered and a reload shows local times before any forecast arrives.
+  The `prefs` slice therefore holds no state: `restoreSavedObserver` reads the prefs and goes through `setObserver`, and `startApp` calls it *after* `startEffects`, so the restored location is computed exactly like a typed one; `clearSavedObserver` is `setObserver(null)`, which the write-through turns into removing the key, and which also empties the screen: a clear action that left the list on screen would look like nothing happened.
+  A `savedObserver` mirror in the store was considered and dropped: whatever observer the store has is what storage has.
+- **D-42 — Coordinate forms and altitude.**
+  `parseCoords` accepts a comma or whitespace between the values, an optional sign, an optional `°`, and an `N/S/E/W` suffix (either order when suffixed).
+  A suffix on one value only, a sign together with a suffix, or two suffixes on one axis are errors with their own messages; the range messages are unchanged.
+  Altitude is a separate text field (`inputMode="decimal"`, default "0"; blank means 0) limited to −500..9000 m so a typo cannot put the observer in the stratosphere; an invalid altitude blocks the observer like an invalid coordinate.
+  A restored `coords` observer pre-fills both fields with its full-precision values without emitting; a restored `geocode` observer pre-fills the picker with its label.
+- **D-43 — Device location.**
+  `UseMyLocation` renders nothing unless `navigator.geolocation` exists and `isSecureContext` is true (the environment is a prop; the app passes the browser's).
+  A press asks `getCurrentPosition` for a fresh fix (`maximumAge: 0`, `timeout: 20 s`, low accuracy; a cached fix would keep a stale accuracy on screen), shows "Finding your location…" on the disabled button meanwhile, and on success sets a `device` observer with the rounded `accuracyM` and the device altitude rounded (0 when it reports none).
+  Failures are an alert next to the button with a message per code (denied / unavailable / timeout), each ending in the manual alternatives; nothing is disabled.
+  The accuracy is shown only above 1 km, as "about 2 km" / "about 1.5 km" (`accuracyText`).
+- **D-44 — The location section.**
+  `LocationInput` is a `region` named "Location" holding the picker, the coordinates, the device button, the active-observer line, the clear action and the precision note.
+  The line "Using <lat>, <lon> [from your device] [at <alt> m] [(accurate to about N km)]." appears for `coords` and `device` observers; a `geocode` observer keeps the picker's "Using the centre of …" line (D-40), which already carries the rounded coordinates, so nothing is said twice. "Saved in this browser only.
+  Clear saved location" appears whenever there is an observer; clearing remounts the inputs empty (keyed children) and moves focus to the new place field, since the button that had it is gone.
+  The precision note is always present: "Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved." (FR-LOC-6).
+- **Playwright:** `location.spec.ts` at 390 px, geocoding and forecast routes aborted.
+  The main flow types the space-separated Neuquén coordinates and 270 m, checks the list and the golden ISS pass, reads `wiys:prefs:v1`, reloads, and expects the same status text and pass id with both fields pre-filled; then clears and expects the empty prompt, an empty storage, focus on the place field and an empty page after another reload.
+  The device test grants geolocation at 2 km accuracy (line with "accurate to about 2 km", list computed, `accuracyM` stored), then at 300 m (no accuracy text); the third test denies the permission.
+  Screenshot in `docs/screenshots/r10-location-390.png`.
+
+### 2.12 R11 decisions (2026-09-02)
+
+Recorded by the R11 implementation (elements cache, re-check, banners, live contract).
+
+- **D-45 — The cache is a `GroupStore` behind `createElementsCache`, and the loader takes the cache as an option.**
+  `src/data/elementsCache.ts` holds the IndexedDB store (`idb`, database `wiys`, object store `elementGroups`, key `group`, value `CachedGroup` raw and unfiltered per D-9), a memory store with the same two-method interface, and the cache itself: per group, read → fresh under 2 h (`isFresh`, which also rejects a `fetchedAt` in the future) → else fetch and write, or on failure return the copy flagged `stale`, or reject when there is no copy.
+  A stored entry is zod-checked on read (`ommRecordSchema` per record) and reads as absent when it fails, so a schema change re-fetches rather than crashes.
+  `loadElements(catalog, { cache })` goes through the cache and reports `fetchedAt` (the older of the two groups: when the set in use was last confirmed), `stale` and `persistent`; the app's cache (`appElementsCache`) is created on first use over the global `indexedDB` and `navigator.locks`, and every test passes its own (`tests/support/elementsCache.ts`: memory, or `fake-indexeddb` under a unique database name, with a serial lock stand-in).
+  `fake-indexeddb/auto` is installed by the Node setup file, so the app path also runs in tests.
+- **D-46 — Single-flight is two layers.**
+  Across tabs, `navigator.locks.request('wiys:elements', { signal }, …)` wraps the whole check-then-fetch (D-10); a second tab arriving under the lock sees the first tab's fresh timestamp and fetches nothing.
+  Within a tab, concurrent `load()` calls share the in-flight promise, which is what the timestamp-only fallback (no Web Locks) relies on.
+  An abort while a stale copy exists rejects instead of answering stale, so a cancelled load never writes.
+- **D-47 — IndexedDB failure switches the session to memory, once.**
+  The first `get` or `put` that throws (Safari private mode, quota) replaces the store with a memory store for the rest of the session, warns, and the load goes on; the result carries `persistent: false`, which the UI shows as the "not cached" note (§7.1).
+  A host with no `indexedDB` at all starts in that state.
+  The memory copy still enforces the 2 h rule for the session, so a private-mode user still fetches at most every 2 h.
+- **D-48 — The re-check lives in `effects.ts`, and a newer set recomputes.**
+  Every `ELEMENTS_RECHECK_MS` (15 min) while the tab is visible the effects call the loader again; a hidden tab stops the timer and a tab shown again after longer than the cadence checks at once.
+  The loader's 2 h rule means most checks answer from the cache and change nothing (the slice is not rewritten, so nothing re-renders).
+  When the answer carries a newer `fetchedAt`, the worker is handed the records again (`loadElements` replaces its satrec map), the current observer's passes are recomputed over a 24 h window from *now* (not from the observer's `nowMs`, which may be hours old by then) and the previous job is cancelled; when only `stale` or `persistent` changed, the slice is updated so the banner follows.
+  A failed re-check keeps the loaded set and warns on the console; a re-check while the first load failed (no cache, no network) retries it, computing for the observer if there is one.
+- **Banners (`ui/components/common/Banner.tsx`, `ui/components/elements/ElementsBanners.tsx`).**
+  `info` is `role="status"`, `warning` is `role="alert"`, both with a spelled-out `[Note]` / `[Warning]` prefix so the meaning does not rest on colour (FR-X-5); a bracketed tag on a dim rule is the terminal treatment (FR-X-6).
+  `ElementsBanners` shows, once the elements are loaded: always the age line "Orbital elements: newest epoch 3 h 12 min old (date time), confirmed with CelesTrak date time." (FR-SAT-4's "display the epoch age", with the date since the set can be days old); the stale warning quoting the fetch time (FR-SAT-6); the epoch warning when the newest epoch is strictly older than 5 days (`lib/elementsAge.ts`: 5 d + 1 s warns, 5 d − 1 s does not — the newest epoch, because the stations group is refreshed several times a day, so an old newest epoch means the whole fetch is old); the not-cached note; and the note listing catalog objects with no elements by name (the store carries ids; `state/index.ts` exports `catalogName`).
+  Times are in the observer's zone when known, else UTC (D-3).
+  The clock is `useNow(60 s)`, moved from `PassDetail` to `ui/hooks/useNow.ts` and shared.
+- **Live contract (`tests/live`, `live-contract.yml`).**
+  A fourth Vitest project, `live`, includes only `tests/live/**` with no setup file (no MSW), and the Node project excludes that directory, so `LIVE=1 npx vitest run --project live` is the one command that reaches the network and `npm test` never does (§9.3).
+  The suite requests both CelesTrak groups and both Open-Meteo endpoints with an `Origin` header and asserts `access-control-allow-origin: *`, parses each body with the app's own parsers, treats Open-Meteo's 200-with-error-body outage shape (D-37) as a failure, and checks every catalog id against the merged groups.
+  The workflow runs daily at 06:17 UTC and on dispatch with `issues: write`; on failure it opens an issue titled "Live contract failed: CelesTrak / Open-Meteo" with the last 60 log lines, or comments on the open one, then fails the run.
+  Passed manually on 2026-09-02 (5 tests, ≈ 3 s).
+  GitHub registers a workflow only once it exists on the default branch (`gh workflow run` from the PR branch answers 404), so the first scheduled or dispatched run happens after the merge; the acceptance item "one green run" is closed then.
+- **Playwright (`offline.spec.ts`).**
+  After one online visit (CelesTrak fulfilled from the fixtures, Open-Meteo aborted), every external route is aborted and the page reloaded 30 min later: the saved location (R10) brings the observer back, the elements come from IndexedDB with no CelesTrak request, the same pass ids appear, every badge reads unknown and no warning shows.
+  A reload 3 h later with CelesTrak aborted makes exactly one failed attempt per group and shows the stale warning; a first visit five days after the capture shows the epoch warning and the age line reads "5 d … old".
+
+---
+
+### 2.13 R12 decisions (2026-09-02)
+
+Recorded by the R12 implementation (visual identity, accessibility pass, sort toggle, ISS hero card).
+
+- **D-49 — The terminal identity is three treatments, not a box-drawing font.**
+  Boxes (cards, inputs, banners) are 1 px lines in `--rule` (decorative) or `--edge` (controls), which is a box-drawing line at the grid's own weight; section titles are `── Title ─────` character rules (`common/SectionHeading.tsx`: the `──` and the trailing run of `─` are CSS `content`, clipped by `overflow: hidden`, so the accessible name is the title alone and the rule sits on the character grid at any width; the footer's top rule is the same device); controls are bracketed text, `[ Use my location ]`, `[ ← Back to the list ]`, `[ Clear saved location ]`, and the sort toggle reads `[x] Soonest first  [ ] Best first`, so a pressed state never rests on colour alone (FR-X-5).
+  Real box-drawing borders around cards (`┌─┐│└┘`) were rejected: they need the box width in characters, which means measuring or a fixed width, and they break the moment a card wraps.
+  The header is `> Title` with a dim tagline; `header`, `main` and `footer` share the 80-cell frame in `global.css`.
+- **D-50 — Contrast is documented in `tokens.css` and pinned by a test.**
+  Two tokens were added: `--bg-raised` (#161c24) for a highlighted row (the picker's active option used `--rule` as its background, where `--fg-dim` reads at 3.55 : 1; on `--bg-raised` it is 4.70 : 1) and `--edge` (#606c7a, 3.59 : 1 on `--bg`) for input and button borders, since `--rule` at 1.48 : 1 is below the 3 : 1 that WCAG 1.4.11 asks of a control's boundary; `--rule` stays for dividers and card frames.
+  The header comment of `tokens.css` carries the table of every text token on both grounds (all ≥ 4.70 : 1); `scripts/contrast.ts` computes it (`npx tsx scripts/contrast.ts`) and `tests/styles/tokens.test.ts` (Node project) recomputes every pair from the file and fails when a colour changes without the table, or a pair drops below 4.5 : 1.
+- **D-51 — One focus ring, one tap size.**
+  `global.css` sets `:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }` for everything and no component removes it without a replacement (a card's open control hands its ring to the card, since the control's `::after` is the whole card).
+  `--tap` is two rows (48 px, above the 44 px floor); `input` and `button` get `min-height: var(--tap)`.
+  Inline controls that live inside a sentence (links, `[ Clear saved location ]`, the cloud badge) use the `inline-control` treatment: `display: inline-block` with block padding that grows the box to `--tap` and a matching negative block margin that leaves the line box where it was, so the bounding box (what a finger and the e2e measure) is 48 px without moving the prose.
+  `a` is `inline-block` globally; link texts are short so the loss of mid-text wrapping does not matter.
+  **The cloud badge tooltip is a box, overlaid, not in flow** (revised during R12 review): R8 laid it out in flow under the badge, which made the badge jump up a line on hover (an inline-block's baseline is its *last* line, so the opened tooltip's last line was what aligned with "Clouds now:") and looked like a paragraph, not a tooltip.
+  Now `.tip` is `position: absolute; top: auto; left/right: var(--cell)` inside an unpositioned wrapper: `top: auto` keeps its static position (right under the badge) while `left`/`right` span the containing block, the card or the Now panel (both `position: relative`), so it overlays what follows, never widens the page, and the badge's line box is untouched.
+  Bordered in `--edge` on `--bg-raised`, `[Clouds]` prefix, `z-index: 2`.
+  It opens on hover and on `:focus` (a tap on a phone focuses the span, which `:focus-visible` would not match in Chromium), while the ring stays keyboard-only.
+  The badge, not the wrapper, is the positioned element above the card's open-guide overlay.
+- **D-52 — The hero pass is the earliest pass of a featured object that has not ended, and it leaves the list.**
+  `lib/passSort.nextFeaturedPass(passes, isFeatured, now)`; `isFeatured` comes from `src/state` (the catalog's `featured` flag; the UI never reads the catalog, PLAN §3).
+  A pass in progress still counts, so the card counts down to the peak or the end (US-5 AC4 for the pass that matters most); once it ends the next featured pass takes over, or the card goes.
+  It is *not* repeated in the list: one `article` per pass keeps the e2e locators unambiguous and the status line's count honest.
+  `PassList` re-checks the choice every 30 s (`useNow(HERO_CHECK_MS)`), the card itself ticks every second (`useNow(HERO_TICK_MS)`), and the countdown text is `Countdown`'s `countdownState` ("Appears in 12:34", "Peak in", "Sets in" / "Enters shadow in", "Ended … ago").
+  `PassCard` exports `PassFields` and `OpenGuide` so the hero lays out the same fields under its kicker (`[Next ISS pass]`) and larger name.
+- **D-53 — "Best first" is `10^(−0.4·m) × peak elevation`, and the order is the one preference the store holds as state.**
+  The brightness term is flux relative to magnitude 0 (one magnitude brighter counts 2.5×; the ISS at −2 outweighs a +0.5 pass at the same elevation 10 to 1, which is what a casual observer calls best); the reference magnitude cancels in the comparison, so `src/lib` needs no threshold constant.
+  Ties fall back to start time; sorting never mutates the store's array.
+  The `sort` preference lives in `wiys:prefs:v1` beside the observer (`PassSort` in `src/model/prefs.ts`; `localPrefs` reads each preference independently through `.catch(undefined)`, so an unknown order value drops only itself, and a bad observer only itself); the prefs slice reads it when the store is created and `setSort` writes it through, while the observer write-through preserves it (`{ ...read(), observer }`).
+  The toggle is pure (`SortToggle`, `aria-pressed`, a click on the pressed order reports nothing) and `PassList` wires it to the store.
+- **Footer links and the CSP test.**
+  `tests/deploy/headers.test.ts` scans `src/**/*.ts(x)` for `https://` hosts and requires each in `connect-src`; `Footer.tsx` is now skipped by name, since its three attribution links (`celestrak.org`, `open-meteo.com`, `www.geonames.org`) are navigation targets the user follows, which CSP does not govern, not connections the page makes (FR-X-3 still holds: `deploy-headers.spec.ts` asserts the requests go to the site, CelesTrak and Open-Meteo only).
+- **Playwright (`identity.spec.ts`, 390 px).**
+  `expectIdentity` runs on Home empty, Home with passes and the detail sheet: body background is `rgb(11, 15, 20)`, no visible element with text has a computed `font-family` without `monospace`, `scrollWidth ≤ innerWidth`, and every visible `a[href]`, `button`, `input` and `[tabindex="0"]` outside an `inert` subtree measures ≥ 44 px both ways.
+  The tab-order test lists the focusable controls in DOM order (≥ 15: the three inputs, the device button, the clear action, the Now-panel badge, the hero's open control and badge, the two sort buttons, every card's open control and badge, the three footer links), presses Tab that many times from the title and expects the same sequence with a ring on each (the card's ring for an open control), then body, then the first control again.
+  Two Chromium facts the test works around: a blur does not reset the sequential-focus starting point (a click on the title does), and Playwright empties `test-results/` at every run, so the screenshots are copied to `docs/screenshots/r12-*.png` once green.
+  The detail sheet is captured at viewport size: it is `position: fixed`, and a full-page capture shows the list behind it.
+
+### 2.14 R13 decisions (2026-09-02)
+
+Recorded by the R13 implementation (sky geometry library, `SkyChart` boundary, SVG polar view).
+
+- **D-54 — One geometry module for both views, per-leg resampling.**
+  `lib/skyGeometry.ts` holds `toDome` (the §8.2 frame, pinned by the cardinal and zenith unit vectors), its inverse `fromDome`, `toPolar` (equidistant azimuthal on the unit disc, screen convention with north up; `looking-up` negates x so east is on the left), `interpolatePoint` / `interpolateTrack` (great-circle in the sky, linear in time and range; a sample's own time returns the sample object, so the peak time returns the peak) and `resampleArc`.
+  Resampling divides each of the two legs, start → highest sample and highest sample → end, into equal angular steps along the sampled polyline, so start, peak and end survive as the same objects and the spacing is the step to within one rounding per leg.
+  The first golden pass (a 48 s grazing pass, 13° of sky) resamples to seven points 2.2° apart; the test says so rather than assuming a long arc.
+- **D-55 — `SkyChart` chooses among registered views, and a toggle between identical views is not shown.**
+  `SKY_CHART_VIEWS` is the ordered list of `SkyChartView`s (`{ Component, id, label }`, each exported by its own file: `POLAR_VIEW` now, the dome in R15).
+  The `chartView` preference defaults to `dome` (US-6 AC3), and `viewFor` falls back to the first registered view when no view claims the preference, so until R15 the polar view renders under either value and the view toggle (an `OptionToggle`, `[x] Dome [ ] Polar`) is rendered only when more than one view is registered.
+  `SkyChart.contract.test.tsx` is `describe.each(SKY_CHART_VIEWS)`: R15 registers the dome and the contract covers it without a change to the test.
+  The caption is the FR-GUIDE-1 sentence of the highlighted pass (or the first), rendered by `GuideText` inside the `<figcaption>`, so `PassDetail` shows the sentence once and the `guide-sentence` test id keeps its meaning.
+- **D-56 — The polar view's anchors are data attributes; selection is a click on the pass group.**
+  The drawing is `aria-hidden` (FR-GUIDE-7), so the contract's "labelled anchors" cannot be accessible names: the cardinals are `<text data-anchor="N|E|S|W">`, the pass label `data-anchor="pass"` inside `<g data-pass-id>`, the peak label `data-anchor="peak"` (`max 46°`), and markers are `data-marker="rise|peak|end|shadow|now|arrow"` positioned by `transform="translate(x y)"` so the tests read `toPolar` back off the DOM.
+  `onSelectPass` fires on a click on the pass group; there is no keyboard path inside the hidden drawing, and none is owed: the facts are in the caption and the numbers table, and the detail screen draws one pass.
+  Labels sit beside the track along the normal to the direction of travel (the name inward at the rise, the peak label outward), never along it; a label whose estimated width (0.6 em per character) would leave the viewBox is anchored the other way.
+- **D-57 — Chart preferences are store state like the sort order, and the orientation toggle lives inside the polar view.**
+  `chartView` and `chartOrientation` join `sort` in the prefs slice (read at creation, written through by their setters, preserved by the other write-throughs) and in `wiys:prefs:v1` through `localPrefs` (`.catch(undefined)` each, so an unknown value drops only itself).
+  `SkyPolar` implements `SkyChartProps` exactly (PLAN §8.1), so its orientation is not a prop: it reads and writes the store.
+  The toggle has no visible prefix (`Orientation:` wrapped the group at 390 px); the convention is labelled under the drawing instead, as a full sentence (`Looking up: east on the left, as when lying on your back.`), which is what FR-GUIDE-4's "labelled on the chart" is satisfied by for assistive technology too, the drawing being hidden.
+- **`PassDetail` takes the observer.**
+  Its `timeZone` prop became `observer: Observer` (the chart wants the observer, PLAN §8.1; the zone is `observer.timeZone`), and `App` mounts it only with an observer in the store, which is always the case when a pass is selected.
+- **Review fixes.**
+  The page scroll is locked (`html { overflow: hidden }` from an effect in `PassDetail`, restored on close) while the sheet is up: the sheet is `position: fixed` and scrolls itself, so on desktop the list's scrollbar behind it was a second, dead scrollbar.
+  The performance gate (`passes.perf.test.ts`) judges the best of three runs: Vitest runs it beside the other files and one run on a shared CI core measured the contention (1547 ms on this branch's first CI run against 975–1433 ms on `main`), not the algorithm (362 ms locally).
+- **Playwright (`pass-detail.spec.ts`, 390 px).**
+  After the R6 checks: no `<canvas>` in the document, the figure holds the sentence, the SVG drawing is `aria-hidden` with the four cardinals, the pass and peak labels and one each of the rise / peak / end / arrow markers, and its box is inside the viewport; `E` sits in the left half by default and in the right half after the map toggle, the convention line changes, `wiys:prefs:v1` carries `chartOrientation`, and the choice survives a reload.
+  The sheet is scrolled to the figure before each screenshot (it is `position: fixed`).
+  The spec also opens the highest pass of the night for a second screenshot, since the golden pass grazes the horizon.
+  `identity.spec.ts` asserts no `<canvas>` on every screen it visits.
+
+### 2.15 R14 decisions (2026-09-03)
+
+Recorded by the R14 spike (`docs/spike-glyphcss/FINDINGS.md` has the evidence; `spike/` is the throwaway page, typechecked and linted but never bundled).
+
+- **D-58 — The dome frame is glyphcss's: Z up.**
+  `lib/skyGeometry.toDome` is x south, y east, z up (§8.2 rewritten); the R13 unit-vector tests pin it. glyphcss's camera orbits its Z axis, so at `rotY = 0` it stands south of the observer facing north with east on the right (the D-17 view), `rotY = (360 − facingAz) mod 360` faces any azimuth and `rotX` is the tilt from top-down (0) to horizontal (90).
+  `fromDome` follows; nothing else in the app depended on the old frame.
+- **D-59 — Composition and grid (P-OQ-2 resolved).**
+  Wireframe mode strokes every polygon edge, so strips render as ladders and no ASCII palette resolves the dome at 60×30.
+  The dome is drawn in `charMode="braille"` (2 × 4 dots per cell): rings and meridians as 0.05°-wide strips (one stroke), the pass as a 1.5° strip (a double dotted line, the highlight channel), dashes by omitting every other 5° quad, markers as diamonds at radius 1.02, labels as hotspots outside the grid at 11 px.
+  Default grid 60×30 at 390 px (6.5 px cells; the drawing carries no text, so cells may shrink to 100×50 without a legibility cost); `autoSize` with cols from the measured cell on wider screens.
+  A grazing pass (the golden pass: 13° of sky at 10°) is three cells on the dome and unreadable in any mode; the numbers table and the panorama carry it.
+- **D-60 — Camera model (P-OQ-1 resolved) and the primary view.** glyphcss 0.1.6 has no observer-centred camera: the perspective camera's `distance` is a pull-back from the target, the pinhole legacy mode collapses at the origin, and the first-person controls render nothing.
+  The dome keeps the external camera (D-17); the interior mode is closed.
+  The horizon panorama prototype (§8.5 item 7: SVG, equirectangular, facing the arc, live marker with trail, no dependency) is the observer-centred view and, on the spike's screenshots, reads the grazing pass the dome cannot show.
+  The choice of primary view is the owner's (spec UX-1); R15 is re-scoped after that pick: panorama as primary and dome as a second view, or dome as primary as written.
+  The polar chart is the fallback either way.
+- **D-61 — Colour (P-OQ-3 resolved) and the CSP.**
+  `useColors` emits `<span style="color:…">` through `innerHTML`, which `style-src 'self'` blocks; the dome is monochrome, highlight by line weight.
+  `GlyphScene` also injects a `<style id="glyph-styles">` at mount, which the CSP blocks and without which the hotspot layer loses its containing block: R15 ships those base rules (glyphcss 0.1.6's `injectGlyphBaseStyles` text) in `dome/SkyDome.module.css`, pinned with the version, instead of hashing the injected sheet.
+  Hotspot positions and the host's `cursor` / `touch-action` are set through the CSSOM and survive the CSP.
+- **D-62 — FR-GUIDE-6 measured by proxy; D-16 trigger (a) not fired.**
+  A 5 s real-pointer drag in Playwright's Chromium (Pixel 5 profile, 390 px) under Chrome DevTools CPU throttling: ≥ 64 rasterisations/s at 4× and ≥ 43/s at 6× at every grid (60×30 and 100×50, braille and ASCII, autosize), longest frame 27 ms; glyphcss re-rasterises on every animation frame while dragging.
+  `interactiveDownscale={2}` is the configuration fix if a phone falls short.
+  The on-device check (≥ 30/s on a mid-range 2022 Android phone) stays in R15's release checklist as the real gate.
+- **D-63 — Chart chunk budget is 100 KB gzipped.**
+  The dome behind `React.lazy` measures 97.3 KB gzipped (`@glyphcss/core` 48 KB, `glyphcss` 48 KB, the React binding 5 KB, our geometry 4 KB); the React package re-exports all of core, so the loaders and colour maths cannot be shaken from outside.
+  The OBJ/glTF/VOX/PNG/JPEG loaders and the colour-font atlases are emitted as lazy chunks (pngjs 62 KB, atlases 33 + 29 KB, jpeg-js 9 KB, buffer 9 KB) and are never fetched by the dome. §11 carries the measured figure, as TASKS R15 provides.
+- **Housekeeping.**
+  `@glyphcss/react` is pinned to 0.1.6 in `dependencies` (imported only by `spike/` until R15; the lint override for `spike/**` mirrors the dome's) and `rollup-plugin-visualizer` is a dev dependency.
+  `tsconfig.app.json` includes `spike`, `tsconfig.node.json` the capture script and the bundle probe config.
+  `vite build` bundles only the root `index.html`, so `dist/` never contains the spike page (verified by listing `dist/`).
+
+### 2.16 R15 decisions (2026-09-03)
+
+Recorded by the R15 implementation (the ASCII dome as the default view, bundle budgets, release checklist).
+The primary view is the dome, as spec UX-1 and TASKS R15 are written: the owner asked for R15 without changing the Decision Log, so the panorama prototype from R14 stays in `spike/` as a candidate second view and nothing in the app depends on it.
+
+- **D-64 — The camera is component state, not `GlyphOrbitControls`.**
+  `SkyDome` holds `{ facingAzDeg, tiltDeg }` (`dome/camera.ts`) and hands `GlyphOrthographicCamera` `rotY = (360 − facing) mod 360`, `rotX = tilt` and the zoom as props; the binding writes them to the camera and re-rasterises. glyphcss's orbit controls were not used: their pitch clamp is fixed at ±90° where PLAN §8.3 wants 5°–80°, and the React binding exposes neither the controls handle nor its `change` events, so the facing readout would have needed the spike's per-frame polling.
+  The pointer drag is ours (pointer events on the stage, `setPointerCapture`, `touch-action: none`): the dome follows the finger, dragging right turns the view left and dragging down lowers the tilt, at glyphcss's own 4 px per degree, with the moves folded into one state update per animation frame.
+  The arrow keys turn by 15° and tilt by 5° through the same state, so drag, keys and readout cannot disagree.
+  The wrapper is a focusable `group` named "Sky dome" and described by the readout; the drawing inside it is `aria-hidden` (FR-GUIDE-7).
+- **D-65 — The grid is always 60 × 30; the cell follows the host width.**
+  `layoutFor(width)`: cell = width / 60 (6.5 × 13 px at 390 px, D-59; clamped to 4–12 px), set on the stage as custom properties through the CSSOM, and zoom = 140 × cell / 6.5 so the dome fills the same share of the grid whatever its size.
+  The width comes from our own `ResizeObserver` (glyphcss's `autoSize` needs a sized host and jsdom lays nothing out); without one the default stands.
+  *Amended in the R15 review:* the first cut kept the cell fixed and added columns on wider hosts, which made the 390 px grid overflow the sheet's narrower content box and clip the E and S labels; a fixed grid with a scaled cell fills the shared box exactly and keeps the raster identical everywhere.
+  Two more facts from that review, both about fonts: (1) the page's monospace fonts (SF Mono, Roboto Mono, Consolas) have no braille, so the browser drew the cells from a fallback face with a wider advance than the space and the letter M, rows overflowed the box and the labels drifted off the ring; the raster therefore has its own font, `wiys-braille.otf` (generated by `scripts/build-braille-font.ts` with opentype.js: the 256 braille patterns, the space and the letter M at one 0.6 em advance, 4 KB gzipped, fetched with the chart chunk; `SkyDome` measures the braille and space advances once and sizes the font and `word-spacing` from them as a safety net).
+  (2) glyphcss measures its cell once, at mount, from twenty lines of `M` in the `<pre>`'s font, so the scene mounts only after the font is loaded (`document.fonts.load`) and the width is measured, and it is remounted (`key`) if the cell changes; before that ordering the raster kept a stale 6.5 px cell and drew the dome 8 % small against the labels.
+  `SkyDome.module.css` also ships glyphcss 0.1.6's base rules verbatim under `:global` (D-61), pinned by version.
+  The raster snapshot test answers glyphcss's cell probe with those metrics, so the committed raster is the one a 390 px phone draws, not jsdom's unmeasured fallback. glyphcss skips its `<style>` injection when an element with id `glyph-styles` already exists, so `SkyDome` renders a hidden sentinel with that id before the scene: without it every dome mount reported a `style-src-elem` violation (the injected element is blocked either way), which the e2e now asserts does not happen.
+- **D-66 — The dome is lazy in `SkyChart.tsx`.**
+  `DOME_VIEW` wraps `React.lazy(() => import('./dome/SkyDome'))` in a `Suspense` whose fallback keeps the drawing's height; `SkyChart.tsx` imports nothing from `dome/` statically, so the chart chunk (`SkyDome-*.js`: `@glyphcss/react`, `@glyphcss/core`, `glyphcss`, `dome/`) is fetched only when a detail sheet opens on the dome view.
+  The R13 contract test gained one `beforeAll` per view that mounts it once and waits for the drawing, after which its assertions run synchronously as before; `PassDetail.test.tsx` waits for the dome the same way.
+  Measured: main 109.2 KB, chart 92.9 KB, worker 34.2 KB gzipped, all inside the §11 budgets; the spike's 97.3 KB figure included its own page code.
+- **D-67 — Budgets are a script, not the visualizer.**
+  `scripts/bundle-budget.ts` gzips every `dist/assets/*.js`, classifies the main chunk (the script `index.html` references), the chart chunk (`SkyDome-*.js`) and the worker chunk (`passes.worker-*.js`), prints the table and a `::warning::` annotation for an overrun, and always exits 0 (§11: a warning).
+  The unbudgeted lazy chunks (satellite.js's WASM entry, D-18; glyphcss's loaders and font atlases, D-63) are listed for the record.
+  `rollup-plugin-visualizer` stays for humans: `BUNDLE_STATS=1 npm run build` writes its treemap to `bundle-stats/` (git-ignored, outside `dist/`).
+- **Labels.**
+  Hotspot labels carry the polar view's data attributes (`data-anchor`, `data-pass-id`, D-56) so the contract test reads both views alike; each label is aligned away from the drawing's edge by the side of the screen its anchor projects to (`domeGeometry.screenSide`, the yaw rotation alone), the rise label sits at radius 1.18 so it clears the compass names at 1.08, and a click on the rise label selects the pass.
+  The readout is `Facing SSW (203°) · tilt 25°`: the degrees are there so a 15° key step is checkable by eye and by test.
+- **D-68 — The polar chart is the default view for now, and both views share one frame.**
+  The owner's call in the R15 review (2026-09-03): the dome reads as confusing, so `DEFAULT_CHART_VIEW` is `polar`, `POLAR_VIEW` is first in `SKY_CHART_VIEWS` and the dome stays registered one toggle away.
+  This departs from spec US-6 AC3 / UX-1 ("dome as the primary view") without a Decision Log entry yet: the entry belongs with the decision on the dome's future (improve it or remove it), which is its own task after R15 merges, since the dome sits behind `SkyChartProps` and either outcome touches nothing else.
+  Both views render inside `skychart/ChartFrame.tsx`: a controls row at least one tap target tall (the polar orientation toggle; the dome's hint), a square drawing box capped at 44 cells for both, and a status row at least one text row tall (the polar convention; the dome readout), so switching views moves neither the caption above nor the numbers below (asserted in `sky-dome.spec.ts`).
+- **Open, for the owner:** the on-device FR-GUIDE-6 check (`docs/RELEASE.md` §3, with the console snippet that counts rasterisations) and the deploy-day comparison against Heavens-Above (§4) were not run here: no phone and no deploy in this task.
+  The proxy measurement stands (D-62).
+
+## 8. Sky Chart Component (spec UX-1)
+
+### 8.1 Isolation boundary
+
+The rest of the app knows one component, `SkyChart`, and one props interface.
+Nothing outside `src/ui/components/guide/skychart/` imports `@glyphcss/react` (enforced by the lint rule in §3).
+
+```ts
+// src/ui/components/guide/skychart/SkyChart.types.ts
+export interface SkyChartProps {
+  passes: Pass[];                       // what to draw; usually one, may be several for a "tonight" overview
+  observer: Observer;                   // for labels/time zone; geometry is already observer-relative
+  highlightedPassId: string | null;     // emphasised arc + peak; others drawn dim
+  onSelectPass?: (passId: string) => void;
+  now?: EpochMs;                        // optional: marks the satellite's current position on its arc
+  initialFacingAzDeg?: number;          // default: highlighted pass's start.azDeg (D-17)
+  className?: string;
+  // ---- v1 ----
+  sun?: SunState | null;                     // FR-DOME-6 glow; grows from −18° to the horizon (R22, D-149, D-151)
+  moon?: MoonState | null;                   // FR-DOME-6 marker with a phase glyph, while it is up
+  // Either one given (a `null` counts) means the caller owns both; neither
+  // means `SkyChart` evaluates them at `now` through `useSkyBodies` (D-149).
+  hidden?: NowItem[];                        // FR-LIVE-6 dimmed objects with reasons; empty by default
+  fill?: boolean;                            // FR-DOME-1 / FR-LIVE-1: no frame, fill the box
+}
+
+export interface SkyChartView {         // both implementations export this shape
+  Component: React.ComponentType<SkyChartProps>;
+  id: 'dome' | 'polar';
+  label: string;
+}
+```
+
+- `SkyChart.tsx` renders the dome view by default and the polar view when the user toggles (preference persisted in `localPrefs`).
+  It is the *only* file that knows two implementations exist.
+- `SkyDome.tsx` (glyphcss) and `SkyPolar.tsx` (SVG) both implement `SkyChartProps` exactly; a contract test (§9.1) mounts each with the same fixture and asserts the same accessible text and the same set of labelled anchors (N, E, S, W, pass names, peak).
+- All geometry that is *not* glyphcss-specific — az/el → unit vector, arc resampling, polar projection — lives in `lib/skyGeometry.ts` and is shared, so the two views cannot drift.
+- Text alternative (FR-GUIDE-7): `SkyChart.tsx` wraps either view in a `<figure>` whose `<figcaption>` holds the FR-GUIDE-1 sentence; the view's own grid is `aria-hidden`.
+
+### 8.2 Coordinate mapping (dome frame)
+
+Right-handed, **Z up** (glyphcss's frame, fixed by the R14 spike, D-58), unit radius, observer at the origin:
+
+```
+x = -cos(el) · cos(az)      # south (north is −x)
+y =  cos(el) · sin(az)      # east
+z =  sin(el)                # up; azimuth increases clockwise when seen from above
+```
+
+glyphcss's turntable camera orbits its Z axis: at `rotY = 0`, `rotX = 90` it stands on +x looking toward −x with +y on the screen's right, so in this frame it stands south of the observer facing north with east on the right, and `rotY = (360 − facingAz) mod 360` faces any azimuth (positive `rotY` turns the world clockwise on screen).
+`rotX` is the tilt from top-down (0) to horizontal (90).
+`domeGeometry.ts` builds everything through the one `toDome(azDeg, elDeg): Vec3` function in `lib/skyGeometry.ts`, which the R13 tests pin on the cardinals and the zenith.
+
+### 8.3 Scene composition
+
+| Element | glyphcss construct | Built from |
+|---|---|---|
+| Scene | `GlyphScene mode="wireframe" useColors={false} autoSize cellAspect≈2` | Grid sized by the container; a monochrome palette (`ascii` or `lines`) keeps the CSP strict (see risk below) and matches FR-X-6. |
+| Horizon ring | `GlyphMesh polygons={…}` — a thin closed strip of quads at `el = 0°`, 72 segments | `domeGeometry.horizonRing()` |
+| Altitude rings 30°/60° | Same, thinner and sparser (every other segment) so they read as dashed | `domeGeometry.altitudeRing(elDeg)` |
+| Meridians to the 8 compass points | Thin strips from horizon to zenith at az = 0, 45, …, 315; the four cardinal ones full, the four intercardinal ones dashed | `domeGeometry.meridian(azDeg)` |
+| Pass arc | One `GlyphMesh` per pass: a thin polygon strip (quads) through `pass.track` resampled to ~2° steps along the arc, width ≈ 1.5° so it rasterises as a continuous line; radius 1.0 | `domeGeometry.passStrip(pass)` |
+| Direction of travel | Every Nth quad of the strip omitted near the end, plus the label `→` in the end hotspot | `domeGeometry.passStrip` options |
+| Peak marker | A small diamond (two triangles) on the arc at `pass.peak`, slightly outside the dome (radius 1.02) so it wins the raster | `domeGeometry.peakMarker(pass)` |
+| Shadow-entry marker | Same shape, different glyph via a distinct hotspot label | `domeGeometry.pointMarker(point)` |
+| Current position (`now`) | Marker interpolated along `track` | `domeGeometry.pointMarker` |
+| Cardinal labels | `GlyphHotspot at={toDome(az, 0)}` with a `<span>` child `N`/`NE`/… positioned just outside the ring (radius 1.08) | `domeGeometry.compassAnchors()` |
+| Pass labels | `GlyphHotspot` at the rise point (satellite name + rise time) and at the peak (`max 62°`) | `domeGeometry.passAnchors(pass)` |
+| Highlight | Highlighted pass drawn as a wider strip; others narrower. With colours off, weight is the only channel — acceptable, verified in the spike | props → geometry options |
+| Camera | `GlyphOrthographicCamera rotX={pitch} rotY={yaw} zoom={z}`; initial `yaw = initialFacingAzDeg` mapped through the frame convention, `pitch ≈ 25°` (horizon and peak both visible) | `camera.initialFor(pass)` |
+| Controls | Our own pointer drag on the stage and arrow keys, both writing the camera state that `GlyphOrthographicCamera` receives as props (D-64; `GlyphOrbitControls` was not used: fixed ±90° clamp, no handle or change events in the React binding) | Tilt clamped to 5°–80° so the user can neither go under the horizon nor to a pure top-down view (which is what the polar chart is for). Keyboard: arrow keys adjust yaw/pitch in 15°/5° steps via component state, satisfying FR-GUIDE-2's keyboard requirement independently of glyphcss's own key handling. |
+
+R14 (D-59) fixes the rendering knobs: `charMode="braille"`, rings and meridians as 0.05°-wide strips (wireframe strokes every quad edge, so a wider strip is a ladder), the pass strip 1.5° wide, labels as hotspots outside the grid, glyphcss's base stylesheet shipped in our CSS (D-61), and no interior camera (D-60).
+R15 (D-64..D-67) built it: the camera as component state, the grid from the host width, the dome lazy in `SkyChart.tsx`, the budgets as a script.
+
+Why our own strips rather than a built-in `sphere`: the built-in sphere in wireframe mode draws its own tessellation, which would compete with the arcs and rings, and it cannot be dashed or labelled.
+A few hundred quads of our own is a smaller scene, reads like a chart, and mirrors the 2D view's features one-to-one.
+
+Rendering cadence: glyphcss re-rasterises only on camera/scene change.
+Our scene changes only when `passes`, `highlightedPassId`, or `now` change; `now` updates at the 10 s tick, so a static dome costs nothing between interactions.
+
+### 8.4 Facing readout and orientation
+
+FR-GUIDE-4 requires the dome to display its facing direction as text.
+`SkyDome.tsx` holds `facingAzDeg` itself (D-64; the camera mapping goes the other way, `toRotY`) and renders `Facing SSW (203°) · tilt 25°` under the grid, which also describes the focusable wrapper for assistive technology.
+There is no mirror toggle for the dome (the camera *is* the orientation).
+The polar view keeps the looking-up / map toggle.
+
+### 8.5 Spike (part of the MVP phase, before any other UI work on the guide)
+
+A half-day, throwaway page that renders one fixture pass with the composition above and answers, with screenshots committed to `docs/spike-glyphcss/`:
+
+1. Frame convention — do N/E/S/W hotspots land at the expected positions for `rotY = 0`?
+   Fix `toDome` accordingly.
+2. Legibility — is a 1.5°-wide strip continuous at 60×30 and 100×50 cells on a 390 px-wide viewport?
+   Adjust strip width / resampling.
+3. Performance — FR-GUIDE-6: drag for 5 s on a mid-range Android phone with Chrome's performance panel; ≥ 30 rasterisations/s at the chosen grid, main-thread frame under 33 ms.
+4. Interior camera — can `GlyphPerspectiveCamera` sit at the origin and see the inside of the strips?
+   Informs P-OQ-1.
+5. `useColors` — does the coloured mode emit inline `style` attributes (breaks the strict CSP) or class names?
+   Decides whether colour is available at all under our CSP.
+6. Bundle cost of `@glyphcss/react` + `@glyphcss/core` after tree-shaking (loaders for OBJ/glTF/VOX must not be pulled in).
+
+7. Horizon panorama (added at the start of R14, agreed in the R13 review) — beside the dome, prototype a first-person strip facing the rise azimuth: the horizon as a baseline with the compass names along it, the arc climbing over it, the satellite marker moving live along the arc with a trail.
+   Same geometry (`lib/skyGeometry`), same `SkyChartProps`, screenshots of both candidates at 390 px.
+   The primary view is chosen from these screenshots; the polar chart stays the fallback either way (spec UX-1), and a switch away from the dome is a Decision Log change the owner makes explicitly, never a silent one.
+
+Failing 3 with no configuration fix triggers D-16's replacement path before the guide UI is built.
+
+### 8.6 Open questions specific to this plan
+
+| ID | Question | Default until answered |
+|---|---|---|
+| P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view, and (since the R13 review) whether a first-person horizon panorama reads better than either dome camera as the primary view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | **Resolved (D-60):** external view; no interior camera exists in glyphcss 0.1.6. The horizon panorama is the observer-centred view; the owner picks the primary view from the R14 screenshots and R15 is re-scoped accordingly. |
+| P-OQ-2 | Cell aspect and grid size on phones: 60×30 keeps text legible but quantises angles to ~5°; 100×50 is finer but characters become tiny. | **Resolved (D-59):** braille char mode, 60×30 at 390 px (6.5 px cells), autosize on wider screens; the grid carries no text, so cells may shrink; exact angles are the numeric table's job. |
+| P-OQ-3 | Colour under a strict CSP (spike item 5). | **Resolved (D-61), reopened and re-resolved by V1-4 / D-75:** the CSP gains `style-src-attr 'unsafe-inline'` and nothing else, so `useColors` works; the injected base stylesheet stays shipped in our CSS either way. |
+| P-OQ-4 *(v1)* | Cost of the two-scene dome (OQ-15): a second rasterisation for the base layer, one `<span>` per colour run in the line layer, and a finer density on the highlighted pass. | **Resolved (D-90, D-91, D-92) by the R16 spike** (`docs/dome-composition/findings.md`): the second scene costs ~13 % of the drag rate and every candidate holds ≥ 32/s at 390 px, so no fallback is needed there; per-mesh density exists but misplaces its `<pre>` and is dropped; the desktop grid is capped at 120 columns instead of being rescued by the fallbacks, whose order becomes column cap → `colorTolerance` → `interactiveDownscale` (which needs `setInteracting` and distorts stacked layers) → dropping the base while dragging. |
+
+## 10. Task Zero — Physics Validation Spike
+
+**Purpose.**
+Prove that the pure `src/physics` module reproduces a trusted predictor before any UI exists.
+This is the highest-risk part of the project; everything else is ordinary web work.
+
+**Deliverable.**
+`scripts/validate-iss.ts` (runs with `tsx`), a committed fixture pair, a committed Vitest golden test that re-runs the comparison offline, and a short `tests/fixtures/heavens-above/README.md` describing the capture procedure.
+
+**Observer.** lat **−38.93**, lon **−67.99**, altitude 0 m (Neuquén / Alto Valle, Argentina).
+Time zone for the comparison: **UTC** on both sides, to eliminate zone errors as a variable.
+
+**Pass criterion (given).**
+Every predicted ISS pass in the comparison window must match the corresponding Heavens-Above pass within **1 minute** in time and **5°** in azimuth and elevation, at each of the three reported points (start, maximum, end).
+
+### 10.1 Procedure
+
+1. **Capture Heavens-Above.**
+   On Heavens-Above, set the observer to the coordinates above and the time zone to UTC; open the ISS *visible passes* table for the next 10 days.
+   **Transcribe by hand** (Heavens-Above prohibits scraping) into `tests/fixtures/heavens-above/<YYYY-MM-DD>-neuquen-iss.json`: for each pass, date, start/max/end time, altitude and azimuth at each, and the listed brightness.
+   Record the capture timestamp (UTC).
+2. **Capture elements within the same hour.**
+   `GET https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json` → `tests/fixtures/omm/<YYYY-MM-DD>-stations.json`, with the fetch timestamp.
+   Both captures must use elements of essentially the same epoch; a stale set on either side is the most likely cause of a > 1 min discrepancy, so the README records both epochs.
+3. **Run the pipeline** with `findPasses` for NORAD 25544 over the same window, `minElevationDeg = 10`, `sunAltMaxDeg = −6`, no magnitude cut (Heavens-Above's brightness filter is undocumented; brightness is compared separately).
+4. **Pair passes** by maximum time (nearest within ± 15 min).
+   Unpaired passes on either side are reported.
+5. **Compare** each pair: |Δt| at start/max/end; |Δaz| (wrapped) and |Δel| at each.
+   Print a table and a PASS/FAIL line per pass and overall.
+6. **Brightness** (informational, not part of the criterion): our peak magnitude vs. Heavens-Above's listed magnitude, to sanity-check D-1 and the ISS `stdMag` value in the catalog.
+
+### 10.2 Exit criteria
+
+- All paired passes satisfy the 1 min / 5° criterion at all three points.
+- No unpaired Heavens-Above pass (we found everything they list).
+- Any pass we list that Heavens-Above omits must be explainable (documented per pass): e.g. it is `twilight = true` and Heavens-Above applies a stricter sun-altitude rule, or its peak magnitude is fainter than their cut.
+  Unexplained extras are a FAIL.
+- The comparison is committed as `physics/passes.golden.test.ts` and runs in CI in under 2 s.
+- Start/end reasons (`horizon` / `shadow` / `twilight`) match Heavens-Above's implied ones (they mark shadow entry with a distinct end condition) for every pass.
+
+### 10.3 If it fails — debugging order
+
+1. **Time base.**
+   Compare a single propagated ECI position at a fixed instant against `satellite.js`'s own test vector; check ms↔JD conversion and that `EPOCH` is parsed as UTC.
+2. **Frames.**
+   Check GMST and the sign convention of longitude in the observer (satellite.js expects radians, east-positive).
+3. **Sun vector frame.**
+   Verify the sun vector is equator-of-date, not J2000/ecliptic, by checking its declination against a known value for the date.
+4. **Shadow.**
+   Compare shadow-entry times only; if systematically early/late by ~10–20 s, revisit D-8 (radius / penumbra) with evidence in hand.
+5. **Elements epoch mismatch.**
+   Re-capture both sides together.
+
+### 10.4 Secondary outputs of Task Zero
+
+- The initial `catalog.json` membership (OQ-2): the ~30 objects, with `stdMag` and provenance.
+- Confirmation that `satellite.js` `json2satrec` accepts CelesTrak's JSON field names as-is (else a mapping layer goes in `sgp4.ts`).
+- A measured Node runtime for 30 objects × 24 h, to set the performance-budget threshold in §9.1.
+
+Two further observer locations (one northern mid-latitude, one near the equator) are recorded as golden fixtures in the MVP phase, not in Task Zero.
+
+---
+
+## 13. Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| `satellite.js` `json2satrec` field-name mismatch with CelesTrak JSON | Low | Blocks Task Zero for hours | Checked first thing in Task Zero; mapping layer in `sgp4.ts` if needed. |
+| Heavens-Above and our twilight/brightness rules differ, producing "extra" passes | Medium | Criterion ambiguity | Extras must be explained per pass (§10.2); the 1 min/5° criterion applies to paired passes. |
+| CelesTrak changes CORS or blocks | Low | App shows stale/no elements | Cached set keeps working for days; fallback order fixed in spec §12; banner explains staleness. |
+| IndexedDB unavailable (Safari private mode) | Medium | No cross-reload cache | In-memory fallback; still one fetch per session. |
+| Open-Meteo daily budget exhausted by a traffic spike | Low | Weather "unknown", geocode fails | Weather never blocks passes (FR-WX-5); coordinates input still works; budget is shared, so a v1 proxy cache is the real fix. |
+| Worker bundle size (astronomy-engine) | Medium | Slower first load on 3G | Worker chunk loads in parallel with the UI; budget in §11; astronomy-engine could be replaced by a compact sun algorithm later if needed. |
+| ISS reboost between element fetch and pass | Medium | Minutes of error | Epoch-age banner (FR-SAT-4); 2 h refresh cadence. |
+| `@glyphcss/react` cannot hit FR-GUIDE-6 on phones, or a needed capability is missing | Medium | Guide UI blocked or dome dropped | Spike before guide UI (§8.5); D-16 replacement triggers; polar view is a complete fallback behind the same props. |
+| `@glyphcss/react` pre-1.0 breaking change or abandonment | Medium | Upgrade cost / stuck on old version | Exact version pin; raster snapshot as tripwire; MIT fork into `vendor/` if dormant (D-16). |
+| Dome frame convention wrong (mirrored compass) | Medium (undocumented axes) | Users face the wrong way — worst possible bug for this product | Single `toDome` function; spike item 1; contract test asserts N/E/S/W anchor positions; e2e checks "facing" readout against the pass's rise azimuth. |
+| **v1** — The layered dome cannot hold the FR-GUIDE-6 drag rate or FR-LIVE-5's 3600× target | Medium | The signature view gets slower than the MVP's, or the live page stutters | The FR-DOME-8 spike measures every candidate before the task is cut (OQ-15, P-OQ-4); fallbacks are fixed in order — `colorTolerance`, `interactiveDownscale`, dropping the base layer while dragging. If none holds, the composition is chosen from what does, not from what looks best. |
+| glyphcss 0.1.6 has no per-mesh density or no usable solid mode | Medium (undocumented, untried) | FR-DOME-8's layering is not buildable as planned | The spike is the first task precisely so this is known before anything depends on it; the fallback is a third scene for the fine layer, and failing that a single wireframe scene with weight as the only channel — the MVP dome plus colour. |
+| The 72 h window pushes the phone past FR-VIS-4 | Medium | First useful answer gets slower for everyone, not just offline users | Night-outer ordering (D-77): tonight is complete in the MVP's time and the rest streams. The perf budget test covers both the first night and the full 72 h. |
+| Spanish copy drifts from English, or reads as translated | Medium | G7 is missed in the language that most of the first users read | Both catalogs sit in one directory with one type; every parameterised message has a fixture render in both languages; FR-I18N-3's banned-form test catches the commonest slip; Spanish screens are an owner gate, not a CI gate (§16). |
+| The service worker serves a stale shell after a deploy | Low | A fix appears not to ship | `registerType: 'prompt'` with a visible banner (OQ-14, D-79); the release checklist loads the deployed URL twice and confirms the banner and the reload. |
+| Two sessions run tasks that touch the same file | Medium | Merge conflicts that a one-shot session cannot resolve | Lanes own disjoint directories (§16); a wave never contains two tasks in one lane; the driver runs at most three at once, each in its own worktree and on its own preview port. |
+
+---
+
+## 14. What This Plan Does Not Cover
+
+- Task breakdown, estimates, and sequencing — `sdd-breakdown`, next step. §16 says how the resulting tasks are *run*, not what they are.
+- The exact ~30-object catalog contents (produced during Task Zero, OQ-2).
+- Phase 3 items: the caching proxy, Nominatim, Space-Track, thresholds UI (US-9), add-to-calendar, push, the full `visual` group, Starlink trains.
+- The v1 dome's composition — tilt, meridians, weights, exact colours, whether the pulse survives.
+  That is the FR-DOME-8 spike's output (§8.7), by design.
+- The desktop mockup itself (FR-DESK-5).
+  It is an owner-approved artefact under `docs/mockups/`, and it gates the desktop tasks in TASKS.md, not this plan.
+- The wording of any message, in either language.
+  Copy is written in the tasks, against FR-I18N-3's rules.
+
+---
+
+## 15. Spec Amendments Suggested by This Plan
+
+For the next `SPEC.md` revision (not applied here, since they touch the architecture proposal this plan supersedes):
+
+1. §5.4 magnitude formula → the D-1 form.
+2. §5.4 "sample every 1–5 s" and golden-section peak → 1 s sampling + parabolic peak (D-7); drop the "fading" flag from MVP (D-8).
+3. §5.6 clock-skew warning → move to v1 (D-11).
+4. §6.5 libraries → remove `date-fns`/Temporal polyfill and `tz-lookup`; add `zod` (D-3).
+5. §5.1 hosting → Cloudflare Workers static assets (D-12 as amended in §2.5, not Pages); styling → CSS Modules (D-5); state → Zustand (D-4).
+6. *(v1)* §5.7 "the worker gains `computeAt`" → **no new request**: `computeNow` already takes an arbitrary `t`, and gains `includeHidden` instead (D-76).
+7. *(v1)* §5.7 "hand-written or `vite-plugin-pwa`, the plan's call" → `vite-plugin-pwa`, `generateSW`, `runtimeCaching: []`, `registerType: 'prompt'` (D-79).
+
+---
