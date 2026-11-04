@@ -20,7 +20,8 @@ describe('FR-SDD-6: ids.md', () => {
     expect(index.get('FR-SDD-6')?.path).toBe('docs/sdd/phases/v2.13/spec.md');
     expect(index.get('D-89')?.path).toBe('docs/sdd/phases/v1/plan.md');
     expect(index.get('R171')?.path).toBe('docs/sdd/phases/v2.12/tasks.md');
-    expect(index.get('R175')?.path).toBe('TASKS.md');
+    expect(index.get('R175')?.path).toBe('docs/sdd/phases/v2.13/tasks.md');
+    expect(index.get('R182')?.path).toBe('TASKS.md');
     expect(index.get('SPEC §4.47')?.path).toBe('docs/sdd/phases/v2.5/spec.md');
     expect(index.get('PLAN §16.4')).toMatchObject({ path: 'docs/sdd/reference/delivery.md', anchor: '164-scriptssdd-runts' });
     expect(index.get('SPEC §1')?.path).toBe('SPEC.md');
