@@ -17,11 +17,13 @@
  * D-86 makes it repo tooling rather than a task in TASKS.md.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { buildBrief } from './sdd/brief';
+import { layoutLookup } from './sdd/ids';
+import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
-import { fallbackFor, limitsFor, modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { fallbackFor, layoutTasksText, limitsFor, modelFor, nextModel, parseTasks, phaseTasksPath, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
+import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { LEDGER_PATH, readLedger } from './sdd/ledger';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { DENIED_TOOLS, IMPLEMENT_TOOLS, MAX_RESET_WAITS, resetTime, resetWaitMs, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
@@ -49,20 +51,30 @@ function withSharedGit<T>(work: () => Promise<T>): Promise<T> {
   return next;
 }
 
+/** The tasks text `readFacts` last parsed: the brief's fallback when ids.md has no entry for a task. */
+let tasksMarkdown: string | null = null;
+
 /** Everything the wave logic needs, read from the remote. */
 async function readFacts(options: Options, logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
   let markdown: string;
   let branches = new Set<string>();
   let prsByBranch = new Map<string, number>();
   if (options.tasksFile) {
-    markdown = readFileSync(options.tasksFile, 'utf8');
+    const base = dirname(options.tasksFile);
+    markdown = layoutTasksText(readFileSync(options.tasksFile, 'utf8'), (path) => (existsSync(join(base, path)) ? readFileSync(join(base, path), 'utf8') : null));
     logger.line(`TASKS.md from ${options.tasksFile} (remote state ignored)`);
   } else {
     await fetchOrigin(logger);
-    markdown = await readTasksAtRef(BASE, logger);
+    // FR-SDD-7: the open TASKS.md and every closed phase's tasks.md, so a dependency on a closed task reads as merged.
+    const closed = new Map<string, string | null>();
+    // One ls-tree says which phase files exist; only those are read (the open phase lives in TASKS.md).
+    const existing = await listFilesAtRef(BASE, 'docs/sdd/phases', logger);
+    for (const phase of PHASES) if (phase !== OPEN_PHASE && existing.has(phaseTasksPath(phase))) closed.set(phaseTasksPath(phase), await readFileAtRef(BASE, phaseTasksPath(phase), logger));
+    markdown = layoutTasksText(await readTasksAtRef(BASE, logger), (path) => closed.get(path) ?? null);
     branches = await remoteBranches(logger);
     prsByBranch = await openPullRequests(logger);
   }
+  tasksMarkdown = markdown;
   const { tasks, problems } = parseTasks(markdown);
   const openPrs = new Map<string, number>();
   for (const task of tasks) {
@@ -145,12 +157,13 @@ function readHandoff(dir: string, id: string): Handoff {
  * to the worktree, which is how the prompt names it.
  */
 function writeBrief(dir: string, task: Task, logger: Logger): string {
-  const read = (name: string): string => readFileSync(join(dir, name), 'utf8');
-  const brief = buildBrief(task, { spec: read('SPEC.md'), plan: read('PLAN.md'), tasks: read('TASKS.md') }, { allowedTools: IMPLEMENT_TOOLS, deniedTools: DENIED_TOOLS });
+  // FR-SDD-7: every id through docs/sdd/ids.md, the task from TASKS.md or its phase's tasks.md.
+  const brief = buildBrief(task, { textFor: layoutLookup(dir), ...(tasksMarkdown === null ? {} : { fallbackTasks: tasksMarkdown }) }, { allowedTools: IMPLEMENT_TOOLS, deniedTools: DENIED_TOOLS });
   mkdirSync(join(dir, 'sdd-run'), { recursive: true });
   const relative = join('sdd-run', `${task.id}.brief.md`);
   writeFileSync(join(dir, relative), brief.markdown);
   logger.line(`  brief: ${relative}, ${String(brief.markdown.length)} chars (~${String(Math.round(brief.markdown.length / 4))} tokens)${brief.missing.length > 0 ? `; cited but not found: ${brief.missing.join(', ')}` : ''}`);
+  if (brief.missing.length > 0) logger.line(`  WARNING: ${String(brief.missing.length)} cited id(s) are not in docs/sdd/ids.md or their file; if ids.md is stale run \`npx tsx scripts/sdd/ids.ts --write\``);
   return relative;
 }
 

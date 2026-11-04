@@ -32,6 +32,8 @@
     "check:catalog": "tsx scripts/check-catalog.ts",
     "check:dead": "knip",
     "sdd": "tsx scripts/sdd-run.ts",
+    "sdd:id": "tsx scripts/sdd/ids.ts --print",
+    "ids:check": "tsx scripts/sdd/ids.ts --check",
     "mockup:desktop": "tsx scripts/mockup-capture.ts desktop",
     "mockup:compact": "tsx scripts/mockup-capture.ts compact"
   },

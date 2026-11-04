@@ -255,13 +255,17 @@ describe('the address (FR-ADDR-1, FR-ADDR-4)', () => {
   /** The old host, assembled so that this file is not one of the matches. */
   const OLD_HOST = ['workers', 'dev'].join('.');
 
+  /** The generated files that may carry the old host: the split's output and the pinned parent copies. */
+  const GENERATED = [/^docs\/sdd\/decisions\.md$/, /^docs\/sdd\/ids\.md$/, /^docs\/sdd\/phases\/[^/]+\/(spec|plan|tasks)\.md$/, /^docs\/sdd\/reference\/[^/]+\.md$/, /^scripts\/sdd\/__fixtures__\/(parent|briefs)\/[^/]+\.md$/];
+
   it('the old address is written in docs/DEPLOY.md and the three documents, and nowhere else', () => {
     const named = tracked
       .filter((path) => !BINARY.test(path) && path !== 'package-lock.json')
       .filter((path) => readFileSync(path, 'utf8').includes(OLD_HOST))
       .sort();
     expect(named).toContain('docs/DEPLOY.md');
-    expect(named.filter((path) => !['docs/DEPLOY.md', 'SPEC.md', 'PLAN.md', 'TASKS.md'].includes(path))).toEqual([]);
+    // The three documents: since the split, their phase and reference files, and the parent's copies R175 pinned.
+    expect(named.filter((path) => !['docs/DEPLOY.md', 'SPEC.md', 'PLAN.md', 'TASKS.md'].includes(path) && !GENERATED.some((pattern) => pattern.test(path)))).toEqual([]);
   });
 
   it('docs/DEPLOY.md carries the Domain heading and the renewal date', () => {

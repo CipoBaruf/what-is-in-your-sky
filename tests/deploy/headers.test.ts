@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { parsePagesHeaders } from '../../vite.config';
 
 const HEADERS_FILE = readFileSync('public/_headers', 'utf8');
-const PLAN = readFileSync('PLAN.md', 'utf8');
+/** PLAN §11, since the split in its reference file (FR-SDD-3). */
+const PLAN = readFileSync('docs/sdd/reference/build-and-deploy.md', 'utf8');
 
 function planHeadersBlock(): string {
   const match = /`public\/_headers`:\s*\n\s*```\n([\s\S]*?)```/.exec(PLAN);
