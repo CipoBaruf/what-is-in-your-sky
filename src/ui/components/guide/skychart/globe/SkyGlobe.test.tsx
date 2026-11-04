@@ -569,6 +569,27 @@ describe('the passes (FR-WIDE-3, FR-WIDE-7)', () => {
     if (picked?.kind !== 'pass') expect(picked).not.toBeNull();
     else expect(picked).toEqual({ kind: 'pass', passId: 'p1' });
   });
+
+  it('FR-WIDE-7: an arc that goes from under a still mouse, or a globe unmounted with one hovered, reports null', () => {
+    const onPassHover = vi.fn();
+    const { container, box, rerender, unmount } = mount({ passes: PASSES, t: T, onPassHover });
+    const d = arcPaths(container)[1]?.getAttribute('d') ?? '';
+    const [x1, y1, x2, y2] = (/^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/.exec(d) ?? []).slice(1).map(Number) as [number, number, number, number];
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: (x1 + x2) / 2, clientY: (y1 + y2) / 2 });
+    frames.frame();
+    expect(onPassHover.mock.calls).toEqual([['p1']]);
+    rerender({ passes: [] });
+    frames.frame();
+    frames.frame();
+    expect(onPassHover.mock.calls).toEqual([['p1'], [null]]);
+    rerender({ passes: PASSES });
+    frames.frame();
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: (x1 + x2) / 2, clientY: (y1 + y2) / 2 });
+    frames.frame();
+    expect(onPassHover.mock.calls.at(-1)).toEqual(['p1']);
+    unmount();
+    expect(onPassHover.mock.calls.at(-1)).toEqual([null]);
+  });
 });
 
 describe('the planets (FR-NAME-3)', () => {

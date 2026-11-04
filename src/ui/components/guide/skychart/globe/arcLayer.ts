@@ -1,8 +1,10 @@
 import { legendKeys, legendRows, SERIES_COUNT } from '../../../../../lib/legend';
 import type { EpochMs, Pass } from '../../../../../model';
-import { arcGuides, globeArcs, type ArcMark, type GlobeArc } from './arcs';
+import { arcGuides, globeArcs, type ArcGuides, type ArcMark, type GlobeArc } from './arcs';
 import { project, type Projector } from './projection';
 import type { GlobeSky } from './scene';
+
+const NO_GUIDES: ArcGuides = { ticks: [], arrow: null };
 
 /**
  * R184 (FR-WIDE-3, FR-WIDE-7; PLAN D-1099, D-1038): the passes' nodes on the globe, made once — one path per series
@@ -53,7 +55,7 @@ export class GlobeArcLayer {
   private readonly arrow: SVGPathElement;
   /** Each drawn pass's projected polylines, flat `[x0, y0, x1, y1, …]` per near-side run, for `passAt`. */
   private readonly drawn = new Map<string, number[][]>();
-  private memo: { sky: GlobeSky; input: ArcInput; arcs: GlobeArc[]; keys: Readonly<Record<string, string>> } | null = null;
+  private memo: { sky: GlobeSky; input: ArcInput; arcs: GlobeArc[]; keys: Readonly<Record<string, string>>; guides: ArcGuides } | null = null;
 
   constructor(parent: Element, make: (tag: 'path' | 'text', attrs: Record<string, string | number>, parent: Element) => SVGElement, cls: (name: string) => string) {
     for (let k = 1; k <= SERIES_COUNT; k += 1) this.series.push(make('path', { class: cls('arc'), 'data-arc-series': k, 'data-pass-ids': '' }, parent) as SVGPathElement);
@@ -63,18 +65,22 @@ export class GlobeArcLayer {
   }
 
   /** `arcs.ts`'s geometry and the keys for this sky and input, made again only when one of them changed. */
-  private geometry(sky: GlobeSky, input: ArcInput): { arcs: GlobeArc[]; keys: Readonly<Record<string, string>> } {
+  private geometry(sky: GlobeSky, input: ArcInput): { arcs: GlobeArc[]; keys: Readonly<Record<string, string>>; guides: ArcGuides } {
     const m = this.memo;
     if (m && m.sky === sky && m.input.passes === input.passes && m.input.t === input.t && m.input.keys === input.keys && m.input.highlightedPassId === input.highlightedPassId) return m;
     const arcs = globeArcs(sky, input.passes, input.t);
     const keys = input.keys ?? legendKeys(legendRows({ passes: input.passes.map((pass) => ({ ...pass, arc: arcs.find((a) => a.id === pass.id)?.state ?? 'hidden' })), highlightedPassId: input.highlightedPassId, now: input.t }));
-    this.memo = { sky, input, arcs, keys };
+    // D-1113: the highlighted pass's ticks and arrow are geometry too, so a drag only projects them.
+    const arc = arcs.find((a) => a.id === input.highlightedPassId);
+    const pass = arc ? input.passes.find((q) => q.id === arc.id) : undefined;
+    const guides = arc && pass ? arcGuides(sky, pass, input.t) : NO_GUIDES;
+    this.memo = { sky, input, arcs, keys, guides };
     return this.memo;
   }
 
   /** The frame's write: every series path, key, the ticks and the arrow. */
   draw(p: Projector, sky: GlobeSky, input: ArcInput, on: boolean): void {
-    const { arcs, keys } = on ? this.geometry(sky, input) : { arcs: [], keys: {} };
+    const { arcs, keys, guides } = on ? this.geometry(sky, input) : { arcs: [], keys: {}, guides: NO_GUIDES };
     this.drawn.clear();
     const point = (v: readonly [number, number, number]): [number, number] | null => {
       const [x, y, z] = project(p, v);
@@ -127,14 +133,12 @@ export class GlobeArcLayer {
       key.setAttribute('x', fmt(keyAt[0] + KEY_DX));
       key.setAttribute('y', fmt(keyAt[1]));
     });
-    this.drawGuides(p, sky, input, arcs);
+    this.drawGuides(p, input, arcs, guides);
   }
 
   /** FR-WIDE-7: the highlighted pass's ticks across its line and its arrow along its travel, in its series' colour. */
-  private drawGuides(p: Projector, sky: GlobeSky, input: ArcInput, arcs: readonly GlobeArc[]): void {
+  private drawGuides(p: Projector, input: ArcInput, arcs: readonly GlobeArc[], guides: ArcGuides): void {
     const arc = arcs.find((a) => a.id === input.highlightedPassId);
-    const pass = arc ? input.passes.find((q) => q.id === arc.id) : undefined;
-    const guides = arc && pass ? arcGuides(sky, pass, input.t) : { ticks: [], arrow: null };
     const heading = (m: ArcMark): { x: number; y: number; hx: number; hy: number } | null => {
       const [x, y, z] = project(p, m.at);
       if (z <= 0) return null;

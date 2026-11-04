@@ -241,13 +241,34 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const hover = hoverRef.current;
     hover.x = x;
     hover.y = y;
-    if (hover.frame || passes.length === 0) return;
+    if (hover.frame) return;
     hover.frame = requestAnimationFrame(() => {
       hover.frame = 0;
       reportPass(rendererRef.current?.passAt(hover.x, hover.y) ?? null);
     });
   };
-  useEffect(() => () => cancelAnimationFrame(hoverRef.current.frame), []);
+  // The arcs move under a still mouse (`t`, the passes, the highlight): test again once the renderer's frame, asked
+  // first by the effect above, has drawn them, so a pass that is gone stops being reported.
+  useEffect(() => {
+    const hover = hoverRef.current;
+    if (hover.pass === null) return;
+    cancelAnimationFrame(hover.frame);
+    hover.frame = requestAnimationFrame(() => {
+      hover.frame = 0;
+      const pass = rendererRef.current?.passAt(hover.x, hover.y) ?? null;
+      if (hover.pass === pass) return;
+      hover.pass = pass;
+      onPassHoverRef.current?.(pass);
+    });
+  }, [passes, t, instant, highlightedPassId]);
+  // Unmounted with an arc hovered: the page hears `null`, so its emphasis does not outlive the globe.
+  useEffect(() => {
+    const hover = hoverRef.current;
+    return () => {
+      cancelAnimationFrame(hover.frame);
+      if (hover.pass !== null) onPassHoverRef.current?.(null);
+    };
+  }, []);
 
   // FR-GLOBE-10: the deep chunk, once, the first time `faint` is on; a failure tells the page. The callback is read through a ref, so a new one does not re-run the load.
   const askedRef = useRef(false);
@@ -354,6 +375,8 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const turned = dragTurn(p, drag.applied, to);
     drag.applied = to;
     writeView(turned);
+    // A drag moves the arcs away from the pointer it holds: no arc is hovered while the globe turns.
+    reportPass(null);
   };
   const scheduleFlush = (): void => {
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
