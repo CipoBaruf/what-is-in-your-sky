@@ -4949,7 +4949,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
     - A test lists `rg --files` from the root and finds none of FR-SDD-14's ignored paths.
     - `npm test`, lint and typecheck green; the ledger has this task's sessions (baseline, V213-6).
 
-- [ ] **R174 — Quiet checks and leaner CI: `npm run check`, the failure digest, and `ci.yml` per D-1067**
+- [x] **R174 — Quiet checks and leaner CI: `npm run check`, the failure digest, and `ci.yml` per D-1067**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
