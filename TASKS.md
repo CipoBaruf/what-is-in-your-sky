@@ -135,7 +135,6 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
   - **Fallback:** off
   - **Gate:** auto
   - **Depends on:** R175
-  - **Precondition:** the driver restarted from a fresh `origin/main` after R175 merged.
   - **Reads:** the phase set (through `sdd:id` and `docs/sdd/phases/v2.13/`); SPEC FR-SDD-8, FR-SDD-9, FR-SDD-18, FR-SDD-21, FR-SDD-23; PLAN D-1063, D-1065, D-1068; `CLAUDE.md`; `.claude/skills/*/SKILL.md`; the review and fix prompts in `scripts/sdd/session.ts` (read only); `docs/RELEASE.md` by heading.
   - **Goal:** any coding agent that reads `AGENTS.md` knows what each kind of work reads and follows a plain procedure for it; `/sdd-implement` and the other skills still work, pointing at the same procedures.
   - **Satisfies:** FR-SDD-8, FR-SDD-9 (the files; building the driver's prompts from them is R177's), FR-SDD-21 (in `breakdown.md`); US-51 AC4.
@@ -155,7 +154,6 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
   - **Fallback:** off
   - **Gate:** auto
   - **Depends on:** R175
-  - **Precondition:** the driver restarted from a fresh `origin/main` after R175 merged.
   - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-22, FR-SDD-23; PLAN D-1068; `tests/e2e/{captureSet,captureSeeds}.ts`, `tests/e2e/v1-captures.spec.ts`, `.github/workflows/captures.yml`, `scripts/ci-affected.ts`; `README.md` and `docs/DESIGN.md` for the images they cite; `docs/sdd/gotchas.md`'s captures section.
   - **Goal:** a task re-shoots only the captures its diff reaches, an agent looks only at the ones that changed, side by side, and the capture set stops growing `main`'s history.
   - **Satisfies:** FR-SDD-22, FR-SDD-23.
@@ -172,7 +170,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 - [ ] **R177 — An agent is a config entry: `sdd.agents.json`, the config-driven session, tiers, the review tier and structured findings**
   - **Lane:** data
-  - **Model:** fable
+  - **Model:** opus
   - **Review:** opus
   - **Turns:** 500
   - **Fallback:** off
@@ -181,7 +179,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
   - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-2, FR-SDD-9 (the prompts), FR-SDD-10, FR-SDD-11, FR-SDD-16 (the digest's hand-off), FR-SDD-18; PLAN D-1064, D-1065, D-835; `scripts/sdd/**` and their tests; `docs/sdd/workflows/{review,fix-ci}.md`.
   - **Goal:** the driver runs whatever agent `sdd.agents.json` describes, names no agent or model in its code, picks models by tier, records budget overruns without stopping anything, chooses the review tier by D-1065 and hands fix sessions the findings and the failure digest; with the `claude` entry it behaves exactly as today.
   - **Satisfies:** FR-SDD-2 (report-only), FR-SDD-9 (the prompts from the workflows), FR-SDD-10, FR-SDD-11, FR-SDD-16 (the hand-off), FR-SDD-18; US-51 AC5.
-  - **Scope (PLAN D-1064, D-1065):** `scripts/sdd/agents.ts` (zod schema, loader), `sdd.agents.json` with the `claude` entry (today's argv, tiers fable/opus/sonnet, fallback, limit pattern, `stream-json`, `claude-allowlist`, optional ceilings unset); `session.ts` building argv from the entry and choosing the parser; the `exit-code` parser; `tasks.ts` reading `Tier:` and `Agent:` and closed `Model:`; `--agent`; `review.ts`; findings as JSON lines; the review and fix prompts from the workflow files; the open TASKS entries (R179–R181) converted to `Tier:`.
+  - **Scope (PLAN D-1064, D-1065):** `scripts/sdd/agents.ts` (zod schema, loader), `sdd.agents.json` with the `claude` entry (today's argv, tiers fable/opus/sonnet, fallback, limit pattern, `stream-json`, `claude-allowlist`, optional ceilings unset); `session.ts` building argv from the entry and choosing the parser; the `exit-code` parser; `tasks.ts` reading `Tier:` and `Agent:` and closed `Model:`; `--agent`; `review.ts`; findings as JSON lines; the review and fix prompts from the workflow files; the open TASKS entries (R179–R181) converted to `Tier:`. Also fix the limit classification: on 2026-11-04 R175's Fable session ended on Fable's own weekly limit (`seven_day_overage_included`, with all models at 76 %) and the driver reported it account-wide ("no model escapes it"), so no fallback was tried; a per-model weekly limit is not account-wide, with a test on that message.
   - **Touches outside the lane:** `TASKS.md` (the open entries' `Model:` → `Tier:` only).
   - **Out of scope:** pruning and the brief's prefix (R180); setting the ceilings (R181); a second agent's entry.
   - **Done when:**
