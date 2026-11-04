@@ -1,0 +1,16 @@
+# FR-SDD-14: what a search from the root (ripgrep, the Grep tool, `rg --files`) never lists.
+# Generated, captured or catalogued bytes: an agent that greps for a word should
+# never get a fixture line, a snapshot or a star back. Tracked files stay in git;
+# this only hides them from search. `tests/docs/sdd-ignore.test.ts` checks it.
+dist/
+node_modules/
+docs/screenshots/
+**/__snapshots__/
+fixtures/
+public/data/
+# the place and star catalogues (the .ts beside them stay searchable)
+src/data/**/*.json
+src/data/places/places.txt
+data-src/
+package-lock.json
+*.lock

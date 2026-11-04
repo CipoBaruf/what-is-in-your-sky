@@ -4930,7 +4930,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 2
 
-- [ ] **R173 — Project knowledge in the repo and search that sees only source and docs: `docs/sdd/gotchas.md`, `.ignore`, and the generated code map**
+- [x] **R173 — Project knowledge in the repo and search that sees only source and docs: `docs/sdd/gotchas.md`, `.ignore`, and the generated code map**
   - **Lane:** docs
   - **Model:** sonnet
   - **Review:** opus
