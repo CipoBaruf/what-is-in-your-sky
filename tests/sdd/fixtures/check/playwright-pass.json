@@ -1,6 +1,6 @@
 {
  "config": {
-  "rootDir": "/repo/.sdd-cache/r174/pw",
+  "rootDir": "/repo/tests/e2e",
   "version": "1.62.1"
  },
  "suites": [

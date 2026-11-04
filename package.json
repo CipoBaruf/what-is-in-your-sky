@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check": "tsx scripts/check.ts",
     "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "VITE_MOON_LORE=on vite build && playwright test",
     "promo:record": "VITE_MOON_LORE=on vite build && playwright test --project=promo",
