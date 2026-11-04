@@ -5,6 +5,10 @@ import { starCatalog } from '../data/stars/catalog';
 import { sunAltitudeDeg } from '../physics/sun';
 import { brightestDrawn, moonNow, PLANETS, starsAt, type StarsAt } from './skyStars';
 import { angularDistanceDeg } from './skyGeometry';
+import { greekBayer } from '../../scripts/build-stars';
+
+/** A Yale designation as the fixtures write it (`Alp1Cen`, `Alp Ari`) in the catalogue's Greek (`α¹ Cen`). */
+const yaleToGreek = (d: string): string => d.replace(/^([A-Z][a-z]{1,2})(\d?) ?([A-Z][A-Za-z]{2})$/, (_, letter: string, n: string, con: string) => `${greekBayer(letter, n)} ${con}`);
 
 /**
  * R112, FR-STAR-2, US-38 AC3: every star and planet within `STAR_TOLERANCE_DEG`
@@ -48,7 +52,8 @@ describe('starsAt against the published ephemeris', () => {
       for (const want of fx.stars) {
         const i = catalog.name.indexOf(want.name);
         expect(i, want.name).toBeGreaterThanOrEqual(0);
-        expect(catalog.desig[i]?.replace(/ /g, ''), want.name).toBe(want.designation.replace(/ /g, '')); // the fixtures write `Alp1Cen` as the record does
+        // The fixtures write `Alp1Cen` as the record does; the catalogue writes it `α¹ Cen` (FR-NAME-2, V214-24).
+        expect(catalog.desig[i]?.replace(/ /g, ''), want.name).toBe(yaleToGreek(want.designation).replace(/ /g, ''));
         const d = separation(at.altDeg[i] ?? NaN, at.azDeg[i] ?? NaN, want.altDeg, want.azDeg);
         expect(d, `${fx.site} ${want.name}`).toBeLessThanOrEqual(STAR_TOLERANCE_DEG);
       }

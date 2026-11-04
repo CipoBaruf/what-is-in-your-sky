@@ -97,7 +97,8 @@ function watchStarChunks(page: Page): string[] {
 /** R155 (FR-LOOK-9): every star the window draws this frame — the bright marks and the deep pool's dots. */
 const drawnStars = (w: Locator): Locator => w.locator('[data-layer="stars"] [data-marks] > [data-star]:not([visibility="hidden"]), [data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
 /** A Bayer or Flamsteed designation, which a star with no proper name is named by at the deeper rows (`Alp Sco`, `61 Cyg`). */
-const DESIGNATION = /^(?:[A-Z][a-z]{2}\d?|\d+) [A-Z][A-Za-z]{2}$|^HR \d+$/;
+// FR-NAME-2 (V214-24): a Bayer letter in Greek with its superscript, a Flamsteed number, or the HR number.
+const DESIGNATION = /^(?:[α-ω][¹²³⁴⁵⁶⁷⁸⁹]*|\d+) [A-Z][A-Za-z]{2}$|^HR \d+$/;
 
 /** The window's box under the hand: the one `div` with the drag state (the stripe's overview is an `svg` with one too). */
 const box = (w: Locator): Locator => w.locator('div[data-dragging]');

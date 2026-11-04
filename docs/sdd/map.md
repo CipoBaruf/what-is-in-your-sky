@@ -9,7 +9,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/build-braille-font.ts` — exports: none — R15 review (PLAN D-65): the dome's raster is braille cells and spaces, and glyphcss measures its cell from the letter M in the page font.
 - `scripts/build-mark.ts` — exports: RASTERS_PATH, ICON_TONES, sparse, generateRasters, serialise, readCommitted, png, svg, +1 — R74 (FR-MARK-6, D-438, D-440): the mark's build step.
 - `scripts/build-places.ts` — exports: buildPlaces — FR-LOC-1 (c) as amended 2026-11-02 (PLAN D-1025): `src/data/places/places.txt`, the towns a device location is named after, offline.
-- `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +11 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
+- `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +12 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
 - `scripts/build-stored-run.ts` — exports: none — R37 (FR-CI-3): writes `tests/fixtures/stored-run-neuquen.json`, the finished 72 h run the e2e suite seeds into IndexedDB (`liveHelpers.seed…
 - `scripts/bundle-budget.ts` — exports: Budget, BUDGETS, PHASE_BUDGETS, ChunkSize, mainChunkFile, measure — PLAN §11 bundle budgets (R15): gzipped sizes of the built chunks against their budgets, printed as a table after `vite build`.
 - `scripts/captures/compress.ts` — exports: opaque, compressPng, compressFiles — PLAN D-1068 (FR-SDD-22): captures are written losslessly compressed.
@@ -46,6 +46,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/sdd/waves.ts` — exports: RemoteFacts, TaskStatus, WaveLimits, WaveSelection, statusOf, selectWave, openFindings, refusalFor — PLAN §16.2 and §16.5: what is merged, ready, blocked or failed, and which tasks make up the current wave.
 - `scripts/third-party-notices.ts` — exports: RULE, Notice, productionPackages, collect, DATA_RULE, DataNotice, dataNotices, render — FR-PUB-5: `public/third-party-notices.txt`, the licence notices of every package that reaches the production bundle.
 - `scripts/validate-iss.ts` — exports: none — Task Zero (PLAN §10, TASKS R1) and its extension to more observers (TASKS H): reproduce Heavens-Above's ISS passes from the committed fixtu…
+- `src/data/catalog/facts.ts` — exports: FACT_PURPOSES, FACT_COUNTRIES, factEntrySchema, FactEntry, parseFacts — FR-FACT-1 (V214-6, PLAN D-1094): the satellite facts — country, operator, purpose, launch date, size and the Spanish description — one entr…
 - `src/data/catalog/index.ts` — exports: CATALOG, catalogSchema, catalogEntrySchema — The MVP catalog (FR-SAT-1): ~30 hand-maintained bright objects, the single source of per-object metadata (FR-SAT-5).
 - `src/data/catalog/schema.ts` — exports: catalogEntrySchema, catalogSchema, toCatalogEntry, parseCatalog — FR-SAT-1 / FR-SAT-5: the curated catalog is validated by this schema in a Vitest test (PLAN §7.4) so a malformed entry fails CI, and by `sc…
 - `src/data/celestrak.ts` — exports: ommRecordSchema, CelestrakError, groupUrl, FetchGroupOptions, parseGroupBody, fetchGroup — FR-SAT-2 / FR-SAT-3: one request per group, OMM JSON, never `CATNR`.

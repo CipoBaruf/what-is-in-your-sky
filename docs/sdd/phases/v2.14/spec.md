@@ -183,7 +183,7 @@ Constants (FR-VIS-6 style, centralised with the others):
   The facts are the name in the reader's language and, where it differs, the other (`Sirio · Sirius`); the designation (`α CMa`) and the constellation by its name in the reader's language; the magnitude; the altitude and the 16-point direction at `t`; and the rise and set at the shown place on the night that holds `t`, or `never sets` / `never rises`.
   A planet adds `planet` and its constellation now; the Moon adds its phase and lit share (FR-MOON-*).
   Rise and set are the geometric horizon crossings at `t`'s night, from the star's J2000 position (FR-GLOBE-17's rule) and from `astronomy-engine` for the planets and the Moon, to the minute.
-  *Verification:* `lib/riseSet.test.ts` — Sirius over Bariloche on a fixed night against JPL Horizons to ±2 min (the reference fetched in FR-FACT-1's session and committed as a fixture), a circumpolar star, a never-rising star; `stars.spec.ts` — click the list's first row's mark, the group.
+  *Verification:* `lib/riseSet.test.ts` — Sirius over Bariloche on a fixed night against the US Naval Observatory, and Jupiter and the Moon against JPL Horizons, each to ±2 min (the references fetched in FR-FACT-1's session and committed as `tests/fixtures/rise-set-horizons.json`, V214-23), a circumpolar star, a never-rising star; `stars.spec.ts` — click the list's first row's mark, the group.
 
 - **FR-NAME-1** *(V214-8)* **The Spanish names, checked.**
   `data-src/stars/names-es.tsv` gains a row for every one of the 289 named stars (FR-STAR-1) and keeps one for every constellation: each row is the Spanish form or `=` (the IAU name is the Spanish one), and a source key; the file's head lists the sources by key.

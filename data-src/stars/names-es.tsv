@@ -1,109 +1,678 @@
-# Spanish names for the stars page and the pass pages (SPEC FR-STAR-10 as amended v2.5, V25-16).
-# kind	key	part	es
+# Spanish names for the stars page and the pass pages (SPEC FR-STAR-10 as amended v2.5, V25-16; FR-NAME-1, V214-8).
+# kind	key	part	es	source
 # con: key is the IAU abbreviation, part is the figure's part (Serpens has two, plus "all" for its one name in the Among column); every one of the 88 has a row.
-# star: key is the IAU WGSN name as catalog.json carries it; only names with an established Spanish form have a row; every other star keeps its IAU name.
-# Source: the standard Spanish names (Spanish-language astronomy usage, as in es.wikipedia "Anexo:Constelaciones"), written 2026-10-25 for the owner's review.
-con	And	0	Andrómeda
-con	Ant	0	Máquina Neumática
-con	Aps	0	Ave del Paraíso
-con	Aqr	0	Acuario
-con	Aql	0	Águila
-con	Ara	0	Altar
-con	Ari	0	Aries
-con	Aur	0	Auriga
-con	Boo	0	Boyero
-con	Cae	0	Cincel
-con	Cam	0	Jirafa
-con	Cnc	0	Cáncer
-con	CVn	0	Perros de Caza
-con	CMa	0	Can Mayor
-con	CMi	0	Can Menor
-con	Cap	0	Capricornio
-con	Car	0	Quilla
-con	Cas	0	Casiopea
-con	Cen	0	Centauro
-con	Cep	0	Cefeo
-con	Cet	0	Ballena
-con	Cha	0	Camaleón
-con	Cir	0	Compás
-con	Col	0	Paloma
-con	Com	0	Cabellera de Berenice
-con	CrA	0	Corona Austral
-con	CrB	0	Corona Boreal
-con	Crv	0	Cuervo
-con	Crt	0	Copa
-con	Cru	0	Cruz del Sur
-con	Cyg	0	Cisne
-con	Del	0	Delfín
-con	Dor	0	Dorado
-con	Dra	0	Dragón
-con	Equ	0	Caballito
-con	Eri	0	Erídano
-con	For	0	Horno
-con	Gem	0	Géminis
-con	Gru	0	Grulla
-con	Her	0	Hércules
-con	Hor	0	Reloj
-con	Hya	0	Hidra
-con	Hyi	0	Hidra Macho
-con	Ind	0	Indio
-con	Lac	0	Lagarto
-con	Leo	0	Leo
-con	LMi	0	León Menor
-con	Lep	0	Liebre
-con	Lib	0	Libra
-con	Lup	0	Lobo
-con	Lyn	0	Lince
-con	Lyr	0	Lira
-con	Men	0	Mesa
-con	Mic	0	Microscopio
-con	Mon	0	Unicornio
-con	Mus	0	Mosca
-con	Nor	0	Escuadra
-con	Oct	0	Octante
-con	Oph	0	Ofiuco
-con	Ori	0	Orión
-con	Pav	0	Pavo
-con	Peg	0	Pegaso
-con	Per	0	Perseo
-con	Phe	0	Fénix
-con	Pic	0	Pintor
-con	Psc	0	Piscis
-con	PsA	0	Pez Austral
-con	Pup	0	Popa
-con	Pyx	0	Brújula
-con	Ret	0	Retículo
-con	Sge	0	Flecha
-con	Sgr	0	Sagitario
-con	Sco	0	Escorpio
-con	Scl	0	Escultor
-con	Sct	0	Escudo
-con	Ser	0	Cabeza de la Serpiente
-con	Ser	1	Cola de la Serpiente
-con	Ser	all	Serpiente
-con	Sex	0	Sextante
-con	Tau	0	Tauro
-con	Tel	0	Telescopio
-con	Tri	0	Triángulo
-con	TrA	0	Triángulo Austral
-con	Tuc	0	Tucán
-con	UMa	0	Osa Mayor
-con	UMi	0	Osa Menor
-con	Vel	0	Vela
-con	Vir	0	Virgo
-con	Vol	0	Pez Volador
-con	Vul	0	Zorrilla
-star	Sirius		Sirio
-star	Canopus		Canopo
-star	Arcturus		Arturo
-star	Procyon		Proción
-star	Aldebaran		Aldebarán
-star	Pollux		Pólux
-star	Castor		Cástor
-star	Regulus		Régulo
-star	Spica		Espiga
-star	Polaris		Estrella Polar
-star	Denebola		Denébola
-star	Alphard		Alfard
-star	Alcyone		Alcíone
-star	Merope		Mérope
+# star: key is the IAU WGSN name as catalog.json carries it; every one of the 289 named stars has a row, its established Spanish form or "=" where Spanish usage keeps the IAU name. The build fails on a missing row (D-832, widened).
+# The comment above each star row is the reviewer's note: the es.wikipedia title found, or why a form was not taken. Reviewed 2026-11-04 in P10 for the owner's spot-check.
+# source const: the standard Spanish constellation names, es.wikipedia "Anexo:Constelaciones", https://es.wikipedia.org/wiki/Anexo:Constelaciones, written 2026-10-25
+# source eswiki: title (or lead sentence) of the star's Spanish Wikipedia article, resolved through redirects via the MediaWiki API, https://es.wikipedia.org/w/api.php, accessed 2026-11-04
+# source eswiki-lead: Spanish form given as an alternative name in the first sentence of the star's Spanish Wikipedia article (title keeps the Latin/IAU spelling), https://es.wikipedia.org/w/api.php, accessed 2026-11-04
+# source wikidata: Spanish (es) label of the star's Wikidata item, https://www.wikidata.org/w/api.php?action=wbgetentities, accessed 2026-11-04
+# source iau: no Spanish article or label found; IAU WGSN name kept by default, https://www.iau.org/public/themes/naming_stars/, accessed 2026-11-04
+con	And	0	Andrómeda	const
+con	Ant	0	Máquina Neumática	const
+con	Aps	0	Ave del Paraíso	const
+con	Aqr	0	Acuario	const
+con	Aql	0	Águila	const
+con	Ara	0	Altar	const
+con	Ari	0	Aries	const
+con	Aur	0	Auriga	const
+con	Boo	0	Boyero	const
+con	Cae	0	Cincel	const
+con	Cam	0	Jirafa	const
+con	Cnc	0	Cáncer	const
+con	CVn	0	Perros de Caza	const
+con	CMa	0	Can Mayor	const
+con	CMi	0	Can Menor	const
+con	Cap	0	Capricornio	const
+con	Car	0	Quilla	const
+con	Cas	0	Casiopea	const
+con	Cen	0	Centauro	const
+con	Cep	0	Cefeo	const
+con	Cet	0	Ballena	const
+con	Cha	0	Camaleón	const
+con	Cir	0	Compás	const
+con	Col	0	Paloma	const
+con	Com	0	Cabellera de Berenice	const
+con	CrA	0	Corona Austral	const
+con	CrB	0	Corona Boreal	const
+con	Crv	0	Cuervo	const
+con	Crt	0	Copa	const
+con	Cru	0	Cruz del Sur	const
+con	Cyg	0	Cisne	const
+con	Del	0	Delfín	const
+con	Dor	0	Dorado	const
+con	Dra	0	Dragón	const
+con	Equ	0	Caballito	const
+con	Eri	0	Erídano	const
+con	For	0	Horno	const
+con	Gem	0	Géminis	const
+con	Gru	0	Grulla	const
+con	Her	0	Hércules	const
+con	Hor	0	Reloj	const
+con	Hya	0	Hidra	const
+con	Hyi	0	Hidra Macho	const
+con	Ind	0	Indio	const
+con	Lac	0	Lagarto	const
+con	Leo	0	Leo	const
+con	LMi	0	León Menor	const
+con	Lep	0	Liebre	const
+con	Lib	0	Libra	const
+con	Lup	0	Lobo	const
+con	Lyn	0	Lince	const
+con	Lyr	0	Lira	const
+con	Men	0	Mesa	const
+con	Mic	0	Microscopio	const
+con	Mon	0	Unicornio	const
+con	Mus	0	Mosca	const
+con	Nor	0	Escuadra	const
+con	Oct	0	Octante	const
+con	Oph	0	Ofiuco	const
+con	Ori	0	Orión	const
+con	Pav	0	Pavo	const
+con	Peg	0	Pegaso	const
+con	Per	0	Perseo	const
+con	Phe	0	Fénix	const
+con	Pic	0	Pintor	const
+con	Psc	0	Piscis	const
+con	PsA	0	Pez Austral	const
+con	Pup	0	Popa	const
+con	Pyx	0	Brújula	const
+con	Ret	0	Retículo	const
+con	Sge	0	Flecha	const
+con	Sgr	0	Sagitario	const
+con	Sco	0	Escorpio	const
+con	Scl	0	Escultor	const
+con	Sct	0	Escudo	const
+con	Ser	0	Cabeza de la Serpiente	const
+con	Ser	1	Cola de la Serpiente	const
+con	Ser	all	Serpiente	const
+con	Sex	0	Sextante	const
+con	Tau	0	Tauro	const
+con	Tel	0	Telescopio	const
+con	Tri	0	Triángulo	const
+con	TrA	0	Triángulo Austral	const
+con	Tuc	0	Tucán	const
+con	UMa	0	Osa Mayor	const
+con	UMi	0	Osa Menor	const
+con	Vel	0	Vela	const
+con	Vir	0	Virgo	const
+con	Vol	0	Pez Volador	const
+con	Vul	0	Zorrilla	const
+# eswiki title "Sirio"
+star	Sirius		Sirio	eswiki
+# eswiki title "Canopus (estrella)", lead "Canopus o Canopo"; existing form kept, see report
+star	Canopus		Canopo	eswiki-lead
+# eswiki title "Arturo (estrella)"
+star	Arcturus		Arturo	eswiki
+# eswiki title "Alfa Centauri" (variant traditional name or designation, not a Spanish form of Rigil Kentaurus)
+star	Rigil Kentaurus		=	eswiki
+# eswiki title "Vega (estrella)"
+star	Vega		=	eswiki
+# eswiki title "Capella"
+star	Capella		=	eswiki
+# eswiki title "Rigel"
+star	Rigel		=	eswiki
+# eswiki title "Procyon (estrella)", lead "Procyon o Proción"; existing form kept, see report
+star	Procyon		Proción	eswiki-lead
+# eswiki title "Achernar"
+star	Achernar		=	eswiki
+# eswiki title "Betelgeuse"
+star	Betelgeuse		=	eswiki
+# eswiki title "Hadar (estrella)"
+star	Hadar		=	eswiki
+# eswiki title "Altaír" (Wikidata es label "Altair"); new
+star	Altair		Altaír	eswiki
+# eswiki title "Aldebarán"
+star	Aldebaran		Aldebarán	eswiki
+# eswiki title "Antares"
+star	Antares		=	eswiki
+# eswiki title "Espiga (estrella)"
+star	Spica		Espiga	eswiki
+# eswiki title "Pólux (estrella)"
+star	Pollux		Pólux	eswiki
+# eswiki title "Fomalhaut"
+star	Fomalhaut		=	eswiki
+# eswiki title "Becrux" (variant traditional name or designation, not a Spanish form of Mimosa)
+star	Mimosa		=	eswiki
+# eswiki title "Deneb"
+star	Deneb		=	eswiki
+# eswiki title "Ácrux" (Wikidata es label "Acrux"); new
+star	Acrux		Ácrux	eswiki
+# eswiki "Toliman (estrella)" redirects to Alfa Centauri; "Tolimán" is a place-name disambiguation: rejected
+star	Toliman		=	eswiki
+# eswiki title "Regulus", lead "Regulus o Régulo"; other eswiki articles (Alfard, Denébola) write Régulo
+star	Regulus		Régulo	eswiki-lead
+# eswiki title "Adhara"
+star	Adhara		=	eswiki
+# eswiki title "Gacrux"
+star	Gacrux		=	eswiki
+# eswiki title "Shaula"
+star	Shaula		=	eswiki
+# eswiki title "Bellatrix"
+star	Bellatrix		=	eswiki
+# eswiki title "Elnath"
+star	Elnath		=	eswiki
+# eswiki lead "Miaplacidus o Miaplácidus"; title unaccented, accent form not established: rejected
+star	Miaplacidus		=	eswiki
+# eswiki title Alnilam; "Las tres Marías" is the asterism, not a name
+star	Alnilam		=	eswiki
+# eswiki title "Al Nair" (variant traditional name or designation, not a Spanish form of Alnair)
+star	Alnair		=	eswiki
+# eswiki title "Alioth"
+star	Alioth		=	eswiki
+# eswiki title "Mirfak"
+star	Mirfak		=	eswiki
+# eswiki title "Dubhe"
+star	Dubhe		=	eswiki
+# eswiki title "Wezen"
+star	Wezen		=	eswiki
+# eswiki title "Kaus Australis"
+star	Kaus Australis		=	eswiki
+# eswiki title "Avior (estrella)"
+star	Avior		=	eswiki
+# eswiki title "Benetnasch" (variant traditional name or designation, not a Spanish form of Alkaid)
+star	Alkaid		=	eswiki
+# eswiki title "Sargas"
+star	Sargas		=	eswiki
+# eswiki title "Menkalinan"
+star	Menkalinan		=	eswiki
+# eswiki title "Atria (estrella)"
+star	Atria		=	eswiki
+# eswiki title "Alhena"
+star	Alhena		=	eswiki
+# eswiki title "Peacock (estrella)"
+star	Peacock		=	eswiki
+# eswiki title "Delta Velorum" (variant traditional name or designation, not a Spanish form of Alsephina)
+star	Alsephina		=	eswiki
+# eswiki title "Murzim" (variant traditional name or designation, not a Spanish form of Mirzam)
+star	Mirzam		=	eswiki
+# eswiki title "Cástor (estrella)"
+star	Castor		Cástor	eswiki
+# eswiki title "Alfard"
+star	Alphard		Alfard	eswiki
+# eswiki title "Hamal"
+star	Hamal		=	eswiki
+# Wikidata es label "Estrella Polar"; eswiki title "Polaris (estrella)", lead "También recibe el nombre de Estrella Polar"
+star	Polaris		Estrella Polar	wikidata
+# eswiki title "Nunki"
+star	Nunki		=	eswiki
+# eswiki title "Deneb Kaitos" (variant traditional name or designation, not a Spanish form of Diphda)
+star	Diphda		=	eswiki
+# eswiki title Alnitak; "Las tres Marías" is the asterism, not a name
+star	Alnitak		=	eswiki
+# eswiki title "Alpheratz"
+star	Alpheratz		=	eswiki
+# eswiki title "Mirach"
+star	Mirach		=	eswiki
+# eswiki title "Saiph"
+star	Saiph		=	eswiki
+# eswiki title "Menkent"
+star	Menkent		=	eswiki
+# eswiki title "Kochab"
+star	Kochab		=	eswiki
+# eswiki title "Ras Alhague" (variant traditional name or designation, not a Spanish form of Rasalhague)
+star	Rasalhague		=	eswiki
+# eswiki title "Beta Gruis" (variant traditional name or designation, not a Spanish form of Tiaki)
+star	Tiaki		=	eswiki
+# eswiki title "Algol"
+star	Algol		=	eswiki
+# eswiki title "Denébola"
+star	Denebola		Denébola	eswiki
+# eswiki title "Sadr"
+star	Sadr		=	eswiki
+# eswiki title "Suhail"
+star	Suhail		=	eswiki
+# eswiki title "Schedar"
+star	Schedar		=	eswiki
+# eswiki title Mintaka; "Las tres Marías" is the asterism, not a name
+star	Mintaka		=	eswiki
+# eswiki title Alphecca
+star	Alphecca		=	eswiki
+# eswiki title "Etamin" (variant traditional name or designation, not a Spanish form of Eltanin)
+star	Eltanin		=	eswiki
+# eswiki title "Naos (estrella)"
+star	Naos		=	eswiki
+# eswiki title "Aspidiske"
+star	Aspidiske		=	eswiki
+# eswiki title "Alamak" (variant traditional name or designation, not a Spanish form of Almach)
+star	Almach		=	eswiki
+# eswiki title "Caph"
+star	Caph		=	eswiki
+# eswiki title "Mizar"
+star	Mizar		=	eswiki
+# eswiki title "Wei (estrella)" (variant traditional name or designation, not a Spanish form of Larawag)
+star	Larawag		=	eswiki
+# eswiki title "Dschubba"
+star	Dschubba		=	eswiki
+# eswiki title "Merak"
+star	Merak		=	eswiki
+# eswiki title "Ankaa"
+star	Ankaa		=	eswiki
+# eswiki title "Enif"
+star	Enif		=	eswiki
+# eswiki title "Scheat"
+star	Scheat		=	eswiki
+# eswiki title "Sabik"
+star	Sabik		=	eswiki
+# eswiki title "Phecda"
+star	Phecda		=	eswiki
+# eswiki title "Alderamin"
+star	Alderamin		=	eswiki
+# eswiki title "Aludra"
+star	Aludra		=	eswiki
+# eswiki title "Giennah" (variant traditional name or designation, not a Spanish form of Aljanah)
+star	Aljanah		=	eswiki
+# eswiki title "Markab"
+star	Markab		=	eswiki
+# eswiki title "Kappa Velorum" (variant traditional name or designation, not a Spanish form of Markeb)
+star	Markeb		=	eswiki
+# eswiki title "Menkar"
+star	Menkar		=	eswiki
+# eswiki title "Duhr" (variant traditional name or designation, not a Spanish form of Zosma)
+star	Zosma		=	eswiki
+# eswiki title "Arneb"
+star	Arneb		=	eswiki
+# eswiki title "Gienah Gurab" (variant traditional name or designation, not a Spanish form of Gienah)
+star	Gienah		=	eswiki
+# eswiki title "Askella" (variant traditional name or designation, not a Spanish form of Ascella)
+star	Ascella		=	eswiki
+# eswiki title "Algieba"
+star	Algieba		=	eswiki
+# eswiki title "Zubeneschamali"
+star	Zubeneschamali		=	eswiki
+# eswiki title "Theta Aurigae" (variant traditional name or designation, not a Spanish form of Mahasim)
+star	Mahasim		=	eswiki
+# eswiki title "Acrab"
+star	Acrab		=	eswiki
+# eswiki title "Sheratan"
+star	Sheratan		=	eswiki
+# eswiki title "Phact"
+star	Phact		=	eswiki
+# eswiki title "Kraz"
+star	Kraz		=	eswiki
+# eswiki title "Unukalhai"
+star	Unukalhai		=	eswiki
+# eswiki title "Ksora" (variant traditional name or designation, not a Spanish form of Ruchbah)
+star	Ruchbah		=	eswiki
+# eswiki title "Mufrid" (variant traditional name or designation, not a Spanish form of Muphrid)
+star	Muphrid		=	eswiki
+# eswiki title "Hassaleh"
+star	Hassaleh		=	eswiki
+# eswiki title "Lesath"
+star	Lesath		=	eswiki
+# eswiki title "Izar (estrella)"
+star	Izar		=	eswiki
+# eswiki title "Kaus Medius" (variant traditional name or designation, not a Spanish form of Kaus Media)
+star	Kaus Media		=	eswiki
+# eswiki title "Tarazed"
+star	Tarazed		=	eswiki
+# eswiki title "Yed Prior"
+star	Yed Prior		=	eswiki
+# eswiki title "Aldhibain" (variant traditional name or designation, not a Spanish form of Athebyne)
+star	Athebyne		=	eswiki
+# eswiki title "Zubenelgenubi"
+star	Zubenelgenubi		=	eswiki
+# eswiki title "Hatysa"
+star	Hatysa		=	eswiki
+# eswiki title "Kornephoros"
+star	Kornephoros		=	eswiki
+# eswiki title "Cebalrai"
+star	Cebalrai		=	eswiki
+# eswiki title "Cursa"
+star	Cursa		=	eswiki
+# eswiki title "Alwaid" (variant traditional name or designation, not a Spanish form of Rastaban)
+star	Rastaban		=	eswiki
+# eswiki title "Imai"
+star	Imai		=	eswiki
+# eswiki title "Rho Puppis" (variant traditional name or designation, not a Spanish form of Tureis)
+star	Tureis		=	eswiki
+# eswiki title "Kaus Borealis"
+star	Kaus Borealis		=	eswiki
+# eswiki title "Tau Scorpii" (variant traditional name or designation, not a Spanish form of Paikauhale)
+star	Paikauhale		=	eswiki
+# eswiki title "Gamma Pegasi" (variant traditional name or designation, not a Spanish form of Algenib)
+star	Algenib		=	eswiki
+# eswiki title "Vindemiatrix"
+star	Vindemiatrix		=	eswiki
+# eswiki title "Nihal"
+star	Nihal		=	eswiki
+# eswiki title "Alcíone (estrella)"
+star	Alcyone		Alcíone	eswiki
+# eswiki title "Delta Cygni" (variant traditional name or designation, not a Spanish form of Fawaris)
+star	Fawaris		=	eswiki
+# eswiki title "Deneb Algedi"
+star	Deneb Algedi		=	eswiki
+# eswiki title "Tejat Posterior" (variant traditional name or designation, not a Spanish form of Tejat)
+star	Tejat		=	eswiki
+# eswiki title "Pi Scorpii" (variant traditional name or designation, not a Spanish form of Fang)
+star	Fang		=	eswiki
+# eswiki title "Tau Scorpii" (variant traditional name or designation, not a Spanish form of Alniyat)
+star	Alniyat		=	eswiki
+# eswiki title "Albaldah"
+star	Albaldah		=	eswiki
+# eswiki title "Gomeisa"
+star	Gomeisa		=	eswiki
+# eswiki title "Cor Caroli"
+star	Cor Caroli		=	eswiki
+# eswiki title "Beta Aquarii" (variant traditional name or designation, not a Spanish form of Sadalsuud)
+star	Sadalsuud		=	eswiki
+# eswiki title "Matar (estrella)"
+star	Matar		=	eswiki
+# eswiki title "Zaurak"
+star	Zaurak		=	eswiki
+# eswiki title "Algorab"
+star	Algorab		=	eswiki
+# eswiki title "Sadalmelik"
+star	Sadalmelik		=	eswiki
+# eswiki title "Mebsuta"
+star	Mebsuta		=	eswiki
+# eswiki title "Almaaz"
+star	Almaaz		=	eswiki
+# eswiki title "Nash (estrella)" (variant traditional name or designation, not a Spanish form of Alnasl)
+star	Alnasl		=	eswiki
+# eswiki title "Zeta Aquilae" (variant traditional name or designation, not a Spanish form of Okab)
+star	Okab		=	eswiki
+# eswiki title "Zeta Tauri" (variant traditional name or designation, not a Spanish form of Tianguan)
+star	Tianguan		=	eswiki
+# eswiki title "Aldhanab"
+star	Aldhanab		=	eswiki
+# eswiki title "Furud"
+star	Furud		=	eswiki
+# eswiki title "Seginus"
+star	Seginus		=	eswiki
+# eswiki title "Mira (estrella)"
+star	Mira		=	eswiki
+# eswiki title "Tania Australis"
+star	Tania Australis		=	eswiki
+# eswiki title "Pherkad"
+star	Pherkad		=	eswiki
+# eswiki title "Altais"
+star	Altais		=	eswiki
+# eswiki title "Mu1 Scorpii" (variant traditional name or designation, not a Spanish form of Xamidimura)
+star	Xamidimura		=	eswiki
+# eswiki title "Albireo"
+star	Albireo		=	eswiki
+# eswiki title "Dabih"
+star	Dabih		=	eswiki
+# eswiki title "Wazn"
+star	Wazn		=	eswiki
+# eswiki title "Talitha Borealis" (variant traditional name or designation, not a Spanish form of Talitha)
+star	Talitha		=	eswiki
+# eswiki "Sarin (estrella)"; "Sarín" is the nerve gas, not the star
+star	Sarin		=	eswiki
+# eswiki title "Eta Aurigae" (variant traditional name or designation, not a Spanish form of Haedus)
+star	Haedus		=	eswiki
+# eswiki title "Aldhibah"
+star	Aldhibah		=	eswiki
+# eswiki title "Tabit"
+star	Tabit		=	eswiki
+# eswiki title "G Scorpii" (variant traditional name or designation, not a Spanish form of Fuyue)
+star	Fuyue		=	eswiki
+# eswiki title "Errai"
+star	Errai		=	eswiki
+# eswiki title "Alfirk"
+star	Alfirk		=	eswiki
+# eswiki title "Theta Eridani" (variant traditional name or designation, not a Spanish form of Acamar)
+star	Acamar		=	eswiki
+# eswiki title "Yed Posterior"
+star	Yed Posterior		=	eswiki
+# eswiki title "Gamma Lyrae" (variant traditional name or designation, not a Spanish form of Sulafat)
+star	Sulafat		=	eswiki
+# eswiki title "Skat (estrella)"
+star	Skat		=	eswiki
+# eswiki title "Tejat Prior" (variant traditional name or designation, not a Spanish form of Propus)
+star	Propus		=	eswiki
+# eswiki title "Brachium"
+star	Brachium		=	eswiki
+# eswiki title "Edasich"
+star	Edasich		=	eswiki
+# eswiki title "Megrez"
+star	Megrez		=	eswiki
+# eswiki title "Azmidiske" (variant traditional name or designation, not a Spanish form of Azmidi)
+star	Azmidi		=	eswiki
+# eswiki title "Chertan"
+star	Chertan		=	eswiki
+# eswiki title "Alzir" (variant traditional name or designation, not a Spanish form of Alzirr)
+star	Alzirr		=	eswiki
+# eswiki title "Muscida"
+star	Muscida		=	eswiki
+# eswiki title "Heze"
+star	Heze		=	eswiki
+# eswiki title "Épsilon Cassiopeiae" (variant traditional name or designation, not a Spanish form of Segin)
+star	Segin		=	eswiki
+# eswiki title "Épsilon Hydrae" (variant traditional name or designation, not a Spanish form of Ashlesha)
+star	Ashlesha		=	eswiki
+# eswiki title "Minelava" (variant traditional name or designation, not a Spanish form of Minelauva)
+star	Minelauva		=	eswiki
+# eswiki title "Theta2 Tauri" (variant traditional name or designation, not a Spanish form of Chamukuy)
+star	Chamukuy		=	eswiki
+# eswiki title "Homam"
+star	Homam		=	eswiki
+# eswiki title "Metallah" (variant traditional name or designation, not a Spanish form of Mothallah)
+star	Mothallah		=	eswiki
+# eswiki title "Achird"
+star	Achird		=	eswiki
+# eswiki title "Aldhafera" (variant traditional name or designation, not a Spanish form of Adhafera)
+star	Adhafera		=	eswiki
+# eswiki title "Tania Borealis"
+star	Tania Borealis		=	eswiki
+# eswiki title "Beta Lyrae" (variant traditional name or designation, not a Spanish form of Sheliak)
+star	Sheliak		=	eswiki
+# eswiki title "Kaffaljidhma"
+star	Kaffaljidhma		=	eswiki
+# no eswiki article or Spanish label found
+star	Nganurganity		=	iau
+# eswiki title "Alula Borealis"
+star	Alula Borealis		=	eswiki
+# eswiki title "Ras Algethi" (variant traditional name or designation, not a Spanish form of Rasalgethi)
+star	Rasalgethi		=	eswiki
+# eswiki title "Sadalbari"
+star	Sadalbari		=	eswiki
+# eswiki title "Nekkar"
+star	Nekkar		=	eswiki
+# eswiki title "Altarf" (variant traditional name or designation, not a Spanish form of Tarf)
+star	Tarf		=	eswiki
+# eswiki title "Subra"
+star	Subra		=	eswiki
+# eswiki title "Ain (estrella)"
+star	Ain		=	eswiki
+# eswiki title "Wasat"
+star	Wasat		=	eswiki
+# eswiki title "Baham (estrella)" (variant traditional name or designation, not a Spanish form of Biham)
+star	Biham		=	eswiki
+# eswiki title "Rana (estrella)"
+star	Rana		=	eswiki
+# eswiki title "Meissa"
+star	Meissa		=	eswiki
+# eswiki title "51 Andromedae" (variant traditional name or designation, not a Spanish form of Nembus)
+star	Nembus		=	eswiki
+# eswiki title "Pipirima"
+star	Pipirima		=	eswiki
+# eswiki title "Al Giedi" (variant traditional name or designation, not a Spanish form of Algedi)
+star	Algedi		=	eswiki
+# eswiki title "Ginan"
+star	Ginan		=	eswiki
+# eswiki title "Alkaphrah"
+star	Alkaphrah		=	eswiki
+# eswiki title "Zavijava"
+star	Zavijava		=	eswiki
+# eswiki title "Kullat Nunu" (variant traditional name or designation, not a Spanish form of Alpherg)
+star	Alpherg		=	eswiki
+# eswiki title "Bharani"
+star	Bharani		=	eswiki
+# eswiki title "Atlas (estrella)"
+star	Atlas		=	eswiki
+# eswiki title "Rotanev"
+star	Rotanev		=	eswiki
+# eswiki title "Hyadum I" (variant traditional name or designation, not a Spanish form of Prima Hyadum)
+star	Prima Hyadum		=	eswiki
+# eswiki title "Porrima"
+star	Porrima		=	eswiki
+# eswiki title "Thuban"
+star	Thuban		=	eswiki
+# eswiki title "Zeta Cassiopeiae" (variant traditional name or designation, not a Spanish form of Fulu)
+star	Fulu		=	eswiki
+# eswiki title "Nusakan"
+star	Nusakan		=	eswiki
+# eswiki title "Nashira"
+star	Nashira		=	eswiki
+# eswiki title "Electra (estrella)"
+star	Electra		=	eswiki
+# eswiki title "Taiyangshou"
+star	Taiyangshou		=	eswiki
+# eswiki title "Alshain"
+star	Alshain		=	eswiki
+# eswiki title "Baten Kaitos (estrella)"
+star	Baten Kaitos		=	eswiki
+# eswiki title "Épsilon Eridani" (variant traditional name or designation, not a Spanish form of Ran)
+star	Ran		=	eswiki
+# eswiki title "Azaleh" (variant traditional name or designation, not a Spanish form of Saclateni)
+star	Saclateni		=	eswiki
+# eswiki title "Grumium"
+star	Grumium		=	eswiki
+# eswiki title "Miram"
+star	Miram		=	eswiki
+# eswiki title "Hyadum II" (variant traditional name or designation, not a Spanish form of Secunda Hyadum)
+star	Secunda Hyadum		=	eswiki
+# eswiki title "Sualocin"
+star	Sualocin		=	eswiki
+# eswiki title "Albali"
+star	Albali		=	eswiki
+# eswiki title "Mekbuda"
+star	Mekbuda		=	eswiki
+# eswiki title "Kappa Persei" (variant traditional name or designation, not a Spanish form of Misam)
+star	Misam		=	eswiki
+# eswiki title "Upsilon2 Eridani" (variant traditional name or designation, not a Spanish form of Theemin)
+star	Theemin		=	eswiki
+# eswiki title "Marfik"
+star	Marfik		=	eswiki
+# eswiki title "Atik"
+star	Atik		=	eswiki
+# eswiki title "Praecipua"
+star	Praecipua		=	eswiki
+# eswiki title "Gianfar" (variant traditional name or designation, not a Spanish form of Giausar)
+star	Giausar		=	eswiki
+# eswiki title "Sadachbia"
+star	Sadachbia		=	eswiki
+# eswiki title "Polis (estrella)"
+star	Polis		=	eswiki
+# eswiki title "Fornacis" (variant traditional name or designation, not a Spanish form of Dalim)
+star	Dalim		=	eswiki
+# eswiki title "Maia (estrella)"
+star	Maia		=	eswiki
+# eswiki title "53 Eridani" (variant traditional name or designation, not a Spanish form of Sceptrum)
+star	Sceptrum		=	eswiki
+# eswiki title "Rasalas"
+star	Rasalas		=	eswiki
+# eswiki title "Rho Scorpii" (variant traditional name or designation, not a Spanish form of Iklil)
+star	Iklil		=	eswiki
+# eswiki title "Eta Eridani" (variant traditional name or designation, not a Spanish form of Azha)
+star	Azha		=	eswiki
+# eswiki title "Zaniah"
+star	Zaniah		=	eswiki
+# eswiki title "Iota Hydrae" (variant traditional name or designation, not a Spanish form of Ukdah)
+star	Ukdah		=	eswiki
+# eswiki title "Zubenelakrab" (variant traditional name or designation, not a Spanish form of Zubenelhakrabi)
+star	Zubenelhakrabi		=	eswiki
+# eswiki title "Zeta Phoenicis" (variant traditional name or designation, not a Spanish form of Wurren)
+star	Wurren		=	eswiki
+# eswiki lead lists "Kitalfa" as a third variant; title Kitalpha: rejected
+star	Kitalpha		=	eswiki
+# eswiki title "Asellus Australis"
+star	Asellus Australis		=	eswiki
+# no eswiki article or Spanish label found
+star	Beemim		=	iau
+# eswiki title "Rukbat"
+star	Rukbat		=	eswiki
+# eswiki title "Alcor (estrella)"
+star	Alcor		=	eswiki
+# eswiki title "Nu Scorpii" (variant traditional name or designation, not a Spanish form of Jabbah)
+star	Jabbah		=	eswiki
+# eswiki title "Arkab Prior"
+star	Arkab Prior		=	eswiki
+# eswiki title "Alchiba"
+star	Alchiba		=	eswiki
+# eswiki title "Deneb Dulfim" (variant traditional name or designation, not a Spanish form of Aldulfin)
+star	Aldulfin		=	eswiki
+# eswiki title "Menkib"
+star	Menkib		=	eswiki
+# eswiki title "Omicron1 Eridani" (variant traditional name or designation, not a Spanish form of Beid)
+star	Beid		=	eswiki
+# eswiki title "Alkes"
+star	Alkes		=	eswiki
+# eswiki title "Syrma"
+star	Syrma		=	eswiki
+# eswiki title "Ípsilon Andromedae" (variant traditional name or designation, not a Spanish form of Titawin)
+star	Titawin		=	eswiki
+# eswiki title "Kappa Serpentis" (variant traditional name or designation, not a Spanish form of Gudja)
+star	Gudja		=	eswiki
+# eswiki "Meridiana (estrella)" redirects to "Alfecca Meridiana", a variant traditional name, not a Spanish form
+star	Meridiana		=	eswiki
+# eswiki title "Muliphein"
+star	Muliphein		=	eswiki
+# eswiki title "Ípsilon1 Hydrae" (variant traditional name or designation, not a Spanish form of Zhang)
+star	Zhang		=	eswiki
+# eswiki title "Ancha"
+star	Ancha		=	eswiki
+# eswiki title "Merope (estrella)", lead "Merope o Mérope"; existing form kept, see report
+star	Merope		Mérope	eswiki-lead
+# eswiki title "Lambda Bootis" (variant traditional name or designation, not a Spanish form of Xuange)
+star	Xuange		=	eswiki
+# no eswiki article or Spanish label found
+star	Kang		=	iau
+# eswiki title "Alsciaukat"
+star	Alsciaukat		=	eswiki
+# eswiki title "Acubens"
+star	Acubens		=	eswiki
+# eswiki title "Torcularis Septentrionalis" (variant traditional name or designation, not a Spanish form of Torcular)
+star	Torcular		=	eswiki
+# eswiki title "Chara (astronomía)" (variant traditional name or designation, not a Spanish form of Chara)
+star	Chara		=	eswiki
+# eswiki title "Arkab Posterior"
+star	Arkab Posterior		=	eswiki
+# eswiki title "Alkurhah" (variant traditional name or designation, not a Spanish form of Kurhah)
+star	Kurhah		=	eswiki
+# eswiki title "Taygeta"
+star	Taygeta		=	eswiki
+# eswiki title "Alterf"
+star	Alterf		=	eswiki
+# eswiki title "Alkalurops"
+star	Alkalurops		=	eswiki
+# eswiki title "Alrisha" (variant traditional name or designation, not a Spanish form of Alrescha)
+star	Alrescha		=	eswiki
+# eswiki title "Botein"
+star	Botein		=	eswiki
+# eswiki title "Yildun"
+star	Yildun		=	eswiki
+# eswiki title "Sham (estrella)"
+star	Sham		=	eswiki
+# eswiki title "Eta Lyrae" (variant traditional name or designation, not a Spanish form of Aladfar)
+star	Aladfar		=	eswiki
+# eswiki title "Ípsilon Pegasi" (variant traditional name or designation, not a Spanish form of Alkarab)
+star	Alkarab		=	eswiki
+# eswiki title "Alula Australis"
+star	Alula Australis		=	eswiki
+# eswiki title "Maasym"
+star	Maasym		=	eswiki
+# eswiki title "40 Eridani" (variant traditional name or designation, not a Spanish form of Keid)
+star	Keid		=	eswiki
+# eswiki title "Al Minliar al Shuja" (variant traditional name or designation, not a Spanish form of Minchir)
+star	Minchir		=	eswiki
+# eswiki title "Anser (estrella)"
+star	Anser		=	eswiki
+# eswiki title "Fum al Samakah" (variant traditional name or designation, not a Spanish form of Fumalsamakah)
+star	Fumalsamakah		=	eswiki
+# eswiki title "Alya"
+star	Alya		=	eswiki
+# eswiki title "Asellus Borealis"
+star	Asellus Borealis		=	eswiki
+# eswiki title "Omega Sagittarii" (variant traditional name or designation, not a Spanish form of Terebellum)
+star	Terebellum		=	eswiki
+# eswiki title "Mesarthim"
+star	Mesarthim		=	eswiki
+# eswiki title "Ainalrami"
+star	Ainalrami		=	eswiki
+# eswiki title "Diadema de Berenice (Alpha Comae Berenices)" but its lead names the star "Diadem": Diadema rejected
+star	Diadem		=	eswiki
+# no eswiki article or Spanish label found
+star	Revati		=	iau

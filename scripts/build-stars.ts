@@ -96,12 +96,14 @@ export interface NamesEs {
 }
 
 /**
- * `data-src/stars/names-es.tsv`: tab-separated `kind key part es`, `#` comments.
+ * `data-src/stars/names-es.tsv`: tab-separated `kind key part es source`, `#`
+ * comments, the head listing the sources as `# source <key>: …`.
  * `con` rows by IAU abbreviation and part (`all` for a split constellation
- * whole), `star` rows by the IAU name the catalogue carries. Fails on an
- * unknown kind, an abbreviation outside the 88, a part the figure does not
- * have or one it lacks, a `star` key the catalogue does not carry, a blank
- * name or a duplicate row.
+ * whole), `star` rows by the IAU name the catalogue carries, `=` where the IAU
+ * name is the Spanish one (FR-NAME-1). Fails on an unknown kind, an
+ * abbreviation outside the 88, a part the figure does not have or one it
+ * lacks, a `star` key the catalogue does not carry, a named star with no row,
+ * a source the head does not list, a blank name or a duplicate row.
  */
 export function parseNamesEs(text: string, starNames: readonly string[]): NamesEs {
   const known = new Set(starNames.filter((n) => n !== ''));
@@ -109,11 +111,19 @@ export function parseNamesEs(text: string, starNames: readonly string[]): NamesE
   const figures: Record<string, string[]> = {};
   const whole: Record<string, string> = {};
   const seen = new Set<string>();
+  const starRows = new Set<string>();
+  // FR-NAME-1: the head lists the sources by key (`# source <key>: …`); every row names one of them.
+  const sources = new Set<string>();
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^# source ([a-z][a-z0-9-]*):\s*\S/.exec(line);
+    if (m?.[1] !== undefined) sources.add(m[1]);
+  }
   text.split(/\r?\n/).forEach((line, n) => {
     if (line.startsWith('#') || line.trim() === '') return;
-    const [kind = '', key = '', part = '', es = '', ...rest] = line.split('\t');
+    const [kind = '', key = '', part = '', es = '', source = '', ...rest] = line.split('\t');
     const at = `names-es.tsv line ${String(n + 1)}`;
-    if (rest.length > 0 || es.trim() === '' || es.trim() !== es) throw new Error(`${at}: expected four fields and a name`);
+    if (rest.length > 0 || es.trim() === '' || es.trim() !== es) throw new Error(`${at}: expected five fields and a name`);
+    if (!sources.has(source)) throw new Error(`${at}: source ${source === '' ? '(none)' : source} is not listed in the head`);
     // A part is keyed by its number, so `1` and `01` are the same row.
     const id = `${kind} ${key} ${/^\d+$/.test(part) ? String(Number(part)) : part}`;
     if (seen.has(id)) throw new Error(`${at}: duplicate row ${id}`);
@@ -121,8 +131,11 @@ export function parseNamesEs(text: string, starNames: readonly string[]): NamesE
     if (kind === 'star') {
       if (part !== '') throw new Error(`${at}: a star row has no part`);
       if (!known.has(key)) throw new Error(`${at}: ${key} is not a name the catalogue carries`);
-      stars.set(key, es);
+      starRows.add(key);
+      // `=`: the IAU name is the Spanish one, so the star keeps it in both languages.
+      if (es !== '=') stars.set(key, es);
     } else if (kind === 'con') {
+      if (es === '=') throw new Error(`${at}: a constellation row names its Spanish form`);
       const latin = Object.hasOwn(CONSTELLATION_NAMES, key) ? CONSTELLATION_NAMES[key] : undefined;
       if (latin === undefined) throw new Error(`${at}: ${key} is not one of the 88 abbreviations`);
       if (part === 'all') {
@@ -137,6 +150,8 @@ export function parseNamesEs(text: string, starNames: readonly string[]): NamesE
       throw new Error(`${at}: unknown kind ${kind}`);
     }
   });
+  // D-832's check widened (FR-NAME-1): every named star has a row, its Spanish form or `=`.
+  for (const name of known) if (!starRows.has(name)) throw new Error(`names-es.tsv: ${name} has no row`);
   for (const [con, latin] of Object.entries(CONSTELLATION_NAMES)) {
     for (let p = 0; p < latin.length; p += 1) if (figures[con]?.[p] === undefined) throw new Error(`names-es.tsv: ${con} part ${String(p)} has no row`);
     if (latin.length > 1 && whole[con] === undefined) throw new Error(`names-es.tsv: ${con} has no whole row`);
@@ -199,6 +214,26 @@ export interface BuildReport {
 const separationDeg = (ra1: number, dec1: number, ra2: number, dec2: number): number =>
   angularDistanceDeg({ azDeg: ra1, elDeg: dec1 }, { azDeg: ra2, elDeg: dec2 });
 
+/** The Yale catalogue's three-letter Bayer abbreviations, in the Greek alphabet's order. */
+const GREEK: Readonly<Record<string, string>> = {
+  Alp: 'α', Bet: 'β', Gam: 'γ', Del: 'δ', Eps: 'ε', Zet: 'ζ', Eta: 'η', The: 'θ', Iot: 'ι', Kap: 'κ', Lam: 'λ', Mu: 'μ',
+  Nu: 'ν', Xi: 'ξ', Omi: 'ο', Pi: 'π', Rho: 'ρ', Sig: 'σ', Tau: 'τ', Ups: 'υ', Phi: 'φ', Chi: 'χ', Psi: 'ψ', Ome: 'ω',
+};
+const SUPERSCRIPT = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+
+/**
+ * FR-NAME-2 (V214-9, D-1094): a Bayer letter as it is read, in Greek with its
+ * superscript component (`Alp2` → `α²`); an empty string where the record has
+ * none. Fails on an abbreviation the table does not know, so a catalogue
+ * change cannot slip a Latin form into the labels.
+ */
+export function greekBayer(letter: string, component: string): string {
+  if (letter === '') return '';
+  const greek = GREEK[letter];
+  if (greek === undefined) throw new Error(`Yale Bayer letter ${letter} is not one of the 24`);
+  return `${greek}${component === '' ? '' : component.split('').map((d) => SUPERSCRIPT[Number(d)] ?? d).join('')}`;
+}
+
 /**
  * The Yale catalogue's fixed-width records (CDS V/50 `ReadMe`: bytes 1-4 HR,
  * 5-7 Flamsteed, 8-11 Bayer, 12-14 constellation, 26-31 HD, 76-90 the J2000
@@ -218,7 +253,7 @@ function parseBsc(text: string): BscRecord[] {
     const sign = line[83] === '-' ? -1 : 1;
     const dec = sign * (Number(line.slice(84, 86)) + Number(line.slice(86, 88)) / 60 + Number(line.slice(88, 90)) / 3600);
     const flamsteed = line.slice(4, 7).trim();
-    const bayer = `${line.slice(7, 10).trim()}${line.slice(10, 11).trim()}`;
+    const bayer = greekBayer(line.slice(7, 10).trim(), line.slice(10, 11).trim());
     // The record names a constellation only beside a Bayer or Flamsteed designation; for the rest it is
     // read off the IAU boundaries, which agree with every one the catalogue does name.
     const con = line.slice(11, 14).trim() || Constellation(ra / 15, dec).symbol;

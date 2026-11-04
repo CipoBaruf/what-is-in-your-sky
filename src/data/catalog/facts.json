@@ -1,0 +1,1126 @@
+{
+  "694": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "rocket-stage",
+    "launched": "1963-11-27",
+    "sizeM": 8.6,
+    "descriptionEs": "Etapa superior Centaur de un vuelo de prueba de 1963, uno de los objetos brillantes más antiguos en órbita.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=694&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "NASA Lewis Research Center flight; stage built by General Dynamics/Convair."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code LERC = NASA Lewis Research Center. Was \"NASA (Lewis Research Center)\"."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=694&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=694&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 1963-11-27 19:03:23 UTC from Cape Canaveral LC-36A (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT auxcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/auxcat.tsv",
+        "date": "2026-11-02",
+        "note": "Centaur stage AC-2 length 8.6 m, diameter 3.0 m, in GCAT auxcat A00422 (the stage), parent of the satcat entry. Other sources give about 9.1 to 9.6 m for Centaur C/D, which include different sections. Measured: Centaur upper stage of Atlas-Centaur AC-2 (the instrumented Centaur itself was the orbited object). CelesTrak lists 1963-047A as PAY 'ATLAS CENTAUR 2', and GCAT satcat names S00694 'AC-2 Instrumentation Ring' (type P A, attached payload, 0.6 m long), with the Centaur stage in auxcat A00422 sharing the catalogue number 694. The tracked object is the Centaur plus its ring, so it is still a spent stage."
+      }
+    }
+  },
+  "10967": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "ocean-observation",
+    "launched": "1978-06-27",
+    "sizeM": 21,
+    "descriptionEs": "Satélite de radar oceánico de la NASA de 1978, todavía uno de los objetos viejos más brillantes.",
+    "source": {
+      "countries": {
+        "source": "NASA NSSDCA 1978-064A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1978-064A",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "NASA NSSDCA 1978-064A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1978-064A",
+        "date": "2026-11-04",
+        "note": "Managed by JPL (GCAT owner JPL)."
+      },
+      "purpose": {
+        "source": "NASA NSSDCA 1978-064A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1978-064A",
+        "date": "2026-11-04",
+        "note": "Borderline: it flew the first civil SAR, but its mission was oceanography (altimeter, scatterometer, SAR over the sea); ocean-observation fits better than radar-observation."
+      },
+      "launched": {
+        "source": "NASA NSSDCA 1978-064A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1978-064A",
+        "date": "2026-11-04",
+        "note": "Atlas-Agena from Vandenberg; GCAT and Gunter agree."
+      },
+      "sizeM": {
+        "source": "JPL Mission and Spacecraft Library, https://space.jpl.nasa.gov/msl/QuickLooks/seasatQL.html",
+        "date": "2026-11-04",
+        "note": "21 m long (bus + sensor module), 1.5 m diameter; SAR antenna 10.7 x 2.16 m. GCAT gives only 12 m length/span, so the two disagree; 21 m is the JPL figure."
+      }
+    }
+  },
+  "20580": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "space-telescope",
+    "launched": "1990-04-24",
+    "sizeM": 13,
+    "descriptionEs": "El Telescopio Espacial Hubble, en una órbita de baja inclinación que solo se ve desde latitudes bajas y medias.",
+    "source": {
+      "countries": {
+        "source": "NASA Hubble, https://science.nasa.gov/mission/hubble/",
+        "date": "2026-11-04",
+        "note": "US only: NASA operates it; ESA is a partner (about 15 %) but not an operator, and the countries follow the operators named."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "Owner GSFC."
+      },
+      "purpose": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "launched": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "1990 Apr 24 (12:33 UTC), STS-31 Discovery; deployed 1990 Apr 25. GCAT LDate is the launch."
+      },
+      "sizeM": {
+        "source": "NASA Hubble design, https://science.nasa.gov/mission/hubble/observatory/design/",
+        "date": "2026-11-04",
+        "note": "Length 13.2 m (43.5 ft), the tube; widest 4.2 m. GCAT gives 13.1 m."
+      }
+    }
+  },
+  "21610": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "1991-07-17",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=21610&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Arianespace is a French company (Evry), and CelesTrak's owner code is FR. Ariane is an ESA programme, but ESA is not an ISO 3166 country, so FR is the launch provider's country."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code AE = Arianespace; stage built by Aerospatiale, Les Mureaux."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=21610&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=21610&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 1991-07-17 01:46:31 UTC (GCAT); Gunter's Space Page lists V44 on 17.07.1991 with ERS 1."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.8 m, diameter 2.6 m, for the orbiting object; Gunter's Space Page gives the bare H10 stage as 10.73 m. The difference is probably the vehicle equipment bay, which stays on the H10 in orbit (my inference, not confirmed). Two significant figures: 12 (11 for the bare stage). Measured: Ariane 4 third stage H10, flight V44 (Ariane 40)."
+      }
+    }
+  },
+  "22219": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "military",
+    "launched": "1992-11-17",
+    "sizeM": 23,
+    "descriptionEs": "Satélite ruso de inteligencia electrónica (Tselina-2).",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State RU, owner GRUR. Launched 11 months after the USSR dissolved, so RU, not SU."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner GRUR = GRU; in 1992 the Russian Military Space Forces (VKS). Was \"Russian MoD (GRU)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/tselina-2.htm",
+        "date": "2026-11-04",
+        "note": "Tselina-2 No. 6L (#11 in Gunter), ELINT. GCAT COSPAR 1992-076A (not 1992-081)."
+      },
+      "launched": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/tselina-2.htm",
+        "date": "2026-11-04",
+        "note": "Zenit-2 from Baikonur LC-45/1; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "DOUBT: same Tselina-2 bus; GCAT span 22.7 m, not confirmed elsewhere."
+      }
+    }
+  },
+  "22220": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1992-11-17",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=22220&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKS = Voenno-Kosmicheskiye Sily (1992-1997). Was \"VKS (Russian Military Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=22220&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=22220&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash). Launched 11 months after the USSR dissolved, so the operator is Russian, not Soviet."
+      }
+    }
+  },
+  "23088": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1994-04-23",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23088&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKS. Was \"VKS (Russian Military Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23088&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23088&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "23561": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "1995-04-21",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23561&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Arianespace is a French company (Evry), and CelesTrak's owner code is FR. Ariane is an ESA programme, but ESA is not an ISO 3166 country, so FR is the launch provider's country."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code AE = Arianespace."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23561&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23561&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 1995-04-21 01:44:02 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 12.1 m, diameter 2.6 m; Gunter's Space Page gives the bare H10+ as 11.05 m (difference probably the equipment bay, inferred). Measured: Ariane 4 third stage H10+, flight V72 (Ariane 40). CelesTrak calls it 'Ariane 40+'; GCAT gives the vehicle as Ariane 40 with variant '40+' (H10+ third stage)."
+      }
+    }
+  },
+  "23705": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1995-10-31",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23705&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKS. Was \"VKS (Russian Military Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23705&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=23705&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "24298": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1996-09-04",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=24298&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKS. Was \"VKS (Russian Military Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=24298&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=24298&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "25407": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1998-07-28",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=25407&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKSR = VKS merged into the RVSN, 1997-2001. Was \"VKS RVSN (Russian Military Space Forces, under the Strategic Rocket Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=25407&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=25407&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "25544": {
+    "countries": [
+      "US",
+      "RU",
+      "JP",
+      "CA",
+      "ESA"
+    ],
+    "operator": "NASA, Roscosmos, JAXA, CSA, ESA",
+    "purpose": "crewed-station",
+    "launched": "1998-11-20",
+    "sizeM": 110,
+    "descriptionEs": "La Estación Espacial Internacional: lo más brillante en órbita, muchas veces más que cualquier estrella.",
+    "source": {
+      "countries": {
+        "source": "NASA, Space Station Facts and Figures, https://www.nasa.gov/international-space-station/space-station-facts-and-figures/",
+        "date": "2026-11-04",
+        "note": "Five partner agencies. Order: the two largest partners (US, RU) first, then JP, CA, ESA by the size of their contribution order (Kibo > Canadarm2 roughly; ESA last since it is not a country). Alternative: the IGA order US, RU, ESA, JP, CA."
+      },
+      "operator": {
+        "source": "NASA, Space Station Facts and Figures, https://www.nasa.gov/international-space-station/space-station-facts-and-figures/",
+        "date": "2026-11-04"
+      },
+      "purpose": {
+        "source": "NASA, Space Station Facts and Figures, https://www.nasa.gov/international-space-station/space-station-facts-and-figures/",
+        "date": "2026-11-04"
+      },
+      "launched": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "Zarya (FGB) launch, 1998 Nov 20 (06:40 UTC), Proton-K from Baikonur; GCAT owner JSC because NASA paid for the FGB."
+      },
+      "sizeM": {
+        "source": "NASA, Space Station Facts and Figures, https://www.nasa.gov/international-space-station/space-station-facts-and-figures/",
+        "date": "2026-11-04",
+        "note": "End-to-end length 109 m (356 ft); the solar-array wingspan is the same 109 m. GCAT's 12.6 m is the Zarya module alone."
+      }
+    }
+  },
+  "25860": {
+    "countries": [
+      "UA",
+      "RU"
+    ],
+    "operator": "NKAU, Roscosmos",
+    "purpose": "ocean-observation",
+    "launched": "1999-07-17",
+    "sizeM": 11,
+    "descriptionEs": "Satélite oceanográfico ruso-ucraniano, fuera de servicio.",
+    "source": {
+      "countries": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/okean-o.htm",
+        "date": "2026-11-04",
+        "note": "Joint Ukrainian-Russian programme (NKAU and RKA, in Gunter's order); built by Yuzhnoye (Ukraine). GCAT lists state RU, owner RGMS (Roshydromet)/Yuzhnoye. If one country is wanted, RU."
+      },
+      "operator": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/okean-o.htm",
+        "date": "2026-11-04",
+        "note": "GCAT owner: Roshydromet + Yuzhnoye."
+      },
+      "purpose": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/okean-o.htm",
+        "date": "2026-11-04",
+        "note": "Borderline: carried an X-band side-looking real-aperture radar (RLSBO) plus multispectral scanners; the programme is oceanographic (sea, ice), hence ocean-observation."
+      },
+      "launched": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/okean-o.htm",
+        "date": "2026-11-04",
+        "note": "Zenit-2 from Baikonur; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "DOUBT: GCAT length/span 10.6 m (likely including the ~11 m side-looking radar antenna); Gunter gives the body as 6.6 m x 1.9 m. Not confirmed in a primary source."
+      }
+    }
+  },
+  "25994": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "earth-observation",
+    "launched": "1999-12-18",
+    "sizeM": 10,
+    "descriptionEs": "Satélite de observación de la Tierra de la NASA en órbita heliosincrónica, visible cerca del amanecer y del anochecer.",
+    "source": {
+      "countries": {
+        "source": "NASA NSSDCA 1999-068A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1999-068A",
+        "date": "2026-11-04",
+        "note": "NASA mission; instruments from Japan (ASTER) and Canada (MOPITT), not operators."
+      },
+      "operator": {
+        "source": "NASA NSSDCA 1999-068A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1999-068A",
+        "date": "2026-11-04"
+      },
+      "purpose": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "launched": {
+        "source": "NASA NSSDCA 1999-068A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1999-068A",
+        "date": "2026-11-04",
+        "note": "Atlas IIAS from Vandenberg; GCAT agrees (1999 Dec 18)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT span 10.0 m (bus + single-wing array). Bus 6.8 m long x 3.5 m; array ~9 x 5 m per eoPortal https://www.eoportal.org/satellite-missions/terra. No NASA page with an overall deployed span found."
+      }
+    }
+  },
+  "26070": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2000-02-03",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26070&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code VKSR. Was \"VKS RVSN (Russian Military Space Forces, under the Strategic Rocket Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26070&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26070&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash). Gunter's Space Page's Zenit-2 list shows this flight as 'Kosmos 2360' twice; CelesTrak and GCAT both say Cosmos 2369 for 2000-006."
+      }
+    }
+  },
+  "26474": {
+    "countries": [
+      "US"
+    ],
+    "operator": "USAF",
+    "purpose": "rocket-stage",
+    "launched": "2000-08-17",
+    "sizeM": 9.9,
+    "descriptionEs": "Etapa superior de un Titan IVB del lanzamiento de Lacrosse 4.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26474&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner AFSMC = US Air Force Space and Missile Systems Center; launched from Vandenberg SLC-4E for the NRO (NROL-11)."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26474&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=26474&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2000-08-17 23:45:01 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'Titan 4 Stage 2' length 9.9 m, diameter 3.1 m. Measured: Titan 4B core second stage (Titan 403B, no upper stage), flight 4B-28. The payload identity (Lacrosse/Onyx 4) is from GCAT's mission field; the NRO has not officially named it."
+      }
+    }
+  },
+  "27386": {
+    "countries": [
+      "ESA"
+    ],
+    "operator": "ESA",
+    "purpose": "earth-observation",
+    "launched": "2002-03-01",
+    "sizeM": 25,
+    "descriptionEs": "Satélite ambiental de la ESA, la nave civil de observación de la Tierra más grande que se construyó.",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State I-ESA."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "purpose": {
+        "source": "ESA, Envisat fast facts, https://www.esa.int/Applications/Observing_the_Earth/Fast_facts",
+        "date": "2026-11-04"
+      },
+      "launched": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "Ariane 5G from Kourou, 2002 Mar 1 01:07 UTC (28 Feb local)."
+      },
+      "sizeM": {
+        "source": "ESA, Envisat fast facts, https://www.esa.int/Applications/Observing_the_Earth/Fast_facts",
+        "date": "2026-11-04",
+        "note": "ESA: 25 x 7 x 10 m with solar panel and ASAR deployed; the 25 m is along the solar array. DLR and GCAT say 26 m; the two sources round differently."
+      }
+    }
+  },
+  "27422": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "2002-05-04",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27422&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Arianespace is a French company (Evry), and CelesTrak's owner code is FR. Ariane is an ESA programme, but ESA is not an ISO 3166 country, so FR is the launch provider's country."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code AE = Arianespace; stage built by EADS Launch Vehicles."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27422&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27422&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2002-05-04 01:31:46 UTC (GCAT); Gunter's Space Page lists V151 on 04.05.2002 with SPOT 5 / Idefix."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 12.1 m, diameter 2.6 m; Gunter's Space Page gives the bare H10-3 as 11.05 m (difference probably the equipment bay, inferred). Measured: Ariane 4 third stage H10-3, flight V151 (Ariane 42P), carrying the attached IDEFIX payload. CelesTrak lists 27422 as type PAY 'IDEFIX & ARIANE 42P R/B' because the IDEFIX payload stayed attached to the stage; GCAT has it as R3 (third stage)."
+      }
+    }
+  },
+  "27424": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "earth-observation",
+    "launched": "2002-05-04",
+    "sizeM": 17,
+    "descriptionEs": "Satélite de observación de la Tierra de la NASA, gemelo de Terra.",
+    "source": {
+      "countries": {
+        "source": "NASA NSSDCA 2002-022A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2002-022A",
+        "date": "2026-11-04",
+        "note": "NASA mission; AMSR-E from Japan and HSB from Brazil, not operators."
+      },
+      "operator": {
+        "source": "NASA NSSDCA 2002-022A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2002-022A",
+        "date": "2026-11-04"
+      },
+      "purpose": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "launched": {
+        "source": "NASA NSSDCA 2002-022A, https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2002-022A",
+        "date": "2026-11-04",
+        "note": "Delta II from Vandenberg, 09:55 UTC; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "eoPortal Aqua, https://eoportal.org/satellite-missions/aqua",
+        "date": "2026-11-04",
+        "note": "Deployed 4.81 x 16.7 x 8.04 m (the 16.7 m axis along the solar array); also NASA GCMD platform description. GCAT span 17.0 m."
+      }
+    }
+  },
+  "27597": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "NASDA",
+    "purpose": "earth-observation",
+    "launched": "2002-12-14",
+    "sizeM": 28,
+    "descriptionEs": "Gran satélite japonés de observación de la Tierra, fuera de servicio pero todavía brillante.",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State J."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "Owner NASDA at launch; NASDA merged into JAXA on 2003-10-01, and Midori II failed on 2003-10-25, so it was briefly JAXA's. Use 'JAXA (NASDA at launch)' if a current name is wanted."
+      },
+      "purpose": {
+        "source": "JAXA, Midori II project page, https://global.jaxa.jp/projects/sat/adeos2/",
+        "date": "2026-11-04"
+      },
+      "launched": {
+        "source": "NASDA press release, 2002-12-14, https://global.jaxa.jp/press/nasda/2002/ad2-h2af4_20021214_e.html",
+        "date": "2002-12-14",
+        "note": "H-IIA F4 from Tanegashima, 10:31 JST = 01:31 UTC on 14 Dec."
+      },
+      "sizeM": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT span 28.0 m overall. JAXA gives the solar paddle as ~3 x 24 m and the body ~6 x 4 x 4 m (https://sharaku.eorc.jaxa.jp/ADEOS2/over/over.html), so 24 m is the paddle alone and 28 m the overall span; overall figure only from GCAT."
+      }
+    }
+  },
+  "27601": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "NASDA",
+    "purpose": "rocket-stage",
+    "launched": "2002-12-14",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27601&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "Launched by NASDA (GCAT owner code NASDA); vehicle built by Mitsubishi Heavy Industries."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27601&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=27601&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2002-12-14 01:31 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'H-2A Stage 2' length 9.2 m, diameter 4.0 m; Wikipedia H-IIA and Spaceflight101 also give 9.2 m by 4 m. Measured: H-IIA second stage, flight F4 (H-IIA 202)."
+      }
+    }
+  },
+  "28353": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2004-06-10",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28353&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code KVR = Kosmicheskiye Voyska Rossii, 2001-2011. Was \"KVR (Russian Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28353&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28353&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2 second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "28931": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "JAXA",
+    "purpose": "earth-observation",
+    "launched": "2006-01-24",
+    "sizeM": 27,
+    "descriptionEs": "Satélite japonés de observación de la Tierra con un gran panel solar.",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State J, owner JAXA."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "purpose": {
+        "source": "JAXA EORC ALOS, https://www.eorc.jaxa.jp/ALOS/en/alos/a1_about_e.htm",
+        "date": "2026-11-04",
+        "note": "Borderline: carried PALSAR (L-band SAR) plus the optical PRISM and AVNIR-2; a land-mapping satellite, so earth-observation, not radar-observation."
+      },
+      "launched": {
+        "source": "JAXA EORC ALOS, https://www.eorc.jaxa.jp/ALOS/en/alos/a1_about_e.htm",
+        "date": "2026-11-04",
+        "note": "H-IIA F8 from Tanegashima; 10:33 JST = 01:33 UTC; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "eoPortal ALOS, https://eoportal.org/satellite-missions/alos",
+        "date": "2026-11-04",
+        "note": "In-orbit 8.9 x 27.4 x 6.2 m; the 27.4 m axis is across the 22 x 3 m solar array. GCAT gives 28 m '?'. No JAXA page with dimensions found."
+      }
+    }
+  },
+  "28932": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "JAXA",
+    "purpose": "rocket-stage",
+    "launched": "2006-01-24",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28932&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code JAXA (NASDA merged into JAXA on 2003-10-01); vehicle built by MHI."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28932&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=28932&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2006-01-24 01:33 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'H-2A Stage 2' length 9.2 m, diameter 4.0 m. Measured: H-IIA second stage, flight F8 (H-IIA 2022)."
+      }
+    }
+  },
+  "29228": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "Roscosmos",
+    "purpose": "earth-observation",
+    "launched": "2006-06-15",
+    "sizeM": 14,
+    "descriptionEs": "Satélite ruso de imágenes de la Tierra en órbita baja.",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State RU."
+      },
+      "operator": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/resurs-dk.htm",
+        "date": "2026-11-04",
+        "note": "Gunter: Roskosmos. GCAT owner TsSKB-Progress (builder); data handled by NTs OMZ."
+      },
+      "purpose": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/resurs-dk.htm",
+        "date": "2026-11-04",
+        "note": "High-resolution optical imaging; also carried PAMELA cosmic-ray experiment. Widely reported as dual civil/military imaging, still earth-observation."
+      },
+      "launched": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/resurs-dk.htm",
+        "date": "2026-11-04",
+        "note": "Soyuz-U from Baikonur; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "eoPortal Resurs-DK1, https://www.eoportal.org/satellite-missions/resurs-dk1",
+        "date": "2026-11-04",
+        "note": "DOUBT: eoPortal gives solar-array span ~14 m; GCAT gives span 10.0 m flagged '?'. Body 7.93 m long x 2.72 m (SAMSPACE, https://en.samspace.ru/products/earth_remote_sensing_satellites/ka_resurs_dk_1/). No manufacturer span found."
+      }
+    }
+  },
+  "29507": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CASC",
+    "purpose": "rocket-stage",
+    "launched": "2006-10-23",
+    "sizeM": 6.9,
+    "descriptionEs": "Etapa superior de un cohete chino Larga Marcha 4B.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=29507&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "Launched from Taiyuan by China Aerospace Science and Technology Corporation (stage built by its subsidiary SAST); GCAT's owner field for this object is CNSA, CelesTrak's owner code is PRC."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=29507&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=29507&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2006-10-23 23:34 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'CZ-4 Stage 3' length 6.9 m, diameter 2.9 m. Not confirmed elsewhere: Wikipedia's 14.79 m for the CZ-4B third stage looks like the second stage's length. Measured: Long March 4B third stage, flight Y16. The brief names the payload 'Shijian 6C'. CelesTrak and GCAT say this launch (2006-046) carried Shijian-6 02A/02B, the second SJ-6 pair; there is no 'Shijian 6C'. Operator: GCAT's owner field says CNSA; the launch provider is CASC. Pick one."
+      }
+    }
+  },
+  "31114": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CASC",
+    "purpose": "rocket-stage",
+    "launched": "2007-04-11",
+    "sizeM": 8.4,
+    "descriptionEs": "Etapa superior de un cohete chino Larga Marcha 2C.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31114&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code CASC; stage built by CALT; launched from Taiyuan. CelesTrak's owner code is PRC."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31114&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31114&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2007-04-11 03:27 UTC (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'CZ-2 Stage 2' length 8.4 m, diameter 3.3 m. Wikipedia's Long March 2C infobox gives the second stage as 7.757 m long (3.35 m wide), which would be 7.8. Not settled. Measured: Long March 2C second stage, flight Y18."
+      }
+    }
+  },
+  "31792": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "military",
+    "launched": "2007-06-29",
+    "sizeM": 23,
+    "descriptionEs": "Gran satélite ruso de inteligencia electrónica (Tselina-2).",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State RU, owner GRUR."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code GRUR = Russian military intelligence (GRU). Commonly attributed to the Russian Space Forces (KV) in 2007; use 'Russian MoD' if a softer label is wanted. Was \"Russian MoD (GRU)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/tselina-2.htm",
+        "date": "2026-11-04",
+        "note": "Tselina-2 No. 17L (#23 in Gunter), an ELINT (signals-intelligence) satellite."
+      },
+      "launched": {
+        "source": "Gunter's Space Page, https://space.skyrocket.de/doc_sdat/tselina-2.htm",
+        "date": "2026-11-04",
+        "note": "Zenit-2M from Baikonur LC-45/1; GCAT agrees."
+      },
+      "sizeM": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "DOUBT: GCAT span 22.7 m (body 4.5 x 1.4 m, 'Cyl + 2 Pan + Ant'); what spans 22.7 m (arrays, antenna or the gravity-gradient boom Gunter mentions) is not stated; no second independent source."
+      }
+    }
+  },
+  "31793": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2007-06-29",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31793&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04",
+        "note": "Stage built by KB Yuzhnoye / Yuzhmash in Dnipro, Ukraine (GCAT manufacturer YUZHUA, UA); launched from Baikonur by the Russian military space forces, so the operator's country is RU. CelesTrak's owner code is CIS."
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code KVR. Was \"KVR (Russian Space Forces)\". Short name VKS for every Russian military launch and payload, whatever the force was called that year (VKS 1992–97, RVSN 1997–2001, KVR 2001–11, VKS since 2015); GCAT owner field kept in the source."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31793&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=31793&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04"
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT length 11.1 m (Zenit 2nd stage, diameter 3.9 m). Russianspaceweb gives 11.047 m; some sources (Wikipedia Zenit-2M, buran-energia.com) give 10.4 m, so the second figure is 11 (10 to 11). Measured: Zenit-2M second stage (11S772, Yuzhnoye/Yuzhmash)."
+      }
+    }
+  },
+  "38341": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "MHI",
+    "purpose": "rocket-stage",
+    "launched": "2012-05-17",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA.",
+    "source": {
+      "countries": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=38341&FORMAT=json; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-04"
+      },
+      "operator": {
+        "source": "GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv; GCAT orgs.tsv, https://planet4589.org/space/gcat/tsv/tables/orgs.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT owner code MHI: H-IIA launch services moved from JAXA to Mitsubishi Heavy Industries in 2007, so F21 was an MHI launch."
+      },
+      "purpose": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=38341&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "A spent stage: the launch record names it as the rocket body."
+      },
+      "launched": {
+        "source": "CelesTrak SATCAT record, https://celestrak.org/satcat/records.php?CATNR=38341&FORMAT=json; GCAT launch.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/launch/launch.tsv",
+        "date": "2026-11-04",
+        "note": "Launched 2012-05-17 16:39 UTC (2012-05-18 JST) (GCAT)."
+      },
+      "sizeM": {
+        "source": "GCAT satcat.tsv (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "GCAT 'H-2A Stage 2' length 9.2 m, diameter 4.0 m. Measured: H-IIA second stage, flight F21 (H-IIA 202)."
+      }
+    }
+  },
+  "48274": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CMSA",
+    "purpose": "crewed-station",
+    "launched": "2021-04-29",
+    "sizeM": 55,
+    "descriptionEs": "La estación espacial china. Sus módulos Wentian y Mengtian y las naves Shenzhou están acoplados a este núcleo, así que figura una sola vez, con el número de catálogo de Tianhe.",
+    "source": {
+      "countries": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "State CN, owner CMSEO (China Manned Space Engineering Office = CMSA)."
+      },
+      "operator": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "purpose": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02"
+      },
+      "launched": {
+        "source": "GCAT satcat (J. McDowell), https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "date": "2026-11-02",
+        "note": "Tianhe core module, 2021 Apr 29 (03:23 UTC), Long March 5B from Wenchang."
+      },
+      "sizeM": {
+        "source": "Xinhua via Belt and Road Studies Network, 2022-08-15, https://www.brsn.net/Latest%20News/20220816/20623_Chinas-space-lab-module-powered-by-huge-flexible-solar-panels.html",
+        "date": "2022-08-15",
+        "note": "CMSA: Wentian's solar wingspan is 'over 55 m' (each wing ~27-30 m). Taken as the largest dimension of the completed T-shaped station; no official end-to-end figure for the whole station was found. GCAT's 16.6 m length / 30 m span is Tianhe alone."
+      }
+    }
+  }
+}
