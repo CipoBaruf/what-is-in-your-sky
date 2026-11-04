@@ -5,16 +5,16 @@ G3	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G4	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G5	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G6	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
-R172	TASKS.md#wave-1	Wave 1
-R173	TASKS.md#wave-2	Wave 2
-R174	TASKS.md#wave-2	Wave 2
-R175	TASKS.md#wave-3	Wave 3
-R176	TASKS.md#wave-4	Wave 4
-R178	TASKS.md#wave-4	Wave 4
-R177	TASKS.md#wave-5	Wave 5
-R179	TASKS.md#wave-6	Wave 6
-R180	TASKS.md#wave-6	Wave 6
-R181	TASKS.md#wave-7	Wave 7
+R182	TASKS.md#wave-1	Wave 1
+R183	TASKS.md#wave-1	Wave 1
+R184	TASKS.md#wave-1	Wave 1
+R185	TASKS.md#wave-2	Wave 2
+R186	TASKS.md#wave-2	Wave 2
+R187	TASKS.md#wave-3	Wave 3
+R188	TASKS.md#wave-3	Wave 3
+R189	TASKS.md#wave-4	Wave 4
+R190	TASKS.md#wave-5	Wave 5
+R191	TASKS.md#wave-6	Wave 6
 US-1	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-2	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-3	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
@@ -1835,6 +1835,16 @@ D-1090	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 de
 D-1091	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1092	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1093	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
+R172	docs/sdd/phases/v2.13/tasks.md#wave-1	Wave 1
+R173	docs/sdd/phases/v2.13/tasks.md#wave-2	Wave 2
+R174	docs/sdd/phases/v2.13/tasks.md#wave-2	Wave 2
+R175	docs/sdd/phases/v2.13/tasks.md#wave-3	Wave 3
+R176	docs/sdd/phases/v2.13/tasks.md#wave-4	Wave 4
+R178	docs/sdd/phases/v2.13/tasks.md#wave-4	Wave 4
+R177	docs/sdd/phases/v2.13/tasks.md#wave-5	Wave 5
+R179	docs/sdd/phases/v2.13/tasks.md#wave-6	Wave 6
+R180	docs/sdd/phases/v2.13/tasks.md#wave-6	Wave 6
+R181	docs/sdd/phases/v2.13/tasks.md#wave-7	Wave 7
 G62	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G63	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
 G64	docs/sdd/phases/v2.14/spec.md#221-goals-v214-one-sky-on-a-desk	2.21 Goals (v2.14, "one sky on a desk")
