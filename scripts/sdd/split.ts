@@ -237,7 +237,7 @@ function renderIndex(doc: Doc, group: readonly Piece[], files: ReadonlyMap<strin
 }
 
 /** Writes the layout under `root`. */
-export function writeLayout(root: string, files: ReadonlyMap<string, string>): void {
+function writeLayout(root: string, files: ReadonlyMap<string, string>): void {
   for (const [path, text] of files) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);

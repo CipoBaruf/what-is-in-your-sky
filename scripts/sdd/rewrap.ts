@@ -14,9 +14,9 @@ const OPENER = /[A-Z*`(]/;
 /** A sentence end, with the closing emphasis a bold sentence carries (`**… done.** Next`). */
 const SENTENCE_END = /[.?!](?:\*\*|\*|_)?$/;
 
-export const isFence = (line: string): boolean => /^\s*(```|~~~)/.test(line);
-export const isTableRow = (line: string): boolean => /^\s*\|/.test(line);
-export const isHeading = (line: string): boolean => /^#{1,6}\s/.test(line);
+const isFence = (line: string): boolean => /^\s*(```|~~~)/.test(line);
+const isTableRow = (line: string): boolean => /^\s*\|/.test(line);
+const isHeading = (line: string): boolean => /^#{1,6}\s/.test(line);
 const isBlockquote = (line: string): boolean => /^\s*>/.test(line);
 
 /** The column where a list item's text starts, or `null` when the line is not a list item. */
@@ -150,7 +150,7 @@ export function unwrap(lines: readonly string[]): string[] {
 const same = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((line, index) => line === b[index]);
 
 /** The blocks of a file: runs of lines between blank lines, a fenced block never cut. */
-export function blocksOf(lines: readonly string[]): string[][] {
+function blocksOf(lines: readonly string[]): string[][] {
   const blocks: string[][] = [];
   let current: string[] = [];
   let fenced = false;

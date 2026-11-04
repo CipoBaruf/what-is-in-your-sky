@@ -21,7 +21,7 @@ export const OPEN_PHASE = 'v2.13';
  */
 export type Destination = string;
 
-export interface MapSection {
+interface MapSection {
   /** The `##` heading's text. */
   h: string;
   to: Destination;
