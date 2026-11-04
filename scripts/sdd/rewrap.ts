@@ -4,8 +4,6 @@
  * block, which is what the brief needs to come out byte for byte (FR-SDD-7). Whitespace only.
  */
 
-import { DOC_LINE_MAX } from './limits';
-
 /** D-1060: a terminator after one of these is not a sentence end. */
 const ABBREVIATIONS = ['e.g.', 'i.e.', 'vs.', 'No.', 'approx.'];
 /** D-1060: what opens a sentence — a capital, `*`, a backtick, `(`. */

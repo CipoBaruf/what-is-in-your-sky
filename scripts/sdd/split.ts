@@ -193,7 +193,9 @@ function mapSection(files: ReadonlyMap<string, string>): string[] {
     '|---|---|---|---|',
     ...rows,
     '',
-    `The Decision Log (SPEC §12): [decisions.md](${SDD_DIR}/decisions.md). Reference: ${references.join(', ')}.`,
+    `The Decision Log (SPEC §12): [decisions.md](${SDD_DIR}/decisions.md).`,
+    // FR-SDD-4: one reference a line, so the list stays under DOC_LINE_MAX as it grows.
+    ...`Reference: ${references.join(',\n')}.`.split('\n'),
     '',
   ];
 }

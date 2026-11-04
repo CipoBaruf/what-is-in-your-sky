@@ -16,7 +16,7 @@ Read it in this order and the workflow explains itself in about twenty minutes.
 
 ## 1. [SPEC.md](../SPEC.md) — what the product does
 
-Numbered requirements (`FR-PASS-3`, `FR-LIVE-6`), user stories with acceptance criteria,
+Numbered requirements (`FR-LOC-3`, `FR-LIVE-6`), user stories with acceptance criteria,
 a findings table (§4.20, `F-` rows), and a Decision Log (§12, `V-` rows) that is fixed
 once written. **Written by hand**, with the `sdd-spec` skill below, in a conversation with
 the owner: the owner answers scope questions one at a time and the session writes the

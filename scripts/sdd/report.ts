@@ -304,7 +304,7 @@ const ID_LIST = String.raw`${ID_SOURCE}(?:\s*(?:,|and|&)\s*${ID_SOURCE})*`;
 const CLOSING_SECTION = /requirement|clos|fixed|satisf|cover|done/i;
 /** A section whose ids stay open, whatever its lines say. */
 const OPEN_SECTION = /follow|open|left|assumption|out of scope|not done/i;
-/** Outside a closing section, a verb that closes the ids right after it: `closes F-102`, `Fixes F-70, F-71`. */
+/** Outside a closing section, a verb that closes the ids right after it: `closes F-103`, `Fixes F-70, F-71`. */
 const CLOSING_VERB = new RegExp(String.raw`\b(?:closes?|closed|fix(?:es|ed)?|satisf(?:y|ies|ied)|covers?|covered):?\s+(${ID_LIST})`, 'gi');
 /** Outside a closing section, an id the line calls closed: `F-70 is fixed`, `FR-SDD-3 done`. */
 const CLOSED_AFTER = new RegExp(String.raw`(${ID_SOURCE})\s+(?:is\s+|are\s+)?(?:closed|fixed|done)\b`, 'g');
