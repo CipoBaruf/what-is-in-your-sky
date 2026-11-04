@@ -21,8 +21,9 @@ import { join, resolve } from 'node:path';
 import { buildBrief } from './sdd/brief';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, limitsFor, modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
-import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
+import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { LEDGER_PATH, readLedger } from './sdd/ledger';
+import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { DENIED_TOOLS, IMPLEMENT_TOOLS, MAX_RESET_WAITS, resetTime, resetWaitMs, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
@@ -189,12 +190,25 @@ async function runWithFallback(stage: 'implement' | 'review', model: SessionMode
   }
 }
 
-function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], logPath: string | null, model: string): string {
-  const lines = [`Gate: ${String(task.gate)}`, '', handoff.summary?.trim() ?? '_The session left no summary._', ''];
-  if (screenshots.length > 0) lines.push('## Captures', ...screenshots.map((path) => `- \`${path}\``), '');
-  lines.push(`Driven by \`scripts/sdd-run.ts\` (PLAN §16), model \`${model}\`.`);
-  if (logPath) lines.push(`Session log: \`${logPath}\`.`);
-  return lines.join('\n');
+/** FR-SDD-1 (D-1058): the ledger in the driver's own checkout, which outlives every task worktree. */
+const LEDGER = resolve(LEDGER_PATH);
+/** FR-SDD-1: the agent every session runs on until R177 makes it a config entry (FR-SDD-10); tiers come with it. */
+const AGENT = 'claude';
+
+/**
+ * FR-SDD-20: the short body — what changed and the checks from the session's
+ * summary, the ids it closes, the capture count until R178's diff summary,
+ * and one usage line per session of the task in the ledger.
+ */
+function prBody(task: Task, handoff: Handoff, screenshots: readonly string[]): string {
+  return shortPrBody({
+    gate: task.gate,
+    changed: whatChanged(handoff.summary),
+    closes: closedIds(task.id, task.findings, handoff.summary),
+    checks: checksRun(handoff.summary),
+    captureDiff: screenshots.length > 0 ? `${String(screenshots.length)} file(s) under \`docs/screenshots/\`` : null,
+    usage: readLedger(LEDGER, task.id),
+  });
 }
 
 /** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
@@ -274,6 +288,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
       allowedTools: IMPLEMENT_TOOLS,
       logger,
       env,
+      ledger: { task: task.id, kind: 'implement', agent: AGENT, tier: null, path: LEDGER },
     },
     retryOnLimit,
     report.attempts,
@@ -297,7 +312,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed');
 
   const screenshots = (await changedFiles(dir, BASE, logger)).filter((path) => path.startsWith('docs/screenshots/'));
-  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, logger.path, model), logger);
+  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots), logger);
   if (pr === null) return finish('failed', 'gh pr create failed');
   report.pr = pr;
 
@@ -319,6 +334,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
       allowedTools: REVIEW_TOOLS,
       logger,
       env,
+      ledger: { task: task.id, kind: 'review', agent: AGENT, tier: null, path: LEDGER },
     },
     retryOnLimit,
     report.attempts,
@@ -327,6 +343,8 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);
   const findings = readHandoff(dir, task.id).findings;
   report.review = findings === null ? null : { findings, model: reviewModel };
+  // FR-SDD-1: the body carries one usage line per session, and the review's are new since the PR opened.
+  await editPullRequestBody(dir, task.id, pr, prBody(task, handoff, screenshots), logger);
 
   if (review.outcome === 'limit') {
     await commentOnPullRequest(dir, task.id, pr, `The review session ended on the account limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);

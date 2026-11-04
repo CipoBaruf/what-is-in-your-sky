@@ -1,10 +1,11 @@
 /**
  * PLAN §16.4 logging: `logs/sdd/<id>-<ISO8601>.log` holds the full session
  * transcript and every command the driver ran; `logs/sdd/run-<ISO8601>.json`
- * holds the run summary. `logs/` is git-ignored.
+ * holds the run summary. `logs/` is git-ignored. FR-SDD-20: the PR body.
  */
 import { createWriteStream, mkdirSync, writeFileSync, type WriteStream } from 'node:fs';
 import { join } from 'node:path';
+import type { LedgerEntry } from './ledger';
 
 export const LOG_DIR = 'logs/sdd';
 
@@ -106,4 +107,148 @@ export function writeRunReport(report: RunReport, dir = LOG_DIR, at = new Date()
   const path = join(dir, `run-${stamp(at)}.json`);
   writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`);
   return path;
+}
+
+/** FR-SDD-20: a PR body's ceiling, in KB of UTF-8 (SPEC's constants table). */
+export const PR_BODY_MAX_KB = 1.5;
+const PR_BODY_MAX_BYTES = Math.floor(PR_BODY_MAX_KB * 1024);
+/** FR-SDD-20: what changed is at most this many lines. */
+const CHANGED_LINES = 3;
+
+export interface PrBodyInput {
+  /** The task's `Gate:`, the body's first line (§16.4 step 4). */
+  gate: string | null;
+  /** What changed, at most three lines; longer input is cut. */
+  changed: readonly string[];
+  /** The ids the PR closes: the task, its findings, the requirements it covers. */
+  closes: readonly string[];
+  /** The checks that ran, as commands. */
+  checks: readonly string[];
+  /** The capture diff summary, one line; `null` when there is none. */
+  captureDiff: string | null;
+  /** The task's ledger lines, in order (FR-SDD-1). */
+  usage: readonly LedgerEntry[];
+}
+
+const bytes = (text: string): number => Buffer.byteLength(text, 'utf8');
+
+/** `17.0M`, `56.7k`, `207`; `?` when the session left no count. */
+export const tokens = (value: number | null): string => {
+  if (value === null) return '?';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return String(value);
+};
+
+/** FR-SDD-1: one session as the PR body's usage line. */
+export function usageLine(entry: LedgerEntry): string {
+  const who = [entry.agent, entry.tier, entry.model].filter((part): part is string => part !== null && part !== '').join(' ');
+  const minutes = Math.max(1, Math.round(entry.wallMs / 60_000));
+  const turns = entry.turns === null ? '?' : String(entry.turns);
+  return `- ${entry.task} ${entry.kind} · ${who} · in ${tokens(entry.inputTokens)} · cached ${tokens(entry.cachedInputTokens)} · out ${tokens(entry.outputTokens)} · ${turns} turns · ${String(minutes)} min · ${entry.outcome}`;
+}
+
+/** Cuts a line to `max` bytes with an ellipsis, on a character boundary. */
+function cut(line: string, max: number): string {
+  if (bytes(line) <= max) return line;
+  let out = '';
+  for (const char of line) {
+    if (bytes(`${out}${char}…`) > max) break;
+    out += char;
+  }
+  return `${out}…`;
+}
+
+/**
+ * FR-SDD-20: the body's fixed shape — what changed, the ids it closes, the
+ * checks that ran, the capture diff summary and one usage line per session —
+ * within `PR_BODY_MAX_KB`. The usage lines are never cut; what changed is
+ * shortened first, then the id and check lists, to fit.
+ */
+export function prBody(input: PrBodyInput): string {
+  const render = (changed: readonly string[], closes: string, checks: string): string =>
+    [
+      `Gate: ${String(input.gate)}`,
+      '',
+      '**What changed**',
+      ...(changed.length > 0 ? changed.map((line) => `- ${line}`) : ['- _The session left no summary._']),
+      '',
+      `**Closes:** ${closes || '—'}`,
+      `**Checks:** ${checks || '—'}`,
+      `**Captures:** ${input.captureDiff ?? '—'}`,
+      '',
+      '**Usage**',
+      ...(input.usage.length > 0 ? input.usage.map(usageLine) : ['- no session recorded']),
+      '',
+    ].join('\n');
+
+  const changed = input.changed.map((line) => line.trim()).filter(Boolean).slice(0, CHANGED_LINES);
+  let closes = input.closes.join(', ');
+  let checks = input.checks.map((check) => `\`${check}\``).join(', ');
+  let body = render(changed, closes, checks);
+  if (bytes(body) <= PR_BODY_MAX_BYTES) return body;
+
+  // What changed first: an equal share of what is left for each line.
+  const fixed = bytes(render(changed.map(() => ''), closes, checks));
+  const share = Math.floor((PR_BODY_MAX_BYTES - fixed) / Math.max(changed.length, 1));
+  const shortened = changed.map((line) => cut(line, Math.max(share, 40)));
+  body = render(shortened, closes, checks);
+  if (bytes(body) <= PR_BODY_MAX_BYTES) return body;
+
+  closes = cut(closes, 120);
+  checks = cut(checks, 120);
+  body = render(shortened, closes, checks);
+  if (bytes(body) <= PR_BODY_MAX_BYTES) return body;
+  return render(
+    shortened.map((line) => cut(line, 40)),
+    closes,
+    checks,
+  );
+}
+
+const HEADING = /^#{1,6}\s+/;
+
+/** The lines under the first heading `name` matches, up to the next heading, or `null`. */
+function section(summary: string, name: RegExp): string[] | null {
+  const lines = summary.split('\n');
+  const start = lines.findIndex((line) => HEADING.test(line.trim()) && name.test(line));
+  if (start < 0) return null;
+  const end = lines.findIndex((line, index) => index > start && HEADING.test(line.trim()));
+  return lines.slice(start + 1, end < 0 ? undefined : end);
+}
+
+/**
+ * FR-SDD-20: what changed, from the session's summary — the lines under a
+ * `What changed` heading, else a `Summary` one, else the summary's first lines —
+ * at most three, list markers dropped.
+ */
+export function whatChanged(summary: string | null): string[] {
+  if (summary === null) return [];
+  const content = (lines: readonly string[]): string[] =>
+    lines
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !HEADING.test(line) && !/^gate:/i.test(line))
+      .map((line) => line.replace(/^([-*+]|\d+\.)\s+/, '').trim())
+      .filter(Boolean)
+      .slice(0, CHANGED_LINES);
+  for (const name of [/what changed/i, /summary/i]) {
+    const lines = content(section(summary, name) ?? []);
+    if (lines.length > 0) return lines;
+  }
+  return content(summary.split('\n'));
+}
+
+const ID = /\b(?:FR-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d+[a-z]?|NFR-[A-Z0-9]+-\d+|F-\d+|V\d+-\d+)\b/g;
+
+/** FR-SDD-20: the task, its findings, then every requirement or finding id the summary names, once each. */
+export function closedIds(task: string, findings: readonly string[], summary: string | null): string[] {
+  return [...new Set([task, ...findings, ...(summary?.match(ID) ?? [])])];
+}
+
+const CHECK = /`((?:npm (?:test|run [\w:-]+)|npx (?:vitest|playwright|tsc|eslint|tsx)\b)[^`]*)`/g;
+
+/** FR-SDD-20: the checks the summary says ran, as the commands it quotes, once each. */
+export function checksRun(summary: string | null): string[] {
+  if (summary === null) return [];
+  return [...new Set([...summary.matchAll(CHECK)].map((match) => (match[1] ?? '').trim()))];
 }

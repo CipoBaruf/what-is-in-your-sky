@@ -163,6 +163,12 @@ function bodyFile(id: string, kind: string, body: string): string {
   return path;
 }
 
+/** FR-SDD-20: rewrites a PR's body, so the review session's usage line joins it; a failure is logged and nothing more. */
+export async function editPullRequestBody(dir: string, id: string, pr: number, body: string, logger: Logger): Promise<void> {
+  const result = await gh(['pr', 'edit', String(pr), '--body-file', bodyFile(id, 'pr', body)], { cwd: dir, logger });
+  if (!ok(result)) logger.line(`  gh pr edit failed: ${result.stderr.trim().split('\n')[0] ?? ''}`);
+}
+
 /** §16.4 step 4; returns the PR number. */
 export async function createPullRequest(dir: string, id: string, title: string, body: string, logger: Logger): Promise<number | null> {
   const result = await gh(['pr', 'create', '--title', title, '--body-file', bodyFile(id, 'pr', body)], { cwd: dir, logger });
