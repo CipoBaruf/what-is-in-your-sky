@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { loadDeepChunk } from '../../../../../data/stars/deepChunk';
-import type { EpochMs, Locale, Observer } from '../../../../../model';
+import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { CATALOGS } from '../../../../../i18n/useT';
 import { TextButton } from '../../../primitives/TextButton';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
+import type { ArcColorBy } from './arcLayer';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
 import { PLANETS } from '../../../../../lib/skyStars';
@@ -48,7 +49,18 @@ import styles from './SkyGlobe.module.css';
  * once and hands it to the renderer, which appends the stars to its dot
  * buckets (no node); a failed load calls `onFaintFailed`, so the page
  * unpresses the toggle and the next press fetches again (FR-GLOBE-10).
+ *
+ * **The passes** (R184; FR-WIDE-3, FR-WIDE-7; D-1099). `passes` are drawn at `t` in their legend colours; a mouse
+ * over the box asks the renderer which arc is within 8 px at most once an animation frame and tells `onPassHover`
+ * when the answer changes (`null` on leaving); a tap tells `onPick` what it hit — a mark, or else an arc. Neither
+ * changes the page's state here: the page decides what a hover or a pick emphasises.
  */
+
+/** No passes: the stars page's globe, one array so the renderer sees no change. */
+const NO_PASSES: readonly Pass[] = [];
+
+/** R184: what a tap picked — a mark the globe names, or a pass's arc. */
+export type GlobePick = GlobeTarget | { kind: 'pass'; passId: string };
 
 export interface SkyGlobeProps {
   place: Observer;
@@ -68,6 +80,19 @@ export interface SkyGlobeProps {
    */
   named?: number | null;
   className?: string;
+  /** R184 (FR-WIDE-3): the page's passes, drawn at `t` (the globe's instant where absent). */
+  passes?: readonly Pass[];
+  t?: EpochMs;
+  /** FR-WIDE-7, FR-LEG-4: the emphasised pass — its ticks and arrow, the others dimmed. */
+  highlightedPassId?: string | null;
+  /** FR-LEG-5: the legend's colouring — `pass` the live page's series, `highlight` the pass detail's. */
+  colorBy?: ArcColorBy;
+  /** FR-LEG-1: the legend's keys by pass id, where the page has them; derived from the passes otherwise. */
+  legendKeys?: Readonly<Record<string, string>>;
+  /** FR-WIDE-7: the pass whose arc is under the mouse, or `null`, each time it changes. */
+  onPassHover?: (passId: string | null) => void;
+  /** What a tap hit, or `null` for nothing. */
+  onPick?: (pick: GlobePick | null) => void;
 }
 
 interface View {
@@ -118,7 +143,7 @@ function listTarget(index: number | null, size: number): GlobeTarget | null {
   return body === undefined ? null : { kind: 'planet', body };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className }: SkyGlobeProps) {
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -138,7 +163,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const svg = svgRef.current;
     if (!box || !svg) return;
     const view = viewRef.current;
-    const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null });
+    const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null });
     rendererRef.current = renderer;
     // FR-A11Y-1..3 with V212-11 (D-1054): a desk opens on the globe, so its box takes the page's focus as the window's does — unless the reader has put it somewhere already.
     const active = document.activeElement;
@@ -186,8 +211,32 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         view.lat = opened.lat;
       }
     }
-    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named ?? listed });
-  }, [place, instant, turn, layers, faint, language, hovered, named, listed, viewRef]);
+    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named ?? listed, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null });
+  }, [place, instant, turn, layers, faint, language, hovered, named, listed, viewRef, passes, t, highlightedPassId, colorBy, legendKeys]);
+
+  // FR-WIDE-7 (D-1099): the arc under the mouse, tested at most once an animation frame; the page hears only a change.
+  const hoverRef = useRef<{ x: number; y: number; frame: number; pass: string | null }>({ x: 0, y: 0, frame: 0, pass: null });
+  const onPassHoverRef = useRef(onPassHover);
+  useEffect(() => {
+    onPassHoverRef.current = onPassHover;
+  }, [onPassHover]);
+  const reportPass = (pass: string | null): void => {
+    const hover = hoverRef.current;
+    if (hover.pass === pass) return;
+    hover.pass = pass;
+    onPassHoverRef.current?.(pass);
+  };
+  const hoverPass = (x: number, y: number): void => {
+    const hover = hoverRef.current;
+    hover.x = x;
+    hover.y = y;
+    if (hover.frame || passes.length === 0) return;
+    hover.frame = requestAnimationFrame(() => {
+      hover.frame = 0;
+      reportPass(rendererRef.current?.passAt(hover.x, hover.y) ?? null);
+    });
+  };
+  useEffect(() => () => cancelAnimationFrame(hoverRef.current.frame), []);
 
   // FR-GLOBE-10: the deep chunk, once, the first time `faint` is on; a failure tells the page. The callback is read through a ref, so a new one does not re-run the load.
   const askedRef = useRef(false);
@@ -377,6 +426,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         const [x, y] = boxPoint(event.clientX, event.clientY);
         const over = rendererRef.current?.targetAt(x, y) ?? null;
         if (!sameTarget(over, hovered)) setHovered(over);
+        hoverPass(x, y);
       }
       return;
     }
@@ -396,10 +446,15 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const [x, y] = boxPoint(drag.x0, drag.y0);
     const hit = rendererRef.current?.targetAt(x, y) ?? null;
     setNamed(sameTarget(hit, named) ? null : hit);
+    const passId = hit === null ? (rendererRef.current?.passAt(x, y) ?? null) : null;
+    onPick?.(hit ?? (passId === null ? null : { kind: 'pass', passId }));
     if (event.pointerType === 'mouse' && hovered !== null) setHovered(null);
   };
   const onPointerLeave = (event: PointerEvent<HTMLDivElement>): void => {
     if (hovered !== null) setHovered(null);
+    cancelAnimationFrame(hoverRef.current.frame);
+    hoverRef.current.frame = 0;
+    reportPass(null);
     // A pointer the box could not capture is gone once it leaves: no up for it will reach the box.
     const captured = typeof event.currentTarget.hasPointerCapture === 'function' && event.currentTarget.hasPointerCapture(event.pointerId);
     if (pointersRef.current.has(event.pointerId) && !captured) endDrag(event);
