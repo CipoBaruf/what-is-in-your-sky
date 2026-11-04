@@ -93,7 +93,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `orbitHeight.test.ts` against a fixed OMM; `cloudBand.test.ts`: bands and runs for a fixed forecast, the gap.
     - `npm run check` green; the golden fixtures pass untouched.
 
-- [ ] **R184 — The globe takes the passes and the planets: arcs in legend colours with ticks and an arrow, the hover hit test, planet discs and labels**
+- [x] **R184 — The globe takes the passes and the planets: arcs in legend colours with ticks and an arrow, the hover hit test, planet discs and labels**
   - **Lane:** chart
   - **Tier:** hard
   - **Turns:** 500
@@ -113,6 +113,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `SkyGlobe.test.tsx`: three passes draw three arc paths in the legend tokens; the node count stays under `GLOBE_MAX_NODES`; with names off five planet labels and no star label.
     - `globe-perf.spec.ts` on the stars page with three passes fed by a test harness holds ≥ 30 updates/s at 1280 × 800 and 1920 × 1080, CPU 4×, best of three.
     - `contrast.ts` green with the new tokens in every theme; `npm run bundle:budget` with `globe` inside `SKY_GLOBE_KB`; `npm run check` green.
+  - *Done note:* the tests that pinned the old look moved too (`GlobeRenderer.test.ts`, `dome/palette.test.tsx`, `tests/styles/tokens.test.ts`) and `docs/DESIGN.md` was regenerated; the perf harness is `window.__globeHarness` (D-1114); `globe` is 15.9 KB, +2.1 inside `SKY_GLOBE_KB` and an accepted overrun of its 15 KB row (D-1115).
 
 ### Wave 2
 
