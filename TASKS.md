@@ -190,7 +190,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 6
 
-- [ ] **R179 — `npm run check:sdd` in CI, the generated traceability, the `max-lines` warning and the commit-title check**
+- [x] **R179 — `npm run check:sdd` in CI, the generated traceability, the `max-lines` warning and the commit-title check**
   - **Lane:** ui
   - **Tier:** standard
   - **Review:** opus

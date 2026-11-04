@@ -1,15 +1,11 @@
 /**
  * FR-SDD-8, FR-SDD-9 (D-1063; R176): `AGENTS.md` is the entry point, `CLAUDE.md` imports it, the seven
  * workflows open with their reading row from `AGENTS.md`'s table, and each skill is a pointer to one.
- * R179's `check:sdd` takes the size rules over with the constants in `scripts/sdd/limits.ts`.
+ * R179's `check:sdd` holds the same rules for CI; the constants are `scripts/sdd/limits.ts`'s.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-
-/** SPEC §4.56's constants, until `scripts/sdd/limits.ts` exists (R179). */
-const AGENTS_MAX_KB = 6;
-const WORKFLOW_MAX_KB = 4;
-const DOC_LINE_MAX = 400;
+import { AGENTS_MAX_KB, DOC_LINE_MAX, WORKFLOW_MAX_KB } from '../../scripts/sdd/limits';
 
 const WORKFLOWS = ['spec', 'breakdown', 'implement', 'visual-review', 'review', 'fix-ci', 'release'];
 /** Each skill, read from the directory, and the workflow it points to: its name without the `sdd-` prefix. */
