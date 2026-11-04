@@ -58,7 +58,7 @@ A script does the split by headings, so no agent has to read the 3 MB to do it. 
 
 `docs/sdd/areas/<area>.md` holds the **current** requirements and design of one area, with an id link back to the phase that set each line. Proposed areas: passes, live, stars, globe, chart-views, layout, settings, places, offline-pwa, i18n, design-system, release.
 
-These files are not written in one pass. A phase's `sdd-spec` session writes or updates the area files it touches, as part of that phase. This proposal's own phase seeds only the areas the next phase needs: chart-views, stars, globe and live, for the renderer work. Until an area file exists, a session reaches that area through `ids.md` and the phase files.
+These files are not written in one pass. A phase's `sdd-spec` session writes or updates the area files it touches, as part of that phase. The renderer phase writes the first four: chart-views, stars, globe and live. Until an area file exists, a session reaches that area through `ids.md` and the phase files.
 
 ## 2. What each kind of work reads
 
@@ -173,7 +173,7 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 
 ### Images
 
-- **Committed images live outside git history.** `docs/screenshots` is 116 MB in 1,099 PNGs, `.git` is 878 MB, and each full re-shoot adds a few dozen MB forever. The capture set moves to a `captures` branch whose history is cut at each release, or to CI artifacts plus one release-time archive. Only the README, design and promo images stay on `main`.
+- **Committed images live outside git history.** `docs/screenshots` is 116 MB in 1,099 PNGs, `.git` is 878 MB, and each full re-shoot adds a few dozen MB forever. The capture set moves to an orphan `captures` branch whose history is squashed at each release (owner, 2026-11-03). Only the README, design and promo images stay on `main`.
 - **Re-shoot only what changed.** A capture manifest maps each capture to the source files it draws, the way `ci-affected.ts` does for specs. A task re-shoots only the captures its diff reaches. The full set is shot once, at release prep.
 - **Lossless compression** (`oxipng` or lossless WebP) at capture time, enforced in `check:sdd`.
 - **Diffs, not sets.** The PR shows the captures that changed past the pixel threshold, side by side, in the job summary. That's the same diff the agent looks at (§3a 8).
@@ -217,9 +217,9 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 6. `check:sdd` in CI.
 6a. The token rules of §3a: the usage ledger and tier budgets in the driver, the rewrap (inside step 1), `.ignore`, `map.md`, the quiet `npm run check`, CI failure digests, the pixel-diff step in visual review, the cache-friendly brief order.
 
-6b. §3b: the PR template and title rule, the capture manifest and the captures move, compression, test-name ids with the generated traceability, the CI changes (concurrency, build once, browser cache, path skips, captures by manifest). The captures move needs the owner's call on where they live.7. Seed the area files for chart-views, stars, globe and live, ready for the renderer phase.
+6b. §3b: the PR template and title rule, the capture manifest and the captures move, compression, test-name ids with the generated traceability, the CI changes (concurrency, build once, browser cache, path skips, captures by manifest).
 
-Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task. Step 7 can be the first task of the renderer phase instead.
+Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task.
 
 ## 6. Cost and risk
 
@@ -228,8 +228,9 @@ Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a 
 - **Risk: links.** Ids and section numbers cited in code comments (`PLAN §16.4`, `SPEC §4.47`) stop pointing at a numbered section. Ids keep working through `sdd:id`. For section numbers, `ids.md` also maps each old `§` to its new file, so no code comment needs editing.
 - **Risk: the Decision Log is "fixed".** It moves to `docs/sdd/decisions.md` unchanged. The owner approves the move as part of this proposal.
 
-## Open questions for the owner
+## Owner's answers (2026-11-03)
 
-1. The phase folder names: `v2.12`, or the roadmap's letters (`2u`)? This proposal assumes version numbers.
-2. Should the closed phases' TASKS sections keep their checkboxes, or become a plain record?
-3. Should the area files be seeded in this phase (step 7), or written by the renderer phase's own `sdd-spec`?
+1. **Phase folders** are named by version number: `docs/sdd/phases/v2.12/`.
+2. **Closed TASKS sections** move byte-for-byte, checkboxes included.
+3. **Area files** are written by the renderer phase's `sdd-spec` session, not by this phase. So step 7 is dropped here.
+4. **The capture set** moves to an orphan `captures` branch whose history is squashed at each release. The README, design and promo images stay on `main`.
