@@ -22,6 +22,7 @@ import {
   checkLines,
   checkSizes,
   checkTested,
+  newestBrokenDown,
   checkWorkflows,
   pendingIds,
   phaseBlocks,
@@ -213,6 +214,16 @@ describe('FR-SDD-24: a v2.13 requirement with no test', () => {
     expect(messages(checkTested(root))).toEqual(['FR-SDD-91 (v2.13) has no test naming it in its title']);
     expect([...pendingIds(readFileSync(join(root, 'TASKS.md'), 'utf8'))]).toEqual(['FR-X-1', 'FR-SDD-92']);
   });
+
+  it('V214-14: skips a phase written after the newest one with tasks, and checks it once it has them', () => {
+    const spec = { 'docs/sdd/phases/v2.14/spec.md': '# v2.14\n\n- **FR-NEW-1** Written, not broken down.\n' };
+    const written = tree({ ...spec, 'TASKS.md': '# Tasks\n\n## Status\n\n## v2.13 tasks\n\n- [x] **R1 — Done**\n' });
+    expect(newestBrokenDown(written)).toBe('v2.13');
+    expect(messages(checkTested(written))).toEqual([]);
+    const broken = tree({ ...spec, 'TASKS.md': '# Tasks\n\n## Status\n\n## v2.14 tasks\n\n- [x] **R1 — Done**\n' });
+    expect(messages(checkTested(broken))).toEqual(['FR-NEW-1 (v2.14) has no test naming it in its title']);
+  });
+
 });
 
 describe('FR-SDD-20: a long commit title', () => {
