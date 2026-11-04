@@ -6,7 +6,7 @@
       "tiers": {
         "hard": { "model": "fable" },
         "standard": { "model": "opus", "tokenCeiling": 32716582 },
-        "light": { "model": "sonnet", "tokenCeiling": 10262602 }
+        "light": { "model": "sonnet" }
       },
       "aliases": { "haiku": "light" },
       "fallback": ["hard", "standard", "light"],

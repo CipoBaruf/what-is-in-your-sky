@@ -44,13 +44,13 @@ A fair comparison needs the same kind of task run before and after, which is the
 
 | Tier | Sessions | p90 | Ceiling set |
 |---|---|---|---|
-| light | 2 | 5 131 301 | **10 262 602** |
+| light | 2 | 5 131 301 | unset (2 sessions) |
 | standard | 12 | 16 358 291 | **32 716 582** |
 | hard | 1 | 2 388 811 | **not set** |
 
 `hard` has one session, and it ended on a usage limit at turn 53, so 2 × its value (4.78 M) would stop a normal fable task partway; the driver itself needs `MIN_BUDGET_SAMPLES` = 5 before it calls an overrun.
 It stays unset, which records overruns and stops nothing.
-`light` has two sessions, below the same bar; its ceiling is set because the rule says so and 10.3 M is twice its largest session, but it is the thinnest number here.
+`light` has two sessions, below the same bar, so it stays unset like `hard` (review of #283); the next phase's release sets both once each has five.
 Re-set both from the next phase's ledger.
 
 ## Findings, flakes and CI reruns

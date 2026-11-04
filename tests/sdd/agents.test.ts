@@ -45,7 +45,7 @@ describe('FR-SDD-10: the schema', () => {
     expect(agent.parser).toBe('stream-json');
     expect(agent.tools.policy).toBe('claude-allowlist');
     // FR-SDD-2 (R181, D-1093): light and standard carry 2 × the phase's p90; hard had one session and stays unset.
-    expect(TIERS.map((tier) => agent.tiers[tier].tokenCeiling)).toEqual([undefined, 32_716_582, 10_262_602]);
+    expect(TIERS.map((tier) => agent.tiers[tier].tokenCeiling)).toEqual([undefined, 32_716_582, undefined]);
   });
 
   const broken = (change: (entry: Record<string, unknown>) => void, top: Record<string, unknown> = {}): unknown => {
