@@ -38,6 +38,10 @@ describe('FR-SDD-4: rewrapLine', () => {
   it('breaks after a bold sentence’s closing emphasis', () => {
     expect(rewrapLine('- **D-1 — Title.** (FR-1.) `x` is y. Z.')).toEqual(['- **D-1 — Title.**', '  (FR-1.) `x` is y.', '  Z.']);
   });
+
+  it('never breaks inside a bold span, such as a numbered label', () => {
+    expect(rewrapLine('- **G1. Zero-friction start.** A visitor. Next.')).toEqual(['- **G1. Zero-friction start.**', '  A visitor.', '  Next.']);
+  });
 });
 
 describe('FR-SDD-4: rewrap over a file', () => {

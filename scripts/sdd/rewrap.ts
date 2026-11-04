@@ -37,6 +37,7 @@ export function breakPoints(line: string): number[] {
   let codeTicks = 0; // the length of the backtick run that opened the current code span
   let bracket = 0; // depth inside `[…]`
   let linkParen = false; // inside the `(…)` of `[…](…)`
+  let bold = false; // inside `**…**`
   // A numbered item's own `1.` is a marker, not a sentence end.
   for (let index = itemTextColumn(line) ?? 0; index < line.length; index += 1) {
     const char = line[index] ?? '';
@@ -49,6 +50,11 @@ export function breakPoints(line: string): number[] {
       continue;
     }
     if (codeTicks > 0) continue;
+    if (char === '*' && line[index + 1] === '*') {
+      bold = !bold;
+      index += 1;
+      continue;
+    }
     if (char === '[') bracket += 1;
     else if (char === ']' && bracket > 0) {
       bracket -= 1;
@@ -59,6 +65,8 @@ export function breakPoints(line: string): number[] {
     let end = index + 1;
     const emphasis = /^(\*\*|\*|_)/.exec(line.slice(end));
     if (emphasis) end += emphasis[0].length;
+    // Inside a bold span (`**G1. Zero-friction start.**`) only its closing `**` ends a sentence.
+    if (bold && emphasis?.[0] !== '**') continue;
     if (line[end] !== ' ' || line[end + 1] === ' ' || line[end + 1] === undefined) continue;
     if (!OPENER.test(line[end + 1] ?? '')) continue;
     const word = line.slice(line.lastIndexOf(' ', index) + 1, index + 1);
