@@ -230,7 +230,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 7
 
-- [ ] **R181 — The archive and the phase report: closed evidence off `main`, the tier ceilings set from the ledger, the phase's totals and quality, and the app unchanged**
+- [x] **R181 — The archive and the phase report: closed evidence off `main`, the tier ceilings set from the ledger, the phase's totals and quality, and the app unchanged**
   - **Lane:** docs
   - **Tier:** light
   - **Review:** opus
@@ -245,6 +245,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
   - **Note:** a session cannot push. Build the `archive` branch locally (an orphan branch in a separate `git worktree`, holding the archived paths) and leave it unpushed; the owner's session pushes it after review. The report says the ledger has only the driver's own sessions: reviews run by hand and the subagents that fixed findings are not in it.
   - **Touches outside the lane:** `sdd.agents.json` (the ceilings only), `package.json` (the `spike:*` scripts removed), the knip config, `spike/`.
   - **Out of scope:** a tag, a deploy, a version bump (V213-1).
+  - **Done note (R181):** the report, the `light` and `standard` ceilings and FR-SDD-28's checks are in; the archive (FR-SDD-26) moved to the renderer phase (V213-12) because `spike/` and the evidence folders are still imported and read by tests; the quality numbers and the `dist/` comparison were filled in by the owner's session.
   - **Done when:**
     - Every archived path resolves through `ids.md`; `npm run check:dead` green.
     - `report.md` has every number above, each traced to ledger lines or PR bodies.

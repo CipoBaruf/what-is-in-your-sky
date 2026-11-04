@@ -57,12 +57,13 @@ describe('FR-SDD-24: docs/sdd/reference/traceability.md', () => {
     expect(handKept(committed)).toBe(section.replace(/\n+$/, '\n'));
   });
 
-  it('lists every FR-SDD id with a test; the rest are owed by an open task', () => {
+  it('lists every FR-SDD id with a test; the rest are owed by an open task or moved out', () => {
     const traced = tracedIds(committed);
     const pending = pendingIds(readFileSync('TASKS.md', 'utf8'));
     const ids = [...parseIds(readFileSync(IDS_PATH, 'utf8')).keys()].filter((id) => id.startsWith('FR-SDD-'));
     expect(ids.length).toBeGreaterThanOrEqual(28);
-    expect(ids.filter((id) => !traced.has(id) && !pending.has(id))).toEqual([]);
+    // FR-SDD-26 moved to the renderer phase (V213-12); check:sdd's movedOut skips it the same way.
+    expect(ids.filter((id) => !traced.has(id) && !pending.has(id) && id !== 'FR-SDD-26')).toEqual([]);
     for (const id of ['FR-SDD-4', 'FR-SDD-6', 'FR-SDD-13', 'FR-SDD-19', 'FR-SDD-20', 'FR-SDD-24']) expect(traced, id).toContain(id);
   });
 });

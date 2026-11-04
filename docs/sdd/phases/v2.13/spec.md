@@ -174,7 +174,7 @@ Constants (FR-VIS-6 style; they live in `scripts/sdd/limits.ts` and `check:sdd` 
 
 **Cleanup**
 
-- **FR-SDD-26** *(V213-5)* **Closed evidence to an archive.**
+- **FR-SDD-26** *(V213-5; moved to the renderer phase, V213-12)* **Closed evidence to an archive.**
   `spike/`, `docs/dome-composition/`, `docs/mockups/`, `docs/stars/`, `docs/spike-glyphcss/`, `docs/window/` and the `spike:*` npm scripts move to an orphan `archive` branch; `ids.md` records each moved path's archive location, so a decision that cites one still resolves.
   *Verification:* `check:sdd`'s id and path resolution; `npm run build` and `npm test` unchanged.
 - **FR-SDD-27** **Branches and worktrees pruned.**

@@ -32,7 +32,11 @@ The baseline is the tasks before the split merged (R173, R174, R175; the split i
 | Before the split | 3 | 29.23 M | 9.74 M | 0.08 M |
 | After the split | 5 | 61.03 M | 12.21 M | 0.10 M |
 
-The post-split mean is 25 % higher, not lower. The sample does not say the split failed to cut reading: the five later tasks are larger (R177 rewrote the driver's session layer, R179 wired `check:sdd` into CI) and ran on opus and sonnet where the baseline's R173 was a small docs task; tokens per turn rose from 0.08 M to 0.10 M because a longer session re-reads a longer context each turn. With three and five tasks of unequal size there is no like-for-like pair. The honest reading is: no measured saving yet. A fair comparison needs the same kind of task run before and after, which is the next phase's measurement.
+The post-split mean is 25 % higher, not lower.
+The sample does not say the split failed to cut reading: the five later tasks are larger (R177 rewrote the driver's session layer, R179 wired `check:sdd` into CI) and ran on opus and sonnet where the baseline's R173 was a small docs task; tokens per turn rose from 0.08 M to 0.10 M because a longer session re-reads a longer context each turn.
+With three and five tasks of unequal size there is no like-for-like pair.
+The honest reading is: no measured saving yet.
+A fair comparison needs the same kind of task run before and after, which is the next phase's measurement.
 
 ## Ceilings (FR-SDD-2, V213-7)
 
@@ -44,18 +48,40 @@ The post-split mean is 25 % higher, not lower. The sample does not say the split
 | standard | 12 | 16 358 291 | **32 716 582** |
 | hard | 1 | 2 388 811 | **not set** |
 
-`hard` has one session, and it ended on a usage limit at turn 53, so 2 × its value (4.78 M) would stop a normal fable task partway; the driver itself needs `MIN_BUDGET_SAMPLES` = 5 before it calls an overrun. It stays unset, which records overruns and stops nothing. `light` has two sessions, below the same bar; its ceiling is set because the rule says so and 10.3 M is twice its largest session, but it is the thinnest number here. Re-set both from the next phase's ledger.
+`hard` has one session, and it ended on a usage limit at turn 53, so 2 × its value (4.78 M) would stop a normal fable task partway; the driver itself needs `MIN_BUDGET_SAMPLES` = 5 before it calls an overrun.
+It stays unset, which records overruns and stops nothing.
+`light` has two sessions, below the same bar; its ceiling is set because the rule says so and 10.3 M is twice its largest session, but it is the thinnest number here.
+Re-set both from the next phase's ledger.
 
 ## Findings, flakes and CI reruns
 
-Not derivable from inside a headless session: the findings are in the review handoffs and the PR bodies, the flakes are F-ids marked quarantined, and the reruns are `gh run list` attempts per PR, and `gh` is denied here (D-1058). The ledger gives only the sessions: 6 review sessions, all `ok`, on R174, R175, R176, R177, R178 and R179 (R173 and R180 have no review line in it). The owner fills the three numbers from `gh pr view` and `gh run list` for #270–#282 before the release notes are cut.
+Filled in by the owner's session from `gh` (a task session cannot run it).
+
+| Task | PR | Review findings | CI runs | Failed runs | Reruns | What failed first |
+|---|---|---|---|---|---|---|
+| R172 | #270 | 10 | 3 | 1 | 0 | knip: an unused export |
+| R173 | #271 | 10 | 5 | 3 | 0 | knip (`rg` binary); `rg` missing on the runner |
+| R174 | #272 | 10 | 3 | 1 | 0 | its own CI tests after the review fixes; stale `map.md` |
+| R175 | #273 | 9 | 2 | 0 | 0 | — |
+| R176 | #275 | 10 | 2 | 0 | 0 | — |
+| R177 | #277 | 10 | 2 | 0 | 0 | — |
+| R178 | #276 | 10 | 3 | 0 | 0 | — |
+| R179 | #280 | 0 | 2 | 0 | 0 | — |
+| R180 | #279 | 0 | 2 | 1 | 0 | knip: an unused export |
+
+- **Findings:** 69 over nine reviewed tasks; every task before R179 had 9–10. Fixed by subagents, one rejected with a reason (R174's 4).
+- **Flakes:** none quarantined; no F-id opened.
+- **CI reruns:** none. 6 of 24 runs failed, on four PRs; three of the six were `knip` alone, which `implement.md` now runs before a push (R176).
+- **Not in the ledger:** the reviews run by hand (R172, R173, R180) and the subagents that fixed findings. The ledger counts the driver's own sessions only.
 
 ## The app does not change (FR-SDD-28)
 
 - `git diff --stat fda34853..HEAD -- src public` (the last app commit before the phase to this branch's start) prints nothing: no path under `src/` or `public/`.
 - `package.json` is unchanged from 2.12.0 by this task; no tag and no deploy (V213-1).
-- The `dist/` asset-name comparison against the base was not run in this session: it needs a second install and build of the base, and the session cannot add a worktree. With no change under `src/`, `public/` or `package.json`'s dependencies, only a tooling change in `vite.config.ts` could move a name; run `npm run build` on `fda34853` and on the release commit and diff `ls dist/assets`.
+- `dist/`: the base `fda34853` and this branch, built with the same `node_modules` (`package-lock.json` unchanged), give the same 52 file names, hashed assets included (run by the owner's session).
 
 ## The owner's memory trim
 
-The memory index at `~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/MEMORY.md` has about 60 lines of one-line entries for finished phases. Trim it to the entries a future session still needs (the gotchas that moved to `docs/sdd/gotchas.md` first): no-commit-trailers, npm cache, parallel checkouts, the driver recipe, the Cloudflare release branch, and the open owner items. That is the owner's to do; this task does not touch it.
+The memory index at `~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/MEMORY.md` has about 60 lines of one-line entries for finished phases.
+Trim it to the entries a future session still needs (the gotchas that moved to `docs/sdd/gotchas.md` first): no-commit-trailers, npm cache, parallel checkouts, the driver recipe, the Cloudflare release branch, and the open owner items.
+That is the owner's to do; this task does not touch it.
