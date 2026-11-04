@@ -8,10 +8,14 @@ The header's Status cell grew one paragraph per revision until it ran to tens of
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the spec is revised, the Status line it replaces goes to the top of this list.
 
+**Dates since the split:** 2026-11-04 (v2.14).
+
 **Dates:** 2026-11-03 (v2.13); 2026-11-03 (v2.12); 2026-11-02 (v2.11); 2026-11-01 (v2.10); 2026-10-30 (v2.9); 2026-10-30 (v2.8); 2026-10-29 (v2.7); 2026-10-29 (v2.6.1); 2026-10-27 (v2.6, approved); 2026-10-25 (v2.5, approved: zoom, OQ-46, delivery; the Spanish names); 2026-10-24 (v2.5, the design review); 2026-10-19 (v2.5); 2026-10-23 (v2.4.1); 2026-10-19 (v2.4); 2026-10-19 (v2.3); 2026-09-28 (v2.2.2); 2026-09-28 (v2.2.1); 2026-09-25 (v2.2); 2026-09-21 (v2.1); 2026-09-19 (v2.0.3); 2026-09-18 (v2.0.2); 2026-09-14 (v2.0.1); 2026-09-09 (v2.0); 2026-09-08 (v1.4); 2026-09-08 (v1.3.3); 2026-09-08 (v1.3.2); 2026-09-07 (v1.2); 2026-09-06 (v1.1.2); 2026-09-06 (v1.1.1); 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4)
 
 ### Status, newest first
 
+- **Draft v2.13 — for review.**
+  Phase v2.13 "the workflow" (the development process; no change to the app): §4.56, FR-SDD-1..28, US-51, G59–G61, Decision Log V213-1..V213-11 and roadmap §9 Phase 2v, from `docs/proposals/agent-agnostic-sdd.md`; no open questions (the owner's answers of 2026-11-03 are V213-1..V213-7).
 - **Draft v2.12 — for review.**
   Phase v2.12 "the globe": §4.55, FR-GLOBE-1..18, US-50, G57–G58, Decision Log V212-1..V212-13 and roadmap §9 Phase 2u; open questions OQ-55..OQ-60, resolved 2026-11-03 with their defaults.
 - **Draft v2.11 — for review.**
@@ -163,10 +167,14 @@ The header's Status and Input cells grew one paragraph per revision until they r
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the plan is revised, the Status and Input lines it replaces go to the top of these lists.
 
+**Dates since the split:** 2026-11-04 (v0.22).
+
 **Dates:** 2026-11-03 (v0.21); 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
 
 ### Status, newest first
 
+- **Draft v0.21 — for review.**
+  Plans SPEC v2.13 "the workflow": the decisions are §2.49 (D-1057..D-1072 this plan's, D-1073..D-1093 the blocks its tasks spend) and the delivery is §16.32 (R172–R181 in seven waves, auto-merged; no release).
 - **Draft v0.20 — for review.**
   Plans SPEC v2.12 "the globe": the decisions are §2.48 (D-1034..D-1043 this plan's, D-1044..D-1053 the blocks its tasks spend, D-1054..D-1056 the owner's notes after testing 2.12.0) and the delivery is §16.31 (R167–R171 in four waves, auto-merged).
 - **Draft v0.19 — for review.**
@@ -235,6 +243,8 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Input, newest first
 
+- `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise.
+  *(the v0.21 header line)*
 - `SPEC.md` v2.12: V212-1..V212-13 are fixed like the rows before them, and SPEC §5.17's proposal is adopted where §2.48 does not say otherwise.
   *(the v0.20 header line)*
 - `SPEC.md` v2.11: V211-1..V211-11 are fixed like the rows before them, and SPEC §5.16's proposal is adopted where §2.47 does not say otherwise.

@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v0.21 — for review.** Plans SPEC v2.13 "the workflow": the decisions are §2.49 (D-1057..D-1072 this plan's, D-1073..D-1093 the blocks its tasks spend) and the delivery is §16.32 (R172–R181 in seven waves, auto-merged; no release). Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-03 (v0.21). Earlier dates are in the [revision history](#revision-history). |
-| Input | `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise. Earlier inputs are in the [revision history](#revision-history). |
+| Status | **Draft v0.22 — for review.** Plans SPEC v2.14 "one sky on a desk": the decisions are §2.50 (D-1094..D-1108 this plan's, D-1109..D-1131 the blocks its tasks spend) and the delivery is §16.33 (P10 first, then R182–R191 in six waves, auto-merged; 2.14.0 tagged by the owner), in `docs/sdd/phases/v2.14/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
+| Date | 2026-11-04 (v0.22). Earlier dates are in the [revision history](#revision-history). |
+| Input | `SPEC.md` v2.14: V214-1..V214-22 are fixed like the rows before them, and SPEC §5.18's proposal is adopted where §2.50 does not say otherwise. Earlier inputs are in the [revision history](#revision-history). |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the tasks of every phase from v1 on are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---
@@ -103,7 +103,7 @@ flowchart LR
 | `src/worker` | `src/physics`, `src/worker/*`, shared types | React, DOM (other than the worker global), `src/data`, `src/state` |
 | `src/data` | `idb`, `zod`, shared types | React, `src/state`, `src/ui`, `src/worker` |
 | `src/state` | `src/data`, `src/worker/protocol` (types only), `src/lib` | `src/ui`, physics internals |
-| `src/lib` | shared types, `src/physics` **types only** — plus, in `lib/skyBodies.ts` alone, `src/physics/sun.ts` and `src/physics/moon.ts` at runtime (D-80) | React, `src/state`, `src/data` |
+| `src/lib` | shared types, `src/physics` **types only** — plus, in `lib/skyBodies.ts` alone, `src/physics/sun.ts` and `src/physics/moon.ts` at runtime (D-80); `astronomy-engine` in `lib/skyStars.ts` and `lib/riseSet.ts` (D-1101) | React, `src/state`, `src/data` |
 | `src/i18n` | shared types | everything else (catalogs import nothing) |
 | `src/ui` | `src/state`, `src/lib`, `src/i18n`, shared types | `src/data`, `src/worker`, `src/physics` directly |
 | `src/ui/components/guide/skychart/dome/**` | everything `src/ui` may, plus `@glyphcss/react` | — |
@@ -147,6 +147,7 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.11 | [spec](docs/sdd/phases/v2.11/spec.md) | [plan](docs/sdd/phases/v2.11/plan.md) | [tasks](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | [spec](docs/sdd/phases/v2.12/spec.md) | [plan](docs/sdd/phases/v2.12/plan.md) | [tasks](docs/sdd/phases/v2.12/tasks.md) |
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
+| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),

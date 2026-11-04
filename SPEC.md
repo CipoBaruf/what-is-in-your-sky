@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.13 — for review.** Phase v2.13 "the workflow" (the development process; no change to the app): §4.56, FR-SDD-1..28, US-51, G59–G61, Decision Log V213-1..V213-11 and roadmap §9 Phase 2v, from `docs/proposals/agent-agnostic-sdd.md`; no open questions (the owner's answers of 2026-11-03 are V213-1..V213-7). Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-03 (v2.13). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v2.14 — for review.** Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57, G62–G66, Decision Log V214-1..V214-22 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`; the owner's answers of 2026-11-04 are V214-1..V214-14. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
+| Date | 2026-11-04 (v2.14). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -63,36 +63,15 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 - Commercial use of the free data tiers.
   If the project ever monetises, several dependencies (Open-Meteo; Nominatim once added in v1) require moving to paid/self-hosted tiers.
 
-### 2.20 Goals (v2.13, "the workflow")
-
-- **G59. Every kind of work reads only what it needs.**
-  A spec, breakdown, review, fix or ad-hoc session reads the index files and the ids it needs, not the 3 MB of SPEC, PLAN and TASKS, and the documents say what each kind of work reads.
-- **G60. Any coding agent can run the workflow.**
-  An agent that reads `AGENTS.md` can do every kind of work interactively, and the driver runs any agent a config entry describes.
-- **G61. Cost is measured, and quality with it.**
-  Every session's tokens are in a ledger, and the findings, flakes and CI reruns per phase are reported beside them, so each rule of the phase can be judged and reverted.
-
 ---
 
-### Phase 2v — v2.13 ("the workflow", as decided 2026-11-03, V213-1)
+### Current phase — v2.14 ("one sky on a desk", as decided 2026-11-04, V214-1)
 
-After v2.12 is on `main`.
-The development process only; the app is untouched and no release is cut.
-
-- The ledger, alone and first, then the tasks before the split as its baseline (FR-SDD-1, FR-SDD-2).
-- The split, the rewrap, the Decision Log's move, `ids.md` and `sdd:id`, with the briefs reading the new layout in the same task (FR-SDD-3..7).
-- `AGENTS.md`, the workflows, the config-driven driver and tiers, `gotchas.md` (FR-SDD-8..12).
-- `check:sdd`, `.ignore`, `map.md`, quiet checks, failure digests, the brief's prefix, review tiers (FR-SDD-13..19).
-- PRs, task size, captures branch and manifest, pixel diffs, test ids, CI (FR-SDD-20..25).
-- The archive branch, pruning, and the phase report (FR-SDD-26..28, FR-SDD-1).
-
-Definition of done:
-- FR-SDD-1..25, FR-SDD-27 and FR-SDD-28 met, each by its verification line (FR-SDD-26 moved to the renderer phase, V213-12); US-51's criteria green.
-- `npm run check:sdd` green in CI on `main`; the driver's tests green on the `claude` entry; `npm test` and the e2e suite unchanged and green.
-- Every task `Gate: auto`, merged on CI green and a clean review; at most one `fable` (`hard`) task per wave, the driver's wait-and-resume on (V213-11).
-- Each tier's ceiling set in `sdd.agents.json` from the phase's ledger (FR-SDD-2); the phase report written into `docs/sdd/phases/v2.13/`; `package.json` still 2.12.0, no tag, no deploy.
-  Trimming the agent memory is the owner's.
-- Left for the renderer phase: the area files (V213-9) and the glyphcss removal list in the proposal's §3c.
+After v2.13 is on `main`.
+On a desk the satellites, the live sky and the stars become one layout with the globe as their whole sky, the dome by choice and one time control; the satellites, stars and planets the reader picks say what they are, the Spanish star names are reviewed, and the desk gains hover, clouds on the stripe, keys and a full-screen sky.
+On the phone and the desk every choice is kept for the next open and the privacy note is read once; otherwise the phone changes only by the star names.
+With the release the README, its images, the reading order and the repository's description and topics are brought up to date.
+Goals G62–G66, §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57 and roadmap §9 Phase 2w are in [the phase spec](docs/sdd/phases/v2.14/spec.md); the decisions are V214-1..V214-22.
 
 ### Phase 3 — Later
 - Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.
@@ -138,6 +117,7 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.11 | [spec](docs/sdd/phases/v2.11/spec.md) | [plan](docs/sdd/phases/v2.11/plan.md) | [tasks](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | [spec](docs/sdd/phases/v2.12/spec.md) | [plan](docs/sdd/phases/v2.12/plan.md) | [tasks](docs/sdd/phases/v2.12/tasks.md) |
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
+| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),

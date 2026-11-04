@@ -7,7 +7,7 @@
  *   npx tsx scripts/check-sdd.ts --list   # and every line or file a rule lets through
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SCREENS, CAPTURE_DIR, CAPTURE_FILE } from '../tests/e2e/captureSet';
@@ -288,15 +288,27 @@ export function movedOut(spec: string, key: string): boolean {
   return line !== undefined && /\bmoved to\b/.test(line);
 }
 
-/** FR-SDD-24: a requirement from v2.13 on with no test naming it, unless an open task still owes it or it moved out. */
+/** The newest phase with tasks — a `## <phase> tasks` block in TASKS.md or a phase folder's `tasks.md`; a later phase is not broken down yet. */
+export function newestBrokenDown(root: string): string | null {
+  const phases = [...(exists(root, 'TASKS.md') ? read(root, 'TASKS.md').matchAll(/^## (v[\d.]+) tasks$/gm) : [])].map((match) => match[1] ?? '');
+  if (exists(root, 'docs/sdd/phases')) for (const name of readdirSync(join(root, 'docs/sdd/phases'))) if (exists(root, `docs/sdd/phases/${name}/tasks.md`)) phases.push(name);
+  const versions = phases.map((phase) => /^v(\d+(?:\.\d+)*)$/.exec(phase)?.[1]?.split('.').map(Number)).filter((parts): parts is number[] => parts !== undefined);
+  let newest: number[] | null = null;
+  for (const parts of versions) if (newest === null || !phaseAtLeast(`v${newest.join('.')}`, parts)) newest = parts;
+  return newest === null ? null : `v${newest.join('.')}`;
+}
+
+/** FR-SDD-24: a requirement from v2.13 on with no test naming it, unless an open task still owes it, it moved out, or its phase is written but not broken down yet (V214-14). */
 export function checkTested(root: string): Outcome {
   if (!exists(root, IDS_PATH) || !exists(root, TRACEABILITY_PATH)) return { problems: [problem('untested', `${IDS_PATH} or ${TRACEABILITY_PATH} is missing`)] };
   const traced = tracedIds(read(root, TRACEABILITY_PATH));
   const pending = exists(root, 'TASKS.md') ? pendingIds(read(root, 'TASKS.md')) : new Set<string>();
+  const newest = newestBrokenDown(root);
   const problems: Problem[] = [];
   for (const entry of parseIds(read(root, IDS_PATH)).values()) {
     const phase = /^docs\/sdd\/phases\/([^/]+)\/spec\.md$/.exec(entry.path)?.[1];
     if (!entry.key.startsWith('FR-') || phase === undefined || !phaseAtLeast(phase, [2, 13])) continue;
+    if (newest !== null && phase !== newest && phaseAtLeast(phase, newest.slice(1).split('.').map(Number))) continue;
     if (movedOut(read(root, entry.path), entry.key)) continue;
     if (!traced.has(entry.key) && !pending.has(entry.key)) problems.push(problem('untested', `${entry.key} (${phase}) has no test naming it in its title`));
   }
