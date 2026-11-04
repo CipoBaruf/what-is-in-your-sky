@@ -6,8 +6,8 @@
  * Arguments are always an argv array, never a shell string.
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -253,6 +253,27 @@ export async function watchChecks(dir: string, pr: number, logger: Logger, waits
   }
   const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
   return ok(result);
+}
+
+/**
+ * FR-SDD-16: the `failure-digest` artifact of the branch's latest CI run,
+ * or `null` when there is none. The `digest` job runs after every other job,
+ * so this waits for the run to finish first.
+ */
+export async function failureDigest(dir: string, branch: string, logger: Logger): Promise<string | null> {
+  const list = await gh(['run', 'list', '--branch', branch, '--workflow', 'ci.yml', '--limit', '1', '--json', 'databaseId'], { cwd: dir, logger });
+  let run: number | undefined;
+  try {
+    run = ok(list) ? (JSON.parse(list.stdout) as { databaseId?: number }[])[0]?.databaseId : undefined;
+  } catch {
+    run = undefined;
+  }
+  if (run === undefined) return null;
+  await gh(['run', 'watch', String(run)], { cwd: dir, logger });
+  const out = join(dir, 'sdd-run', 'ci-digest', String(run));
+  if (!ok(await gh(['run', 'download', String(run), '--name', 'failure-digest', '--dir', out], { cwd: dir, logger }))) return null;
+  const file = join(out, 'failure-digest.md');
+  return existsSync(file) ? readFileSync(file, 'utf8') : null;
 }
 
 export async function commentOnPullRequest(dir: string, id: string, pr: number, body: string, logger: Logger): Promise<void> {

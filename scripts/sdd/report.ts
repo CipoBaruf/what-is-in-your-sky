@@ -80,6 +80,9 @@ export interface TaskReport {
   id: string;
   branch: string;
   lane: string | null;
+  /** FR-SDD-10, FR-SDD-11: the agent and the tier the implementation ran on, and the model the tier resolved to. */
+  agent: string;
+  tier: string;
   model: string;
   gate: string | null;
   pr: number | null;
@@ -88,10 +91,13 @@ export interface TaskReport {
   reason: string;
   worktree: string | null;
   log: string | null;
-  durations: { implementMs?: number; ciMs?: number; reviewMs?: number; totalMs: number };
-  /** §16.4 step 10 (D-197): every session the task ran, in order — a limit fallback is a second entry on the next model. */
-  attempts: { stage: 'implement' | 'review'; model: string; outcome: string; durationMs: number }[];
-  review: { findings: number; model: string } | null;
+  durations: { implementMs?: number; ciMs?: number; reviewMs?: number; fixMs?: number; totalMs: number };
+  /** §16.4 step 10 (D-197): every session the task ran, in order — a limit fallback is a second entry on the next tier. */
+  attempts: { stage: 'implement' | 'review' | 'fix'; tier: string; model: string; outcome: string; durationMs: number }[];
+  /** `null` when no review ran; `tier: null` when D-1065 skipped it for a docs-only diff. */
+  review: { findings: number; tier: string | null; model: string | null } | null;
+  /** FR-SDD-2: each session that spent past its tier's running 90th percentile, in one line; report-only. */
+  overruns: string[];
 }
 
 export interface RunReport {
