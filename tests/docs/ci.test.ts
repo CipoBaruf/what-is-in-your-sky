@@ -50,12 +50,13 @@ describe('the pull-request budget (FR-CI-1)', () => {
 
   it('times every stage and writes the table to the job summary', () => {
     // Each stage goes through `stage.sh`, which records name, seconds and exit status…
+    // D-1067: the `build` job's three stages, then the shards' six.
     const stages = [...ci.matchAll(/stage\.sh (\w+) /g)].map((match) => match[1]);
-    expect(stages).toEqual(['install', 'typecheck', 'lint', 'browsers', 'unit', 'build', 'bundle', 'e2e']);
+    expect(stages).toEqual(['install', 'build', 'bundle', 'install', 'typecheck', 'lint', 'browsers', 'unit', 'e2e']);
     expect(read('.github/workflows/stage.sh')).toContain('date +%s');
-    // …and the summary step reads them back, on a failed run as well as a passing one.
-    expect(ci).toContain('$GITHUB_STEP_SUMMARY');
-    expect(ci).toMatch(/name: stage times\n\s+if: always\(\)/);
+    // …and the summary step reads them back, on a failed run as well as a passing one, in both jobs.
+    expect(read('.github/workflows/stage-summary.sh')).toContain('GITHUB_STEP_SUMMARY');
+    expect([...ci.matchAll(/name: stage times\n\s+if: always\(\)\n\s+run: bash \.github\/workflows\/stage-summary\.sh /g)]).toHaveLength(2);
   });
 });
 
@@ -180,13 +181,14 @@ describe('the tests a change reaches (D-1031)', () => {
   });
 
   it('hands the selection to Vitest and Playwright, and an empty shard passes', () => {
-    expect(ci).toContain('npx vitest related --run --passWithNoTests $UNIT_FILES');
-    expect(ci).toContain('--pass-with-no-tests $E2E_SPECS');
-    // Every stage that needs the build waits for an e2e selection, and the unit tests run once, on shard 1.
-    for (const stage of ['build', 'bundle', 'e2e']) {
-      expect(ci, stage).toMatch(new RegExp(`if: steps\\.affected\\.outputs\\.e2e != 'none'\\n(\\s+\\S.*\\n){0,3}\\s+run: bash \\.github/workflows/stage\\.sh ${stage} `));
-    }
-    expect(ci).toMatch(/if: matrix\.shard == 1 && steps\.affected\.outputs\.unit != 'none'/);
+    expect(ci).toContain('npx vitest related --run --passWithNoTests $json $UNIT_FILES');
+    expect(ci).toContain('--pass-with-no-tests --reporter=list,github,html,json $E2E_SPECS');
+    // D-1067: the `changes` job selects once and hands the selection on as its outputs.
+    expect(ci).toContain('e2e: ${{ steps.affected.outputs.e2e }}');
+    // The build job and the e2e stage wait for an e2e selection, and the unit tests run once, on shard 1.
+    expect(ci).toMatch(/ {2}build:\n\s+needs: changes\n\s+if: needs\.changes\.outputs\.e2e != 'none'\n/);
+    expect(ci).toMatch(/if: needs\.changes\.outputs\.e2e != 'none'\n(\s+\S.*\n){0,4}\s+run: bash \.github\/workflows\/stage\.sh e2e /);
+    expect(ci).toMatch(/if: matrix\.shard == 1 && needs\.changes\.outputs\.unit != 'none'/);
   });
 
   it('keeps the whole-program checks on every pull request', () => {
@@ -194,5 +196,61 @@ describe('the tests a change reaches (D-1031)', () => {
     expect(ci).toMatch(/^ {2}dead-code:$/m);
     expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh typecheck /);
     expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh lint /);
+  });
+});
+
+/** D-1067 (FR-SDD-16, FR-SDD-25): CI does less, and a failure leaves a digest. */
+describe('CI does less (D-1067)', () => {
+  const job = (name: string): string => {
+    const start = ci.indexOf(`\n  ${name}:\n`);
+    const next = ci.slice(start + 1).search(/\n {2}[a-z-]+:\n/);
+    return ci.slice(start, next < 0 ? undefined : start + 1 + next);
+  };
+
+  it('cancels a superseded pull-request run, and never a run on main', () => {
+    expect(ci).toContain("group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}");
+    expect(ci).toContain("cancel-in-progress: ${{ github.event_name == 'pull_request' }}");
+  });
+
+  it('builds dist/ once and the shards download it', () => {
+    const build = job('build');
+    expect(build).toContain('npm run build');
+    expect(build).toMatch(/upload-artifact@v\d+\n\s+with:\n\s+name: dist\n\s+path: dist\//);
+    const shards = job('ci');
+    expect(shards).toMatch(/needs: \[changes, build\]/);
+    expect(shards).toMatch(/download-artifact@v\d+\n\s+with:\n\s+name: dist\n\s+path: dist/);
+    expect(shards).not.toContain('npm run build');
+  });
+
+  it('caches the browsers on the locked Playwright version', () => {
+    const shards = job('ci');
+    expect(shards).toContain("require('./package-lock.json').packages['node_modules/playwright'].version");
+    expect(shards).toContain('path: ~/.cache/ms-playwright');
+    expect(shards).toContain('key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}');
+    expect(shards).toContain('npx playwright install-deps chromium');
+  });
+
+  it('works out docs_only and tests_only with a plain git diff', () => {
+    const changes = job('changes');
+    expect(changes).toContain('git diff --name-only HEAD^1 HEAD');
+    expect(changes).toContain('docs_only: ${{ steps.kind.outputs.docs_only }}');
+    expect(changes).toContain('tests_only: ${{ steps.kind.outputs.tests_only }}');
+    // No third-party action: only GitHub's own.
+    for (const [, action] of ci.matchAll(/uses: ([^@\s]+)@/g)) expect(action).toMatch(/^actions\//);
+    // A docs-only change skips the dead-code job; the trailers job always runs.
+    expect(job('dead-code')).toContain("if: needs.changes.outputs.docs_only != 'true'");
+    expect(job('trailers')).not.toMatch(/^ {4}if:/m);
+  });
+
+  it('writes the failure digest when anything failed, from the reports every job leaves', () => {
+    const digest = job('digest');
+    expect(digest).toContain('needs: [changes, build, ci, trailers, dead-code]');
+    expect(digest).toMatch(/if: failure\(\)/);
+    expect(digest).toContain('node scripts/ci-digest.ts reports failure-digest.md');
+    expect(digest).toContain('NEEDS: ${{ toJSON(needs) }}');
+    expect(digest).toContain('name: failure-digest');
+    for (const report of ['reports/typecheck.txt', 'reports/eslint.json', 'reports/vitest.json', 'reports/playwright-${{ matrix.shard }}.json', 'reports/build.txt', 'reports/trailers.txt', 'reports/dead-code.txt']) {
+      expect(ci, report).toContain(report);
+    }
   });
 });
