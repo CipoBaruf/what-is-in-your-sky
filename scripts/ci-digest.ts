@@ -5,7 +5,7 @@
  *
  * CI's jobs leave their reports in `reports/`: `typecheck.txt` (`tsc --pretty false`), `eslint.json`,
  * `vitest.json`, `playwright-<shard>.json`, and a plain log for a job that has no JSON reporter
- * (`build.txt`, `trailers.txt`, `dead-code.txt`). The `digest` job downloads them all and this script
+ * (`build.txt`, `trailers.txt`, `sdd.txt`, `dead-code.txt`). The `digest` job downloads them all and this script
  * writes the failing test names and their first errors to `failure-digest.md`, never more than
  * `FAILURE_DIGEST_MAX_KB`. `NEEDS` (the workflow's `toJSON(needs)`) names the failed jobs, and a log
  * is quoted only for a job that failed.

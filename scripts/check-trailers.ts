@@ -1,8 +1,9 @@
 /**
- * FR-PUB-12 (D-376): no commit added from here on carries an agent trailer.
+ * FR-PUB-12 (D-376): no commit added from here on carries an agent trailer; FR-SDD-20 (R179):
+ * no commit title after `TITLE_BASELINE` is over `COMMIT_TITLE_MAX`.
  *
  *   npx tsx scripts/check-trailers.ts            # BASELINE..HEAD
- *   npx tsx scripts/check-trailers.ts <ref>      # <ref>..HEAD
+ *   npx tsx scripts/check-trailers.ts <ref>      # <ref>..HEAD, for both checks
  *
  * This project's own rule is that commit messages carry no trailers
  * (`AGENTS.md`), and P1's audit found 19 commits
@@ -18,6 +19,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { COMMIT_TITLE_MAX } from './sdd/limits';
 
 /**
  * The last commit on `main` before this rule was in force: the merge of PR #104
@@ -42,6 +44,12 @@ export const BASELINE = '668be0d';
  */
 export const FORBIDDEN = [/^Claude-Session:/im, /^Co-Authored-By:.*(claude|anthropic)/im, /^\s*(Generated|Co-authored) with .*(Claude|Anthropic)/im] as const;
 
+/**
+ * FR-SDD-20: the tip of `main` when the title rule came in (R179). The titles before it are
+ * history, as the trailers before `BASELINE` are; a check red on them could only go green by a rewrite.
+ */
+export const TITLE_BASELINE = '9833534a';
+
 /** One commit, as this check reads it. */
 export interface Commit {
   sha: string;
@@ -58,9 +66,17 @@ export function offenders(commits: readonly Commit[]): Commit[] {
   return commits.filter((commit) => FORBIDDEN.some((pattern) => pattern.test(commit.body)));
 }
 
+/**
+ * FR-SDD-20: the commits whose title is over `max`, GitHub's squash suffix ` (#123)` not counted:
+ * the rule binds the title a person writes, and the PR number is added after.
+ */
+export function longTitles(commits: readonly Commit[], max = COMMIT_TITLE_MAX): Commit[] {
+  return commits.filter((commit) => commit.subject.replace(/ \(#\d+\)$/, '').length > max);
+}
+
 /** `<ref>..HEAD`, as commits. The record separator is a NUL so a body can hold anything. */
-export function commitsSince(ref: string): Commit[] {
-  const out = execFileSync('git', ['log', '--format=%H%x1f%s%x1f%b%x00', `${ref}..HEAD`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+export function commitsSince(ref: string, ...options: string[]): Commit[] {
+  const out = execFileSync('git', ['log', ...options, '--format=%H%x1f%s%x1f%b%x00', `${ref}..HEAD`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return out
     .split('\0')
     .map((record) => record.replace(/^\n/, ''))
@@ -83,23 +99,36 @@ export function reachable(ref: string): boolean {
 
 function main(argv: readonly string[]): number {
   const ref = argv[0] ?? BASELINE;
-  if (!reachable(ref)) {
-    // A depth-1 checkout cannot answer the question. Saying so and failing is
-    // the honest outcome: a check that quietly passes on a shallow clone is a
-    // check that passes in CI and nowhere else. `ci.yml` fetches the history.
-    console.error(`check-trailers: ${ref} is not in this clone — fetch the history (actions/checkout with fetch-depth: 0).`);
-    return 2;
-  }
+  const titleRef = argv[0] ?? TITLE_BASELINE;
+  for (const each of [ref, titleRef])
+    if (!reachable(each)) {
+      // A depth-1 checkout cannot answer the question. Saying so and failing is
+      // the honest outcome: a check that quietly passes on a shallow clone is a
+      // check that passes in CI and nowhere else. `ci.yml` fetches the history.
+      console.error(`check-trailers: ${each} is not in this clone — fetch the history (actions/checkout with fetch-depth: 0).`);
+      return 2;
+    }
+  let status = 0;
   const commits = commitsSince(ref);
   const bad = offenders(commits);
-  if (bad.length === 0) {
-    console.log(`check-trailers: ${String(commits.length)} commits since ${ref}, none carrying an agent trailer.`);
-    return 0;
+  if (bad.length === 0) console.log(`check-trailers: ${String(commits.length)} commits since ${ref}, none carrying an agent trailer.`);
+  else {
+    console.error(`check-trailers: ${String(bad.length)} of ${String(commits.length)} commits since ${ref} carry an agent trailer:`);
+    for (const commit of bad) console.error(`  ${commit.sha.slice(0, 9)} ${commit.subject}`);
+    console.error('\nThis project writes no trailers (AGENTS.md). Amend or rebase them out before merging.');
+    status = 1;
   }
-  console.error(`check-trailers: ${String(bad.length)} of ${String(commits.length)} commits since ${ref} carry an agent trailer:`);
-  for (const commit of bad) console.error(`  ${commit.sha.slice(0, 9)} ${commit.subject}`);
-  console.error('\nThis project writes no trailers (AGENTS.md). Amend or rebase them out before merging.');
-  return 1;
+  // A merge commit's title is GitHub's (`Merge <sha> into <sha>` on a pull request's checkout), not anyone's.
+  const titled = commitsSince(titleRef, '--no-merges');
+  const long = longTitles(titled);
+  if (long.length === 0) console.log(`check-titles: ${String(titled.length)} commits since ${titleRef}, no title over ${String(COMMIT_TITLE_MAX)} characters.`);
+  else {
+    console.error(`check-titles: ${String(long.length)} of ${String(titled.length)} commits since ${titleRef} have a title over COMMIT_TITLE_MAX (${String(COMMIT_TITLE_MAX)}):`);
+    for (const commit of long) console.error(`  ${commit.sha.slice(0, 9)} ${String(commit.subject.length)} chars: ${commit.subject}`);
+    console.error('\nIds go in the body (AGENTS.md). Reword the title before merging.');
+    status = 1;
+  }
+  return status;
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
