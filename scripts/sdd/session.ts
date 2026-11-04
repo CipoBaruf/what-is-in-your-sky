@@ -8,6 +8,7 @@
  * driver's job.
  */
 import { spawn } from 'node:child_process';
+import { appendLedger, ledgerEntry, usageFromResult, type ResultUsage, type SessionKind } from './ledger';
 import type { Logger } from './report';
 
 /**
@@ -151,6 +152,19 @@ export interface SessionResult {
   result: string | null;
   /** What the limit said, when `outcome` is `limit`. */
   limit: LimitInfo | null;
+  /** FR-SDD-1: what the final `result` event says the session spent, or `null` when it left none. */
+  usage: ResultUsage | null;
+}
+
+/** FR-SDD-1 (D-1058): where and under what name a session is recorded in the usage ledger. */
+export interface LedgerTarget {
+  task: string;
+  kind: SessionKind;
+  /** `claude` until R177 makes the agent a config entry (FR-SDD-10). */
+  agent: string;
+  tier: string | null;
+  /** The ledger file; `LEDGER_PATH` in the driver's working directory when omitted. */
+  path?: string;
 }
 
 export interface SessionOptions {
@@ -163,11 +177,13 @@ export interface SessionOptions {
   allowedTools: readonly string[];
   logger: Logger;
   env?: Record<string, string>;
+  /** FR-SDD-1: append one ledger line when the session ends. */
+  ledger?: LedgerTarget;
 }
 
 /** Runs one `claude -p` session to completion, or kills it at the wall clock. */
 export function runSession(options: SessionOptions): Promise<SessionResult> {
-  const { cwd, prompt, model, maxTurns, timeoutMs, allowedTools, logger, env } = options;
+  const { cwd, prompt, model, maxTurns, timeoutMs, allowedTools, logger, env, ledger } = options;
   const args = [
     '-p',
     prompt,
@@ -188,6 +204,20 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
   logger.command('claude', args, cwd);
   const startedAt = Date.now();
 
+  let recorded = false;
+  const done = (result: SessionResult): SessionResult => {
+    // `error` and `close` can both fire for one child; the ledger gets one line.
+    if (ledger && !recorded) {
+      recorded = true;
+      try {
+        appendLedger(ledgerEntry({ task: ledger.task, kind: ledger.kind, agent: ledger.agent, tier: ledger.tier, model, usage: result.usage, wallMs: result.durationMs, outcome: result.outcome }), ledger.path);
+      } catch (error) {
+        logger.line(`  usage ledger: could not append (${error instanceof Error ? error.message : String(error)})`);
+      }
+    }
+    return result;
+  };
+
   return new Promise((resolve) => {
     const child = spawn('claude', args, {
       cwd,
@@ -199,6 +229,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     let outcome: SessionOutcome = 'ok';
     let result: string | null = null;
     let limit: LimitInfo | null = null;
+    let usage: ResultUsage | null = null;
     let pending = '';
     let stderr = '';
 
@@ -217,7 +248,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       if (!line.trim()) return;
       logger.raw(`${line}\n`);
       try {
-        const event = JSON.parse(line) as { type?: string; subtype?: string; result?: string; is_error?: boolean } & RateLimitEvent;
+        const event = JSON.parse(line) as { type?: string; subtype?: string; result?: string; is_error?: boolean } & RateLimitEvent & Parameters<typeof usageFromResult>[0];
         const announced = limitFromEvent(event);
         if (announced) {
           limit = announced;
@@ -226,6 +257,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
         }
         if (event.type !== 'result') return;
         result = event.result ?? null;
+        usage = usageFromResult(event);
         if (outcome === 'limit') return; // the event already said so; the result is the synthetic sentence
         if (event.subtype === 'error_max_turns') outcome = 'max-turns';
         else if (isLimitStop(result)) {
@@ -251,7 +283,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     child.on('error', (error) => {
       clearTimeout(timer);
       logger.line(`  session could not start: ${error.message}`);
-      resolve({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null, limit: null });
+      resolve(done({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null, limit: null, usage: null }));
     });
     child.on('close', (code) => {
       clearTimeout(timer);
@@ -261,7 +293,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
         outcome = 'limit';
         limit ??= { window: null, resetsAt: null, accountWide: true };
       } else if (code !== 0 && outcome === 'ok') outcome = 'error';
-      resolve({ outcome, code, durationMs: Date.now() - startedAt, result, limit: outcome === 'limit' ? limit : null });
+      resolve(done({ outcome, code, durationMs: Date.now() - startedAt, result, limit: outcome === 'limit' ? limit : null, usage }));
     });
   });
 }
