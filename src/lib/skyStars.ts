@@ -122,6 +122,27 @@ export function starName(names: StarNamesSource, i: number, lang: Locale): strin
   return (lang === 'es' ? names.nameEs[i] : '') || names.name[i] || (names.desig[i] ?? '');
 }
 
+/** FR-NAME-2 (V214-9): the faintest unnamed star labelled by its designation — 33 on the catalogue. */
+export const BAYER_LABEL_MAG = 3.0;
+
+/** What the label rule needs of the catalogue. */
+export interface StarLabelSource {
+  name: readonly string[];
+  desig: readonly string[];
+  mag: ArrayLike<number>;
+}
+
+/**
+ * R185 (FR-NAME-2, FR-NAME-3): the one "is labelled" rule every label and list reads — `proper` for a star with an
+ * IAU name to the caller's `nameMag` (the field's row, FR-LOOK-9), `designation` for one without brighter than
+ * `BAYER_LABEL_MAG` at any field, else `null`. Placement puts `designation` after every `proper` (`starLabels.ts`).
+ */
+export function starLabelKind(src: StarLabelSource, i: number, nameMag: number): 'proper' | 'designation' | null {
+  const mag = src.mag[i] ?? Number.POSITIVE_INFINITY;
+  if (src.name[i]) return mag <= nameMag ? 'proper' : null;
+  return src.desig[i] && mag < BAYER_LABEL_MAG ? 'designation' : null;
+}
+
 const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined => (Object.hasOwn(table, key) ? table[key] : undefined);
 
 /** One drawn part's name in `lang` (`Serpens Caput` / `Cabeza de la Serpiente`), or `undefined` for a part the table does not have. */
