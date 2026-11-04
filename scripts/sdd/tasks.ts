@@ -8,8 +8,23 @@
  * and come back `null`, which is only an error for a task the driver is
  * asked to run (§16.3).
  *
- * Pure: the caller supplies the file's text, so the tests need no git.
+ * Since the split (FR-SDD-7) TASKS.md holds the open phase and each closed
+ * phase's tasks are in `docs/sdd/phases/<version>/tasks.md`; `layoutTasksText`
+ * puts them together, closed phases first, so a dependency on a closed task
+ * resolves and reads as merged.
+ *
+ * Pure: the caller supplies the files' text, so the tests need no git.
  */
+import { PHASES } from './splitMap';
+
+/** FR-SDD-7: a closed phase's tasks file. */
+export const phaseTasksPath = (phase: string): string => `docs/sdd/phases/${phase}/tasks.md`;
+
+/** FR-SDD-7: every task of the layout as one text, the closed phases in release order and then the open TASKS.md. */
+export function layoutTasksText(open: string, read: (path: string) => string | null): string {
+  const closed = PHASES.map((phase) => read(phaseTasksPath(phase))).filter((text): text is string => text !== null);
+  return [...closed, open].join('\n');
+}
 
 const LANES = ['ui', 'chart', 'data', 'physics', 'live', 'window', 'docs'] as const; // `live` split from `ui` (D-132); `window` and `docs` for v1.1 (D-196)
 /** §16.6 (D-197): `interactive` marks a task the owner drives by hand; the driver lists it and never runs it. */

@@ -9,15 +9,30 @@
  * decision it cites, its lane's §16.1 row, the D-89 commit rule and the tool
  * allowlist. Anything else the session reaches with `rg -n '<ID>'`.
  *
- * Pure: the caller supplies the three documents' text, so the tests need no
- * git and the driver writes the file from the worktree it just created.
+ * Pure: the caller supplies a lookup from an id to the text it lives in —
+ * `layoutLookup` reads it through `docs/sdd/ids.md` (FR-SDD-7), `documentSources`
+ * from the three documents as they were before the split — so the tests need no git.
  */
+import { kindOf } from './ids';
 import type { Task } from './tasks';
 
 export interface BriefSources {
-  spec: string;
-  plan: string;
-  tasks: string;
+  /** The text an id, a task or an old section (`PLAN §16.1`) lives in, SPEC and PLAN text unwrapped; `null` when no file has it. */
+  textFor: (key: string) => string | null;
+}
+
+/** The lane table's section. */
+const LANES_SECTION = 'PLAN §16.1';
+
+/** The pre-split sources: SPEC.md for requirements, stories and rows, PLAN.md for decisions and lanes, TASKS.md for tasks. */
+export function documentSources(documents: { spec: string; plan: string; tasks: string }): BriefSources {
+  return {
+    textFor: (key) => {
+      if (key.startsWith('PLAN ')) return documents.plan;
+      const kind = kindOf(key)?.origin;
+      return kind === 'PLAN' ? documents.plan : kind === 'TASKS' ? documents.tasks : documents.spec;
+    },
+  };
 }
 
 export interface BriefOptions {
@@ -152,27 +167,30 @@ export interface Brief {
 
 /** The brief for one task. */
 export function buildBrief(task: Task, sources: BriefSources, options: BriefOptions): Brief {
-  const entry = taskEntry(sources.tasks, task.id) ?? `- [ ] **${task.id} — ${task.title}** _(entry not found in TASKS.md)_`;
+  const tasksText = sources.textFor(task.id);
+  const entry = (tasksText === null ? null : taskEntry(tasksText, task.id)) ?? `- [ ] **${task.id} — ${task.title}** _(entry not found in TASKS.md)_`;
   const ids = citedIds(entry);
   for (const finding of task.findings) if (!ids.includes(finding)) ids.push(finding);
   for (const decision of ALWAYS_DECISIONS) if (!ids.includes(decision)) ids.push(decision);
   const missing: string[] = [];
-  const pick = (candidates: readonly string[], find: (id: string) => string | null): string[] => {
+  const pick = (candidates: readonly string[], find: (doc: string, id: string) => string | null): string[] => {
     const found: string[] = [];
     for (const id of candidates) {
-      const text = find(id);
+      const doc = sources.textFor(id);
+      const text = doc === null ? null : find(doc, id);
       if (text === null) missing.push(id);
       else found.push(text);
     }
     return found;
   };
 
-  const requirements = pick(ids.filter(isFr), (id) => boldBullet(sources.spec, id));
-  const stories = pick(ids.filter(isStory), (id) => userStory(sources.spec, id));
-  const findings = pick(ids.filter(isFinding), (id) => tableRow(sources.spec, id));
-  const specRows = pick(ids.filter(isSpecRow), (id) => tableRow(sources.spec, id));
-  const decisions = pick(ids.filter(isDecision), (id) => boldBullet(sources.plan, id));
-  const lane = task.lane ? laneRow(sources.plan, task.lane) : null;
+  const requirements = pick(ids.filter(isFr), boldBullet);
+  const stories = pick(ids.filter(isStory), userStory);
+  const findings = pick(ids.filter(isFinding), tableRow);
+  const specRows = pick(ids.filter(isSpecRow), tableRow);
+  const decisions = pick(ids.filter(isDecision), boldBullet);
+  const lanes = sources.textFor(LANES_SECTION);
+  const lane = task.lane && lanes !== null ? laneRow(lanes, task.lane) : null;
 
   const lines = [
     `# ${task.id} — ${task.title}`,
