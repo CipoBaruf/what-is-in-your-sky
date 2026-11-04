@@ -20,10 +20,12 @@ export interface Options {
   waitForReset: boolean;
   /** FR-SDD-16, D-1065: one fix session on a red CI run or on review findings. Off unless `--fix`. */
   fix: boolean;
+  /** FR-SDD-27, D-1071: prune merged branches and worktrees at the start of a wave. On unless `--no-prune`. */
+  prune: boolean;
 }
 
 export function parseArgs(argv: readonly string[]): Options {
-  const options: Options = { mode: 'help', taskId: null, tasksFile: null, tier: null, model: null, agent: null, fallback: true, waitForReset: true, fix: false };
+  const options: Options = { mode: 'help', taskId: null, tasksFile: null, tier: null, model: null, agent: null, fallback: true, waitForReset: true, fix: false, prune: true };
   const value = (index: number, flag: string, example: string): string => {
     const next = argv[index];
     if (next === undefined || next.startsWith('--')) throw new Error(`${flag} needs a value, e.g. \`${flag} ${example}\``);
@@ -58,6 +60,7 @@ export function parseArgs(argv: readonly string[]): Options {
     else if (arg === '--no-wait') options.waitForReset = false;
     else if (arg === '--fix') options.fix = true;
     else if (arg === '--no-fix') options.fix = false;
+    else if (arg === '--no-prune') options.prune = false;
     else if (arg === '--help' || arg === '-h') options.mode = 'help';
     else throw new Error(`unknown argument \`${String(arg)}\``);
   }
@@ -80,7 +83,8 @@ export const helpText = (base: string): string => `sdd-run — the task driver (
   npm run sdd -- --wave --no-fallback     do not retry a limit-stopped session on the next tier (§16.4 step 10)
   npm run sdd -- --wave --no-wait         end a task as limit instead of waiting for the reset and resuming (D-835)
   npm run sdd -- --wave --fix             one fix session on a red CI run or review findings (FR-SDD-16)
+  npm run sdd -- --wave --no-prune        keep merged branches and worktrees (FR-SDD-27); a wave prunes them first
 
-  --tasks-file <path>                     read TASKS.md from a file instead of ${base}
+  --tasks-file <path>                    read TASKS.md from a file instead of ${base}
                                           (--status and --dry-run only)
 `;

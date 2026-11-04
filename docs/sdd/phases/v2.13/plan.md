@@ -93,6 +93,11 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   The traceability ids are D-1069's pattern plus `US-<n>`, read from the titles of tracked tests; the table goes below the moved §12 rows under its own heading.
   A v2.13-or-later requirement with no test fails `check:sdd` unless an open task's `Satisfies:` names it (FR-SDD-17, -26, -27, -28 are R180's and R181's).
   `max-lines` is ESLint's, at warn, 600 (21 files today); `eslint.config.js` restates the number and a test holds it equal to `limits.ts`.
+- **D-1092 — The prune call and the shared prefix.** (FR-SDD-17, FR-SDD-27, D-1062, D-1071.)
+  `prune-merged-branches.ts` reads merged and open PRs with `gh` and the refs with `git`, plans from the facts alone (`planPrune`) and then acts; a branch whose tip is not its PR's merged head is kept, since it carries commits made after the merge.
+  `sdd-run.ts` calls it at the start of `--wave` (`cli.ts` gains `--no-prune`).
+  The brief's shared part is rules, tool policy, then a fixed gotchas digest, with no task id in it (`<id>` stands for the id in the heading that follows), so the first section is the same bytes for every task.
+  R175's fixtures differ from before by that order, the `<id>` wording, "D-89 below" and the added digest section.
 
 ---
 

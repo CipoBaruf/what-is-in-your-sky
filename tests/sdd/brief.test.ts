@@ -7,7 +7,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BRIEF_BUDGET_CHARS, boldBullet, buildBrief, citedIds, documentSources, laneRow, tableRow, taskEntry, userStory } from '../../scripts/sdd/brief';
+import { BRIEF_BUDGET_CHARS, boldBullet, buildBrief, citedIds, documentSources, laneRow, sharedPrefix, tableRow, taskEntry, userStory } from '../../scripts/sdd/brief';
 import { layoutLookup } from '../../scripts/sdd/ids';
 import { loadAgents, modelTiers, pickAgent, toolLists } from '../../scripts/sdd/agents';
 import { byId, layoutTasksText, parseTasks } from '../../scripts/sdd/tasks';
@@ -79,8 +79,8 @@ describe('buildBrief', () => {
     expect(markdown).toContain('- **D-195 —');
     expect(markdown).toContain('- **D-89 —');
     expect(markdown).toContain('| `ui` |');
-    expect(markdown).toContain('sdd-run/R37.blocked.md');
-    expect(markdown).toContain('sdd-run/R37.summary.md');
+    expect(markdown).toContain('sdd-run/<id>.blocked.md');
+    expect(markdown).toContain('sdd-run/<id>.summary.md');
     expect(markdown).toContain('`Bash(npx vitest:*)`');
     expect(markdown).toContain('`Bash(git push:*)`');
     // What it does not carry: another lane's row, a requirement it never names.
@@ -130,4 +130,21 @@ describe('FR-SDD-7: the briefs of R167–R171, byte for byte (D-1062)', () => {
       expect(markdown === fixture, `${id}'s brief differs from the fixture`).toBe(true);
     });
   }
+});
+
+describe('FR-SDD-17: a stable prefix', () => {
+  it('FR-SDD-17: two briefs of one wave share their first section byte for byte', () => {
+    const [a = '', b = ''] = ['R167', 'R168'].map((id) => buildBrief(task(id), sources, tools).markdown);
+    const prefix = (markdown: string): string => markdown.slice(0, markdown.indexOf('\n# R1'));
+    expect(prefix(a).length).toBeGreaterThan(1000);
+    expect(prefix(a)).toBe(prefix(b));
+    expect(prefix(a)).toBe(sharedPrefix(tools).join('\n'));
+  });
+
+  it('FR-SDD-17: the shared part is in the order rules, tool policy, gotchas digest, then the task', () => {
+    const { markdown } = buildBrief(task('R167'), sources, tools);
+    const at = ['## Headless rules', '## Tools', '## Gotchas', '# R167', '## The task'].map((heading) => markdown.indexOf(heading));
+    expect(at.every((index) => index >= 0)).toBe(true);
+    expect(at).toEqual([...at].sort((x, y) => x - y));
+  });
 });

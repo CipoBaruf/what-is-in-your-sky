@@ -572,6 +572,7 @@
 | FR-SDD-14 | `tests/docs/sdd-ignore.test.ts`, `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-15 | `tests/sdd/check.test.ts` |
 | FR-SDD-16 | `tests/sdd/ci-digest.test.ts`, `tests/sdd/cli.test.ts`, `tests/sdd/git.test.ts`, `tests/sdd/review.test.ts` |
+| FR-SDD-17 | `tests/sdd/brief.test.ts` |
 | FR-SDD-18 | `tests/sdd/review.test.ts` |
 | FR-SDD-19 | `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-20 | `tests/sdd/check-sdd.test.ts` |
@@ -580,6 +581,7 @@
 | FR-SDD-23 | `tests/captures/diff.test.ts` |
 | FR-SDD-24 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/traceability.test.ts` |
 | FR-SDD-25 | `tests/docs/ci.test.ts` |
+| FR-SDD-27 | `tests/sdd/prune-merged-branches.test.ts` |
 | FR-SET-1 | `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-SET-2 | `tests/e2e/settings.spec.ts` |
 | FR-SET-3 | `src/ui/components/location/WherePlace.test.tsx` |
