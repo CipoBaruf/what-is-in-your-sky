@@ -86,7 +86,8 @@ export function ownFrames(text: string, root: string): string[] {
     .map((line) => clip(relativeAll(line.trim(), root)));
 }
 
-const result = (tool: Tool, fields: Partial<ToolResult> = {}): ToolResult => ({ tool, passed: 0, failed: 0, skipped: 0, warnings: 0, failures: [], ...fields });
+/** A tool's result with every count at zero, and `fields` over it. */
+export const toolResult = (tool: Tool, fields: Partial<ToolResult> = {}): ToolResult => ({ tool, passed: 0, failed: 0, skipped: 0, warnings: 0, failures: [], ...fields });
 
 /** `tsc --pretty false` output: one `file(line,col): error TSnnnn: text` line per error. */
 export function parseTsc(text: string, root: string): ToolResult {
@@ -96,7 +97,7 @@ export function parseTsc(text: string, root: string): ToolResult {
     if (match) failures.push({ tool: 'typecheck', name: `${relativePath(match[1] ?? '', root)}:${match[2]}:${match[3]}`, message: [clip(`${match[4]}: ${match[5]}`)], stack: [] });
     else if (/^error TS\d+:/.test(line.trim())) failures.push({ tool: 'typecheck', name: 'tsc', message: [clip(line.trim())], stack: [] });
   }
-  return result('typecheck', { failed: failures.length, failures });
+  return toolResult('typecheck', { failed: failures.length, failures });
 }
 
 interface EslintMessage {
@@ -127,7 +128,7 @@ export function parseEslint(files: readonly EslintFile[], root: string): ToolRes
       failures.push({ tool: 'lint', name: `${relativePath(file.filePath, root)}${at}`, message: [clip(`${message.ruleId ?? 'parse'}: ${message.message}`)], stack: [] });
     }
   }
-  return result('lint', { passed: files.filter((file) => file.errorCount === 0).length, failed: failures.length, warnings, failures });
+  return toolResult('lint', { passed: files.filter((file) => file.errorCount === 0).length, failed: failures.length, warnings, failures });
 }
 
 interface VitestAssertion {
@@ -168,7 +169,7 @@ export function parseVitest(report: VitestReport, root: string): ToolResult {
   if (!report.success && failures.length === 0) {
     failures.push({ tool: 'unit', name: 'vitest', message: ['the run failed with no failing test (an unhandled error?): run `npm test` to see it'], stack: [] });
   }
-  return result('unit', {
+  return toolResult('unit', {
     passed: report.numPassedTests,
     failed: failures.length,
     skipped: report.numPendingTests + (report.numTodoTests ?? 0),
@@ -205,7 +206,7 @@ interface PlaywrightReport {
 
 /** `playwright --reporter=json`: an unexpected test is a failure (its last retry's error), a flaky one a warning. */
 export function parsePlaywright(report: PlaywrightReport, root: string): ToolResult {
-  const counts = result('e2e');
+  const counts = toolResult('e2e');
   const testDir = report.config?.rootDir;
   const specPath = (file: string): string => relativePath(testDir ? join(testDir, file) : file, root);
   const visit = (suite: PlaywrightSuite, titles: string[]): void => {
@@ -265,33 +266,37 @@ export function writeDigest(input: DigestInput, maxBytes = FAILURE_DIGEST_MAX_KB
   if (input.runUrl) head.push(`Run: ${input.runUrl}`);
   head.push(`Failed jobs: ${input.failedJobs.length ? input.failedJobs.join(', ') : 'unknown'}`, '');
 
-  // `item` is false for a section heading, which is not counted among the entries left out.
-  const entries: { text: string; item: boolean }[] = [];
-  for (const tool of input.results) {
-    if (tool.failures.length === 0) continue;
-    entries.push({ text: `\n## ${tool.tool} (${tool.failures.length} failed)\n`, item: false });
-    for (const failure of tool.failures) {
-      const lines = [`- \`${failure.name}\``, ...failure.message.slice(0, 2).map((line) => `  ${line}`)];
-      if (failure.stack[0]) lines.push(`  ${failure.stack[0]}`);
-      entries.push({ text: `${lines.join('\n')}\n`, item: true });
-    }
-  }
+  // A failed job's log tail comes first, cut to a share of the budget, so a red `trailers`, `dead-code`
+  // or `build` job is never pushed out by a long list of test failures. A section heading travels with
+  // its first entry, so a heading never stands alone.
+  const entries: string[] = [];
+  const logShare = Math.floor(maxBytes / 4);
   for (const log of input.logs) {
     const tail = stripAnsi(log.text).trimEnd().split('\n').slice(-LOG_TAIL_LINES).map(clip);
-    entries.push({ text: `\n## ${log.job} (log tail)\n\n\`\`\`\n${tail.join('\n')}\n\`\`\`\n`, item: true });
+    const entry = (): string => `\n## ${log.job} (log tail)\n\n\`\`\`\n${tail.join('\n')}\n\`\`\`\n`;
+    while (tail.length > 1 && Buffer.byteLength(entry(), 'utf8') > logShare) tail.shift();
+    entries.push(entry());
   }
-  if (entries.length === 0) entries.push({ text: 'No failing test or log was found in the reports; read the failed jobs above.\n', item: true });
+  for (const tool of input.results) {
+    tool.failures.forEach((failure, i) => {
+      const lines = [`- \`${failure.name}\``, ...failure.message.slice(0, 2).map((line) => `  ${line}`)];
+      if (failure.stack[0]) lines.push(`  ${failure.stack[0]}`);
+      const heading = i === 0 ? `\n## ${tool.tool} (${tool.failures.length} failed)\n` : '';
+      entries.push(`${heading}${lines.join('\n')}\n`);
+    });
+  }
+  if (entries.length === 0) entries.push('No failing test or log was found in the reports; read the failed jobs above.\n');
 
   const bytes = (text: string): number => Buffer.byteLength(text, 'utf8');
   const reserve = 96; // the "not shown" line
   let out = `${head.join('\n')}\n`;
   let shown = 0;
   for (const entry of entries) {
-    if (bytes(out) + bytes(entry.text) + reserve > maxBytes) break;
-    out += entry.text;
+    if (bytes(out) + bytes(entry) + reserve > maxBytes) break;
+    out += entry;
     shown += 1;
   }
-  const hidden = entries.slice(shown).filter((entry) => entry.item).length;
+  const hidden = entries.length - shown;
   if (hidden > 0) out += `\n… ${hidden} more not shown (FAILURE_DIGEST_MAX_KB); the job logs have them.\n`;
   return out;
 }
@@ -305,7 +310,8 @@ export function readReports(dir: string, root: string, failed: readonly string[]
     try {
       return JSON.parse(readFileSync(join(dir, file), 'utf8')) as T;
     } catch {
-      logs.push({ job: file, text: 'the report could not be read as JSON' });
+      // Every JSON report comes from the `ci` job; a passing run's unreadable report is not news.
+      if (failed.length === 0 || failed.includes('ci')) logs.push({ job: file, text: 'the report could not be read as JSON' });
       return undefined;
     }
   };

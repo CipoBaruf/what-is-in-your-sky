@@ -14,12 +14,12 @@
  * `npm test`, `npm run lint` and the rest stay as they are, for CI and for people.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseNameStatus, readerTests, select, type Change, type Pick } from './ci-affected';
-import { parseEslint, parsePlaywright, parseTsc, parseVitest, stripAnsi, type Failure, type Tool, type ToolResult } from './ci-digest';
+import { parseEslint, parsePlaywright, parseTsc, parseVitest, stripAnsi, toolResult, type Failure, type Tool, type ToolResult } from './ci-digest';
 
 /** FR-SDD-15: five lines of stack per failure. */
 export const CHECK_STACK_LINES = 5;
@@ -63,14 +63,7 @@ const tail = (text: string, lines = 5): string[] =>
     .map((line) => line.trimEnd());
 
 /** A tool that exited without the report it was asked for (a config error, a crash). */
-const noReport = (tool: Tool, output: string): ToolResult => ({
-  tool,
-  passed: 0,
-  failed: 1,
-  skipped: 0,
-  warnings: 0,
-  failures: [{ tool, name: `${tool} wrote no report`, message: tail(output), stack: [] }],
-});
+const noReport = (tool: Tool, output: string): ToolResult => toolResult(tool, { failed: 1, failures: [{ tool, name: `${tool} wrote no report`, message: tail(output), stack: [] }] });
 
 interface Run {
   status: number;
@@ -86,7 +79,7 @@ const readJson = <T>(path: string): T | undefined => (existsSync(path) ? (JSON.p
 
 /** This branch's change against `base`: the merge base to the working tree, untracked files included. */
 export function localChanges(base: string): Change[] {
-  const git = (args: readonly string[]): string => execFileSync('git', args, { encoding: 'utf8' });
+  const git = (args: readonly string[]): string => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const from = git(['merge-base', base, 'HEAD']).trim();
   const changes = parseNameStatus(git(['diff', '--name-status', '-M', from]));
   const untracked = git(['ls-files', '--others', '--exclude-standard'])
@@ -96,20 +89,25 @@ export function localChanges(base: string): Change[] {
   return [...changes, ...untracked];
 }
 
-/** The specs `ci-affected.ts` picks for this change; every spec when there is no diff to read (no base ref). */
-function e2eSelection(base: string, root: string): Pick {
+/**
+ * The specs `ci-affected.ts` picks for this change; every spec when there is no diff to read (no base
+ * ref, a git error), and then a line on stderr says why, since the whole suite takes minutes.
+ */
+export function e2eSelection(base: string, root: string, warn: (line: string) => void = (line) => console.error(line)): Pick {
   try {
     return select(localChanges(base), readerTests(root)).e2e;
-  } catch {
+  } catch (error) {
+    const why = (error instanceof Error ? error.message : String(error)).split('\n')[0]?.trim() ?? '';
+    warn(`check: the e2e selection against ${base} failed (${why}); running every spec`);
     return 'all';
   }
 }
 
 function runE2e(pick: Pick, dir: string, root: string): ToolResult {
-  if (pick !== 'all' && pick.length === 0) return { tool: 'e2e', passed: 0, failed: 0, skipped: 0, warnings: 0, failures: [], skippedWhy: 'no spec affected' };
+  if (pick !== 'all' && pick.length === 0) return toolResult('e2e', { skippedWhy: 'no spec affected' });
   // FR-FLAG-2 (D-183): the e2e build is the one with the moon flag on, as `npm run e2e` and CI build it.
   const build = run('npx', ['vite', 'build'], { VITE_MOON_LORE: 'on' });
-  if (build.status !== 0) return { tool: 'e2e', passed: 0, failed: 1, skipped: 0, warnings: 0, failures: [{ tool: 'e2e', name: 'vite build', message: tail(build.output), stack: [] }] };
+  if (build.status !== 0) return toolResult('e2e', { failed: 1, failures: [{ tool: 'e2e', name: 'vite build', message: tail(build.output), stack: [] }] });
   const report = join(dir, 'playwright.json');
   const specs = pick === 'all' ? [] : [...pick];
   const e2e = run('npx', ['playwright', 'test', '--reporter=json', ...specs], { PLAYWRIGHT_JSON_OUTPUT_NAME: report });
@@ -119,25 +117,30 @@ function runE2e(pick: Pick, dir: string, root: string): ToolResult {
 
 export function runCheck(options: { base: string; e2e: boolean; root: string }): ToolResult[] {
   const dir = mkdtempSync(join(tmpdir(), 'check-'));
-  const results: ToolResult[] = [];
+  try {
+    const results: ToolResult[] = [];
 
-  const tsc = run('npx', ['tsc', '-b', '--pretty', 'false']);
-  const typecheck = parseTsc(tsc.output, options.root);
-  results.push(tsc.status !== 0 && typecheck.failed === 0 ? noReport('typecheck', tsc.output) : typecheck);
+    const tsc = run('npx', ['tsc', '-b', '--pretty', 'false']);
+    const typecheck = parseTsc(tsc.output, options.root);
+    results.push(tsc.status !== 0 && typecheck.failed === 0 ? noReport('typecheck', tsc.output) : typecheck);
 
-  const eslintReport = join(dir, 'eslint.json');
-  const eslint = run('npx', ['eslint', '.', '-f', 'json', '-o', eslintReport]);
-  const lint = readJson<Parameters<typeof parseEslint>[0]>(eslintReport);
-  results.push(lint ? parseEslint(lint, options.root) : noReport('lint', eslint.output));
+    const eslintReport = join(dir, 'eslint.json');
+    const eslint = run('npx', ['eslint', '.', '-f', 'json', '-o', eslintReport]);
+    const lint = readJson<Parameters<typeof parseEslint>[0]>(eslintReport);
+    results.push(lint ? parseEslint(lint, options.root) : noReport('lint', eslint.output));
 
-  const vitestReport = join(dir, 'vitest.json');
-  const vitest = run('npx', ['vitest', 'run', '--reporter=json', `--outputFile=${vitestReport}`]);
-  const unit = readJson<Parameters<typeof parseVitest>[0]>(vitestReport);
-  results.push(unit ? parseVitest(unit, options.root) : noReport('unit', vitest.output));
+    const vitestReport = join(dir, 'vitest.json');
+    const vitest = run('npx', ['vitest', 'run', '--reporter=json', `--outputFile=${vitestReport}`]);
+    const unit = readJson<Parameters<typeof parseVitest>[0]>(vitestReport);
+    results.push(unit ? parseVitest(unit, options.root) : noReport('unit', vitest.output));
 
-  if (!options.e2e) results.push({ tool: 'e2e', passed: 0, failed: 0, skipped: 0, warnings: 0, failures: [], skippedWhy: '--no-e2e' });
-  else results.push(runE2e(e2eSelection(options.base, options.root), dir, options.root));
-  return results;
+    if (!options.e2e) results.push(toolResult('e2e', { skippedWhy: '--no-e2e' }));
+    else results.push(runE2e(e2eSelection(options.base, options.root), dir, options.root));
+    return results;
+  } finally {
+    // The reports can run to megabytes, and agents run this over and over.
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 export function parseArgs(argv: readonly string[]): { base: string; e2e: boolean } {

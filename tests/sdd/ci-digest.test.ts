@@ -2,7 +2,9 @@
  * PLAN D-1067 (FR-SDD-16): the failure digest, on reports recorded from real Vitest, Playwright,
  * ESLint and tsc runs (`tests/sdd/fixtures/check/`, paths rewritten under `/repo`).
  */
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { failedJobs, FAILURE_DIGEST_MAX_KB, parseEslint, parsePlaywright, parseTsc, parseVitest, readReports, writeDigest, type Failure, type ToolResult } from '../../scripts/ci-digest';
 
@@ -78,8 +80,10 @@ describe('the digest (FR-SDD-16)', () => {
     expect(Buffer.byteLength(digest)).toBeLessThanOrEqual(FAILURE_DIGEST_MAX_KB * 1024);
     const shown = (digest.match(/^- `/gm) ?? []).length;
     expect(shown).toBeGreaterThan(10);
-    // The 400 tests and the log that did not fit.
-    expect(digest).toContain(`… ${400 - shown + 1} more not shown`);
+    // The failed job's log tail comes first, so only tests are left out.
+    expect(digest.indexOf('## trailers (log tail)')).toBeGreaterThan(-1);
+    expect(digest.indexOf('## trailers (log tail)')).toBeLessThan(digest.indexOf('## unit'));
+    expect(digest).toContain(`… ${400 - shown} more not shown`);
   });
 
   it('reads a downloaded reports directory and quotes the log of a failed job only', () => {
@@ -90,6 +94,25 @@ describe('the digest (FR-SDD-16)', () => {
     const digest = writeDigest(input);
     expect(Buffer.byteLength(digest)).toBeLessThanOrEqual(FAILURE_DIGEST_MAX_KB * 1024);
     expect(digest).toContain('## lint (2 failed)');
+  });
+
+  it('never leaves a section heading without an entry under it', () => {
+    const unit = parseVitest(json('vitest-fail.json'), ROOT);
+    const long = 'y'.repeat(300);
+    const digest = writeDigest({ results: [unit, parsePlaywright(json('playwright-fail.json'), ROOT)], logs: [{ job: 'trailers', text: `${long}\n`.repeat(15) }], failedJobs: ['ci', 'trailers'] }, 1800);
+    expect(Buffer.byteLength(digest)).toBeLessThanOrEqual(1800);
+    for (const match of digest.matchAll(/^## (unit|e2e) .*\n(.*)$/gm)) expect(match[2]).toMatch(/^- `/);
+  });
+
+  it('quotes an unreadable report only when the `ci` job failed', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'digest-'));
+    try {
+      writeFileSync(join(dir, 'playwright-1.json'), '{"suites": [');
+      expect(readReports(dir, ROOT, ['trailers']).logs).toEqual([]);
+      expect(readReports(dir, ROOT, ['ci']).logs).toEqual([{ job: 'playwright-1.json', text: 'the report could not be read as JSON' }]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('takes the failed jobs from the workflow’s needs', () => {

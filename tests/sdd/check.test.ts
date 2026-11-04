@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CHECK_STACK_LINES, formatCheck, parseArgs } from '../../scripts/check';
+import { CHECK_STACK_LINES, e2eSelection, formatCheck, parseArgs } from '../../scripts/check';
 import { parseEslint, parsePlaywright, parseTsc, parseVitest, type ToolResult } from '../../scripts/ci-digest';
 
 const ROOT = '/repo';
@@ -57,5 +57,12 @@ describe('npm run check (FR-SDD-15)', () => {
     expect(parseArgs([])).toEqual({ base: 'origin/main', e2e: true });
     expect(parseArgs(['--base', 'main', '--no-e2e'])).toEqual({ base: 'main', e2e: false });
     expect(() => parseArgs(['--fast'])).toThrow(/usage/);
+  });
+
+  it('runs every spec when the selection cannot be worked out, and says why', () => {
+    const warnings: string[] = [];
+    expect(e2eSelection('refs/heads/no-such-base-r174', process.cwd(), (line) => warnings.push(line))).toBe('all');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/^check: the e2e selection against refs\/heads\/no-such-base-r174 failed \(.+\); running every spec$/);
   });
 });
