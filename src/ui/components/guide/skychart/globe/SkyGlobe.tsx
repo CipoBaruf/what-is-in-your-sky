@@ -59,6 +59,17 @@ import styles from './SkyGlobe.module.css';
 /** No passes: the stars page's globe, one array so the renderer sees no change. */
 const NO_PASSES: readonly Pass[] = [];
 
+/**
+ * D-1114: `globe-perf.spec.ts`'s harness — passes, and one highlighted, a test puts on `window` before the page loads,
+ * drawn where the page gives none, so the stars page's globe is measured with arcs before R186 mounts it on the live
+ * page. Nothing in the app writes it.
+ */
+interface Harness {
+  passes?: readonly Pass[];
+  highlightedPassId?: string;
+}
+const harness = (): Harness => (window as { __globeHarness?: Harness }).__globeHarness ?? {};
+
 /** R184: what a tap picked — a mark the globe names, or a pass's arc. */
 export type GlobePick = GlobeTarget | { kind: 'pass'; passId: string };
 
@@ -143,7 +154,7 @@ function listTarget(index: number | null, size: number): GlobeTarget | null {
   return body === undefined ? null : { kind: 'planet', body };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = harness().passes ?? NO_PASSES, t, highlightedPassId = harness().highlightedPassId ?? null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
