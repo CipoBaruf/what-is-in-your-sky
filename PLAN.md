@@ -2795,7 +2795,7 @@ No i18n, routing, date or state dependency is added for v1: language is two type
 | FR-SDD-22, FR-SDD-23 *(v2.13)* | `scripts/captures/*`, `.github/workflows/captures.yml`, the `captures` branch (D-1068) |
 | FR-SDD-24 *(v2.13)* | `scripts/sdd/traceability.ts`, `docs/sdd/reference/traceability.md` (D-1069) |
 | FR-SDD-25 *(v2.13)* | `.github/workflows/ci.yml` (D-1067) |
-| FR-SDD-26, FR-SDD-27 *(v2.13)* | `docs/sdd/archive.json`, the `archive` branch, `scripts/prune-merged-branches.ts`, `scripts/sdd/cli.ts` (D-1070, D-1071) |
+| FR-SDD-26, FR-SDD-27 *(v2.13)* | `docs/sdd/archive.json`, the `archive` branch (R181), `scripts/prune-merged-branches.ts`, `scripts/sdd/cli.ts` (R180) (D-1070, D-1071) |
 | FR-SDD-28 *(v2.13)* | the phase's diff: no `src/` or `public/` path |
 
 ---
@@ -3526,24 +3526,24 @@ What every session reads (D-284's rule): SPEC §4.55 whole (FR-GLOBE-1..18), US-
 
 ### 16.32 Delivery of the v2.13 tasks *(V213-1..V213-11, D-1057..D-1072)*
 
-The V1-11 rules are unchanged; the gate is v2.10's (D-975): auto, merged by hand on CI green and a clean review, every squash merge with an explicit message. Ten `R` tasks in seven waves, after this plan is on `main`. Lanes here are file sets, since no product lane is touched.
+The V1-11 rules are unchanged; the gate is v2.10's (D-975): auto, merged by hand on CI green and a clean review, every squash merge with an explicit message. Ten `R` tasks in seven waves, after this plan is on `main`. The Lane column names each task's file set; the `Lane:` field takes the driver's fixed list (`tasks.ts`'s `LANES`): `data` for the driver and CI (R172, R174, R177, R180), `docs` for the documents (R173, R175, R176, R181), `ui` for the captures and the checks (R178, R179), so no wave holds two tasks of one lane.
 
 | Wave | Task | Lane | Model | Gate | Depends on |
 |---|---|---|---|---|---|
 | 1 | R172 — The ledger and the short PR body: `ledger.ts`, `usage.jsonl`, the usage line, FR-SDD-20's body shape in `report.ts` | `driver` (`scripts/sdd/{ledger,session,report}.ts`) | opus | auto | — |
-| 2 | R173 — `gotchas.md` from the memory files (`~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/`, read-only), `.ignore`, `sdd-map.ts` and `map.md` | `docs` (`docs/sdd/{gotchas,map}.md`, `.ignore`, `scripts/sdd-map.ts`) | sonnet | auto | R172 |
+| 2 | R173 — `gotchas.md` from the memory files (`~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/`, read-only), `.ignore`, `sdd-map.ts` and `map.md` | `docs` (`docs/sdd/{gotchas,map}.md`, `.ignore`, `scripts/sdd-map.ts`; no `package.json` change) | sonnet | auto | R172 |
 | 2 | R174 — Quiet checks and CI: `check.ts`, `ci-digest.ts`, `ci.yml` per D-1067 | `ci` (`scripts/{check,ci-digest}.ts`, `.github/workflows/ci.yml`, `package.json` scripts) | opus | auto | R172 |
 | 3 | R175 — The split: briefs pinned, `split`/`splitMap`/`rewrap`, the phase folders, `decisions.md`, `reference/`, the index files, `ids.ts`, `sdd:id`, `brief.ts` and `tasks.ts` on the new layout, `archive.json` empty | `docs` + `driver` (every document, `scripts/sdd/{split,splitMap,rewrap,ids,brief,tasks}.ts`) | fable | auto | R173, R174 |
 | 4 | R176 — `AGENTS.md`, `CLAUDE.md`, the seven workflows, the skills as pointers, `RELEASE.md` as a procedure with its records in the phase folders | `docs` (`AGENTS.md`, `CLAUDE.md`, `docs/sdd/workflows/`, `.claude/skills/`, `docs/RELEASE.md`) | opus | auto | R175 |
 | 4 | R178 — Captures: the manifest, `diff.ts`, `compress.ts`, the `captures` branch, `captures.yml`, the job summary | `captures` (`scripts/captures/`, `tests/e2e/captureSet.ts`, `captures.yml`, `docs/screenshots/v1-*`) | opus | auto | R175 |
 | 5 | R177 — The agents config: `agents.ts`, `sdd.agents.json`, the config-driven `session.ts`, tiers, `--agent`, `Agent:`, the open entries to `Tier:`, the budget report-only, `review.ts`, findings, prompts from `review.md` and `fix-ci.md`, the digest to fix sessions | `driver` (`scripts/sdd/**`, `sdd.agents.json`, TASKS.md's open entries) | fable | auto | R176 |
 | 6 | R179 — `check:sdd` and traceability: `check-sdd.ts`, `limits.ts`, `traceability.ts`, the `max-lines` warning, the title check, the CI job | `checks` (`scripts/check-sdd.ts`, `scripts/sdd/{limits,traceability}.ts`, `eslint.config.*`, `ci.yml`'s `sdd` job) | opus | auto | R177, R178 |
-| 6 | R180 — The archive, pruning and the brief's prefix: the `archive` branch, `archive.json`, `prune-merged-branches.ts`, the wave-start call, FR-SDD-17 with the fixtures re-recorded | `driver` (`scripts/sdd/{cli,brief}.ts`, `scripts/prune-merged-branches.ts`, `docs/sdd/archive.json`, `spike/`, `docs/{dome-composition,mockups,stars,spike-glyphcss,window}/`) | sonnet | auto | R177 |
-| 7 | R181 — The phase report: the ceilings set by FR-SDD-2, the report in `docs/sdd/phases/v2.13/`, FR-SDD-28's checks, the owner's memory-trim line | `docs` (`sdd.agents.json` ceilings, `docs/sdd/phases/v2.13/`) | sonnet | auto | R179, R180 |
+| 6 | R180 — Pruning and the brief's prefix: `prune-merged-branches.ts`, the wave-start call, FR-SDD-17 with the fixtures re-recorded | `driver` (`scripts/sdd/{cli,brief}.ts`, `scripts/prune-merged-branches.ts`) | sonnet | auto | R177 |
+| 7 | R181 — The archive and the phase report: the `archive` branch and `archive.json` (FR-SDD-26), the ceilings set by FR-SDD-2, the report in `docs/sdd/phases/v2.13/`, FR-SDD-28's checks, the owner's memory-trim line | `docs` (`sdd.agents.json` ceilings, `docs/sdd/{phases/v2.13,archive.json}`, `spike/`, the evidence folders, `package.json`'s `spike:*`, knip) | sonnet | auto | R179, R180 |
 
-R175 is the critical task: the split and the brief change land together or the driver breaks (V213-11). **After R175 merges, the driver is restarted from a fresh `origin/main`**, so later briefs come from the new `brief.ts`. R173 and R174 run on the old layout and are the ledger's baseline (V213-6). R176 writes `visual-review.md` with D-1068's script names; R178 builds them. R177 is the only task after R175 that changes `session.ts`; R180 touches `cli.ts` and `brief.ts` only after R177 has merged.
+R175 is the critical task: the split and the brief change land together or the driver breaks (V213-11). **After R175 merges, the driver is restarted from a fresh `origin/main`**, so later briefs come from the new `brief.ts`. R173 and R174 run on the old layout and are the ledger's baseline (V213-6). R176 writes `visual-review.md` with D-1068's script names; R178 builds them. R177 is the only task after R175 that changes `session.ts`; R180 touches `cli.ts` and `brief.ts` only after R177 has merged. The archive sits in R181, alone in its wave, because it and R179 both change `package.json`.
 
-**Sessions:** `Model:` as the table, since tiers arrive with R177; R178–R181 carry `Tier:` (R178, R179 `standard`, R180, R181 `light`) and the review tier of D-1065. Every row has `Turns: 500` and `Fallback: off`; R172–R177 have `Review: opus`. Every task is `Gate: auto`.
+**Sessions:** every entry is cut with `Model:` as the table; R177 converts the open entries (R179–R181) to `Tier:` (FR-SDD-11), and from then on the review tier is D-1065's. Every row has `Turns: 500` and `Fallback: off`; R172–R177 have `Review: opus`. Every task is `Gate: auto`.
 
 **The budget** (D-761's units): two Fable tasks, five Opus tasks and three Sonnet tasks with their reviews, **about 3–4 five-hour windows**. Waves 3 and 5 each hold a Fable task alone; the owner reads `/usage` before them. Wait-and-resume is on; nothing is started with `--no-wait`.
 
