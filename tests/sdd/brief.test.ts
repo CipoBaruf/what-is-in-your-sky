@@ -80,7 +80,7 @@ describe('buildBrief', () => {
     expect(markdown).toContain('- **D-89 —');
     expect(markdown).toContain('| `ui` |');
     expect(markdown).toContain('sdd-run/<id>.blocked.md');
-    expect(markdown).toContain('sdd-run/R37.summary.md');
+    expect(markdown).toContain('sdd-run/<id>.summary.md');
     expect(markdown).toContain('`Bash(npx vitest:*)`');
     expect(markdown).toContain('`Bash(git push:*)`');
     // What it does not carry: another lane's row, a requirement it never names.
