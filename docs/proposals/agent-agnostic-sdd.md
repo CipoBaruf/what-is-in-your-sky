@@ -1,6 +1,6 @@
 # Proposal: an agent-agnostic SDD workflow with documents cut by phase and area
 
-Status: draft for the owner's approval. Nothing here is decided until it goes through `sdd-spec` as a phase.
+Status: adopted 2026-11-03 as SPEC v2.13 §4.56 (FR-SDD-1..28, V213-1..V213-11) and PLAN v0.21 §2.49, §16.32. Where this proposal and the spec differ, the spec holds.
 
 ## Why
 
