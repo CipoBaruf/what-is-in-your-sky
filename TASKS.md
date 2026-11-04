@@ -2,7 +2,7 @@
 
 ## Status
 
-This file holds the open phase, v2.13; each closed phase's tasks are in its folder, moved byte for byte (FR-SDD-3).
+This file holds the open phase, v2.14; each closed phase's tasks are in its folder, moved byte for byte (FR-SDD-3).
 Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/breakdown-inputs.md`](docs/sdd/reference/breakdown-inputs.md).
 
 | Phase | First … last task | Merged | File |
@@ -29,256 +29,286 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.10 | R154 … R161 | 8 of 8 | [tasks.md](docs/sdd/phases/v2.10/tasks.md) |
 | v2.11 | R162 … R165 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | R167 … R171 | 5 of 5 | [tasks.md](docs/sdd/phases/v2.12/tasks.md) |
-| v2.13 | R172 … R181 | 4 of 10 | this file |
+| v2.13 | R172 … R181 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.13/tasks.md) |
+| v2.14 | R182 … R191 | 0 of 10 | this file |
 
-## v2.13 tasks
+## v2.14 tasks
 
-Draft, cut 2026-11-03 from `SPEC.md` v2.13 and `PLAN.md` v0.21. Spec Phase 2v, "the workflow": the development process only, no file under `src/` or `public/` changes and no release (V213-1, FR-SDD-28). The ledger lands alone first; the tasks before the split are its baseline; the split cuts the three documents by phase with the brief change in the same task; then `AGENTS.md` and the workflows, the captures off `main`, the agents config with tiers, `check:sdd`, the archive and pruning, and the phase report that sets the tier ceilings.
+Draft, cut 2026-11-04 from the phase folder `docs/sdd/phases/v2.14/` (`spec.md` §2.21, §4.57, Phase 2w;
+`plan.md` §2.50, §8.21, §9.16, §16.33).
+Spec Phase 2w, "one sky on a desk": on a desk the live page, the stars page and the pass detail are one layout with the globe as the whole sky, the passes on it, one time control with the clouds, the facts of a satellite, a star or a planet, the keys and the full screen.
+At every width, the star names, the remembered choices and the privacy note closed once.
+With the release, the README, the reading order and the repository's description for 2.14.0 (G62..G66, US-52..US-57, V214-1..V214-24).
+P10 (D-1094, #285) landed the networked data first:
+`facts.json`, the reviewed `names-es.tsv`, the designations and the rise/set fixture.
 
-Delivery is PLAN §16 with §16.32: ten tasks in seven waves, `Model: fable` on R175 and R177 (each alone in its wave), `opus` on R172, R174, R176, R178, R179 and `sonnet` on R173, R180, R181; every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto`, merged by hand on CI green and a clean review with an explicit commit message. R177 converts the open entries' `Model:` to `Tier:` (FR-SDD-11) and from then on the review tier is D-1065's. The `Lane:` field takes the driver's fixed list (§16.32): `data` for the driver and CI, `docs` for the documents, `ui` for the captures and the checks. **After R175 merges, the driver is restarted from a fresh `origin/main`** (R176's and R178's Precondition). The owner reads `/usage` before waves 3 and 5.
+Delivery is PLAN §16.33: ten tasks in six waves, `Tier: hard` on R184 and R186 (one per wave), `standard` on the rest; every task `Turns: 500`, `Fallback: off`, `Gate: auto`, merged by hand on CI green and a clean review with an explicit commit message; the review tier is D-1065's.
+The `Lane:` field takes the driver's list; the files each task may touch outside its lane are named under **Touches outside the lane**.
+Wait-and-resume is on; the owner reads `/usage` before waves 1 and 2.
 
-Decision block (§16.2), reserved in PLAN §16.32: **R172 D-1073..D-1074, R173 D-1075, R174 D-1076..D-1077, R175 D-1078..D-1081, R176 D-1082..D-1083, R177 D-1084..D-1087, R178 D-1088..D-1089, R179 D-1090..D-1091, R180 D-1092, R181 D-1093**. D-1057..D-1072 are the plan's.
+Decision block (§16.2), reserved in PLAN §16.33: **R182 D-1109..D-1110, R183 D-1111..D-1112, R184 D-1113..D-1115, R185 D-1116..D-1117, R186 D-1118..D-1121, R187 D-1122..D-1123, R188 D-1124..D-1125, R189 D-1126..D-1127, R190 D-1128..D-1129, R191 D-1130..D-1131**. D-1094..D-1108 are the plan's.
 
-What every session reads, named in each task as "the phase set": SPEC §4.56 whole (FR-SDD-1..28 and its constants), US-51, §9 Phase 2v, §12 V213-1..V213-11; PLAN §2.49, §9.15 and §16.32; `docs/proposals/agent-agnostic-sdd.md` for intent only (SPEC §4.56 holds where they differ). From R176 on these are reached through `npm run sdd:id <id>` and the phase folder `docs/sdd/phases/v2.13/`, never by reading the old files whole.
+What every session reads, named in each task as "the phase set": the task's entry and each id it names by `npm run sdd:id <id>`; SPEC §4.57's constants table; US-52..US-57's criteria for the task's ids; PLAN §16.33 and the §2.50 decisions the task names. Never the phase files whole.
 
 ### Wave 1
 
-- [x] **R172 — The usage ledger and the short PR body: every driver session is a line in `sdd-run/usage.jsonl`, and the PR body has FR-SDD-20's shape with a usage line**
+- [ ] **R182 — The saved choices underneath: `globe` as a view, `viewFor`, the new prefs keys with their defaults, and the privacy note's flag**
   - **Lane:** data
-  - **Model:** opus
-  - **Review:** opus
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** none
-  - **Reads:** the phase set (above); SPEC FR-SDD-1, FR-SDD-20; PLAN D-1057, D-1058, D-835, D-198; `scripts/sdd/{session,report,cli}.ts` and their tests.
-  - **Goal:** from this task on, every implementation, review and fix session the driver runs leaves its tokens, turns, tier, model, wall time and outcome in the ledger, and every PR it opens has a body of at most `PR_BODY_MAX_KB` ending in one usage line per session.
-  - **Satisfies:** FR-SDD-1 (the ledger and the usage line; the phase report is R181's), FR-SDD-20 (the body; the title check is R179's).
-  - **Scope (PLAN D-1058):** `scripts/sdd/ledger.ts` (parse `stream-json`'s final `result` event; append a line; read the file back); `session.ts` calls it after each session; `report.ts` writes the body as what changed (≤ 3 lines), ids closed, checks run, capture diff summary (empty until R178) and usage; tests on a recorded result event and on the body's shape and size.
-  - **Touches outside the lane:** none.
-  - **Out of scope:** tiers and the agents config (R177); the budget (R177); the phase report (R181).
+  - **Depends on:** —
+  - **Reads:** the phase set; SPEC FR-WIDE-2, FR-KEEP-1, FR-KEEP-3, FR-KEEP-4, FR-LOC-5, FR-WIN-5; PLAN D-1095, D-1096, D-1105, D-876.
+  - **Goal:** the store can hold every FR-KEEP-1 choice and the privacy flag, an empty store answers FR-KEEP-3's table, and one function says which view a page opens on at a width; the pages keep reading what they read today, so nothing on screen moves except that the wide stars page and the pass detail ask `viewFor` (same answer as now where nothing is saved).
+  - **Satisfies:** FR-KEEP-3 (the table), FR-KEEP-1 (the keys and setters; the pages are R190's), FR-WIDE-2 (the mapping; the row is R186's), FR-KEEP-4 (the selector; the controls are R190's).
+  - **Scope (D-1095, D-1096, D-1105):** `src/model/prefs.ts` — `ChartView` gains `'globe'`, one constant per FR-KEEP-3 row; `src/data/localPrefs.ts` — `storedPrefsSchema` gains `starLayers`, `namesChoice`, `faintStars`, `globeTurn`, `globeZoom`, `windowFov`, `playSpeed`, `privacyNoteClosed`, each optional and validated alone, zoom and field clamped on read, key stays `v1`; `src/state/slices/prefs.ts` — one setter per key, writing only what the reader chose; `usePrivacyNote()` returning `{ shown, close }`; `src/ui/screens/chartViewDefault.ts` becomes `viewFor(page, mode, saved)` (with `defaultChartView` kept as a thin caller until R186 removes it).
+  - **Touches outside the lane:** `src/model/prefs.ts` (physics-owned, types and constants only), `src/ui/screens/chartViewDefault.ts`.
+  - **Deletes:** the cases of `chartViewDefault.test.ts` that pin `dome` as the wide default, rewritten as `viewFor.test.ts`.
+  - **Captures:** none.
+  - **Out of scope:** any page reading the new keys (R190); the `View` row's third value (R186); the `[ × ]` controls (R190).
   - **Done when:**
-    - `ledger.test.ts` turns a recorded result event into one line with every FR-SDD-1 field; `report.test.ts` checks the body's sections and that it is ≤ 1.5 KB with five sessions.
-    - The driver's existing tests pass unchanged.
-    - `npm test`, lint and typecheck green; no `src/` path in the diff.
+    - `viewFor.test.ts` covers every page × width × saved value (nothing, `globe`, `polar`, `window`, `dome`) with FR-WIDE-2's mapping.
+    - `localPrefs.test.ts`: each new key's round trip, its clamp, and a bad value that drops that key alone; `prefs.test.ts` pins FR-KEEP-3's table.
+    - A slice test: an untouched choice writes nothing to the store.
+    - `npm run check` green; no capture moves.
+
+- [ ] **R183 — The numbers: a satellite's height range, rise and set for a star, a planet and the Moon, and the cloud bands**
+  - **Lane:** physics
+  - **Tier:** standard
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Reads:** the phase set; SPEC FR-FACT-1 (the height), FR-FACT-3 (rise and set), FR-WIDE-8, FR-WX-1, FR-WX-3, FR-GLOBE-17; constants `FACT_HEIGHT_STEP_KM`, `CLOUD_STEPS`; PLAN D-1100 (the cloud band), D-1101.
+  - **Goal:** the pure functions the facts and the stripe need exist and are pinned by numbers against the committed references; nothing on screen moves yet.
+  - **Satisfies:** FR-FACT-1 (the height), FR-FACT-3 (rise and set), FR-WIDE-8 (the bands and runs; the drawing is R187's).
+  - **Scope (D-1101, D-1100):** `src/lib/orbitHeight.ts` (perigee and apogee from the OMM's mean motion and eccentricity, Earth's equatorial radius, rounded to `FACT_HEIGHT_STEP_KM`, one number when equal) and a selector in `src/state/slices/elements.ts` from the records it holds; `src/lib/riseSet.ts` (a star from its J2000 position, latitude and sidereal time; a planet and the Moon through `astronomy-engine`'s `SearchRiseSet`; `never sets` / `never rises`); `src/lib/cloudBand.ts` (an hourly cloud series to the four bands and the runs of equal bands, the hour with no forecast a gap); the lint allowance for `astronomy-engine` gains `riseSet.ts` and PLAN §3's table its row.
+  - **Touches outside the lane:** `src/lib/{orbitHeight,riseSet,cloudBand}.ts`, `src/state/slices/elements.ts` (the selector), the ESLint config (one path).
+  - **Deletes:** none.
+  - **Captures:** none.
+  - **Out of scope:** any component (R187, R188); the worker contract (unchanged, D-1101).
+  - **Done when:**
+    - `riseSet.test.ts`: Sirius over Bariloche on the fixture's night against USNO, Jupiter and the Moon against `tests/fixtures/rise-set-horizons.json`, each within ±2 min; a circumpolar and a never-rising star.
+    - `orbitHeight.test.ts` against a fixed OMM; `cloudBand.test.ts`: bands and runs for a fixed forecast, the gap.
+    - `npm run check` green; the golden fixtures pass untouched.
+
+- [ ] **R184 — The globe takes the passes and the planets: arcs in legend colours with ticks and an arrow, the hover hit test, planet discs and labels**
+  - **Lane:** chart
+  - **Tier:** hard
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Reads:** the phase set; SPEC FR-WIDE-3, FR-WIDE-7 (ticks, arrow, the arc's hover), FR-WIDE-11, FR-NAME-3, FR-TRAJ-1, FR-LEG-4, FR-LEG-5, FR-GLOBE-11, FR-GLOBE-15, FR-SKY-1; constants `ARC_TICK_MIN`, `ARC_ARROW_SHARE`, `PLANET_MARK_PX`, `SKY_GLOBE_KB`; PLAN D-1099, D-1104, D-1038, D-817.
+  - **Goal:** `SkyGlobe` given passes, a highlighted pass and `t` draws each pass's near-side arc in its legend colour by FR-TRAJ-1's state with its marker and key, the highlighted one with minute ticks and an arrow, reports which arc is under the pointer, and draws the five planets as coloured discs with labels that stay with the names off; the stars page shows the planets' new look, nothing else mounts the arcs yet.
+  - **Satisfies:** FR-WIDE-3 (the drawing; the mounting is R186's), FR-WIDE-7 (the globe's ticks, arrow and arc hit test), FR-NAME-3 (the globe and the tokens), FR-WIDE-11 (the globe's rate and `SKY_GLOBE_KB`).
+  - **Scope (D-1099, D-1104):** pure `skychart/globe/arcs.ts` (track points to J2000 directions through `scene.ts`'s local frame, FR-TRAJ-1's state through `lib/arcReveal.ts`, tick points, the arrow's point and heading); the renderer draws one fixed `<path>` per series (`SERIES_COUNT`), the ticks and the arrow as one path each, five planet discs; the hit test is the projected polyline's distance within 8 px, at most once a frame on `pointermove`; `SkyGlobe` gains `passes`, `highlightedPassId`, `t`, `onPassHover`, `onPick`; `skychart/layers.ts` gains the `globe` row (the window's minus `fieldOutline`); `tokens.css` gains `--chart-planet-*` and `--chart-cloud-{1,2,3}` in both themes; `scripts/contrast.ts` adds them to `CHART_MARK_TOKENS`.
+  - **Touches outside the lane:** `src/ui/styles/tokens.css`, `scripts/contrast.ts`.
+  - **Deletes:** none.
+  - **Captures:** none added; the wide stars-page captures move by the planets alone.
+  - **Out of scope:** mounting the globe on the live page and the pass detail (R186); the window's ticks and planets (R185); the facts on a pick (R188).
+  - **Done when:**
+    - `arcs.test.ts`: a fixed pass's polyline at three instants of FR-TRAJ-1's states, the ticks' count and places, the arrow's point at `ARC_ARROW_SHARE` and at the marker while up.
+    - `SkyGlobe.test.tsx`: three passes draw three arc paths in the legend tokens; the node count stays under `GLOBE_MAX_NODES`; with names off five planet labels and no star label.
+    - `globe-perf.spec.ts` on the stars page with three passes fed by a test harness holds ≥ 30 updates/s at 1280 × 800 and 1920 × 1080, CPU 4×, best of three.
+    - `contrast.ts` green with the new tokens in every theme; `npm run bundle:budget` with `globe` inside `SKY_GLOBE_KB`; `npm run check` green.
 
 ### Wave 2
 
-- [x] **R173 — Project knowledge in the repo and search that sees only source and docs: `docs/sdd/gotchas.md`, `.ignore`, and the generated code map**
-  - **Lane:** docs
-  - **Model:** sonnet
-  - **Review:** opus
+- [ ] **R185 — The window gets the same: ticks, arrow, the arc's hover, planet discs; and a label for every bright unnamed star**
+  - **Lane:** window
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R172
-  - **Reads:** the phase set (above); SPEC FR-SDD-12, FR-SDD-14; PLAN D-1057; the project facts in the owner's agent memory, `~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/*.md` (read only; skip the personal ones: commit trailers, questions one by one, promo voice, LinkedIn posts, domain shortlist).
-  - **Goal:** any agent finds the project's hard-won facts in one file in the repo, a search from the root never prints a fixture, a capture or a catalogue, and an agent can locate a source file from a one-line map before opening anything.
-  - **Satisfies:** FR-SDD-12, FR-SDD-14.
-  - **Scope:** `docs/sdd/gotchas.md` with one section each for e2e and sandbox, captures, the driver, the npm cache, GitHub merging, glyphcss and the dome-perf method, each fact as a short rule with its why; `.ignore` per FR-SDD-14; `scripts/sdd-map.ts` (first doc-comment sentence and exports per file under `src/` and `scripts/`) with `--check`, and `docs/sdd/map.md` generated, run as `npx tsx scripts/sdd-map.ts` (R179's `check:sdd` calls its `--check`).
-  - **Touches outside the lane:** none.
-  - **Out of scope:** trimming the memory (the owner's); `check:sdd` (R179 wires `--check` in).
+  - **Depends on:** R184
+  - **Reads:** the phase set; SPEC FR-WIDE-7, FR-NAME-2, FR-NAME-3, FR-STAR-7, FR-SKY-14; constants `ARC_TICK_MIN`, `ARC_ARROW_SHARE`, `PLANET_MARK_PX`, `BAYER_LABEL_MAG`; PLAN D-1099 (the tick and arrow geometry, reused), D-1104.
+  - **Goal:** on wide the window's highlighted arc carries the globe's ticks and arrow and reports a hover on an arc; the planets are the globe's discs; at every width every unnamed star brighter than `BAYER_LABEL_MAG` is labelled `γ Vel` after the proper names, and the polar chart, the globe and the lists pick that up from the same rule.
+  - **Satisfies:** FR-WIDE-7 (the window), FR-NAME-2, FR-NAME-3 (the window).
+  - **Scope:** `skychart/window/**` — ticks and arrow from `globe/arcs.ts`'s helpers, the hover hit test and an `onPassHover` prop, planet discs on wide; `window/starLabels.ts` places designation names after the proper names; the "is labelled" rule as one predicate in `src/lib/skyStars.ts` (a proper name, or `desig` and `mag < BAYER_LABEL_MAG`) read by every label and list.
+  - **Touches outside the lane:** `src/lib/skyStars.ts` (the predicate).
+  - **Deletes:** none.
+  - **Captures:** none added; files showing a bright unnamed star move by its label.
+  - **Out of scope:** the window's mounting in the new shell (R186); the facts on a pick (R188).
   - **Done when:**
-    - `gotchas.md` has the seven sections and no personal preference; `sdd-map.test.ts` passes on a fixture tree, and `npx tsx scripts/sdd-map.ts --check` exits 0.
-    - A test lists `rg --files` from the root and finds none of FR-SDD-14's ignored paths.
-    - `npm test`, lint and typecheck green; the ledger has this task's sessions (baseline, V213-6).
+    - `starCatalog.test.ts` pins the 33 designation labels and their count; `starLabels.test.ts`: a designation never displaces a proper name.
+    - A window test: the highlighted arc's ticks and arrow; a pointer within 8 px of an arc fires `onPassHover` with its id.
+    - `npm run check` green; `sky-window.spec.ts` green.
 
-- [x] **R174 — Quiet checks and leaner CI: `npm run check`, the failure digest, and `ci.yml` per D-1067**
-  - **Lane:** data
-  - **Model:** opus
-  - **Review:** opus
+- [ ] **R186 — One shell on a desk: the live page, the stars page and the pass detail in `SkyViewLayout`, the globe on all three, the dome by choice, the box's corners**
+  - **Lane:** ui
+  - **Tier:** hard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R172
-  - **Reads:** the phase set (above); SPEC FR-SDD-15, FR-SDD-16, FR-SDD-25; PLAN D-1066, D-1067; `scripts/ci-affected.ts`, `.github/workflows/ci.yml`, `package.json` scripts, `playwright.config.*`, `vitest.config.*`.
-  - **Goal:** an agent runs one command and reads only failures, or one line on success; a failed CI run leaves a 4 KB digest; a superseded push stops, the build runs once, the browsers come from a cache, and a docs-only PR runs only the docs jobs.
-  - **Satisfies:** FR-SDD-15, FR-SDD-16 (the digest; handing it to fix sessions is R177's), FR-SDD-25.
-  - **Scope (PLAN D-1066, D-1067):** `scripts/check.ts` and `npm run check`; `scripts/ci-digest.ts`; `ci.yml`: `concurrency` with `cancel-in-progress` on PRs, a `build` job uploading `dist/` and the shards downloading it, the Playwright cache, a `changes` job setting `docs_only` and `tests_only`, a `digest` job `if: failure()` uploading `failure-digest.md`; tests on recorded Vitest, ESLint and Playwright JSON reports.
-  - **Touches outside the lane:** `package.json` (the `check` script only).
-  - **Out of scope:** the `check:sdd` job and the title check (R179); `captures.yml` (R178).
+  - **Depends on:** R182, R184
+  - **Reads:** the phase set; SPEC FR-WIDE-1, FR-WIDE-2, FR-WIDE-3, FR-WIDE-5, FR-WIDE-6, FR-WIDE-11 (the live page's rate), FR-DESK-3, FR-GLOBE-1; US-52 AC1, AC2, AC3, AC5, AC6, AC7; PLAN D-1095, D-1098, D-1099, §8.21's chunk table.
+  - **Goal:** at a desk the three pages are one layout — box left, rail right in `head → View → Time → page group → list` — with the app's header and footer; the `View` row reads `Globe Window Dome` everywhere, saved and shared through `viewFor`; the live page and the pass detail draw the globe with their passes; the dome loads only when chosen; the zoom, readout, hint and full-screen corners are the same on every page; the phone is unchanged.
+  - **Satisfies:** FR-WIDE-1, FR-WIDE-2, FR-WIDE-3 (mounted), FR-WIDE-5, FR-WIDE-6, FR-WIDE-11 (the live page's rate); US-52 AC1–AC3, AC5–AC7.
+  - **Scope (D-1098, D-1095):** `components/sky/SkyViewLayout` gains the wide `SLOT_ORDER` and the four corner slots of the chart (`readout`, `fullscreen` as an empty slot R189 fills, `hint`, `zoom`); each page's rail slots as separate modules under `screens/sky/<page>/` (`Time.tsx` holding today's time control, `Group.tsx` its page group), so R187 and R188 edit different files; `PassDetail` on wide renders the layout in the home's place (list in the `list` slot with the card highlighted, `Esc` / `[ × ]` / `[ home ]` back to the card), `GuidePanel` kept for compact only, `WIDE_SPLIT_MIN_CELLS` and its test removed; the live page's one-row header and hidden footer go on wide; `SkyChart.tsx` mounts the globe for `'globe'` and lazy-loads the dome only when chosen, the globe prefetched on idle on wide; `defaultChartView` removed for `viewFor`; the stars page's `StarsView` state goes.
+  - **Touches outside the lane:** `src/ui/screens/Live*` and `components/live/**` (the page shell only; the time control's move is R187's), `skychart/SkyChart.tsx`.
+  - **Deletes:** the specs and tests that pin the old wide shell or the dome as the wide default — `GuidePanel`'s wide split tests, the wide cases of `home-desk.spec.ts`, `desktop.spec.ts`, `pass-detail.spec.ts`, `live.spec.ts`, `sky-dome.spec.ts` and `dome-*.spec.ts` that assume the dome without choosing it — each rewritten in place to the new shell or to `Dome` chosen, listed in the PR.
+  - **Captures:** the manifest gains `sky-live-globe` and `sky-pass-globe` (1280 × 800, Bariloche, the set's instant, the set's languages and themes); the wide dome entries re-shot with `Dome` chosen.
+  - **Out of scope:** the shared time control (R187), the facts (R188), the keys and full screen (R189), the other saved choices (R190).
   - **Done when:**
-    - `check.test.ts` prints FR-SDD-15's form for a failing and a passing recorded run; `ci-digest.test.ts` writes ≤ `FAILURE_DIGEST_MAX_KB` from a recorded failure.
-    - This PR's own CI shows one `build` job and the shards downloading `dist/`; the job list and the gates on `main` are otherwise unchanged.
-    - `npm test`, lint and typecheck green; the ledger has this task's sessions (baseline, V213-6).
+    - `sky-layout.spec.ts` at 1024 × 640, 1280 × 800, 1920 × 1080: box left and top, rail left and width and group order equal on the three pages to the pixel; each corner extra in its corner per view; `Window` chosen on the live page is found on the stars page and the pass detail after a reload; `Esc` on the pass detail returns home with the card in view.
+    - `globe.spec.ts` live case: three arcs at the set's instant, colours the legend's.
+    - A test that a wide page with nothing saved requests no `SkyDome-*.js` and no braille font; the dome specs green with `Dome` chosen.
+    - `globe-perf.spec.ts` on the live page ≥ 30 updates/s under a drag and ×3600 at both desk sizes, CPU 4×, best of three.
+    - Every compact spec green and no compact capture moved; `npm run check` green; `npm run bundle:budget` green.
 
 ### Wave 3
 
-- [x] **R175 — The split: the three documents cut by phase into `docs/sdd/`, rewrapped one sentence per line, the Decision Log moved whole, `ids.md` and `sdd:id`, and the driver reading the new layout**
-  - **Lane:** docs
-  - **Model:** fable
-  - **Review:** opus
+- [ ] **R187 — One time control: the live page's overview, stripe and playback on all three desk pages, the stars page's day steps under it, the pass's times as buttons, the clouds on the stripe**
+  - **Lane:** live
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R173, R174
-  - **Reads:** the phase set (above); SPEC FR-SDD-3..7, FR-SDD-13 (the ceilings the output must meet); PLAN D-1059..D-1062; the three documents **by heading only** (`rg -n '^#' SPEC.md PLAN.md TASKS.md`) and by slice where a heading's destination is unclear; `scripts/sdd/{brief,tasks}.ts` and their tests.
-  - **Goal:** SPEC.md, PLAN.md and TASKS.md become indexes within `INDEX_MAX_KB`; every phase's text is in `docs/sdd/phases/<version>/`, the Decision Log in `docs/sdd/decisions.md` row for row, the timeless parts in `docs/sdd/reference/`; `npm run sdd:id <id>` prints any id; and the driver's briefs for R167–R171 are byte for byte what they were.
-  - **Satisfies:** FR-SDD-3, FR-SDD-4, FR-SDD-5, FR-SDD-6, FR-SDD-7; US-51 AC1–AC3.
-  - **Scope (PLAN D-1059..D-1062):** first commit: R167–R171's briefs recorded into `scripts/sdd/__fixtures__/briefs/` from the parent; `scripts/sdd/{splitMap,split,rewrap,ids}.ts` with tests; the split run and its output committed (phase folders named by version, closed TASKS sections byte for byte with their checkboxes, both revision histories to `reference/revision-history.md`, PLAN §12 to `reference/traceability.md` as it is); `docs/sdd/archive.json` empty; `ids.md` with the old-section lines; `npm run sdd:id`; `brief.ts` and `tasks.ts` reading the open TASKS.md, a phase's `tasks.md` and ids through `ids.ts`.
-  - **Touches outside the lane:** `scripts/sdd/{brief,tasks}.ts` (V213-11: the split and the brief change land together); `package.json` (the `sdd:id` script only).
-  - **Out of scope:** `AGENTS.md`, `CLAUDE.md` and the workflows (R176); any rewording; the area files (V213-9).
+  - **Depends on:** R183, R186
+  - **Reads:** the phase set; SPEC FR-WIDE-4, FR-WIDE-8, FR-SPAN-2, FR-LIVE-4, FR-LIVE-5, FR-GLOBE-7, FR-GLOBE-8, FR-FLOW-7; constants `CLOUD_STEPS`, `CLOUD_BAND_PX`, `GLOBE_SPAN_DAYS`; PLAN D-1100.
+  - **Goal:** the three desk pages share the `Time` group (overview, stripe while scrubbing, playback); the stars page keeps `−1 d −1 h +1 h +1 d` under it and a day step moves the span; the pass detail's rise, peak and set set `t`; the overview and the stripe carry the cloud band with its sentence.
+  - **Satisfies:** FR-WIDE-4, FR-WIDE-8; US-52 AC4, US-55 AC3.
+  - **Scope (D-1100):** `StripeOverview`, `TimeStripe`, `PlaybackControls` and `usePlayback` move from `components/live/` to `components/sky/time/` (imports updated, the `Live` chunk no longer their only home); `usePlayback` gains `shiftDays`; the three pages' `screens/sky/<page>/Time.tsx`; the pass detail's FR-FLOW-7 cells become buttons; the cloud band as one `<path>` per band from `lib/cloudBand.ts`, an empty hour left blank, the runs sentence in the stripe's description in both catalogs.
+  - **Touches outside the lane:** `components/sky/time/**`, `screens/sky/*/Time.tsx`, the pass detail's times row, `src/i18n/**` (the cloud sentence, in the `live` section).
+  - **Deletes:** the stars page's clock row and its tests (FR-GLOBE-7's steps re-tested under the playback row).
+  - **Captures:** the manifest gains `sky-clouds` (1280 × 800).
+  - **Out of scope:** the keys `,` `.` `t` `Space` (R189); `playSpeed` read from the store (R190).
   - **Done when:**
-    - `split.test.ts`: every input line in the output once with whitespace collapsed; `decisions.md` equals §12 at the parent row for row; a heading missing from the map fails.
-    - `brief.test.ts` regenerates R167–R171's briefs from the new layout equal to the fixtures, byte for byte.
-    - The index files are each ≤ 15 KB; TASKS.md holds only the v2.13 block and the status table; `npm run sdd:id V212-13` prints the row.
-    - `npm test`, lint and typecheck green; no `src/` path in the diff.
-  - **Note (as done):** SPEC.md and PLAN.md are under 15 KB, TASKS.md is about 25 KB because the open block alone is 23.8 KB (D-1081); PLAN §4 went to `reference/project-structure.md` to keep PLAN.md under the ceiling (D-1078); `sdd-run.ts` and `git.ts` read the closed phases' tasks.md too (D-1080).
+    - `sky-layout.spec.ts`: the three `Time` groups have the same controls in the same order.
+    - `stars.spec.ts`: `+1 d` twice moves the globe two days and the stripe to that night; `[ now ]` brings it back.
+    - `pass-detail.spec.ts`: the peak cell sets the readout to the peak time.
+    - A component test: the band's cells for a fixed forecast, the gap blank, the sentence in both languages; `live-playback.spec.ts` green.
+    - `npm run check` green.
+
+- [ ] **R188 — The facts and the hover: `This satellite` on the pass detail and the live page's pick, a star's, a planet's or the Moon's facts, and list rows and arcs answering each other**
+  - **Lane:** ui
+  - **Tier:** standard
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R183, R185, R186
+  - **Reads:** the phase set; SPEC FR-FACT-1, FR-FACT-2, FR-FACT-3, FR-WIDE-7 (the rows and arcs), FR-LEG-4, FR-WIDE-11 (the facts chunk), FR-GLOBE-11, FR-STAR-7, FR-MOON-*; constants `FACTS_BUDGET_KB`; PLAN D-1101.
+  - **Goal:** at a desk a pass's detail shows who flies it, what for, since when, how big and how high; on the live page a click, tap or `Enter` on a legend row or an arc shows the same; a click or `Enter` on a star, a planet or the Moon on the globe or the window shows its names, magnitude, place and rise and set; `Esc` or `[ × ]` closes; hovering or focusing a list card or legend row emphasises its arc and hovering an arc its row, changing no state; the phone loads none of it.
+  - **Satisfies:** FR-FACT-2, FR-FACT-3, FR-FACT-1 (shown), FR-WIDE-7 (wired), FR-WIDE-11 (the `facts` chunk); US-53 AC2–AC4, US-54 AC1, US-55 AC1.
+  - **Scope (D-1101):** `components/sky/facts/FactsGroup.tsx` (the satellite's and the sky object's groups), lazy as `facts-*.js`, prefetched on idle after the globe on wide; the three pages' `screens/sky/<page>/Group.tsx` mount it; the live page's pick wires `onPick` from the globe (R184) and the window (R185) and the legend rows; a transient hover id beside the page's highlight, fed by the rows' hover and focus and by `onPassHover`, never written to the hash or the store; the heading takes focus when opened from the keyboard; `factsGroup` words and the purpose phrases in both catalogs; `scripts/bundle-budget.ts` gains `{ name: 'facts', limitKb: 6 }`.
+  - **Touches outside the lane:** `screens/sky/*/Group.tsx`, `scripts/bundle-budget.ts`.
+  - **Deletes:** none.
+  - **Captures:** the manifest gains `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts`, `sky-hover` (1280 × 800).
+  - **Out of scope:** the `a` key and the key overlay (R189).
+  - **Done when:**
+    - `FactsGroup.test.tsx` in both languages: a station, a rocket stage, a star (`Sirio · Sirius`), a planet, the Moon, a never-setting star.
+    - `legend-hover.spec.ts`: hover a row, the arc's class; hover the arc, the row's class; leave, both restored; the hash unchanged.
+    - `live.spec.ts`: click the arc, the group; `Esc`, gone. `stars.spec.ts`: click the list's first row's mark, the group.
+    - A test that the compact pages request no `facts-*.js`; `axe.spec.ts` covers a facts group open on each page.
+    - `npm run bundle:budget` with `facts` inside `FACTS_BUDGET_KB`; `controlRows.test.ts` green; `npm run check` green.
 
 ### Wave 4
 
-- [x] **R176 — `AGENTS.md` for every agent, `CLAUDE.md` as its import, the seven workflows, the skills as pointers, and `RELEASE.md` as a procedure**
-  - **Lane:** docs
-  - **Model:** opus
-  - **Review:** opus
+- [ ] **R189 — The keys and the full sky: `g w d , . t Space a f` in one table, the `?` overlay from it, and the box in full screen**
+  - **Lane:** live
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R175
-  - **Reads:** the phase set (through `sdd:id` and `docs/sdd/phases/v2.13/`); SPEC FR-SDD-8, FR-SDD-9, FR-SDD-18, FR-SDD-21, FR-SDD-23; PLAN D-1063, D-1065, D-1068; `CLAUDE.md`; `.claude/skills/*/SKILL.md`; the review and fix prompts in `scripts/sdd/session.ts` (read only); `docs/RELEASE.md` by heading.
-  - **Goal:** any coding agent that reads `AGENTS.md` knows what each kind of work reads and follows a plain procedure for it; `/sdd-implement` and the other skills still work, pointing at the same procedures.
-  - **Satisfies:** FR-SDD-8, FR-SDD-9 (the files; building the driver's prompts from them is R177's), FR-SDD-21 (in `breakdown.md`); US-51 AC4.
-  - **Scope (PLAN D-1063):** `AGENTS.md` within `AGENTS_MAX_KB` (today's `CLAUDE.md` content, the stack, the reading table, the pointers); `CLAUDE.md` = `@AGENTS.md`; `docs/sdd/workflows/{spec,breakdown,implement,visual-review,review,fix-ci,release}.md`, each within `WORKFLOW_MAX_KB` and opening with `Reads:` and `Never reads:`; `review.md` with D-1065's tiers and finding shape; `visual-review.md` with D-1068's scripts; the four skills reduced to pointers (written through `node -e` and `fs` in a headless session, per `gotchas.md`); `RELEASE.md` as the procedure, each release's record moved to its phase folder.
-  - **Touches outside the lane:** `.claude/skills/*/SKILL.md`.
-  - **Out of scope:** the driver's code (R177); the capture scripts (R178).
+  - **Depends on:** R187, R188
+  - **Reads:** the phase set; SPEC FR-WIDE-9, FR-WIDE-10, FR-DESK-4, FR-SKY-13, FR-TRAJ-4; US-56; PLAN D-1102, D-1103.
+  - **Goal:** on the three desk pages the reader picks a view, steps the hour, returns to now, plays and pauses, faces the pass and goes full screen from the keyboard, the `?` overlay lists every key, and `f` or `[ full screen ]` gives the box the screen with the readout and `[ × ]` and back with nothing changed.
+  - **Satisfies:** FR-WIDE-9, FR-WIDE-10; US-56 AC1, AC2.
+  - **Scope (D-1102, D-1103):** `src/lib/shortcuts.ts`'s `SHORTCUTS` and `PAGE_KEYS` gain the keys, `f` moves to full screen and `a` faces the pass; one `SkyKeyActions` object per page passed to `useShortcuts`; the overlay reads the table; `src/lib/fullscreen.ts` (`enterFullscreen`, `exitFullscreen`, `fullscreenSupported`); `SkyViewLayout` holds `full`, fills the `fullscreen` corner, listens for `fullscreenchange` and refits with the rail at zero; the control absent where the API is.
+  - **Touches outside the lane:** `src/lib/{shortcuts,fullscreen}.ts`, `src/ui/hooks/useShortcuts.ts`, the overlay, `components/sky/SkyViewLayout.tsx`, the pages' action objects, `src/i18n/**` (the overlay's lines).
+  - **Deletes:** every spec step that presses `f` to face the pass (`shortcuts.spec.ts`, `desktop.spec.ts`, `home.spec.ts` and any other the grep finds), rewritten to `a`.
+  - **Captures:** the manifest gains `sky-fullscreen` (1280 × 800).
+  - **Out of scope:** the saved choices (R190).
   - **Done when:**
-    - `AGENTS.md` ≤ 6 KB; each workflow ≤ 4 KB with its reading lines; each skill ≤ 5 lines after its frontmatter; `CLAUDE.md` is one line.
-    - `RELEASE.md` holds no per-release section; each moved record is in its phase folder, and the lossless test still passes.
-    - `npm test`, lint and typecheck green.
-
-- [x] **R178 — Captures off `main`'s history: the manifest, the pixel diff, the compression, the `captures` branch and `captures.yml` on the manifest**
-  - **Lane:** ui
-  - **Model:** opus
-  - **Review:** opus
-  - **Turns:** 500
-  - **Fallback:** off
-  - **Gate:** auto
-  - **Depends on:** R175
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-22, FR-SDD-23; PLAN D-1068; `tests/e2e/{captureSet,captureSeeds}.ts`, `tests/e2e/v1-captures.spec.ts`, `.github/workflows/captures.yml`, `scripts/ci-affected.ts`; `README.md` and `docs/DESIGN.md` for the images they cite; `docs/sdd/gotchas.md`'s captures section.
-  - **Goal:** a task re-shoots only the captures its diff reaches, an agent looks only at the ones that changed, side by side, and the capture set stops growing `main`'s history.
-  - **Satisfies:** FR-SDD-22, FR-SDD-23.
-  - **Scope (PLAN D-1068):** `scripts/captures/manifest.json` (every capture in `captureSet.ts` mapped to its source globs), `diff.ts` (pngjs, YIQ delta, `CAPTURE_DIFF_SHARE`, the half-size side-by-side image) and `compress.ts`, with tests; the capture spec writing compressed files; `captures.yml` on the manifest and `workflow_dispatch`, committing to the orphan `captures` branch and writing the side-by-side images to the job summary; `docs/screenshots/v1-*` removed from `main` once on the branch; the README, design and promo images kept.
-  - **Touches outside the lane:** `.github/workflows/captures.yml`.
-  - **Out of scope:** the manifest-coverage check in `check:sdd` (R179); any capture's content changing (no `src/` change).
-  - **Done when:**
-    - `diff.test.ts`: an identical pair and an anti-aliased pair are under `CAPTURE_DIFF_SHARE`, a changed pair is over it, and the side-by-side image has both halves.
-    - Every capture name in `captureSet.ts` is in the manifest, and every glob matches a file.
-    - The `captures` branch holds the set; `main` keeps only the README, design and promo images; the README renders its images.
-    - `npm test`, lint and typecheck green.
+    - A unit test that no two entries of the key table share a key.
+    - `keys.spec.ts`: each key on each page.
+    - `fullscreen.spec.ts` with `requestFullscreen` stubbed by an init script: enter and leave on each view, `data-full` set, the box refit, the camera and `t` read back equal.
+    - `npm run check` green.
 
 ### Wave 5
 
-- [x] **R177 — An agent is a config entry: `sdd.agents.json`, the config-driven session, tiers, the review tier and structured findings**
+- [ ] **R190 — Your sky as you left it: every page reads and writes the kept choices, opens at now, and the privacy note closes for good**
   - **Lane:** data
-  - **Model:** opus
-  - **Review:** opus
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R176
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-2, FR-SDD-9 (the prompts), FR-SDD-10, FR-SDD-11, FR-SDD-16 (the digest's hand-off), FR-SDD-18; PLAN D-1064, D-1065, D-835; `scripts/sdd/**` and their tests; `docs/sdd/workflows/{review,fix-ci}.md`.
-  - **Goal:** the driver runs whatever agent `sdd.agents.json` describes, names no agent or model in its code, picks models by tier, records budget overruns without stopping anything, chooses the review tier by D-1065 and hands fix sessions the findings and the failure digest; with the `claude` entry it behaves exactly as today.
-  - **Satisfies:** FR-SDD-2 (report-only), FR-SDD-9 (the prompts from the workflows), FR-SDD-10, FR-SDD-11, FR-SDD-16 (the hand-off), FR-SDD-18; US-51 AC5.
-  - **Scope (PLAN D-1064, D-1065):** `scripts/sdd/agents.ts` (zod schema, loader), `sdd.agents.json` with the `claude` entry (today's argv, tiers fable/opus/sonnet, fallback, limit pattern, `stream-json`, `claude-allowlist`, optional ceilings unset); `session.ts` building argv from the entry and choosing the parser; the `exit-code` parser; `tasks.ts` reading `Tier:` and `Agent:` and closed `Model:`; `--agent`; `review.ts`; findings as JSON lines; the review and fix prompts from the workflow files; the open TASKS entries (R179–R181) converted to `Tier:`. Also fix the limit classification: on 2026-11-04 R175's Fable session ended on Fable's own weekly limit (`seven_day_overage_included`, with all models at 76 %) and the driver reported it account-wide ("no model escapes it"), so no fallback was tried; a per-model weekly limit is not account-wide, with a test on that message.
-  - **Touches outside the lane:** `TASKS.md` (the open entries' `Model:` → `Tier:` only).
-  - **Out of scope:** pruning and the brief's prefix (R180); setting the ceilings (R181); a second agent's entry.
+  - **Depends on:** R189
+  - **Reads:** the phase set; SPEC FR-KEEP-1, FR-KEEP-2, FR-KEEP-3, FR-KEEP-4, FR-PHONE-7, FR-GLOBE-10, FR-SHARE-1; US-57; PLAN D-1096, D-1097, D-1105, D-1108.
+  - **Goal:** on a phone and at a desk the view, the layers, the names, the faint stars, the globe's turn, the zoom, the field and the speed come back after a reload and in a new tab; the time is always now, the camera and the globe's place open by their rules, a share link wins without saving; either privacy `[ × ]` hides both lines for good while the settings page still says it.
+  - **Satisfies:** FR-KEEP-1, FR-KEEP-2, FR-KEEP-4, FR-KEEP-3 (end to end); US-57 AC1–AC4.
+  - **Scope (D-1096, D-1097, D-1105, D-1108):** the pages' state hooks read and write `starLayers`, `namesChoice`, `faintStars`, `globeTurn`; `SkyGlobe`'s zoom and the window's field from `globeZoom` and `windowFov`; `usePlayback` takes `playSpeed` as `play`'s rate and opens at now; `Footer` and `LocationInput` render `[ × ]` from `usePrivacyNote()`, the footer row closing up; `Settings` renders `t.settings.privacy` plainly; the reload sweep: grep `tests/e2e/**` for a reload or `goto` after a choice that expects a default and seed or clear the store there, each listed in the PR.
+  - **Touches outside the lane:** the pages' state hooks, `components/sky/time/usePlayback.ts`, `skychart/globe/SkyGlobe.tsx` and `skychart/window/**` (the zoom and field props only), `components/common/Footer.tsx`, `components/location/LocationInput.tsx`, the settings screen, `src/i18n/**` (the close label), `tests/e2e/**` (the reload fixes).
+  - **Deletes:** the tests that pin the stars page's view or the faint stars resetting at each open (FR-PHONE-7, FR-GLOBE-10 amended).
+  - **Captures:** none added; files showing the privacy line move by its `[ × ]`.
+  - **Out of scope:** the release (R191).
   - **Done when:**
-    - `agents.test.ts`: the schema accepts the file and rejects a broken one; the argv per tier equals today's; both parsers; the limit pattern matches the recorded limit message and its reset time.
-    - `review.test.ts` covers every D-1065 case; the existing driver tests pass with model names turned into tiers.
-    - `rg` finds no `claude`, `fable`, `opus`, `sonnet` or `haiku` in `scripts/sdd/*.ts` outside tests and `agents.ts`'s comments.
-    - `npm test`, lint and typecheck green.
+    - `keep.spec.ts` at 390 × 844 and 1280 × 800: make every choice, reload, find it; scrub, turn, pick a saved place, reload: now, the opening aim, the reader's place; an empty store opens on FR-KEEP-3's table; close the note on the home, reload, the stars page has none, the settings page has the sentence.
+    - `Footer.test.tsx` and `LocationInput.test.tsx`: shown, closed by either, gone from both.
+    - The full e2e suite green (`npm test`), the reload fixes listed in the PR; `npm run check` green.
 
 ### Wave 6
 
-- [x] **R179 — `npm run check:sdd` in CI, the generated traceability, the `max-lines` warning and the commit-title check**
-  - **Lane:** ui
-  - **Tier:** standard
-  - **Review:** opus
-  - **Turns:** 500
-  - **Fallback:** off
-  - **Gate:** auto
-  - **Depends on:** R177, R178
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-4, FR-SDD-6, FR-SDD-8, FR-SDD-9, FR-SDD-10, FR-SDD-13, FR-SDD-14, FR-SDD-19, FR-SDD-20, FR-SDD-22, FR-SDD-24; PLAN D-1069; `scripts/check-trailers.ts`, `.github/workflows/ci.yml`, `eslint.config.*`.
-  - **Goal:** CI fails a PR that breaks any rule of the new layout (a long line, an oversized file, a stale `ids.md` or `map.md`, an id that does not resolve, a workflow without its reading row, an invalid agents config, a capture with no manifest entry, a v2.13 requirement with no test, a long commit title); the traceability table writes itself from test names.
-  - **Satisfies:** FR-SDD-4 (the check), FR-SDD-13, FR-SDD-19, FR-SDD-20 (the title check), FR-SDD-24; the checks of FR-SDD-6, FR-SDD-8, FR-SDD-9, FR-SDD-10, FR-SDD-14, FR-SDD-22; US-51 AC7.
-  - **Scope (PLAN D-1069):** `scripts/sdd/limits.ts` (SPEC §4.56's constants), `scripts/check-sdd.ts` and `npm run check:sdd`, `scripts/sdd/traceability.ts` writing `docs/sdd/reference/traceability.md` under the moved hand-kept rows; ESLint `max-lines` at warn, 600; the title check beside `trailers`; an `sdd` job in `ci.yml` that runs on every PR, `docs_only` included; the v2.13 tests renamed to carry their ids where they do not yet. Two more rules: TASKS.md's `INDEX_MAX_KB` counts the file without the open phase's task block (D-1081: the ceiling binds once a phase's block leaves), and no `D-` id is defined twice across `docs/sdd/` (R176 and R178 both took D-1082 on 2026-11-04; R178's became D-1088).
-  - **Touches outside the lane:** `.github/workflows/ci.yml` (the `sdd` job only), `eslint.config.*`.
-  - **Out of scope:** the archive paths (R180 fills `archive.json`; the resolution check reads it whatever it holds).
-  - **Done when:**
-    - `check-sdd.test.ts` has one failing fixture per rule above, and `npm run check:sdd` exits 0 on the branch.
-    - `traceability.md` lists every FR-SDD id with a test; the earlier rows are byte for byte the moved table.
-    - `npm test`, lint (warnings counted, none new as errors) and typecheck green.
-
-- [x] **R180 — Pruning at each wave and the brief's stable prefix**
-  - **Lane:** data
-  - **Tier:** light
-  - **Review:** opus
-  - **Turns:** 500
-  - **Fallback:** off
-  - **Gate:** auto
-  - **Depends on:** R177
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-17, FR-SDD-27; PLAN D-1062, D-1071; `scripts/sdd/{cli,brief,git}.ts`.
-  - **Goal:** merged branches and worktrees go at the start of each wave, and sessions of one wave share their brief's first part byte for byte.
-  - **Satisfies:** FR-SDD-17, FR-SDD-27.
-  - **Scope (PLAN D-1062, D-1071):** `scripts/prune-merged-branches.ts` with `--dry-run`, called by `cli.ts` at the start of a wave; `brief.ts` with the shared part first (rules, tool policy, gotchas digest) and R175's fixtures re-recorded with that order as the only change.
-  - **Touches outside the lane:** none.
-  - **Out of scope:** the archive (R181); `captures` (R178).
-  - **Done when:**
-    - `prune-merged-branches.test.ts` on a fixture repo deletes only merged branches and never `main`, `release`, `captures`, `archive` or an open PR's branch.
-    - Two briefs of one wave share their first section byte for byte; the re-recorded fixtures differ from R175's by the order only.
-    - `npm run check:sdd`, `npm test`, lint and typecheck green.
-
-### Wave 7
-
-- [x] **R181 — The archive and the phase report: closed evidence off `main`, the tier ceilings set from the ledger, the phase's totals and quality, and the app unchanged**
+- [ ] **R191 — 2.14.0: the capture set re-shot, every budget row re-set, the README, the reading order, the images, the repository's description and topics**
   - **Lane:** docs
-  - **Tier:** light
-  - **Review:** opus
+  - **Tier:** standard
   - **Turns:** 500
   - **Fallback:** off
   - **Gate:** auto
-  - **Depends on:** R179, R180
-  - **Reads:** the phase set (through `sdd:id`); SPEC FR-SDD-1, FR-SDD-2, FR-SDD-26, FR-SDD-28; PLAN D-1058, D-1070; the knip config and `package.json` scripts; the ledger, which is `sdd-run/usage.jsonl` in the driver's own checkout (the first path `git worktree list` prints), not in the task worktree, and the phase's PR bodies (a session cannot run `gh`; their usage lines are in the ledger).
-  - **Goal:** the phase ends with numbers: its tokens in total and per task, the most expensive task, the baseline against the post-split tasks, findings, flakes and CI reruns, and each tier's ceiling written into `sdd.agents.json`.
-  - **Satisfies:** FR-SDD-1 (the report), FR-SDD-2 (the ceilings), FR-SDD-26, FR-SDD-28; US-51 AC6, AC8.
-  - **Scope (PLAN D-1070):** the orphan `archive` branch with `spike/`, `docs/{dome-composition,mockups,stars,spike-glyphcss,window}/` and the local branches kept at the 2026-11-03 cleanup (listed in `gotchas.md`, else the PR asks the owner); `archive.json` filled and `ids.md` regenerated; the `spike:*` scripts and their knip entries removed; `docs/sdd/phases/v2.13/report.md`; each tier's ceiling = `TIER_BUDGET_FACTOR` × the phase's 90th percentile for that tier; FR-SDD-28's checks (no `src/` or `public/` path in the phase's diff, `dist/` asset names equal the base's); a line for the owner's memory trim.
-  - **Note:** a session cannot push. Build the `archive` branch locally (an orphan branch in a separate `git worktree`, holding the archived paths) and leave it unpushed; the owner's session pushes it after review. The report says the ledger has only the driver's own sessions: reviews run by hand and the subagents that fixed findings are not in it.
-  - **Touches outside the lane:** `sdd.agents.json` (the ceilings only), `package.json` (the `spike:*` scripts removed), the knip config, `spike/`.
-  - **Out of scope:** a tag, a deploy, a version bump (V213-1).
-  - **Done note (R181):** the report, the `light` and `standard` ceilings and FR-SDD-28's checks are in; the archive (FR-SDD-26) moved to the renderer phase (V213-12) because `spike/` and the evidence folders are still imported and read by tests; the quality numbers and the `dist/` comparison were filled in by the owner's session.
+  - **Depends on:** R190
+  - **Reads:** the phase set; `docs/sdd/workflows/release.md`; SPEC FR-WIDE-11, FR-WIDE-12, FR-PUB-14, FR-PUB-15, FR-PUB-16, FR-CAP-5, FR-SDD-22; constants `SKY_MAIN_KB`; V214-20, V214-22; PLAN D-1107, D-178.
+  - **Goal:** `main` reads 2.14.0 with every new capture in the set, every bundle row re-set, a README, reading order, hero and social preview that describe this release, and the description and topics written for the owner's `gh repo edit`; the owner can run the desk and phone checks, tag and deploy.
+  - **Satisfies:** FR-WIDE-12, FR-WIDE-11 (the rows), FR-PUB-14, FR-PUB-15, FR-PUB-16; US-52 AC7.
+  - **Scope (D-1107):** `tests/e2e/{captureSet,captureSeeds,v1-captures}.ts` hold the eight new ids (`sky-live-globe`, `sky-pass-globe`, `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts`, `sky-hover`, `sky-clouds`, `sky-fullscreen`) in the set's languages and themes; `scripts/bundle-budget.ts` rows by D-178, `main` within `SKY_MAIN_KB` or the ceiling's next 5 KB line flagged for the owner (V214-20); `README.md` by FR-PUB-14 and `docs/HOW-THIS-WAS-BUILT.md`'s reading order by FR-PUB-15; `scripts/readme-hero.ts` re-run on the 2.14 captures; `tests/docs/readme.test.ts`; `docs/sdd/phases/v2.14/release.md` with the description, homepage and twenty topics, the moved-capture list and the owner's desk and phone checklist; `package.json` 2.14.0.
+  - **Touches outside the lane:** `tests/e2e/{captureSet,captureSeeds,v1-captures}.ts`, `scripts/bundle-budget.ts`, `package.json`.
+  - **Deletes:** none.
+  - **Captures:** the eight ids are added by R186–R189; here the whole set re-shot by `captures.yml` on the `captures` branch with the pixel-diff report.
+  - **Out of scope:** the tag, the deploy, `gh repo edit` (the owner's).
   - **Done when:**
-    - Every archived path resolves through `ids.md`; `npm run check:dead` green.
-    - `report.md` has every number above, each traced to ledger lines or PR bodies.
-    - `sdd.agents.json` validates with the ceilings set; `npm run check:sdd` green.
-    - `git diff --stat <phase base>..HEAD -- src public` is empty; the `dist/` asset-name comparison is in the report.
+    - `captureIds.test.ts` green with the eight ids; the `captures.yml` run's report linked in `release.md`, each moved file tied to a named change.
+    - `readme.test.ts`: the live line's version equals `package.json`'s; no "in progress"; every relative link in `README.md` and the reading order resolves; each "By the numbers" figure carries the release date.
+    - `npm run bundle:budget` every row inside its budget; `npm test` green; `npm run check:sdd` green.
 
-### Requirement coverage (v2.13)
+### Requirement coverage (v2.14)
 
 | Requirement | Task |
 |---|---|
-| FR-SDD-1 | R172 (the ledger), R181 (the report) |
-| FR-SDD-2 | R177 (report-only), R181 (the ceilings) |
-| FR-SDD-3..7 | R175 |
-| FR-SDD-8 | R176 (the files), R179 (the check) |
-| FR-SDD-9 | R176 (the files), R177 (the prompts), R179 (the check) |
-| FR-SDD-10, FR-SDD-11 | R177 |
-| FR-SDD-12 | R173 |
-| FR-SDD-13 | R179 |
-| FR-SDD-14 | R173 (the files), R179 (the check) |
-| FR-SDD-15 | R174 |
-| FR-SDD-16 | R174 (the digest), R177 (the hand-off) |
-| FR-SDD-17 | R180 |
-| FR-SDD-18 | R176 (`review.md`), R177 |
-| FR-SDD-19 | R179 |
-| FR-SDD-20 | R172 (the body), R179 (the title check) |
-| FR-SDD-21 | R176 |
-| FR-SDD-22 | R178 (the move), R179 (the check) |
-| FR-SDD-23 | R178 |
-| FR-SDD-24 | R179 |
-| FR-SDD-25 | R174 |
-| FR-SDD-26 | R181 |
-| FR-SDD-27 | R180 |
-| FR-SDD-28 | every task; R181 checks it |
-| US-51 | R175 (AC1–3), R176 (AC4), R177 (AC5), R179 (AC7), R181 (AC6, AC8) |
+| FR-WIDE-1 | R186 |
+| FR-WIDE-2 | R182 (the mapping), R186 (the row) |
+| FR-WIDE-3 | R184 (the drawing), R186 (mounted) |
+| FR-WIDE-4 | R187 |
+| FR-WIDE-5 | R186 (the corners), R189 (the full-screen corner) |
+| FR-WIDE-6 | R186 |
+| FR-WIDE-7 | R184 (globe), R185 (window), R188 (rows and arcs wired together) |
+| FR-WIDE-8 | R183 (bands), R184 (tokens), R187 (drawn) |
+| FR-WIDE-9 | R189 |
+| FR-WIDE-10 | R189 |
+| FR-WIDE-11 | R184 (globe rate, `globe` row), R186 (live page's rate), R188 (`facts` row), R191 (every row) |
+| FR-WIDE-12 | R186–R189 (their captures), R191 (the set) |
+| FR-FACT-1 | P10 (the file), R183 (the height), R188 (shown) |
+| FR-FACT-2 | R188 |
+| FR-FACT-3 | P10 (the fixture), R183 (rise and set), R188 (shown) |
+| FR-NAME-1 | P10 |
+| FR-NAME-2 | P10 (the designations), R185 (the labels) |
+| FR-NAME-3 | R184 (globe, tokens), R185 (window) |
+| FR-KEEP-1 | R182 (keys), R190 (pages) |
+| FR-KEEP-2 | R190 |
+| FR-KEEP-3 | R182 (the table), R190 (end to end) |
+| FR-KEEP-4 | R182 (the flag), R190 (the controls) |
+| FR-PUB-14..16 | R191 |
+| US-52 | R186 (AC1–3, AC5–7), R187 (AC4) |
+| US-53 | P10 (AC1), R183 (AC4), R188 (AC2–3) |
+| US-54 | P10 (AC2), R185 (AC3), R184 + R185 (AC4), R188 (AC1) |
+| US-55 | R184 + R185 (AC2), R187 (AC3), R188 (AC1) |
+| US-56 | R189 |
+| US-57 | R190 |
 
-Waves (for the sanity check): **wave 1** R172 (data) — **wave 2** R173 (docs) + R174 (data) — **wave 3** R175 (docs) — **wave 4** R176 (docs) + R178 (ui) — **wave 5** R177 (data) — **wave 6** R179 (ui) + R180 (data) — **wave 7** R181 (docs). No pair shares a file: R173 (`docs/sdd/`, `.ignore`, `scripts/sdd-map.ts`) against R174 (`scripts/{check,ci-digest}.ts`, `ci.yml`, `package.json`); R176 (documents, skills) against R178 (`scripts/captures/`, `tests/e2e/`, `captures.yml`); R179 (`check-sdd.ts`, `limits.ts`, `traceability.ts`, `ci.yml`, ESLint, `package.json`) against R180 (`cli.ts`, `brief.ts`, `prune-merged-branches.ts`). Waves 3 and 5 hold the phase's two `fable` tasks alone.
+Waves (for the sanity check):
+**wave 1** R182 (data) + R183 (physics) + R184 (chart, hard) — **wave 2** R185 (window) + R186 (ui, hard) — **wave 3** R187 (live) + R188 (ui) — **wave 4** R189 (live) — **wave 5** R190 (data) — **wave 6** R191 (docs).
+No pair shares a file:
+R182 (`model/prefs.ts`, `localPrefs.ts`, `slices/prefs.ts`, `chartViewDefault.ts`) against R183 (`lib/{orbitHeight,riseSet,cloudBand}.ts`, `slices/elements.ts`, ESLint) against R184 (`skychart/globe/**`, `layers.ts`, `tokens.css`, `contrast.ts`);
+R185 (`skychart/window/**`, `lib/skyStars.ts`) against R186 (`components/sky/SkyViewLayout`, the screens, `SkyChart.tsx`, `GuidePanel`, the e2e shell specs);
+R187 (`components/sky/time/**`, `screens/sky/*/Time.tsx`) against R188 (`components/sky/facts/**`, `screens/sky/*/Group.tsx`, the pages' hover state, `bundle-budget.ts`) — R186 splits each page's rail slots into those two files so wave 3 can run both.
+Waves 1 and 2 each hold one `hard` task.
