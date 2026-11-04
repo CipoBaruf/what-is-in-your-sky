@@ -51,6 +51,10 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
 - **D-1081 — `ids.md`'s kinds, and TASKS.md over its ceiling.** (FR-SDD-6, FR-SDD-13; R175.)
   A kind is read only from its document (SPEC: FR, G, US, F, OQ, V; PLAN: D; TASKS: tasks), first definition first; an old section is listed for each numbered heading of a one-document file. `--check` checks staleness; whether every cited id resolves is R179's.
   SPEC.md and PLAN.md are under `INDEX_MAX_KB`; TASKS.md is about 25 KB because the open v2.13 block alone is 23.8 KB, so FR-SDD-3 and FR-SDD-13 cannot both hold for it without rewording a task. Proposed: the ceiling binds TASKS.md from the next phase, when the closed v2.13 block leaves.
+- **D-1082 — How the set gets to the `captures` branch.** (FR-SDD-22, FR-SDD-23; R178.)
+  The branch's root is `docs/screenshots/`'s (`v1-*.png` at the top), plus `diff/` with the last run's side-by-side images and a short README. A task session cannot push, so the branch is made by the first `captures.yml` run on `main` after R178 merges: no branch means the whole set. `manifest.json` has an `all` list beside `screens`, so the globs every capture draws are written once; a unit test or snapshot under `src/` draws nothing.
+  The spec shoots the screens `CAPTURE_SCREENS` names; the job restores the branch's set first, so `captures.test.ts` checks a whole set under `CAPTURES_SET=1` and checks only that `main` tracks no `v1-*` file otherwise. The job summary links the images at the commit that holds them (`/raw/<sha>/diff/…`); a dispatch on another ref commits nothing and points at the artefact. R128's `base` input is gone: the base is the branch.
+  The README hero's three source captures stay on `main` as README images, in `docs/readme/sources/`. The design captures stay where `docs/DESIGN.md` shows them. The per-task `r<n>-*` files are not the set and stay on `main` until a task moves them.
 
 ---
 

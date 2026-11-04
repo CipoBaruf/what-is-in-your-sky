@@ -1809,6 +1809,7 @@ D-1078	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 de
 D-1079	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1080	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1081	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
+D-1082	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
