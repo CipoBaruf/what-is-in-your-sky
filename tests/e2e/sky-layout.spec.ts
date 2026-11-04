@@ -25,17 +25,16 @@
  *   the shown instant, and opens no screen.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { DETAIL_DRAWING_MIN_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
+import { SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { onWindow } from './globeHelpers';
+import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
-/** R166 (FR-CLEAN-12, D-1003): the desk's order holds inside the capped column too, at the two sizes past the cap. */
-const DESKS = [DESK, { width: 1920, height: 1080 }, { width: 2560, height: 1440 }] as const;
 const TURNED = [
   { width: 844, height: 390 },
   { width: 667, height: 375 },
@@ -73,18 +72,7 @@ async function slotBoxes(layout: Locator): Promise<{ name: string; box: Box }[]>
   return out;
 }
 
-/** FR-FLOW-4 on compact: each slot starts where the one above it ends, or lower. */
-function expectStacked(slots: { name: string; box: Box }[]): void {
-  for (let i = 1; i < slots.length; i++) {
-    const above = slots[i - 1];
-    const below = slots[i];
-    if (!above || !below) continue;
-    expect(below.box.y, `${below.name} under ${above.name}`).toBeGreaterThanOrEqual(above.box.y + above.box.height - 1);
-  }
-}
-
 const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack;
-const intersects = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 /** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
@@ -95,15 +83,6 @@ async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<vo
   expect(stars.x).toBeGreaterThan(control.x + control.width);
   const rowBox = await box(row);
   expect(stars.x + stars.width).toBeGreaterThan(rowBox.x + rowBox.width - 4);
-}
-
-/** FR-FLOW-6: the hint, where there is one, stands clear of the drawing's box. */
-async function expectHintOffTheDrawing(layout: Locator): Promise<void> {
-  const hint = layout.getByTestId('sky-hint');
-  if ((await hint.count()) === 0) return;
-  const drawing = await box(layout.getByTestId('chart-box'));
-  expect(intersects(await box(hint), drawing)).toBe(false);
-  await expect(hint).toHaveText(/\S/);
 }
 
 /**
@@ -119,31 +98,6 @@ async function expectTimesOneRow(page: Page, head: Locator): Promise<void> {
   const lines = await times.evaluate((el: HTMLElement) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
   expect(lines, 'the times row is one line').toBe(1);
   await expect(page.getByTestId('pass-name-line')).toContainText(/\d{4}-\d\d-\d\d · (GMT[−+-]?[\d:]*|UTC)/);
-}
-
-const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'timeline', 'action', 'foot'];
-
-/** The desk's rail form: the box at the left, the readout on its corner, the hint under it, the rail's slots stacked at the right. */
-async function expectRail(layout: Locator): Promise<void> {
-  await expect(layout).toHaveAttribute('data-shape', 'rail');
-  const slots = await slotBoxes(layout);
-  const drawing = slots.find((slot) => slot.name === 'drawing');
-  if (!drawing) throw new Error('no drawing slot');
-  // The rail's order: FR-FLOW-4's, with `action` and `foot` at the rail's foot.
-  const rail = slots.filter((slot) => !['drawing', 'readout', 'hint'].includes(slot.name)).sort((a, b) => RAIL_ORDER.indexOf(a.name) - RAIL_ORDER.indexOf(b.name));
-  for (const slot of rail) expect(slot.box.x, `${slot.name} beside the box`).toBeGreaterThanOrEqual(drawing.box.x + drawing.box.width - 1);
-  expectStacked(rail);
-  const readout = slots.find((slot) => slot.name === 'readout');
-  if (readout) {
-    expect(readout.box.x).toBeGreaterThanOrEqual(drawing.box.x - 1);
-    expect(readout.box.y).toBeGreaterThanOrEqual(drawing.box.y - 1);
-    expect(readout.box.y + readout.box.height).toBeLessThan(drawing.box.y + drawing.box.height / 4);
-  }
-  const hint = slots.find((slot) => slot.name === 'hint');
-  if (hint) {
-    expect(hint.box.y).toBeGreaterThanOrEqual(drawing.box.y + drawing.box.height - 1);
-    expect(Math.abs(hint.box.x - drawing.box.x)).toBeLessThanOrEqual(1);
-  }
 }
 
 async function seedReader(page: Page, locale: Locale): Promise<void> {
@@ -167,7 +121,7 @@ async function openLive(page: Page, locale: Locale): Promise<Locator> {
   await page.reload();
   const layout = page.getByTestId('live-layout');
   await expect(layout).toBeVisible({ timeout: 30_000 });
-  await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   return layout;
 }
 
@@ -178,7 +132,7 @@ async function openDetail(page: Page, locale: Locale): Promise<Locator> {
   const layout = page.getByTestId('pass-layout');
   // R164: on the phone the full form's root holds a fixed box and has none of its own, so attached, not visible.
   await expect(layout).toBeAttached();
-  await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+  await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   return layout;
 }
 
@@ -189,6 +143,17 @@ async function openStars(page: Page, locale: Locale): Promise<Locator> {
   const layout = page.getByTestId('stars-layout');
   await expect(layout).toBeVisible();
   await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
+  return layout;
+}
+
+/** The wide stars page as a fresh desk opens it — on the globe. */
+async function openStarsDesk(page: Page, locale: Locale): Promise<Locator> {
+  await seedReader(page, locale);
+  await page.goto('/#stars');
+  await page.reload();
+  const layout = page.getByTestId('stars-layout');
+  await expect(layout).toBeVisible();
+  await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   return layout;
 }
 
@@ -329,83 +294,63 @@ for (const locale of LOCALES) {
     });
   });
 
-  for (const desk of DESKS) test.describe(`FR-FLOW-4 on a desk, ${String(desk.width)} × ${String(desk.height)}, ${locale}`, () => {
+  /*
+   * R186 (FR-WIDE-1, FR-WIDE-2, FR-WIDE-5; US-52 AC1, AC2, AC5; D-1098): at a desk the three pages are one layout —
+   * the box at the left and the rail at the right, in SLOT_ORDER, the box's extras on its corners.
+   */
+  for (const desk of SHELL_DESKS) test.describe(`FR-WIDE-1 on a desk, ${String(desk.width)} × ${String(desk.height)}, ${locale}`, () => {
     test.use({ viewport: desk, hasTouch: false });
 
-    test('the live page is the box and the rail in every view, the view row one line, the readout on the corner and the hint under the box', async ({ page }) => {
+    test('FR-WIDE-1: the box and the rail stand at one place on the three pages, the rail in SLOT_ORDER', async ({ page }) => {
+      const measured: Record<string, Shell> = {};
+      measured['live'] = await shellOf(await openLive(page, locale));
+      measured['stars'] = await shellOf(await openStarsDesk(page, locale));
+      measured['pass'] = await shellOf(await openDetail(page, locale));
+      const live = measured['live'];
+      for (const [name, shell] of Object.entries(measured)) {
+        expect(shell.box, `${name}'s box`).toEqual(live.box);
+        expect(shell.rail, `${name}'s rail`).toEqual(live.rail);
+        // The rows a page fills are SLOT_ORDER's, in that order.
+        expect(shell.order, name).toEqual(SHELL_ORDER.filter((slot) => shell.order.includes(slot)));
+        expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
+        expect(shell.order.at(-1), name).toBe('list');
+      }
+      test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
+    });
+
+    test('FR-WIDE-5: each view keeps its extras in their corners on every page', async ({ page }) => {
+      for (const open of [openLive, openStarsDesk, openDetail]) {
+        const layout = await open(page, locale);
+        for (const view of DESK_VIEWS) {
+          await chooseDeskView(layout, locale, view);
+          await expectCorners(layout, view);
+        }
+      }
+    });
+
+    test('FR-WIDE-2: the View row reads Globe Window Dome on the three pages, and a view chosen on the live page is the others’ after a reload', async ({ page }) => {
       const layout = await openLive(page, locale);
-      for (const view of VIEWS) {
-        await chooseView(page, layout, locale, view);
-        await expectRail(layout);
-        await expectViewRowOneLine(layout, locale);
-        await expectHintOffTheDrawing(layout);
-        const names = (await slotBoxes(layout)).map((slot) => slot.name);
-        expect(names.filter((name) => !['drawing', 'readout', 'hint', 'picker'].includes(name)), view).toEqual(['answer', 'viewRow', 'list', 'foot']);
-      }
-      // The rail labels its rows (D-846).
-      await expect(layout.locator('[data-slot="viewRow"]').getByRole('heading', { level: 2 })).toHaveText(locale === 'en' ? 'View' : 'Vista');
-      await expect(layout.locator('[data-slot="picker"]').getByRole('heading', { level: 2 })).toHaveText(locale === 'en' ? 'Facing' : 'Hacia');
+      const row = layout.locator('[data-slot="viewRow"]').getByRole('group', { name: WORDS[locale].viewGroup });
+      await expect(row.getByRole('button')).toHaveText(DESK_LABELS[locale]);
+      await chooseDeskView(layout, locale, 'window');
+      await page.goto('/#stars');
+      await page.reload();
+      await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
+      await expect(page.getByTestId('stars-view-row').getByRole('button')).toHaveText(DESK_LABELS[locale]);
+      await page.goto('/');
+      await page.reload();
+      await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
+      await expect(page.getByTestId('pass-layout').getByTestId('sky-chart')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
     });
 
-    test('the stars page is the box and the rail: the h1, the view row, the facing row, the layers, In this field', async ({ page }) => {
-      const layout = await openStars(page, locale);
-      await expectRail(layout);
-      await expectHintOffTheDrawing(layout);
-      const names = (await slotBoxes(layout)).map((slot) => slot.name);
-      expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'viewRow', 'picker', 'layers', 'list']);
-    });
-
-    test('the stars rail’s three rows — View, Facing, Layers — share one left edge (FR-CLEAN-13)', async ({ page }) => {
-      // R166 (D-1008): the view row's one control sits at the rail's left, under its label, as the other two rows do.
-      const layout = await openStars(page, locale);
-      const rows = [layout.locator('[data-slot="viewRow"]'), layout.locator('[data-slot="picker"]'), layout.locator('[data-slot="layers"]')];
-      const lefts: number[] = [];
-      for (const row of rows) {
-        const heading = await box(row.getByRole('heading', { level: 2 }));
-        const control = await box(row.getByRole('button').first());
-        expect(Math.abs(control.x - heading.x), `${String(row)}: the first control under its label`).toBeLessThanOrEqual(1);
-        lefts.push(control.x);
-      }
-      for (const left of lefts) expect(Math.abs(left - (lefts[0] ?? NaN)), lefts.join(', ')).toBeLessThanOrEqual(1);
-      test.info().annotations.push({ type: 'rail-left', description: `${locale}: ${lefts.map((left) => left.toFixed(1)).join(', ')}` });
-    });
-
-    test('the pass detail panel: the head band, the one control line, the drawing at the panel’s width and most of its area, the prose and the table under it (FR-FLOW-7)', async ({ page }) => {
-      const layout = await openDetail(page, locale);
-      await expect(layout).toHaveAttribute('data-shape', 'panel');
-      const panel = await box(page.getByTestId('guide-panel'));
-      const head = page.getByTestId('guide-head');
-      await expect(head.getByRole('heading', { level: 2 })).toBeVisible();
-      await expect(head.getByRole('timer')).toBeVisible();
-      const times = await box(head.getByTestId('pass-times'));
-      const name = await box(head.getByRole('heading', { level: 2 }));
-      expect(times.x).toBeGreaterThan(name.x + name.width - 1);
-      const headBox = await box(head);
-      const viewRow = await box(layout.locator('[data-slot="viewRow"]'));
-      const picker = await box(layout.locator('[data-slot="picker"]'));
-      expect(viewRow.y).toBeGreaterThanOrEqual(headBox.y + headBox.height - 1);
-      // The view control, `[x] stars` and the facing picker on one line.
-      expect(Math.abs(viewRow.y + viewRow.height / 2 - (picker.y + picker.height / 2))).toBeLessThanOrEqual(viewRow.height / 2);
-      expect(picker.x).toBeGreaterThanOrEqual(viewRow.x + viewRow.width - 1);
-      await expectViewRowOneLine(layout, locale);
-      const drawing = await box(layout.getByTestId('chart-box'));
-      expect(drawing.y).toBeGreaterThanOrEqual(Math.max(viewRow.y + viewRow.height, picker.y + picker.height) - 1);
-      // The panel's full width, and at least `DETAIL_DRAWING_MIN_SHARE` of the area the panel has under its head — its
-      // body, which the drawing takes the rest of (FR-FLOW-7). At 1280 × 800 the panel is 818 × 442 px, so the share
-      // is of the body and not of the whole panel: the head band the requirement itself asks for is a third of it.
-      const layoutBox = await box(layout);
-      const body = await box(page.getByTestId('guide-body'));
-      expect(drawing.width).toBeGreaterThanOrEqual(layoutBox.width - 2);
-      expect(body.y).toBeGreaterThan(panel.y);
-      expect((drawing.width * drawing.height) / (body.width * body.height)).toBeGreaterThanOrEqual(DETAIL_DRAWING_MIN_SHARE);
-      // The readout on the box's corner; the hint under the box; the prose and the table under it.
-      const readout = await box(layout.locator('[data-slot="readout"]'));
-      expect(inside(readout, { ...drawing, height: drawing.height / 4 }, 1)).toBe(true);
-      await expectHintOffTheDrawing(layout);
-      const prose = layout.getByTestId('guide-sentence');
-      await prose.scrollIntoViewIfNeeded();
-      const proseBox = await box(prose);
-      expect(proseBox.y).toBeGreaterThanOrEqual((await box(layout.getByTestId('chart-box'))).y + (await box(layout.getByTestId('chart-box'))).height - 1);
+    test('FR-WIDE-1: Esc on the pass detail returns to the home with the card in view', async ({ page }) => {
+      await openDetail(page, locale);
+      const id = await page.getByTestId('guide-panel').getAttribute('data-pass-id');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('pass-layout')).toHaveCount(0);
+      const card = page.locator(`article[data-pass-id="${id ?? ''}"]`);
+      await expect(card).toBeInViewport();
+      await expect(card).toBeFocused();
     });
   });
 }
@@ -565,11 +510,12 @@ test.describe('FR-FLOW-14: the view a fresh profile opens on', () => {
   test.describe('a desk', () => {
     test.use({ viewport: DESK, hasTouch: false });
 
-    test('the live page and the pass detail open on the dome at 1280 × 800', async ({ page }) => {
+    // R186 (FR-WIDE-2, D-1095): a fresh desk opens on the globe; the dome is by choice (FR-WIDE-6).
+    test('the live page and the pass detail open on the globe at 1280 × 800', async ({ page }) => {
       const live = await openLive(page, 'en');
-      await expect(live.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      await expect(live.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
       const detail = await openDetail(page, 'en');
-      await expect(detail.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      await expect(detail.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
     });
   });
 });
