@@ -53,10 +53,21 @@ export function listSourceFiles(root: string): string[] {
 /** Abbreviations whose dot does not end a sentence. */
 const ABBREVIATIONS = /(?:^|[\s(])(?:e\.g|i\.e|vs|etc|No)$/;
 
+/** An import statement at the start of `rest`, up to its module string and optional `;`. */
+const IMPORT = /^import(?=[\s{*'"])[^'"]*(['"])[^'"\n]*\1[^\S\n]*;?/;
+
+/** A declaration line: a one-line `/** … *\/` directly above one is its JSDoc, not a file header. */
+const DECLARATION = /^(?:export|const|let|var|function|class|abstract|type|interface|enum|declare|async)\b/;
+
 /**
  * The file's leading doc comment: the first `/** … *\/` before any code, past a
- * shebang, blank lines, `//` lines and plain block comments; undefined when
- * code (or nothing) comes first.
+ * shebang, blank lines, `//` lines, plain block comments and import statements
+ * (`import type` and multi-line ones too). A one-line doc comment whose next
+ * line is a declaration, with no blank line between, belongs to that
+ * declaration and is not taken; a multi-line block there is still the file's
+ * header, which is how this repo writes them (the file comment sits on the
+ * first declaration after the imports). Undefined when code (or nothing) comes
+ * first.
  */
 function leadingDocComment(source: string): string | undefined {
   let rest = source.replace(/^\uFEFF/, '').replace(/^#![^\n]*\n?/, '');
@@ -67,7 +78,13 @@ function leadingDocComment(source: string): string | undefined {
       rest = nl === -1 ? '' : rest.slice(nl + 1);
     } else if (rest.startsWith('/**') && !rest.startsWith('/**/')) {
       const close = rest.indexOf('*/', 3);
-      return close === -1 ? undefined : rest.slice(3, close);
+      if (close === -1) return undefined;
+      const after = /^[^\S\n]*\n([^\n]*)/.exec(rest.slice(close + 2));
+      const oneLine = !rest.slice(0, close).includes('\n');
+      if (oneLine && after?.[1] !== undefined && DECLARATION.test(after[1].trim())) return undefined;
+      return rest.slice(3, close);
+    } else if (IMPORT.test(rest)) {
+      rest = rest.replace(IMPORT, '');
     } else if (rest.startsWith('/*')) {
       const close = rest.indexOf('*/', 2);
       if (close === -1) return undefined;

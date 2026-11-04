@@ -31,7 +31,7 @@ const FIXTURE = {
   'docs/ignored.ts': 'export const nope = 1;\n',
   'src/scratch.ts': '/** Untracked, never in the map. */\nexport const scratch = 1;\n',
   'src/barrel.ts': "export * from './a';\nexport * as b from \"./b/c\";\n",
-  'src/ünï.ts': '#!/usr/bin/env node\n// eslint line\n/** Non-ASCII path, e.g. a name. Not this. */\nexport const u = 1;\n',
+  'src/ünï.ts': '#!/usr/bin/env node\n// eslint line\n/** Non-ASCII path, e.g. a name. Not this. */\n\nexport const u = 1;\n',
 };
 
 describe('firstSentence', () => {
@@ -45,6 +45,19 @@ describe('firstSentence', () => {
     expect(firstSentence('#!/usr/bin/env node\n// a\n/* plain */\n/** Lead. */\nx')).toBe('Lead.');
     expect(firstSentence('// Hello\n// world. More.\nconst a = 1;')).toBe('');
     expect(firstSentence('import x from "y";\n/** A function\'s JSDoc. */\nexport function f() {}')).toBe('');
+  });
+  it('skips imports, single, multi-line and type-only, before the file comment', () => {
+    const src = "import a from 'a';\nimport type { B } from \"b\";\nimport {\n  c,\n  d,\n} from './c';\nimport './side'\n\n/** After the imports. */\n\nexport const e = 1;\n";
+    expect(firstSentence(src)).toBe('After the imports.');
+  });
+  it('does not take a one-line doc comment sitting directly on a declaration (as in src/model/thresholds.ts)', () => {
+    expect(firstSentence('/** UTC epoch milliseconds. More. */\nexport type EpochMs = number;\n')).toBe('');
+    expect(firstSentence("import x from 'x';\n/** Doc of f. */\nfunction f() {}\n")).toBe('');
+    expect(firstSentence('/** Header. */\nimport x from "x";\n')).toBe('Header.');
+    expect(firstSentence('/** Header. */\n\nexport const a = 1;\n')).toBe('Header.');
+  });
+  it('takes a multi-line block on the first declaration as the file header (as in src/lib/passPath.ts)', () => {
+    expect(firstSentence("import x from 'x';\n\n/**\n * Where a pass goes. More.\n */\nexport function f() {}\n")).toBe('Where a pass goes.');
     expect(firstSentence("const g = 'src/**/*.ts';\n/** Later. */")).toBe('');
   });
   it('does not end a sentence at e.g., i.e., vs., etc. or No.', () => {
@@ -81,11 +94,11 @@ describe('exportNames', () => {
 describe('mapLine', () => {
   it('shows path, sentence and exports, and counts the rest past eight', () => {
     const names = Array.from({ length: 10 }, (_, i) => `export const n${i} = ${i};`).join('\n');
-    const line = mapLine('src/x.ts', `/** Does x. */\n${names}\n`);
+    const line = mapLine('src/x.ts', `/** Does x. */\n\n${names}\n`);
     expect(line).toBe('- `src/x.ts` — exports: n0, n1, n2, n3, n4, n5, n6, n7, +2 — Does x.');
   });
   it('always has the exports field, and a description with " — " stays whole after the second separator', () => {
-    const line = mapLine('src/y.ts', '/** Path — `NW → SE`. */\nconst y = 1;\n');
+    const line = mapLine('src/y.ts', '/** Path — `NW → SE`. */\n\nconst y = 1;\n');
     expect(line).toBe('- `src/y.ts` — exports: none — Path — `NW → SE`.');
     const [path, exports, ...rest] = line.split(' — ');
     expect([path, exports, rest.join(' — ')]).toEqual(['- `src/y.ts`', 'exports: none', 'Path — `NW → SE`.']);
