@@ -127,7 +127,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
 
 ### Wave 4
 
-- [ ] **R176 — `AGENTS.md` for every agent, `CLAUDE.md` as its import, the seven workflows, the skills as pointers, and `RELEASE.md` as a procedure**
+- [x] **R176 — `AGENTS.md` for every agent, `CLAUDE.md` as its import, the seven workflows, the skills as pointers, and `RELEASE.md` as a procedure**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus

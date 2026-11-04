@@ -5,7 +5,7 @@
  *   npx tsx scripts/check-trailers.ts <ref>      # <ref>..HEAD
  *
  * This project's own rule is that commit messages carry no trailers
- * (`.claude/skills/sdd-spec/SKILL.md`), and P1's audit found 19 commits
+ * (`AGENTS.md`), and P1's audit found 19 commits
  * reachable from `main` that carry one anyway (FR-PUB-7 (a)). Those 19 are the
  * owner's to decide about, because removing them rewrites published history —
  * so this check is not about them. It is about the next one: it looks only at
@@ -98,7 +98,7 @@ function main(argv: readonly string[]): number {
   }
   console.error(`check-trailers: ${String(bad.length)} of ${String(commits.length)} commits since ${ref} carry an agent trailer:`);
   for (const commit of bad) console.error(`  ${commit.sha.slice(0, 9)} ${commit.subject}`);
-  console.error('\nThis project writes no trailers (.claude/skills/sdd-spec/SKILL.md). Amend or rebase them out before merging.');
+  console.error('\nThis project writes no trailers (AGENTS.md). Amend or rebase them out before merging.');
   return 1;
 }
 
