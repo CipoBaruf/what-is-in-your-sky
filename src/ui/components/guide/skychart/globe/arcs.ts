@@ -92,9 +92,8 @@ export interface GuideTimes {
   arrow: number | null;
 }
 
-/** `arcGuides`'s rule, in time: the window projects these through its own camera (R185). */
-export function guideTimes(pass: Pass, t: number): GuideTimes | null {
-  const state = arcState(pass, t);
+/** `arcGuides`'s rule, in time: the window projects these through its own camera, with the page's arc state (R185). */
+export function guideTimes(pass: Pass, t: number, state: ArcState = arcState(pass, t)): GuideTimes | null {
   if (state === 'hidden' || pass.track.length === 0) return null;
   const from = pass.start.t;
   const to = state === 'live' ? t : pass.end.t;

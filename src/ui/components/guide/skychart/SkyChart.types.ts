@@ -93,6 +93,8 @@ export interface SkyChartProps {
   /** Emphasised arc + peak; others drawn dim. */
   highlightedPassId: string | null;
   onSelectPass?: (passId: string) => void;
+  /** R185 (FR-WIDE-7): on wide, the window reports the arc within 8 px of the mouse, `null` on leaving it; a change only. */
+  onPassHover?: (passId: string | null) => void;
   /** Optional: marks the satellite's current position on its arc, and is the instant the Sun and Moon are drawn at (FR-DOME-5, FR-DOME-6). */
   now?: EpochMs;
   /**

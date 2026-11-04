@@ -436,3 +436,56 @@
   stroke-width: var(--chart-hairline);
   stroke-dasharray: 3 3;
 }
+
+/* R185 (FR-WIDE-7): on wide, the highlighted arc's minute ticks and its arrow, in its colour, as the globe draws them. */
+.arcTicks {
+  fill: none;
+  stroke: var(--chart-pass);
+  stroke-width: 1.5;
+}
+
+.arcArrow {
+  fill: var(--chart-pass);
+  stroke: none;
+}
+
+.series .arcTicks {
+  stroke: var(--series);
+}
+
+.series .arcArrow {
+  fill: var(--series);
+}
+
+/* R185 (FR-NAME-3, D-1104): on wide a planet is a disc in its own token, its name a type step over the star names in `--fg`. */
+.planetDisc {
+  stroke: none;
+}
+
+.planetDisc[data-tone='chart-planet-mercury'] {
+  fill: var(--chart-planet-mercury);
+}
+
+.planetDisc[data-tone='chart-planet-venus'] {
+  fill: var(--chart-planet-venus);
+}
+
+.planetDisc[data-tone='chart-planet-mars'] {
+  fill: var(--chart-planet-mars);
+}
+
+.planetDisc[data-tone='chart-planet-jupiter'] {
+  fill: var(--chart-planet-jupiter);
+}
+
+.planetDisc[data-tone='chart-planet-saturn'] {
+  fill: var(--chart-planet-saturn);
+}
+
+.planetName {
+  font-size: var(--chart-text-14);
+  fill: var(--fg);
+  text-anchor: middle;
+  dominant-baseline: central;
+  white-space: pre;
+}

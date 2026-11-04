@@ -29,6 +29,8 @@ import { brightLimbPoint, MoonDisc } from './MoonDisc';
 import { figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
 import { useViewRotation, type HandPose } from './useViewRotation';
+import { drawnRuns, windowGuides } from './passGuides';
+import { nearestPass } from '../globe/arcs';
 
 /**
  * R47 (FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5; US-21; PLAN D-188, §8.10): the
@@ -239,9 +241,22 @@ interface ArcProps {
   now: number | undefined;
   legendKey: string | undefined;
   onSelect: ((passId: string) => void) | undefined;
+  /** R185 (FR-WIDE-7): on wide, the highlighted pass carries the globe's minute ticks and its arrow. */
+  guides: boolean;
 }
 
-function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelect }: ArcProps) {
+/** R185 (FR-WIDE-7): the highlighted arc's ticks and arrow, one path each (`passGuides.ts`). */
+function ArcGuides({ pass, state, m, view, limitDeg, now }: { pass: ChartPass; state: ArcState; m: Mat3; view: View; limitDeg: number; now: number | undefined }) {
+  const g = windowGuides(pass, state, m, view, limitDeg, now);
+  return (
+    <>
+      <path className={styles.arcTicks} data-arc-ticks={g.count} d={g.ticks} />
+      <path className={styles.arcArrow} data-arc-arrow d={g.arrow} />
+    </>
+  );
+}
+
+function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelect, guides }: ArcProps) {
   const state: ArcState = arcOf(pass);
   const arc = useMemo(() => resampleArc(pass.track, ARC_STEP_DEG), [pass.track]);
   if (state === 'hidden') return null;
@@ -261,6 +276,7 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
     },
   };
   const key = legendKey === undefined ? null : <KeyLabel p={peak} view={view} text={legendKey} />;
+  const guided = guides ? <ArcGuides pass={pass} state={state} m={m} view={view} limitDeg={limitDeg} now={now} /> : null;
 
   // FR-TRAJ-1, `live`: the cut track from the rise to the position at `now`, solid, with the marker; nothing beyond it.
   if (state === 'live') {
@@ -273,6 +289,7 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
         <Marker kind={pass.startReason === 'shadow' ? 'shadow' : 'rise'} p={rise} view={view} />
         {t >= pass.peak.t && <Marker kind="peak" p={peak} view={view} />}
         <Marker kind="now" p={at(current)} view={view} />
+        {guided}
         {key}
       </g>
     );
@@ -283,6 +300,7 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
       <g {...group}>
         <path className={styles.track} data-marker={state} d={pathFrom(points, limitDeg)} />
         {state === 'ahead' && <Marker kind={pass.startReason === 'shadow' ? 'shadow' : 'rise'} p={rise} view={view} />}
+        {guided}
         {key}
       </g>
     );
@@ -296,7 +314,8 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
   const tip = points[head] ?? end;
   const headingDeg = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
   const arrowAt = placed(tip, view);
-  const arrowVisible = arrowAt['data-in-view'] && tail.front && tail.offAxisDeg <= limitDeg;
+  // R185: on wide the guides' arrow (at `ARC_ARROW_SHARE`) stands for this one, so the arc carries one arrow.
+  const arrowVisible = !guides && arrowAt['data-in-view'] && tail.front && tail.offAxisDeg <= limitDeg;
   const current: PassPoint | null = now !== undefined && now >= pass.start.t && now <= pass.end.t ? interpolateTrack(pass.track, now) : null;
   return (
     <g {...group}>
@@ -314,6 +333,7 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
       <Marker kind={pass.endReason === 'shadow' ? 'shadow' : 'end'} p={end} view={view} />
       <Marker kind="peak" p={peak} view={view} />
       {current && <Marker kind="now" p={at(current)} view={view} />}
+      {guided}
       {key}
     </g>
   );
@@ -359,7 +379,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -688,7 +708,8 @@ export function SkyWindow(props: SkyWindowProps) {
   // R127 (FR-STAR-14): the figure segments as last drawn, for the tap on a line where no mark is under it.
   const lineHitsRef = useRef<readonly (LabelSegment | null)[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
-  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY, lines = false): number | null => {
+  /** A client point in the drawing's own frame. */
+  const boxPoint = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY): { x: number; y: number } => {
     const rect = event.currentTarget.getBoundingClientRect();
     const sx = rect.width > 0 ? size.width / rect.width : 1;
     const sy = rect.height > 0 ? size.height / rect.height : 1;
@@ -699,11 +720,45 @@ export function SkyWindow(props: SkyWindowProps) {
     const turn = (turnDeg * Math.PI) / 180;
     const x = Math.cos(turn) * cx + Math.sin(turn) * cy + drawWidth / 2;
     const y = -Math.sin(turn) * cx + Math.cos(turn) * cy + drawHeight / 2;
+    return { x, y };
+  };
+  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY, lines = false): number | null => {
+    const { x, y } = boxPoint(event, clientX, clientY);
     const mark = hitTest(hitsRef.current, x, y);
     if (mark !== null || !lines) return mark;
     // FR-STAR-14: a star or a planet within the distance wins; else the nearest drawn line within it names its figure.
     const segment = hitLine(lineHitsRef.current, x, y);
     return segment === null ? null : figureKey(segment);
+  };
+  /*
+   * R185 (FR-WIDE-7; D-1099): on wide, the arc within `ARC_HIT_PX` of the mouse, tested at most once an animation
+   * frame against the arcs as last drawn (`arcRunsRef`); the page hears a change only, and `null` on leaving.
+   */
+  const arcHoverRef = useRef<{ x: number; y: number; frame: number; pass: string | null }>({ x: 0, y: 0, frame: 0, pass: null });
+  const arcRunsRef = useRef<() => Map<string, number[][]>>(() => new Map());
+  const onPassHoverRef = useRef(onPassHover);
+  useEffect(() => {
+    onPassHoverRef.current = onPassHover;
+  }, [onPassHover]);
+  const reportPass = (pass: string | null): void => {
+    const hover = arcHoverRef.current;
+    if (hover.pass === pass) return;
+    hover.pass = pass;
+    onPassHoverRef.current?.(pass);
+  };
+  const testArc = (): void => {
+    const hover = arcHoverRef.current;
+    if (hover.frame) return;
+    hover.frame = requestAnimationFrame(() => {
+      hover.frame = 0;
+      reportPass(nearestPass(arcRunsRef.current(), hover.x, hover.y));
+    });
+  };
+  const leaveArc = (): void => {
+    const hover = arcHoverRef.current;
+    cancelAnimationFrame(hover.frame);
+    hover.frame = 0;
+    reportPass(null);
   };
   // Where a tap can name, the sky holds still until the press travels past the tap's slop, so the marks a tap is tested against are the ones under the press.
   const tapSlop = scene?.stars ? HIT_RADIUS_PX : 0;
@@ -738,6 +793,12 @@ export function SkyWindow(props: SkyWindowProps) {
     if (!active && byHand && event.pointerType === 'mouse' && scene?.stars) {
       const over = hitAt(event);
       if (over !== hovered) setHovered(over);
+    }
+    if (!active && !compact && event.pointerType === 'mouse' && onPassHoverRef.current) {
+      const p = boxPoint(event);
+      arcHoverRef.current.x = p.x;
+      arcHoverRef.current.y = p.y;
+      testArc();
     }
     if (!active || active.pointerId !== event.pointerId) return;
     const dx = event.clientX - active.x;
@@ -797,6 +858,7 @@ export function SkyWindow(props: SkyWindowProps) {
   };
   const onPointerLeave = (event: PointerEvent<HTMLDivElement>): void => {
     if (hovered !== null) setHovered(null);
+    leaveArc();
     // A pointer the box could not capture is gone once it leaves: no up for it will reach the box.
     if (pointersRef.current.has(event.pointerId) && !hasCapture(event)) endDrag(event);
   };
@@ -878,6 +940,18 @@ export function SkyWindow(props: SkyWindowProps) {
     [fovDeg, drawWidth, drawHeight, followPhone, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
+  // R185 (FR-WIDE-7): the hover's arcs are the ones this render draws; a still mouse is tested again when they move.
+  useLayoutEffect(() => {
+    arcRunsRef.current = () => drawnRuns(passes, m, view, limitDeg, now, ARC_STEP_DEG);
+    if (arcHoverRef.current.pass !== null) testArc();
+  });
+  useEffect(() => {
+    const hover = arcHoverRef.current;
+    return () => {
+      cancelAnimationFrame(hover.frame);
+      if (hover.pass !== null) onPassHoverRef.current?.(null);
+    };
+  }, []);
   // v2.12 (D-1018): the field drawn while following, read by `drawnPose` in the commit that ends it (declared above, so
   // it runs first and reads the last following render's field).
   useLayoutEffect(() => {
@@ -1118,7 +1192,7 @@ export function SkyWindow(props: SkyWindowProps) {
             {/* FR-STAR-11, FR-STAR-6 (D-751): the star field, under the horizon and the rings, mounted only when the scene
                 carries one and kept mounted across the ground states — its nodes exist once, and it hides itself at
                 `buried` by the rotation it is given, not by a remount. */}
-            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} labelled={hovered ?? namedStar} hits={hitsRef} lineHits={lineHitsRef} landmark={landmark} />}
+            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} labelled={hovered ?? namedStar} hits={hitsRef} lineHits={lineHitsRef} landmark={landmark} planetDiscs={!compact} />}
             {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
             {ground !== 'buried' && (
               <>
@@ -1162,6 +1236,7 @@ export function SkyWindow(props: SkyWindowProps) {
                     now={now}
                     legendKey={legendKeys[pass.id]}
                     onSelect={onSelectPass}
+                    guides={!compact && highlightedPassId === pass.id}
                   />
                 ))}
                 {hidden.map((marker) => (
