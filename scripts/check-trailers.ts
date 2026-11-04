@@ -48,7 +48,8 @@ export const FORBIDDEN = [/^Claude-Session:/im, /^Co-Authored-By:.*(claude|anthr
  * FR-SDD-20: the tip of `main` when the title rule came in (R179). The titles before it are
  * history, as the trailers before `BASELINE` are; a check red on them could only go green by a rewrite.
  */
-export const TITLE_BASELINE = '9833534a';
+// Moved past 363bd9e7 (R179's 83-character squash title, merged before the check ran on main).
+export const TITLE_BASELINE = '363bd9e7';
 
 /** One commit, as this check reads it. */
 export interface Commit {
