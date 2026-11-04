@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ARC_LINGER_MS, ARC_LOOKAHEAD_MS } from '../../../../../physics/constants';
-import type { Pass, PassPoint } from '../../../../../model';
+import type { Observer, Pass, PassPoint } from '../../../../../model';
 import { arcGuides, globeArcs, horizonDir } from './arcs';
 import { ARC_ARROW_SHARE, ARC_TICK_MIN } from './constants';
 import { altAz, globeSky } from './scene';
@@ -8,7 +8,7 @@ import type { Vec3 } from './projection';
 
 /** R184 (FR-WIDE-3, FR-WIDE-7, FR-TRAJ-1; D-1099): a fixed pass's polyline, ticks and arrow on the globe. */
 
-const PLACE = { lat: -41.13, lon: -71.31, altM: 0 };
+const PLACE: Observer = { lat: -41.13, lon: -71.31, altM: 0, label: 'Bariloche', source: 'coords', timeZone: null };
 const START = Date.UTC(2026, 10, 4, 23, 30, 0);
 /** 6 min 10 s, west to east over the north, 10 s samples: 38 points. */
 const DURATION_MS = 370_000;

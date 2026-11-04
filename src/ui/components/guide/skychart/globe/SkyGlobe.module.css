@@ -127,6 +127,113 @@
   stroke: none;
 }
 
+/* R184 (FR-NAME-3, D-1104): a planet is a disc in its own token, its name a type step over the star names in `--fg`. */
+.planet {
+  stroke: none;
+}
+
+.planet[data-tone='chart-planet-mercury'] {
+  fill: var(--chart-planet-mercury);
+}
+
+.planet[data-tone='chart-planet-venus'] {
+  fill: var(--chart-planet-venus);
+}
+
+.planet[data-tone='chart-planet-mars'] {
+  fill: var(--chart-planet-mars);
+}
+
+.planet[data-tone='chart-planet-jupiter'] {
+  fill: var(--chart-planet-jupiter);
+}
+
+.planet[data-tone='chart-planet-saturn'] {
+  fill: var(--chart-planet-saturn);
+}
+
+/* R184 (FR-WIDE-3, FR-WIDE-7, FR-LEG-5; D-1099): the passes in their legend colours by `data-color`, FR-TRAJ-1's
+   states by `data-state` as the window draws them (`ahead` thin and dotted, `linger` thin), the dimmed ones thinner,
+   the highlighted one's ticks and arrow in its colour, the keys bold on a stroke of the page ground. */
+.arcs {
+  pointer-events: none;
+}
+
+.arc,
+.arcTicks,
+.arcArrow,
+.arcKey {
+  --arc: var(--chart-pass);
+}
+
+.arcs [data-color='pass-dim'] {
+  --arc: var(--chart-pass-dim);
+}
+
+.arcs [data-color='series-1'] {
+  --arc: var(--chart-series-1);
+}
+
+.arcs [data-color='series-2'] {
+  --arc: var(--chart-series-2);
+}
+
+.arcs [data-color='series-3'] {
+  --arc: var(--chart-series-3);
+}
+
+.arcs [data-color='series-4'] {
+  --arc: var(--chart-series-4);
+}
+
+.arcs [data-color='series-5'] {
+  --arc: var(--chart-series-5);
+}
+
+.arcs [data-color='series-6'] {
+  --arc: var(--chart-series-6);
+}
+
+.arc {
+  fill: none;
+  stroke: var(--arc);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.arc[data-state='ahead'] {
+  stroke-width: 1.5;
+  stroke-dasharray: 2 5;
+}
+
+.arc[data-state='linger'],
+.arc[data-dim='true'] {
+  stroke-width: 1.5;
+}
+
+.arcTicks {
+  fill: none;
+  stroke: var(--arc);
+  stroke-width: 1.5;
+}
+
+.arcArrow {
+  fill: var(--arc);
+  stroke: none;
+}
+
+.arcKey {
+  font-size: var(--chart-text-14);
+  font-weight: 700;
+  dominant-baseline: central;
+  fill: var(--arc);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
 /* FR-LOOK-7: the Moon's disc as the window draws it — the dark part in the deep sky's tone with a hairline rim, the lit part filled. */
 .moonDark {
   fill: var(--chart-sky-deep);
@@ -165,6 +272,7 @@
 /* FR-GLOBE-11: the names, centred on the box `starLabels` placed them in, at the window's sizes and tones. */
 .starName,
 .starLabel,
+.planetName,
 .figureName {
   text-anchor: middle;
   dominant-baseline: central;
@@ -175,6 +283,11 @@
 .starLabel {
   font-size: var(--chart-text-12);
   fill: var(--chart-star-dim);
+}
+
+.planetName {
+  font-size: var(--chart-text-14);
+  fill: var(--fg);
 }
 
 .figureName {
