@@ -226,7 +226,6 @@ export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
     return range;
   });
   const figureNames = catalog.figures.map((figure) => figureLabelName(names, figure.con, figure.part, lang));
-  const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
   const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
   // FR-LOOK-9, R185 (FR-NAME-2): a proper name to the faintest row's magnitude, a designation brighter than `BAYER_LABEL_MAG`.
   const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
