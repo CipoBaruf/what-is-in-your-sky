@@ -77,4 +77,12 @@ describe('the ledger', () => {
     expect(readLedger(path, 'R1').map((entry) => entry.kind)).toEqual(['implement', 'review']);
     expect(readLedger(join(path, '..', 'missing.jsonl'))).toEqual([]);
   });
+
+  it('keeps only the sessions that ended at or after `since`, one driver run', () => {
+    const path = scratch();
+    const record = { task: 'R1', kind: 'implement' as const, agent: 'claude', tier: null, model: 'opus', usage: null, wallMs: 1, outcome: 'ok' };
+    appendLedger(ledgerEntry(record, new Date('2026-11-01T10:00:00Z')), path);
+    appendLedger(ledgerEntry({ ...record, kind: 'review' }, new Date('2026-11-03T10:00:00Z')), path);
+    expect(readLedger(path, 'R1', new Date('2026-11-03T09:00:00Z')).map((entry) => entry.kind)).toEqual(['review']);
+  });
 });

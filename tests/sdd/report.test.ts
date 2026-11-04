@@ -55,6 +55,16 @@ describe('usageLine', () => {
   it('formats token counts compactly', () => {
     expect([tokens(0), tokens(999), tokens(1_500), tokens(2_340_000)]).toEqual(['0', '999', '1.5k', '2.3M']);
   });
+
+  it('rolls over to M where k would round to 1000.0k', () => {
+    expect([tokens(999_949), tokens(999_950), tokens(999_960), tokens(1_000_000)]).toEqual(['999.9k', '1.0M', '1.0M', '1.0M']);
+  });
+
+  it('shows seconds for a session under a minute, so a failed spawn does not read as a minute', () => {
+    expect(usageLine({ ...session('implement', 'error'), wallMs: 12 })).toMatch(/ · 0 s · error$/);
+    expect(usageLine({ ...session('implement'), wallMs: 41_200 })).toMatch(/ · 41 s · ok$/);
+    expect(usageLine({ ...session('implement'), wallMs: 61_000 })).toMatch(/ · 1 min · ok$/);
+  });
 });
 
 describe('the summary readers', () => {
@@ -66,8 +76,29 @@ describe('the summary readers', () => {
     expect(whatChanged(null)).toEqual([]);
   });
 
+  it('does not take the title heading for the summary section, and reads a later Changes section', () => {
+    expect(whatChanged('# R172 summary\n\nBranch: r172\n\n## Changes\n\n- The ledger.\n- The body.\n')).toEqual(['The ledger.', 'The body.']);
+    expect(whatChanged('# R9\n\n## Summary\n\nOne line.\n')).toEqual(['One line.']);
+  });
+
   it('closes the task, its findings and the ids the summary names, once each', () => {
     expect(closedIds('R172', ['F-99'], SUMMARY)).toEqual(['R172', 'F-99', 'FR-SDD-1', 'FR-SDD-20', 'F-102']);
+  });
+
+  it('closes only the ids the summary marks as closed, not every id it mentions', () => {
+    const summary = [
+      '# R9 summary',
+      '## What changed',
+      '- The body now reads FR-SDD-3 as its model.',
+      '- Fixes F-70.',
+      '## Requirements',
+      'FR-SDD-1, FR-SDD-20.',
+      'F-64 stays open.',
+      '## Follow-ups',
+      '- R181 closes FR-SDD-9.',
+    ].join('\n');
+    expect(closedIds('R9', [], summary)).toEqual(['R9', 'F-70', 'FR-SDD-1', 'FR-SDD-20']);
+    expect(closedIds('R9', [], null)).toEqual(['R9']);
   });
 
   it('lists the checks the summary quotes, once each', () => {
@@ -116,6 +147,36 @@ describe('prBody', () => {
     expect(bytes(huge)).toBeLessThanOrEqual(1.5 * 1024);
     for (const entry of FIVE) expect(huge).toContain(usageLine(entry));
     expect(huge).toContain('**Captures:** 12 file(s)');
+  });
+
+  it('stays within the ceiling with many sessions: the last five a line each, the earlier ones one total line', () => {
+    const twelve = Array.from({ length: 12 }, (_, index) => session(index % 2 === 0 ? 'implement' : 'review', index < 7 ? 'limit' : 'ok'));
+    const many = prBody({ gate: 'auto', changed: whatChanged(SUMMARY), closes: closedIds('R172', [], SUMMARY), checks: checksRun(SUMMARY), captureDiff: null, usage: twelve });
+    expect(bytes(many)).toBeLessThanOrEqual(1.5 * 1024);
+    const usage = many.split('\n').slice(many.split('\n').indexOf('**Usage**') + 1).filter(Boolean);
+    expect(usage).toHaveLength(6);
+    expect(usage[0]).toBe('- 7 earlier session(s) · in 1.4k · cached 119.2M · out 396.8k · 1008 turns · 163 min');
+    expect(usage.slice(1)).toEqual(twelve.slice(-5).map(usageLine));
+  });
+
+  it('never goes over the ceiling, even when the usage lines alone would', () => {
+    const long = { ...session('implement'), agent: 'a'.repeat(400), model: 'm'.repeat(400) };
+    const body = prBody({ gate: 'auto', changed: ['x'], closes: ['R1'], checks: [], captureDiff: null, usage: [long, long, long, long, long, long] });
+    expect(bytes(body)).toBeLessThanOrEqual(1.5 * 1024);
+    expect(body.startsWith('Gate: auto\n')).toBe(true);
+  });
+
+  it('never cuts inside a backtick code span', () => {
+    const cutBody = prBody({
+      gate: 'auto',
+      changed: ['é'.repeat(2000)],
+      closes: ['R1'],
+      checks: Array.from({ length: 50 }, (_, index) => `npx playwright test tests/e2e/${String(index)}.spec.ts`),
+      captureDiff: `\`${'d'.repeat(300)}\` changed`,
+      usage: FIVE,
+    });
+    for (const line of cutBody.split('\n')) expect((line.match(/`/g) ?? []).length % 2).toBe(0);
+    expect(cutBody).toMatch(/\*\*Checks:\*\* `npx playwright test tests\/e2e\/0\.spec\.ts`, .*, \+\d+ more\n/);
   });
 
   it('says so when the session left no summary and no session was recorded', () => {

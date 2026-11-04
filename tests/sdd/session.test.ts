@@ -3,8 +3,31 @@
  * carried it when wave 2 hit it on 2026-09-05 — a `rate_limit_event`, then a
  * synthetic sentence — and the sentence alone for a CLI that drops the event.
  */
-import { describe, expect, it } from 'vitest';
-import { isLimitStop, limitFromEvent, MAX_RESET_WAIT_MS, RESET_MARGIN_MS, resetWaitMs } from '../../scripts/sdd/session';
+import { EventEmitter } from 'node:events';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readLedger } from '../../scripts/sdd/ledger';
+import type { Logger } from '../../scripts/sdd/report';
+import { isLimitStop, limitFromEvent, MAX_RESET_WAIT_MS, RESET_MARGIN_MS, resetWaitMs, runSession } from '../../scripts/sdd/session';
+
+/** A stand-in for the `claude` child: the test drives its stdout and its `error` and `close` events. */
+class FakeChild extends EventEmitter {
+  readonly stdout = new EventEmitter();
+  readonly stderr = new EventEmitter();
+  readonly pid = undefined;
+  readonly kill = vi.fn();
+}
+
+const children: FakeChild[] = [];
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(() => {
+    const child = new FakeChild();
+    children.push(child);
+    return child;
+  }),
+}));
 
 /** Verbatim from `logs/sdd/R42-2026-09-05T21-18-43-739Z.log`. */
 const EVENT = JSON.parse(
@@ -60,5 +83,54 @@ describe('resetWaitMs (D-835)', () => {
     expect(resetWaitMs(null, now)).toBeNull();
     expect(resetWaitMs({ ...limit, window: 'seven_day', resetsAt: now + 2 * 24 * 60 * 60_000 }, now)).toBeNull();
     expect(resetWaitMs({ ...limit, resetsAt: now + MAX_RESET_WAIT_MS }, now)).toBeNull();
+  });
+});
+
+describe('runSession and the usage ledger (FR-SDD-1)', () => {
+  const logger: Logger = { path: null, line: () => undefined, command: () => undefined, raw: () => undefined, close: () => undefined };
+  const RESULT = '{"type":"result","subtype":"success","is_error":false,"num_turns":12,"result":"done","usage":{"input_tokens":30,"cache_read_input_tokens":4000,"cache_creation_input_tokens":500,"output_tokens":700}}';
+
+  const start = (timeoutMs = 60_000): { path: string; session: ReturnType<typeof runSession>; child: FakeChild } => {
+    const path = join(mkdtempSync(join(tmpdir(), 'sdd-session-')), 'usage.jsonl');
+    const session = runSession({ cwd: '.', prompt: 'p', model: 'opus', maxTurns: 10, timeoutMs, allowedTools: [], logger, ledger: { task: 'R9', kind: 'implement', agent: 'claude', tier: null, path } });
+    const child = children.at(-1);
+    if (!child) throw new Error('spawn was not called');
+    return { path, session, child };
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('records one line per session, with the usage the result event carried', async () => {
+    const { path, session, child } = start();
+    child.stdout.emit('data', Buffer.from(`${RESULT}\n`));
+    child.emit('close', 0);
+    const result = await session;
+    expect(result.outcome).toBe('ok');
+    const lines = readLedger(path);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ task: 'R9', kind: 'implement', agent: 'claude', tier: null, model: 'opus', inputTokens: 30, cachedInputTokens: 4000, cacheCreationTokens: 500, outputTokens: 700, turns: 12, outcome: 'ok' });
+  });
+
+  it('records a spawn that fails once, with null usage, when both error and close fire', async () => {
+    const { path, session, child } = start();
+    child.emit('error', new Error('spawn claude ENOENT'));
+    child.emit('close', null);
+    const result = await session;
+    expect(result.outcome).toBe('error');
+    const lines = readLedger(path);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ outcome: 'error', inputTokens: null, cachedInputTokens: null, outputTokens: null, turns: null });
+  });
+
+  it('records a session killed at the wall clock with null usage', async () => {
+    vi.useFakeTimers();
+    const { path, session, child } = start(1_000);
+    vi.advanceTimersByTime(1_000);
+    child.emit('close', null);
+    const result = await session;
+    expect(result.outcome).toBe('timeout');
+    expect(readLedger(path)).toEqual([expect.objectContaining({ outcome: 'timeout', inputTokens: null, turns: null })]);
   });
 });

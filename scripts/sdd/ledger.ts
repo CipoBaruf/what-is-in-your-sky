@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 /** Relative to the driver's working directory, which outlives every task worktree. */
 export const LEDGER_PATH = 'sdd-run/usage.jsonl';
 
-export type SessionKind = 'implement' | 'review' | 'fix';
+type SessionKind = 'implement' | 'review' | 'fix';
 
 /** What the final `result` event says the session spent. */
 export interface ResultUsage {
@@ -108,17 +108,23 @@ export function appendLedger(entry: LedgerEntry, path = LEDGER_PATH): void {
 }
 
 const isEntry = (value: unknown): value is LedgerEntry =>
-  typeof value === 'object' && value !== null && typeof (value as LedgerEntry).task === 'string' && typeof (value as LedgerEntry).kind === 'string' && typeof (value as LedgerEntry).wallMs === 'number';
+  typeof value === 'object' && value !== null && typeof (value as LedgerEntry).task === 'string' && typeof (value as LedgerEntry).kind === 'string' && typeof (value as LedgerEntry).wallMs === 'number' && typeof (value as LedgerEntry).at === 'string';
 
-/** Every line of the ledger, in order; a missing file is an empty ledger and an unreadable line is skipped. `task` filters to one task's sessions. */
-export function readLedger(path = LEDGER_PATH, task?: string): LedgerEntry[] {
+/**
+ * Every line of the ledger, in order; a missing file is an empty ledger and an
+ * unreadable line is skipped. `task` filters to one task's sessions, `since`
+ * to the sessions that ended at or after it (one driver run's).
+ */
+export function readLedger(path = LEDGER_PATH, task?: string, since?: Date): LedgerEntry[] {
   if (!existsSync(path)) return [];
+  const from = since?.getTime() ?? -Infinity;
   const entries: LedgerEntry[] = [];
+  // Read whole on each call (twice per task): a few hundred bytes a session, so a phase's file is small; rotate it if that ever stops being true.
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     if (!line.trim()) continue;
     try {
       const parsed: unknown = JSON.parse(line);
-      if (isEntry(parsed) && (task === undefined || parsed.task === task)) entries.push(parsed);
+      if (isEntry(parsed) && (task === undefined || parsed.task === task) && Date.parse(parsed.at) >= from) entries.push(parsed);
     } catch {
       // a torn or hand-edited line; the rest of the ledger still reads
     }

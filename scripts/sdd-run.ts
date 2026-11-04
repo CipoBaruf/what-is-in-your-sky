@@ -198,16 +198,17 @@ const AGENT = 'claude';
 /**
  * FR-SDD-20: the short body — what changed and the checks from the session's
  * summary, the ids it closes, the capture count until R178's diff summary,
- * and one usage line per session of the task in the ledger.
+ * and one usage line per session this run of the task left in the ledger.
  */
-function prBody(task: Task, handoff: Handoff, screenshots: readonly string[]): string {
+function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], since: Date): string {
   return shortPrBody({
     gate: task.gate,
     changed: whatChanged(handoff.summary),
     closes: closedIds(task.id, task.findings, handoff.summary),
     checks: checksRun(handoff.summary),
     captureDiff: screenshots.length > 0 ? `${String(screenshots.length)} file(s) under \`docs/screenshots/\`` : null,
-    usage: readLedger(LEDGER, task.id),
+    // This run's sessions only: an abandoned or failed earlier run of the task is not this PR's usage.
+    usage: readLedger(LEDGER, task.id, since),
   });
 }
 
@@ -312,7 +313,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed');
 
   const screenshots = (await changedFiles(dir, BASE, logger)).filter((path) => path.startsWith('docs/screenshots/'));
-  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots), logger);
+  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
   if (pr === null) return finish('failed', 'gh pr create failed');
   report.pr = pr;
 
@@ -344,7 +345,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   const findings = readHandoff(dir, task.id).findings;
   report.review = findings === null ? null : { findings, model: reviewModel };
   // FR-SDD-1: the body carries one usage line per session, and the review's are new since the PR opened.
-  await editPullRequestBody(dir, task.id, pr, prBody(task, handoff, screenshots), logger);
+  await editPullRequestBody(dir, task.id, pr, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
 
   if (review.outcome === 'limit') {
     await commentOnPullRequest(dir, task.id, pr, `The review session ended on the account limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);

@@ -8,7 +8,7 @@
  * driver's job.
  */
 import { spawn } from 'node:child_process';
-import { appendLedger, ledgerEntry, usageFromResult, type ResultUsage, type SessionKind } from './ledger';
+import { appendLedger, ledgerEntry, usageFromResult, type ResultUsage, type SessionRecord } from './ledger';
 import type { Logger } from './report';
 
 /**
@@ -156,16 +156,13 @@ export interface SessionResult {
   usage: ResultUsage | null;
 }
 
-/** FR-SDD-1 (D-1058): where and under what name a session is recorded in the usage ledger. */
-interface LedgerTarget {
-  task: string;
-  kind: SessionKind;
-  /** `claude` until R177 makes the agent a config entry (FR-SDD-10). */
-  agent: string;
-  tier: string | null;
-  /** The ledger file; `LEDGER_PATH` in the driver's working directory when omitted. */
-  path?: string;
-}
+/**
+ * FR-SDD-1 (D-1058): where and under what name a session is recorded in the
+ * usage ledger — the record's naming fields (`agent` is `claude` until R177
+ * makes it a config entry, FR-SDD-10), plus the ledger file, `LEDGER_PATH` in
+ * the driver's working directory when omitted.
+ */
+type LedgerTarget = Pick<SessionRecord, 'task' | 'kind' | 'agent' | 'tier'> & { path?: string };
 
 export interface SessionOptions {
   cwd: string;
@@ -210,7 +207,8 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     if (ledger && !recorded) {
       recorded = true;
       try {
-        appendLedger(ledgerEntry({ task: ledger.task, kind: ledger.kind, agent: ledger.agent, tier: ledger.tier, model, usage: result.usage, wallMs: result.durationMs, outcome: result.outcome }), ledger.path);
+        const { path, ...target } = ledger;
+        appendLedger(ledgerEntry({ ...target, model, usage: result.usage, wallMs: result.durationMs, outcome: result.outcome }), path);
       } catch (error) {
         logger.line(`  usage ledger: could not append (${error instanceof Error ? error.message : String(error)})`);
       }
