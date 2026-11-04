@@ -157,7 +157,7 @@ export interface SessionResult {
 }
 
 /** FR-SDD-1 (D-1058): where and under what name a session is recorded in the usage ledger. */
-export interface LedgerTarget {
+interface LedgerTarget {
   task: string;
   kind: SessionKind;
   /** `claude` until R177 makes the agent a config entry (FR-SDD-10). */
