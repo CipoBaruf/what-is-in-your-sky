@@ -13,7 +13,11 @@ A phase's release task writes the phase's record, `docs/sdd/phases/<version>/rel
 3. **The captures (`<n>.1`).** Shoot the full set, the only time it is shot whole, from a plain build, and the base's set from the last release's SHA on the same machine (`docs/sdd/gotchas.md`, *captures*).
    Diff by pixels (`docs/sdd/workflows/visual-review.md`) and record the set's file count against the last record's, each changed file grouped by the requirement that moved it, the known noise by its F-id, and two runs' agreement (FR-CAP-5).
    Leave checkboxes for the owner's `captures.yml` runs against the base.
-4. **The budget (`<n>.2`).** Run `npm run bundle:budget` beside the base built in the same run. Re-set the budgets by D-178 (the measure × 1.1, up to the next 5 KB line, inside PLAN §11's ceilings) in `scripts/bundle-budget.ts`, write the table (chunk, gzip KB, budget KB, base, change) and explain every row that moved. Point the budget test in `tests/docs/accuracy.test.ts` at this record.
+4. **The budget (`<n>.2`).** Run `npm run bundle:budget` beside the base built in the same run.
+   Re-set the budgets by D-178 (the measure × 1.1, up to the next 5 KB line, inside PLAN §11's ceilings) in `scripts/bundle-budget.ts`,
+   write the table (chunk, gzip KB, budget KB, base, change) and explain every row that moved. Point the budget test in `tests/docs/accuracy.test.ts`
+   at this record (its `record(...)` call and `### <n>.2` split).
+   The records are found by folder, and `MOVED` stays as it is.
 5. **What the phase removed (`<n>.3`).** `npm run check:dead` reports nothing; list each removed component, message key or file, or say none.
 6. **The usage report.** From `sdd-run/usage.jsonl`: the phase's total tokens, its most expensive task, each task's changed lines, the findings (F-ids) per phase, the flaky tests quarantined and the CI reruns per PR (FR-SDD-1, FR-SDD-21). Set each tier's ceiling when the phase calls for it (FR-SDD-2).
 7. **What the owner decides (`<n>.4`).** One checkbox per open call: an accepted overrun, a raster choice, a finding left open.
@@ -27,7 +31,7 @@ A phase's release task writes the phase's record, `docs/sdd/phases/<version>/rel
    - tag it: `git tag -a v<version> <sha> -m "<version>: <title>"`, then push the tag;
    - deploy the same SHA, `git push origin <sha>:release` (D-739, `docs/DEPLOY.md`), and run `docs/RELEASE.md` §2 and §5 against the live site.
 10. Bump `package.json` (and the lockfile's root entry) to `<version>`, unless the phase is one with no release.
-11. Mark the previous record history: a `> *History (marked <date>): …*` line under its heading.
+11. Leave the previous record as it is: the `> *History (` marker belongs to v1 through v2.2 only (`tests/docs/accuracy.test.ts` asserts that list), and v2.3 onward carry none.
 12. Run `npm run check` and `npm test`; commit; summarise what the owner still owes (the tag, the deploy, the captures runs, the device run).
 
 The tag, the push to `release` and the device run are the owner's; the task never runs them.

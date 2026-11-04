@@ -20,8 +20,7 @@ Look up an id from another phase with `npm run sdd:id <id>`, never by opening th
 ```
 - [ ] **R<n> — <goal in one line>**
   - **Lane:** ui | live | chart | window | data | physics | docs
-  - **Tier:** hard | standard | light
-  - **Agent:** <name>            (optional; pins one entry of sdd.agents.json)
+  - **Model:** fable | opus | sonnet | interactive   (R177 converts this to `Tier:` and `Agent:`; until it lands `scripts/sdd/tasks.ts` parses only `Model:`)
   - **Gate:** auto | owner
   - **Depends on:** R<ids>, or —
   - **Reads:** the ids and sections the session needs

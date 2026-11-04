@@ -27,7 +27,7 @@ Never reads: the index files and the phase files whole.
 
 ## When done
 
-1. Run `npm run check` and `npm test` once; report the counts and any rising warning count.
+1. Run `npm run check` and `npm test` once; report the counts and any rising warning count. Also run `npx knip` (the dead-code CI job; tasks have failed CI on it alone) and `npx tsx scripts/check-trailers.ts` before pushing.
 2. If the task changed the UI, follow `docs/sdd/workflows/visual-review.md`.
 3. If it added or changed user-visible text, both catalogs (en, es) carry it; the typecheck fails on a missing message (FR-I18N-2).
 4. Check the task off in TASKS.md on this branch, with a one-line note if what was done differs from the task text.

@@ -18,6 +18,8 @@ Both themes (dark and night) when the task touches colour; both languages (en an
 
 ## Procedure
 
+Until `scripts/captures/diff.ts` exists (R178): shoot with the capture spec, in steps 2 to 3, and compare each pair by eye, side by side, then file them as step 8 says.
+
 1. Find the captures the diff reaches: `scripts/captures/manifest.json` maps each capture name to the source globs it draws, and `scripts/ci-affected.ts`'s matcher picks the entries the branch's changed files match (D-1068). A new screen gets its manifest entry in the same task.
 2. Build and serve the production bundle so the strict CSP applies: `npm run build`, then `npx vite preview --port <port>` in the background, with `E2E_PORT` as the port when it is set (another task may be serving 4173).
 3. Shoot only those captures: a Playwright spec under `tests/e2e/` reaches each state and writes `test-results/<task>-<screen>-<width>.png`; run it with `npx playwright test <spec> --project=chromium`. The full set is shot only at release preparation.

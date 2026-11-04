@@ -12,8 +12,12 @@ const WORKFLOW_MAX_KB = 4;
 const DOC_LINE_MAX = 400;
 
 const WORKFLOWS = ['spec', 'breakdown', 'implement', 'visual-review', 'review', 'fix-ci', 'release'];
-/** Each skill and the workflow it points to. */
-const SKILLS: Record<string, string> = { 'sdd-spec': 'spec', 'sdd-breakdown': 'breakdown', 'sdd-implement': 'implement', 'visual-review': 'visual-review' };
+/** Each skill, read from the directory, and the workflow it points to: its name without the `sdd-` prefix. */
+const SKILLS: Record<string, string> = Object.fromEntries(
+  readdirSync('.claude/skills', { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => [entry.name, entry.name.replace(/^sdd-/, '')]),
+);
 
 const agents = readFileSync('AGENTS.md', 'utf8');
 const workflow = (name: string): string => readFileSync(`docs/sdd/workflows/${name}.md`, 'utf8');

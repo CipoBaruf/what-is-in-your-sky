@@ -49,3 +49,4 @@ React 19 + TypeScript + Vite, a static deploy on Cloudflare Workers static asset
 - Tests for every acceptance criterion; physics changes must pass the golden fixtures from R1.
 - npm for package management.
 - Never `git add -A`: name the files.
+- Commit messages carry no Co-Authored-By or agent session trailers; CI's `trailers` job rejects them; run `npx tsx scripts/check-trailers.ts` before pushing.

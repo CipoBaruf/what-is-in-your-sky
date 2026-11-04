@@ -82,7 +82,10 @@ const RECORDS = readdirSync('docs/sdd/phases', { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && existsSync(`docs/sdd/phases/${entry.name}/release.md`))
   .map((entry) => entry.name)
   .sort();
-const record =(version: string): string => readFileSync(`docs/sdd/phases/${version}/release.md`, 'utf8');
+const record = (version: string): string => readFileSync(`docs/sdd/phases/${version}/release.md`, 'utf8');
+
+/** The records not marked history: the path and script checks still read them (they were checked in RELEASE.md before R176). */
+const LIVE_RECORDS = RECORDS.filter((version) => !record(version).includes(HISTORY));
 
 /** A `## ` section of a document, by the start of its heading, up to the next `## `. */
 function section(text: string, heading: string): string {
@@ -128,6 +131,13 @@ describe('every path a document names exists as named (FR-SHOW-1, US-36 AC1)', (
     });
   }
 
+  for (const version of LIVE_RECORDS) {
+    it(`docs/sdd/phases/${version}/release.md`, () => {
+      const claims = pathClaims(record(version));
+      expect(claims.filter(([token, exists]) => !exists && !PENDING.has(token)).map(([token]) => token)).toEqual([]);
+    });
+  }
+
   it('and the rule finds paths to check: a reader that matched nothing would pass on any text', () => {
     const claims = DOCUMENTS.flatMap((path) => pathClaims(readFileSync(path, 'utf8')));
     expect(claims.length).toBeGreaterThan(40);
@@ -144,6 +154,18 @@ describe('every script a document names exists (FR-SHOW-1)', () => {
   for (const path of DOCUMENTS) {
     it(`${path}`, () => {
       const text = readFileSync(path, 'utf8');
+      const runs = [...text.matchAll(/npm run ([\w:-]+)/g)].map((match) => match[1] ?? '');
+      expect(runs.filter((name) => !(name in pkg.scripts))).toEqual([]);
+      const scripts = [...text.matchAll(/npx tsx (scripts\/[\w./-]+\.ts)/g)].map((match) => match[1] ?? '');
+      expect(scripts.filter((file) => !trackedSet.has(file))).toEqual([]);
+    });
+  }
+});
+
+describe('every script a live release record names exists (FR-SHOW-1, R176)', () => {
+  for (const version of LIVE_RECORDS) {
+    it(`docs/sdd/phases/${version}/release.md`, () => {
+      const text = record(version);
       const runs = [...text.matchAll(/npm run ([\w:-]+)/g)].map((match) => match[1] ?? '');
       expect(runs.filter((name) => !(name in pkg.scripts))).toEqual([]);
       const scripts = [...text.matchAll(/npx tsx (scripts\/[\w./-]+\.ts)/g)].map((match) => match[1] ?? '');
@@ -216,8 +238,9 @@ describe('the reading order (FR-SHOW-2, FR-SHOW-3, D-650)', () => {
 
 describe('the version (FR-SHOW-1)', () => {
   // R176: the per-release lists left `docs/RELEASE.md` for the phase folders; a phase's record names its version.
-  it('a release record knows the version package.json carries', () => {
-    expect(RECORDS.filter((version) => record(version).includes(`\`package.json\` is \`${pkg.version}\``))).not.toEqual([]);
+  it('the newest release record states the version package.json carries', () => {
+    const newest = RECORDS.reduce((a, b) => (a.localeCompare(b, undefined, { numeric: true }) >= 0 ? a : b));
+    expect(record(newest)).toContain(`\`package.json\` is \`${pkg.version}\``);
   });
 });
 
@@ -295,15 +318,28 @@ describe('RELEASE.md is the procedure only (FR-SDD-9, US-51 AC4, R176)', () => {
     ['17', 'v2.5'], ['18', 'v2.6'], ['19', 'v2.6.1'], ['20', 'v2.7'], ['21', 'v2.8'], ['22', 'v2.9'], ['23', 'v2.10'], ['24', 'v2.11'], ['25', 'v2.12'],
   ];
 
+  /** The parent's RELEASE.md, pinned (R175's way): the moved records are compared with it. */
+  const parent = readFileSync('scripts/sdd/__fixtures__/parent/RELEASE.md', 'utf8');
+  const collapse = (text: string): string => text.replace(/\s+/g, ' ').trim();
+  function parentSection(number: string): string {
+    const start = parent.search(new RegExp(`^## ${number}\\. `, 'm'));
+    expect(start, `no §${number} in the parent`).toBeGreaterThanOrEqual(0);
+    const rest = parent.slice(start + 3);
+    const end = rest.search(/^## /m);
+    return `## ${end === -1 ? rest : rest.slice(0, end)}`;
+  }
+
   it('holds no per-release section, only §1–§5 and §10', () => {
     expect([...release.matchAll(/^## (\d+)\./gm)].map((match) => match[1])).toEqual(['1', '2', '3', '4', '5', '10']);
     expect(release).not.toMatch(/^## \d+\. v\d/m);
   });
 
   it('each record is in its phase folder, under its old heading, and the table names it', () => {
-    expect(RECORDS).toEqual(MOVED.map(([, version]) => version).sort());
+    // A later phase adds its own record: every moved one must exist, the count is not fixed.
+    expect(RECORDS).toEqual(expect.arrayContaining(MOVED.map(([, version]) => version)));
     for (const [number, version] of MOVED) {
       expect(record(version), version).toMatch(new RegExp(`^## ${number}\\. ${version.replace(/\./g, '\\.')} \\(`));
+      expect(collapse(record(version)), `${version} body`).toBe(collapse(parentSection(number)));
       expect(release).toContain(`| §${number} | ${version} | \`docs/sdd/phases/${version}/release.md\` |`);
     }
   });
