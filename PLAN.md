@@ -148,4 +148,15 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.12 | [spec](docs/sdd/phases/v2.12/spec.md) | [plan](docs/sdd/phases/v2.12/plan.md) | [tasks](docs/sdd/phases/v2.12/tasks.md) |
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
 
-The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md). Reference: [glossary](docs/sdd/reference/glossary.md), [revision-history](docs/sdd/reference/revision-history.md), [project-structure](docs/sdd/reference/project-structure.md), [data-model](docs/sdd/reference/data-model.md), [worker-contract](docs/sdd/reference/worker-contract.md), [data-layer](docs/sdd/reference/data-layer.md), [testing](docs/sdd/reference/testing.md), [build-and-deploy](docs/sdd/reference/build-and-deploy.md), [traceability](docs/sdd/reference/traceability.md), [delivery](docs/sdd/reference/delivery.md), [breakdown-inputs](docs/sdd/reference/breakdown-inputs.md).
+The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
+Reference: [glossary](docs/sdd/reference/glossary.md),
+[revision-history](docs/sdd/reference/revision-history.md),
+[project-structure](docs/sdd/reference/project-structure.md),
+[data-model](docs/sdd/reference/data-model.md),
+[worker-contract](docs/sdd/reference/worker-contract.md),
+[data-layer](docs/sdd/reference/data-layer.md),
+[testing](docs/sdd/reference/testing.md),
+[build-and-deploy](docs/sdd/reference/build-and-deploy.md),
+[traceability](docs/sdd/reference/traceability.md),
+[delivery](docs/sdd/reference/delivery.md),
+[breakdown-inputs](docs/sdd/reference/breakdown-inputs.md).

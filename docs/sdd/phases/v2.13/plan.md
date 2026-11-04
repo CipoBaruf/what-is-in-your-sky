@@ -76,10 +76,28 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   An overrun is a session past the nearest-rank 90th percentile of the open phase's ledger lines of the same agent, kind and tier, counting input, cached, cache-write and output tokens, once there are `MIN_BUDGET_SAMPLES` (5); it goes to the task log and the run report.
   A set ceiling stops a `stream-json` session from its assistant messages' usage, outcome `budget`; an `exit-code` agent reports no tokens until it ends, so its ceiling cannot stop it.
 - **D-1088 — How the set gets to the `captures` branch.** (FR-SDD-22, FR-SDD-23; R178.)
-  The branch's root is `docs/screenshots/`'s (`v1-*.png` at the top), plus `diff/` with the last run's side-by-side images and a short README. A task session cannot push, so the branch is made by the first `captures.yml` run on `main` after R178 merges: no branch means the whole set. `manifest.json` has an `all` list beside `screens`, so the globs every capture draws are written once; a unit test or snapshot under `src/` draws nothing.
-  The spec shoots the screens `CAPTURE_SCREENS` names; the job restores the branch's set first, so `captures.test.ts` checks a whole set under `CAPTURES_SET=1` and checks only that `main` tracks no `v1-*` file otherwise. The job summary links the images at the commit that holds them (`/raw/<sha>/diff/…`); a dispatch on another ref commits nothing and points at the artefact. R128's `base` input is gone: the base is the branch.
+  The branch's root is `docs/screenshots/`'s (`v1-*.png` at the top), plus `diff/` with the last run's side-by-side images and a short README.
+  A task session cannot push, so the branch is made by the first `captures.yml` run on `main` after R178 merges: no branch means the whole set.
+  `manifest.json` has an `all` list beside `screens`, so the globs every capture draws are written once; a unit test or snapshot under `src/` draws nothing.
+  The spec shoots the screens `CAPTURE_SCREENS` names; the job restores the branch's set first, so `captures.test.ts` checks a whole set under `CAPTURES_SET=1` and checks only that `main` tracks no `v1-*` file otherwise.
+  The job summary links the images at the commit that holds them (`/raw/<sha>/diff/…`); a dispatch on another ref commits nothing and points at the artefact.
+  R128's `base` input is gone: the base is the branch.
   The README hero's three source captures stay on `main` as README images, in `docs/readme/sources/`. The design captures stay where `docs/DESIGN.md` shows them. The per-task `r<n>-*` files are not the set and stay on `main` until a task moves them.
-- **D-1092 — The prune call and the shared prefix.** (FR-SDD-17, FR-SDD-27, D-1062, D-1071.) `prune-merged-branches.ts` reads merged and open PRs with `gh` and the refs with `git`, plans from the facts alone (`planPrune`) and then acts; a branch whose tip is not its PR's merged head is kept, since it carries commits made after the merge. `sdd-run.ts` calls it at the start of `--wave` (`cli.ts` gains `--no-prune`). The brief's shared part is rules, tool policy, then a fixed gotchas digest, with no task id in it (`<id>` stands for the id in the heading that follows), so the first section is the same bytes for every task. R175's fixtures differ from before by that order, the `<id>` wording, "D-89 below" and the added digest section.
+- **D-1090 — What `check:sdd` lets through, and lists.** (FR-SDD-4, FR-SDD-6, FR-SDD-13; R179.)
+  Closed text is not reworded, so, as D-1081 did for TASKS.md, the rules bind what is written from now on; `--list` prints what they let through.
+  A line over `DOC_LINE_MAX` passes when it is a table row, a task's field line (`tasks.ts` reads a field from one line) or a sentence found verbatim in the split's parent fixture; a phase doc before v2.13 passes `PHASE_DOC_MAX_KB`.
+  An id passes when it resolves, when its base does (`FR-DOME-8c`), when it ends a reserved range (`D-200 to D-203`), or when the line citing it is moved text; `tests/sdd/` cites made-up ids on purpose and is not read.
+  `ids.md` now indexes the MVP plan's `| **D-n** |` rows; a decision is defined once, an amendment (`- **D-8 evidence — …`) is not a second definition.
+- **D-1091 — Titles and traceability.** (FR-SDD-20, FR-SDD-24, D-1069; R179.)
+  `check-trailers.ts` also fails a non-merge commit title over `COMMIT_TITLE_MAX` after `TITLE_BASELINE` (`9833534a`), GitHub's ` (#n)` squash suffix not counted.
+  The traceability ids are D-1069's pattern plus `US-<n>`, read from the titles of tracked tests; the table goes below the moved §12 rows under its own heading.
+  A v2.13-or-later requirement with no test fails `check:sdd` unless an open task's `Satisfies:` names it (FR-SDD-17, -26, -27, -28 are R180's and R181's).
+  `max-lines` is ESLint's, at warn, 600 (21 files today); `eslint.config.js` restates the number and a test holds it equal to `limits.ts`.
+- **D-1092 — The prune call and the shared prefix.** (FR-SDD-17, FR-SDD-27, D-1062, D-1071.)
+  `prune-merged-branches.ts` reads merged and open PRs with `gh` and the refs with `git`, plans from the facts alone (`planPrune`) and then acts; a branch whose tip is not its PR's merged head is kept, since it carries commits made after the merge.
+  `sdd-run.ts` calls it at the start of `--wave` (`cli.ts` gains `--no-prune`).
+  The brief's shared part is rules, tool policy, then a fixed gotchas digest, with no task id in it (`<id>` stands for the id in the heading that follows), so the first section is the same bytes for every task.
+  R175's fixtures differ from before by that order, the `<id>` wording, "D-89 below" and the added digest section.
 
 ---
 

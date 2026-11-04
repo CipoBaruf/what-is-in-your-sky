@@ -4,29 +4,57 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 
 ## e2e and sandbox
 
-- **Run the clock before expecting lazy content.** A paused `page.clock` holds React's Suspense reveal, because React 19 switches from a fallback to content on a timer. Call `page.clock.runFor(1000)` first. Where the chunk may land late, use `expect.poll` with `runFor(200)` inside the predicate, and call `locator.count()` there, not `getAttribute()`, which waits for the element and stalls the poll. *Why:* a one-off `runFor` is a race that passes on one machine and fails on CI (2026-09-05).
-- **Never tick the clock before the coordinates are typed.** The pass search starts from virtual time, so ticking moves every pass id (`25544-1789120094063` becomes `…093995`) and every spec that pins a `data-pass-id` misses. Register the lazy chunk *before* the click instead: `await link.hover()` fires the prefetch and `page.waitForResponse(/\/Settings-[^/]*\.js$/)` is the signal. `performance.getEntriesByType('resource')` returned `[]` and is not one. A clock cannot be rewound (`pauseAt` throws), and `clock.install` a second time drops pending timers. *Why:* R93, 2026-09-24.
+- **Run the clock before expecting lazy content.**
+  A paused `page.clock` holds React's Suspense reveal, because React 19 switches from a fallback to content on a timer.
+  Call `page.clock.runFor(1000)` first.
+  Where the chunk may land late, use `expect.poll` with `runFor(200)` inside the predicate, and call `locator.count()` there, not `getAttribute()`, which waits for the element and stalls the poll.
+  *Why:* a one-off `runFor` is a race that passes on one machine and fails on CI (2026-09-05).
+- **Never tick the clock before the coordinates are typed.**
+  The pass search starts from virtual time, so ticking moves every pass id (`25544-1789120094063` becomes `…093995`) and every spec that pins a `data-pass-id` misses.
+  Register the lazy chunk *before* the click instead: `await link.hover()` fires the prefetch and `page.waitForResponse(/\/Settings-[^/]*\.js$/)` is the signal.
+  `performance.getEntriesByType('resource')` returned `[]` and is not one.
+  A clock cannot be rewound (`pauseAt` throws), and `clock.install` a second time drops pending timers.
+  *Why:* R93, 2026-09-24.
 - **A hash-only `page.goto('/#live?…')` stays in the document**, so `startApp` does not rerun: follow it with `page.reload()`. To go to the live page from a settled home page, set `location.hash` in the page, which keeps the store.
 - **The search window starts at now**, so a pass already under way has a clipped start and a different id than the golden one. Match `[data-pass-id^="25544-"]`.
-- **Seed prefs with `addInitScript`, but only when absent.** The script runs again on every navigation and would overwrite what the app wrote (a snooze, a dismissal, a favourite), so a reload test fails one step after the real cause: `if (localStorage.getItem(key) === null) localStorage.setItem(key, value)`. `page.clock.setFixedTime(t)` before each `goto` does persist and ages a stored expiry. Seeding `locale` and `theme` into `wiys:prefs:v1` beats clicking the toggles. *Why:* R55.
+- **Seed prefs with `addInitScript`, but only when absent.**
+  The script runs again on every navigation and would overwrite what the app wrote (a snooze, a dismissal, a favourite), so a reload test fails one step after the real cause: `if (localStorage.getItem(key) === null) localStorage.setItem(key, value)`.
+  `page.clock.setFixedTime(t)` before each `goto` does persist and ages a stored expiry.
+  Seeding `locale` and `theme` into `wiys:prefs:v1` beats clicking the toggles.
+  *Why:* R55.
 - **Chrome fires one `deviceorientation` event with null alpha, beta and gamma on a sensorless runner**, about 50 ms after the listener is added. It never reproduces on the Mac. Stub it with a capturing listener that calls `stopImmediatePropagation()` on trusted events; the test's own `window.dispatchEvent` readings are untrusted and pass.
 - **A `@container` query never matches the container element itself.** Give the queried element a wrapper that carries `container-type`.
-- **`user-event` hangs under Vitest fake timers.** `user.type` and `user.click` never resolve once `setTimeout` is faked, because testing-library's `asyncWrapper` waits on a real timer and only advances Jest's fake ones. Fake only `setTimeout` and `clearTimeout`, and drive the DOM with `fireEvent` inside `act(async () => { await vi.advanceTimersByTimeAsync(ms) })`; use `user-event` with real timers for everything else (`PlacePicker.test.tsx` is the model).
+- **`user-event` hangs under Vitest fake timers.**
+  `user.type` and `user.click` never resolve once `setTimeout` is faked, because testing-library's `asyncWrapper` waits on a real timer and only advances Jest's fake ones.
+  Fake only `setTimeout` and `clearTimeout`, and drive the DOM with `fireEvent` inside `act(async () => { await vi.advanceTimersByTimeAsync(ms) })`; use `user-event` with real timers for everything else (`PlacePicker.test.tsx` is the model).
 - **A plain local build fails the lore specs.** CI builds with `VITE_MOON_LORE=on`; `npm run e2e` does too. A bare `npm run build` plus `playwright test` leaves `moon.spec.ts` and both `moon-captures.spec.ts` cases red on the missing tradition line, which is not a regression. `npm run e2e -- <spec>` rebuilds with the flag and runs one spec.
 - **A full `npm run e2e` rewrites committed captures.** Roughly 60 files under `docs/screenshots/r32..r77-*`, pictures of old layouts whose diff says nothing. Restore them from `git diff --name-only -- docs/screenshots` with `git show HEAD:<path>`, and add only the task's own files.
 - **Wait for a settled page before a capture.** `[aria-busy="true"]` at count 0 (the search is done), `getByTestId('readiness')` visible (the finished run has been *stored*, a beat later), and one capture per test (`clock.install` works once per page and init scripts accumulate).
 - **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test, and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
-- **Headless driver sessions refuse some shell shapes**: `VAR=1 cmd` and `env X=1 cmd`, `rm`, `git checkout`/`restore`/`worktree`, redirects outside the worktree, `for` loops over a variable, `$?`, a `-m` body with a newline then `#`, and `.claude/` edits (an unanswerable prompt). Work round them with a `.cjs` or `node -e` that sets `process.env` and uses `child_process.execFileSync`, `fs.cpSync` and `fs.writeFileSync`, and with a wrapper config under `sdd-run/` (see *captures*). Check `git status --short` after a batch: a refused commit is easy to miss.
+- **Headless driver sessions refuse some shell shapes**: `VAR=1 cmd` and `env X=1 cmd`, `rm`, `git checkout`/`restore`/`worktree`, redirects outside the worktree, `for` loops over a variable, `$?`, a `-m` body with a newline then `#`, and `.claude/` edits (an unanswerable prompt).
+  Work round them with a `.cjs` or `node -e` that sets `process.env` and uses `child_process.execFileSync`, `fs.cpSync` and `fs.writeFileSync`, and with a wrapper config under `sdd-run/` (see *captures*).
+  Check `git status --short` after a batch: a refused commit is easy to miss.
 - **Do not run prettier here.** There is no config, and it rewrites the files to double quotes and 80 columns.
 - **Lint after the last edit.** `eslint .` also lints `sdd-run/` and `node_modules/.cache/`, and `consistent-type-definitions` fails on a `type X = {}` inside a function. CI catches it 34 s in.
 - **A task session cannot add npm dependencies.** There is no network and every session runs `npm ci`; the owner installs the package first.
 
 ## captures
 
-- **The set is on the orphan `captures` branch, not on `main`** (R178, D-1068). `docs/screenshots/v1-*.png` is gitignored; a local run writes there and nothing is committed. For a base, `git show origin/captures:<file>`. `CAPTURE_SCREENS=a,b` in the wrapper config shoots only those screens; `node scripts/ci-affected.ts --captures origin/main` says which ones a branch reaches. Compare by pixels with `npx tsx scripts/captures/diff.ts <base-dir> <branch-dir> --out <dir>` and look only at the side-by-side images it writes. The README hero's three captures are copies in `docs/readme/sources/`.
-- **A Mac shot against the Linux set differs everywhere.** Text anti-aliasing moves 1.7–5 % of the pixels on a screen that has not changed (R178 measured it on `settings` and `favourites`), so `CAPTURE_DIFF_SHARE` only means something between two shots from the same platform. Two runs on the Mac were all under it. For a local before-and-after, shoot both on this machine (the parent-baseline recipe below).
+- **The set is on the orphan `captures` branch, not on `main`** (R178, D-1068).
+  `docs/screenshots/v1-*.png` is gitignored; a local run writes there and nothing is committed.
+  For a base, `git show origin/captures:<file>`.
+  `CAPTURE_SCREENS=a,b` in the wrapper config shoots only those screens; `node scripts/ci-affected.ts --captures origin/main` says which ones a branch reaches.
+  Compare by pixels with `npx tsx scripts/captures/diff.ts <base-dir> <branch-dir> --out <dir>` and look only at the side-by-side images it writes.
+  The README hero's three captures are copies in `docs/readme/sources/`.
+- **A Mac shot against the Linux set differs everywhere.**
+  Text anti-aliasing moves 1.7–5 % of the pixels on a screen that has not changed (R178 measured it on `settings` and `favourites`), so `CAPTURE_DIFF_SHARE` only means something between two shots from the same platform.
+  Two runs on the Mac were all under it.
+  For a local before-and-after, shoot both on this machine (the parent-baseline recipe below).
 - **Pick the wrapper's own `E2E_PORT`.** A peer session's preview server can hold 4174; set `process.env.E2E_PORT` in the wrapper before the dynamic import.
-- **Run the capture set through a wrapper config in `sdd-run/`.** It sets `process.env.CAPTURES = '1'`, loads the base config with a dynamic `await import('../playwright.config')` *after* that (a static import reads the env too early and gates every `*-captures.spec.ts` out: "No tests found"), spreads it, and re-points both `testDir` and `webServer.cwd` at the repo root, since Playwright resolves them against the config file. It is loaded as ESM, so derive the root from `fileURLToPath(import.meta.url)`, and keep it out of `node_modules` (tsx will not strip types there). *Why:* a `VAR=1` prefix is refused headless, and the web server otherwise serves `sdd-run/`.
+- **Run the capture set through a wrapper config in `sdd-run/`.**
+  It sets `process.env.CAPTURES = '1'`, loads the base config with a dynamic `await import('../playwright.config')` *after* that (a static import reads the env too early and gates every `*-captures.spec.ts` out: "No tests found"), spreads it, and re-points both `testDir` and `webServer.cwd` at the repo root, since Playwright resolves them against the config file.
+  It is loaded as ESM, so derive the root from `fileURLToPath(import.meta.url)`, and keep it out of `node_modules` (tsx will not strip types there).
+  *Why:* a `VAR=1` prefix is refused headless, and the web server otherwise serves `sdd-run/`.
 - **Shoot on a plain `npm run build`.** The e2e build carries the lore flag, so every `v1-home-*` and `v1-favourites-*` file differs by the lore line (D-179). That looks like a regression and is not.
 - **Expect only F-99's files to differ.** On a plain build about 22 live-clock and legend-edge files differ and about 232 are byte-identical. Diff each changed file against `git show HEAD:<path>` with `pngjs`: F-99 noise is at most 15 px at a channel delta of 2, a real move shows as a box (a 105 × 40 box at 390 px) or a page shift.
 - **The set is not byte-stable on the Mac.** Two runs off one commit differ by sub-pixel anti-aliasing on a few live, legend and polar files, even on main's spec, and software compositing does not help. FR-CAP-5 is stated over `captures.yml` on Linux, and its two workflow runs are the reading of record. Do not spend a session chasing it locally.
@@ -42,8 +70,14 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **"Rebase onto origin/main conflicted" can mean unstaged files**, such as captures a full e2e run rewrote. Restore them, then rebase by hand. A real conflict in `src/i18n` is resolved by porting main's keys into `src/i18n/<lang>/<lane>.ts` and refreshing the key snapshot with `npx vitest run src/i18n/messages.test.ts -u`.
 - **Decision numbers collide across a wave.** Parallel tasks branch from one `origin/main` and take the same next `D-n`. Renumber before merging; check `git diff origin/main -- PLAN.md` for added `- **D-` lines on every open branch. Conflicts in `PLAN.md` and `TASKS.md` are usually additive: keep both sides in order.
 - **A dirty tree mid-task is not always yours.** The owner's session may commit into a running task's branch or leave a file unstaged. Do not revert it and do not leave it dirty (the rebase needs a clean tree): commit it separately and say where it came from.
-- **Launch the driver as a `run_in_background` Bash job**, `npm run -s sdd -- --wave > sdd-run/<name>.log 2>&1`, with a separate re-armable `Monitor` on `tail -n +1 -F` of the log (a Monitor is capped at 30 minutes). Never `nohup … & disown`, which the classifier blocks. **`TaskStop` on the driver's id kills the driver and every `claude -p` child in its process group**; stopping the log Monitor is safe. Read the id against the ids you created, and the returned `command` field, before stopping anything.
-- **A dead driver orphans its sessions.** The children keep running with no clock and nowhere to write, and finish with nothing pushed. Recovery: rebase the worktree onto `origin/main` by hand, `git push -u`, open the PR with `Gate:` as the body's first line followed by `sdd-run/<id>.summary.md`, watch the checks, then run the review by hand (`SDD_HEADLESS=1 claude -p` with the driver's review prompt and `REVIEW_TOOLS`/`DENIED_TOOLS` from `scripts/sdd/session.ts`) and post it with `gh pr comment`. Stopping the driver in its first seconds leaves the worktrees and branches it just made; remove both before a relaunch.
+- **Launch the driver as a `run_in_background` Bash job**, `npm run -s sdd -- --wave > sdd-run/<name>.log 2>&1`, with a separate re-armable `Monitor` on `tail -n +1 -F` of the log (a Monitor is capped at 30 minutes).
+  Never `nohup … & disown`, which the classifier blocks.
+  **`TaskStop` on the driver's id kills the driver and every `claude -p` child in its process group**; stopping the log Monitor is safe.
+  Read the id against the ids you created, and the returned `command` field, before stopping anything.
+- **A dead driver orphans its sessions.**
+  The children keep running with no clock and nowhere to write, and finish with nothing pushed.
+  Recovery: rebase the worktree onto `origin/main` by hand, `git push -u`, open the PR with `Gate:` as the body's first line followed by `sdd-run/<id>.summary.md`, watch the checks, then run the review by hand (`SDD_HEADLESS=1 claude -p` with the driver's review prompt and `REVIEW_TOOLS`/`DENIED_TOOLS` from `scripts/sdd/session.ts`) and post it with `gh pr comment`.
+  Stopping the driver in its first seconds leaves the worktrees and branches it just made; remove both before a relaunch.
 - **Limits.** Since D-835 (PR #198) the driver sleeps to `resetsAt` plus 2 minutes and reruns the stage in the same worktree (at most 3 waits a stage, 6 h each); `--no-wait` is the old stop. Several parallel opus and fable sessions can spend a five-hour window in about 80 minutes. A session's first quarter hour is reading, and a limit throws that away: commit early.
 - **Gate `auto` still gets review findings.** The opus review returns findings and the driver then leaves the PR open. What worked: an opus session in the task worktree fixes `sdd-run/<id>.review.json` and pushes, then CI is watched, cancelled shards rerun and the PR merged with `--match-head-commit`. A force-push is refused by the classifier: merge `main` into a published branch instead.
 - **Cloudflare's preview build counts as CI.** `watchChecks` reads every check, so a failed "Workers Builds: in-your-sky" scores the task `failed — CI is red` and skips the review even with every GitHub job green. "Retry build" in the dashboard does not update the GitHub check. Run the review by hand, post it and label the PR `needs-owner`; `main` has no branch protection.
@@ -69,9 +103,15 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 *Until the renderer phase replaces it.* Version 0.1.6; re-check all of this on an upgrade.
 
 - **It is Z-up.** The dome flips to x south, y east, z up, and `rotY = 360 − facing azimuth`. Only `charMode="braille"` with single-stroke grid lines reads at 60 × 30. There is no interior camera.
-- **The CSP breaks two things.** `useColors` writes inline styles, and `GlyphScene` injects a `<style>`; both are blocked, so the base rules are copied into `SkyDome.module.css`. `injectGlyphBaseStyles` skips itself when `document.getElementById('glyph-styles')` exists, so `SkyDome` renders `<span id="glyph-styles" hidden />` before the scene. Without it every mount reports a `style-src-elem inline` violation.
+- **The CSP breaks two things.**
+  `useColors` writes inline styles, and `GlyphScene` injects a `<style>`; both are blocked, so the base rules are copied into `SkyDome.module.css`.
+  `injectGlyphBaseStyles` skips itself when `document.getElementById('glyph-styles')` exists, so `SkyDome` renders `<span id="glyph-styles" hidden />` before the scene.
+  Without it every mount reports a `style-src-elem inline` violation.
 - **`GlyphOrbitControls` is unusable**: it clamps pitch at ±90° only, and the binding exposes neither the handle nor `change` events. The dome keeps `{ facingAzDeg, tiltDeg }` in React state, passes `rotY`, `rotX` and `zoom` to `GlyphOrthographicCamera`, and handles the drag itself (4 px per degree, folded into a frame).
-- **The raster needs our braille font.** The page's monospace faces lack braille, so cells came from a fallback with a wider advance. `dome/wiys-braille.otf` (braille, space and M at 0.6 em) is generated by `scripts/build-braille-font.ts`. glyphcss measures its cell once at mount, from twenty lines of `M`, so mount the scene only after `document.fonts.load` and the first `ResizeObserver` measurement, and remount (`key`) when the cell changes. Before that the dome drew 8 % small against its labels.
+- **The raster needs our braille font.**
+  The page's monospace faces lack braille, so cells came from a fallback with a wider advance.
+  `dome/wiys-braille.otf` (braille, space and M at 0.6 em) is generated by `scripts/build-braille-font.ts`. glyphcss measures its cell once at mount, from twenty lines of `M`, so mount the scene only after `document.fonts.load` and the first `ResizeObserver` measurement, and remount (`key`) when the cell changes.
+  Before that the dome drew 8 % small against its labels.
 - **Linux Chromium rounds glyph advances to whole pixels** and macOS does not, so a font size derived from an advance ratio renders a wider row on CI. `camera.fitLayout` measures a real 60-cell row at the candidate size and steps down until it fits. E2e text-width assertions must allow a narrower row.
 - **In jsdom the cell probe measures zeros.** The snapshot test stubs the rect to 6.5 × 260 px (and the `<pre>` to 390 × 390) so the committed raster equals the phone's. Regenerate that snapshot deliberately on an upgrade. `React.lazy` views make RTL renders asynchronous once: a `beforeAll` that renders and awaits `[data-drawing]` keeps the rest of the file synchronous.
 - **Raster facts (D-818).** A one-vertex polygon draws nothing; two or three vertices at one place are one edge (deduped by endpoints). A dot on a grid dot adds nothing, so place hand-scene bodies off the 30° and 60° rings, the eight meridians, the horizon and the zenith crowd.
@@ -79,6 +119,10 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 
 ## the dome-perf method
 
-- **Measure `tests/e2e/dome-perf.spec.ts` (`DOME_PERF=1`, 6× CPU throttle) against a scratch parent build, one measurement at a time.** Any other CPU work, a build or Vitest, skews it. A scratch build is made from `git ls-tree` plus `git show` of a sha (and an optional patch) into `node_modules/.cache/<name>/`, then `node node_modules/vite/bin/vite.js build <dir>`. A wrapper config under `sdd-run/` sets `process.env.DOME_PERF = '1'`, an absolute `testDir`, and a `webServer` of `vite.js preview <dir> --port <p>`. Headless sessions cannot prefix `DOME_PERF=1`, so use the wrapper or `node -e "process.env.DOME_PERF='1'; require('child_process').execSync('npx playwright test dome-perf …', {stdio:'inherit'})"`.
+- **Measure `tests/e2e/dome-perf.spec.ts` (`DOME_PERF=1`, 6× CPU throttle) against a scratch parent build, one measurement at a time.**
+  Any other CPU work, a build or Vitest, skews it.
+  A scratch build is made from `git ls-tree` plus `git show` of a sha (and an optional patch) into `node_modules/.cache/<name>/`, then `node node_modules/vite/bin/vite.js build <dir>`.
+  A wrapper config under `sdd-run/` sets `process.env.DOME_PERF = '1'`, an absolute `testDir`, and a `webServer` of `vite.js preview <dir> --port <p>`.
+  Headless sessions cannot prefix `DOME_PERF=1`, so use the wrapper or `node -e "process.env.DOME_PERF='1'; require('child_process').execSync('npx playwright test dome-perf …', {stdio:'inherit'})"`.
 - **Report the best of three drags (D-817).** Drag-to-drag swing on one build is about 20 % and one-sided, since interference only slows, so the best varies by under 1 per second where the median fails an honest build one run in three. Reference at `ece8bfd`: 59.4 per second at 390 px and 53.1 at 1280 px (Apple silicon).
 - **Compare against the parent, not a number from memory.** The constants move with the machine and the throttle; the task's gate is the branch against its parent measured in the same sitting.

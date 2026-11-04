@@ -21,7 +21,8 @@ interface Kind {
 
 /**
  * The defining line of each kind, the same lines the brief reads (FR-SDD-7): a bold bullet for a
- * requirement, a goal and a decision, a bold line for a story, a table row whose first or second
+ * requirement, a goal and a decision (or, in the MVP plan's table, a row whose first cell is a bold
+ * decision id, R179), a bold line for a story, a table row whose first or second
  * cell is the id for a finding, an open question and a decision-log row, a checkbox for a task.
  */
 export const KINDS: readonly Kind[] = [
@@ -29,7 +30,7 @@ export const KINDS: readonly Kind[] = [
   { name: 'G', origin: 'SPEC', define: /^- \*\*(G\d+)\./ },
   { name: 'US', origin: 'SPEC', define: /^\*\*(US-\d+)\s/ },
   { name: 'row', origin: 'SPEC', define: /^\|(?:[^|]*\|)? ((?:F|OQ|V\d+)-\d+[a-z]?)(?=\s|\|)/ },
-  { name: 'D', origin: 'PLAN', define: /^- \*\*(D-\d+)(?=\*\*|\s)/ },
+  { name: 'D', origin: 'PLAN', define: /^(?:- \*\*|\| \*\*)(D-\d+)(?=\*\*|\s)/ },
   { name: 'task', origin: 'TASKS', define: /^- \[[ xX]\] \*\*([A-Z][A-Z0-9]*)(?=\s|\*)/ },
 ];
 

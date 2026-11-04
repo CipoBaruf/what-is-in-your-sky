@@ -4,7 +4,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ledgerEntry, type LedgerEntry } from '../../scripts/sdd/ledger';
-import { checksRun, closedIds, prBody, PR_BODY_MAX_KB, tokens, usageLine, whatChanged } from '../../scripts/sdd/report';
+import { PR_BODY_MAX_KB } from '../../scripts/sdd/limits';
+import { checksRun, closedIds, prBody, tokens, usageLine, whatChanged } from '../../scripts/sdd/report';
 
 const session = (kind: LedgerEntry['kind'], outcome = 'ok'): LedgerEntry =>
   ledgerEntry({

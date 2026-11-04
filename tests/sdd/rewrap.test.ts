@@ -3,7 +3,8 @@
  * takes a block back to the lines it was, which is what keeps the briefs byte for byte.
  */
 import { describe, expect, it } from 'vitest';
-import { DOC_LINE_MAX, breakPoints, collapse, itemTextColumn, rewrap, rewrapBlocks, rewrapLine, unwrap } from '../../scripts/sdd/rewrap';
+import { DOC_LINE_MAX } from '../../scripts/sdd/limits';
+import { breakPoints, collapse, itemTextColumn, rewrap, rewrapBlocks, rewrapLine, unwrap } from '../../scripts/sdd/rewrap';
 
 describe('FR-SDD-4: rewrapLine', () => {
   it('breaks after a terminator plus one space when a capital, `*`, a backtick or `(` follows', () => {

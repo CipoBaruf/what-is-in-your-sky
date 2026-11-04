@@ -266,6 +266,7 @@ jobs:
   # and it never looks at the commits before `BASELINE`: the trailers already
   # on `main` are reported by FR-PUB-7 and are the owner's to decide about, and
   # a check that went red on them could only ever be made green by a rewrite.
+  # FR-SDD-20 (R179): the same script fails a commit title over COMMIT_TITLE_MAX after TITLE_BASELINE.
   trailers:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -286,6 +287,30 @@ jobs:
         if: failure()
         with:
           name: reports-trailers
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # R179 (FR-SDD-4, FR-SDD-6, FR-SDD-13, FR-SDD-24, US-51 AC7; D-1069): the rules of the `docs/sdd/`
+  # layout. No `if:`, so it runs on every pull request, a docs-only one included (FR-SDD-25): a
+  # docs change is what breaks a long line, a stale `ids.md` or an id that does not resolve.
+  sdd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # `shell: bash` for `pipefail`, as in `trailers`.
+      - run: mkdir -p reports && npm run -s check:sdd 2>&1 | tee reports/sdd.txt
+        shell: bash
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-sdd
           path: reports/
           retention-days: 7
           if-no-files-found: ignore
@@ -325,7 +350,7 @@ jobs:
   # at most FAILURE_DIGEST_MAX_KB, as the `failure-digest` artifact and in this job's summary.
   # Node runs `ci-digest.ts` as it is, so there is no `npm ci`.
   digest:
-    needs: [changes, build, ci, trailers, dead-code]
+    needs: [changes, build, ci, trailers, sdd, dead-code]
     if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 5

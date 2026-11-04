@@ -288,7 +288,7 @@ const rows = (t: Messages): readonly Row[] => [
   { name: 'the next-event path (FR-FIRST-3)', element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByTestId('next-event-path') },
   { name: 'the next-event live link (FR-LIVE-1)', element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByTestId('now-live-link') },
   { name: 'the sort row (US-5 AC2 as amended)', element: createElement(SortToggle, { value: 'chronological', onChange: noop }), find: () => screen.getByRole('group', { name: t.passes.sortGroup }) },
-  { name: 'the chart view control (FR-CHART-1)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
+  { name: 'the chart view control (FR-COMP-4)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
   // R145 (FR-TONIGHT-6): the playback row is wide's alone (the compact page plays from `TimeTaps`, pinned below), so it has no compact row here.
   { name: 'the hidden-objects toggle (FR-LIVE-6)', element: createElement(HiddenToggle, { hidden: false, onToggle: noop }), find: () => screen.getByTestId('live-hidden-toggle') },
   {

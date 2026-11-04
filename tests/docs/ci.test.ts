@@ -210,7 +210,7 @@ describe('the tests a change reaches (D-1031)', () => {
 });
 
 /** D-1067 (FR-SDD-16, FR-SDD-25): CI does less, and a failure leaves a digest. */
-describe('CI does less (D-1067)', () => {
+describe('FR-SDD-25: CI does less (D-1067)', () => {
   const job = (name: string): string => {
     const start = ci.indexOf(`\n  ${name}:\n`);
     const next = ci.slice(start + 1).search(/\n {2}[a-z-]+:\n/);
@@ -254,12 +254,12 @@ describe('CI does less (D-1067)', () => {
 
   it('writes the failure digest when anything failed, from the reports every job leaves', () => {
     const digest = job('digest');
-    expect(digest).toContain('needs: [changes, build, ci, trailers, dead-code]');
+    expect(digest).toContain('needs: [changes, build, ci, trailers, sdd, dead-code]');
     expect(digest).toMatch(/if: failure\(\)/);
     expect(digest).toContain('node scripts/ci-digest.ts reports failure-digest.md');
     expect(digest).toContain('NEEDS: ${{ toJSON(needs) }}');
     expect(digest).toContain('name: failure-digest');
-    for (const report of ['reports/typecheck.txt', 'reports/eslint.json', 'reports/vitest.json', 'reports/playwright-${{ matrix.shard }}.json', 'reports/build.txt', 'reports/trailers.txt', 'reports/dead-code.txt']) {
+    for (const report of ['reports/typecheck.txt', 'reports/eslint.json', 'reports/vitest.json', 'reports/playwright-${{ matrix.shard }}.json', 'reports/build.txt', 'reports/trailers.txt', 'reports/sdd.txt', 'reports/dead-code.txt']) {
       expect(ci, report).toContain(report);
     }
   });
