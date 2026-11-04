@@ -67,9 +67,37 @@ const stop = (page: Page): Promise<Sample> => page.evaluate(() => window.__globe
 /** The dot paths' total length: the faint stars are appended to them (FR-GLOBE-10), no node added. */
 const dotLength = (page: Page): Promise<number> => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-dots] path')].reduce((sum, path) => sum + (path.getAttribute('d')?.length ?? 0), 0));
 
-async function prepare(page: Page, faint: boolean): Promise<void> {
+/**
+ * R184 (FR-WIDE-11, D-1114): three passes over the page's instant, the second highlighted, put where `SkyGlobe`'s
+ * harness reads them before the page loads — east to west through Neuquén's southern sky, so the opening view draws them,
+ * with the ticks and the arrow. Built in the page from its own clock (the fixed suite night).
+ */
+function installPasses(): void {
+  // Read on the globe's first render, after `openStarsPage`'s own init script has fixed the clock.
+  let made: unknown = null;
+  Object.defineProperty(window, '__globeHarness', {
+    get() {
+      if (made !== null) return made;
+      const now = Date.now();
+      const passes = [0, 1, 2].map((k) => {
+        const start = now - 60_000 * (k + 1);
+        const track = Array.from({ length: 37 }, (_, i) => ({ t: start + i * 10_000, azDeg: 110 + 140 * (i / 36) + k * 12, elDeg: 25 + 55 * Math.sin((Math.PI * i) / 36) - k * 8, rangeKm: 900 }));
+        return { id: `perf-${String(k)}`, name: `PERF ${String(k)}`, track, start: track[0], peak: track[18], end: track[36] };
+      });
+      made = { passes, highlightedPassId: 'perf-1' };
+      return made;
+    },
+  });
+}
+
+async function prepare(page: Page, faint: boolean, arcs = false): Promise<void> {
+  if (arcs) await page.addInitScript(installPasses);
   await openStarsPage(page);
   await showGlobe(page);
+  if (arcs) {
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-arc-series]')].filter((path) => (path.getAttribute('d') ?? '') !== '').length)).toBe(3);
+    await expect(page.locator('[data-globe] [data-arc-ticks]')).not.toHaveAttribute('d', '');
+  }
   for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
   if (faint) {
     const before = await dotLength(page);
@@ -149,4 +177,33 @@ for (const viewport of DESKS) {
       });
     });
   }
+
+  // R184 (FR-WIDE-11, D-1114): the same drag with three arcs, the highlighted one's ticks and arrow, and the planets' discs, the faint stars on.
+  test.describe(`at ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on`, () => {
+    test.use({ viewport });
+
+    test('a drag with the arcs on, best of three, draws at ≥ 30 updates/s under a 4x CPU throttle (FR-WIDE-11)', async ({ page }) => {
+      await prepare(page, true, true);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
+      const samples: Sample[] = [];
+      for (let i = 0; i < DRAGS; i += 1) samples.push(await drag(page));
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+      const best = samples.reduce((a, b) => (b.updatesPerSecond > a.updatesPerSecond ? b : a));
+      console.log(`[FR-WIDE-11] drag ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on, ${String(THROTTLE)}x CPU: best of ${String(DRAGS)} ${line(best)} (runs ${samples.map((s) => s.updatesPerSecond.toFixed(1)).join(', ')})`);
+      expect(best.updatesPerSecond).toBeGreaterThanOrEqual(TARGET_PER_SECOND);
+    });
+
+    test('the ×3600 time-lapse with the arcs on draws at ≥ 30 updates/s under a 4x CPU throttle (FR-WIDE-11)', async ({ page }) => {
+      await prepare(page, true, true);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
+      const sample = await lapse(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await cdp.detach();
+      console.log(`[FR-WIDE-11] ×3600 ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on, ${String(THROTTLE)}x CPU: ${line(sample)}`);
+      expect(sample.updatesPerSecond).toBeGreaterThanOrEqual(TARGET_PER_SECOND);
+    });
+  });
 }

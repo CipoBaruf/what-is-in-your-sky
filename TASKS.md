@@ -93,7 +93,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `orbitHeight.test.ts` against a fixed OMM; `cloudBand.test.ts`: bands and runs for a fixed forecast, the gap.
     - `npm run check` green; the golden fixtures pass untouched.
 
-- [ ] **R184 — The globe takes the passes and the planets: arcs in legend colours with ticks and an arrow, the hover hit test, planet discs and labels**
+- [x] **R184 — The globe takes the passes and the planets: arcs in legend colours with ticks and an arrow, the hover hit test, planet discs and labels**
   - **Lane:** chart
   - **Tier:** hard
   - **Turns:** 500
@@ -113,6 +113,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `SkyGlobe.test.tsx`: three passes draw three arc paths in the legend tokens; the node count stays under `GLOBE_MAX_NODES`; with names off five planet labels and no star label.
     - `globe-perf.spec.ts` on the stars page with three passes fed by a test harness holds ≥ 30 updates/s at 1280 × 800 and 1920 × 1080, CPU 4×, best of three.
     - `contrast.ts` green with the new tokens in every theme; `npm run bundle:budget` with `globe` inside `SKY_GLOBE_KB`; `npm run check` green.
+  - *Done note:* the tests that pinned the old look moved too (`GlobeRenderer.test.ts`, `dome/palette.test.tsx`, `tests/styles/tokens.test.ts`) and `docs/DESIGN.md` was regenerated; the perf harness is `window.__globeHarness` (D-1114); `globe` is 15.9 KB, +2.1 inside `SKY_GLOBE_KB` and an accepted overrun of its 15 KB row (D-1115).
 
 ### Wave 2
 
@@ -128,6 +129,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Satisfies:** FR-WIDE-7 (the window), FR-NAME-2, FR-NAME-3 (the window).
   - **Scope:** `skychart/window/**` — ticks and arrow from `globe/arcs.ts`'s helpers, the hover hit test and an `onPassHover` prop, planet discs on wide; `window/starLabels.ts` places designation names after the proper names; the "is labelled" rule as one predicate in `src/lib/skyStars.ts` (a proper name, or `desig` and `mag < BAYER_LABEL_MAG`) read by every label and list.
   - **Touches outside the lane:** `src/lib/skyStars.ts` (the predicate).
+  - **Note (from R184):** the globe pads the planets' name boxes 14 / 12 because `starLabels.ts` measures every label at the star names' size; give `starLabels` a per-label size and the globe can drop the padding (D-1113).
   - **Deletes:** none.
   - **Captures:** none added; files showing a bright unnamed star move by its label.
   - **Out of scope:** the window's mounting in the new shell (R186); the facts on a pick (R188).
@@ -148,6 +150,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Satisfies:** FR-WIDE-1, FR-WIDE-2, FR-WIDE-3 (mounted), FR-WIDE-5, FR-WIDE-6, FR-WIDE-11 (the live page's rate); US-52 AC1–AC3, AC5–AC7.
   - **Scope (D-1098, D-1095):** `components/sky/SkyViewLayout` gains the wide `SLOT_ORDER` and the four corner slots of the chart (`readout`, `fullscreen` as an empty slot R189 fills, `hint`, `zoom`); each page's rail slots as separate modules under `screens/sky/<page>/` (`Time.tsx` holding today's time control, `Group.tsx` its page group), so R187 and R188 edit different files; `PassDetail` on wide renders the layout in the home's place (list in the `list` slot with the card highlighted, `Esc` / `[ × ]` / `[ home ]` back to the card), `GuidePanel` kept for compact only, `WIDE_SPLIT_MIN_CELLS` and its test removed; the live page's one-row header and hidden footer go on wide; `SkyChart.tsx` mounts the globe for `'globe'` and lazy-loads the dome only when chosen, the globe prefetched on idle on wide; `defaultChartView` removed for `viewFor`; the stars page's `StarsView` state goes.
   - **Touches outside the lane:** `src/ui/screens/Live*` and `components/live/**` (the page shell only; the time control's move is R187's), `skychart/SkyChart.tsx`.
+  - **Note (from R184):** retire `window.__globeHarness` once `globe-perf.spec.ts` measures the live page (D-1114), and move the `globe` budget row in `scripts/bundle-budget.ts` to cover R184's 15.9 KB (D-1115).
   - **Deletes:** the specs and tests that pin the old wide shell or the dome as the wide default — `GuidePanel`'s wide split tests, the wide cases of `home-desk.spec.ts`, `desktop.spec.ts`, `pass-detail.spec.ts`, `live.spec.ts`, `sky-dome.spec.ts` and `dome-*.spec.ts` that assume the dome without choosing it — each rewritten in place to the new shell or to `Dome` chosen, listed in the PR.
   - **Captures:** the manifest gains `sky-live-globe` and `sky-pass-globe` (1280 × 800, Bariloche, the set's instant, the set's languages and themes); the wide dome entries re-shot with `Dome` chosen.
   - **Out of scope:** the shared time control (R187), the facts (R188), the keys and full screen (R189), the other saved choices (R190).

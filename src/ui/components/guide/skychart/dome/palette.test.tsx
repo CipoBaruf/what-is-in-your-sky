@@ -8,7 +8,7 @@ import { act, render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CHART_MARK_TOKENS, CHART_RESERVED_TOKENS, CHART_SURFACE_TOKENS, readTokens, TOKENS_PATH } from '../../../../../../scripts/contrast';
+import { CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_RESERVED_TOKENS, CHART_SURFACE_TOKENS, readTokens, TOKENS_PATH } from '../../../../../../scripts/contrast';
 import { CHART_TOKENS, MEANINGS, readPalette, useDomePalette, type DomeMeaning } from './palette';
 
 const source = readFileSync('src/ui/components/guide/skychart/dome/palette.ts', 'utf8');
@@ -44,7 +44,9 @@ describe('dome palette', () => {
     const reserved = new Set<string>(CHART_RESERVED_TOKENS.filter((name) => !drawn.has(name)));
     for (const name of drawn) expect(CHART_RESERVED_TOKENS, `${name} is one of FR-DS-8's`).toContain(name);
     expect([...reserved].sort()).toEqual(['chart-figure', 'chart-star-dim', 'chart-star-faint']);
-    const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
+    // R184 (D-1104): the desk's planet and cloud marks are the globe's, the window's and the stripe's, never the dome's.
+    const desk = new Set<string>(CHART_DESK_TOKENS);
+    const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name) && !desk.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
     expect([...MEANINGS].map((meaning) => CHART_TOKENS[meaning]).sort()).toEqual(declared);
     expect(CHART_TOKENS.star).toBe('--chart-star');
     expect(CHART_TOKENS.planet).toBe('--chart-planet');

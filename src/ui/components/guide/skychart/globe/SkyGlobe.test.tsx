@@ -2,12 +2,13 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { loadDeepChunk, parseDeepCatalog } from '../../../../../data/stars/deepChunk';
-import type { Observer } from '../../../../../model';
+import { legendRows } from '../../../../../lib/legend';
+import type { Observer, Pass, PassPoint } from '../../../../../model';
 import { formatStarMag, STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
-import { GLOBE_KEY_STEP_DEG, GLOBE_RADIUS_SHARE, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
+import { GLOBE_KEY_STEP_DEG, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { readoutLine } from './GlobeRenderer';
-import SkyGlobe, { type SkyGlobeProps } from './SkyGlobe';
+import SkyGlobe, { type GlobePick, type SkyGlobeProps } from './SkyGlobe';
 
 /**
  * R169 (FR-GLOBE-5, FR-GLOBE-6, FR-GLOBE-9, FR-GLOBE-10, FR-GLOBE-11; PLAN
@@ -499,5 +500,105 @@ describe('the faint stars (FR-GLOBE-10)', () => {
     });
     frames.frame();
     expect(dotLength(container)).toBeGreaterThan(before);
+  });
+});
+
+/** R184 (FR-WIDE-3, FR-WIDE-7, FR-NAME-3; D-1099): three live passes over Buenos Aires's southern sky at `T`. */
+function testPass(k: number): Pass {
+  const start = T - 60_000 * (k + 1);
+  const track: PassPoint[] = Array.from({ length: 37 }, (_, i) => ({ t: start + i * 10_000, azDeg: 110 + 140 * (i / 36) + k * 8, elDeg: 20 + 40 * Math.sin((Math.PI * i) / 36) + k * 6, rangeKm: 900 }));
+  return { id: `p${String(k)}`, name: `SAT ${String(k)}`, track, start: track[0], peak: track[18], end: track[36] } as unknown as Pass;
+}
+const PASSES = [testPass(0), testPass(1), testPass(2)];
+const arcPaths = (container: Element): SVGPathElement[] => [...container.querySelectorAll<SVGPathElement>('[data-arc-series]')].filter((path) => (path.getAttribute('d') ?? '') !== '');
+
+describe('the passes (FR-WIDE-3, FR-WIDE-7)', () => {
+  it('FR-WIDE-3: three passes draw three arc paths in the legend’s tokens, with their keys, under GLOBE_MAX_NODES', () => {
+    const { container } = mount({ passes: PASSES, t: T });
+    const paths = arcPaths(container);
+    expect(paths).toHaveLength(3);
+    const rows = legendRows({ passes: PASSES.map((pass) => ({ ...pass, arc: 'live' as const })), highlightedPassId: null, now: T, colorBy: 'pass' });
+    for (const row of rows) {
+      const path = paths.find((node) => node.getAttribute('data-pass-ids') === row.passId);
+      expect(path?.getAttribute('data-color'), row.passId).toBe(row.colorToken);
+      expect(path?.getAttribute('data-state')).toBe('live');
+      const key = container.querySelector(`[data-arc-key="${String(path?.getAttribute('data-arc-series'))}"]`);
+      expect(key).toHaveAttribute('visibility', 'visible');
+      expect(key?.textContent).toBe(row.key);
+    }
+    expect(container.querySelectorAll('svg *').length + 1).toBeLessThanOrEqual(GLOBE_MAX_NODES);
+    // No pass highlighted: no ticks, no arrow, nothing dimmed.
+    expect(container.querySelector('[data-arc-ticks]')?.getAttribute('d')).toBe('');
+    expect(container.querySelector('[data-arc-arrow]')?.getAttribute('d')).toBe('');
+  });
+
+  it('FR-WIDE-7: the highlighted pass carries its ticks and arrow in its colour, the others dimmed', () => {
+    const { container } = mount({ passes: PASSES, t: T, highlightedPassId: 'p2' });
+    const ticks = container.querySelector('[data-arc-ticks]');
+    // Three minutes in: ticks at one and two minutes after the rise; the third minute is the marker's own instant, not past it.
+    expect((ticks?.getAttribute('d')?.match(/M/g) ?? []).length).toBe(2);
+    expect(ticks).toHaveAttribute('data-color', 'series-3');
+    expect(container.querySelector('[data-arc-arrow]')?.getAttribute('d')).toMatch(/Z$/);
+    const dims = arcPaths(container).map((path) => [path.getAttribute('data-pass-ids'), path.getAttribute('data-dim')]);
+    expect(dims).toEqual([['p0', 'true'], ['p1', 'true'], ['p2', 'false']]);
+  });
+
+  it('FR-WIDE-7: tells the page which arc is under the mouse at most once a frame, and null on leaving; a tap on an arc picks it', () => {
+    const onPassHover = vi.fn();
+    const onPick = vi.fn();
+    const { container, box } = mount({ passes: PASSES, t: T, onPassHover, onPick });
+    // A point on p1's drawn line: the midpoint of its first segment.
+    const d = arcPaths(container)[1]?.getAttribute('d') ?? '';
+    const [x1, y1, x2, y2] = (/^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/.exec(d) ?? []).slice(1).map(Number) as [number, number, number, number];
+    const x = (x1 + x2) / 2;
+    const y = (y1 + y2) / 2;
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: x + 3, clientY: y });
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: x, clientY: y + 3 });
+    expect(onPassHover).not.toHaveBeenCalled();
+    frames.frame();
+    expect(onPassHover.mock.calls).toEqual([['p1']]);
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: x, clientY: y + 2 });
+    frames.frame();
+    expect(onPassHover).toHaveBeenCalledTimes(1);
+    fireEvent.pointerLeave(box, { pointerId: 3, pointerType: 'mouse' });
+    expect(onPassHover.mock.calls).toEqual([['p1'], [null]]);
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y });
+    fireEvent.pointerUp(box, { pointerId: 1, pointerType: 'touch', clientX: x, clientY: y });
+    const picked = onPick.mock.calls.at(-1)?.[0] as GlobePick | null;
+    // A mark within the hit distance comes first; otherwise the arc.
+    if (picked?.kind !== 'pass') expect(picked).not.toBeNull();
+    else expect(picked).toEqual({ kind: 'pass', passId: 'p1' });
+  });
+
+  it('FR-WIDE-7: an arc that goes from under a still mouse, or a globe unmounted with one hovered, reports null', () => {
+    const onPassHover = vi.fn();
+    const { container, box, rerender, unmount } = mount({ passes: PASSES, t: T, onPassHover });
+    const d = arcPaths(container)[1]?.getAttribute('d') ?? '';
+    const [x1, y1, x2, y2] = (/^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/.exec(d) ?? []).slice(1).map(Number) as [number, number, number, number];
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: (x1 + x2) / 2, clientY: (y1 + y2) / 2 });
+    frames.frame();
+    expect(onPassHover.mock.calls).toEqual([['p1']]);
+    rerender({ passes: [] });
+    frames.frame();
+    frames.frame();
+    expect(onPassHover.mock.calls).toEqual([['p1'], [null]]);
+    rerender({ passes: PASSES });
+    frames.frame();
+    fireEvent.pointerMove(box, { pointerId: 3, pointerType: 'mouse', clientX: (x1 + x2) / 2, clientY: (y1 + y2) / 2 });
+    frames.frame();
+    expect(onPassHover.mock.calls.at(-1)).toEqual(['p1']);
+    unmount();
+    expect(onPassHover.mock.calls.at(-1)).toEqual([null]);
+  });
+});
+
+describe('the planets (FR-NAME-3)', () => {
+  it('with names off, labels the five planets and no star', () => {
+    // London at 01:00 UTC on 2027-04-20: all five planets on the opening view's near side.
+    const { container } = mount({ place: LONDON, instant: Date.parse('2027-04-20T01:00:00Z'), layers: { ...LAYERS, names: false } });
+    const names = [...container.querySelectorAll('[data-names] text[visibility="visible"]')];
+    expect(names.map((node) => node.getAttribute('data-body-name')).sort()).toEqual(['Jupiter', 'Mars', 'Mercury', 'Saturn', 'Venus']);
+    expect(container.querySelectorAll('[data-star-name][visibility="visible"]')).toHaveLength(0);
+    expect(container.querySelectorAll('circle[data-planet][visibility="visible"]')).toHaveLength(5);
   });
 });

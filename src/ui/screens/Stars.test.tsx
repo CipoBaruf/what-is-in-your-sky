@@ -491,7 +491,9 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
     fireEvent.click(viewRow().getByRole('button', { name: 'Globe' }));
     await screen.findByTestId('globe-box', {}, { timeout: 5_000 });
     expect(names()).toHaveAttribute('aria-pressed', 'true');
-    const globeNames = () => screen.getByTestId('stars-sky').querySelectorAll('[data-names] text[visibility="visible"]');
+    // R184 (FR-NAME-3): the planets keep their names with the layer off, so they are not counted here.
+    const planetNames = new Set<string>(['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']);
+    const globeNames = () => [...screen.getByTestId('stars-sky').querySelectorAll('[data-names] text[visibility="visible"]')].filter((node) => !planetNames.has(node.getAttribute('data-body-name') ?? ''));
     await waitFor(() => {
       expect(globeNames().length).toBeGreaterThan(0);
     });

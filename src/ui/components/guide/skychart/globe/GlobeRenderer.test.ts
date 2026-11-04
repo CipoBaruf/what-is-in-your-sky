@@ -7,7 +7,7 @@ import { degrees } from '../../../../../lib/format';
 import { starName } from '../../../../../lib/skyStars';
 import type { Observer } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
-import { GLOBE_DIM_OPACITY, GLOBE_GROUND_OPACITY, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE } from './constants';
+import { GLOBE_DIM_OPACITY, GLOBE_GROUND_OPACITY, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { DOT_STEPS, GlobeRenderer, type GlobeState } from './GlobeRenderer';
 import { openView, project, type Vec3 } from './projection';
 import { altAz, globeSky, starVectors, surfaceAt } from './scene';
@@ -236,7 +236,7 @@ describe('a frame’s attributes (FR-GLOBE-2, FR-GLOBE-13)', () => {
     expect(Number(south.getAttribute('x'))).toBeCloseTo(W / 2, 0);
   });
 
-  it('places the Sun, the Moon with its phase, and the planets as `@` where the sky has them', () => {
+  it('places the Sun, the Moon with its phase, and the planets as discs in their own tokens where the sky has them (FR-NAME-3)', () => {
     const { r } = mount();
     const sky = globeSky(BUENOS_AIRES, T);
     const p = r.projector;
@@ -256,8 +256,10 @@ describe('a frame’s attributes (FR-GLOBE-2, FR-GLOBE-13)', () => {
       const node = q(r, `[data-planet="${planet.body}"]`);
       const [x, , z] = project(p, planet.dir);
       expect(node.getAttribute('visibility')).toBe(z > 0 ? 'visible' : 'hidden');
-      if (z > 0) expect(Number(node.getAttribute('x'))).toBeCloseTo(x, 0);
-      expect(node.textContent).toBe('@');
+      if (z > 0) expect(Number(node.getAttribute('cx'))).toBeCloseTo(x, 0);
+      expect(node.tagName).toBe('circle');
+      expect(node.getAttribute('r')).toBe(String(PLANET_MARK_PX));
+      expect(node.getAttribute('data-tone')).toBe(`chart-planet-${planet.body.toLowerCase()}`);
     }
     r.set({ layers: { stars: true, figures: true, planets: false, names: true } });
     r.draw();
@@ -280,7 +282,10 @@ describe('the names (FR-GLOBE-11, D-1041)', () => {
     expect(bodyNames.length).toBeGreaterThanOrEqual(visiblePlanets);
     r.set({ layers: { stars: true, figures: true, planets: true, names: false } });
     r.draw();
-    expect(r.svg.querySelectorAll('[data-names] text[visibility="visible"]')).toHaveLength(0);
+    // FR-NAME-3 (R184): with the names off, the planets on the near side keep theirs and nothing else is named.
+    const shown = [...r.svg.querySelectorAll<SVGTextElement>('[data-names] text[visibility="visible"]')];
+    expect(shown.map((node) => node.getAttribute('data-body-name')).sort()).toEqual(sky.planets.filter((planet) => project(p, planet.dir)[2] > 0).map((planet) => planet.body).sort());
+    for (const node of shown) expect(node.getAttribute('class')).toContain('planetName');
   });
 
   it('labels the named star beside its mark, in the second language too, and clears it', () => {

@@ -259,6 +259,19 @@
   --chart-series-5: #c8a6ff; /* 9.48 : 1 */
   --chart-series-6: #7fe0d6; /* 12.39 : 1 */
 
+  /* FR-NAME-3, FR-WIDE-8 (R184, D-1104): the desk's marks. Each planet a disc
+     in its own colour on the globe and the window, apart from the stars'
+     tones; the cloud band's three shades under the stripe, some to overcast,
+     greys that rise in lightness (clear is drawn as nothing). */
+  --chart-planet-mercury: #c4b5a5; /* 9.61 : 1 — Mercury, a warm grey */
+  --chart-planet-venus: #f7e7b4; /* 15.60 : 1 — Venus, a pale cream */
+  --chart-planet-mars: #ff8a65; /* 8.31 : 1 — Mars, red-orange */
+  --chart-planet-jupiter: #e9b98c; /* 10.78 : 1 — Jupiter, tan */
+  --chart-planet-saturn: #d9c27a; /* 10.93 : 1 — Saturn, gold */
+  --chart-cloud-1: #626d7a; /* 3.65 : 1 — some cloud */
+  --chart-cloud-2: #8a94a1; /* 6.25 : 1 — mostly cloudy */
+  --chart-cloud-3: #b8c0ca; /* 10.46 : 1 — overcast */
+
   color-scheme: dark;
 }
 
@@ -320,6 +333,16 @@
   --chart-series-4: #ffd0c0; /* 14.71 : 1 */
   --chart-series-5: #ff8c42; /* 8.88 : 1 */
   --chart-series-6: #c8574b; /* 4.81 : 1 */
+
+  /* FR-NAME-3 (V214-21, D-1104): the five planets are one red, the ramp's brightest — the label tells them apart; the clouds the ramp's three lowest that clear 3 : 1. */
+  --chart-planet-mercury: #ffd8cd; /* 15.61 : 1 */
+  --chart-planet-venus: #ffd8cd; /* 15.61 : 1 */
+  --chart-planet-mars: #ffd8cd; /* 15.61 : 1 */
+  --chart-planet-jupiter: #ffd8cd; /* 15.61 : 1 */
+  --chart-planet-saturn: #ffd8cd; /* 15.61 : 1 */
+  --chart-cloud-1: #9b4238; /* 3.16 : 1 */
+  --chart-cloud-2: #a3453a; /* 3.39 : 1 */
+  --chart-cloud-3: #c04a3a; /* 4.19 : 1 */
 
   color-scheme: dark;
 }

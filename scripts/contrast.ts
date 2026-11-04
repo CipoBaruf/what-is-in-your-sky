@@ -20,6 +20,13 @@ export const GROUND_TOKENS = ['bg', 'bg-raised'] as const;
  * `chart-sky` are the dome's base surfaces (D-92), not marks: their job is to
  * sit *barely* above the page ground, so they are listed apart.
  */
+/**
+ * FR-NAME-3, FR-WIDE-8 (R184, D-1104): the five planets' discs on the globe and
+ * the window, and the cloud band's three shades — marks, at 3 : 1 on the page
+ * ground like the rest, and none of them the dome's (its palette skips them).
+ */
+export const CHART_DESK_TOKENS = ['chart-planet-mercury', 'chart-planet-venus', 'chart-planet-mars', 'chart-planet-jupiter', 'chart-planet-saturn', 'chart-cloud-1', 'chart-cloud-2', 'chart-cloud-3'] as const;
+
 export const CHART_MARK_TOKENS = [
   'chart-pass',
   'chart-pass-flown',
@@ -46,6 +53,8 @@ export const CHART_MARK_TOKENS = [
   'chart-series-4',
   'chart-series-5',
   'chart-series-6',
+  // FR-NAME-3, FR-WIDE-8 (R184, D-1104): the desk's planet discs and cloud band.
+  ...CHART_DESK_TOKENS,
 ] as const;
 export const CHART_SURFACE_TOKENS = ['chart-ground', 'chart-sky'] as const;
 /**

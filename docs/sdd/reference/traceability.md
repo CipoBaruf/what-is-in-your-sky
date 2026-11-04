@@ -518,6 +518,7 @@
 | FR-MOON-5 | `src/data/moon/lore.test.ts`, `src/lib/moonPhrases.test.ts`, `src/ui/components/moon/MoonLore.test.tsx` |
 | FR-NAME-1 | `tests/data/starCatalog.test.ts` |
 | FR-NAME-2 | `tests/data/starCatalog.test.ts` |
+| FR-NAME-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `tests/styles/tokens.test.ts` |
 | FR-NIGHT-1 | `src/ui/screens/home/tonight.test.ts` |
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
@@ -650,7 +651,7 @@
 | FR-TONIGHT-5 | `src/lib/playback.test.ts` |
 | FR-TONIGHT-6 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-compact.spec.ts`, `tests/e2e/live-states.spec.ts`, `tests/e2e/r48-trajectories.spec.ts` |
 | FR-TONIGHT-7 | `tests/styles/controlRows.test.ts` |
-| FR-TRAJ-1 | `src/lib/arcReveal.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/live/liveArcs.test.ts`, `src/ui/screens/Live.test.tsx`, `tests/e2e/r48-trajectories.spec.ts` |
+| FR-TRAJ-1 | `src/lib/arcReveal.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/live/liveArcs.test.ts`, `src/ui/screens/Live.test.tsx`, `tests/e2e/r48-trajectories.spec.ts` |
 | FR-TRAJ-2 | `src/lib/arcReveal.test.ts` |
 | FR-TRAJ-3 | `src/lib/arcReveal.test.ts`, `src/lib/legend.test.ts`, `tests/e2e/r48-trajectories.spec.ts` |
 | FR-TRAJ-4 | `src/lib/timeStripe.test.ts` |
@@ -669,7 +670,10 @@
 | FR-WATCH-8 | `src/ui/components/live/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
 | FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/screens/viewFor.test.ts` |
+| FR-WIDE-3 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/layers.test.ts` |
+| FR-WIDE-7 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts` |
 | FR-WIDE-8 | `src/lib/cloudBand.test.ts` |
+| FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |

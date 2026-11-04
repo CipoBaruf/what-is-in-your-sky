@@ -6,13 +6,14 @@ import { CATALOGS } from '../../../../../i18n/useT';
 import { compassPoint, type CompassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
 import { figureName, PLANETS, starName } from '../../../../../lib/skyStars';
-import type { EpochMs, Locale, Observer } from '../../../../../model';
+import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkOffsetPx } from '../window/inkOffsets';
 import { limbAngleDeg, litPath } from '../window/MoonDisc';
-import { COLLISION_PX, dotRadiusPx, hitLine, hitTest, markFor, planetMarkFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';
+import { COLLISION_PX, dotRadiusPx, hitLine, hitTest, markFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';
 import { ADVANCE_EM, placeLabels, STAR_NAME_PX, textWidth, type Box, type FigureLabel, type FixedLabel, type LabelMark, type LabelSegment, type MarkLabel } from '../window/starLabels';
-import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE } from './constants';
+import { GlobeArcLayer, type ArcColorBy } from './arcLayer';
+import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Frame, type Projector, type Vec3 } from './projection';
 import { altAz, figureAnchor, globeSky, starVectors, surfaceAt, type GlobeSky } from './scene';
 import styles from './SkyGlobe.module.css';
@@ -52,6 +53,9 @@ import styles from './SkyGlobe.module.css';
  * nothing here sets one. The words are the catalogs' for `state.lang`
  * (`chart.globe`, and the stars page's planets and readout line), written
  * when the language changes.
+ *
+ * R184 (FR-WIDE-3, FR-WIDE-7, FR-NAME-3; D-1099): the passes are `arcLayer.ts`'s fixed nodes over the stars, and the
+ * planets are discs of `PLANET_MARK_PX` in their own tokens, their names placed as fixed boxes with `names` off too.
  */
 
 export type Turn = 'you' | 'stars';
@@ -104,6 +108,12 @@ export interface GlobeState {
   height: number;
   /** FR-GLOBE-11: the named object, or none. */
   named: GlobeTarget | null;
+  /** R184 (FR-WIDE-3): the page's passes, their arcs' instant, the emphasised one, the colouring and the legend's keys; none on the stars page. */
+  passes?: readonly Pass[];
+  passT?: EpochMs;
+  highlightedPassId?: string | null;
+  colorBy?: ArcColorBy;
+  keys?: Readonly<Record<string, string>> | null;
 }
 
 type Body = GlobeSky['sun'];
@@ -120,6 +130,9 @@ const MARK_WORD_DY = -12;
 const RIM_DEPTH = 0.02;
 /** A body's disc as the placer's mark: the disc's diameter as an em box of `ADVANCE_EM` cells. */
 const DISC_MARK_PX = MOON_DISC_PX / ADVANCE_EM;
+/** FR-NAME-3: a planet's disc as the placer's mark, and its name's box widened by the type step over a star name (14 on 12). */
+const PLANET_DISC_MARK_PX = (2 * PLANET_MARK_PX) / ADVANCE_EM;
+const PLANET_NAME_SCALE = 14 / 12;
 /** The limb point a degree from the Moon toward the Sun (`MoonDisc`'s `LIMB_STEP_DEG`), radians. */
 const LIMB_RAD = Math.PI / 180;
 /** The horizon's samples. */
@@ -175,9 +188,6 @@ interface BodyNode {
   slot: number;
   mark: SVGElement;
   name: SVGTextElement;
-  /** The planet's `@`, for its size; the Sun and the Moon have none. */
-  glyph: SVGTextElement | null;
-  px: number;
 }
 
 interface NamedParts {
@@ -335,6 +345,7 @@ export class GlobeRenderer {
   private readonly moonLit: SVGPathElement;
   private moonFraction = -1;
   private readonly label: SVGTextElement;
+  private readonly arcs: GlobeArcLayer;
   private readonly compass: SVGTextElement[];
   private readonly zenith: SVGTextElement;
   private readonly zenithName: SVGTextElement;
@@ -409,23 +420,23 @@ export class GlobeRenderer {
     });
     this.lines = this.segments.map(() => null);
 
-    // The bodies: the planets as `@`, the Sun as a disc, the Moon as `MoonDisc`'s geometry; each with its name node.
+    // The bodies: the planets as discs in their own tokens (FR-NAME-3), the Sun as a disc, the Moon as `MoonDisc`'s geometry; each with its name node.
     const bodies = g(cls('marks'), { 'data-bodies': '' });
     PLANETS.forEach((body, k) => {
-      const px = planetMarkFor(0).px;
-      const { dx, dy } = inkOffsetPx('@', px);
-      const glyph = text(cls('mark'), '@', { 'data-planet': body, 'data-glyph': '@', 'data-px': px, 'data-tone': 'chart-planet', 'font-size': px, dx, dy, visibility: 'hidden' }, bodies);
-      this.bodies.push({ target: { kind: 'planet', body }, slot: n + k, mark: glyph, glyph, px, name: text(cls('starName'), '', { 'data-body-name': body, visibility: 'hidden' }, names) });
+      const disc = el('circle', { class: cls('planet'), 'data-planet': body, 'data-tone': `chart-planet-${body.toLowerCase()}`, r: PLANET_MARK_PX, visibility: 'hidden' }, bodies);
+      this.bodies.push({ target: { kind: 'planet', body }, slot: n + k, mark: disc, name: text(cls('planetName'), '', { 'data-body-name': body, visibility: 'hidden' }, names) });
     });
     const sun = el('circle', { class: cls('sun'), 'data-body': 'sun', r: MOON_DISC_PX / 2, visibility: 'hidden' }, bodies);
-    this.bodies.push({ target: { kind: 'sun' }, slot: n + PLANETS.length, mark: sun, glyph: null, px: 0, name: text(cls('starName'), '', { 'data-body-name': 'sun', visibility: 'hidden' }, names) });
+    this.bodies.push({ target: { kind: 'sun' }, slot: n + PLANETS.length, mark: sun, name: text(cls('starName'), '', { 'data-body-name': 'sun', visibility: 'hidden' }, names) });
     const moon = el('g', { 'data-body': 'moon', visibility: 'hidden' }, bodies);
     el('circle', { class: cls('moonDark'), 'data-marker': 'moon', r: MOON_DISC_PX / 2 }, moon);
     this.moonLit = el('path', { class: cls('moonLit'), 'data-moon-lit': '' }, moon);
-    this.bodies.push({ target: { kind: 'moon' }, slot: n + PLANETS.length + 1, mark: moon, glyph: null, px: 0, name: text(cls('starName'), '', { 'data-body-name': 'moon', visibility: 'hidden' }, names) });
+    this.bodies.push({ target: { kind: 'moon' }, slot: n + PLANETS.length + 1, mark: moon, name: text(cls('starName'), '', { 'data-body-name': 'moon', visibility: 'hidden' }, names) });
     this.label = text(cls('starLabel'), '', { 'data-label': '', visibility: 'hidden' }, names);
     this.hits = Array.from({ length: n + PLANETS.length + 2 }, () => null);
 
+    // R184 (D-1099): the passes over the stars and the bodies, under the frame's marks.
+    this.arcs = new GlobeArcLayer(g(cls('arcs'), { 'data-arcs': '' }), (tag, attrs, parent) => el(tag, attrs, parent), cls);
     const top = g(cls('frame'), { 'data-frame': '' });
     this.horizon = el('path', { class: cls('horizon'), 'data-horizon': '' }, top);
     this.compass = ['N', 'E', 'S', 'W'].map((point) => text(cls('compass'), point, { 'data-compass': point, visibility: 'hidden' }, top));
@@ -537,6 +548,11 @@ export class GlobeRenderer {
     const segment = hitLine(this.lines, x, y);
     if (segment === null) return null;
     return { kind: 'figure', index: this.segments[segment]?.figure ?? 0, segment };
+  }
+
+  /** FR-WIDE-7: the pass whose arc is within the hit distance of a box point, as last drawn. */
+  passAt(x: number, y: number): string | null {
+    return this.arcs.passAt(x, y);
   }
 
   /** `labelLine` for this state. */
@@ -715,27 +731,22 @@ export class GlobeRenderer {
       const below = body.altDeg < 0;
       bodyBelow.set(b.slot, below);
       this.dim(b.mark, below);
-      if (b.glyph !== null) {
-        const px = planetMarkFor('mag' in body ? (body as { mag: number }).mag : 0).px;
-        if (px !== b.px) {
-          b.px = px;
-          const { dx, dy } = inkOffsetPx('@', px);
-          b.glyph.setAttribute('font-size', String(px));
-          b.glyph.setAttribute('data-px', String(px));
-          b.glyph.setAttribute('dx', String(dx));
-          b.glyph.setAttribute('dy', String(dy));
-        }
-        this.at(b.glyph, x, y);
-      } else if (b.target.kind === 'sun') {
+      if (b.target.kind !== 'moon') {
         b.mark.setAttribute('cx', fmt(x));
         b.mark.setAttribute('cy', fmt(y));
       } else {
         this.drawMoon(b.mark, p, sky, x, y);
       }
       markOf.set(b.slot, marks.length);
-      marks.push({ x, y, sizePx: b.glyph !== null ? b.px : DISC_MARK_PX });
-      fixed.push({ key: b.slot, mark: marks.length - 1, text: b.name.textContent ?? '' });
+      const planet = b.target.kind === 'planet';
+      marks.push({ x, y, sizePx: planet ? PLANET_DISC_MARK_PX : DISC_MARK_PX });
+      // FR-NAME-3: a planet's name is placed with `names` off too; its box is padded to the larger type it is drawn in.
+      const word = b.name.textContent ?? '';
+      if (planet || s.layers.names) fixed.push({ key: b.slot, mark: marks.length - 1, text: planet ? word.padEnd(Math.ceil(word.length * PLANET_NAME_SCALE)) : word });
     }
+
+    // R184 (FR-WIDE-3, FR-WIDE-7): the passes, their keys, the highlighted one's ticks and arrow.
+    this.arcs.draw(p, sky, { passes: s.passes ?? [], t: s.passT ?? s.t, highlightedPassId: s.highlightedPassId ?? null, colorBy: s.colorBy ?? 'pass', keys: s.keys ?? null }, (s.passes?.length ?? 0) > 0);
 
     // The horizon, the compass, the zenith and the poles (FR-GLOBE-2, FR-GLOBE-3); their boxes are occupied before any name.
     this.horizon.setAttribute('d', pathOf(p, greatCircle(sky.zenith, HORIZON_STEPS)));
@@ -814,7 +825,7 @@ export class GlobeRenderer {
         }
       }
     }
-    const placed = placeLabels({ width: w, height: h, marks, segments: drawnSegments, compass: occupied, named, stars: starLabels, figures: figureLabels, lang: s.lang }, { fixed: s.layers.names ? fixed : [], figureStart: 'vertex' });
+    const placed = placeLabels({ width: w, height: h, marks, segments: drawnSegments, compass: occupied, named, stars: starLabels, figures: figureLabels, lang: s.lang }, { fixed, figureStart: 'vertex' });
     const shown = new Set<Element>();
     for (const label of placed) {
       let node: SVGTextElement | undefined;

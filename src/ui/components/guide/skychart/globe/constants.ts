@@ -49,5 +49,17 @@ export const GLOBE_MAIN_KB = 1.5;
 /** §4.55: what the `stars` chunk may grow, KB gzipped. */
 export const GLOBE_STARS_KB = 1.5;
 
+/** R184 (SPEC §4.57, FR-WIDE-7): the highlighted pass's arc carries a tick at every whole this many minutes of its track. */
+export const ARC_TICK_MIN = 1;
+
+/** FR-WIDE-7: the arrow stands at this share of the drawn part, or at the marker while the pass is up. */
+export const ARC_ARROW_SHARE = 0.5;
+
+/** FR-NAME-3: a planet's disc radius at zoom 1, px; the window takes it in R185. */
+export const PLANET_MARK_PX = 5;
+
+/** FR-WIDE-11: what the `globe` chunk may grow over 2.13.0's measure, KB gzipped. */
+export const SKY_GLOBE_KB = 4;
+
 /** FR-GLOBE-7: the bodies are recomputed at most this often in wall time, as the live page's are (one constant, `lib/playback.ts`'s). */
 export { BODIES_EVERY_MS } from '../../../../../lib/playback';

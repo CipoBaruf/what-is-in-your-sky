@@ -62,6 +62,21 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   The zoom and field ranges and the speeds are restated in `src/model/prefs.ts` because `src/data` may import neither the chart nor `src/lib` (PLAN §3); `model/prefs.test.ts` holds them equal.
 - **D-1110 — FR-KEEP-3's speed row is the opening rate, not `play`'s.** *(R182)*
   (FR-KEEP-2, FR-KEEP-3.) The table's ×1 is the rate every page opens at (now, watching): `OPENING_SPEED`. The rate `play` starts at with nothing saved stays 2.13's `DEFAULT_SPEED`, 60 (`DEFAULT_PLAY_SPEED`), since a `play` at ×1 would not move; `playSpeed` replaces it once chosen.
+- **D-1113 — The globe's arc nodes, keys and states (R184).**
+  (FR-WIDE-3, FR-WIDE-7, FR-LEG-5; D-1099.) `globe/arcLayer.ts` makes at mount one `<path>` per series, one key `<text>` per series, the ticks' path and the arrow's path (14 nodes; the planets' discs replace the `@` glyphs, so they add none).
+  A series path holds each of its passes' near-side runs, the live marker as a 4 px ring and the ahead rise point as a 2 px ring; its `data-state` is its first pass's and its key node that pass's key (a seventh pass shares the first's path, which the live page's lists do not reach).
+  The key stands beside the marker while the pass is up and beside the drawn part's middle otherwise.
+  `colorBy` (`pass` default, `highlight` for the pass detail) picks `series-n` or `pass` / `pass-dim` as the legend does; with a pass highlighted the others take `data-dim` and the thin stroke.
+  Ticks stand at whole minutes after the rise strictly before the drawn part's end (`t` while up), so a tick never sits under the marker; each is 8 px across the projected heading, which `arcs.ts` gives as the track 5 s either side.
+  `onPick` reports a mark first and an arc only where no mark is hit.
+  The geometry is recomputed only when the sky object, the passes, `t`, the keys or the highlight change, so a drag only projects.
+  The planets' names are fixed labels with `names` off, their boxes padded by 14 / 12 since `starLabels.ts` (the window lane's) measures at the star names' size.
+- **D-1114 — The perf harness on `window` (R184).**
+  (FR-WIDE-11.) The stars page has no passes and R186 mounts the globe on the live page, so `globe-perf.spec.ts`'s new runs feed three passes (one highlighted) through `window.__globeHarness`, which `SkyGlobe` reads only where the page passes none; nothing in the app writes it.
+  Measured on this branch (Apple silicon, 4× throttle, faint on, best of three drags): 35.4 and 34.1 updates/s at 1280 × 800 and 1920 × 1080 with the arcs, 46.0 and 37.8 without, the ×3600 lapse 48.6 and 37.8 with them.
+  R186 retires the harness when the spec gains the live page.
+- **D-1115 — The `globe` row's accepted overrun (R184).**
+  (FR-WIDE-11, D-178.) The arcs, the ticks, the arrow, the planet discs and the hit test take the `globe` row from 13.8 KB to 15.9 KB gzipped: +2.1 KB, inside `SKY_GLOBE_KB`, over the row's 15 KB (`GLOBE_BUDGET_KB`). `bundle:budget` warns and exits 0; the row is not moved here (the script is not the chart lane's) — the release re-sets it by D-178 to at least 2.13.0's measure plus `SKY_GLOBE_KB`.
 - **D-1111 — Rise and set: geometric, at ground level, over the night from local mean noon.** *(R183)*
   (FR-FACT-3.) A crossing is the body's centre at 0° altitude with no refraction and no dip (`SearchAltitude(body, observer at 0 m, dir, start, 1, 0)`; a star by `cos H₀ = −tan φ tan δ`), so the three bodies share one convention.
   The night that holds `t` is the 24 h from the local mean noon before it, by the place's longitude, so an evening set and a pre-dawn rise are one night's.

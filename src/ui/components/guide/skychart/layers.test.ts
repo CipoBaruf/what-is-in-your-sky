@@ -8,7 +8,7 @@ import type { SkyLandmark, SkyScene, StarField } from './window/scene';
  * `sceneFor` applies the table to a scene without a view deciding anything.
  */
 const EVERY_LAYER: readonly Layer[] = ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'];
-const VIEWS: readonly SkyView[] = ['dome', 'polar', 'window'];
+const VIEWS: readonly SkyView[] = ['dome', 'polar', 'window', 'globe'];
 
 /** Four stars in magnitude order (D-748) and one planet; star 3 is below the horizon. */
 const field: StarField = {
@@ -48,6 +48,12 @@ describe('the layer table (FR-SKY-1, D-788)', () => {
   it('leaves the dome’s row as it was: the passes, the bodies, the stars, the planets and the landmark (FR-PHONE-11)', () => {
     expect([...LAYERS.dome].sort()).toEqual(['bodies', 'landmark', 'passes', 'planets', 'stars']);
     for (const layer of ['figures', 'names', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'] as const) expect(drawsLayer('dome', layer)).toBe(false);
+  });
+
+  it('FR-WIDE-3: gives the globe the window’s row, the field outline off, and no star cap (D-1099)', () => {
+    expect([...LAYERS.globe].sort()).toEqual([...LAYERS.window].sort());
+    expect(drawsLayer('globe', 'fieldOutline')).toBe(false);
+    expect(sceneFor('globe', scene)).toBe(scene);
   });
 
   it('caps the polar chart at the catalogue’s 4.5 and the dome at 1.5', () => {
