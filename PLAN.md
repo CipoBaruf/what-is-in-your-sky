@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v0.20 — for review.** Plans SPEC v2.12 "the globe": the decisions are §2.48 (D-1034..D-1043 this plan's, D-1044..D-1053 the blocks its tasks spend, D-1054..D-1056 the owner's notes after testing 2.12.0) and the delivery is §16.31 (R167–R171 in four waves, auto-merged). Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-03 (v0.20). Earlier dates are in the [revision history](#revision-history). |
-| Input | `SPEC.md` v2.12: V212-1..V212-13 are fixed like the rows before them, and SPEC §5.17's proposal is adopted where §2.48 does not say otherwise. Earlier inputs are in the [revision history](#revision-history). |
+| Status | **Draft v0.21 — for review.** Plans SPEC v2.13 "the workflow": the decisions are §2.49 (D-1057..D-1072 this plan's, D-1073..D-1093 the blocks its tasks spend) and the delivery is §16.32 (R172–R181 in seven waves, auto-merged; no release). Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
+| Date | 2026-11-03 (v0.21). Earlier dates are in the [revision history](#revision-history). |
+| Input | `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise. Earlier inputs are in the [revision history](#revision-history). |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the tasks of every phase from v1 on are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---
@@ -1418,6 +1418,27 @@ The spike (`spike-stars-desktop`, c914908f) is the starting point: its `globe.ts
 - **D-1055 — The row under the globe has one height, and the zoom buttons stand in it.** (FR-GLOBE-6, FR-GLOBE-11 as amended; V212-12, V212-13.) The bug: `stars-sky` on the globe is a two-row grid, `minmax(0, 1fr) auto`, the box above and the readout `<p>` below; with nothing named the `<p>` is empty and 0 px tall, so a hover's name gave it a line and the box lost that line, and the renderer's `ResizeObserver` re-measured the radius from the shorter box — the globe shrank on every hover and grew back on leave. The row is now `SkyGlobe`'s `.foot`, a flex row holding the readout (one line, `nowrap`, ellipsised, `flex: 1`) and `[ + ]` `[ − ]` (TextButton), so its height is the buttons' whether a name is shown or not. The buttons go there, not in the rail beside `Turn`: the window has no zoom control to copy, the view and its zoom are `SkyGlobe`'s ref (D-744) and the rail is another lazy module, so the row keeps them in the `globe` chunk with no state lifted through `stars`. A press is `zoomBy(GLOBE_ZOOM_STEP)` or its inverse, the clamp the wheel's; a `zoomEnd` state (`'min'`, `'max'` or none) changes only at an end of the range and disables that button, so a wheel's notches do not re-render the component. The names are `chart.globe.zoomIn` / `zoomOut` in `main` (+34 bytes, inside GLOBE_MAIN_KB). `globe.spec.ts` asserts the box and the disc's radius identical before and while a star and a planet are hovered at both desk sizes.
 - **D-1056 — The named figure is one more path, written by ref.** (FR-GLOBE-11 as amended, FR-GLOBE-14, FR-GLOBE-15; V212-13.) `GlobeRenderer` makes a `[data-figure-named]` path at mount, after the two figure paths, in `.figureNamed` (`--accent`, 2 px); each frame writes into it the drawn segments of the named figure (a hover, a tap or a click; `s.named.kind === 'figure'`) and nothing otherwise, from the loop that already builds the figure paths. The named label carries `data-figure` while a figure is named, `.starLabel[data-figure]` filling it in `--accent`; the named label is placed whatever `names` says (it always was), and with `names` on the figure's own name is left out of the walk so it is not drawn twice. One node, no new listener, no new loop: the node count stays under `GLOBE_MAX_NODES` and the frame's cost is a string concatenation over the named figure's segments. The `globe` row is 14,080 bytes against R171's 13,807 (+273 for D-1055 and D-1056), under GLOBE_BUDGET_KB (15,360); no budget row moves.
 
+### 2.49 v2.13 decisions (2026-11-03)
+
+v2.13 changes the development process only (V213-1): no file under `src/` or `public/` changes. Every rule here follows the entry shape SPEC FR-SDD-13 asks of the new documents: an id, a one-line title, at most five lines. No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff and the compression use `pngjs`, both already installed.
+
+- **D-1057 — Where the new code lives.** (FR-SDD-1..27.) `scripts/sdd/{ledger,split,splitMap,rewrap,ids,agents,review,limits,traceability}.ts` with tests beside them; `scripts/{check,check-sdd,ci-digest,sdd-map,prune-merged-branches}.ts`; `scripts/captures/{manifest.json,diff.ts,compress.ts}`; `sdd.agents.json` at the root; `docs/sdd/archive.json` (path → archive location, empty until R180).
+- **D-1058 — The ledger reads the result event.** (FR-SDD-1.) `ledger.ts` takes `stream-json`'s final `result` event: `usage.input_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `output_tokens`, `num_turns`. One line per session in `sdd-run/usage.jsonl` (local, as all of `sdd-run/`); the PR body's usage line is the durable copy. The phase report reads the file, and `gh pr view` bodies where it is missing; findings come from the review handoffs, flakes from F-ids marked quarantined, reruns from `gh run list` attempts.
+- **D-1059 — The split is a heading map.** (FR-SDD-3, FR-SDD-5.) `splitMap.ts` lists every `##`/`###` heading of the three files with its destination; a heading not in the map fails the split. A story or a section goes to the phase its *(vX)* tag names (untagged: `mvp`); PLAN §2.1–§2.16 go to `mvp`; §16.1–§16.8 to `reference/delivery.md`; both revision histories to `reference/revision-history.md`. The map is written by hand once, from `rg -n '^#'`, never by reading the files whole.
+- **D-1060 — The rewrap rule.** (FR-SDD-4.) Break after `.`, `?` or `!` plus a space when the next character opens a sentence (a capital, `*`, `` ` ``, `(`), never inside a code span, a link, a table row or a heading, and not after a listed abbreviation (`e.g.`, `i.e.`, `vs.`, `No.`, `approx.`). A list item's continuation lines are indented to its text. The lossless test compares the input and the output with all whitespace collapsed.
+- **D-1061 — `ids.md` is one line per id.** (FR-SDD-6.) `ID<TAB>file#anchor<TAB>heading`; then one line per old section, `SPEC §4.47<TAB>docs/sdd/phases/v2.5/spec.md#…`; then one per archived path from `archive.json`. `npm run sdd:id <id>` (`tsx scripts/sdd/ids.ts --print`) prints from the id's line to the next id of its kind or the end of its block. `ids.ts --check` is `check:sdd`'s staleness and resolution check.
+- **D-1062 — The briefs are pinned before the split.** (FR-SDD-7.) R175's first commit records the briefs of R167–R171 from the parent into `scripts/sdd/__fixtures__/briefs/`; its last commit's test regenerates them from the new layout and compares bytes. R180's prefix order (FR-SDD-17) re-records them once, in its own task, with the order change as the only diff.
+- **D-1063 — Workflows and pointers.** (FR-SDD-8, FR-SDD-9.) Each workflow opens with `Reads:` and `Never reads:` lines copied from `AGENTS.md`'s table, then numbered steps. A skill keeps its frontmatter and one line: "Follow `docs/sdd/workflows/<name>.md`." Headless sessions write `.claude/` files through `node -e` and `fs` (the memory's recipe, now in `gotchas.md`).
+- **D-1064 — The agents config.** (FR-SDD-10, FR-SDD-11.) `agents.ts` holds the zod schema and the loader; `session.ts` builds argv by substituting `{prompt}`, `{model}`, `{maxTurns}` into the entry's `command` and keeps today's `claude` flags exactly. A result parser is `(stdout, exitCode, handoffPath) → { ok, text, usage? }`; `stream-json` is today's code moved, `exit-code` reads exit 0 and the handoff. The allowlist moves from `session.ts` into the `claude` entry as `claude-allowlist`. `tasks.ts` reads `Tier:` and, for closed phases, `Model:` through the default agent's reverse map.
+- **D-1065 — Review tier and findings.** (FR-SDD-18.) `review.ts` exports `reviewTier(task, paths)`: none when every path is under `docs/` or a root `*.md`; `standard` for `Tier: hard`, `Gate: owner`, or a path under `src/physics/`, `src/worker/`, `scripts/sdd/`; else `light`. The review writes findings as JSON lines `{file, line, claim, scenario}` in its handoff; a fix session's prompt gets those lines and `fix-ci.md`.
+- **D-1066 — `npm run check` wraps the tools.** (FR-SDD-15.) `scripts/check.ts` runs `tsc`, `eslint -f json`, `vitest --reporter=json` and, through `ci-affected.ts`, `playwright --reporter=json`, then prints FR-SDD-15's form. `npm test` and the raw scripts stay for CI and for people.
+- **D-1067 — CI, in `ci.yml`.** (FR-SDD-16, FR-SDD-25.) PR runs take `concurrency: ci-${{ github.ref }}` with `cancel-in-progress`; a `build` job uploads `dist/` and the shards download it; `actions/cache` keeps `~/.cache/ms-playwright` keyed on the lockfile's Playwright version; a `changes` job (a shell `git diff --name-only`, no third-party action) sets `docs_only` and `tests_only`; a `digest` job, `if: failure()`, runs `ci-digest.ts` over the JSON reports and uploads `failure-digest.md`.
+- **D-1068 — Captures by manifest, diffed by pixels.** (FR-SDD-22, FR-SDD-23.) `scripts/captures/manifest.json` maps each capture name to the source globs it draws; `ci-affected.ts`'s matcher picks the captures a diff reaches. `diff.ts` compares two PNGs with pngjs (YIQ delta, per-pixel threshold 0.1, pixelmatch's default) and composes base and branch side by side at half size; `compress.ts` re-encodes at deflate level 9. The orphan `captures` branch mirrors `docs/screenshots/`'s layout; `captures.yml` commits to it and the release squashes it. The README, design and promo images stay where they are.
+- **D-1069 — Traceability from test names.** (FR-SDD-24, FR-SDD-19.) `traceability.ts` collects `(FR|US)-[A-Z0-9]+-\d+` from Vitest and Playwright test titles into `docs/sdd/reference/traceability.md`, under the hand-kept rows of PLAN §12 moved as they are. Lint gets ESLint's own `max-lines` at warn, 600, no plugin.
+- **D-1070 — The archive.** (FR-SDD-26.) The listed folders move to an orphan `archive` branch with their paths kept; `archive.json` records each; the `spike:*` scripts and their knip entries go. Nothing under `src/` imports them (knip already proves it).
+- **D-1071 — Pruning at the start of a wave.** (FR-SDD-27.) `prune-merged-branches.ts` lists merged PRs with `gh`, and deletes their local branches, remote branches and worktrees, never `main`, `release`, `captures`, `archive` or a branch with an open PR; `--dry-run` prints only. The driver runs it at the start of each wave, which is after the previous wave's merges; the merge is by hand (every PR merged by hand, auto-merge off).
+- **D-1072 — Delivery.** (V213-11.) §16.32.
+
 ---
 
 ## 3. Architecture Overview
@@ -1601,6 +1622,19 @@ src/ui/components/sky/ControlsSheet.tsx (+ .module.css, .test.tsx)   # D-996: mo
 src/ui/components/sky/SkyHead.tsx (+ .module.css, .test.tsx)         # D-996: moved from components/live/, `line` as a prop
 tests/e2e/clean-sky.spec.ts                                          # D-1001
 removed: SkyViewLayout's `column` shape and compact `rail`, DETAIL_DRAWING_TOP_PX, DOME_COMPACT_SLACK_PX (D-1000)
+```
+
+*(v0.21, D-1057)* v2.13 adds no file under `src/`:
+
+```
+AGENTS.md, CLAUDE.md (@AGENTS.md), .ignore, sdd.agents.json        # FR-SDD-8, FR-SDD-10, FR-SDD-14
+docs/sdd/{decisions,ids,gotchas,map,archive.json}                   # FR-SDD-5, -6, -12, -14, -26
+docs/sdd/phases/<version>/{spec,plan,tasks}.md                      # FR-SDD-3
+docs/sdd/reference/*.md, docs/sdd/workflows/*.md                    # FR-SDD-3, FR-SDD-9, FR-SDD-24
+scripts/sdd/{ledger,split,splitMap,rewrap,ids,agents,review,limits,traceability}.ts
+scripts/{check,check-sdd,ci-digest,sdd-map,prune-merged-branches}.ts
+scripts/captures/{manifest.json,diff.ts,compress.ts}
+moved off main: docs/screenshots/v1-* (captures branch), spike/ and the evidence folders (archive branch)
 ```
 
 ---
@@ -2320,6 +2354,14 @@ The golden fixtures from R1 are unchanged and must still pass: the 72 h window (
 - **End to end and the rate.** `globe.spec.ts` and `globe-perf.spec.ts` per D-1042; `axe.spec.ts` with the globe.
 - **Unchanged is a capture.** Every compact capture and every live and pass-detail capture byte-identical to 2.11.0's; the wide `stars` captures move by the view row's word alone.
 
+### 9.15 v2.13 additions *(FR-SDD)*
+
+- **Lossless.** `split.test.ts`: every input line in the output once, whitespace collapsed; `decisions.md` against §12 at the parent; a heading missing from the map fails.
+- **Byte for byte.** `brief.test.ts` regenerates R167–R171's briefs from the new layout and compares them with the fixtures of D-1062.
+- **The driver on the `claude` entry.** The existing `scripts/sdd/*.test.ts` unchanged apart from model names becoming tiers; `agents.test.ts` (schema, argv equal to today's per tier, both parsers, the limit pattern); `review.test.ts` (each tier case); `ledger.test.ts` (a recorded result event).
+- **The checks.** `check-sdd.test.ts`: one failing fixture per rule; `check.test.ts` and `ci-digest.test.ts` on recorded reports; `diff.test.ts` on an identical, an anti-aliased and a changed pair.
+- **The app unchanged.** No `src/` or `public/` path in the phase's diff; `dist/` asset names equal the base's; `npm test` and the e2e suite green and unchanged.
+
 ---
 
 ## 10. Task Zero — Physics Validation Spike
@@ -2426,6 +2468,8 @@ No i18n, routing, date or state dependency is added for v1: language is two type
 *(v0.18, D-973, D-975)* v2.10 adds one row, `stars-deep` (`stars-deep-*.js`), at `DEEP_BUDGET_KB` (60) until the release re-sets it by D-178; `window` may grow by what the look measures and `stars` by the haze outline (≤ 2 KB); `main` does not grow past 2.9.0's measure (the theme's rule and the strings are its only additions, ≤ 0.5 KB). No dependency is added: the galactic conversion is a dozen lines in the build script, and B−V is a column of the vendored Yale file.
 
 *(v0.19, D-996, D-1002)* v2.11 moves the sheet out of the `live` chunk into `components/sky/`: `live` may shrink, `stars` and `main` may each grow by at most 1.5 KB gzipped (FR-CLEAN-9); the release re-sets the rows by D-178. No dependency is added.
+
+*(v0.21, D-1066..D-1068)* v2.13 changes how CI runs, not what it checks: concurrency, one build, the browser cache, the `docs_only` and `tests_only` paths, the failure digest, `check:sdd` and the title check beside `trailers`, and `captures.yml` on the manifest. No budget row moves; no dependency is added.
 
 ---
 
@@ -2735,6 +2779,24 @@ No i18n, routing, date or state dependency is added for v1: language is two type
 | FR-GLOBE-16 *(v2.12)* | `src/i18n/{en,es}/globe.ts`, `tests/e2e/axe.spec.ts`, `tests/styles/controlRows.test.ts` (D-1042) |
 | FR-GLOBE-17 *(v2.12)* | `skychart/globe/projection.ts`, `skychart/globe/scene.ts` and their tests (D-1036, D-1037) |
 | FR-GLOBE-18 *(v2.12)* | `tests/e2e/{captureSet,captureSeeds}.ts`, `docs/screenshots/v1-*`, `docs/RELEASE.md` §25 (D-1042) |
+| FR-SDD-1, FR-SDD-2 *(v2.13)* | `scripts/sdd/ledger.ts`, `scripts/sdd/agents.ts`, `sdd.agents.json` (D-1058, D-1064) |
+| FR-SDD-3..5 *(v2.13)* | `scripts/sdd/{split,splitMap,rewrap}.ts`, `docs/sdd/phases/`, `docs/sdd/decisions.md` (D-1059, D-1060) |
+| FR-SDD-6, FR-SDD-7 *(v2.13)* | `scripts/sdd/ids.ts`, `docs/sdd/ids.md`, `scripts/sdd/{brief,tasks}.ts` (D-1061, D-1062) |
+| FR-SDD-8, FR-SDD-9 *(v2.13)* | `AGENTS.md`, `CLAUDE.md`, `docs/sdd/workflows/`, `.claude/skills/*`, `RELEASE.md` (D-1063) |
+| FR-SDD-10, FR-SDD-11 *(v2.13)* | `sdd.agents.json`, `scripts/sdd/{agents,session,tasks,cli}.ts` (D-1064) |
+| FR-SDD-12 *(v2.13)* | `docs/sdd/gotchas.md` |
+| FR-SDD-13, FR-SDD-4 *(v2.13)* | `scripts/check-sdd.ts`, `scripts/sdd/limits.ts` |
+| FR-SDD-14 *(v2.13)* | `.ignore`, `scripts/sdd-map.ts`, `docs/sdd/map.md` |
+| FR-SDD-15, FR-SDD-16 *(v2.13)* | `scripts/check.ts`, `scripts/ci-digest.ts`, `.github/workflows/ci.yml` (D-1066, D-1067) |
+| FR-SDD-17 *(v2.13)* | `scripts/sdd/brief.ts` (D-1062) |
+| FR-SDD-18 *(v2.13)* | `scripts/sdd/review.ts`, `docs/sdd/workflows/review.md` (D-1065) |
+| FR-SDD-19 *(v2.13)* | `eslint.config.*` `max-lines` (D-1069) |
+| FR-SDD-20, FR-SDD-21 *(v2.13)* | `scripts/sdd/report.ts`, the title check in `ci.yml`, `docs/sdd/workflows/breakdown.md` |
+| FR-SDD-22, FR-SDD-23 *(v2.13)* | `scripts/captures/*`, `.github/workflows/captures.yml`, the `captures` branch (D-1068) |
+| FR-SDD-24 *(v2.13)* | `scripts/sdd/traceability.ts`, `docs/sdd/reference/traceability.md` (D-1069) |
+| FR-SDD-25 *(v2.13)* | `.github/workflows/ci.yml` (D-1067) |
+| FR-SDD-26, FR-SDD-27 *(v2.13)* | `docs/sdd/archive.json`, the `archive` branch (R181), `scripts/prune-merged-branches.ts`, `scripts/sdd/cli.ts` (R180) (D-1070, D-1071) |
+| FR-SDD-28 *(v2.13)* | the phase's diff: no `src/` or `public/` path |
 
 ---
 
@@ -3462,16 +3524,48 @@ R167 and R168 share no file. R169 is the critical task: it is the spike made the
 
 What every session reads (D-284's rule): SPEC §4.55 whole (FR-GLOBE-1..18), US-50, §9 Phase 2u, §12 V212-1..V212-10, OQ-55..OQ-60; SPEC FR-STAR-2, FR-STAR-6, FR-STAR-7, FR-STAR-8 as amended, FR-STAR-14, FR-PHONE-7 as amended, FR-LOOK-2, FR-LOOK-4, FR-LOOK-5, FR-LOOK-8; PLAN §2.48, §8.20, §9.14 and this section; the spike, `git show spike-stars-desktop:spike/stars-desktop/<file>` for `IDEAS.md`, `globe.ts`, `renderer.ts`, `main.tsx` and `capture.ts` (R167 and R169).
 
+### 16.32 Delivery of the v2.13 tasks *(V213-1..V213-11, D-1057..D-1072)*
+
+The V1-11 rules are unchanged; the gate is v2.10's (D-975): auto, merged by hand on CI green and a clean review, every squash merge with an explicit message. Ten `R` tasks in seven waves, after this plan is on `main`. The Lane column names each task's file set; the `Lane:` field takes the driver's fixed list (`tasks.ts`'s `LANES`): `data` for the driver and CI (R172, R174, R177, R180), `docs` for the documents (R173, R175, R176, R181), `ui` for the captures and the checks (R178, R179), so no wave holds two tasks of one lane.
+
+| Wave | Task | Lane | Model | Gate | Depends on |
+|---|---|---|---|---|---|
+| 1 | R172 — The ledger and the short PR body: `ledger.ts`, `usage.jsonl`, the usage line, FR-SDD-20's body shape in `report.ts` | `driver` (`scripts/sdd/{ledger,session,report}.ts`) | opus | auto | — |
+| 2 | R173 — `gotchas.md` from the memory files (`~/.claude/projects/-Volumes-Data-Projects-what-is-in-your-sky-right-now/memory/`, read-only), `.ignore`, `sdd-map.ts` and `map.md` | `docs` (`docs/sdd/{gotchas,map}.md`, `.ignore`, `scripts/sdd-map.ts`; no `package.json` change) | sonnet | auto | R172 |
+| 2 | R174 — Quiet checks and CI: `check.ts`, `ci-digest.ts`, `ci.yml` per D-1067 | `ci` (`scripts/{check,ci-digest}.ts`, `.github/workflows/ci.yml`, `package.json` scripts) | opus | auto | R172 |
+| 3 | R175 — The split: briefs pinned, `split`/`splitMap`/`rewrap`, the phase folders, `decisions.md`, `reference/`, the index files, `ids.ts`, `sdd:id`, `brief.ts` and `tasks.ts` on the new layout, `archive.json` empty | `docs` + `driver` (every document, `scripts/sdd/{split,splitMap,rewrap,ids,brief,tasks}.ts`) | fable | auto | R173, R174 |
+| 4 | R176 — `AGENTS.md`, `CLAUDE.md`, the seven workflows, the skills as pointers, `RELEASE.md` as a procedure with its records in the phase folders | `docs` (`AGENTS.md`, `CLAUDE.md`, `docs/sdd/workflows/`, `.claude/skills/`, `docs/RELEASE.md`) | opus | auto | R175 |
+| 4 | R178 — Captures: the manifest, `diff.ts`, `compress.ts`, the `captures` branch, `captures.yml`, the job summary | `captures` (`scripts/captures/`, `tests/e2e/captureSet.ts`, `captures.yml`, `docs/screenshots/v1-*`) | opus | auto | R175 |
+| 5 | R177 — The agents config: `agents.ts`, `sdd.agents.json`, the config-driven `session.ts`, tiers, `--agent`, `Agent:`, the open entries to `Tier:`, the budget report-only, `review.ts`, findings, prompts from `review.md` and `fix-ci.md`, the digest to fix sessions | `driver` (`scripts/sdd/**`, `sdd.agents.json`, TASKS.md's open entries) | fable | auto | R176 |
+| 6 | R179 — `check:sdd` and traceability: `check-sdd.ts`, `limits.ts`, `traceability.ts`, the `max-lines` warning, the title check, the CI job | `checks` (`scripts/check-sdd.ts`, `scripts/sdd/{limits,traceability}.ts`, `eslint.config.*`, `ci.yml`'s `sdd` job) | opus | auto | R177, R178 |
+| 6 | R180 — Pruning and the brief's prefix: `prune-merged-branches.ts`, the wave-start call, FR-SDD-17 with the fixtures re-recorded | `driver` (`scripts/sdd/{cli,brief}.ts`, `scripts/prune-merged-branches.ts`) | sonnet | auto | R177 |
+| 7 | R181 — The archive and the phase report: the `archive` branch and `archive.json` (FR-SDD-26), the ceilings set by FR-SDD-2, the report in `docs/sdd/phases/v2.13/`, FR-SDD-28's checks, the owner's memory-trim line | `docs` (`sdd.agents.json` ceilings, `docs/sdd/{phases/v2.13,archive.json}`, `spike/`, the evidence folders, `package.json`'s `spike:*`, knip) | sonnet | auto | R179, R180 |
+
+R175 is the critical task: the split and the brief change land together or the driver breaks (V213-11). **After R175 merges, the driver is restarted from a fresh `origin/main`**, so later briefs come from the new `brief.ts`. R173 and R174 run on the old layout and are the ledger's baseline (V213-6). R176 writes `visual-review.md` with D-1068's script names; R178 builds them. R177 is the only task after R175 that changes `session.ts`; R180 touches `cli.ts` and `brief.ts` only after R177 has merged. The archive sits in R181, alone in its wave, because it and R179 both change `package.json`.
+
+**Sessions:** every entry is cut with `Model:` as the table; R177 converts the open entries (R179–R181) to `Tier:` (FR-SDD-11), and from then on the review tier is D-1065's. Every row has `Turns: 500` and `Fallback: off`; R172–R177 have `Review: opus`. Every task is `Gate: auto`.
+
+**The budget** (D-761's units): two Fable tasks, five Opus tasks and three Sonnet tasks with their reviews, **about 3–4 five-hour windows**. Waves 3 and 5 each hold a Fable task alone; the owner reads `/usage` before them. Wait-and-resume is on; nothing is started with `--no-wait`.
+
+**The schedule it implies:** waves 1, 2 and 4 about 1.5–2 h each; wave 3 about 4 h; wave 5 about 3 h; waves 6 and 7 about 2 h each. Unstopped about 16 h; with two five-hour stops about 26 h. The critical path is R172 → R174 → R175 → R176 → R177 → R179 → R181.
+
+**Owner gates:** none in the waves. Owner's: approve the captures and archive branches' first push if GitHub asks; trim the agent memory after R173 (V213-4's knowledge move is done when the memory index points at `gotchas.md`); no tag, no deploy.
+
+**Decision block** (§16.2): **R172 takes D-1073..D-1074, R173 D-1075, R174 D-1076..D-1077, R175 D-1078..D-1081, R176 D-1082..D-1083, R177 D-1084..D-1087, R178 D-1088..D-1089, R179 D-1090..D-1091, R180 D-1092, R181 D-1093.** D-1057..D-1072 are this plan's.
+
+What every session reads (D-284's rule): SPEC §4.56 whole (FR-SDD-1..28), US-51, §9 Phase 2v, §12 V213-1..V213-11; PLAN §2.49, §9.15 and this section; `docs/proposals/agent-agnostic-sdd.md` §1–§3c for intent only, as SPEC §4.56 holds where they differ; and, from R176 on, through `npm run sdd:id`, not by reading the old files.
+
 ---
 
 ## Revision history
 
 The header's Status and Input cells grew one paragraph per revision until they ran to tens of thousands of characters. On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line. When the plan is revised, the Status and Input lines it replaces go to the top of these lists.
 
-**Dates:** 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
+**Dates:** 2026-11-03 (v0.21); 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
 
 ### Status, newest first
 
+- **Draft v0.20 — for review.** Plans SPEC v2.12 "the globe": the decisions are §2.48 (D-1034..D-1043 this plan's, D-1044..D-1053 the blocks its tasks spend, D-1054..D-1056 the owner's notes after testing 2.12.0) and the delivery is §16.31 (R167–R171 in four waves, auto-merged).
 - **Draft v0.19 — for review.** Plans SPEC v2.11 "one clean sky": the decisions are §2.47 (D-996..D-1004 this plan's, D-1005..D-1017 the blocks its tasks spend, D-1018..D-1033 the owner's calls of 2026-11-02 from the phone and the desk) and the delivery is §16.30 (R162–R166 in three waves, auto-merged).
 - **Draft v0.19 — for review.** v2.11 "one clean sky": §2.47 (D-996..D-1004) — the live page's sheet and head moved to `components/sky/` and mounted by the stars page and the pass detail in the `full` form, the compact column and rail retired, `Esc` in two steps, the shell's width cap on every wide route, the passes gone from the stars page; §4, §9.13, §11 and §12 rows for FR-CLEAN-1..14; §16.30 delivers R162–R166 in three waves, auto-merged.
 - **Draft v0.18 — for review.** v2.10 "the phone first": §2.46 (D-962..D-975) — one `useFollow` hook that starts following where nothing is asked and arms the first touch where a grant is saved, `FollowControl` in the overlay's bottom row and the corner readout slot, the hint's two clauses and the touch captures, the wake lock on two more pages, the polar chart drawing the star layer whole with a pure `fieldOutline` and the pinch handoff by callback, the stars page's local view row, the home's order and the door and the times row and `resolveTheme`, two more build outputs and the `stars-deep` chunk, the window's star layer rewritten as seven small modules with a bounded node pool, and the delivery; §4, §5, §9.12, §11 and §12 rows for FR-PHONE-1..16 and FR-LOOK-1..12; §16.29 delivers R154–R161 in five waves, auto-merged.
@@ -3507,6 +3601,7 @@ The header's Status and Input cells grew one paragraph per revision until they r
 
 ### Input, newest first
 
+- `SPEC.md` v2.12: V212-1..V212-13 are fixed like the rows before them, and SPEC §5.17's proposal is adopted where §2.48 does not say otherwise. *(the v0.20 header line)*
 - `SPEC.md` v2.11: V211-1..V211-11 are fixed like the rows before them, and SPEC §5.16's proposal is adopted where §2.47 does not say otherwise. *(the v0.19 header line)*
 - `SPEC.md` v2.11 (*(v0.19)* V211-1..V211-11 are fixed like the rows before them; SPEC §5.16's proposal is adopted where §2.47 does not say otherwise).
 - `SPEC.md` v2.10 (*(v0.18)* V210-1..V210-11 are fixed like the rows before them; SPEC §5.15's proposal is adopted where §2.46 does not say otherwise).

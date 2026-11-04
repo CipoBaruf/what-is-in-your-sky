@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.12 — for review.** Phase v2.12 "the globe": §4.55, FR-GLOBE-1..18, US-50, G57–G58, Decision Log V212-1..V212-13 and roadmap §9 Phase 2u; open questions OQ-55..OQ-60, resolved 2026-11-03 with their defaults. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-03 (v2.12). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v2.13 — for review.** Phase v2.13 "the workflow" (the development process; no change to the app): §4.56, FR-SDD-1..28, US-51, G59–G61, Decision Log V213-1..V213-11 and roadmap §9 Phase 2v, from `docs/proposals/agent-agnostic-sdd.md`; no open questions (the owner's answers of 2026-11-03 are V213-1..V213-7). Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
+| Date | 2026-11-03 (v2.13). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -150,6 +150,12 @@ The user supplies a location (city or place name, coordinates, or browser geoloc
 
 - **G57. The whole sky of the whole world on a desk.** On a desk the stars page shows the celestial sphere from outside: every star and figure of both hemispheres, the reader's horizon across it, the share they can see marked off from the share they cannot.
 - **G58. The sky in motion, and from another place.** Without leaving the page the reader turns the globe, runs its time an hour, a day or a time-lapse forward or back, and moves the horizon to a saved place, and sees why the sky changes with the hour, the season and the latitude.
+
+### 2.20 Goals (v2.13, "the workflow")
+
+- **G59. Every kind of work reads only what it needs.** A spec, breakdown, review, fix or ad-hoc session reads the index files and the ids it needs, not the 3 MB of SPEC, PLAN and TASKS, and the documents say what each kind of work reads.
+- **G60. Any coding agent can run the workflow.** An agent that reads `AGENTS.md` can do every kind of work interactively, and the driver runs any agent a config entry describes.
+- **G61. Cost is measured, and quality with it.** Every session's tokens are in a ledger, and the findings, flakes and CI reruns per phase are reported beside them, so each rule of the phase can be judged and reverted.
 
 ---
 
@@ -530,6 +536,17 @@ As a reader at a desk, I open the stars page and see the whole celestial sphere 
 - AC8: `[ ] faint` is off on every visit; on, the 7,373 faint stars are drawn and the globe's node count does not change (FR-GLOBE-10).
 - AC9: A hover, a tap or a click on a star, a body or a figure names it as on the window; the names of the Sun, the Moon and the planets never overlap a star's name; a long figure's name sits on its own lines (FR-GLOBE-11). *(amended v2.12, V212-11..13)* A named figure's lines and name are emphasised, and naming anything never changes the globe's size (FR-GLOBE-11); `[ + ]` and `[ − ]` zoom it (FR-GLOBE-6); a desk opens on the globe (FR-GLOBE-1).
 - AC10: Every string is in both languages, the axe run is clean, the globe holds ≥ 30 updates/s under a drag and under ×3600 with the faint stars on, and the bundle rows hold (FR-GLOBE-15, FR-GLOBE-16).
+
+**US-51 — Any agent, a fraction of the reading** *(v2.13)*
+As the owner, I start a spec, a breakdown, a task, a review or a fix with any coding agent I have installed, and it reads only what that work needs, while I can see what each session cost.
+- AC1: SPEC.md, PLAN.md and TASKS.md are each within `INDEX_MAX_KB`; every phase's text is in `docs/sdd/phases/<version>/`, and the lossless test passes (FR-SDD-3, FR-SDD-4, FR-SDD-13).
+- AC2: `npm run sdd:id V212-13` prints that row as it stands in §12 today, with its file and heading (FR-SDD-5, FR-SDD-6).
+- AC3: The briefs of R167–R171 are byte for byte the same before and after the split (FR-SDD-7).
+- AC4: `AGENTS.md` has the reading table, `CLAUDE.md` is `@AGENTS.md`, and the seven workflows exist within `WORKFLOW_MAX_KB`, each with its reading row (FR-SDD-8, FR-SDD-9).
+- AC5: `scripts/sdd/` names no agent or model outside `sdd.agents.json`, and the driver's tests pass on the `claude` entry (FR-SDD-10, FR-SDD-11).
+- AC6: Every session of the phase is a line in `sdd-run/usage.jsonl`, and the release notes give the phase's total, its most expensive task, its findings, flakes and CI reruns (FR-SDD-1).
+- AC7: `npm run check:sdd` runs in CI and fails on a long line, an oversized file, a stale `ids.md` or `map.md`, an id that does not resolve, an invalid `sdd.agents.json` or a capture with no manifest entry (FR-SDD-4, FR-SDD-6, FR-SDD-10, FR-SDD-13, FR-SDD-14, FR-SDD-22).
+- AC8: No file under `src/` or `public/` changes (FR-SDD-28).
 
 **US-43 — The whole screen is sky** *(v2.8)*
 As a phone reader, I open the live sky and the screen is the sky; when I want to move the time, change the view or share, one button opens the controls over it and the same button closes them.
@@ -1745,6 +1762,82 @@ Constants (FR-VIS-6 style, centralised with the others):
 
 - **FR-GYRO-9** *(V29-7)* **Strings, chunk, captures.** The toggle, its refusal line and the `×`'s name are in the catalog in both languages; the screen's and the gutter's strings go (FR-FLOW-17's rule). Retiring the screen takes the `SkyScreen` code out of the live, stars and detail chunks, so no budget row may grow. The phase's named moves: every capture of a page that showed `[ hold up to the sky ]` (the stars page and the pass detail at every compact width), the compact live sheet captures (the toggle row, the `×`, landscape as a bottom sheet), and the sky screen's files removed; new captures of the live page and the stars page following at 390 × 844. Captures of the window following are shot with injected orientation events, and every e2e or capture spec that touches the permission stubs `DeviceOrientationEvent.requestPermission` itself, so a browser that implements it (Chrome for Testing 151 answers `prompt`) shoots the same set. *Verification:* `npm run bundle:budget`; FR-CAP-5's diff against 2.8.0. *(amended v2.9, V29-10; before: no budget row may grow)* The release measured `live` 15.6 KB, +349 bytes over 2.8.0 for the sheet's swipe and `×`, inside its budget of 20, while `main` fell 3,507 bytes and the stars and window chunks about 600 each with the screen gone; the owner accepted the measure. Every other row is at or under 2.8.0's.
 
+### 4.56 The workflow *(v2.13)*
+
+The owner, 2026-11-03, in `docs/proposals/agent-agnostic-sdd.md`: SPEC.md (899 KB), PLAN.md (1.38 MB) and TASKS.md (740 KB) are about 750 k tokens together, more than one context window.
+Headless task sessions are cheap because the brief cuts out only the ids a task names (D-198, D-453); every other kind of work slices through the three files.
+The workflow also runs only under Claude Code: `CLAUDE.md`, `.claude/skills/`, `claude -p` in `scripts/sdd/session.ts`, Claude model names in `scripts/sdd/tasks.ts`, and project knowledge kept in one user's agent memory outside the repo.
+This phase changes the development process and nothing a reader of the app sees.
+The proposal is the source; where this section and the proposal differ, this section holds.
+
+Non-goals: no `src/` change; no rewording of a closed phase's text; no adapter for an agent nobody has installed (the config must be able to describe one, only `claude` is tested); the area files (`docs/sdd/areas/`) are written by the renderer phase's spec session, not here (V213-9).
+
+Constants (FR-VIS-6 style; they live in `scripts/sdd/limits.ts` and `check:sdd` reads them):
+
+| Constant | Default | Rationale |
+|---|---|---|
+| `DOC_LINE_MAX` | 400 chars | One `rg` hit prints one sentence, not a paragraph. Today 747 lines in the three files are over 1,000. |
+| `INDEX_MAX_KB` | 15 | SPEC.md, PLAN.md and TASKS.md as indexes: read whole at the start of a spec session for about 4 k tokens each. |
+| `PHASE_DOC_MAX_KB` | 60 | A phase's `spec.md` or `plan.md`: the largest past phase section fits; a bigger one is a sign the phase should be two. |
+| `AREA_DOC_MAX_KB` | 30 | An area file holds the current rules only, no history. Enforced once area files exist. |
+| `WORKFLOW_MAX_KB` | 4 | Today's four skills average under 2 KB; a procedure longer than a page is not followed. |
+| `AGENTS_MAX_KB` | 6 | `AGENTS.md` loads into every session of every agent. |
+| `HANDOFF_MAX_KB` | 2 | The handoff a session writes is read by the next session and the review. |
+| `PR_BODY_MAX_KB` | 1.5 | Today's bodies run 5–6 KB and repeat the brief and the handoff. |
+| `COMMIT_TITLE_MAX` | 72 chars | Git's own convention; the ids go in the body. |
+| `TASK_DIFF_TARGET_LINES` | 600 | The breakdown's target per task, generated files and captures not counted. R169 added 2,482. |
+| `FAILURE_DIGEST_MAX_KB` | 4 | A fix session reads the failing test names and first errors, not a job log. |
+| `SNAPSHOT_MAX_KB` | 5 | Agents read snapshot files; a larger one is replaced by assertions. Today's total is 168 KB. |
+| `NEW_FILE_MAX_LINES` / `FILE_WARN_LINES` | 500 / 600 | A new source file stays under 500 lines; lint warns on any file over 600. |
+| `CAPTURE_DIFF_SHARE` | 0.1 % | A capture counts as changed when more than this share of its pixels differ past the diff tool's per-pixel threshold; under it is anti-aliasing noise (the Mac's sub-pixel AA moved a few files between identical runs). |
+| `TIER_BUDGET_FACTOR` | 2 | Each tier's token ceiling, once set, is this multiple of the phase's 90th percentile for that tier (V213-7). |
+
+**Measure first**
+
+- **FR-SDD-1** *(V213-6)* **The usage ledger.** The driver records every session it runs, implementation, review and fix alike: task id, session kind, agent, tier, model, input tokens, cached input tokens, output tokens, turns, wall time and outcome, one JSON line each in `sdd-run/usage.jsonl`. The PR body carries one usage line per session of that task. Each phase's release notes report the phase's total, the most expensive task, the findings (F-ids) per phase, the flaky tests quarantined and the CI reruns per PR. *Verification:* `session.test.ts` parses a recorded `stream-json` result into one ledger line with every field; the PR body test checks the usage line; the ledger task merges alone in the first wave, and this phase's tasks before the split are its baseline.
+- **FR-SDD-2** *(V213-7)* **A budget per tier.** Each tier in `sdd.agents.json` has an optional token ceiling beside `maxTurns`. Unset, the driver records an overrun against the phase's running 90th percentile and stops nothing. Set, it stops a session that passes the ceiling and reports it as it reports the wall clock today. This phase's release task sets each ceiling to `TIER_BUDGET_FACTOR` × the phase's 90th percentile for that tier. *Verification:* driver unit tests for both modes.
+
+**The layout**
+
+- **FR-SDD-3** *(V213-2)* **Documents by phase.** A script splits SPEC.md, PLAN.md and TASKS.md by their headings into `docs/sdd/phases/<version>/{spec,plan,tasks}.md` (folders named by version: `mvp`, `v1`, `v1.1` … `v2.13`), `docs/sdd/decisions.md`, `docs/sdd/reference/` (glossary, data model, worker contract, testing strategy, build and deploy) and the three index files. SPEC.md keeps the summary, goals and non-goals, the current phase and a map of the files; PLAN.md keeps the fixed inputs, the architecture overview, the project structure and a map; TASKS.md keeps the open phase's tasks and a status table of every phase. Closed TASKS sections move byte for byte, checkboxes included. *Verification:* the lossless test: after removing whitespace changes allowed by FR-SDD-4, the output files together hold every line of the input exactly once; it runs at the migration and stays as the generator's regression test.
+- **FR-SDD-4** **One sentence per line.** The split rewraps the moved text at sentence ends, whitespace only. `check:sdd` fails on any line in `docs/sdd/`, `AGENTS.md` or the index files over `DOC_LINE_MAX`; a table row that cannot be wrapped is the one exception, and it is listed by the check. *Verification:* the lossless test compares text with whitespace collapsed; `check:sdd`'s unit test.
+- **FR-SDD-5** *(V213-3)* **The Decision Log moves whole.** §12 moves to `docs/sdd/decisions.md` with every row and id as written, in the same order. It stays fixed and append-only: a later row may supersede an earlier one, never edit it. *Verification:* a test checks the file's rows against §12 at the parent commit, character for character apart from FR-SDD-4's whitespace.
+- **FR-SDD-6** **Ids resolve in one place.** `docs/sdd/ids.md` is generated: one line per id (FR-, US-, V…-, OQ-, D-, R…, F-, G…) giving its file and heading, plus one line per old section number (`SPEC §4.47`, `PLAN §16.4`) giving its new file, so no code comment needs editing. `npm run sdd:id <id>` prints that id's text with its heading and file. *Verification:* `check:sdd` fails when `ids.md` is stale or when an id cited in the docs, the code or the tests does not resolve; `sdd:id` unit tests on one id of each kind.
+- **FR-SDD-7** **The driver reads the new layout.** `brief.ts` and `tasks.ts` read a task from the open TASKS.md or its phase's `tasks.md`, and an id through `ids.md`. *Verification:* the briefs of every v2.12 task (R167–R171) come out byte for byte the same as before the split.
+
+**Any agent**
+
+- **FR-SDD-8** *(V213-4)* **`AGENTS.md` is the entry point.** It holds today's `CLAUDE.md` content, the stack, a table of what each kind of work reads (the proposal's §2 table, amended by this section) and pointers to the workflows and to `gotchas.md`. `CLAUDE.md` is one line, `@AGENTS.md`. Within `AGENTS_MAX_KB`. *Verification:* `check:sdd` checks the size, the import line and that every workflow is named in the table.
+- **FR-SDD-9** **Workflows, not skills.** Seven plain procedures in `docs/sdd/workflows/`: `spec.md`, `breakdown.md`, `implement.md`, `visual-review.md`, `review.md`, `fix-ci.md`, `release.md`, each within `WORKFLOW_MAX_KB`, each opening with its own reading row, none calling a tool by one agent's name. Each `.claude/skills/*/SKILL.md` becomes a pointer of at most five lines to its workflow, so `/sdd-implement` and the others keep working. The driver's review and fix prompts are built from `review.md` and `fix-ci.md`. `RELEASE.md` keeps the procedure only; each release's record moves to its phase folder. *Verification:* `check:sdd` (sizes, reading rows); a driver test that the review prompt contains `review.md`'s text.
+- **FR-SDD-10** **An agent is a config entry.** `sdd.agents.json`, checked against a JSON schema, names a default agent and, per agent, the command line with `{prompt}`, `{model}` and `{maxTurns}` placeholders, a model per tier (`hard`, `standard`, `light`), the fallback chain as a list of tiers, a limit pattern with a capture group for the reset time, a result parser (`stream-json` or `exit-code`, which reads success from exit 0 and the handoff file) and a tool policy (`claude-allowlist` or `none`). `scripts/sdd/` names no agent and no model outside that file. `npm run sdd -- --wave --agent <name>` picks the agent for a run; `Agent: <name>` in a task pins one. *Verification:* the `claude` entry's command line equals today's for each tier; the driver's existing tests pass on it with model names turned into tiers; a schema test; an `rg` check in `check:sdd` for agent and model names in `scripts/sdd/`.
+- **FR-SDD-11** **Tiers, not models.** TASKS entries carry `Tier:` (`hard`, `standard`, `light`) in place of `Model:`; the open entries convert fable→hard, opus→standard, sonnet→light, haiku→light; closed phases keep `Model:` as written and the driver reads both. Waiting out a usage limit and resuming (D-835) works for any agent whose limit pattern matches. *Verification:* `tasks.test.ts` on both fields; the limit test against the `claude` entry's pattern.
+- **FR-SDD-12** **Project knowledge in the repo.** `docs/sdd/gotchas.md` holds, one section per subject, the project facts now in agent memory: e2e and sandbox, captures, the driver, the npm cache, GitHub merging, glyphcss (until the renderer phase) and the dome-perf method. Personal preferences stay out of it. Trimming the agent memory afterwards is the owner's (it is outside the repo). *Verification:* `check:sdd` checks the file's sections exist; the owner's trim is a release-note line.
+
+**What a session reads, writes and runs**
+
+- **FR-SDD-13** **Size ceilings.** `check:sdd` enforces `INDEX_MAX_KB`, `PHASE_DOC_MAX_KB`, `AREA_DOC_MAX_KB`, `WORKFLOW_MAX_KB` and `AGENTS_MAX_KB`, and that TASKS.md holds only the open phase. A decision is an id, a one-line title and at most five lines; a requirement is one testable statement. *Verification:* `check:sdd`'s unit tests, one per ceiling.
+- **FR-SDD-14** **Search sees source and docs only.** A root `.ignore` leaves out `dist/`, `node_modules/`, `docs/screenshots/`, `**/__snapshots__/`, fixtures, `public/data/`, the place and star catalogues and lockfiles. `docs/sdd/map.md` is generated: one line per source file with its first doc-comment sentence and its exports. *Verification:* `check:sdd` fails when `map.md` is stale; a test that `rg --files` from the root lists none of the ignored paths.
+- **FR-SDD-15** **Quiet checks.** `npm run check` runs the typecheck, lint, unit tests and the affected e2e specs (`scripts/ci-affected.ts`). On failure it prints the test name, the first assertion and five lines of stack per failure; on success one line with the counts passed and the warnings per tool. The workflows tell every agent to run it in place of the raw tools, and a rising warning count goes in the handoff. *Verification:* unit tests on the output formatter with a recorded failing and passing run.
+- **FR-SDD-16** **Failure digests.** When CI fails, the job writes a digest of the failing jobs (test names and first errors) within `FAILURE_DIGEST_MAX_KB` as a CI artifact; the driver gives a fix session the digest, not the log. *Verification:* the digest writer's unit test on a recorded failing Playwright and Vitest report.
+- **FR-SDD-17** **A stable prefix.** A brief puts what every session shares first, in a fixed order (rules, tool policy, gotchas digest) and the task's own parts last, so sessions in one wave share a cached prefix. *Verification:* two briefs of one wave share their first section byte for byte; FR-SDD-7's byte-for-byte test is re-recorded once, in the same task, with the order change as the only difference.
+- **FR-SDD-18** **The cheapest tier that works.** Review runs on `light`, except on `standard` for `hard` tasks, `Gate: owner` tasks and any diff touching `src/physics/`, `src/worker/` or `scripts/sdd/`. A docs-only diff gets no review session; a tests-only diff keeps one. A finding is file, line, claim and failure scenario, and a fix session reads the findings, not the transcript. If the findings per phase rise after the switch, review goes back to `standard` (V213-10). *Verification:* driver unit tests on the tier choice for each case; the findings parser's test.
+- **FR-SDD-19** **Comments and file size.** New code cites ids and says in one line what the code cannot; a new file's header is at most five lines. A new source file stays under `NEW_FILE_MAX_LINES`; lint warns past `FILE_WARN_LINES`. The five files over 880 lines are split when a task next touches them, not in a sweep. *Verification:* the lint rule's test; existing comments are left alone.
+
+**Pull requests, images, tests and CI**
+
+- **FR-SDD-20** **Short PRs.** A PR body has a fixed shape within `PR_BODY_MAX_KB`: what changed (at most three lines), the ids it closes, the checks that ran, the capture diff summary and the usage line. Commit titles are at most `COMMIT_TITLE_MAX`. *Verification:* the driver's PR body test; a CI check on titles beside the trailers job.
+- **FR-SDD-21** **Smaller tasks.** The breakdown aims at `TASK_DIFF_TARGET_LINES` per task and lists, per task, the superseded tests it deletes and the capture-manifest entries it adds. *Verification:* the breakdown workflow says so; the release notes report each task's changed lines from the ledger.
+- **FR-SDD-22** *(V213-5)* **Captures outside `main`'s history.** The capture set moves from `docs/screenshots/` to an orphan `captures` branch whose history is squashed at each release. The README, design and promo images stay on `main` (V13-13 holds). A capture manifest maps each capture to the source files it draws; a task re-shoots only the captures its diff reaches, and the full set is shot at release prep. Captures are written losslessly compressed. *Verification:* `check:sdd` fails on a capture spec with no manifest entry, on an entry naming a missing file, and on an uncompressed capture; `captures.yml` runs on `main` only when the manifest says a captured screen changed, and on `workflow_dispatch`.
+- **FR-SDD-23** **Pixel diffs before images.** Visual review compares each capture with its base by pixels first. Only captures past `CAPTURE_DIFF_SHARE` are looked at, reduced, base and branch side by side in one image. The PR's job summary shows the same side-by-side images. *Verification:* the diff script's unit test on an identical pair, an anti-aliasing pair and a changed pair.
+- **FR-SDD-24** **Tests carry their ids.** A test for a requirement from v2.13 on names its id (`FR-SDD-6: …`). PLAN §12's hand-kept traceability table is replaced by `docs/sdd/reference/traceability.md`, generated from the test names, with the hand-kept rows for earlier requirements kept as they were. `check:sdd` fails on a v2.13-or-later requirement with no test. A snapshot over `SNAPSHOT_MAX_KB` is not added. A flaky test is quarantined with an F-id and a fix task, not retried in place. One test per acceptance criterion, at the lowest level that proves it. *Verification:* the generator's unit test; `check:sdd`.
+- **FR-SDD-25** **CI does less.** Pull-request CI uses `concurrency` with `cancel-in-progress`; one job builds `dist/` and the e2e shards download it; the Playwright browsers are cached on the Playwright version; a PR that changes only `docs/` runs `check:sdd` and the trailers job; a PR that changes only tests runs the tests it touched. *Verification:* the workflow files; a docs-only PR in this phase runs only those two jobs.
+
+**Cleanup**
+
+- **FR-SDD-26** *(V213-5)* **Closed evidence to an archive.** `spike/`, `docs/dome-composition/`, `docs/mockups/`, `docs/stars/`, `docs/spike-glyphcss/`, `docs/window/` and the `spike:*` npm scripts move to an orphan `archive` branch; `ids.md` records each moved path's archive location, so a decision that cites one still resolves. *Verification:* `check:sdd`'s id and path resolution; `npm run build` and `npm test` unchanged.
+- **FR-SDD-27** **Branches and worktrees pruned.** The driver removes a task's worktree once its PR merges and runs `scripts/prune-merged-branches.ts` after each merge. *Verification:* the prune script's unit test on a fixture repo.
+- **FR-SDD-28** **The app does not change.** No file under `src/` or `public/` changes in this phase; `package.json` stays 2.12.0; no tag and no deploy (V213-1). *Verification:* `git diff --stat` from the phase's base to its end shows no `src/` or `public/` path; `npm run build`'s `dist/` asset names are the same as the base's.
+
 ## 5. Technical Architecture
 
 > **Status: proposal.** The stack, data flow, and algorithm below reflect the v0.2 decisions (no backend in MVP, curated ~30-object catalog, −6° twilight rule) but are to be validated in the plan phase. The assumption that CelesTrak serves usable CORS headers to browsers has been verified (§12, OQ-11).
@@ -2551,6 +2644,24 @@ Definition of done:
 - `npm run bundle:budget`: every row inside its budget; `main` and `stars` within `GLOBE_MAIN_KB` and `GLOBE_STARS_KB`; the new `globe` row inside `GLOBE_BUDGET_KB`; the release re-sets the rows by D-178.
 - The owner's desk run written into `docs/RELEASE.md` §25; `package.json` reads 2.12.0. The tag and the deploy are the owner's.
 
+### Phase 2v — v2.13 ("the workflow", as decided 2026-11-03, V213-1)
+
+After v2.12 is on `main`. The development process only; the app is untouched and no release is cut.
+
+- The ledger, alone and first, then the tasks before the split as its baseline (FR-SDD-1, FR-SDD-2).
+- The split, the rewrap, the Decision Log's move, `ids.md` and `sdd:id`, with the briefs reading the new layout in the same task (FR-SDD-3..7).
+- `AGENTS.md`, the workflows, the config-driven driver and tiers, `gotchas.md` (FR-SDD-8..12).
+- `check:sdd`, `.ignore`, `map.md`, quiet checks, failure digests, the brief's prefix, review tiers (FR-SDD-13..19).
+- PRs, task size, captures branch and manifest, pixel diffs, test ids, CI (FR-SDD-20..25).
+- The archive branch, pruning, and the phase report (FR-SDD-26..28, FR-SDD-1).
+
+Definition of done:
+- FR-SDD-1..28 met, each by its verification line; US-51's criteria green.
+- `npm run check:sdd` green in CI on `main`; the driver's tests green on the `claude` entry; `npm test` and the e2e suite unchanged and green.
+- Every task `Gate: auto`, merged on CI green and a clean review; at most one `fable` (`hard`) task per wave, the driver's wait-and-resume on (V213-11).
+- Each tier's ceiling set in `sdd.agents.json` from the phase's ledger (FR-SDD-2); the phase report written into `docs/sdd/phases/v2.13/`; `package.json` still 2.12.0, no tag, no deploy. Trimming the agent memory is the owner's.
+- Left for the renderer phase: the area files (V213-9) and the glyphcss removal list in the proposal's §3c.
+
 ### Phase 3 — Later
 - Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.
 - Add-to-calendar (.ics); in-page pre-pass alarm (audio + vibration) while the tab is open; push notifications (US-11, backend scheduler per subscribed location/pass).
@@ -2884,6 +2995,17 @@ Definition of done:
 | 2026-11-03 | V212-11 | **A desk opens the stars page on the globe.** The owner, testing the 2.12.0 build: on a desk the globe is the view worth opening on; the window stays one press away in the view row. Reverses OQ-57's default; the phone still opens on the window; nothing is saved and no hash names the view. | FR-GLOBE-1, FR-PHONE-7 amended; OQ-57. |
 | 2026-11-03 | V212-12 | **Zoom buttons on the globe.** `[ + ]` and `[ − ]`, one `GLOBE_ZOOM_STEP` a press, disabled at the range's ends, in the readout row under the box; the wheel, the pinch and the keys stay. | FR-GLOBE-6 amended. |
 | 2026-11-03 | V212-13 | **A hovered figure is emphasised, and a hover never shrinks the globe.** The named figure's lines and name switch to the accent, its name shown with `names` off; the owner found the globe shrinking when a star was hovered (the readout line appeared under the box and took its height), so the row under the box keeps one height. | FR-GLOBE-11 amended. |
+| 2026-11-03 | V213-1 | **v2.13 is the workflow.** The owner, 2026-11-03: `docs/proposals/agent-agnostic-sdd.md` goes through as one phase, the whole proposal (steps 0–6 and 6a–6c). No `src/` change, so no release: `package.json` stays 2.12.0, no tag, no deploy. | §4.56; FR-SDD-1..28; US-51; G59–G61; §9 Phase 2v. |
+| 2026-11-03 | V213-2 | **The documents are cut by phase.** Supersedes V1-9's "amended in place" for the documents' layout (task ids still continue). SPEC, PLAN and TASKS become indexes; each phase's text moves to `docs/sdd/phases/<version>/`, folders named by version; closed TASKS sections move byte for byte, checkboxes included. From v2.14 on, `sdd-spec` writes a phase folder instead of amending the big files. | FR-SDD-3, FR-SDD-4, FR-SDD-13. |
+| 2026-11-03 | V213-3 | **The Decision Log moves whole to `docs/sdd/decisions.md`.** Every row and id as written, same order; it stays fixed and append-only there. This row is the last one written in SPEC §12. | FR-SDD-5, FR-SDD-6. |
+| 2026-11-03 | V213-4 | **The workflow is agent-agnostic; a task names a tier, not a model.** `AGENTS.md`, plain workflows, `sdd.agents.json`. Supersedes V210-11's "a model per task" with a tier per task (fable→hard, opus→standard, sonnet→light, haiku→light); closed phases keep `Model:` as written. Only the `claude` entry is built and tested. | FR-SDD-8..11. |
+| 2026-11-03 | V213-5 | **Captures and closed evidence leave `main`'s history.** Supersedes V22-4's "`spike/` and the capture PNGs are kept as cited evidence" on `main`: the capture set moves to an orphan `captures` branch squashed at each release, the spikes and evidence folders to an orphan `archive` branch, and `ids.md` keeps every cited path resolvable. The README, design and promo images stay (V13-13 holds). | FR-SDD-22, FR-SDD-26. |
+| 2026-11-03 | V213-6 | **Measure first.** The usage ledger is the phase's first task and merges alone; this phase's own tasks before the split are the baseline. No replayed product task. | FR-SDD-1. |
+| 2026-11-03 | V213-7 | **Tier ceilings start report-only.** The driver records overruns and stops nothing until the release task sets each tier's ceiling to `TIER_BUDGET_FACTOR` × the phase's 90th percentile. | FR-SDD-2. |
+| 2026-11-03 | V213-8 | **Token cost is a requirement.** The proposal's §3a and §3b become checked rules with the constants of §4.56; `check:sdd` enforces what can be enforced. | FR-SDD-4, FR-SDD-13..25. |
+| 2026-11-03 | V213-9 | **Area files are the renderer phase's.** That phase's spec session writes the first four (chart-views, stars, globe, live); until an area file exists, a session reaches an area through `ids.md` and the phase files. | §4.56 non-goals. |
+| 2026-11-03 | V213-10 | **Quality is watched with the same ledger.** Findings per phase, flakes and CI reruns per PR are reported beside tokens; a rule that raises any of them is reverted, and review on `light` goes back to `standard` if findings rise. The golden fixtures, axe cases, bundle budgets, contrast checks and the owner's release reading all stay. | FR-SDD-1, FR-SDD-18. |
+| 2026-11-03 | V213-11 | **Delivery as v2.12.** Every task `Gate: auto`, at most one `hard` task per wave, the driver's wait-and-resume on, every squash merge with an explicit message. The split task and the brief change land together, or the driver breaks. Tasks before FR-SDD-11 lands carry `Model:`, tasks after it `Tier:`. | §9 Phase 2v; PLAN §16.32. |
 
 ---
 
@@ -2891,10 +3013,11 @@ Definition of done:
 
 The header's Status cell grew one paragraph per revision until it ran to tens of thousands of characters. On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line. When the spec is revised, the Status line it replaces goes to the top of this list.
 
-**Dates:** 2026-11-03 (v2.12); 2026-11-02 (v2.11); 2026-11-01 (v2.10); 2026-10-30 (v2.9); 2026-10-30 (v2.8); 2026-10-29 (v2.7); 2026-10-29 (v2.6.1); 2026-10-27 (v2.6, approved); 2026-10-25 (v2.5, approved: zoom, OQ-46, delivery; the Spanish names); 2026-10-24 (v2.5, the design review); 2026-10-19 (v2.5); 2026-10-23 (v2.4.1); 2026-10-19 (v2.4); 2026-10-19 (v2.3); 2026-09-28 (v2.2.2); 2026-09-28 (v2.2.1); 2026-09-25 (v2.2); 2026-09-21 (v2.1); 2026-09-19 (v2.0.3); 2026-09-18 (v2.0.2); 2026-09-14 (v2.0.1); 2026-09-09 (v2.0); 2026-09-08 (v1.4); 2026-09-08 (v1.3.3); 2026-09-08 (v1.3.2); 2026-09-07 (v1.2); 2026-09-06 (v1.1.2); 2026-09-06 (v1.1.1); 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4)
+**Dates:** 2026-11-03 (v2.13); 2026-11-03 (v2.12); 2026-11-02 (v2.11); 2026-11-01 (v2.10); 2026-10-30 (v2.9); 2026-10-30 (v2.8); 2026-10-29 (v2.7); 2026-10-29 (v2.6.1); 2026-10-27 (v2.6, approved); 2026-10-25 (v2.5, approved: zoom, OQ-46, delivery; the Spanish names); 2026-10-24 (v2.5, the design review); 2026-10-19 (v2.5); 2026-10-23 (v2.4.1); 2026-10-19 (v2.4); 2026-10-19 (v2.3); 2026-09-28 (v2.2.2); 2026-09-28 (v2.2.1); 2026-09-25 (v2.2); 2026-09-21 (v2.1); 2026-09-19 (v2.0.3); 2026-09-18 (v2.0.2); 2026-09-14 (v2.0.1); 2026-09-09 (v2.0); 2026-09-08 (v1.4); 2026-09-08 (v1.3.3); 2026-09-08 (v1.3.2); 2026-09-07 (v1.2); 2026-09-06 (v1.1.2); 2026-09-06 (v1.1.1); 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4)
 
 ### Status, newest first
 
+- **Draft v2.12 — for review.** Phase v2.12 "the globe": §4.55, FR-GLOBE-1..18, US-50, G57–G58, Decision Log V212-1..V212-13 and roadmap §9 Phase 2u; open questions OQ-55..OQ-60, resolved 2026-11-03 with their defaults.
 - **Draft v2.11 — for review.** Phase v2.11 "one clean sky": §4.54, FR-CLEAN-1..16, US-49, G55–G56, Decision Log V211-1..V211-11 and roadmap §9 Phase 2t; amended on 2026-11-02 by the owner's calls from the phone and the desk (PLAN D-1018..D-1033).
 - **Draft v2.11 — for review.** v2.11 "one clean sky" (§4.54, FR-CLEAN-1..16, US-49, G55–G56, V211-1..V211-11): the owner's reading of the 2.10.0 build on the phone — the stars page and the pass detail take the live page's compact form: the sky fills the screen, over it only `[ ← ]` with one line (the dark window on the stars page, the countdown with the pass's name on the pass detail), the facing readout in the corner while the finger has the sky, `[ follow ]` and `[ controls ]`; everything else in the same bottom sheet the live page has — the stars page's view row, follow, facing, layers and `In this field`; the pass detail's name and landmark, times, view, follow, facing, Share, prose and table. The compact column and the landscape rail are withdrawn for the two pages; wide is unchanged. the `[ passes ]` toggle leaves the stars page; on a desk every page holds the home's width and the header's page links are `[ home ] [ live ] [ stars ]`. FR-FLOW-3, FR-FLOW-4, FR-FLOW-7, FR-FLOW-8, FR-FLOW-9, FR-FLOW-15, FR-STAR-3, FR-STAR-7, FR-SKY-6, FR-GYRO-1, FR-PHONE-7, FR-PHONE-14 and FR-HOME-4 amended; §5.16; OQ-53, OQ-54; §8 row 28; §9 Phase 2t.
 - **Draft v2.10 — for review.** v2.10 "the phone first" (§4.52, §4.53, FR-PHONE-1..16, FR-LOOK-1..12, US-45..US-48, G51–G54, V210-1..V210-11): the owner's reading of 2.9.0 on the phone in one sitting. On a phone the window follows the phone by default — at the first reading where no permission is needed, and from a saved grant asked inside the first touch on iOS — with `[ follow ]` beside `[ controls ]` and the facing readout back on the sky while the finger has it; the hint fits and the compact live captures are touch pages; the screen stays awake while following. The whole sky with every star is one tap or one pinch away on every page that draws stars: the stars page gains a view row, the polar chart draws the figures and the names (OQ-43 resolved the other way), the window's field is outlined on it, and a pinch past the window's ends crosses over and back; the dome is unchanged. The phone's pages answer first: the home's doors before the Where reading, a ready Where folded to `[ details ]`, the third door named "Live sky", the pass detail's times on one row, and a third theme, Auto, by the Sun at the observer. And the look of the sky, second pass, from the mockup the owner read: a sky surface darker than the page with a horizon band and a twilight tint, the Milky Way as a haze built from the galactic plane, the ladder of `*` to magnitude 2.5 and round dots sized by magnitude below it, four tones from B−V, a soft bloom under the brightest, the Moon with its phase, the Yale catalogue to 6.5 as a second chunk with the detail and the names following the field, and the rate rule holding at 20°; three strengths are constants the owner sets from the mockup's sliders after the phone run. FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, FR-FULL-3, FR-TONIGHT-6, FR-FLOW-1, FR-FLOW-2, FR-FLOW-6, FR-FLOW-7, FR-FLOW-8, FR-LIVE-7, FR-STAR-1, FR-STAR-3, FR-STAR-6, FR-STAR-9, FR-SKY-1, FR-SKY-4, FR-SKY-14, FR-DOME-6, FR-DS-8, FR-THEME-1 and FR-SET-1 amended; §5.15; OQ-50..OQ-52; §8 row 27; §9 Phase 2s.
