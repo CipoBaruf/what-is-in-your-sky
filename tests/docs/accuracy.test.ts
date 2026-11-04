@@ -40,7 +40,15 @@ const DOCUMENTS = [
   'docs/DEPLOY.md',
   'docs/RELEASE.md',
   ...SKILLS.map((skill) => `.claude/skills/${skill}/SKILL.md`),
+  // R176 (FR-SDD-8, FR-SDD-9): the entry point and the workflows the skills point to.
+  'AGENTS.md',
+  ...readdirSync('docs/sdd/workflows')
+    .sort()
+    .map((name) => `docs/sdd/workflows/${name}`),
 ];
+
+/** Paths a workflow names before the task that adds them has merged: R178 builds D-1068's capture scripts. */
+const PENDING = new Set(['scripts/captures/manifest.json', 'scripts/captures/diff.ts', 'scripts/captures/compress.ts']);
 
 /** The files FR-SHOW-1's audit table covers: the documents above plus the two READMEs it corrected. */
 const AUDITED = [...DOCUMENTS, 'docs/mockups/README.md', 'tests/fixtures/heavens-above/README.md'];
@@ -116,7 +124,7 @@ describe('every path a document names exists as named (FR-SHOW-1, US-36 AC1)', (
     it(`${path}`, () => {
       const text = readFileSync(path, 'utf8');
       const claims = pathClaims(text);
-      expect(claims.filter(([, exists]) => !exists).map(([token]) => token)).toEqual([]);
+      expect(claims.filter(([token, exists]) => !exists && !PENDING.has(token)).map(([token]) => token)).toEqual([]);
     });
   }
 

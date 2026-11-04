@@ -23,7 +23,7 @@ Both themes (dark and night) when the task touches colour; both languages (en an
 3. Shoot only those captures: a Playwright spec under `tests/e2e/` reaches each state and writes `test-results/<task>-<screen>-<width>.png`; run it with `npx playwright test <spec> --project=chromium`. The full set is shot only at release preparation.
 4. Shoot the same captures from the base (`origin/main`'s build; the recipe is in `docs/sdd/gotchas.md`, *captures*).
 5. Compare each pair with `scripts/captures/diff.ts`: YIQ delta, per-pixel threshold 0.1. A capture counts as changed only past `CAPTURE_DIFF_SHARE` of its pixels; under it is anti-aliasing noise.
-6. Look only at the changed ones, through the side-by-side image `diff.ts` composes (base and branch at half size). Check them against the acceptance criteria and the design: aligned to the cell grid, no clipped label, no horizontal scroll, contrast, no English in the Spanish captures.
+6. Look only at the changed ones, through the side-by-side image the diff script composes (base and branch at half size). Check them against the acceptance criteria and the design: aligned to the cell grid, no clipped label, no horizontal scroll, contrast, no English in the Spanish captures.
 7. Re-encode the kept captures losslessly with `scripts/captures/compress.ts` (deflate level 9).
 8. File them: the capture set lives on the orphan `captures` branch, which mirrors `docs/screenshots/`'s layout; `captures.yml` commits to it. Until that branch exists, copy them to `docs/screenshots/`. README, design and promo images stay on `main`.
 9. List in the PR the changed captures with one line each on what to look at, and the count of unchanged ones; the PR's job summary shows the same side-by-side images.

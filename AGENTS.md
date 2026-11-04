@@ -18,17 +18,17 @@ This file is for any coding agent; `CLAUDE.md` imports it.
 
 | Work | Workflow | Reads | Never reads |
 |---|---|---|---|
-| New phase or spec change | `docs/sdd/workflows/spec.md` | SPEC.md and PLAN.md, `ids.md`, each touched id by `sdd:id` | closed phases whole, TASKS.md |
-| Breakdown | `docs/sdd/workflows/breakdown.md` | the new phase's `spec.md` and `plan.md`, TASKS.md, `reference/delivery.md` §16.1–§16.3 | other phases |
-| Implement a task, headless | `docs/sdd/workflows/implement.md` | `sdd-run/<task>.brief.md` | the index files, the phase files |
-| Implement a task, interactive | `docs/sdd/workflows/implement.md` | the task's entry, each cited id by `sdd:id`, `map.md` | whole phase files |
+| New phase or spec change | `docs/sdd/workflows/spec.md` | SPEC.md and PLAN.md, `docs/sdd/ids.md`, each touched id by `npm run sdd:id <id>` | closed phases whole, TASKS.md |
+| Breakdown | `docs/sdd/workflows/breakdown.md` | the new phase's `spec.md` and `plan.md`, TASKS.md, `docs/sdd/reference/delivery.md` §16.1–§16.3 | other phases |
+| Implement a task, headless | `docs/sdd/workflows/implement.md` | `sdd-run/<task>.brief.md` | the index files and the phase files whole |
+| Implement a task, interactive | `docs/sdd/workflows/implement.md` | the task's entry, each cited id by `npm run sdd:id <id>`, `docs/sdd/map.md` | the index files and the phase files whole |
 | Visual review | `docs/sdd/workflows/visual-review.md` | the pixel-diff report, the side-by-side images past `CAPTURE_DIFF_SHARE` | unchanged captures, the phase files |
-| Review a PR | `docs/sdd/workflows/review.md` | the brief, the diff, `gotchas.md` | the phase files, the session transcript |
+| Review a PR | `docs/sdd/workflows/review.md` | the brief, the diff, `docs/sdd/gotchas.md` | the phase files, the session transcript |
 | Fix CI or findings | `docs/sdd/workflows/fix-ci.md` | the failure digest, the findings, the brief | the job log, the session transcript |
 | Release preparation | `docs/sdd/workflows/release.md` | `docs/RELEASE.md`, the last phase's `release.md`, the phase's `tasks.md` | earlier records, other phases |
-| Bug fix or question | none | `map.md`, then ids by `sdd:id` | the index files' history |
+| Bug fix or question | none | `docs/sdd/map.md`, then each id by `npm run sdd:id <id>` | the index files' history |
 
-Each workflow opens with its own row as `Reads:` and `Never reads:` lines.
+Each workflow opens with its own row as `Reads:` and `Never reads:` lines; where two rows share a workflow, its `Reads:` line names each by the word after the comma.
 
 ## Workflow
 

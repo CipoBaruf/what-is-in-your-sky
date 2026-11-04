@@ -8,7 +8,7 @@ It touches only what the failing checks or the findings name, on the task's own 
 
 ## Inputs
 
-- The failure digest: `failure-digest.md`, the `failure-digest` artifact of the failed run (written by `scripts/ci-digest.ts`, within `FAILURE_DIGEST_MAX_KB`): each failing job, each failing test's name, its first error lines and a frame (FR-SDD-16).
+- The failure digest: the `failure-digest` artifact of the failed run (written by `scripts/ci-digest.ts`, within `FAILURE_DIGEST_MAX_KB`): each failing job, each failing test's name, its first error lines and a frame (FR-SDD-16).
 - The findings: one JSON line each, `{file, line, claim, scenario}`, from the review (D-1065).
 - The brief, `sdd-run/<task>.brief.md`, for the task's scope and done-when.
 
