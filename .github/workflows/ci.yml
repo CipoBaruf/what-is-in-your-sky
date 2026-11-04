@@ -34,7 +34,10 @@ env:
   # with every test green (171 tests, 6.2 min of e2e behind about 3.2 min of
   # the stages every shard repeats) and was cancelled twice.
   # D-1067: the build is no longer one of those stages; the `build` job makes `dist/` once.
-  CI_E2E_SHARDS: 5
+  # D-1132 (2026-11-04): six since v2.14's wave 1. Shard 1 (typecheck, lint, the
+  # whole unit suite and its share of the e2e) was cancelled at ten minutes on
+  # main after #287 and on #288 and #289, every test it reached green.
+  CI_E2E_SHARDS: 6
   STAGE_TIMES: stage-times.tsv
 
 jobs:
@@ -151,7 +154,7 @@ jobs:
       # hide half the failures from the reader it is meant to inform.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     name: ci (shard ${{ matrix.shard }})
     env:
       UNIT: ${{ needs.changes.outputs.unit }}
