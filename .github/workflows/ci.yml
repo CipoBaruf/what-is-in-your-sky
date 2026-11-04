@@ -7,6 +7,13 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
+# D-1067 (FR-SDD-25): a newer push to a pull request cancels the run it supersedes. A push to
+# `main` gets a group of its own (the run id), so no commit on `main` is ever cancelled or left
+# pending behind another: GitHub keeps one pending run per group and drops the older one.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # FR-CI-1's budget (R37, D-195): a pull request's CI finishes inside ten
   # minutes. This is the constant; `timeout-minutes` below is the same number
@@ -26,12 +33,114 @@ env:
   # D-833 (2026-10-26): five since v2.5's wave 2. #195's shard 1 ran 10m01s
   # with every test green (171 tests, 6.2 min of e2e behind about 3.2 min of
   # the stages every shard repeats) and was cancelled twice.
+  # D-1067: the build is no longer one of those stages; the `build` job makes `dist/` once.
   CI_E2E_SHARDS: 5
   STAGE_TIMES: stage-times.tsv
 
 jobs:
+  # D-1031 and D-1067: what this change is and which tests it reaches, worked out once for every
+  # job below. On a pull request the checkout is GitHub's merge commit, whose first parent is the
+  # tip of `main` it merges into, so two commits of history are the whole diff.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      unit: ${{ steps.affected.outputs.unit }}
+      unit_files: ${{ steps.affected.outputs.unit_files }}
+      e2e: ${{ steps.affected.outputs.e2e }}
+      e2e_specs: ${{ steps.affected.outputs.e2e_specs }}
+      reason: ${{ steps.affected.outputs.reason }}
+      docs_only: ${{ steps.kind.outputs.docs_only }}
+      tests_only: ${{ steps.kind.outputs.tests_only }}
+    env:
+      FULL_CI: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # D-1067 (FR-SDD-25): a plain `git diff --name-only`, no third-party action. `docs_only` is
+      # D-1031's docs-only rule (markdown, `docs/`, `.claude/`, `LICENSE`); `tests_only` is a change
+      # to unit tests, their snapshots and e2e specs alone. Both are false on `main` and under `full-ci`.
+      - name: kind
+        id: kind
+        run: |
+          docs_only=false
+          tests_only=false
+          if [ "$FULL_CI" != true ]; then
+            files=$(git diff --name-only HEAD^1 HEAD)
+            if [ -n "$files" ]; then
+              printf '%s\n' "$files" | grep -qvE '(\.md$|^docs/|^\.claude/|^LICENSE$)' || docs_only=true
+              printf '%s\n' "$files" | grep -qvE '(\.test\.tsx?$|/__snapshots__/|^tests/e2e/[^/]+\.spec\.ts$)' || tests_only=true
+            fi
+          fi
+          echo "docs_only=$docs_only" >>"$GITHUB_OUTPUT"
+          echo "tests_only=$tests_only" >>"$GITHUB_OUTPUT"
+          echo "docs_only=$docs_only tests_only=$tests_only"
+      # D-1031 (FR-CI-1 as amended 2026-11-02): which tests this change reaches. A push to `main`
+      # and a pull request labelled `full-ci` run everything; any other pull request runs what
+      # `scripts/ci-affected.ts` selects from its diff against `main`. Node runs the script as it
+      # is, with no `npm ci`.
+      - name: affected
+        id: affected
+        run: |
+          if [ "$FULL_CI" = true ]; then
+            node scripts/ci-affected.ts --all "${{ github.event_name }}, or the full-ci label"
+          else
+            node scripts/ci-affected.ts HEAD^1
+          fi
+
+  # D-1067 (FR-SDD-25): one build, with the moon flag on, for every e2e shard.
+  build:
+    needs: changes
+    if: needs.changes.outputs.e2e != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: mkdir -p reports
+      - run: bash .github/workflows/stage.sh install npm ci
+      # FR-FLAG-2 (D-183): this build and the e2e stage that serves it run with the flag on, so
+      # `tests/e2e/moon.spec.ts` keeps covering the tradition line end to end. The "off"
+      # state — the default a plain `npm run build` ships — is `tests/build/flags.test.ts`
+      # and the capture set (D-179, captures.yml), neither of which is this build.
+      - run: bash .github/workflows/stage.sh build bash -c 'set -o pipefail; npm run build 2>&1 | tee reports/build.txt'
+        env:
+          VITE_MOON_LORE: 'on'
+      # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
+      # A change to tests alone ships the same bundle, so it skips the table (D-1076).
+      - if: needs.changes.outputs.tests_only != 'true'
+        run: bash .github/workflows/stage.sh bundle npm run bundle:budget
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dist
+          path: dist/
+          include-hidden-files: true
+          retention-days: 1
+      - name: stage times
+        if: always()
+        run: bash .github/workflows/stage-summary.sh build
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-build
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ci:
-    # PLAN §11: typecheck → lint → unit + golden + component + worker integration → build → Playwright.
+    # PLAN §11: typecheck → lint → unit + golden + component + worker integration → Playwright on the built app.
+    # D-1067: it waits for `build`, and runs whatever `changes` and `build` did, so a required shard is
+    # never skipped (a skipped job passes a required check): the first step fails a shard whose inputs
+    # are missing, and shard 1 still runs the typecheck, lint and unit stages when only `build` failed.
+    needs: [changes, build]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard. One shard
     # over the budget still fails the run, so a suite that has outgrown its
@@ -44,63 +153,72 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5]
     name: ci (shard ${{ matrix.shard }})
+    env:
+      UNIT: ${{ needs.changes.outputs.unit }}
+      E2E: ${{ needs.changes.outputs.e2e }}
+      WHY: ${{ needs.changes.outputs.reason }}
+      CHANGES: ${{ needs.changes.result }}
+      BUILD: ${{ needs.build.result }}
+      # `dist/` is there to test: `build` passed and some spec is selected.
+      HAS_DIST: ${{ needs.build.result == 'success' && needs.changes.outputs.e2e != 'none' }}
     steps:
-      # D-1031: on a pull request the checkout is GitHub's merge commit, whose first parent is
-      # the tip of `main` it merges into, so two commits of history are the whole diff.
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 2
+      # After the checkout, so the `stage times` step below still finds its script on a red shard.
+      - name: inputs
+        run: |
+          if [ "$CHANGES" != success ]; then echo "::error::the changes job ended '$CHANGES'"; exit 1; fi
+          if [ "${{ matrix.shard }}" != 1 ] && [ "$BUILD" != success ] && [ "$BUILD" != skipped ]; then echo "::error::the build job ended '$BUILD'"; exit 1; fi
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-      # D-1031 (FR-CI-1 as amended 2026-11-02): which tests this change reaches. A push to `main`
-      # and a pull request labelled `full-ci` run everything; any other pull request runs what
-      # `scripts/ci-affected.ts` selects from its diff against `main`. Node runs the script as it
-      # is, before `npm ci`.
-      - name: affected
-        id: affected
-        env:
-          FULL_CI: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
-        run: |
-          if [ "$FULL_CI" = true ]; then
-            node scripts/ci-affected.ts --all "${{ github.event_name }}, or the full-ci label"
-          else
-            node scripts/ci-affected.ts HEAD^1
-          fi
+      - run: mkdir -p reports
       # FR-CI-1: each stage is wrapped so the summary below can name what took the time.
       # D-1031: the whole-program checks and the unit tests run once, on shard 1; the other
       # shards are e2e shards and stop here when no spec is selected.
-      - if: matrix.shard == 1 || steps.affected.outputs.e2e != 'none'
+      - if: matrix.shard == 1 || needs.changes.outputs.e2e != 'none'
         run: bash .github/workflows/stage.sh install npm ci
+      # D-1067 (FR-SDD-16): the typecheck, lint, unit and e2e stages also leave a report in
+      # `reports/` for the `digest` job; the log keeps the human-readable output.
       - if: matrix.shard == 1
-        run: bash .github/workflows/stage.sh typecheck npm run typecheck
+        run: bash .github/workflows/stage.sh typecheck bash -c 'set -o pipefail; npm run typecheck -- --pretty false 2>&1 | tee reports/typecheck.txt'
+      # ESLint takes one formatter, so on a failure it runs again for the log.
       - if: matrix.shard == 1
-        run: bash .github/workflows/stage.sh lint npm run lint
+        run: bash .github/workflows/stage.sh lint bash -c 'npx eslint . -f json -o reports/eslint.json || { npx eslint .; exit 1; }'
+      # D-1067 (FR-SDD-25): the browsers come from a cache keyed on the locked Playwright version;
+      # a hit still installs the system packages Chromium needs.
       # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
-      - if: (matrix.shard == 1 && steps.affected.outputs.unit != 'none') || steps.affected.outputs.e2e != 'none'
-        run: bash .github/workflows/stage.sh browsers npx playwright install --with-deps chromium
+      - id: playwright
+        if: (matrix.shard == 1 && needs.changes.outputs.unit != 'none') || env.HAS_DIST == 'true'
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >>"$GITHUB_OUTPUT"
+      - id: browser-cache
+        if: steps.playwright.outputs.version
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright.outputs.version
+        env:
+          HIT: ${{ steps.browser-cache.outputs.cache-hit }}
+        run: |
+          if [ "$HIT" = true ]; then set -- npx playwright install-deps chromium; else set -- npx playwright install --with-deps chromium; fi
+          bash .github/workflows/stage.sh browsers "$@"
       # D-1031: `vitest related` runs the test files it is handed and every test file whose
       # imports reach the other files; `ci-affected.ts` adds the tests that read files by path.
-      - if: matrix.shard == 1 && steps.affected.outputs.unit != 'none'
+      - if: matrix.shard == 1 && needs.changes.outputs.unit != 'none'
         env:
-          UNIT: ${{ steps.affected.outputs.unit }}
-          UNIT_FILES: ${{ steps.affected.outputs.unit_files }}
+          UNIT_FILES: ${{ needs.changes.outputs.unit_files }}
         # `$UNIT_FILES` is word-split on purpose: the script refuses a path with whitespace in it.
         run: |
-          if [ "$UNIT" = all ]; then set -- npm test; else set -- npx vitest related --run --passWithNoTests $UNIT_FILES; fi
+          json='--reporter=default --reporter=json --outputFile.json=reports/vitest.json'
+          if [ "$UNIT" = all ]; then set -- npm test -- $json; else set -- npx vitest related --run --passWithNoTests $json $UNIT_FILES; fi
           bash .github/workflows/stage.sh unit "$@"
-      # FR-FLAG-2 (D-183): this build and the e2e stage below run with the flag on, so
-      # `tests/e2e/moon.spec.ts` keeps covering the tradition line end to end. The "off"
-      # state — the default a plain `npm run build` ships — is `tests/build/flags.test.ts`
-      # and the capture set (D-179, captures.yml), neither of which is this build.
-      - if: steps.affected.outputs.e2e != 'none'
-        run: bash .github/workflows/stage.sh build npm run build
-        env:
-          VITE_MOON_LORE: 'on'
-      # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
-      - if: steps.affected.outputs.e2e != 'none'
-        run: bash .github/workflows/stage.sh bundle npm run bundle:budget
+      # D-1067 (FR-SDD-25): the `build` job's `dist/`, not a build per shard.
+      - if: env.HAS_DIST == 'true'
+        uses: actions/download-artifact@v5
+        with:
+          name: dist
+          path: dist
       # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.
       # FR-CI-3: one worker per core (playwright.config.ts), and page specs load a stored run
       # instead of waiting on the 72 h search. A spec over 60 s on the list reporter is a defect.
@@ -108,31 +226,23 @@ jobs:
       # shards, so the halves are the same on every run and no spec is dropped
       # or shot twice. `workers: '100%'` (D-195, FR-CI-3) applies inside one.
       # D-1031: with specs named, Playwright shards those; a shard left with none passes.
-      - if: steps.affected.outputs.e2e != 'none'
+      # D-1067: the config's three reporters, named again because `--reporter` replaces them, and a JSON one.
+      - if: env.HAS_DIST == 'true'
         env:
-          E2E_SPECS: ${{ steps.affected.outputs.e2e_specs }}
-        run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests $E2E_SPECS
+          E2E_SPECS: ${{ needs.changes.outputs.e2e_specs }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: reports/playwright-${{ matrix.shard }}.json
+          PLAYWRIGHT_HTML_OPEN: never
+        run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests --reporter=list,github,html,json $E2E_SPECS
+      # Shard 1 ran its checks without `dist/`; a failed `build` still makes it red.
+      - name: build result
+        if: matrix.shard == 1 && needs.build.result != 'success' && needs.build.result != 'skipped'
+        run: |
+          echo "::error::the build job ended '$BUILD', so no e2e spec ran"
+          exit 1
       # FR-CI-1: the stage table, in the job summary, on a pass and on a failure alike.
       - name: stage times
         if: always()
-        env:
-          UNIT: ${{ steps.affected.outputs.unit }}
-          E2E: ${{ steps.affected.outputs.e2e }}
-          WHY: ${{ steps.affected.outputs.reason }}
-        run: |
-          touch "$STAGE_TIMES"
-          {
-            echo "## CI stages — shard ${{ matrix.shard }} of ${{ strategy.job-total }}"
-            echo
-            echo "Tests run (D-1031): unit **$UNIT**, e2e **$E2E** — $WHY"
-            echo
-            echo "| stage | wall time | |"
-            echo "|---|---:|---|"
-            awk -F'\t' '
-              { total += $2; printf "| %s | %d:%02d | %s |\n", $1, $2 / 60, $2 % 60, ($3 == 0 ? "" : "failed") }
-              END { printf "| **total** | **%d:%02d** | budget %s:00 (FR-CI-1) |\n", total / 60, total % 60, ENVIRON["CI_PR_BUDGET_MIN"] }
-            ' "$STAGE_TIMES"
-          } >>"$GITHUB_STEP_SUMMARY"
+        run: bash .github/workflows/stage-summary.sh "shard ${{ matrix.shard }} of ${{ strategy.job-total }}"
       - uses: actions/upload-artifact@v5
         if: failure()
         with:
@@ -140,6 +250,13 @@ jobs:
           path: playwright-report/
           retention-days: 7
           # A failure before Playwright runs leaves no report; that is not itself a problem.
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-ci-${{ matrix.shard }}
+          path: reports/
+          retention-days: 7
           if-no-files-found: ignore
 
   # FR-PUB-12 (D-376): no commit written after the baseline carries an agent
@@ -161,7 +278,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx tsx scripts/check-trailers.ts
+      # D-1067: the output is kept for the digest. `shell: bash` is `bash -eo pipefail`, so the step
+      # fails with the script and not with `tee`; the default shell has no `pipefail`.
+      - run: mkdir -p reports && npx tsx scripts/check-trailers.ts 2>&1 | tee reports/trailers.txt
+        shell: bash
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-trailers
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # FR-SHOW-4 (D-647): no export nothing imports. `knip` reads `package.json`,
   # the Vite, Vitest and Playwright configs and every import, and `knip.json`
@@ -169,7 +296,11 @@ jobs:
   # `docs/**` out of the report). Its own job beside `trailers`, so it spends
   # none of FR-CI-1's ten minutes, and a pull request that adds an unused
   # export, type or dependency is red on this job alone.
+  # D-1067 (FR-SDD-25): a docs-only change has nothing for it to read, so it skips. It runs when
+  # `changes` failed (no `docs_only` to read), since a skipped job passes a required check.
   dead-code:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -179,4 +310,42 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run check:dead
+      # `shell: bash` for `pipefail`, as in `trailers`.
+      - run: mkdir -p reports && npm run check:dead 2>&1 | tee reports/dead-code.txt
+        shell: bash
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-dead-code
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # D-1067 (FR-SDD-16): when anything above failed, the failing test names and first errors, in
+  # at most FAILURE_DIGEST_MAX_KB, as the `failure-digest` artifact and in this job's summary.
+  # Node runs `ci-digest.ts` as it is, so there is no `npm ci`.
+  digest:
+    needs: [changes, build, ci, trailers, dead-code]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # A job that failed before writing a report uploads nothing; the digest says so from `needs`.
+      - uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          pattern: reports-*
+          merge-multiple: true
+          path: reports
+      - run: node scripts/ci-digest.ts reports failure-digest.md
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+      - uses: actions/upload-artifact@v5
+        with:
+          name: failure-digest
+          path: failure-digest.md
+          retention-days: 14

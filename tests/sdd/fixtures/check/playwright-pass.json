@@ -1,0 +1,68 @@
+{
+ "config": {
+  "rootDir": "/repo/tests/e2e",
+  "version": "1.62.1"
+ },
+ "suites": [
+  {
+   "title": "sample.spec.ts",
+   "file": "sample.spec.ts",
+   "column": 0,
+   "line": 0,
+   "specs": [],
+   "suites": [
+    {
+     "title": "the sample page",
+     "file": "sample.spec.ts",
+     "line": 2,
+     "column": 6,
+     "specs": [
+      {
+       "title": "shows the title",
+       "ok": true,
+       "tags": [],
+       "tests": [
+        {
+         "timeout": 30000,
+         "annotations": [],
+         "expectedStatus": "passed",
+         "projectId": "",
+         "projectName": "",
+         "results": [
+          {
+           "workerIndex": 0,
+           "parallelIndex": 0,
+           "status": "passed",
+           "duration": 2,
+           "errors": [],
+           "stdout": [],
+           "stderr": [],
+           "retry": 0,
+           "startTime": "2026-11-04T01:43:56.951Z",
+           "annotations": [],
+           "attachments": []
+          }
+         ],
+         "status": "expected"
+        }
+       ],
+       "id": "b92766bcf73bd5c029a8-abc5fa5ab4933ccbbf0d",
+       "file": "sample.spec.ts",
+       "line": 3,
+       "column": 3
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "errors": [],
+ "stats": {
+  "startTime": "2026-11-04T01:43:56.762Z",
+  "duration": 209.06,
+  "expected": 1,
+  "skipped": 0,
+  "unexpected": 0,
+  "flaky": 0
+ }
+}

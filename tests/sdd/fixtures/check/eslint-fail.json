@@ -1,0 +1,48 @@
+[
+ {
+  "filePath": "/repo/scripts/ci-affected.ts",
+  "messages": [],
+  "errorCount": 0,
+  "fatalErrorCount": 0,
+  "warningCount": 0,
+  "fixableErrorCount": 0,
+  "fixableWarningCount": 0
+ },
+ {
+  "filePath": "/repo/scripts/sample.ts",
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "message": "'unused' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+    "line": 1,
+    "column": 7,
+    "messageId": "unusedVar",
+    "endLine": 1,
+    "endColumn": 13
+   },
+   {
+    "ruleId": "@typescript-eslint/no-explicit-any",
+    "severity": 2,
+    "message": "Unexpected any. Specify a different type.",
+    "line": 2,
+    "column": 27,
+    "messageId": "unexpectedAny",
+    "endLine": 2,
+    "endColumn": 30
+   },
+   {
+    "ruleId": null,
+    "message": "Unused eslint-disable directive (no problems were reported from 'no-console').",
+    "line": 3,
+    "column": 3,
+    "severity": 1
+   }
+  ],
+  "errorCount": 2,
+  "fatalErrorCount": 0,
+  "warningCount": 1,
+  "fixableErrorCount": 0,
+  "fixableWarningCount": 1
+ }
+]
