@@ -288,7 +288,8 @@ describe('the stars, named where a reader looks (SPEC §9 Phase 2l, R118)', () =
   });
 
   it('and the release checklist has the v2.4 section, with no tag', () => {
-    const v24 = section(release, '16. v2.4');
+    // R176: §16 moved to the phase folder (FR-SDD-9).
+    const v24 = section(readFileSync('docs/sdd/phases/v2.4/release.md', 'utf8'), '16. v2.4');
     expect(v24).toContain('No tag and no push to `release`');
     expect(v24).toContain('v1-stars-');
   });
