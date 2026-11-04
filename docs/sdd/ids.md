@@ -1834,6 +1834,7 @@ D-1088	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 de
 D-1090	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1091	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 D-1092	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
+D-1093	docs/sdd/phases/v2.13/plan.md#249-v213-decisions-2026-11-03	2.49 v2.13 decisions (2026-11-03)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2136,6 +2137,7 @@ V213-8	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V213-9	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V213-10	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V213-11	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V213-12	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

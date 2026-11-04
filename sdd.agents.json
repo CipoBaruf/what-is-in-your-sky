@@ -5,7 +5,7 @@
       "command": ["claude", "-p", "{prompt}", "--model", "{model}", "--permission-mode", "acceptEdits", "--max-turns", "{maxTurns}", "--output-format", "stream-json", "--verbose"],
       "tiers": {
         "hard": { "model": "fable" },
-        "standard": { "model": "opus" },
+        "standard": { "model": "opus", "tokenCeiling": 32716582 },
         "light": { "model": "sonnet" }
       },
       "aliases": { "haiku": "light" },

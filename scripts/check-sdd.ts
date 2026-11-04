@@ -282,7 +282,13 @@ export function pendingIds(tasks: string): Set<string> {
   return pending;
 }
 
-/** FR-SDD-24: a requirement from v2.13 on with no test naming it, unless an open task still owes it. */
+/** A requirement whose own line says it moved to another phase (V213-12's FR-SDD-26) is that phase's to test. */
+export function movedOut(spec: string, key: string): boolean {
+  const line = spec.split('\n').find((each) => each.startsWith(`- **${key}**`));
+  return line !== undefined && /\bmoved to\b/.test(line);
+}
+
+/** FR-SDD-24: a requirement from v2.13 on with no test naming it, unless an open task still owes it or it moved out. */
 export function checkTested(root: string): Outcome {
   if (!exists(root, IDS_PATH) || !exists(root, TRACEABILITY_PATH)) return { problems: [problem('untested', `${IDS_PATH} or ${TRACEABILITY_PATH} is missing`)] };
   const traced = tracedIds(read(root, TRACEABILITY_PATH));
@@ -291,6 +297,7 @@ export function checkTested(root: string): Outcome {
   for (const entry of parseIds(read(root, IDS_PATH)).values()) {
     const phase = /^docs\/sdd\/phases\/([^/]+)\/spec\.md$/.exec(entry.path)?.[1];
     if (!entry.key.startsWith('FR-') || phase === undefined || !phaseAtLeast(phase, [2, 13])) continue;
+    if (movedOut(read(root, entry.path), entry.key)) continue;
     if (!traced.has(entry.key) && !pending.has(entry.key)) problems.push(problem('untested', `${entry.key} (${phase}) has no test naming it in its title`));
   }
   return { problems };

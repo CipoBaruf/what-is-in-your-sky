@@ -87,7 +87,7 @@ The development process only; the app is untouched and no release is cut.
 - The archive branch, pruning, and the phase report (FR-SDD-26..28, FR-SDD-1).
 
 Definition of done:
-- FR-SDD-1..28 met, each by its verification line; US-51's criteria green.
+- FR-SDD-1..25, FR-SDD-27 and FR-SDD-28 met, each by its verification line (FR-SDD-26 moved to the renderer phase, V213-12); US-51's criteria green.
 - `npm run check:sdd` green in CI on `main`; the driver's tests green on the `claude` entry; `npm test` and the e2e suite unchanged and green.
 - Every task `Gate: auto`, merged on CI green and a clean review; at most one `fable` (`hard`) task per wave, the driver's wait-and-resume on (V213-11).
 - Each tier's ceiling set in `sdd.agents.json` from the phase's ledger (FR-SDD-2); the phase report written into `docs/sdd/phases/v2.13/`; `package.json` still 2.12.0, no tag, no deploy.

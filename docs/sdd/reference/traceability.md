@@ -579,9 +579,10 @@
 | FR-SDD-21 | `tests/docs/sdd-workflows.test.ts` |
 | FR-SDD-22 | `tests/docs/captures.test.ts`, `tests/docs/ci.test.ts`, `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-23 | `tests/captures/diff.test.ts` |
-| FR-SDD-24 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/traceability.test.ts` |
+| FR-SDD-24 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/phase-report.test.ts`, `tests/sdd/traceability.test.ts` |
 | FR-SDD-25 | `tests/docs/ci.test.ts` |
 | FR-SDD-27 | `tests/sdd/prune-merged-branches.test.ts` |
+| FR-SDD-28 | `tests/sdd/phase-report.test.ts` |
 | FR-SET-1 | `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-SET-2 | `tests/e2e/settings.spec.ts` |
 | FR-SET-3 | `src/ui/components/location/WherePlace.test.tsx` |
