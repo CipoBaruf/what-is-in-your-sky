@@ -55,7 +55,11 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
 - **D-1108 — The e2e suite and saved choices.**
   (FR-KEEP-1.) Every e2e test starts with an empty store (Playwright's fresh context); the task that adds the keys greps the suite for a reload or `goto` after a choice that expects a default and seeds or clears the store there, listing each in its PR.
 - **D-1109 — `viewFor`'s stars page has no dome, and the old default stays until R186.** *(R182)*
-  (FR-WIDE-2, FR-KEEP-1, D-1095.) FR-WIDE-2's wide row names the dome on all three pages, but FR-KEEP-1 and D-1095 read a saved `dome` as the stars page's whole sky; `viewFor('stars', …)` follows them (`dome` → `globe` on wide, `polar` on compact) until a task gives the stars page a dome. `defaultChartView` stays a thin caller of `viewFor` that answers 2.13's view wherever `viewFor` answers the globe (nothing saved or `globe` on wide → `dome`, a saved `polar` → `polar`), because the live page and the pass detail cannot draw the globe before R186; the stars page's opening view asks `viewFor` with nothing saved. The zoom and field ranges and the speeds are restated in `src/model/prefs.ts` because `src/data` may import neither the chart nor `src/lib` (PLAN §3); `model/prefs.test.ts` holds them equal.
+  (FR-WIDE-2, FR-KEEP-1, D-1095.) FR-WIDE-2's wide row names the dome on all three pages, but FR-KEEP-1 and D-1095 read a saved `dome` as the stars page's whole sky.
+  `viewFor('stars', …)` follows them (`dome` → `globe` on wide, `polar` on compact) until a task gives the stars page a dome.
+  `defaultChartView` stays a thin caller of `viewFor` that answers 2.13's view wherever `viewFor` answers the globe (nothing saved or `globe` on wide → `dome`, a saved `polar` → `polar`).
+  The live page and the pass detail cannot draw the globe before R186; the stars page's opening view asks `viewFor` with nothing saved.
+  The zoom and field ranges and the speeds are restated in `src/model/prefs.ts` because `src/data` may import neither the chart nor `src/lib` (PLAN §3); `model/prefs.test.ts` holds them equal.
 - **D-1110 — FR-KEEP-3's speed row is the opening rate, not `play`'s.** *(R182)*
   (FR-KEEP-2, FR-KEEP-3.) The table's ×1 is the rate every page opens at (now, watching): `OPENING_SPEED`. The rate `play` starts at with nothing saved stays 2.13's `DEFAULT_SPEED`, 60 (`DEFAULT_PLAY_SPEED`), since a `play` at ×1 would not move; `playSpeed` replaces it once chosen.
 
