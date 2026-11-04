@@ -9,7 +9,9 @@ The worker contract and the physics do not change, so the golden fixtures pass u
 The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page's whole sky.
 
 - **D-1094 — The networked data lands first, as P10, interactive.**
-  (FR-FACT-1, FR-FACT-3, FR-NAME-1, FR-NAME-2; V214-19.) Before the breakdown, one interactive session with web search opens one pull request: `src/data/catalog/facts.json` with its zod schema `facts.ts` and `facts.test.ts`; `data-src/stars/names-es.tsv` with a sourced row for every named star and every constellation, `build-stars.ts`'s missing-row failure widened (D-832) and the Bayer/Flamsteed names of FR-NAME-2 written into `catalog.json` as a `desig` name for every unnamed star brighter than `BAYER_LABEL_MAG`; and `tests/fixtures/rise-set-horizons.json` from JPL Horizons.
+  (FR-FACT-1, FR-FACT-3, FR-NAME-1, FR-NAME-2; V214-19.) Before the breakdown, one interactive session with web search opens one pull request.
+  It holds `src/data/catalog/facts.json` with its zod schema `facts.ts` and `facts.test.ts`; `data-src/stars/names-es.tsv` with a sourced row for every named star and every constellation, `build-stars.ts`'s missing-row failure widened (D-832);
+  the Bayer/Flamsteed names of FR-NAME-2 written into `catalog.json` as a `desig` name for every unnamed star brighter than `BAYER_LABEL_MAG`; and `tests/fixtures/rise-set-horizons.json` from JPL Horizons.
   The owner spot-checks the sources before it merges; it is not a driver task and carries no `R` id.
   The `stars` chunk grows by the names and labels only (about 1 KB).
 - **D-1095 — One saved view, mapped per page and width in one function.**
@@ -27,7 +29,8 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   The box's corners are four named overlay slots of the chart slot (`readout`, `fullscreen`, `hint`, `zoom`), so a view supplies its extras and the layout places them.
 - **D-1099 — The globe takes the page's passes, through the layer table.**
   (FR-WIDE-3, FR-WIDE-7, FR-NAME-3.) `SkyGlobe` gains `passes`, `highlightedPassId`, `t`, `onPassHover` and `onPick`; `layers.ts` gains a `globe` row equal to the window's minus `fieldOutline`.
-  New pure `globe/arcs.ts`: a pass's track points to J2000 directions through `globe/scene.ts`'s local frame (the inverse of `altAz`), FR-TRAJ-1's state through `lib/arcReveal.ts`, the minute ticks and the arrow's point; the renderer draws each arc as one fixed `<path>` per series (`SERIES_COUNT`), the ticks and the arrow as one path each, so the node count rises by at most `SERIES_COUNT` + 2 + 5 planet discs and stays under `GLOBE_MAX_NODES`.
+  New pure `globe/arcs.ts`: a pass's track points to J2000 directions through `globe/scene.ts`'s local frame (the inverse of `altAz`), FR-TRAJ-1's state through `lib/arcReveal.ts`, the minute ticks and the arrow's point.
+  The renderer draws each arc as one fixed `<path>` per series (`SERIES_COUNT`), the ticks and the arrow as one path each, so the node count rises by at most `SERIES_COUNT` + 2 + 5 planet discs and stays under `GLOBE_MAX_NODES`.
   The hover hit test is the projected polyline's distance, computed on `pointermove` at most once a frame.
 - **D-1100 — The time control is the live page's components, reused.**
   (FR-WIDE-4, FR-WIDE-8.) `StripeOverview`, `TimeStripe`, `PlaybackControls` and `usePlayback` move from the `Live` chunk to a `time` folder under `components/sky/` imported by the three pages' lazy chunks; the stars page's span is `usePlayback`'s with a `shiftDays` the day steps move.
@@ -115,9 +118,11 @@ Wait-and-resume is on; nothing is started with `--no-wait`.
 Unstopped about 18.5 h; with two five-hour stops about 28 h.
 The critical path is P10 → R184 → R186 → R188 → R189 → R190 → R191.
 
-**Owner gates:** P10's spot-check before it merges; at R191, the capture diff, the main ceiling if it is over (V214-20), the desk run (the three pages, the views, a pass's arc and facts, a star's facts, the hover, the clouds, the keys, full screen, a reload keeping the choices) and the phone run (the window, the names, a reload keeping the choices, the privacy note closed for good); then `gh repo edit` with `release.md`'s text, the tag `v2.14.0` and the deploy.
+**Owner gates:** P10's spot-check before it merges.
+At R191: the capture diff, the main ceiling if it is over (V214-20), the desk run (the three pages, the views, a pass's arc and facts, a star's facts, the hover, the clouds, the keys, full screen, a reload keeping the choices) and the phone run (the window, the names, a reload keeping the choices, the privacy note closed for good).
+Then `gh repo edit` with `release.md`'s text, the tag `v2.14.0` and the deploy.
 
-**Decision block** (§16.2): **R182 takes D-1109..D-1110, R183 D-1111, R184 D-1112..D-1114, R185 D-1115, R186 D-1116..D-1119, R187 D-1120..D-1121, R188 D-1122..D-1123, R189 D-1124, R190 D-1125..D-1126, R191 D-1127..D-1128.**
+**Decision block** (§16.2): **R182 takes D-1109..D-1110, R183 D-1111..D-1112, R184 D-1113..D-1115, R185 D-1116..D-1117, R186 D-1118..D-1121, R187 D-1122..D-1123, R188 D-1124..D-1125, R189 D-1126..D-1127, R190 D-1128..D-1129, R191 D-1130..D-1131.**
 D-1094..D-1108 are this plan's.
 
 What every session reads (D-284's rule): the task's entry and each id it names by `npm run sdd:id`; SPEC §4.57's constants table and the FR ids of its row; US-52..US-57's criteria for its ids; this section and §2.50's decisions it names.
