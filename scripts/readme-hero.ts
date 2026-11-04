@@ -1,7 +1,7 @@
 /**
  * FR-PUB-2, FR-PUB-11 (D-370): the README's one image and the repository's
- * social preview, composed from captures that are already in
- * `docs/screenshots/`.
+ * social preview, composed from captures of the set kept beside them in
+ * `docs/readme/sources/`.
  *
  *   npx tsx scripts/readme-hero.ts
  *
@@ -13,9 +13,12 @@
  * which `tests/docs/public.test.ts` reads — so a capture renamed by a later
  * phase fails a test instead of leaving a broken image in the README.
  *
- * `docs/screenshots/` is read and never written: `tests/docs/captures.test.ts`
- * owns that directory and fails on a file the capture set does not name, which
- * is why the output lives under `docs/readme/`.
+ * R178 (FR-SDD-22, D-1068): the capture set left `main` for the orphan `captures`
+ * branch, so the three captures the hero is made of stay on `main` as README
+ * images, under `docs/readme/sources/` with the set's names. To move the hero to
+ * a newer shoot, copy the three files from the branch (`git show
+ * origin/captures:<file>`) into that directory and run this script. The output
+ * never goes under `docs/screenshots/`.
  *
  * The layout is computed from `SOURCES` by `geometry()`, and nothing about it is
  * written down twice. The first version of this script hardcoded "two portrait
@@ -34,7 +37,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { denseFrame, MARK_LOCKUP_PX, type MarkRasters } from '../src/ui/components/mark/tiers';
 
 /** Where the captures are read from, and where the two pictures are written. */
-const SCREENSHOTS = resolve('docs/screenshots');
+const SCREENSHOTS = resolve('docs/readme/sources');
 const OUT = resolve('docs/readme');
 
 /** The README's image, at the width GitHub renders a README image at. */
