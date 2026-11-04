@@ -499,3 +499,49 @@ describe('favourites', () => {
     expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().installAnswer).toEqual({ dismissed: true, declines: 3 });
   });
 });
+
+/** R182 (FR-KEEP-1, FR-KEEP-3, FR-KEEP-4; D-1096, D-1105): the kept choices in the slice. */
+describe('prefs slice: the kept choices', () => {
+  it('FR-KEEP-3: an empty store answers the defaults', () => {
+    const state = createAppStore({ now: () => NOW, prefs: createLocalPrefs(memoryStorage()) }).getState();
+    expect(state.chartView).toBeUndefined();
+    expect(state.starLayers).toEqual({ stars: true, figures: true, planets: true });
+    expect(state.namesChoice).toBeUndefined();
+    expect(state.faintStars).toBe(false);
+    expect(state.globeTurn).toBe('you');
+    expect(state.globeZoom).toBe(1);
+    expect(state.windowFov).toBe(60);
+    expect(state.playSpeed).toBe(60);
+    expect(state.privacyNoteClosed).toBe(false);
+  });
+
+  it('FR-KEEP-1: an untouched choice writes nothing to the store', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().setObserver(neuquen);
+    store.getState().setSort('best');
+    store.getState().setChartView('globe');
+    expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best', chartView: 'globe' });
+  });
+
+  it('FR-KEEP-1: each setter writes its own key alone, and a new store reads it back', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().setObserver(neuquen);
+    const s = store.getState();
+    s.setStarLayers({ stars: true, figures: false, planets: true });
+    expect(stored(storage)).toEqual({ observer: neuquen, starLayers: { stars: true, figures: false, planets: true } });
+    s.setNamesChoice(false);
+    s.setFaintStars(true);
+    s.setGlobeTurn('stars');
+    s.setGlobeZoom(2);
+    s.setWindowFov(30);
+    s.setPlaySpeed(3600);
+    s.closePrivacyNote();
+    const kept = { starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars', globeZoom: 2, windowFov: 30, playSpeed: 3600, privacyNoteClosed: true };
+    expect(stored(storage)).toEqual({ observer: neuquen, ...kept });
+    expect(store.getState()).toMatchObject(kept);
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState()).toMatchObject(kept);
+  });
+
+});

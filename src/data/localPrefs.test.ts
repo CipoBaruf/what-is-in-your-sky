@@ -74,7 +74,7 @@ describe('createLocalPrefs', () => {
     const prefs = createLocalPrefs(storage);
     prefs.write({ observer: coords, sort: 'best', chartView: 'polar', chartOrientation: 'map' });
     expect(prefs.read()).toEqual({ observer: coords, sort: 'best', chartView: 'polar', chartOrientation: 'map' });
-    storage.map.set(PREFS_KEY, JSON.stringify({ observer: coords, chartView: 'globe', chartOrientation: 'map' }));
+    storage.map.set(PREFS_KEY, JSON.stringify({ observer: coords, chartView: 'panorama', chartOrientation: 'map' }));
     expect(prefs.read()).toEqual({ observer: coords, chartOrientation: 'map' });
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'dome', chartOrientation: 'mirror' }));
     expect(prefs.read()).toEqual({ chartView: 'dome' });
@@ -253,6 +253,75 @@ describe('createLocalPrefs', () => {
     }
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', installHintDeclines: 1, installHintSnoozedUntil: 'never' }));
     expect(prefs.read()).toEqual({ theme: 'night', installHintDeclines: 1 });
+  });
+
+  /** R182 (FR-KEEP-1, D-1096): the kept choices, each its own optional key, validated alone. */
+  describe('FR-KEEP-1: the kept choices', () => {
+    const chosen = {
+      starLayers: { stars: false, figures: true, planets: false },
+      namesChoice: false,
+      faintStars: true,
+      globeTurn: 'stars',
+      globeZoom: 2.5,
+      windowFov: 35,
+      playSpeed: 600,
+      privacyNoteClosed: true,
+    } as const;
+
+    it('FR-KEEP-1: round-trips each key beside the others, false values included, under the v1 key', () => {
+      const storage = memoryStorage();
+      const prefs = createLocalPrefs(storage);
+      prefs.write({ sort: 'best', ...chosen });
+      expect(prefs.read()).toEqual({ sort: 'best', ...chosen });
+      expect(Object.keys(JSON.parse(storage.map.get(PREFS_KEY) ?? '{}') as object)).toContain('privacyNoteClosed');
+      for (const [key, value] of Object.entries(chosen)) {
+        prefs.write({ [key]: value });
+        expect(prefs.read()).toEqual({ [key]: value });
+      }
+    });
+
+    it('FR-KEEP-1: reads none of them from a record written before 2.14', () => {
+      const storage = memoryStorage();
+      storage.map.set(PREFS_KEY, JSON.stringify({ sort: 'best', chartView: 'dome' }));
+      expect(createLocalPrefs(storage).read()).toEqual({ sort: 'best', chartView: 'dome' });
+    });
+
+    it('FR-KEEP-1: round-trips the globe as the saved view (FR-WIDE-2)', () => {
+      const prefs = createLocalPrefs(memoryStorage());
+      prefs.write({ chartView: 'globe' });
+      expect(prefs.read()).toEqual({ chartView: 'globe' });
+    });
+
+    it('FR-KEEP-1: clamps the globe zoom and the window field to their ranges on read', () => {
+      const storage = memoryStorage();
+      const prefs = createLocalPrefs(storage);
+      storage.map.set(PREFS_KEY, JSON.stringify({ globeZoom: 40, windowFov: 5 }));
+      expect(prefs.read()).toEqual({ globeZoom: 4, windowFov: 20 });
+      storage.map.set(PREFS_KEY, JSON.stringify({ globeZoom: 0.1, windowFov: 170 }));
+      expect(prefs.read()).toEqual({ globeZoom: 0.5, windowFov: 90 });
+      storage.map.set(PREFS_KEY, JSON.stringify({ globeZoom: 1.5, windowFov: 45 }));
+      expect(prefs.read()).toEqual({ globeZoom: 1.5, windowFov: 45 });
+    });
+
+    it('FR-KEEP-1: drops a bad value of each key alone, keeping every other key', () => {
+      const bad: Record<keyof typeof chosen, unknown> = {
+        starLayers: { stars: false, figures: 'yes', planets: true },
+        namesChoice: 'on',
+        faintStars: 1,
+        globeTurn: 'sideways',
+        globeZoom: -2,
+        windowFov: 'wide',
+        playSpeed: 120,
+        privacyNoteClosed: 'true',
+      };
+      const storage = memoryStorage();
+      const prefs = createLocalPrefs(storage);
+      for (const key of Object.keys(bad) as (keyof typeof chosen)[]) {
+        storage.map.set(PREFS_KEY, JSON.stringify({ ...chosen, sort: 'best', [key]: bad[key] }));
+        const { [key]: _dropped, ...rest } = chosen;
+        expect(prefs.read()).toEqual({ ...rest, sort: 'best' });
+      }
+    });
   });
 
   it('works without storage and swallows storage errors', () => {
