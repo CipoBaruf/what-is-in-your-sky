@@ -1,4 +1,4 @@
-import { THEMES, type ChartOrientation, type ChartView, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../model';
+import { CHART_VIEWS, GLOBE_ZOOM_RANGE, PLAY_SPEEDS, THEMES, WINDOW_FOV_RANGE_DEG, type ChartOrientation, type ChartView, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../model';
 import { mostRecentlyUsed } from './favourites';
 import { storedObserverSchema, toObserver } from './schemas';
 import { browserStorage, type StorageLike } from './storage';
@@ -42,6 +42,12 @@ import { z } from './zod';
  * and read back on compact as on wide. With nothing saved (or a value that is
  * not a view) the reader leaves `chartView` out, and the page's
  * `defaultChartView` picks the window on a phone and the dome on a desk.
+ *
+ * R182 (FR-KEEP-1, D-1096): the choices kept on the device — the stars page's layers, the names, the faint stars,
+ * the globe's turn and zoom, the window's field, the playback rate and the privacy note — each an optional key
+ * validated alone, so a bad value drops that key and nothing else; every valid value round-trips as written, since
+ * a written key is a choice (a value never chosen is never written). The zoom and the field are clamped on read.
+ * The key stays `v1`; nothing migrates.
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 
@@ -90,6 +96,22 @@ interface Prefs {
   installHintDeclines?: number;
   /** FR-OFF-6 as amended (D-272): when the current snooze runs out, epoch ms. Absent until the first decline. */
   installHintSnoozedUntil?: number;
+  /** R182 (FR-KEEP-1): the stars page's `stars`, `figures` and `planets` switches. */
+  starLayers?: StarLayers;
+  /** R182 (FR-KEEP-1): `[x] names`, once tapped; absent, R160's default by view and width holds. */
+  namesChoice?: boolean;
+  /** R182 (FR-KEEP-1): `[ ] faint` on the globe and the window. */
+  faintStars?: boolean;
+  /** R182 (FR-KEEP-1): the globe's turn, `with you` or `with the stars`. */
+  globeTurn?: GlobeTurn;
+  /** R182 (FR-KEEP-1): the globe's zoom, within `GLOBE_ZOOM_RANGE`. */
+  globeZoom?: number;
+  /** R182 (FR-KEEP-1): the window's field, degrees, within `WINDOW_FOV_RANGE_DEG`. */
+  windowFov?: number;
+  /** R182 (FR-KEEP-1): the rate `play` starts at. */
+  playSpeed?: PlaySpeed;
+  /** R182 (FR-KEEP-4): either `[ × ]` closed the privacy note, for good. */
+  privacyNoteClosed?: boolean;
 }
 
 /** One saved place as it is written (FR-OFF-7); the whole observer, so selecting it offline needs no geocode. */
@@ -103,7 +125,7 @@ const storedFavouriteSchema = z.object({
 const storedPrefsSchema = z.object({
   observer: storedObserverSchema.optional().catch(undefined),
   sort: z.enum(['chronological', 'best']).optional().catch(undefined),
-  chartView: z.enum(['dome', 'polar', 'window']).optional().catch(undefined),
+  chartView: z.enum(CHART_VIEWS).optional().catch(undefined),
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   // R156 (FR-PHONE-15): the three values `THEMES` lists, `auto` among them; anything else reads as absent (dark).
@@ -130,7 +152,18 @@ const storedPrefsSchema = z.object({
   // other, which at worst offers the hint a snooze early — never the other way round.
   installHintDeclines: z.number().int().nonnegative().optional().catch(undefined),
   installHintSnoozedUntil: z.number().finite().optional().catch(undefined),
+  // R182 (FR-KEEP-1, D-1096): each new choice alone; a malformed one drops itself. The layers are one key, all three or none.
+  starLayers: z.object({ stars: z.boolean(), figures: z.boolean(), planets: z.boolean() }).optional().catch(undefined),
+  namesChoice: z.boolean().optional().catch(undefined),
+  faintStars: z.boolean().optional().catch(undefined),
+  globeTurn: z.enum(['you', 'stars']).optional().catch(undefined),
+  globeZoom: z.number().finite().positive().optional().catch(undefined),
+  windowFov: z.number().finite().positive().optional().catch(undefined),
+  playSpeed: z.union(PLAY_SPEEDS.map((speed) => z.literal(speed))).optional().catch(undefined),
+  privacyNoteClosed: z.boolean().optional().catch(undefined),
 });
+
+const clamp = (value: number, [min, max]: readonly [number, number]): number => Math.min(max, Math.max(min, value));
 
 export interface LocalPrefs {
   read: () => Prefs;
@@ -146,7 +179,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, sunGlow, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, sunGlow, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil, starLayers, namesChoice, faintStars, globeTurn, globeZoom, windowFov, playSpeed, privacyNoteClosed } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -175,6 +208,15 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         // Zero declines is what an absent key already means, so it is not written back either.
         if (installHintDeclines) prefs.installHintDeclines = installHintDeclines;
         if (installHintSnoozedUntil !== undefined) prefs.installHintSnoozedUntil = installHintSnoozedUntil;
+        // R182 (FR-KEEP-1): a written key is a choice, read back whatever its value; the zoom and the field within range.
+        if (starLayers) prefs.starLayers = starLayers;
+        if (namesChoice !== undefined) prefs.namesChoice = namesChoice;
+        if (faintStars !== undefined) prefs.faintStars = faintStars;
+        if (globeTurn) prefs.globeTurn = globeTurn;
+        if (globeZoom !== undefined) prefs.globeZoom = clamp(globeZoom, GLOBE_ZOOM_RANGE);
+        if (windowFov !== undefined) prefs.windowFov = clamp(windowFov, WINDOW_FOV_RANGE_DEG);
+        if (playSpeed !== undefined) prefs.playSpeed = playSpeed;
+        if (privacyNoteClosed !== undefined) prefs.privacyNoteClosed = privacyNoteClosed;
         return prefs;
       } catch {
         return {};

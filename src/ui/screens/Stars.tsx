@@ -42,6 +42,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
 import { close } from '../navigation';
+import { viewFor } from './chartViewDefault';
 import { requestPlace } from './home/placeRequest';
 import { nightWindow } from './home/tonight';
 import { FieldList } from './stars/FieldList';
@@ -250,7 +251,8 @@ function StarsSky({ observer }: { observer: Observer }) {
    * choice holds for both views; the toggle shows the value in force. FR-GLOBE-1 as amended (V212-11, D-1054): a desk
    * opens on the globe, a phone on the window; the width at the open picks it, nothing is saved.
    */
-  const [view, setView] = useState<StarsView>(wide ? 'whole' : 'window');
+  // R182 (D-1095): the opening view is `viewFor`'s with nothing saved (the globe on wide, the window on compact); R190 reads the saved one.
+  const [view, setView] = useState<StarsView>(() => (viewFor('stars', mode, undefined) === 'window' ? 'window' : 'whole'));
   const chartView = chartViewOf(view);
   const onChartView = useCallback((next: ChartView) => {
     setView(next === 'window' ? 'window' : 'whole');

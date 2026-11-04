@@ -6,7 +6,7 @@ export const chart = {
   chart: {
     viewGroup: 'Chart view',
     viewPrefix: 'View:',
-    view: { dome: 'Dome', polar: 'Polar', window: 'Window' } satisfies Record<ChartView, string>,
+    view: { dome: 'Dome', polar: 'Polar', window: 'Window', globe: 'Globe' } satisfies Record<ChartView, string>,
     /**
      * R160 (FR-PHONE-7, D-971): the stars page's own view row, `[ Window ] Whole sky` — the polar chart under the
      * name a reader of that page knows it by, since the page is about the stars and offers no dome; the live page
