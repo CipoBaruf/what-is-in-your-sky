@@ -5,7 +5,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { findingsPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTier, reviewTierFor } from '../../scripts/sdd/review';
+import { findingsPath, fixHandoffPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTier, reviewTierFor } from '../../scripts/sdd/review';
 
 const auto = { tier: 'standard', gate: 'auto', review: null } as const;
 
@@ -82,5 +82,8 @@ describe('FR-SDD-9, FR-SDD-16: the prompts come from the workflows', () => {
     expect(prompt).toContain('## The failure digest\n\n## ci\n\n- test "x" failed');
     const findingsOnly = fixPrompt({ id: 'R9', brief: 'b', workflow: fix, findings: [finding], digest: null });
     expect(findingsOnly).not.toContain('## The failure digest');
+    expect(fixHandoffPath('R9')).toBe('sdd-run/R9.fix.md');
+    expect(findingsOnly).toContain('write the summary to sdd-run/R9.fix.md');
+    expect(findingsOnly).not.toContain('R9.summary.md');
   });
 });

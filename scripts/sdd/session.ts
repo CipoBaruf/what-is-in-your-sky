@@ -73,6 +73,11 @@ export interface SessionOptions {
   ledger?: { task: string; path?: string };
 }
 
+/** The output tail kept for an `exit-code` agent's limit detection. */
+const TAIL_KEEP = 8000;
+/** The rejected limit events kept for a `stream-json` session. */
+const EVENTS_KEEP = 20;
+
 /** Runs one session to completion, or kills it at the wall clock or past its tier's token ceiling. */
 export function runSession(options: SessionOptions): Promise<SessionResult> {
   const { cwd, prompt, agent, tier, kind, maxTurns, timeoutMs, logger, env, handoff, ledger } = options;
@@ -104,7 +109,10 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stopped: 'timeout' | 'budget' | null = null;
-    let stdout = '';
+    // What the parser needs, not the whole stream: the rejected limit events and the last result event
+    // (`stream-json`), and a bounded tail of the output for limit detection (`exit-code`).
+    let events: string[] = [];
+    let tail = '';
     let pending = '';
     let stderr = '';
     const tokens = new StreamTokens();
@@ -128,7 +136,9 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     const readLine = (line: string): void => {
       if (!line.trim()) return;
       logger.raw(`${line}\n`);
-      stdout += `${line}\n`;
+      tail = `${tail}${line}\n`.slice(-TAIL_KEEP);
+      if (line.includes('"type":"result"')) events = [...events.filter((kept) => !kept.includes('"type":"result"')), line];
+      else if (line.includes('"rate_limit_event"') && line.includes('"rejected"')) events = [...events, line].slice(-EVENTS_KEEP);
       // FR-SDD-2: a set ceiling stops the session as the wall clock does.
       if (tokenCeiling !== undefined && agent.parser === 'stream-json' && tokens.add(line) > tokenCeiling && stopped === null) {
         logger.line(`  the session passed the ${tier} tier's ceiling of ${String(tokenCeiling)} tokens; stopping it (FR-SDD-2)`);
@@ -155,7 +165,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     child.on('close', (code) => {
       clearTimeout(timer);
       readLine(pending);
-      const parsed = parse(stdout, code, handoff === undefined ? null : `${cwd}/${handoff}`, { limit: agent.limit, stderr });
+      const parsed = parse(agent.parser === 'stream-json' ? events.join('\n') : tail, code, handoff === undefined ? null : `${cwd}/${handoff}`, { limit: agent.limit, stderr });
       const outcome = stopped ?? parsed.outcome;
       resolve(finish({ outcome, code, durationMs: Date.now() - startedAt, result: parsed.text, limit: outcome === 'limit' ? parsed.limit : null, usage: parsed.usage, model }));
     });

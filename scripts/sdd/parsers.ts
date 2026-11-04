@@ -87,10 +87,10 @@ const TAIL_CHARS = 2000;
 
 const exitCode: ResultParser = (stdout, code, handoffPath, { limit: config, stderr }) => {
   const text = stdout.trim().slice(-TAIL_CHARS) || null;
+  // A clean exit with the handoff written is success, whatever the output says about limits.
+  if (code === 0 && (handoffPath === null || existsSync(handoffPath))) return done('ok', text, null, null);
   const limit = limitFromText(config, text) ?? limitFromText(config, stderr);
-  if (limit) return done('limit', text, null, limit);
-  const handedOff = handoffPath === null || existsSync(handoffPath);
-  return done(code === 0 && handedOff ? 'ok' : 'error', text, null, null);
+  return limit ? done('limit', text, null, limit) : done('error', text, null, null);
 };
 
 export const PARSERS: Record<'stream-json' | 'exit-code', ResultParser> = { 'stream-json': streamJson, 'exit-code': exitCode };

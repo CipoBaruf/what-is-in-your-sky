@@ -144,6 +144,16 @@ describe("FR-SDD-11, D-835: the claude entry's limit pattern", () => {
     expect(resetFromText('soon', now)).toBeNull();
     expect(resetFromText('25:00', now)).toBeNull();
   });
+
+  it('does not read a weekday out of a time-zone name', () => {
+    const next = new Date(2026, 10, 4, 19, 10).getTime();
+    for (const zone of ['America/Montevideo', 'Europe/Monaco', 'America/Thunder_Bay', 'Africa/Sunday_Island', 'Asia/Saturn'])
+      expect(resetFromText(`7:10pm (${zone})`, now), zone).toBe(next);
+    expect(resetFromText('Tue 9am (America/Montevideo)', now)).toBe(new Date(2026, 10, 10, 9, 0).getTime());
+    expect(resetFromText('Tuesday 9am', now)).toBe(new Date(2026, 10, 10, 9, 0).getTime());
+    expect(resetFromText('Mon 9am', now)).toBe(new Date(2026, 10, 9, 9, 0).getTime());
+    expect(resetFromText('9am monitor', now)).toBe(new Date(2026, 10, 5, 9, 0).getTime());
+  });
 });
 
 describe('D-1064: the result parsers', () => {
@@ -175,6 +185,28 @@ describe('D-1064: the result parsers', () => {
     expect(parse('working…\nall done\n', 0, handoff, context)).toEqual({ ok: true, outcome: 'ok', text: 'working…\nall done', usage: null, limit: null });
     expect(parse('', 2, handoff, context).outcome).toBe('error');
     expect(parse("You've hit your session limit · resets 7:10pm", 1, handoff, context)).toMatchObject({ outcome: 'limit', limit: { accountWide: true } });
+  });
+
+  it('exit-code: a 0 exit with its handoff is success whatever the output says about limits', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sdd-parser-'));
+    const handoff = join(dir, 'R9.summary.md');
+    writeFileSync(handoff, 'done');
+    const parse = PARSERS['exit-code'];
+    expect(parse('limit reached? no: D-835 wait and rerun on a usage limit', 0, handoff, context)).toMatchObject({ ok: true, outcome: 'ok', limit: null });
+    expect(parse('usage limit', 0, null, context).outcome).toBe('ok');
+    expect(parse('usage limit', 0, join(dir, 'absent.md'), context).outcome).toBe('limit');
+  });
+
+  it("R175, 2026-11-04: Fable's own weekly limit, with every model at 76 %, is not account-wide, so the fallback chain applies", () => {
+    // The event and the sentence as the CLI wrote them; `seven_day` was `allowed_warning`, only the model's window `rejected`.
+    const event = '{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1794103200,"rateLimitType":"seven_day_overage_included","unifiedWindows":{"five_hour":{"utilization":0.36,"status":"allowed"},"seven_day":{"utilization":0.76,"status":"allowed_warning"},"seven_day_overage_included":{"utilization":1,"status":"rejected"}}}}';
+    const sentence = result({ is_error: true, result: "You've reached your Fable limit. Switch to another model, or manage usage credits to continue." });
+    for (const stdout of [`${event}\n${sentence}`, sentence]) {
+      const parsed = stream(stdout, 1, null, context);
+      expect(parsed).toMatchObject({ outcome: 'limit', limit: { accountWide: false } });
+      // runStage retries on the next tier exactly when outcome is `limit` and accountWide is false.
+      expect(nextTier(agent, 'hard')).toBe('standard');
+    }
   });
 
   it('FR-SDD-2: counts an assistant message once however many events carry it', () => {

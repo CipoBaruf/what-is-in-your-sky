@@ -128,6 +128,15 @@ describe('FR-SDD-10, FR-SDD-11: `Tier:`, `Agent:` and a closed `Model:`', () => 
     expect(read(['  - **Tier:** light']).tasks[0]).toMatchObject({ tier: 'light', agent: null });
   });
 
+  it('FR-SDD-10: an unknown `Agent:` is a breakdown problem and a blocker for that one task, never a throw', () => {
+    const text = ['- [ ] **R90 — A task**', '  - **Lane:** docs', '  - **Gate:** auto', '  - **Agent:** `nobody`', '- [ ] **R91 — Another**', '  - **Lane:** docs', '  - **Gate:** auto', '  - **Agent:** `claude`'].join('\n');
+    const { tasks, problems } = parseTasks(text, models, ['claude']);
+    expect(problems).toEqual([expect.stringContaining('R90: `Agent: nobody` is not an entry of sdd.agents.json (claude).')]);
+    expect(runBlockers(tasks[0] as Task)).toEqual([expect.stringContaining('`Agent: nobody` is not an entry')]);
+    expect(runBlockers(tasks[1] as Task)).toEqual([]);
+    expect(parseTasks(text, models).problems).toEqual([]);
+  });
+
   it('reads each closed `Model:` through the map: fable→hard, opus→standard, sonnet→light, haiku→light', () => {
     const tiers = ['fable', 'opus', 'sonnet', 'haiku'].map((model) => read([`  - **Model:** ${model}`]).tasks[0]?.tier);
     expect(tiers).toEqual(['hard', 'standard', 'light', 'light']);

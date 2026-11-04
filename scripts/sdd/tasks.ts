@@ -53,6 +53,8 @@ export interface Task {
   model: string | null;
   /** FR-SDD-10: `Agent:` pins the task to one entry of `sdd.agents.json`. */
   agent: string | null;
+  /** `Agent:` named an entry the config does not have (`parseTasks` was given the names): the task is held back. */
+  unknownAgent: string | null;
   gate: Gate | null;
   deps: readonly string[];
   /** §16.3 (v1.1): a file that must exist on `origin/main` before the task may start, or `null`. */
@@ -119,7 +121,7 @@ function parseEnum<T extends string>(value: string, allowed: readonly T[]): T | 
  * agent's model → tier map (`agents.ts`), which `Model:` and `Review:` are
  * read through; without it only tiers and `interactive` are known.
  */
-export function parseTasks(markdown: string, modelTiers: Readonly<Record<string, Tier>> = {}): ParsedTasks {
+export function parseTasks(markdown: string, modelTiers: Readonly<Record<string, Tier>> = {}, agentNames?: readonly string[]): ParsedTasks {
   const models = Object.keys(modelTiers);
   const asTier = (value: string): Tier | null => {
     const name = plain(value).toLowerCase();
@@ -143,6 +145,7 @@ export function parseTasks(markdown: string, modelTiers: Readonly<Record<string,
         tier: null,
         model: null,
         agent: null,
+        unknownAgent: null,
         gate: null,
         deps: [],
         precondition: null,
@@ -177,6 +180,10 @@ export function parseTasks(markdown: string, modelTiers: Readonly<Record<string,
       if (!current.tier) problems.push(`${current.id}: \`Tier: ${plain(value)}\` is not one of ${TIERS.join(', ')}.`);
     } else if (name === 'Agent') {
       current.agent = plain(value).toLowerCase() || null;
+      if (current.agent !== null && agentNames !== undefined && !agentNames.includes(current.agent)) {
+        current.unknownAgent = current.agent;
+        problems.push(`${current.id}: \`Agent: ${plain(value)}\` is not an entry of sdd.agents.json (${agentNames.join(', ')}).`);
+      }
     } else if (name === 'Gate') {
       current.gate = parseEnum(value, GATES);
       if (!current.gate) problems.push(`${current.id}: \`Gate: ${plain(value)}\` is not one of ${GATES.join(', ')}.`);
@@ -222,6 +229,7 @@ export function runBlockers(task: Task): string[] {
   const blockers: string[] = [];
   if (!task.lane) blockers.push('no `Lane:`');
   if (!task.gate) blockers.push('no `Gate:`');
+  if (task.unknownAgent !== null) blockers.push(`\`Agent: ${task.unknownAgent}\` is not an entry of sdd.agents.json`);
   return blockers;
 }
 

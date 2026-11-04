@@ -13,6 +13,9 @@ export const FIX_WORKFLOW = 'docs/sdd/workflows/fix-ci.md';
 /** The review's handoff file, relative to the worktree (D-1083: "the handoff file the prompt names"). */
 export const findingsPath = (id: string): string => `sdd-run/${id}.findings.jsonl`;
 
+/** The fix session's handoff file, apart from the implementation's summary so the check cannot pass on that one. */
+export const fixHandoffPath = (id: string): string => `sdd-run/${id}.fix.md`;
+
 /** Paths whose change always gets the `standard` review (FR-SDD-18). */
 const CAREFUL = ['src/physics/', 'src/worker/', 'scripts/sdd/'];
 
@@ -78,7 +81,7 @@ export function reviewPrompt(input: { id: string; brief: string; base: string; w
 export function fixPrompt(input: { id: string; brief: string; workflow: string; findings: readonly string[]; digest: string | null }): string {
   const parts = [
     `Fix ${input.id} on this branch. Read ${input.brief} for the task's scope and done-when. This is a headless session: decide and record rather than ask, and commit each fix as it passes.`,
-    `When done, write the summary to sdd-run/${input.id}.summary.md, replacing the one there. Follow this procedure:`,
+    `When done, write the summary to ${fixHandoffPath(input.id)}. Follow this procedure:`,
     '',
     input.workflow.trim(),
   ];

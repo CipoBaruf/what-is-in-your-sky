@@ -99,7 +99,7 @@ export function parseAgents(value: unknown): AgentsConfig {
 
 export const loadAgents = (path = AGENTS_PATH): AgentsConfig => parseAgents(JSON.parse(readFileSync(path, 'utf8')) as unknown);
 
-/** `--agent`, then a task's `Agent:`, then the config's default. */
+/** The first name given (the caller passes the task's `Agent:` before `--agent`), else the config's default; throws on a name the config lacks. */
 export function pickAgent(config: AgentsConfig, ...names: (string | null | undefined)[]): Agent {
   const name = names.find((candidate): candidate is string => typeof candidate === 'string' && candidate !== '') ?? config.default;
   const entry = config.agents[name];
@@ -165,10 +165,14 @@ export function limitFromText(limit: LimitConfig, text: string | null | undefine
 }
 
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+/** What follows the three letters in the full day name, plus the common `tues`/`thur(s)` forms. */
+const FULL: Record<string, string> = { sun: 'day', mon: 'day', tue: 's|sday', wed: 'nesday', thu: 'r|rs|rsday', fri: 'day', sat: 'urday' };
 
 /** `7:10pm (Europe/Madrid)` → the next 19:10 local after `now`; `Tue 9am` → the next Tuesday 09:00; `null` when no time is found. */
 export function resetFromText(text: string, now: number): number | null {
-  const time = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i.exec(text);
+  // A time-zone name (`(America/Montevideo)`, `Europe/Monaco`) is not a day.
+  const words = text.replace(/\([^)]*\)/g, ' ').replace(/\S*\/\S*/g, ' ');
+  const time = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i.exec(words);
   if (!time) return null;
   let hours = Number(time[1]);
   const minutes = Number(time[2] ?? 0);
@@ -176,7 +180,7 @@ export function resetFromText(text: string, now: number): number | null {
   if (half === 'pm' && hours < 12) hours += 12;
   if (half === 'am' && hours === 12) hours = 0;
   if (hours > 23 || minutes > 59) return null;
-  const day = DAYS.findIndex((name) => new RegExp(`\\b${name}`, 'i').test(text));
+  const day = DAYS.findIndex((name) => new RegExp(`\\b${name}(?:${FULL[name]})?\\b`, 'i').test(words));
   const at = new Date(now);
   at.setHours(hours, minutes, 0, 0);
   if (day !== -1) at.setDate(at.getDate() + ((day - at.getDay() + 7) % 7));

@@ -26,10 +26,10 @@ import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, layoutTasksText, limitsFor, parseTasks, phaseTasksPath, tierFor, type Task } from './sdd/tasks';
 import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
-import { budgetOverrun, LEDGER_PATH, readLedger } from './sdd/ledger';
+import { budgetOverrun, LEDGER_PATH, readLedger, type LedgerEntry } from './sdd/ledger';
 import { totalTokens } from './sdd/parsers';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
-import { findingsPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTierFor } from './sdd/review';
+import { findingsPath, fixHandoffPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTierFor } from './sdd/review';
 import { limitNote, MAX_RESET_WAITS, resetTime, resetWaitMs, runSession, type SessionResult } from './sdd/session';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
@@ -61,7 +61,7 @@ let tasksMarkdown: string | null = null;
 let openPhaseTasks = new Set<string>();
 
 /** Everything the wave logic needs, read from the remote. `models` is the default agent's model → tier map (FR-SDD-11). */
-async function readFacts(options: Options, models: Readonly<Record<string, Tier>>, logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
+async function readFacts(options: Options, models: Readonly<Record<string, Tier>>, agentNames: readonly string[], logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
   let open: string;
   let markdown: string;
   let branches = new Set<string>();
@@ -85,7 +85,7 @@ async function readFacts(options: Options, models: Readonly<Record<string, Tier>
   }
   tasksMarkdown = markdown;
   openPhaseTasks = new Set(parseTasks(open, models).tasks.map((task) => task.id));
-  const { tasks, problems } = parseTasks(markdown, models);
+  const { tasks, problems } = parseTasks(markdown, models, agentNames);
   const openPrs = new Map<string, number>();
   for (const task of tasks) {
     const pr = prsByBranch.get(task.branch);
@@ -212,8 +212,14 @@ async function runStage(context: TaskContext, kind: SessionKind, tier: Tier, pro
   const { agent, task, logger, report } = context;
   let current = tier;
   let waits = 0;
+  // Read once per stage, and only when a tier without a ceiling needs the history (FR-SDD-2).
+  let ledgerRows: LedgerEntry[] | null = null;
   for (;;) {
-    const history = readLedger(LEDGER).filter((entry) => openPhaseTasks.has(entry.task) && entry.agent === agent.name && entry.kind === kind && entry.tier === current);
+    let history: LedgerEntry[] = [];
+    if (agent.tiers[current].tokenCeiling === undefined) {
+      ledgerRows ??= readLedger(LEDGER);
+      history = ledgerRows.filter((entry) => openPhaseTasks.has(entry.task) && entry.agent === agent.name && entry.kind === kind && entry.tier === current);
+    }
     const session = await runSession({ cwd: context.dir, prompt, agent, tier: current, kind, maxTurns: agent.tiers[current].maxTurns ?? caps.maxTurns, timeoutMs: caps.timeoutMs, logger, env: context.env, ...(handoff === undefined ? {} : { handoff }), ledger: { task: task.id, path: LEDGER } });
     report.attempts.push({ stage: kind, tier: current, model: session.model, outcome: session.outcome, durationMs: session.durationMs });
     const overrun = agent.tiers[current].tokenCeiling === undefined ? budgetOverrun(session.usage ? totalTokens(session.usage) : null, history) : null;
@@ -261,17 +267,20 @@ function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], si
 const readWorkflow = (dir: string, path: string): string => readFileSync(join(dir, path), 'utf8');
 
 /**
- * FR-SDD-16, D-1065 (`--fix`): one fix session on the task's tier, handed the
+ * FR-SDD-16, D-1065 (`--fix`): one fix session on `tier` (the one the implementation ended on), handed the
  * review's findings or the CI failure digest and `fix-ci.md`, never a log or
  * a transcript; then its commits are pushed. `false` when it did not commit
  * or the push failed.
  */
-async function runFix(context: TaskContext, brief: string, caps: { maxTurns: number; timeoutMs: number }, input: { findings: readonly string[]; digest: string | null }): Promise<boolean> {
+async function runFix(context: TaskContext, brief: string, caps: { maxTurns: number; timeoutMs: number }, input: { findings: readonly string[]; digest: string | null }, tier: Tier): Promise<boolean> {
   const { dir, task, logger, report } = context;
+  if (input.digest === null && input.findings.length === 0) return false;
   const before = await commitsAhead(dir, BASE, logger);
   logger.line(`  running a fix session on ${input.digest !== null ? 'the failure digest' : `${String(input.findings.length)} finding(s)`}…`);
   const prompt = fixPrompt({ id: task.id, brief, workflow: readWorkflow(dir, FIX_WORKFLOW), findings: input.findings, digest: input.digest });
-  const { session } = await runStage(context, 'fix', tierFor(task), prompt, caps, undefined, join('sdd-run', `${task.id}.summary.md`));
+  // The fix's own handoff: the implementation's summary is already there, so a check on it would always pass.
+  rmSync(join(dir, fixHandoffPath(task.id)), { force: true });
+  const { session } = await runStage(context, 'fix', tier, prompt, caps, undefined, fixHandoffPath(task.id));
   report.durations.fixMs = report.attempts.filter((attempt) => attempt.stage === 'fix').reduce((sum, attempt) => sum + attempt.durationMs, 0);
   if (session.outcome !== 'ok' || (await commitsAhead(dir, BASE, logger)) <= before) return false;
   return push(dir, task.branch, logger);
@@ -398,15 +407,17 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   };
   let green = await watch();
   if (!green && options.fix) {
+    const digest = await failureDigest(dir, pr, task.branch, logger);
+    if (digest === null) return finish('failed', 'CI is red, no digest');
     fixed = true;
-    const digest = await failureDigest(dir, task.branch, logger);
-    if (await runFix(context, brief, limits.implement, { findings: [], digest })) green = await watch();
+    if (await runFix(context, brief, limits.implement, { findings: [], digest }, ran)) green = await watch();
   }
   if (!green) return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
 
-  let reviewed = await runReview(context, brief, changed, limits.review);
+  // D-1065: the tier comes from the final diff, after any fix session pushed.
+  let reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
   if (options.fix && !fixed && reviewed.findings !== null && reviewed.findings.count > 0) {
-    if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null })) {
+    if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null }, ran)) {
       if (!(await watch())) return finish('failed', 'CI is red after the fix session');
       reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
     }
@@ -458,7 +469,7 @@ async function main(): Promise<number> {
   const config: AgentsConfig = loadAgents();
   // FR-SDD-10: a task's `Agent:` pins it; else `--agent`; else the config's default.
   const agentOf = (task: Task): Agent => pickAgent(config, task.agent, options.agent);
-  const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), consoleLogger);
+  const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), Object.keys(config.agents), consoleLogger);
 
   if (options.mode === 'status') {
     printStatus(statuses, problems, consoleLogger);
