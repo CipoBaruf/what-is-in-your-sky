@@ -187,7 +187,7 @@ describe('the tests a change reaches (D-1031)', () => {
     expect(ci).toContain('e2e: ${{ steps.affected.outputs.e2e }}');
     // The build job and the e2e stage wait for an e2e selection, and the unit tests run once, on shard 1.
     expect(ci).toMatch(/ {2}build:\n\s+needs: changes\n\s+if: needs\.changes\.outputs\.e2e != 'none'\n/);
-    expect(ci).toMatch(/if: needs\.changes\.outputs\.e2e != 'none'\n(\s+\S.*\n){0,4}\s+run: bash \.github\/workflows\/stage\.sh e2e /);
+    expect(ci).toMatch(/if: env\.HAS_DIST == 'true'\n(\s+\S.*\n){0,4}\s+run: bash \.github\/workflows\/stage\.sh e2e /);
     expect(ci).toMatch(/if: matrix\.shard == 1 && needs\.changes\.outputs\.unit != 'none'/);
   });
 
@@ -238,7 +238,7 @@ describe('CI does less (D-1067)', () => {
     // No third-party action: only GitHub's own.
     for (const [, action] of ci.matchAll(/uses: ([^@\s]+)@/g)) expect(action).toMatch(/^actions\//);
     // A docs-only change skips the dead-code job; the trailers job always runs.
-    expect(job('dead-code')).toContain("if: needs.changes.outputs.docs_only != 'true'");
+    expect(job('dead-code')).toContain("if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}");
     expect(job('trailers')).not.toMatch(/^ {4}if:/m);
   });
 
