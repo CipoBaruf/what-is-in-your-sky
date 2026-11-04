@@ -74,6 +74,8 @@ export interface HeaderProps {
   landmark?: boolean;
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
   inert?: boolean;
+  /** R186 (FR-WIDE-1): the wide pass detail stands in the home's place, under the home's header, and `[ home ]` is a link back to the home there. */
+  homeLink?: boolean;
   /** R93 (D-545): the page under this header is still on its way (the settings chunk), so the bead runs. */
   busy?: boolean;
 }
@@ -85,7 +87,7 @@ const NAV_HREF: Record<(typeof NAV_PAGES)[number], string> = { home: '#', live: 
 /** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
 const TARGET = 'target';
 
-export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false }: HeaderProps) {
+export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false, homeLink = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
   const loading = (useAppStore(isLoading) && page === 'home') || busy;
@@ -158,7 +160,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   const navLink = (target: (typeof NAV_PAGES)[number]): ReactNode => {
     const label = t.header.pages[target];
     // The current page is not a control, so it carries no target floor: a flex item, the floor would make it a 44 px block and the row 20 px taller.
-    if (target === page) return <BracketLink key={target} href={NAV_HREF[target]} label={label} current data-testid={`${target}-link`} />;
+    if (target === page && !(homeLink && target === 'home')) return <BracketLink key={target} href={NAV_HREF[target]} label={label} current data-testid={`${target}-link`} />;
     return (
       <BracketLink
         key={target}

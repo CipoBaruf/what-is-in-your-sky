@@ -24,7 +24,9 @@ import { ChartFrameSlots } from '../components/guide/skychart/ChartFrame';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
-import { defaultChartView } from './chartViewDefault';
+import { viewFor } from './chartViewDefault';
+import { LiveGroup } from './sky/live/Group';
+import { LiveTime } from './sky/live/Time';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { ControlsSheet } from '../components/sky/ControlsSheet';
@@ -267,6 +269,28 @@ const NO_FOLD: readonly LiveFold[] = [];
 function Page({ state, wakeLock, fold, placement, shape = 'portrait', form = 'rows', top, title, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; shape?: PageShape; form?: 'rows' | 'full'; top: ReactNode; title?: string; children: ReactNode }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
+  const attributes = {
+    'data-testid': 'live-page',
+    'data-state': state,
+    'data-wake-lock': wakeLock,
+    'data-compact': compact,
+    'data-shape': shape,
+    'data-form': form,
+    ...(placement === null ? {} : { 'data-scrub-placement': placement }),
+    ...(!compact && fold.length > 0 ? { 'data-fold': fold.join(' ') } : {}),
+  };
+  /*
+   * R186 (FR-WIDE-1, D-1098): on wide the page stands in the app's `main` under the app's header, as the stars page
+   * does, so it renders neither landmark nor the top row; the `h1` stays, for the outline.
+   */
+  if (!compact) {
+    return (
+      <div className={styles.desk} {...attributes}>
+        <VisuallyHidden as="h1">{title ?? t.live.open}</VisuallyHidden>
+        {children}
+      </div>
+    );
+  }
   /*
    * R92 (FR-A11Y-1, D-529; F-71): the page's landmarks. The top row is the `banner` and everything under it the
    * `main`, both `display: contents`, so their children are still the cells of this grid and no area is re-cut
@@ -274,19 +298,8 @@ function Page({ state, wakeLock, fold, placement, shape = 'portrait', form = 'ro
    * with the `live` word beside the bead — and being absolutely positioned it takes no cell of the grid.
    */
   return (
-    <div
-      className={styles.page}
-      data-testid="live-page"
-      data-state={state}
-      data-wake-lock={wakeLock}
-      data-compact={compact}
-      // R144 (FR-TONIGHT-9): every shape is one viewport high again — the compact column's box is what its rows leave (R132's scrolling column is gone).
-      data-shape={shape}
-      // R148 (FR-FULL-1, D-919): the compact sky page is the full form — the box is the screen, the head is fixed over it.
-      data-form={form}
-      {...(placement === null ? {} : { 'data-scrub-placement': placement })}
-      {...(!compact && fold.length > 0 ? { 'data-fold': fold.join(' ') } : {})}
-    >
+    // R144 (FR-TONIGHT-9): every shape is one viewport high; R148 (FR-FULL-1, D-919): the compact sky page is the full form.
+    <div className={styles.page} {...attributes}>
       <header className="landmark-contents">{top}</header>
       <main className="landmark-contents">
         <VisuallyHidden as="h1">{title ?? t.live.open}</VisuallyHidden>
@@ -916,8 +929,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       </Page>
     </SecondClock>
   );
-  // FR-FLOW-6: the hint's view is the chart's — the saved view, else the window on a phone and the dome on a desk (D-876).
-  const hintView = defaultChartView(mode, chartView);
+  // FR-FLOW-6: the hint's view is the chart's — the saved view as this page offers it, else the window on a phone and the globe on a desk (D-1095).
+  const hintView = viewFor('live', mode, chartView);
   const hintShown = useSkyHintShown(hintView);
   const highlightedId = highlighted?.id ?? null;
   const followKey = useMemo(() => (highlightedId === null ? null : (legendKeys(legendRowsNow)[highlightedId] ?? null)), [legendRowsNow, highlightedId]);
@@ -1069,13 +1082,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         {taps}
       </div>
     ) : null;
-  const foot = compact ? null : (
-    <div className={styles.railFoot} data-testid="live-rail-foot">
-      {(!scrubbing || overlaid) && overview}
-      {!overlaid && scrubBlock}
-      {actions}
-    </div>
-  );
   const drawing = (
     <div className={styles.dome} data-testid="live-dome" data-stripe-under={false} ref={domeRef}>
       {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and the illumination
@@ -1101,7 +1107,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             facingPassId={highlighted?.id ?? null}
             follow={following}
             onFollowEnd={follow.onFollowEnd}
-            {...(compact ? {} : { stacked: true, measureBox: true })}
+            page="live"
           />
         </LegendInventoryContext.Provider>
       </ChartFrameSlots.Provider>
@@ -1173,22 +1179,26 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       />,
     );
   }
+  /*
+   * R186 (FR-WIDE-1, FR-WIDE-5; D-1098): on wide the page is the desk's one shell, under the app's header and over its
+   * footer as the stars page is (the one-row top row and the footer under the fold are gone): the box at the left with
+   * its corners, the rail in `SLOT_ORDER` — the head (the indicator line, the next event, the context line), `View`,
+   * `Time` (`sky/live/Time.tsx`: the overview, and the scrub block while scrubbing), the page group
+   * (`sky/live/Group.tsx`: `Facing` on the window, the actions) and the legend with the conditions line.
+   */
   return page(
     <SkyViewLayout
       className={styles.layout}
       data-testid="live-layout"
       fill
-      readoutIn="row"
       onFirstTouch={follow.firstTouch}
       answer={answer}
       viewRow={viewRow}
-      readout={<SkyViewChartSlot name="readout" />}
       drawing={drawing}
-      picker={<SkyViewChartSlot name="picker" />}
       hint={hintShown && <SkyHint view={hintView} followKey={followKey} />}
-      {...(timeline === null ? {} : { timeline })}
+      timeline={<LiveTime overview={!scrubbing ? overview : null} scrubBlock={scrubBlock} />}
+      action={<LiveGroup view={following ? 'window' : hintView} actions={actions} />}
       list={list}
-      {...(foot === null ? {} : { foot })}
     />,
   );
 }

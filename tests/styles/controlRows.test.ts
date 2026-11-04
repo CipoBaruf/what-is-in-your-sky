@@ -353,13 +353,13 @@ const rows = (t: Messages): readonly Row[] => [
   },
   {
     name: 'the pass detail view row (FR-FLOW-4, D-846)',
-    element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
+    element: createElement(PassDetail, { pass, observer, onClose: noop }),
     find: () => screen.getByTestId('pass-view-row'),
     budget: VIEW_ROW_BUDGET,
   },
   {
     name: 'the pass detail view row’s [ stars ] line (FR-SKY-3)',
-    element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
+    element: createElement(PassDetail, { pass, observer, onClose: noop }),
     find: () => screen.getByTestId('stars-toggle'),
   },
   /*
@@ -547,7 +547,7 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
 
   it.each([
     ['the live page', () => createElement(LivePage, { link: null, onLeave: noop }), 'live-layout', withLiveSky],
-    ['the pass detail', () => createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }), 'pass-layout', noop],
+    ['the pass detail', () => createElement(PassDetail, { pass, observer, onClose: noop }), 'pass-layout', noop],
   ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
     setUp();
     render(createElement(I18nProvider, { locale, children: element() }));

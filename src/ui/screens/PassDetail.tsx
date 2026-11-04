@@ -8,9 +8,8 @@ import { formatDate } from '../../lib/timeFormat';
 import { formatClockDuration, formatDateZone } from '../../lib/format';
 import { hintFitsBeside } from '../../lib/layout';
 import type { ChartView, EpochMs, Observer, Pass } from '../../model';
-import { Countdown, countdownState } from '../components/common/Countdown';
+import { countdownState } from '../components/common/Countdown';
 import { ShareButton } from '../components/common/ShareButton';
-import { GuidePanel } from '../components/guide/GuidePanel';
 import { GuideText } from '../components/guide/GuideText';
 import { TimesRow } from '../components/guide/TimesRow';
 import { useLayoutMode } from '../hooks/useLayoutMode';
@@ -23,7 +22,10 @@ import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
-import { defaultChartView } from './chartViewDefault';
+import { viewFor } from './chartViewDefault';
+import { PassGroup } from './sky/pass/Group';
+import { PassTime } from './sky/pass/Time';
+import { TextButton } from '../components/primitives/TextButton';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
@@ -59,11 +61,13 @@ import styles from './PassDetail.module.css';
  *
  * R23 (FR-DESK-3, D-72): two shells over that one content. Compact keeps the
  * full-screen sheet, portaled to `document.body` so that the page behind it
- * can be made inert while the sheet is not (D-117). Wide renders
- * `GuidePanel` in place — the second track of the right column, beside a list
- * that stays live — so it carries neither the sheet's top row (the header is
- * right there and interactive) nor the scroll lock (nothing is covered). What both shells share is everything that is about the guide
- * rather than its frame: the heading and its focus, and the content.
+ * can be made inert while the sheet is not (D-117). R186 (FR-WIDE-1, D-1098):
+ * wide is the desk's one shell in the home's place — `SkyViewLayout`'s box and
+ * rail, the head with the name and `[ × ]`, `View`, `Time`, the page group
+ * (`sky/pass/Group.tsx`) and the home's pass list with this card highlighted;
+ * the header is the app's, so neither the sheet's top row nor the scroll lock.
+ * What both shells share is everything that is about the guide rather than its
+ * frame: the heading and its focus, and the content.
  *
  * R30 (FR-MOON-2): the glare sentence follows the chart, directly under the
  * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
@@ -101,15 +105,15 @@ export interface PassDetailProps {
   pass: Pass;
   observer: Observer;
   onClose: () => void;
-  /** R50 (F-6): the wide panel's `[ list ]`; the compact sheet's top row has `[ ← ]` (R129), which closes instead. */
-  onShowList: () => void;
+  /** R186 (FR-WIDE-1): the home's pass list, the rail's `list` on wide with this pass's card highlighted. */
+  passList?: ReactNode;
   /** R50 (F-45): the compact sheet portals out of everything `App` makes inert, so the overlay has to say so here. */
   inert?: boolean;
 }
 
 export const TICK_MS = 1000;
 
-export function PassDetail({ pass, observer, onClose, onShowList, inert = false }: PassDetailProps) {
+export function PassDetail({ pass, observer, onClose, passList = null, inert = false }: PassDetailProps) {
   const t = useT();
   const locale = useLocale();
   const mode = useLayoutMode();
@@ -211,8 +215,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
    */
   const chartHand = useChartHand();
   const chartView = useAppStore((s) => s.chartView);
-  // R136 (FR-FLOW-14, D-876): the saved view, else the window on a phone and the dome on a desk.
-  const view = defaultChartView(mode, chartView);
+  // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it, else the window on a phone and the globe on a desk.
+  const view = viewFor('pass', mode, chartView);
   const hintShown = useSkyHintShown(view);
   const proseId = useId();
   const landmark =
@@ -228,7 +232,6 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
     </p>
   );
-  const countdown = <Countdown pass={pass} now={now} timeZone={timeZone} steps={false} />;
   // The wide band's three cells (the compact sheet draws its own one-row form, R164).
   const times = <TimesRow pass={pass} timeZone={timeZone} />;
   const viewRow = (
@@ -250,10 +253,18 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       fill
       chartHand={chartHand}
       facingOptions={PEAK_FACING_OPTIONS}
+      page="pass"
       follow={following}
       onFollowEnd={follow.onFollowEnd}
       legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
     />
+  );
+  // The FR-GUIDE-1 sentence and the glare line: wide's page group, compact's sheet with the table after them.
+  const prose = (
+    <>
+      <GuideText pass={pass} timeZone={timeZone} id={proseId} />
+      <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
+    </>
   );
   const list = (
     <>
@@ -272,45 +283,37 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
     </>
   );
-  const panel = (
-    <SkyViewLayout
-      onFirstTouch={follow.firstTouch}
-      wide="panel"
-      describedBy={proseId}
-      labelledBy={headingId}
-      data-testid="pass-layout"
-      className={styles.layout}
-      viewRow={viewRow}
-      readout={<SkyViewChartSlot name="readout" />}
-      drawing={chart}
-      picker={<SkyViewChartSlot name="picker" />}
-      hint={hintShown && <SkyHint view={view} />}
-      {...(action === null ? {} : { action })}
-      list={list}
-      foot={foot}
-    />
-  );
-
   if (!compact) {
+    // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `[ × ]` back to the home, the landmark line and the date.
+    const head = (
+      <div className={styles.deskHead} data-testid="pass-head">
+        <div className={styles.deskTitle}>
+          <h1 id={headingId} ref={headingRef} tabIndex={-1} className={styles.deskName}>
+            {pass.name}
+          </h1>
+          <TextButton label="×" onClick={onClose} aria-label={t.guide.close} data-testid="pass-close" />
+        </div>
+        {landmark}
+        {meta}
+      </div>
+    );
     return (
-      <GuidePanel
-        passId={pass.id}
-        name={pass.name}
-        headingId={headingId}
-        headingRef={headingRef}
-        onClose={onClose}
-        onShowList={onShowList}
-        head={
-          <>
-            {countdown}
-            {landmark}
-            {meta}
-          </>
-        }
-        times={times}
-      >
-        {panel}
-      </GuidePanel>
+      <div className={styles.desk} data-pass-id={pass.id} data-testid="guide-panel" data-guide-panel="" aria-label={t.guide.panelLabel({ name: pass.name })} role="region">
+        <SkyViewLayout
+          onFirstTouch={follow.firstTouch}
+          describedBy={proseId}
+          labelledBy={headingId}
+          data-testid="pass-layout"
+          className={styles.layout}
+          answer={head}
+          viewRow={viewRow}
+          drawing={chart}
+          hint={hintShown && <SkyHint view={view} />}
+          timeline={<PassTime pass={pass} now={now} timeZone={timeZone} />}
+          action={<PassGroup view={view} times={times} prose={prose} foot={foot} follow={action} />}
+          {...(passList === null ? {} : { list: passList })}
+        />
+      </div>
     );
   }
 
