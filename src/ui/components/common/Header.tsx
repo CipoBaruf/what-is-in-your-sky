@@ -199,7 +199,8 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
         {contextText}
         {settings}
       </div>
-      {page === 'home' && <p className={styles.tagline}>{t.app.tagline}</p>}
+      {/* R186 (FR-WIDE-1): the wide pass detail's header is one row, as the other sky pages' are, so the three boxes stand at one top. */}
+      {page === 'home' && !homeLink && <p className={styles.tagline}>{t.app.tagline}</p>}
       {/* R105 (D-720): the wide header's rule under its last line (R23, FR-DESK-2). The live page's own grid draws its
           rows (D-855): there the header is the top row, one text row on a short window (FR-SHP-3), and carries no rule. */}
       {landmark && <Rule className={styles.rule} />}

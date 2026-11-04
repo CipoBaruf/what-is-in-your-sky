@@ -165,7 +165,7 @@ function GlobeView(props: SkyChartProps) {
           passes={props.passes}
           t={at}
           highlightedPassId={props.highlightedPassId}
-          colorBy={props.colorBy ?? 'pass'}
+          colorBy={props.colorBy ?? 'highlight'}
           {...(props.legendKeys === undefined ? {} : { legendKeys: props.legendKeys })}
           onPick={onPick}
         />
@@ -416,14 +416,15 @@ export function SkyChart(props: SkyChartProps) {
   /*
    * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the chart draws none of its rows itself. The view
    * control goes to the page's `viewRow` slot in the facing picker's idiom — the chosen view bracketed, the others
-   * plain, `[Window] Polar Dome` (R150, the window first), a cell between — and the legend to the `list` slot; the views send their readout
+   * plain, `[Window] Polar Dome` (R150, the window first), a cell between — on wide R186's `[ Globe ] Window Dome` in the
+   * bracket mark the stars page's row has (FR-WIDE-2) — and the legend to the `list` slot; the views send their readout
    * and their picker the same way (`useChartSlot`). The figure then has no caption and no controls row of its own:
    * the page's prose is its description (`describedBy`), and the frame is the box alone.
    */
   const listSlot = useChartSlot('list');
   const inLayout = controlSlot.inLayout;
   const viewControl = inLayout ? (
-    <ToggleGroup name={t.chart.viewGroup} mark="tight" options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+    <ToggleGroup name={t.chart.viewGroup} mark={compact ? 'tight' : 'bracket'} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   ) : (
     <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   );

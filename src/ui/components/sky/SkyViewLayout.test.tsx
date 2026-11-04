@@ -3,9 +3,8 @@
  * R132 (FR-FLOW-4, D-842, D-851): one layout for every sky view — the slots in
  * FR-FLOW-4's order, each marked for the rhythm, an empty slot rendering
  * nothing, the full form on compact in both shapes (R165, D-1000: the column and
- * the compact rail are gone), the box and the rail on wide, the panel where the
- * pass detail asks for it, the rail's
- * `View` and `Facing` labels, and the chart's parts landing in the page's
+ * the compact rail are gone), the box with its corners and the rail on wide
+ * (R186, D-1098; the panel is gone), the rail's `View` label, and the chart's parts landing in the page's
  * slots through `useChartSlot`. What jsdom cannot see — the bounding boxes —
  * is `tests/e2e/sky-layout.spec.ts`.
  */
@@ -18,7 +17,7 @@ import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { fireEvent } from '@testing-library/react';
-import { SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
+import { CORNERS, SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
 
 let media: MatchMediaStub | null = null;
 stubResizeObserver(390, 390);
@@ -40,11 +39,10 @@ function Part({ name, text }: { name: ChartSlotName; text: string }) {
   );
 }
 
-const all = (locale: Locale = 'en', wide?: 'rail' | 'panel', extra: Partial<SkyViewLayoutProps> = {}) =>
+const all = (locale: Locale = 'en', extra: Partial<SkyViewLayoutProps> = {}) =>
   render(
     <I18nProvider locale={locale}>
       <SkyViewLayout
-        {...(wide === undefined ? {} : { wide })}
         data-testid="layout"
         answer={<h1>answer</h1>}
         viewRow={
@@ -53,54 +51,75 @@ const all = (locale: Locale = 'en', wide?: 'rail' | 'panel', extra: Partial<SkyV
             <button type="button">stars</button>
           </>
         }
-        readout={<SkyViewChartSlot name="readout" />}
         drawing={
           <div data-testid="chart">
-            <Part name="control" text="Polar Dome [Window]" />
+            <Part name="control" text="Globe Window Dome" />
             <Part name="readout" text="Facing N" />
+            <Part name="zoom" text="+ -" />
             <Part name="picker" text="N NE E" />
             <Part name="list" text="legend" />
           </div>
         }
-        picker={<SkyViewChartSlot name="picker" />}
         hint={<p>hint</p>}
         timeline={<p>timeline</p>}
-        action={<button type="button">act</button>}
+        action={
+          <div>
+            <SkyViewChartSlot name="picker" />
+            <button type="button">act</button>
+          </div>
+        }
         layers={<p>layers</p>}
         list={<SkyViewChartSlot name="list" />}
-        foot={<p>foot</p>}
         {...extra}
       />
     </I18nProvider>,
   );
 
 const slots = (): string[] => Array.from(screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-slot]')).map((el) => el.dataset['slot'] ?? '');
+const railSlots = (): string[] => Array.from(screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-rail] > [data-slot]')).map((el) => el.dataset['slot'] ?? '');
+const corners = (): string[] => Array.from(screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-slot="drawing"] > [data-corner]')).map((el) => el.dataset['corner'] ?? '');
 
-describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
-  it('renders every given slot in FR-FLOW-4’s order, each marked for the rhythm (D-851), and nothing for an empty one', () => {
+describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () => {
+  it('FR-WIDE-1: renders the rail in SLOT_ORDER, each row marked for the rhythm (D-851), and nothing for an empty one', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
-    expect(slots()).toEqual([...SLOT_ORDER]);
-    for (const slot of screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-slot]')) {
+    expect(SLOT_ORDER).toEqual(['answer', 'viewRow', 'timeline', 'action', 'layers', 'list']);
+    expect(railSlots()).toEqual([...SLOT_ORDER]);
+    for (const slot of screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-rail] > [data-slot]')) {
       expect(slot.dataset['rhythm']).toBe(SLOT_RHYTHM[slot.dataset['slot'] as keyof typeof SLOT_RHYTHM]);
     }
     cleanup();
     render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} list={<p>list</p>} />);
-    expect(slots()).toEqual(['drawing', 'list']);
+    expect(railSlots()).toEqual(['list']);
     expect(screen.getByTestId('layout').querySelector('[data-slot="answer"]')).toBeNull();
-    // A page that has no hint to show (seen, or the polar chart) hands the slot `false`, and no wrapper or gap is left.
+    // A page that has no hint to show (seen, or the polar chart) hands the slot `false`, and no corner is left.
     cleanup();
     render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} hint={false} list={<p>list</p>} />);
-    expect(slots()).toEqual(['drawing', 'list']);
-    // `fill` (the wide live page, FR-LIVE-7): the layout says it fills the height its page gives it, so the stylesheet
-    // can cut the rail's box to it (D-869); a page that grows with its rows says nothing.
+    expect(corners()).toEqual(['readout', 'zoom']);
     expect(screen.getByTestId('layout')).not.toHaveAttribute('data-fill');
     cleanup();
     render(<SkyViewLayout data-testid="layout" fill drawing={<div>box</div>} />);
     expect(screen.getByTestId('layout')).toHaveAttribute('data-fill', '');
   });
 
-  it('is the full form on compact in both shapes, the box and the rail on wide, and the panel where asked (D-1000)', () => {
+  it('FR-WIDE-5: on wide the box carries its corners — the readout, full screen, the hint, the zoom — in that order', () => {
+    media = stubMatchMedia(WIDE_PX);
+    all('en', { fullscreen: <button type="button">full screen</button> });
+    expect(CORNERS).toEqual(['readout', 'fullscreen', 'hint', 'zoom']);
+    expect(corners()).toEqual([...CORNERS]);
+    const layout = screen.getByTestId('layout');
+    expect(layout.querySelector('[data-corner="readout"] [data-placed="readout"]')).toHaveTextContent('Facing N');
+    expect(layout.querySelector('[data-corner="zoom"] [data-placed="zoom"]')).toHaveTextContent('+ -');
+    expect(layout.querySelector('[data-corner="hint"]')).toHaveTextContent('hint');
+    expect(layout.querySelector('[data-corner="fullscreen"]')).toHaveTextContent('full screen');
+    // Without a page's own, the readout's corner is the chart's slot; full screen is R189's, empty here.
+    cleanup();
+    all('en', { readout: undefined });
+    expect(corners()).toEqual(['readout', 'hint', 'zoom']);
+    expect(screen.getByTestId('layout').querySelector('[data-corner="readout"] [data-placed="readout"]')).toHaveTextContent('Facing N');
+  });
+
+  it('is the full form on compact in both shapes and the box and the rail on wide (D-1000, D-1098)', () => {
     media = stubMatchMedia(COMPACT_PX);
     all();
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'full');
@@ -114,23 +133,15 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'rail');
-    cleanup();
-    all('en', 'panel');
-    expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'panel');
   });
 
-  it('labels the rail’s view row and facing row `View` and `Facing` (`Vista`, `Hacia`) on wide and not on compact (D-846)', () => {
+  it('labels the rail’s view row `View` (`Vista`) on wide and not on compact (D-846)', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
     expect(screen.getByRole('heading', { level: 2, name: en.skyView.view }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
-    expect(screen.getByRole('heading', { level: 2, name: en.skyView.facing }).closest('[data-slot]')).toHaveAttribute('data-slot', 'picker');
     cleanup();
     all('es');
     expect(screen.getByRole('heading', { level: 2, name: es.skyView.view })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: es.skyView.facing })).toBeInTheDocument();
-    cleanup();
-    all('en', 'panel');
-    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
     cleanup();
     media.restore();
     media = stubMatchMedia(COMPACT_PX);
@@ -142,13 +153,15 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
     const layout = screen.getByTestId('layout');
-    for (const name of ['control', 'readout', 'picker', 'list'] as const) {
+    for (const name of ['control', 'readout', 'picker', 'list', 'zoom'] as const) {
       const placed = layout.querySelector(`[data-placed="${name}"]`);
       expect(placed, name).not.toBeNull();
-      expect(placed?.closest('[data-slot]')).toHaveAttribute('data-slot', { control: 'viewRow', readout: 'readout', picker: 'picker', list: 'list' }[name]);
       expect(screen.getByTestId('chart').querySelector(`[data-placed="${name}"]`), name).toBeNull();
       expect(layout.querySelector(`[data-inline="${name}"]`), name).toBeNull();
     }
+    expect(layout.querySelector('[data-placed="control"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(layout.querySelector('[data-placed="picker"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'action');
+    expect(layout.querySelector('[data-placed="list"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
     // The view row: the chart's control first, the page's `[x] stars` last.
     const viewRow = layout.querySelector('[data-slot="viewRow"]');
     expect(viewRow?.lastElementChild).toHaveTextContent('stars');
@@ -167,7 +180,7 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
    */
   it('on compact renders the drawing, the overlay and the sheet and nothing else, in both compact shapes, and the rail on wide', () => {
     media = stubMatchMedia(COMPACT_PX);
-    all('en', undefined, { readoutIn: 'sheet', overlay: <p>over</p>, readout: undefined, sheet: <SkyViewChartSlot name="readout" /> });
+    all('en', { readoutIn: 'sheet', overlay: <p>over</p>, readout: undefined, sheet: <SkyViewChartSlot name="readout" /> });
     const layout = screen.getByTestId('layout');
     expect(layout).toHaveAttribute('data-shape', 'full');
     expect(layout).toHaveAttribute('data-readout', 'sheet');
@@ -184,15 +197,15 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     cleanup();
     media.restore();
     media = stubMatchMedia(844, 390);
-    all('en', undefined, { overlay: <p>over</p>, readout: undefined });
+    all('en', { overlay: <p>over</p>, readout: undefined });
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'full');
     expect(slots()).toEqual(['drawing', 'overlay']);
     cleanup();
     media.restore();
     media = stubMatchMedia(WIDE_PX);
-    all('en', undefined, { overlay: <p>over</p>, sheet: <p>sheet</p> });
+    all('en', { overlay: <p>over</p>, sheet: <p>sheet</p> });
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'rail');
-    expect(slots()).toEqual([...SLOT_ORDER]);
+    expect(railSlots()).toEqual([...SLOT_ORDER]);
     expect(screen.queryByText('over')).toBeNull();
   });
 
