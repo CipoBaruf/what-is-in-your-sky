@@ -1,6 +1,7 @@
 /**
- * PLAN §16.4: the driver's command line, including §16.6's `--model`
- * override, which is for one `--task` run and never for a wave.
+ * PLAN §16.4: the driver's command line, including §16.6's `--tier` and
+ * `--model` override, which is for one `--task` run and never for a wave, and
+ * FR-SDD-10's `--agent`.
  */
 import { describe, expect, it } from 'vitest';
 import { helpText, parseArgs } from '../../scripts/sdd/cli';
@@ -11,7 +12,7 @@ describe('parseArgs', () => {
     expect(parseArgs(['--status']).mode).toBe('status');
     expect(parseArgs(['--dry-run']).mode).toBe('dry-run');
     expect(parseArgs(['--wave']).mode).toBe('wave');
-    expect(parseArgs(['--task', 'R22'])).toMatchObject({ mode: 'task', taskId: 'R22', model: null });
+    expect(parseArgs(['--task', 'R22'])).toMatchObject({ mode: 'task', taskId: 'R22', tier: null, model: null, agent: null, fix: false });
   });
 
   it('takes --model for one --task run, in either order', () => {
@@ -20,12 +21,18 @@ describe('parseArgs', () => {
     expect(parseArgs(['--task', 'R22', '--dry-run', '--model', 'opus'])).toMatchObject({ mode: 'dry-run', taskId: 'R22', model: 'opus' });
   });
 
-  it('refuses --model on a wave, and a model the policy does not know', () => {
-    expect(() => parseArgs(['--wave', '--model', 'opus'])).toThrow(/--model is for --task only/);
-    expect(() => parseArgs(['--task', 'R22', '--model', 'interactive'])).toThrow(/one of opus, fable, sonnet, haiku/);
-    expect(() => parseArgs(['--task', 'R22', '--model', 'gemini'])).toThrow(/one of opus, fable, sonnet, haiku/);
-    expect(() => parseArgs(['--task', 'R22', '--model'])).toThrow(/one of opus, fable, sonnet, haiku/);
-    expect(parseArgs(['--task', 'R22', '--model', 'sonnet'])).toMatchObject({ model: 'sonnet' });
+  it('FR-SDD-11: takes --tier for one --task run, and refuses a tier that does not exist', () => {
+    expect(parseArgs(['--task', 'R22', '--tier', 'hard'])).toMatchObject({ tier: 'hard', model: null });
+    expect(() => parseArgs(['--task', 'R22', '--tier', 'huge'])).toThrow(/one of hard, standard, light/);
+    expect(() => parseArgs(['--task', 'R22', '--tier'])).toThrow(/one of hard, standard, light/);
+    expect(() => parseArgs(['--task', 'R22', '--tier', 'hard', '--model', 'opus'])).toThrow(/give one/);
+  });
+
+  it('refuses --tier or --model on a wave, and --model with no value', () => {
+    expect(() => parseArgs(['--wave', '--model', 'opus'])).toThrow(/are for --task only/);
+    expect(() => parseArgs(['--wave', '--tier', 'light'])).toThrow(/are for --task only/);
+    expect(() => parseArgs(['--task', 'R22', '--model'])).toThrow(/--model needs a value/);
+    expect(() => parseArgs(['--task', 'R22', '--model', '--no-wait'])).toThrow(/--model needs a value/);
   });
 
   it('keeps the old refusals', () => {
@@ -35,7 +42,7 @@ describe('parseArgs', () => {
   });
 
   it('documents the override in the help text', () => {
-    expect(helpText('origin/main')).toContain('--task R22 --model opus');
+    expect(helpText('origin/main')).toContain('--task R22 --tier hard');
   });
 });
 
@@ -56,5 +63,20 @@ describe('--wait (§16.4 step 10, D-835)', () => {
     expect(parseArgs(['--wave', '--no-wait']).waitForReset).toBe(false);
     expect(parseArgs(['--no-wait', '--task', 'R22', '--wait']).waitForReset).toBe(true);
     expect(helpText('origin/main')).toContain('--no-wait');
+  });
+});
+
+describe('--agent (FR-SDD-10) and --fix (FR-SDD-16)', () => {
+  it('picks an agent for a wave or a task, and needs a name', () => {
+    expect(parseArgs(['--wave', '--agent', 'other']).agent).toBe('other');
+    expect(parseArgs(['--agent', 'other', '--task', 'R22'])).toMatchObject({ mode: 'task', agent: 'other' });
+    expect(() => parseArgs(['--wave', '--agent'])).toThrow(/--agent needs a value/);
+    expect(helpText('origin/main')).toContain('--agent <name>');
+  });
+
+  it('runs no fix session unless --fix', () => {
+    expect(parseArgs(['--wave']).fix).toBe(false);
+    expect(parseArgs(['--wave', '--fix']).fix).toBe(true);
+    expect(parseArgs(['--fix', '--wave', '--no-fix']).fix).toBe(false);
   });
 });

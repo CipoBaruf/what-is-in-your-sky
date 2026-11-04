@@ -7,11 +7,11 @@
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import type { SessionKind } from './agents';
 
 /** Relative to the driver's working directory, which outlives every task worktree. */
 export const LEDGER_PATH = 'sdd-run/usage.jsonl';
 
-type SessionKind = 'implement' | 'review' | 'fix';
 
 /** What the final `result` event says the session spent. */
 export interface ResultUsage {
@@ -31,7 +31,7 @@ export interface LedgerEntry {
   task: string;
   kind: SessionKind;
   agent: string;
-  /** `hard`, `standard` or `light` once R177 brings tiers (FR-SDD-10); `null` until then. */
+  /** `hard`, `standard` or `light` (FR-SDD-11); `null` on lines written before R177. */
   tier: string | null;
   model: string;
   /** The token fields and `turns` are `null` when the session left no `result` event (killed at the wall clock, never started). */
@@ -109,6 +109,33 @@ export function appendLedger(entry: LedgerEntry, path = LEDGER_PATH): void {
 
 const isEntry = (value: unknown): value is LedgerEntry =>
   typeof value === 'object' && value !== null && typeof (value as LedgerEntry).task === 'string' && typeof (value as LedgerEntry).kind === 'string' && typeof (value as LedgerEntry).wallMs === 'number' && typeof (value as LedgerEntry).at === 'string';
+
+/** A line's total tokens (input, cached, cache writes, output), or `null` when the session left no usage. */
+export function entryTokens(entry: LedgerEntry): number | null {
+  if (entry.inputTokens === null) return null;
+  return entry.inputTokens + (entry.cachedInputTokens ?? 0) + (entry.cacheCreationTokens ?? 0) + (entry.outputTokens ?? 0);
+}
+
+/** FR-SDD-2: below this many earlier sessions of a tier and kind, the 90th percentile says too little to call an overrun. */
+export const MIN_BUDGET_SAMPLES = 5;
+
+/** The nearest-rank 90th percentile, or `null` for no values. */
+export function percentile90(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.ceil(0.9 * sorted.length) - 1] ?? null;
+}
+
+/**
+ * FR-SDD-2 with no ceiling set: a session overran when it spent more than
+ * the 90th percentile of the phase's earlier sessions of its tier and kind.
+ * Report-only; `null` when it did not, or when there is too little history.
+ */
+export function budgetOverrun(tokens: number | null, history: readonly LedgerEntry[]): { tokens: number; p90: number; samples: number } | null {
+  const spent = history.map(entryTokens).filter((value): value is number => value !== null);
+  const p90 = spent.length >= MIN_BUDGET_SAMPLES ? percentile90(spent) : null;
+  return tokens === null || p90 === null || tokens <= p90 ? null : { tokens, p90, samples: spent.length };
+}
 
 /**
  * Every line of the ledger, in order; a missing file is an empty ledger and an

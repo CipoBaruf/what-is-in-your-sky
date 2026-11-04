@@ -1,32 +1,36 @@
 /**
  * PLAN §16: the v1 task driver. It reads TASKS.md from `origin/main`, works
- * out which tasks are ready, and runs a wave of them — one headless
- * `claude -p` session per task in its own worktree, then rebase, push, PR,
- * CI, review and (for `Gate: auto`) merge.
+ * out which tasks are ready, and runs a wave of them — one headless session
+ * per task in its own worktree, on the agent `sdd.agents.json` names
+ * (FR-SDD-10), then rebase, push, PR, CI, review and (for `Gate: auto`) merge.
  *
  *   npm run sdd -- --status          # merged / ready / blocked / failed
  *   npm run sdd -- --dry-run         # print exactly what would run, and stop
  *   npm run sdd -- --wave            # run the current wave (<= 1 per lane, <= 3 at once, concurrently)
  *   npm run sdd -- --task R17        # run one task, dependencies checked
- *   npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says
- *   npm run sdd -- --wave --no-fallback      # do not retry a limit-stopped session on the next model
+ *   npm run sdd -- --task R22 --tier hard    # the same, on another tier than TASKS.md says
+ *   npm run sdd -- --wave --agent <name>     # on another entry of sdd.agents.json
+ *   npm run sdd -- --wave --no-fallback      # do not retry a limit-stopped session on the next tier
  *
  * It is not a scheduler or a service (§16.7): it is a script the owner runs
  * in the foreground, with no state of its own. `origin/main`, the branches
  * and the PRs are the state, so an interrupted run needs no reconciling.
  * D-86 makes it repo tooling rather than a task in TASKS.md.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { loadAgents, modelTiers, nextTier, pickAgent, toolLists, type Agent, type AgentsConfig, type SessionKind, type Tier } from './sdd/agents';
 import { buildBrief } from './sdd/brief';
 import { layoutLookup } from './sdd/ids';
 import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
-import { fallbackFor, layoutTasksText, limitsFor, modelFor, nextModel, parseTasks, phaseTasksPath, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
-import { LEDGER_PATH, readLedger } from './sdd/ledger';
+import { fallbackFor, layoutTasksText, limitsFor, parseTasks, phaseTasksPath, tierFor, type Task } from './sdd/tasks';
+import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { budgetOverrun, LEDGER_PATH, readLedger, type LedgerEntry } from './sdd/ledger';
+import { totalTokens } from './sdd/parsers';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
-import { DENIED_TOOLS, IMPLEMENT_TOOLS, MAX_RESET_WAITS, resetTime, resetWaitMs, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
+import { findingsPath, fixHandoffPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTierFor } from './sdd/review';
+import { limitNote, MAX_RESET_WAITS, resetTime, resetWaitMs, runSession, type SessionResult } from './sdd/session';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
@@ -53,15 +57,19 @@ function withSharedGit<T>(work: () => Promise<T>): Promise<T> {
 
 /** The tasks text `readFacts` last parsed: the brief's fallback when ids.md has no entry for a task. */
 let tasksMarkdown: string | null = null;
+/** FR-SDD-2: the open phase's task ids, whose sessions are the running 90th percentile's history. */
+let openPhaseTasks = new Set<string>();
 
-/** Everything the wave logic needs, read from the remote. */
-async function readFacts(options: Options, logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
+/** Everything the wave logic needs, read from the remote. `models` is the default agent's model → tier map (FR-SDD-11). */
+async function readFacts(options: Options, models: Readonly<Record<string, Tier>>, agentNames: readonly string[], logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
+  let open: string;
   let markdown: string;
   let branches = new Set<string>();
   let prsByBranch = new Map<string, number>();
   if (options.tasksFile) {
     const base = dirname(options.tasksFile);
-    markdown = layoutTasksText(readFileSync(options.tasksFile, 'utf8'), (path) => (existsSync(join(base, path)) ? readFileSync(join(base, path), 'utf8') : null));
+    open = readFileSync(options.tasksFile, 'utf8');
+    markdown = layoutTasksText(open, (path) => (existsSync(join(base, path)) ? readFileSync(join(base, path), 'utf8') : null));
     logger.line(`TASKS.md from ${options.tasksFile} (remote state ignored)`);
   } else {
     await fetchOrigin(logger);
@@ -70,12 +78,14 @@ async function readFacts(options: Options, logger: Logger): Promise<{ statuses: 
     // One ls-tree says which phase files exist; only those are read (the open phase lives in TASKS.md).
     const existing = await listFilesAtRef(BASE, 'docs/sdd/phases', logger);
     for (const phase of PHASES) if (phase !== OPEN_PHASE && existing.has(phaseTasksPath(phase))) closed.set(phaseTasksPath(phase), await readFileAtRef(BASE, phaseTasksPath(phase), logger));
-    markdown = layoutTasksText(await readTasksAtRef(BASE, logger), (path) => closed.get(path) ?? null);
+    open = await readTasksAtRef(BASE, logger);
+    markdown = layoutTasksText(open, (path) => closed.get(path) ?? null);
     branches = await remoteBranches(logger);
     prsByBranch = await openPullRequests(logger);
   }
   tasksMarkdown = markdown;
-  const { tasks, problems } = parseTasks(markdown);
+  openPhaseTasks = new Set(parseTasks(open, models).tasks.map((task) => task.id));
+  const { tasks, problems } = parseTasks(markdown, models, agentNames);
   const openPrs = new Map<string, number>();
   for (const task of tasks) {
     const pr = prsByBranch.get(task.branch);
@@ -98,7 +108,7 @@ function printStatus(statuses: readonly TaskStatus[], problems: readonly string[
     const notes = [
       task.lane ? `lane ${task.lane}` : null,
       task.gate ? `gate ${task.gate}` : null,
-      state === 'merged' ? null : `model ${task.model === 'interactive' ? 'interactive' : modelFor(task)}`,
+      state === 'merged' ? null : task.model === 'interactive' ? 'interactive' : `tier ${tierFor(task)}${task.agent ? ` on ${task.agent}` : ''}`,
       missingDeps.length > 0 ? `waiting on ${missingDeps.join(', ')}` : null,
       missingPrecondition !== null ? `waiting for ${missingPrecondition}` : null,
       task.findings.length > 0 && state !== 'merged' ? `closes ${task.findings.join(', ')}` : null,
@@ -115,11 +125,17 @@ function printStatus(statuses: readonly TaskStatus[], problems: readonly string[
   }
 }
 
-function printPlanned(wave: readonly TaskStatus[], skipped: readonly { task: Task; reason: string }[], logger: Logger): void {
+function printPlanned(wave: readonly TaskStatus[], skipped: readonly { task: Task; reason: string }[], agentOf: (task: Task) => Agent, logger: Logger): void {
   if (wave.length === 0) logger.line('\nNothing to run: no task is ready.');
   else {
     logger.line('\nWould run:');
-    for (const { task } of wave) logger.line(`  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} model ${modelFor(task).padEnd(6)} review ${reviewModelFor(task).padEnd(6)} turns ${String(limitsFor(task, { implement: IMPLEMENT, review: REVIEW }).implement.maxTurns).padEnd(4)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`);
+    for (const { task } of wave) {
+      const agent = agentOf(task);
+      const tier = tierFor(task);
+      logger.line(
+        `  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} agent ${agent.name} tier ${tier.padEnd(8)} (${agent.tiers[tier].model}) review ${task.review ?? 'by the diff'} turns ${String(limitsFor(task, { implement: IMPLEMENT, review: REVIEW }).implement.maxTurns).padEnd(4)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`,
+      );
+    }
   }
   if (skipped.length > 0) {
     logger.line('\nHeld back:');
@@ -130,25 +146,23 @@ function printPlanned(wave: readonly TaskStatus[], skipped: readonly { task: Tas
 interface Handoff {
   blocked: string | null;
   summary: string | null;
-  findings: number | null;
+  /** D-1065: the review's lines, as written, and how many count against the merge; `null` when the review left no file. */
+  findings: { lines: string[]; count: number } | null;
 }
 
 /** The files a session leaves for the driver in its worktree (§16.4). */
 function readHandoff(dir: string, id: string): Handoff {
-  const read = (name: string): string | null => {
-    const path = join(dir, 'sdd-run', `${id}.${name}`);
+  const read = (relative: string): string | null => {
+    const path = join(dir, relative);
     return existsSync(path) ? readFileSync(path, 'utf8') : null;
   };
-  const review = read('review.json');
-  let findings: number | null = null;
-  if (review !== null) {
-    try {
-      findings = (JSON.parse(review) as { findings?: unknown[] }).findings?.length ?? 0;
-    } catch {
-      findings = null;
-    }
+  const text = read(findingsPath(id));
+  let findings: Handoff['findings'] = null;
+  if (text !== null) {
+    const parsed = parseFindings(text);
+    findings = { lines: text.split('\n').filter((line) => line.trim() !== ''), count: parsed.findings.length + parsed.unreadable.length };
   }
-  return { blocked: read('blocked.md'), summary: read('summary.md'), findings };
+  return { blocked: read(join('sdd-run', `${id}.blocked.md`)), summary: read(join('sdd-run', `${id}.summary.md`)), findings };
 }
 
 /**
@@ -156,9 +170,10 @@ function readHandoff(dir: string, id: string): Handoff {
  * fresh worktree has them, which is `origin/main`. Returns the path relative
  * to the worktree, which is how the prompt names it.
  */
-function writeBrief(dir: string, task: Task, logger: Logger): string {
+function writeBrief(dir: string, task: Task, agent: Agent, logger: Logger): string {
+  const tools = toolLists(agent, 'implement');
   // FR-SDD-7: every id through docs/sdd/ids.md, the task from TASKS.md or its phase's tasks.md.
-  const brief = buildBrief(task, { textFor: layoutLookup(dir), ...(tasksMarkdown === null ? {} : { fallbackTasks: tasksMarkdown }) }, { allowedTools: IMPLEMENT_TOOLS, deniedTools: DENIED_TOOLS });
+  const brief = buildBrief(task, { textFor: layoutLookup(dir), ...(tasksMarkdown === null ? {} : { fallbackTasks: tasksMarkdown }) }, { allowedTools: tools.allowed, deniedTools: tools.denied });
   mkdirSync(join(dir, 'sdd-run'), { recursive: true });
   const relative = join('sdd-run', `${task.id}.brief.md`);
   writeFileSync(join(dir, relative), brief.markdown);
@@ -167,46 +182,70 @@ function writeBrief(dir: string, task: Task, logger: Logger): string {
   return relative;
 }
 
-/**
- * §16.4 step 10 (D-197): one session, retried once on the next model of
- * `fable → opus → sonnet` when it ends on a limit that is not the account's
- * and `--fallback` is on. The limit seen on 2026-09-05 was the account's
- * five-hour window, which every model shares, so that one ends the task
- * `limit` with the reset time and keeps the worktree for a later run to
- * resume. Every attempt lands in `attempts`. With `waitForReset` (D-835, on
- * unless `--no-wait`) that limit is waited out instead: the driver sleeps to
- * the reset and runs the stage again in the same worktree, on `resumePrompt`
- * where one is given, up to `MAX_RESET_WAITS` times.
- */
-async function runWithFallback(stage: 'implement' | 'review', model: SessionModel, options: Omit<SessionOptions, 'model'>, fallback: boolean, attempts: TaskReport['attempts'], waitForReset = false, resumePrompt?: string): Promise<{ session: SessionResult; model: SessionModel }> {
-  let current = model;
-  let prompt = options.prompt;
-  let waits = 0;
-  for (;;) {
-    const session = await runSession({ ...options, prompt, model: current });
-    attempts.push({ stage, model: current, outcome: session.outcome, durationMs: session.durationMs });
-    const next = session.outcome === 'limit' && fallback && !session.limit?.accountWide ? nextModel(current) : null;
-    if (next === null) {
-      const wait = session.outcome === 'limit' && waitForReset && waits < MAX_RESET_WAITS ? resetWaitMs(session.limit, Date.now()) : null;
-      if (wait !== null) {
-        waits += 1;
-        options.logger.line(`  the ${stage} session ended on the account limit (${session.limit?.window ?? 'window unknown'}); waiting until ${resetTime(session.limit)} and resuming in the same worktree (D-835, wait ${String(waits)} of ${String(MAX_RESET_WAITS)})`);
-        await new Promise((done) => setTimeout(done, wait));
-        if (resumePrompt !== undefined) prompt = resumePrompt;
-        continue;
-      }
-      if (session.outcome === 'limit') options.logger.line(`  the ${stage} session ended on the account limit (${session.limit?.window ?? 'window unknown'}, resets ${resetTime(session.limit)}); no model escapes it, the worktree is kept`);
-      return { session, model: current };
-    }
-    options.logger.line(`  the ${stage} session ended on the account limit after ${String(Math.round(session.durationMs / 60_000))} min; retrying once on ${next} in the same worktree (§16.4 step 10)`);
-    current = next;
-  }
-}
-
 /** FR-SDD-1 (D-1058): the ledger in the driver's own checkout, which outlives every task worktree. */
 const LEDGER = resolve(LEDGER_PATH);
-/** FR-SDD-1: the agent every session runs on until R177 makes it a config entry (FR-SDD-10); tiers come with it. */
-const AGENT = 'claude';
+
+/** What every session of one task shares. */
+interface TaskContext {
+  task: Task;
+  agent: Agent;
+  dir: string;
+  logger: Logger;
+  env: Record<string, string>;
+  fallback: boolean;
+  waitForReset: boolean;
+  report: TaskReport;
+}
+
+/**
+ * §16.4 step 10 (D-197, D-835): one stage, retried once on the next tier of
+ * the agent's fallback chain when it ends on a limit that is not the
+ * account's and fallback is on. An account-wide limit (every model shares
+ * it) ends the task `limit` with the reset time, or, with `waitForReset`, is
+ * waited out: the driver sleeps to the reset and runs the stage again in the
+ * same worktree, on `resumePrompt` where one is given, up to
+ * `MAX_RESET_WAITS` times. Every attempt lands in the report, and with no
+ * ceiling set a session past its tier's running 90th percentile is recorded
+ * as an overrun, stopping nothing (FR-SDD-2).
+ */
+async function runStage(context: TaskContext, kind: SessionKind, tier: Tier, prompt: string, caps: { maxTurns: number; timeoutMs: number }, resumePrompt?: string, handoff?: string): Promise<{ session: SessionResult; tier: Tier }> {
+  const { agent, task, logger, report } = context;
+  let current = tier;
+  let waits = 0;
+  // Read once per stage, and only when a tier without a ceiling needs the history (FR-SDD-2).
+  let ledgerRows: LedgerEntry[] | null = null;
+  for (;;) {
+    let history: LedgerEntry[] = [];
+    if (agent.tiers[current].tokenCeiling === undefined) {
+      ledgerRows ??= readLedger(LEDGER);
+      history = ledgerRows.filter((entry) => openPhaseTasks.has(entry.task) && entry.agent === agent.name && entry.kind === kind && entry.tier === current);
+    }
+    const session = await runSession({ cwd: context.dir, prompt, agent, tier: current, kind, maxTurns: agent.tiers[current].maxTurns ?? caps.maxTurns, timeoutMs: caps.timeoutMs, logger, env: context.env, ...(handoff === undefined ? {} : { handoff }), ledger: { task: task.id, path: LEDGER } });
+    report.attempts.push({ stage: kind, tier: current, model: session.model, outcome: session.outcome, durationMs: session.durationMs });
+    const overrun = agent.tiers[current].tokenCeiling === undefined ? budgetOverrun(session.usage ? totalTokens(session.usage) : null, history) : null;
+    if (overrun) {
+      const line = `${kind} on ${current}: ${String(overrun.tokens)} tokens, past the phase's 90th percentile of ${String(overrun.p90)} over ${String(overrun.samples)} sessions`;
+      report.overruns.push(line);
+      logger.line(`  budget overrun (FR-SDD-2, report-only): ${line}`);
+    }
+    const next = session.outcome === 'limit' && context.fallback && session.limit?.accountWide === false ? nextTier(agent, current) : null;
+    if (next !== null) {
+      logger.line(`  the ${kind} session ended on its model's own limit after ${String(Math.round(session.durationMs / 60_000))} min; retrying once on ${next} in the same worktree (§16.4 step 10)`);
+      current = next;
+      continue;
+    }
+    const wait = session.outcome === 'limit' && context.waitForReset && waits < MAX_RESET_WAITS ? resetWaitMs(session.limit, Date.now()) : null;
+    if (wait !== null) {
+      waits += 1;
+      logger.line(`  the ${kind} session ended on a usage limit (${session.limit?.window ?? 'window unknown'}); waiting until ${resetTime(session.limit)} and resuming in the same worktree (D-835, wait ${String(waits)} of ${String(MAX_RESET_WAITS)})`);
+      await new Promise((done) => setTimeout(done, wait));
+      if (resumePrompt !== undefined) prompt = resumePrompt;
+      continue;
+    }
+    if (session.outcome === 'limit') logger.line(limitNote(kind, session.limit, context.fallback));
+    return { session, tier: current };
+  }
+}
 
 /**
  * FR-SDD-20: the short body — what changed and the checks from the session's
@@ -225,18 +264,59 @@ function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], si
   });
 }
 
+const readWorkflow = (dir: string, path: string): string => readFileSync(join(dir, path), 'utf8');
+
+/**
+ * FR-SDD-16, D-1065 (`--fix`): one fix session on `tier` (the one the implementation ended on), handed the
+ * review's findings or the CI failure digest and `fix-ci.md`, never a log or
+ * a transcript; then its commits are pushed. `false` when it did not commit
+ * or the push failed.
+ */
+async function runFix(context: TaskContext, brief: string, caps: { maxTurns: number; timeoutMs: number }, input: { findings: readonly string[]; digest: string | null }, tier: Tier): Promise<boolean> {
+  const { dir, task, logger, report } = context;
+  if (input.digest === null && input.findings.length === 0) return false;
+  const before = await commitsAhead(dir, BASE, logger);
+  logger.line(`  running a fix session on ${input.digest !== null ? 'the failure digest' : `${String(input.findings.length)} finding(s)`}…`);
+  const prompt = fixPrompt({ id: task.id, brief, workflow: readWorkflow(dir, FIX_WORKFLOW), findings: input.findings, digest: input.digest });
+  // The fix's own handoff: the implementation's summary is already there, so a check on it would always pass.
+  rmSync(join(dir, fixHandoffPath(task.id)), { force: true });
+  const { session } = await runStage(context, 'fix', tier, prompt, caps, undefined, fixHandoffPath(task.id));
+  report.durations.fixMs = report.attempts.filter((attempt) => attempt.stage === 'fix').reduce((sum, attempt) => sum + attempt.durationMs, 0);
+  if (session.outcome !== 'ok' || (await commitsAhead(dir, BASE, logger)) <= before) return false;
+  return push(dir, task.branch, logger);
+}
+
+/** D-1065 and FR-SDD-9: the review on the tier the diff calls for, from `review.md`; `null` tier when the diff is docs-only. */
+async function runReview(context: TaskContext, brief: string, changed: readonly string[], caps: { maxTurns: number; timeoutMs: number }): Promise<{ session: SessionResult | null; tier: Tier | null; findings: Handoff['findings'] }> {
+  const { dir, task, logger, agent } = context;
+  const tier = reviewTierFor(task, changed);
+  if (tier === null) {
+    logger.line('  every changed path is under docs/ or a root *.md: no review session (D-1065)');
+    return { session: null, tier: null, findings: { lines: [], count: 0 } };
+  }
+  logger.line(`  running the review session on ${tier} (${agent.tiers[tier].model})…`);
+  // A file left by an earlier review (a resumed worktree, or before a fix) is not this review's verdict.
+  rmSync(join(dir, findingsPath(task.id)), { force: true });
+  const prompt = reviewPrompt({ id: task.id, brief, base: BASE, workflow: readWorkflow(dir, REVIEW_WORKFLOW) });
+  const { session, tier: ran } = await runStage(context, 'review', tier, prompt, caps, undefined, findingsPath(task.id));
+  return { session, tier: ran, findings: readHandoff(dir, task.id).findings };
+}
+
 /** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
-async function runTask(status: TaskStatus, slot: { index: number; count: number }, fallback: boolean, waitForReset: boolean): Promise<TaskReport> {
+async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; count: number }, options: Pick<Options, 'fallback' | 'waitForReset' | 'fix'>): Promise<TaskReport> {
   const { task } = status;
   const logger = openTaskLog(task.id, undefined, undefined, { prefixConsole: slot.count > 1 });
   const env = { npm_config_cache: NPM_CACHE, E2E_PORT: String(E2E_BASE_PORT + slot.index) };
   const startedAt = Date.now();
   const dir = join(WORKTREE_ROOT, task.id);
+  const tier = tierFor(task);
   const report: TaskReport = {
     id: task.id,
     branch: task.branch,
     lane: task.lane,
-    model: modelFor(task),
+    agent: agent.name,
+    tier,
+    model: agent.tiers[tier].model,
     gate: task.gate,
     pr: null,
     outcome: 'failed',
@@ -246,6 +326,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     durations: { totalMs: 0 },
     attempts: [],
     review: null,
+    overruns: [],
   };
   const finish = (outcome: TaskReport['outcome'], reason: string): TaskReport => {
     report.outcome = outcome;
@@ -258,7 +339,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   };
 
   logger.line(`\n${task.id} — ${task.title}`);
-  logger.line(`  lane ${String(task.lane)}, model ${modelFor(task)}, gate ${String(task.gate)}, branch ${task.branch}`);
+  logger.line(`  lane ${String(task.lane)}, agent ${agent.name}, tier ${tier} (${agent.tiers[tier].model}), gate ${String(task.gate)}, branch ${task.branch}`);
 
   // A kept worktree on the task's branch is a session the limit or the clock cut short (§16.5):
   // the new session continues from its commits and its working tree instead of starting over.
@@ -280,97 +361,84 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
 
   let brief: string;
   try {
-    brief = writeBrief(dir, task, logger);
+    brief = writeBrief(dir, task, agent, logger);
   } catch (error) {
     return finish('failed', `brief: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // §16.3 (v2.2, D-659): `Turns:` and `Fallback:` on the task, else the driver's defaults and the flag.
   const limits = limitsFor(task, { implement: IMPLEMENT, review: REVIEW });
-  const retryOnLimit = fallbackFor(task, fallback);
-  logger.line(`  running the implementation session… (${String(limits.implement.maxTurns)} turns, ${String(Math.round(limits.implement.timeoutMs / 60_000))} min, fallback ${retryOnLimit ? 'on' : 'off'})`);
+  const context: TaskContext = { task, agent, dir, logger, env, fallback: fallbackFor(task, options.fallback), waitForReset: options.waitForReset, report };
+  logger.line(`  running the implementation session… (${String(limits.implement.maxTurns)} turns, ${String(Math.round(limits.implement.timeoutMs / 60_000))} min, fallback ${context.fallback ? 'on' : 'off'})`);
   const implementPrompt = (cutShort: boolean): string =>
     `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${cutShort ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`;
-  const { session, model } = await runWithFallback(
-    'implement',
-    modelFor(task),
-    {
-      cwd: dir,
-      prompt: implementPrompt(resumed),
-      maxTurns: limits.implement.maxTurns,
-      timeoutMs: limits.implement.timeoutMs,
-      allowedTools: IMPLEMENT_TOOLS,
-      logger,
-      env,
-      ledger: { task: task.id, kind: 'implement', agent: AGENT, tier: null, path: LEDGER },
-    },
-    retryOnLimit,
-    report.attempts,
-    waitForReset,
-    implementPrompt(true),
-  );
-  report.model = model;
+  const { session, tier: ran } = await runStage(context, 'implement', tier, implementPrompt(resumed), limits.implement, implementPrompt(true), join('sdd-run', `${task.id}.summary.md`));
+  report.tier = ran;
+  report.model = agent.tiers[ran].model;
   report.durations.implementMs = report.attempts.filter((attempt) => attempt.stage === 'implement').reduce((sum, attempt) => sum + attempt.durationMs, 0);
 
   const handoff = readHandoff(dir, task.id);
   if (handoff.blocked !== null) return finish('blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`);
-  if (session.outcome === 'limit') return finish('limit', `the account limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`);
+  if (session.outcome === 'limit') return finish('limit', `a usage limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`);
   if (session.outcome !== 'ok') return finish('failed', `session ended ${session.outcome}`);
 
   const commits = await commitsAhead(dir, BASE, logger);
   if (commits === 0) return finish('failed', 'the branch has no commits');
-  const branchTasks = parseTasks(readFileSync(join(dir, 'TASKS.md'), 'utf8')).tasks;
+  const branchTasks = parseTasks(readFileSync(join(dir, 'TASKS.md'), 'utf8'), modelTiers(agent)).tasks;
   if (!branchTasks.find((candidate) => candidate.id === task.id)?.done) return finish('failed', `${task.id} is not checked off on the branch`);
 
   if (!(await rebaseOnto(dir, BASE, logger))) return finish('failed', `rebase onto ${BASE} conflicted`);
   if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed');
 
-  const screenshots = (await changedFiles(dir, BASE, logger)).filter((path) => path.startsWith('docs/screenshots/'));
+  const changed = await changedFiles(dir, BASE, logger);
+  const screenshots = changed.filter((path) => path.startsWith('docs/screenshots/'));
   const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
   if (pr === null) return finish('failed', 'gh pr create failed');
   report.pr = pr;
 
-  logger.line(`  PR #${String(pr)} opened; watching CI…`);
-  const ciStartedAt = Date.now();
-  const green = await watchChecks(dir, pr, logger);
-  report.durations.ciMs = Date.now() - ciStartedAt;
-  if (!green) return finish('failed', 'CI is red');
+  // FR-SDD-16 (`--fix`): at most one fix session per task run, on the digest or on the findings.
+  let fixed = false;
+  const watch = async (): Promise<boolean> => {
+    logger.line(`  PR #${String(pr)} opened or updated; watching CI…`);
+    const ciStartedAt = Date.now();
+    const green = await watchChecks(dir, pr, logger);
+    report.durations.ciMs = (report.durations.ciMs ?? 0) + Date.now() - ciStartedAt;
+    return green;
+  };
+  let green = await watch();
+  if (!green && options.fix) {
+    const digest = await failureDigest(dir, pr, task.branch, logger);
+    if (digest === null) return finish('failed', 'CI is red, no digest');
+    fixed = true;
+    if (await runFix(context, brief, limits.implement, { findings: [], digest }, ran)) green = await watch();
+  }
+  if (!green) return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
 
-  logger.line(`  running the review session on ${reviewModelFor(task)}…`);
-  const { session: review, model: reviewModel } = await runWithFallback(
-    'review',
-    reviewModelFor(task),
-    {
-      cwd: dir,
-      prompt: `Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. Then use the code-review skill on this branch's diff against ${BASE}, and write {"findings":[{"file":"","line":0,"summary":""}]} listing what you found to sdd-run/${task.id}.review.json. Change nothing else.`,
-      maxTurns: limits.review.maxTurns,
-      timeoutMs: limits.review.timeoutMs,
-      allowedTools: REVIEW_TOOLS,
-      logger,
-      env,
-      ledger: { task: task.id, kind: 'review', agent: AGENT, tier: null, path: LEDGER },
-    },
-    retryOnLimit,
-    report.attempts,
-    waitForReset,
-  );
+  // D-1065: the tier comes from the final diff, after any fix session pushed.
+  let reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
+  if (options.fix && !fixed && reviewed.findings !== null && reviewed.findings.count > 0) {
+    if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null }, ran)) {
+      if (!(await watch())) return finish('failed', 'CI is red after the fix session');
+      reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
+    }
+  }
+  const { session: review, findings } = reviewed;
   report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);
-  const findings = readHandoff(dir, task.id).findings;
-  report.review = findings === null ? null : { findings, model: reviewModel };
+  report.review = findings === null ? null : { findings: findings.count, tier: reviewed.tier, model: reviewed.tier === null ? null : agent.tiers[reviewed.tier].model };
   // FR-SDD-1: the body carries one usage line per session, and the review's are new since the PR opened.
-  await editPullRequestBody(dir, task.id, pr, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
+  await editPullRequestBody(dir, task.id, pr, prBody(task, readHandoff(dir, task.id), screenshots, new Date(startedAt)), logger);
 
-  if (review.outcome === 'limit') {
-    await commentOnPullRequest(dir, task.id, pr, `The review session ended on the account limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);
-    return finish('limit', `CI green; the account limit ended the review (resets ${resetTime(review.limit)}); PR #${String(pr)} waits for a review`);
+  if (review?.outcome === 'limit') {
+    await commentOnPullRequest(dir, task.id, pr, `The review session ended on a usage limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);
+    return finish('limit', `CI green; a usage limit ended the review (resets ${resetTime(review.limit)}); PR #${String(pr)} waits for a review`);
   }
   if (findings === null) {
-    await commentOnPullRequest(dir, task.id, pr, `The review session ended \`${review.outcome}\` without a verdict, so this PR is not merged automatically.\n\n${review.result ?? ''}`, logger);
+    await commentOnPullRequest(dir, task.id, pr, `The review session ended \`${review?.outcome ?? 'unknown'}\` without a verdict, so this PR is not merged automatically.\n\n${review?.result ?? ''}`, logger);
     return finish('findings', 'the review left no verdict');
   }
-  if (findings > 0) {
-    await commentOnPullRequest(dir, task.id, pr, `## Automated review (PLAN §16.4)\n\n${review.result ?? `${String(findings)} findings; see \`sdd-run/${task.id}.review.json\`.`}`, logger);
-    return finish('findings', `${String(findings)} review findings; the PR is left open`);
+  if (findings.count > 0) {
+    await commentOnPullRequest(dir, task.id, pr, `## Automated review (PLAN §16.4, D-1065)\n\n${String(findings.count)} finding(s), one JSON line each (\`${findingsPath(task.id)}\`):\n\n\`\`\`jsonl\n${findings.lines.join('\n')}\n\`\`\``, logger);
+    return finish('findings', `${String(findings.count)} review findings; the PR is left open`);
   }
 
   if (task.gate === 'owner') {
@@ -382,6 +450,15 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   return finish('merged', `PR #${String(pr)} squash-merged`);
 }
 
+/** §16.6, FR-SDD-11: `--tier`, or `--model` read through the agent's map, as the task's tier for one `--task` run. */
+function overrideTier(options: Options, agent: Agent): Tier | null {
+  if (options.tier) return options.tier;
+  if (!options.model) return null;
+  const tier = modelTiers(agent)[options.model];
+  if (!tier) throw new Error(`--model ${options.model}: agent ${agent.name} has ${Object.keys(modelTiers(agent)).join(', ')}`);
+  return tier;
+}
+
 async function main(): Promise<number> {
   const options = parseArgs(process.argv.slice(2));
   if (options.mode === 'help') {
@@ -389,7 +466,10 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  const { statuses, problems } = await readFacts(options, consoleLogger);
+  const config: AgentsConfig = loadAgents();
+  // FR-SDD-10: a task's `Agent:` pins it; else `--agent`; else the config's default.
+  const agentOf = (task: Task): Agent => pickAgent(config, task.agent, options.agent);
+  const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), Object.keys(config.agents), consoleLogger);
 
   if (options.mode === 'status') {
     printStatus(statuses, problems, consoleLogger);
@@ -406,8 +486,11 @@ async function main(): Promise<number> {
     }
     planned = statuses
       .filter((status) => status.task.id.toLowerCase() === options.taskId?.toLowerCase())
-      // §16.6: `--model` is the owner's hand on one run — the log, the PR body and the run report all say the model actually used.
-      .map((status) => (options.model ? { ...status, task: { ...status.task, model: options.model } } : status));
+      // §16.6: the override is the owner's hand on one run — the log, the PR body and the run report all say the tier actually used.
+      .map((status) => {
+        const tier = overrideTier(options, agentOf(status.task));
+        return tier ? { ...status, task: { ...status.task, tier } } : status;
+      });
   } else {
     const selection = selectWave(statuses);
     planned = [...selection.wave];
@@ -415,7 +498,7 @@ async function main(): Promise<number> {
   }
 
   if (options.mode === 'dry-run') {
-    printPlanned(planned, skipped, consoleLogger);
+    printPlanned(planned, skipped, agentOf, consoleLogger);
     if (problems.length > 0) {
       consoleLogger.line('\nBreakdown problems:');
       for (const problem of problems) consoleLogger.line(`  - ${problem}`);
@@ -423,17 +506,18 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  printPlanned(planned, skipped, consoleLogger);
+  printPlanned(planned, skipped, agentOf, consoleLogger);
   const startedAt = new Date();
   const reports: TaskReport[] = [];
   // D-132: the wave runs concurrently; each task has its own worktree, log, port and PR.
   if (planned.length > 1) consoleLogger.line(`\nRunning ${String(planned.length)} at once; console lines are prefixed with the task id, the full transcripts are the per-task logs.`);
-  if (!options.fallback) consoleLogger.line('--no-fallback: a session that ends on the account limit fails its task (§16.4 step 10).');
-  if (!options.waitForReset) consoleLogger.line('--no-wait: a session that ends on the account limit ends its task `limit` instead of waiting for the reset (D-835).');
-  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length }, options.fallback, options.waitForReset)))));
+  if (!options.fallback) consoleLogger.line('--no-fallback: a session that ends on a usage limit ends its task (§16.4 step 10).');
+  if (!options.waitForReset) consoleLogger.line('--no-wait: a session that ends on a usage limit ends its task `limit` instead of waiting for the reset (D-835).');
+  if (options.fix) consoleLogger.line('--fix: a red CI run or review findings get one fix session per task (FR-SDD-16).');
+  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, agentOf(status.task), { index, count: planned.length }, options)))));
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
-  for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}`);
+  for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}${report.overruns.length > 0 ? ` (${String(report.overruns.length)} budget overrun(s))` : ''}`);
   return reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit') ? 1 : 0;
 }
 

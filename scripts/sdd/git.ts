@@ -6,8 +6,8 @@
  * Arguments are always an argv array, never a shell string.
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -22,16 +22,26 @@ interface ExecOptions {
   logger?: Logger;
   /** Stream stdout to the log as it arrives (the CI watch prints for minutes). */
   stream?: boolean;
+  /** Kill the command after this long; the result's code is 124. */
+  timeoutMs?: number;
 }
 
 /** Runs one command to completion and returns its exit code and output. */
 function exec(file: string, args: readonly string[], options: ExecOptions = {}): Promise<ExecResult> {
-  const { cwd, env, logger = consoleLogger, stream = false } = options;
+  const { cwd, env, logger = consoleLogger, stream = false, timeoutMs } = options;
   logger.command(file, args, cwd);
   return new Promise((resolve) => {
     const child = spawn(file, [...args], { cwd, env: env ? { ...process.env, ...env } : process.env, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
+    let timedOut = false;
+    const timer =
+      timeoutMs === undefined
+        ? null
+        : setTimeout(() => {
+            timedOut = true;
+            child.kill('SIGKILL');
+          }, timeoutMs);
     child.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();
       if (stream) logger.raw(chunk.toString());
@@ -41,11 +51,13 @@ function exec(file: string, args: readonly string[], options: ExecOptions = {}):
       if (stream) logger.raw(chunk.toString());
     });
     child.on('error', (error) => {
+      if (timer) clearTimeout(timer);
       resolve({ code: 127, stdout, stderr: `${stderr}${error.message}` });
     });
     child.on('close', (code) => {
+      if (timer) clearTimeout(timer);
       logger.raw(`exit ${String(code ?? -1)}: ${file} ${args.join(' ')}\n`);
-      resolve({ code: code ?? -1, stdout, stderr });
+      resolve({ code: timedOut ? 124 : (code ?? -1), stdout, stderr });
     });
   });
 }
@@ -253,6 +265,42 @@ export async function watchChecks(dir: string, pr: number, logger: Logger, waits
   }
   const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
   return ok(result);
+}
+
+/** The longest the digest waits for the PR's CI run to finish. */
+export const DIGEST_WAIT_MS = 20 * 60_000;
+
+/** The run among `gh run list` rows (newest first) that is the PR head's: same commit and same branch. */
+export function runForHead(rows: readonly { databaseId?: number; headSha?: string; headBranch?: string }[], sha: string, branch: string): number | undefined {
+  return rows.find((row) => row.headSha === sha && row.headBranch === branch)?.databaseId;
+}
+
+/**
+ * FR-SDD-16: the `failure-digest` artifact of the CI run on the PR's head
+ * commit and branch, or `null` when there is none, the run does not finish
+ * within `waitMs` or any call fails. The `digest` job runs after every other
+ * job, so this waits for the run to finish first.
+ */
+export async function failureDigest(dir: string, pr: number, branch: string, logger: Logger, waitMs = DIGEST_WAIT_MS): Promise<string | null> {
+  const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
+  const sha = head.stdout.trim();
+  if (!ok(head) || sha === '') return null;
+  const list = await gh(['run', 'list', '--branch', branch, '--commit', sha, '--workflow', 'ci.yml', '--limit', '20', '--json', 'databaseId,headSha,headBranch'], { cwd: dir, logger });
+  let run: number | undefined;
+  try {
+    run = ok(list) ? runForHead(JSON.parse(list.stdout) as { databaseId?: number; headSha?: string; headBranch?: string }[], sha, branch) : undefined;
+  } catch {
+    run = undefined;
+  }
+  if (run === undefined) return null;
+  if (!ok(await gh(['run', 'watch', String(run)], { cwd: dir, logger, timeoutMs: waitMs }))) {
+    logger.line(`  the CI run ${String(run)} did not finish within ${String(Math.round(waitMs / 60_000))} min, or could not be watched; no digest`);
+    return null;
+  }
+  const out = join(dir, 'sdd-run', 'ci-digest', String(run));
+  if (!ok(await gh(['run', 'download', String(run), '--name', 'failure-digest', '--dir', out], { cwd: dir, logger }))) return null;
+  const file = join(out, 'failure-digest.md');
+  return existsSync(file) ? readFileSync(file, 'utf8') : null;
 }
 
 export async function commentOnPullRequest(dir: string, id: string, pr: number, body: string, logger: Logger): Promise<void> {

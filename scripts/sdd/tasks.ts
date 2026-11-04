@@ -4,7 +4,8 @@
  * A task is one checkbox item — `- [x] **R15 — …**` — with its fields as
  * sub-bullets. The checkbox is the merged signal (§16.2): the driver reads
  * this file from `origin/main`, never from the working copy. `Lane:`,
- * `Model:` and `Gate:` arrive with the v1 tasks; R1–R15 and H predate them
+ * `Model:` and `Gate:` arrive with the v1 tasks, `Tier:` and `Agent:` with
+ * v2.13 (FR-SDD-11), `Model:` read through the agent's model → tier map; R1–R15 and H predate them
  * and come back `null`, which is only an error for a task the driver is
  * asked to run (§16.3).
  *
@@ -15,6 +16,7 @@
  *
  * Pure: the caller supplies the files' text, so the tests need no git.
  */
+import { TIERS, type Tier } from './agents';
 import { OPEN_PHASE, PHASES } from './splitMap';
 
 /** FR-SDD-7: a closed phase's tasks file. */
@@ -27,14 +29,11 @@ export function layoutTasksText(open: string, read: (path: string) => string | n
 }
 
 const LANES = ['ui', 'chart', 'data', 'physics', 'live', 'window', 'docs'] as const; // `live` split from `ui` (D-132); `window` and `docs` for v1.1 (D-196)
-/** §16.6 (D-197): `interactive` marks a task the owner drives by hand; the driver lists it and never runs it. */
-export const MODELS = ['opus', 'fable', 'sonnet', 'haiku', 'interactive'] as const;
+/** §16.6 (D-197): `Model: interactive` marks a task the owner drives by hand; the driver lists it and never runs it. */
+const OWNER_DRIVEN = 'interactive';
 const GATES = ['auto', 'owner'] as const;
 
 export type Lane = (typeof LANES)[number];
-type Model = (typeof MODELS)[number];
-/** A model `claude -p` can be given: every `Model:` but `interactive`. */
-export type SessionModel = Exclude<Model, 'interactive'>;
 type Gate = (typeof GATES)[number];
 
 export interface Task {
@@ -48,15 +47,22 @@ export interface Task {
   /** The `[P]` marker in the heading (TASKS.md conventions), kept for reporting only. */
   parallel: boolean;
   lane: Lane | null;
-  model: Model | null;
+  /** FR-SDD-11: `Tier:`, or a closed phase's `Model:` through the model → tier map; `null` when neither says. */
+  tier: Tier | null;
+  /** `Model:` as written, lower case: kept for `interactive` and for reporting. */
+  model: string | null;
+  /** FR-SDD-10: `Agent:` pins the task to one entry of `sdd.agents.json`. */
+  agent: string | null;
+  /** `Agent:` named an entry the config does not have (`parseTasks` was given the names): the task is held back. */
+  unknownAgent: string | null;
   gate: Gate | null;
   deps: readonly string[];
   /** §16.3 (v1.1): a file that must exist on `origin/main` before the task may start, or `null`. */
   precondition: string | null;
   /** §16.3 (v1.1): the `F-<n>` findings the task closes (D-194). */
   findings: readonly string[];
-  /** §16.3 (v2.2, D-659): the model the review session runs on, or `null` for §16.6's rule by gate. */
-  review: SessionModel | null;
+  /** §16.3 (v2.2, D-659): the tier the review runs on (a model name read through the map), or `null` for D-1065's rule. */
+  review: Tier | null;
   /** §16.3 (v2.2, D-659): the implementation session's turn cap, or `null` for the driver's default; the wall clock scales with it. */
   turns: number | null;
   /** §16.3 (v2.2, D-659): whether a limit-stopped session may be retried on the next model down, or `null` for the `--fallback` flag. */
@@ -72,9 +78,7 @@ export interface ParsedTasks {
 }
 
 const HEADING = /^- \[([ xX])\] \*\*([A-Z][A-Z0-9]*)(\s+\[P\])?\s+—\s+([\s\S]+?)\*\*/;
-const FIELD = /^\s+- \*\*(Lane|Model|Gate|Depends on|Precondition|Findings|Review|Turns|Fallback):\*\*\s*(.*?)\s*$/;
-/** §16.3 (v2.2): what `Review:` may name — every model a session can run on. */
-const SESSION_MODELS = MODELS.filter((model): model is SessionModel => model !== 'interactive');
+const FIELD = /^\s+- \*\*(Lane|Model|Tier|Agent|Gate|Depends on|Precondition|Findings|Review|Turns|Fallback):\*\*\s*(.*?)\s*$/;
 const SWITCH = ['on', 'off'] as const;
 const NONE = /^(—|-|–|none)$/i;
 
@@ -112,8 +116,17 @@ function parseEnum<T extends string>(value: string, allowed: readonly T[]): T | 
   return (allowed as readonly string[]).includes(plainValue) ? (plainValue as T) : null;
 }
 
-/** Reads every task in TASKS.md, in file order. */
-export function parseTasks(markdown: string): ParsedTasks {
+/**
+ * Reads every task in TASKS.md, in file order. `modelTiers` is the default
+ * agent's model → tier map (`agents.ts`), which `Model:` and `Review:` are
+ * read through; without it only tiers and `interactive` are known.
+ */
+export function parseTasks(markdown: string, modelTiers: Readonly<Record<string, Tier>> = {}, agentNames?: readonly string[]): ParsedTasks {
+  const models = Object.keys(modelTiers);
+  const asTier = (value: string): Tier | null => {
+    const name = plain(value).toLowerCase();
+    return (TIERS as readonly string[]).includes(name) ? (name as Tier) : (modelTiers[name] ?? null);
+  };
   const tasks: Task[] = [];
   const problems: string[] = [];
   let current: Task | null = null;
@@ -129,7 +142,10 @@ export function parseTasks(markdown: string): ParsedTasks {
         done: checkbox.toLowerCase() === 'x',
         parallel: Boolean(parallel),
         lane: null,
+        tier: null,
         model: null,
+        agent: null,
+        unknownAgent: null,
         gate: null,
         deps: [],
         precondition: null,
@@ -154,14 +170,26 @@ export function parseTasks(markdown: string): ParsedTasks {
       current.lane = parseEnum(value, LANES);
       if (!current.lane) problems.push(`${current.id}: \`Lane: ${plain(value)}\` is not one of ${LANES.join(', ')}.`);
     } else if (name === 'Model') {
-      current.model = parseEnum(value, MODELS);
-      if (!current.model) problems.push(`${current.id}: \`Model: ${plain(value)}\` is not one of ${MODELS.join(', ')}.`);
+      const model = plain(value).toLowerCase();
+      const tier = model === OWNER_DRIVEN ? null : (modelTiers[model] ?? null);
+      current.model = model === OWNER_DRIVEN || tier !== null ? model : null;
+      current.tier ??= tier;
+      if (current.model === null) problems.push(`${current.id}: \`Model: ${plain(value)}\` is not one of ${[...models, OWNER_DRIVEN].join(', ')}.`);
+    } else if (name === 'Tier') {
+      current.tier = parseEnum(value, TIERS);
+      if (!current.tier) problems.push(`${current.id}: \`Tier: ${plain(value)}\` is not one of ${TIERS.join(', ')}.`);
+    } else if (name === 'Agent') {
+      current.agent = plain(value).toLowerCase() || null;
+      if (current.agent !== null && agentNames !== undefined && !agentNames.includes(current.agent)) {
+        current.unknownAgent = current.agent;
+        problems.push(`${current.id}: \`Agent: ${plain(value)}\` is not an entry of sdd.agents.json (${agentNames.join(', ')}).`);
+      }
     } else if (name === 'Gate') {
       current.gate = parseEnum(value, GATES);
       if (!current.gate) problems.push(`${current.id}: \`Gate: ${plain(value)}\` is not one of ${GATES.join(', ')}.`);
     } else if (name === 'Review') {
-      current.review = parseEnum(value, SESSION_MODELS);
-      if (!current.review) problems.push(`${current.id}: \`Review: ${plain(value)}\` is not one of ${SESSION_MODELS.join(', ')}.`);
+      current.review = asTier(value);
+      if (!current.review) problems.push(`${current.id}: \`Review: ${plain(value)}\` is not one of ${[...TIERS, ...models].join(', ')}.`);
     } else if (name === 'Turns') {
       const turns = Number(plain(value));
       current.turns = Number.isInteger(turns) && turns > 0 ? turns : null;
@@ -190,29 +218,23 @@ function parseFindings(value: string, id: string, problems: string[]): string[] 
 }
 
 /** §16.6 (D-197): a task the owner drives in a session by hand; the driver never opens a session for it. */
-export const ownerDriven = (task: Task): boolean => task.model === 'interactive';
+export const ownerDriven = (task: Task): boolean => task.model === OWNER_DRIVEN;
 
 /**
  * §16.3: "A task with no `Lane:` or no `Gate:` is a breakdown bug and the
- * driver refuses to run it." `Model:` defaults to Opus (§16.6) rather than
- * refusing, since Opus is that table's stated default.
+ * driver refuses to run it." A task with no tier runs on `standard`, the
+ * tier of §16.6's stated default.
  */
 export function runBlockers(task: Task): string[] {
   const blockers: string[] = [];
   if (!task.lane) blockers.push('no `Lane:`');
   if (!task.gate) blockers.push('no `Gate:`');
+  if (task.unknownAgent !== null) blockers.push(`\`Agent: ${task.unknownAgent}\` is not an entry of sdd.agents.json`);
   return blockers;
 }
 
-/** §16.6: the model a task's session runs on; Opus is the default. An owner-driven task has no session, so it reads as Opus here only for reporting. */
-export const modelFor = (task: Task): SessionModel => (task.model === null || task.model === 'interactive' ? 'opus' : task.model);
-
-/**
- * §16.6 (D-197): the review runs on Opus where it is the gate (`Gate: auto`)
- * and on Sonnet where the owner reads the PR anyway — unless the task says
- * otherwise with `Review:` (v2.2, D-659).
- */
-export const reviewModelFor = (task: Task): SessionModel => task.review ?? (task.gate === 'owner' ? 'sonnet' : 'opus');
+/** FR-SDD-11: the tier a task's session runs on; `standard` when the task names none. An owner-driven task has no session, so its tier is for reporting only. */
+export const tierFor = (task: Task): Tier => task.tier ?? 'standard';
 
 /** §16.3 (v2.2, D-659): `Fallback:` on the task wins over the `--fallback` flag; with neither written, the flag's default. */
 export const fallbackFor = (task: Task, flag: boolean): boolean => task.fallback ?? flag;
@@ -230,16 +252,6 @@ export function limitsFor(
   const factor = (task.turns ?? base.implement.maxTurns) / base.implement.maxTurns;
   const scale = (limit: { maxTurns: number; timeoutMs: number }) => ({ maxTurns: Math.round(limit.maxTurns * factor), timeoutMs: Math.round(limit.timeoutMs * factor) });
   return { implement: scale(base.implement), review: scale(base.review) };
-}
-
-/**
- * §16.4 step 10 (D-197): the model a limit-stopped session is retried on,
- * once, along `fable → opus → sonnet`; `null` at the end of the chain.
- */
-export function nextModel(model: SessionModel): SessionModel | null {
-  if (model === 'fable') return 'opus';
-  if (model === 'opus') return 'sonnet';
-  return null;
 }
 
 export const byId = (tasks: readonly Task[], id: string): Task | undefined => tasks.find((task) => task.id.toLowerCase() === id.toLowerCase());

@@ -1,131 +1,18 @@
 /**
- * PLAN §16.4 step 3 and step 6: the one-shot `claude -p` sessions the driver
- * runs, and the tool allowlist that keeps them inside the task.
+ * PLAN §16.4 step 3 and step 6: the one-shot sessions the driver runs. Since
+ * R177 (D-1064) the command line, the model per tier, the tool policy and the
+ * result parser all come from the agent's entry in `sdd.agents.json`.
  *
  * A session edits files, runs the project's own commands and commits. It may
  * not push, may not call `gh`, may not reach the network and may not run
- * prettier (this repository is not formatted with it). Publishing is the
- * driver's job.
+ * prettier (this repository is not formatted with it): the entry's denied
+ * list says so to an agent that takes one. Publishing is the driver's job.
  */
 import { spawn } from 'node:child_process';
-import { appendLedger, ledgerEntry, usageFromResult, type ResultUsage, type SessionRecord } from './ledger';
+import { buildArgv, type Agent, type LimitInfo, type SessionKind, type Tier } from './agents';
+import { appendLedger, ledgerEntry, type ResultUsage } from './ledger';
+import { PARSERS, StreamTokens, type SessionOutcome } from './parsers';
 import type { Logger } from './report';
-
-/**
- * §16.4: file reads and writes, Grep/Glob, the project's commands, the shell
- * tools that look at what they produced, and the safe half of git.
- *
- * The list has to cover the commands the tasks are actually written in, or a
- * session ships code it could not run: R20's was refused `npm test` (its own
- * package script, which is `npm test`, not `npm run test`), `npx tsx
- * scripts/contrast.ts` — the script its acceptance names — `node`, and every
- * compound command with an `echo` or a `cat` in it, so it wrote a theme it
- * never executed and CI found the failure (D-101).
- *
- * Breadth here is not the fence. A session that may run `npx vitest` already
- * runs whatever the repository's own test files run; what keeps it inside the
- * task is the *disallowed* list — no push, no `gh`, no `rm`, no network — and
- * that is unchanged.
- */
-export const IMPLEMENT_TOOLS = [
-  'Read',
-  'Write',
-  'Edit',
-  'Glob',
-  'Grep',
-  'TodoWrite',
-  'Skill',
-  'Bash(npm run:*)',
-  'Bash(npm test:*)',
-  'Bash(npm ci:*)',
-  'Bash(npx vitest:*)',
-  'Bash(npx playwright:*)',
-  'Bash(npx tsc:*)',
-  'Bash(npx eslint:*)',
-  'Bash(npx tsx:*)',
-  'Bash(node:*)',
-  'Bash(cat:*)',
-  'Bash(ls:*)',
-  'Bash(head:*)',
-  'Bash(tail:*)',
-  'Bash(wc:*)',
-  'Bash(sed:*)',
-  'Bash(awk:*)',
-  'Bash(find:*)',
-  'Bash(echo:*)',
-  'Bash(mkdir:*)',
-  'Bash(cp:*)',
-  'Bash(mv:*)',
-  'Bash(git add:*)',
-  'Bash(git commit:*)',
-  'Bash(git status:*)',
-  'Bash(git diff:*)',
-  'Bash(git log:*)',
-  'Bash(git show:*)',
-] as const;
-
-/** The review session reads and reports; it does not edit the branch. */
-export const REVIEW_TOOLS = ['Read', 'Write', 'Glob', 'Grep', 'Skill', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git status:*)'] as const;
-
-/**
- * §16.4. Denials win over the allowlist, which is what makes
- * `Bash(git add -A:*)` meaningful beside `Bash(git add:*)`: this repository
- * has parallel sessions sharing a checkout.
- */
-export const DENIED_TOOLS = [
-  'Bash(git push:*)',
-  'Bash(git add -A:*)',
-  'Bash(git add .:*)',
-  'Bash(gh:*)',
-  'Bash(rm:*)',
-  'Bash(curl:*)',
-  'Bash(wget:*)',
-  'Bash(prettier:*)',
-  'Bash(npx prettier:*)',
-  'WebFetch',
-  'WebSearch',
-  'Task',
-] as const;
-
-/** `limit` (v1.1, D-197): the session ended on the account's usage limit and `--fallback` may retry it on the next model. */
-type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
-
-/**
- * §16.4 step 10: the account-limit signature, as captured on 2026-09-05 when
- * wave 2 hit it. The stream carries a `rate_limit_event` whose
- * `rate_limit_info.status` is `rejected`, then a synthetic assistant message
- * "You've hit your session limit · resets 7:10pm (…)", then an ordinary
- * `result` whose text is that sentence. The event names the window
- * (`five_hour`, `seven_day`) and `resetsAt` in epoch seconds; both windows
- * are the account's, shared by every model, so a retry on another model
- * meets the same wall. The text is matched too, for a CLI that changes the
- * event before it changes the sentence.
- */
-const LIMIT_SIGNATURE = /hit your (session |weekly |usage )?limit|usage limit|limit reached|out of extra usage|rate_limit_error/i;
-
-export const isLimitStop = (text: string | null | undefined): boolean => text !== null && text !== undefined && LIMIT_SIGNATURE.test(text);
-
-export interface LimitInfo {
-  /** `five_hour`, `seven_day`, or whatever the event said; `null` when only the sentence was seen. */
-  window: string | null;
-  /** Epoch milliseconds, or `null` when the event did not say. */
-  resetsAt: number | null;
-  /** The account's shared windows: a model change does not escape them (§16.4 step 10, as amended). */
-  accountWide: boolean;
-}
-
-interface RateLimitEvent {
-  type?: string;
-  rate_limit_info?: { status?: string; resetsAt?: number; rateLimitType?: string };
-}
-
-/** The limit a stream event announces, or `null` for any other event. */
-export function limitFromEvent(event: RateLimitEvent): LimitInfo | null {
-  if (event.type !== 'rate_limit_event' || event.rate_limit_info?.status !== 'rejected') return null;
-  const info = event.rate_limit_info;
-  const window = info.rateLimitType ?? null;
-  return { window, resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : null, accountWide: window === null || window === 'five_hour' || window === 'seven_day' };
-}
 
 /** §16.4 step 10 (D-835): how long past the reset a resumed session starts, so the window has turned over. */
 export const RESET_MARGIN_MS = 2 * 60_000;
@@ -144,71 +31,69 @@ export function resetWaitMs(limit: LimitInfo | null, now: number, maxMs: number 
 /** `19:10` in the machine's zone, for the log and the run summary. */
 export const resetTime = (limit: LimitInfo | null): string => (limit?.resetsAt ? new Date(limit.resetsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'unknown');
 
+/**
+ * §16.4 step 10: the log line for a limit the run does not retry. A window
+ * every model shares is the account's; any other (R175's, 2026-11-04: one
+ * model's weekly window) is that model's, and only the fallback setting kept
+ * the run from another tier.
+ */
+export function limitNote(stage: string, limit: LimitInfo | null, fallback: boolean): string {
+  const window = `${limit?.window ?? 'window unknown'}, resets ${resetTime(limit)}`;
+  if (limit?.accountWide !== false) return `  the ${stage} session ended on the account limit (${window}); no tier escapes it, the worktree is kept`;
+  return `  the ${stage} session ended on its model's own limit (${window}); ${fallback ? 'no tier is left in the fallback chain' : 'fallback is off for this task'}, the worktree is kept`;
+}
+
 export interface SessionResult {
   outcome: SessionOutcome;
   code: number | null;
   durationMs: number;
-  /** The session's final message, when `--output-format stream-json` gave one. */
+  /** The session's final message, where the parser found one. */
   result: string | null;
   /** What the limit said, when `outcome` is `limit`. */
   limit: LimitInfo | null;
-  /** FR-SDD-1: what the final `result` event says the session spent, or `null` when it left none. */
+  /** FR-SDD-1: what the session says it spent, or `null` when it left nothing to read. */
   usage: ResultUsage | null;
+  /** The model the tier resolved to. */
+  model: string;
 }
-
-/**
- * FR-SDD-1 (D-1058): where and under what name a session is recorded in the
- * usage ledger — the record's naming fields (`agent` is `claude` until R177
- * makes it a config entry, FR-SDD-10), plus the ledger file, `LEDGER_PATH` in
- * the driver's working directory when omitted.
- */
-type LedgerTarget = Pick<SessionRecord, 'task' | 'kind' | 'agent' | 'tier'> & { path?: string };
 
 export interface SessionOptions {
   cwd: string;
-  /** One line (§16.4 step 3). */
   prompt: string;
-  model: string;
+  agent: Agent;
+  tier: Tier;
+  kind: SessionKind;
   maxTurns: number;
   timeoutMs: number;
-  allowedTools: readonly string[];
   logger: Logger;
   env?: Record<string, string>;
-  /** FR-SDD-1: append one ledger line when the session ends. */
-  ledger?: LedgerTarget;
+  /** The file whose presence says the session finished (`exit-code` only); relative to `cwd`. */
+  handoff?: string;
+  /** FR-SDD-1 (D-1058): append one ledger line, at `path` or `LEDGER_PATH`, when the session ends. */
+  ledger?: { task: string; path?: string };
 }
 
-/** Runs one `claude -p` session to completion, or kills it at the wall clock. */
+/** The output tail kept for an `exit-code` agent's limit detection. */
+const TAIL_KEEP = 8000;
+/** The rejected limit events kept for a `stream-json` session. */
+const EVENTS_KEEP = 20;
+
+/** Runs one session to completion, or kills it at the wall clock or past its tier's token ceiling. */
 export function runSession(options: SessionOptions): Promise<SessionResult> {
-  const { cwd, prompt, model, maxTurns, timeoutMs, allowedTools, logger, env, ledger } = options;
-  const args = [
-    '-p',
-    prompt,
-    '--model',
-    model,
-    '--permission-mode',
-    'acceptEdits',
-    '--max-turns',
-    String(maxTurns),
-    '--output-format',
-    'stream-json',
-    '--verbose',
-    '--allowedTools',
-    allowedTools.join(','),
-    '--disallowedTools',
-    DENIED_TOOLS.join(','),
-  ];
-  logger.command('claude', args, cwd);
+  const { cwd, prompt, agent, tier, kind, maxTurns, timeoutMs, logger, env, handoff, ledger } = options;
+  const { model, tokenCeiling } = agent.tiers[tier];
+  const { file, args } = buildArgv(agent, { prompt, model, maxTurns, kind });
+  const parse = PARSERS[agent.parser];
+  logger.command(file, args, cwd);
   const startedAt = Date.now();
 
   let recorded = false;
-  const done = (result: SessionResult): SessionResult => {
+  const finish = (result: SessionResult): SessionResult => {
     // `error` and `close` can both fire for one child; the ledger gets one line.
     if (ledger && !recorded) {
       recorded = true;
       try {
-        const { path, ...target } = ledger;
-        appendLedger(ledgerEntry({ ...target, model, usage: result.usage, wallMs: result.durationMs, outcome: result.outcome }), path);
+        appendLedger(ledgerEntry({ task: ledger.task, kind, agent: agent.name, tier, model, usage: result.usage, wallMs: result.durationMs, outcome: result.outcome }), ledger.path);
       } catch (error) {
         logger.line(`  usage ledger: could not append (${error instanceof Error ? error.message : String(error)})`);
       }
@@ -217,53 +102,47 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
   };
 
   return new Promise((resolve) => {
-    const child = spawn('claude', args, {
+    const child = spawn(file, args, {
       cwd,
       detached: true,
       env: { ...process.env, SDD_HEADLESS: '1', ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    let timedOut = false;
-    let outcome: SessionOutcome = 'ok';
-    let result: string | null = null;
-    let limit: LimitInfo | null = null;
-    let usage: ResultUsage | null = null;
+    let stopped: 'timeout' | 'budget' | null = null;
+    // What the parser needs, not the whole stream: the rejected limit events and the last result event
+    // (`stream-json`), and a bounded tail of the output for limit detection (`exit-code`).
+    let events: string[] = [];
+    let tail = '';
     let pending = '';
     let stderr = '';
+    const tokens = new StreamTokens();
 
-    const timer = setTimeout(() => {
-      timedOut = true;
+    const kill = (why: 'timeout' | 'budget'): void => {
+      stopped ??= why;
       if (child.pid) {
         try {
           process.kill(-child.pid, 'SIGKILL');
+          return;
         } catch {
-          child.kill('SIGKILL');
+          // fall through to the child alone
         }
       }
+      child.kill('SIGKILL');
+    };
+    const timer = setTimeout(() => {
+      kill('timeout');
     }, timeoutMs);
 
     const readLine = (line: string): void => {
       if (!line.trim()) return;
       logger.raw(`${line}\n`);
-      try {
-        const event = JSON.parse(line) as { type?: string; subtype?: string; result?: string; is_error?: boolean } & RateLimitEvent & Parameters<typeof usageFromResult>[0];
-        const announced = limitFromEvent(event);
-        if (announced) {
-          limit = announced;
-          outcome = 'limit';
-          return;
-        }
-        if (event.type !== 'result') return;
-        result = event.result ?? null;
-        usage = usageFromResult(event);
-        if (outcome === 'limit') return; // the event already said so; the result is the synthetic sentence
-        if (event.subtype === 'error_max_turns') outcome = 'max-turns';
-        else if (isLimitStop(result)) {
-          outcome = 'limit';
-          limit ??= { window: null, resetsAt: null, accountWide: true };
-        } else if (event.is_error === true || (event.subtype && event.subtype !== 'success')) outcome = 'error';
-      } catch {
-        // not a JSON event line; it is already in the log
+      tail = `${tail}${line}\n`.slice(-TAIL_KEEP);
+      if (line.includes('"type":"result"')) events = [...events.filter((kept) => !kept.includes('"type":"result"')), line];
+      else if (line.includes('"rate_limit_event"') && line.includes('"rejected"')) events = [...events, line].slice(-EVENTS_KEEP);
+      // FR-SDD-2: a set ceiling stops the session as the wall clock does.
+      if (tokenCeiling !== undefined && agent.parser === 'stream-json' && tokens.add(line) > tokenCeiling && stopped === null) {
+        logger.line(`  the session passed the ${tier} tier's ceiling of ${String(tokenCeiling)} tokens; stopping it (FR-SDD-2)`);
+        kill('budget');
       }
     };
 
@@ -275,23 +154,20 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     });
     child.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString();
-      stderr += text.slice(-2000);
+      stderr = (stderr + text).slice(-2000);
       logger.raw(text);
     });
     child.on('error', (error) => {
       clearTimeout(timer);
       logger.line(`  session could not start: ${error.message}`);
-      resolve(done({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null, limit: null, usage: null }));
+      resolve(finish({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null, limit: null, usage: null, model }));
     });
     child.on('close', (code) => {
       clearTimeout(timer);
       readLine(pending);
-      if (timedOut) outcome = 'timeout';
-      else if (outcome !== 'max-turns' && outcome !== 'limit' && isLimitStop(stderr)) {
-        outcome = 'limit';
-        limit ??= { window: null, resetsAt: null, accountWide: true };
-      } else if (code !== 0 && outcome === 'ok') outcome = 'error';
-      resolve(done({ outcome, code, durationMs: Date.now() - startedAt, result, limit: outcome === 'limit' ? limit : null, usage }));
+      const parsed = parse(agent.parser === 'stream-json' ? events.join('\n') : tail, code, handoff === undefined ? null : `${cwd}/${handoff}`, { limit: agent.limit, stderr });
+      const outcome = stopped ?? parsed.outcome;
+      resolve(finish({ outcome, code, durationMs: Date.now() - startedAt, result: parsed.text, limit: outcome === 'limit' ? parsed.limit : null, usage: parsed.usage, model }));
     });
   });
 }

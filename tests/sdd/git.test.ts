@@ -3,7 +3,7 @@
  * here reaches the network — the probe is what `gh pr checks` would have said.
  */
 import { describe, expect, it } from 'vitest';
-import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, checksExist, waitForChecks, type ExecResult } from '../../scripts/sdd/git';
+import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, checksExist, DIGEST_WAIT_MS, runForHead, waitForChecks, type ExecResult } from '../../scripts/sdd/git';
 
 /** A probe whose checks appear on call `times + 1`. */
 function appearsAfter(times: number): { exists: () => Promise<boolean>; calls: () => number } {
@@ -84,5 +84,23 @@ describe('waitForChecks', () => {
   it('defaults to five minutes at ten-second steps', () => {
     expect(CHECKS_APPEAR_TIMEOUT_MS).toBe(300_000);
     expect(CHECKS_APPEAR_INTERVAL_MS).toBe(10_000);
+  });
+});
+
+describe('FR-SDD-16: the digest picks the run by the PR head', () => {
+  const rows = [
+    { databaseId: 3, headSha: 'bbb', headBranch: 'other' },
+    { databaseId: 2, headSha: 'bbb', headBranch: 'r9-task' },
+    { databaseId: 1, headSha: 'aaa', headBranch: 'r9-task' },
+  ];
+
+  it('takes the run on that commit and branch, not the newest run', () => {
+    expect(runForHead(rows, 'bbb', 'r9-task')).toBe(2);
+    expect(runForHead(rows, 'aaa', 'r9-task')).toBe(1);
+    expect(runForHead(rows, 'ccc', 'r9-task')).toBeUndefined();
+  });
+
+  it('waits at most 20 minutes for the run', () => {
+    expect(DIGEST_WAIT_MS).toBe(20 * 60_000);
   });
 });

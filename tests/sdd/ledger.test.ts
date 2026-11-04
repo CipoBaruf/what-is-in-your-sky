@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { appendLedger, ledgerEntry, readLedger, usageFromResult } from '../../scripts/sdd/ledger';
+import { appendLedger, budgetOverrun, entryTokens, ledgerEntry, MIN_BUDGET_SAMPLES, percentile90, readLedger, usageFromResult } from '../../scripts/sdd/ledger';
 
 /**
  * R171's implementation session, `logs/sdd/R171-2026-11-03T18-34-35-089Z.log`
@@ -84,5 +84,31 @@ describe('the ledger', () => {
     appendLedger(ledgerEntry(record, new Date('2026-11-01T10:00:00Z')), path);
     appendLedger(ledgerEntry({ ...record, kind: 'review' }, new Date('2026-11-03T10:00:00Z')), path);
     expect(readLedger(path, 'R1', new Date('2026-11-03T09:00:00Z')).map((entry) => entry.kind)).toEqual(['review']);
+  });
+});
+
+describe('FR-SDD-2: the budget, report-only while no ceiling is set', () => {
+  const line = (tokens: number | null): ReturnType<typeof ledgerEntry> =>
+    ledgerEntry({ task: 'R1', kind: 'implement', agent: 'a', tier: 'standard', model: 'm', usage: tokens === null ? null : { inputTokens: tokens, cachedInputTokens: 0, cacheCreationTokens: 0, outputTokens: 0, turns: 1 }, wallMs: 1, outcome: 'ok' });
+
+  it('counts every token field, and nothing for a session that left no usage', () => {
+    expect(entryTokens(ledgerEntry({ task: 'R1', kind: 'review', agent: 'a', tier: 'light', model: 'm', usage: usageFromResult(RESULT_EVENT), wallMs: 1, outcome: 'ok' }))).toBe(207 + 17034680 + 212942 + 56684);
+    expect(entryTokens(line(null))).toBeNull();
+  });
+
+  it('takes the nearest-rank 90th percentile', () => {
+    expect(percentile90([])).toBeNull();
+    expect(percentile90([5])).toBe(5);
+    expect(percentile90([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).toBe(9);
+    expect(percentile90([10, 1, 9, 2, 8, 3, 7, 4, 6, 5, 11])).toBe(10);
+  });
+
+  it('records an overrun past the running 90th percentile, and none below it or on thin history', () => {
+    const history = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map(line);
+    expect(budgetOverrun(950, history)).toEqual({ tokens: 950, p90: 900, samples: 10 });
+    expect(budgetOverrun(900, history)).toBeNull();
+    expect(budgetOverrun(null, history)).toBeNull();
+    expect(budgetOverrun(10_000, history.slice(0, MIN_BUDGET_SAMPLES - 1))).toBeNull();
+    expect(budgetOverrun(10_000, [...history.slice(0, MIN_BUDGET_SAMPLES - 1), line(null)])).toBeNull();
   });
 });

@@ -58,6 +58,23 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   `tests/docs/sdd-workflows.test.ts` checks `AGENTS.md`'s size and table, the import line, each workflow's size and its `Reads:`/`Never reads:` lines against its table row (two rows sharing `implement.md` read `headless, …; interactive, …`), and the skill pointers; R179 moves the size rules onto `limits.ts`.
   `accuracy.test.ts` scans `AGENTS.md` and the workflows for paths and scripts, R178's three capture scripts allowed until they exist.
   `review.md` writes D-1065's JSON lines to "the handoff file the prompt names"; R177 names it.
+- **D-1084 — The shape of an agent entry.** (FR-SDD-10, FR-SDD-11, D-1064; R177.)
+  A tier is `{model, maxTurns?, tokenCeiling?}`; `aliases` maps a closed phase's model that is no tier's (`haiku`) to a tier.
+  The tool policy carries its own flags, separator and lists, so no agent's flag is in the code; a name ending `-allowlist` passes them, `none` passes nothing.
+  `limit` has `pattern` (group 1 is the reset time, read as the next such local time), `modelPattern` (a limit one model owns) and `accountWindows` (the event windows every model shares).
+  `--tier` overrides one `--task` run; `--model` still works, read through the agent's map; a task's `Agent:` wins over `--agent`.
+- **D-1085 — A model's own limit is not the account's.** (FR-SDD-11, D-835; R177.)
+  R175's session of 2026-11-04 ended on `seven_day_overage_included`, one model's weekly window, while every model stood at 75 %.
+  A window outside `accountWindows`, or a sentence matching `modelPattern`, is that model's: with fallback on, the next tier runs; with it off, the log says so instead of "no model escapes it".
+  Waiting for the reset applies to either kind when the reset is known and within `MAX_RESET_WAIT_MS`.
+- **D-1086 — The review's file and tier.** (FR-SDD-18, FR-SDD-9, D-1065; R177.)
+  The findings go to `sdd-run/<id>.findings.jsonl`, removed before each review; a line that is not a finding counts against the merge.
+  `Review:` still picks the tier (D-659), except that a docs-only diff gets no session; the old rule by gate is gone, `Gate: owner` now gets `standard`.
+  The review and fix prompts carry their workflow whole, so they are several lines; §16.4 step 3's one line is the implementation prompt's.
+- **D-1087 — Fix sessions and the budget.** (FR-SDD-16, FR-SDD-2; R177.)
+  `--fix` (off by default) gives a task one fix session per run, on its own tier: on red CI with the `failure-digest` artifact, fetched with `gh run download` after `gh run watch`, or on findings with their lines; then CI and, after a findings fix, one more review.
+  An overrun is a session past the nearest-rank 90th percentile of the open phase's ledger lines of the same agent, kind and tier, counting input, cached, cache-write and output tokens, once there are `MIN_BUDGET_SAMPLES` (5); it goes to the task log and the run report.
+  A set ceiling stops a `stream-json` session from its assistant messages' usage, outcome `budget`; an `exit-code` agent reports no tokens until it ends, so its ceiling cannot stop it.
 - **D-1088 — How the set gets to the `captures` branch.** (FR-SDD-22, FR-SDD-23; R178.)
   The branch's root is `docs/screenshots/`'s (`v1-*.png` at the top), plus `diff/` with the last run's side-by-side images and a short README. A task session cannot push, so the branch is made by the first `captures.yml` run on `main` after R178 merges: no branch means the whole set. `manifest.json` has an `all` list beside `screens`, so the globs every capture draws are written once; a unit test or snapshot under `src/` draws nothing.
   The spec shoots the screens `CAPTURE_SCREENS` names; the job restores the branch's set first, so `captures.test.ts` checks a whole set under `CAPTURES_SET=1` and checks only that `main` tracks no `v1-*` file otherwise. The job summary links the images at the commit that holds them (`/raw/<sha>/diff/…`); a dispatch on another ref commits nothing and points at the artefact. R128's `base` input is gone: the base is the branch.

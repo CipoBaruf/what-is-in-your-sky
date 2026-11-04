@@ -9,13 +9,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BRIEF_BUDGET_CHARS, boldBullet, buildBrief, citedIds, documentSources, laneRow, tableRow, taskEntry, userStory } from '../../scripts/sdd/brief';
 import { layoutLookup } from '../../scripts/sdd/ids';
-import { DENIED_TOOLS, IMPLEMENT_TOOLS } from '../../scripts/sdd/session';
+import { loadAgents, modelTiers, pickAgent, toolLists } from '../../scripts/sdd/agents';
 import { byId, layoutTasksText, parseTasks } from '../../scripts/sdd/tasks';
 
 const sources = { textFor: layoutLookup('.') };
 const text = (key: string): string => sources.textFor(key) ?? '';
-const tools = { allowedTools: IMPLEMENT_TOOLS, deniedTools: DENIED_TOOLS };
-const { tasks } = parseTasks(layoutTasksText(readFileSync('TASKS.md', 'utf8'), (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null)));
+const agent = pickAgent(loadAgents());
+const { allowed, denied } = toolLists(agent, 'implement');
+const tools = { allowedTools: allowed, deniedTools: denied };
+const { tasks } = parseTasks(layoutTasksText(readFileSync('TASKS.md', 'utf8'), (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null)), modelTiers(agent));
 const open = tasks.filter((task) => !task.done);
 
 const task = (id: string) => {
@@ -115,7 +117,7 @@ describe('buildBrief', () => {
 describe('FR-SDD-7: the briefs of R167–R171, byte for byte (D-1062)', () => {
   const parent = (name: string): string => readFileSync(`scripts/sdd/__fixtures__/parent/${name}`, 'utf8');
   const before = documentSources({ spec: parent('SPEC.md'), plan: parent('PLAN.md'), tasks: parent('TASKS.md') });
-  const beforeTasks = parseTasks(parent('TASKS.md')).tasks;
+  const beforeTasks = parseTasks(parent('TASKS.md'), modelTiers(agent)).tasks;
 
   for (const id of ['R167', 'R168', 'R169', 'R170', 'R171']) {
     it(`regenerates ${id}'s brief from the split layout as the parent wrote it`, () => {
