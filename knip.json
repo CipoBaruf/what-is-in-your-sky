@@ -3,5 +3,5 @@
   "entry": ["scripts/*.ts", "spike/**/main.tsx", "dev/primitives.tsx"],
   "ignore": ["spike/**"],
   "ignoreDependencies": ["pngjs"],
-  "ignoreBinaries": ["ffmpeg"]
+  "ignoreBinaries": ["ffmpeg", "rg"]
 }
