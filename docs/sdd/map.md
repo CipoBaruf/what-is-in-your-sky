@@ -140,13 +140,13 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/main.tsx` — exports: none — D-70 (R17, R20): the language and the theme are applied before the first render, not by an inline script — `script-src 'self'` (PLAN §11) f…
 - `src/model/catalog.ts` — exports: NoradId, CatalogEntry
 - `src/model/elements.ts` — exports: OmmRecord, ElementGroup, CachedGroup, SatelliteRecord
-- `src/model/index.ts` — exports: NoradId, CatalogEntry, EpochMs, VisibilityThresholds, TimeWindow, OmmRecord, ElementGroup, CachedGroup, +35
+- `src/model/index.ts` — exports: NoradId, CatalogEntry, EpochMs, VisibilityThresholds, TimeWindow, OmmRecord, ElementGroup, CachedGroup, +50
 - `src/model/moon.ts` — exports: MoonPhaseName, MoonState, MoonGlareThresholds, MoonGlare — The eight phase names of FR-MOON-1, in cycle order.
 - `src/model/observer.ts` — exports: Observer
 - `src/model/offline.ts` — exports: PassRun, Favourite, MAX_FAVOURITES, ReadinessGap, Readiness — What the app keeps so it still answers with no network (spec §4.11, FR-OFF-2/4, PLAN §5, D-78).
 - `src/model/pass.ts` — exports: PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState
 - `src/model/place.ts` — exports: Place — One geocoding result (PLAN §7.2).
-- `src/model/prefs.ts` — exports: PassSort, ChartView, DEFAULT_SHOW_FAINT, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_SKY_HINT_SEEN, DEFAULT_FOLLOW_GRANTED, ChartOrientation, +4
+- `src/model/prefs.ts` — exports: PassSort, ChartView, CHART_VIEWS, DEFAULT_CHART_VIEW, StarLayers, DEFAULT_STAR_LAYERS, DEFAULT_NAMES, DEFAULT_FAINT_STARS, +21
 - `src/model/thresholds.ts` — exports: EpochMs, VisibilityThresholds, TimeWindow
 - `src/model/weather.ts` — exports: HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict, TonightCloud
 - `src/physics/constants.ts` — exports: EARTH_RADIUS_KM, COARSE_STEP_MS, DENSE_STEP_MS, BISECTION_TOLERANCE_MS, TRACK_EVERY_N_SAMPLES, DEFAULT_THRESHOLDS, MOON_PHASE_BAND_HALF_WIDTH_DEG, ARC_LOOKAHEAD_MS, +6 — Centralised thresholds (FR-VIS-6).
@@ -166,7 +166,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/effects.ts` — exports: LoadedElements, VisibilitySource, EffectDeps, NOW_TICK_MS, ELEMENTS_RECHECK_MS, documentVisibility, ALWAYS_VISIBLE, startEffects — PLAN §4 `state/effects.ts`: observer change → load elements if needed → hand them to the worker once → `computePasses`.
 - `src/state/failure.ts` — exports: FailureKind, Failure, isFailure, toFailure — R86 (FR-FAIL-2, D-540): a failure is stored as a kind, never as a sentence.
 - `src/state/hash.ts` — exports: clearLocationHash — R83 (D-538): `endVisit` clears the link from the URL.
-- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, StartAppOverrides, startApp, appStore, useActiveObserver, useAppStore, +16
+- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, StartAppOverrides, startApp, appStore, useActiveObserver, useAppStore, +17
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
@@ -181,7 +181,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/slices/retry.ts` — exports: RetrySlice, IDLE_RETRY, createRetrySlice — R86 (FR-FAIL-1, D-541): one retry action per thing that can fail, callable from wherever its failure is shown.
 - `src/state/slices/ui.ts` — exports: UiSlice, createUiSlice — R83 (D-539): what the last link did — own place, visit, adopted, unreadable or unknown, with the moment's note — kept for the session so th…
 - `src/state/slices/weather.ts` — exports: WeatherSliceState, WeatherSlice, createWeatherSlice — The cloud forecast for the current observer (FR-WX-1/3/5) and the observer it belongs to, so a card never wears another location's verdict.
-- `src/state/store.ts` — exports: AppState, AppStore, AppStoreDeps, createAppStore, appStore, useAppStore, useActiveObserver — One vanilla Zustand store composed of slices (D-4).
+- `src/state/store.ts` — exports: AppState, AppStore, AppStoreDeps, createAppStore, appStore, useAppStore, useActiveObserver, usePrivacyNote — One vanilla Zustand store composed of slices (D-4).
 - `src/state/workerClient.ts` — exports: WorkerLikeEvents, WorkerLike, JOB_STALL_S, PassesJobHandlers, WorkerClient, sequentialIds, createWorkerClient, createAppWorker — Owns the worker and the request/response correlation of PLAN §6.2.
 - `src/ui/App.tsx` — exports: App, AppRoot — R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the first time `#live` is opened, so the home page pays nothing for…
 - `src/ui/RootBoundary.tsx` — exports: RootBoundaryProps, RootBoundary — R91 (FR-FAIL-5, D-544, F-88): a render error is a page, never a blank one.
@@ -339,7 +339,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/screens/SettingsRoute.tsx` — exports: SettingsRouteOptions, settingsShell — R92 (D-529): the settings route as the shell's slots — the header as its `banner`, the page as its `main`, the app's footer as its `content…
 - `src/ui/screens/Stars.tsx` — exports: firstRowCount, StarsPage, StarsHeadLineInput, starsHeadLine, brightestNow, starSource, moonNow — R115 (FR-STAR-3, FR-STAR-4, FR-STAR-7, FR-STAR-8, FR-STAR-10; US-39; D-756): the `#stars` page — the `stars` chunk's one export, behind `St…
 - `src/ui/screens/StarsRoute.ts` — exports: StarsRoute, useStarsRoute, StarsPage — R115 (FR-STAR-3, D-756): the `#stars` route, read from the hash as the live and settings routes are (D-13: no router, the hash is the route…
-- `src/ui/screens/chartViewDefault.ts` — exports: defaultChartView — R136 (FR-FLOW-14; V26-11, D-876): the view a sky page opens on.
+- `src/ui/screens/chartViewDefault.ts` — exports: SkyPage, viewFor, defaultChartView
 - `src/ui/screens/home/HomeDoors.tsx` — exports: HomeDoorsProps, HomeDoors — R130 (FR-FLOW-1, D-843): the home's three doors — Satellites, Stars, Live sky (R156, FR-PHONE-13) — in that fixed order, each one link over…
 - `src/ui/screens/home/StepLine.tsx` — exports: Step, STEPS, stepLabel, StepLineProps, StepLine
 - `src/ui/screens/home/WhatStep.tsx` — exports: WhatStepProps, WhatStep — R82 (FR-FIRST-4, D-513, board 1B): the phone's third step on a first visit.

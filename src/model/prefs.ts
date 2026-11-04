@@ -8,9 +8,54 @@ export type PassSort = 'chronological' | 'best';
  * (FR-FLOW-14, V26-11, D-876) removed the narrowing: the window is a saved view
  * on compact as on wide, and with nothing saved a phone opens on the window and
  * a desk on the dome (`ui/screens/chartViewDefault.ts`). `localPrefs.ts`
- * round-trips all three values and narrows nothing.
+ * round-trips every value and narrows nothing. R182 (FR-WIDE-2, D-1095) adds
+ * `globe`, the desk's whole sky; `viewFor` maps a saved value a page or width
+ * does not offer to the one that stands for it.
  */
-export type ChartView = 'dome' | 'polar' | 'window';
+export type ChartView = 'dome' | 'polar' | 'window' | 'globe';
+/** Every `ChartView`, for the stored prefs' schema (`localPrefs.ts`), which may not import a type's members. */
+export const CHART_VIEWS = ['dome', 'polar', 'window', 'globe'] as const satisfies readonly ChartView[];
+
+/*
+ * R182 (FR-KEEP-3, D-1096): the first visit's defaults, one constant per row of the table, read where nothing is
+ * saved. The ranges and the speeds restate the chart's and `lib/playback.ts`'s values here because `src/data` may
+ * import neither (PLAN §3); `prefs.test.ts` holds them equal.
+ */
+/** FR-KEEP-3 `view`: the window on a phone, the globe on a desk (FR-WIDE-2). */
+export const DEFAULT_CHART_VIEW = { compact: 'window', wide: 'globe' } as const satisfies Record<'compact' | 'wide', ChartView>;
+/** FR-KEEP-1 `starLayers`: the stars page's three switches. */
+export interface StarLayers {
+  stars: boolean;
+  figures: boolean;
+  planets: boolean;
+}
+/** FR-KEEP-3 `stars, figures, planets`: all on, at both widths. */
+export const DEFAULT_STAR_LAYERS: Readonly<StarLayers> = { stars: true, figures: true, planets: true };
+/** FR-KEEP-3 `names` (R160, D-990): until `[x] names` is tapped, on in the window, off in the polar chart on a phone, on on a desk. */
+export const DEFAULT_NAMES = { compact: { window: true, polar: false }, wide: true } as const;
+/** FR-KEEP-3 `faint stars`: off on the globe and the window. */
+export const DEFAULT_FAINT_STARS = false;
+/** FR-GLOBE-5: the globe turns with the reader (`with you`) or with the stars. */
+export type GlobeTurn = 'you' | 'stars';
+/** FR-KEEP-3 `globe's turn`: with you. */
+export const DEFAULT_GLOBE_TURN: GlobeTurn = 'you';
+/** FR-KEEP-3 `zoom`: the globe at 1×. */
+export const DEFAULT_GLOBE_ZOOM = 1;
+/** FR-GLOBE-6's bounds (`GLOBE_ZOOM_MIN`, `GLOBE_ZOOM_MAX`); a stored zoom is clamped to them on read. */
+export const GLOBE_ZOOM_RANGE = [0.5, 4] as const;
+/** FR-KEEP-3 `zoom`: the window at `WINDOW_FOV`, degrees. */
+export const DEFAULT_WINDOW_FOV_DEG = 60;
+/** FR-SKY-14's range (`WINDOW_FOV_MIN_DEG`, `WINDOW_FOV_MAX_DEG`); a stored field is clamped to it on read. */
+export const WINDOW_FOV_RANGE_DEG = [20, 90] as const;
+/** `lib/playback.ts`'s `SPEEDS`: the rates the playback row offers. */
+export const PLAY_SPEEDS = [1, 60, 600, 3600] as const;
+export type PlaySpeed = (typeof PLAY_SPEEDS)[number];
+/** FR-KEEP-3 `speed` (FR-KEEP-2): every page opens at real time, watching, whatever rate is saved. */
+export const OPENING_SPEED: PlaySpeed = 1;
+/** D-1110: the rate `play` starts at with nothing saved — 2.13's `DEFAULT_SPEED`; `playSpeed` replaces it once chosen. */
+export const DEFAULT_PLAY_SPEED: PlaySpeed = 60;
+/** FR-KEEP-4: the privacy note shows until either `[ × ]` closes it. */
+export const DEFAULT_PRIVACY_NOTE_CLOSED = false;
 /**
  * FR-FAINT-3 / D-623 (R98): whether the pass list shows the passes fainter
  * than `FAINT_MAG` (FR-FAINT-1). Off until the count line's `[ show n faint ]`

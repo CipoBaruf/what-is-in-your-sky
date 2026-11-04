@@ -473,6 +473,9 @@
 | FR-JUMP-1 | `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts`, `tests/e2e/live-jump.spec.ts`, `tests/e2e/shapes.spec.ts` |
 | FR-JUMP-2 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-jump.spec.ts` |
 | FR-JUMP-3 | `src/ui/components/passes/NextEventBlock.test.tsx` |
+| FR-KEEP-1 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts` |
+| FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts` |
+| FR-KEEP-4 | `src/model/prefs.test.ts`, `src/ui/hooks/usePrivacyNote.test.ts` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-LEG-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
 | FR-LEG-3 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
@@ -663,6 +666,7 @@
 | FR-WATCH-6 | `src/lib/scrubPlacement.test.ts`, `src/ui/components/guide/skychart/ChartFrame.overlay.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts` |
 | FR-WATCH-8 | `src/ui/components/live/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
+| FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/screens/viewFor.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |

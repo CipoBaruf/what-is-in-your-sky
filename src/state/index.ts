@@ -11,7 +11,7 @@ import { setLiveNowClient } from './liveNow';
 import { appStore, type AppStore } from './store';
 import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
 
-export { appStore, useActiveObserver, useAppStore, type AppState } from './store';
+export { appStore, useActiveObserver, useAppStore, usePrivacyNote, type AppState } from './store';
 export type { OpenLinkResult } from './openLink';
 
 /**

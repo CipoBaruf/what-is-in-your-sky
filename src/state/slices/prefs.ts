@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_FOLLOW_GRANTED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
+import { DEFAULT_FAINT_STARS, DEFAULT_FOLLOW_GRANTED, DEFAULT_GLOBE_TURN, DEFAULT_GLOBE_ZOOM, DEFAULT_PLAY_SPEED, DEFAULT_PRIVACY_NOTE_CLOSED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STAR_LAYERS, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_THEME, DEFAULT_WINDOW_FOV_DEG, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -71,6 +71,10 @@ import type { AppState } from '../store';
  * the option away for the rest of the session (FR-WIN-4). R152 (FR-GYRO-6,
  * D-945): the sky screen's `skyScreen` flag and its one-shot refocus went with
  * the screen; the follow state is each page's own (D-943).
+ *
+ * R182 (FR-KEEP-1, FR-KEEP-4; D-1096, D-1105): the choices kept on the device, one setter per key, each writing its
+ * own key and nothing else, so a choice the reader never made is never written and a later change to its default
+ * reaches them. No page reads them yet (R190); `usePrivacyNote` (`store.ts`) is the privacy flag's one selector.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -161,11 +165,39 @@ export interface PrefsSlice {
   dismissInstallHint: () => void;
   /** FR-OFF-6 as amended: "Not now" — a snooze, until the decline past the last one, which is the latch (D-272). */
   declineInstallHint: () => void;
+  /** R182 (FR-KEEP-1): the stars page's `stars`, `figures` and `planets` switches; all on unless saved. */
+  starLayers: StarLayers;
+  setStarLayers: (starLayers: StarLayers) => void;
+  /** R182 (FR-KEEP-1): `[x] names` once tapped; `undefined` until then, when R160's default by view and width holds. */
+  namesChoice: boolean | undefined;
+  setNamesChoice: (namesChoice: boolean) => void;
+  /** R182 (FR-KEEP-1): `[ ] faint` on the globe and the window; off unless saved. */
+  faintStars: boolean;
+  setFaintStars: (faintStars: boolean) => void;
+  /** R182 (FR-KEEP-1): the globe's turn; with you unless saved. */
+  globeTurn: GlobeTurn;
+  setGlobeTurn: (globeTurn: GlobeTurn) => void;
+  /** R182 (FR-KEEP-1): the globe's zoom; 1× unless saved, clamped to its range on read. */
+  globeZoom: number;
+  setGlobeZoom: (globeZoom: number) => void;
+  /** R182 (FR-KEEP-1): the window's field, degrees; `WINDOW_FOV` unless saved, clamped to its range on read. */
+  windowFov: number;
+  setWindowFov: (windowFov: number) => void;
+  /** R182 (FR-KEEP-1, FR-KEEP-2): the rate `play` starts at; the pages still open at real time. */
+  playSpeed: PlaySpeed;
+  setPlaySpeed: (playSpeed: PlaySpeed) => void;
+  /** R182 (FR-KEEP-4): either `[ × ]` closed the privacy note, on every page and every later visit. */
+  privacyNoteClosed: boolean;
+  closePrivacyNote: () => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
 }
 
+/** The stored prefs' shape, as `LocalPrefs` reads it. */
+type Prefs = ReturnType<LocalPrefs['read']>;
+/** R182 (FR-KEEP-1, FR-KEEP-4): the kept choices that are one stored key and one slice field of the same name. */
+type KeptChoice = 'starLayers' | 'namesChoice' | 'faintStars' | 'globeTurn' | 'globeZoom' | 'windowFov' | 'playSpeed' | 'privacyNoteClosed';
 
 /**
  * The three stored fields as one answer, and back (D-272). Reading is where
@@ -203,6 +235,13 @@ export const createPrefsSlice =
       const { favourites: _dropped, ...rest } = deps.prefs.read();
       deps.prefs.write(favourites.length > 0 ? { ...rest, favourites } : rest);
     };
+
+    /** R182 (D-1096): one choice, state and storage together; every other stored key is written back as read. */
+    const save = <K extends KeptChoice>(key: K, value: Prefs[K] & PrefsSlice[K]): void => {
+      set({ [key]: value });
+      deps.prefs.write({ ...deps.prefs.read(), [key]: value });
+    };
+    const stored = deps.prefs.read();
 
     return {
       sort: deps.prefs.read().sort ?? DEFAULT_PASS_SORT,
@@ -294,6 +333,38 @@ export const createPrefsSlice =
       },
       declineInstallHint: () => {
         writeInstallAnswer(set, deps.prefs, decline(readInstallAnswer(deps.prefs), deps.now()));
+      },
+      starLayers: stored.starLayers ?? DEFAULT_STAR_LAYERS,
+      setStarLayers: (starLayers) => {
+        save('starLayers', starLayers);
+      },
+      namesChoice: stored.namesChoice,
+      setNamesChoice: (namesChoice) => {
+        save('namesChoice', namesChoice);
+      },
+      faintStars: stored.faintStars ?? DEFAULT_FAINT_STARS,
+      setFaintStars: (faintStars) => {
+        save('faintStars', faintStars);
+      },
+      globeTurn: stored.globeTurn ?? DEFAULT_GLOBE_TURN,
+      setGlobeTurn: (globeTurn) => {
+        save('globeTurn', globeTurn);
+      },
+      globeZoom: stored.globeZoom ?? DEFAULT_GLOBE_ZOOM,
+      setGlobeZoom: (globeZoom) => {
+        save('globeZoom', globeZoom);
+      },
+      windowFov: stored.windowFov ?? DEFAULT_WINDOW_FOV_DEG,
+      setWindowFov: (windowFov) => {
+        save('windowFov', windowFov);
+      },
+      playSpeed: stored.playSpeed ?? DEFAULT_PLAY_SPEED,
+      setPlaySpeed: (playSpeed) => {
+        save('playSpeed', playSpeed);
+      },
+      privacyNoteClosed: stored.privacyNoteClosed ?? DEFAULT_PRIVACY_NOTE_CLOSED,
+      closePrivacyNote: () => {
+        save('privacyNoteClosed', true);
       },
       restoreSavedObserver: () => {
         const { observer } = deps.prefs.read();

@@ -52,7 +52,7 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 1
 
-- [ ] **R182 — The saved choices underneath: `globe` as a view, `viewFor`, the new prefs keys with their defaults, and the privacy note's flag**
+- [x] **R182 — The saved choices underneath: `globe` as a view, `viewFor`, the new prefs keys with their defaults, and the privacy note's flag** — the stars page reads a saved `dome` as its whole sky and `defaultChartView` keeps 2.13's answer until R186 (D-1109); FR-KEEP-3's ×1 is the opening rate (D-1110).
   - **Lane:** data
   - **Tier:** standard
   - **Turns:** 500

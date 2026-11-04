@@ -63,3 +63,13 @@ export function useAppStore<T>(selector: (state: AppState) => T): T {
 export function useActiveObserver() {
   return useAppStore(activeObserver);
 }
+
+/**
+ * R182 (FR-KEEP-4, D-1105): the privacy note's one selector, read by the footer and the location input. `shown`
+ * until either `[ × ]` calls `close`, which hides both for good on the device (`privacyNoteClosed`).
+ */
+export function usePrivacyNote(): { shown: boolean; close: () => void } {
+  const closed = useAppStore((state) => state.privacyNoteClosed);
+  const close = useAppStore((state) => state.closePrivacyNote);
+  return { shown: !closed, close };
+}
