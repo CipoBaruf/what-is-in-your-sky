@@ -50,7 +50,7 @@ function walk(root: string, dir: string, out: string[]): void {
 /** Tracked and not-yet-tracked files under the map's directories, sorted. */
 export function listSourceFiles(root: string): string[] {
   let files: string[] = [];
-  let inRepo = false;
+  let inRepo: boolean;
   try {
     const top = execFileSync('git', ['-C', root, 'rev-parse', '--show-toplevel'], {
       encoding: 'utf8',
@@ -79,7 +79,7 @@ export function listSourceFiles(root: string): string[] {
 
 /** The first sentence of the file's first doc comment (else a leading line-comment block). */
 export function firstSentence(source: string): string {
-  let text = '';
+  let text: string;
   const block = /\/\*\*([\s\S]*?)\*\//.exec(source);
   if (block?.[1] !== undefined) {
     text = block[1]
