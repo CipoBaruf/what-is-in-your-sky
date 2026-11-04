@@ -58,6 +58,10 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
   `tests/docs/sdd-workflows.test.ts` checks `AGENTS.md`'s size and table, the import line, each workflow's size and its `Reads:`/`Never reads:` lines against its table row (two rows sharing `implement.md` read `headless, …; interactive, …`), and the skill pointers; R179 moves the size rules onto `limits.ts`.
   `accuracy.test.ts` scans `AGENTS.md` and the workflows for paths and scripts, R178's three capture scripts allowed until they exist.
   `review.md` writes D-1065's JSON lines to "the handoff file the prompt names"; R177 names it.
+- **D-1088 — How the set gets to the `captures` branch.** (FR-SDD-22, FR-SDD-23; R178.)
+  The branch's root is `docs/screenshots/`'s (`v1-*.png` at the top), plus `diff/` with the last run's side-by-side images and a short README. A task session cannot push, so the branch is made by the first `captures.yml` run on `main` after R178 merges: no branch means the whole set. `manifest.json` has an `all` list beside `screens`, so the globs every capture draws are written once; a unit test or snapshot under `src/` draws nothing.
+  The spec shoots the screens `CAPTURE_SCREENS` names; the job restores the branch's set first, so `captures.test.ts` checks a whole set under `CAPTURES_SET=1` and checks only that `main` tracks no `v1-*` file otherwise. The job summary links the images at the commit that holds them (`/raw/<sha>/diff/…`); a dispatch on another ref commits nothing and points at the artefact. R128's `base` input is gone: the base is the branch.
+  The README hero's three source captures stay on `main` as README images, in `docs/readme/sources/`. The design captures stay where `docs/DESIGN.md` shows them. The per-task `r<n>-*` files are not the set and stay on `main` until a task moves them.
 
 ---
 

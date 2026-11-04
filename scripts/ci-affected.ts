@@ -3,6 +3,7 @@
  *
  *   node scripts/ci-affected.ts <base-ref> [<head-ref>]   # merge-base(base, head) to head (HEAD)
  *   node scripts/ci-affected.ts --all <why>    # everything (a push to main, the `full-ci` label)
+ *   node scripts/ci-affected.ts --captures <base-ref> [<head-ref>]   # the captures a diff reaches (D-1068)
  *
  * It prints the selection for a person and, when `GITHUB_OUTPUT` is set, writes
  * it for the workflow: `unit` and `e2e` are `all`, `some` or `none`, and
@@ -166,6 +167,70 @@ export function readerTests(root: string): string[] {
     .sort();
 }
 
+/**
+ * PLAN D-1068 (FR-SDD-22): the glob matcher the capture manifest is read with. `**` is any run
+ * of path segments (`a/**` matches everything under `a`, `**\/x` any `x`), `*` and `?` stay inside
+ * one segment, and `{a,b}` is an alternation (not nested).
+ */
+export function globToRegExp(glob: string): RegExp {
+  let source = '';
+  let inBraces = false;
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob.charAt(i);
+    if (char === '{') {
+      if (inBraces) throw new Error(`nested { in ${glob}`);
+      inBraces = true;
+      source += '(?:';
+    } else if (char === '}' && inBraces) {
+      inBraces = false;
+      source += ')';
+    } else if (char === ',' && inBraces) source += '|';
+    else if (char === '*' && glob[i + 1] === '*') {
+      const slash = glob[i + 2] === '/';
+      source += slash ? '(?:.*/)?' : '.*';
+      i += slash ? 2 : 1;
+    } else if (char === '*') source += '[^/]*';
+    else if (char === '?') source += '[^/]';
+    else source += char.replace(/[.+^$(){}|[\]\\]/g, '\\$&');
+  }
+  if (inBraces) throw new Error(`unclosed { in ${glob}`);
+  return new RegExp(`^${source}$`);
+}
+
+/** `scripts/captures/manifest.json`: the globs every capture draws, one list per route, and each screen's route and extras. */
+export interface CaptureManifest {
+  readonly all: readonly string[];
+  readonly routes: Readonly<Record<string, readonly string[]>>;
+  readonly screens: Readonly<Record<string, { readonly route: string; readonly extras: readonly string[] }>>;
+}
+
+/** What a screen draws beyond `all`: its route's shared list and its own extras. */
+export function screenGlobs(manifest: CaptureManifest, screen: string): readonly string[] {
+  const entry = manifest.screens[screen];
+  if (!entry) return [];
+  const shared = manifest.routes[entry.route];
+  if (!shared) throw new Error(`screen ${screen} names the unknown route ${entry.route}`);
+  return [...shared, ...entry.extras];
+}
+
+/** A unit test or a snapshot under `src/` is not shipped, so it draws nothing. */
+const drawsNothing = (path: string): boolean => /^src\//.test(path) && (/\.test\.tsx?$/.test(path) || /\/__snapshots__\//.test(path));
+
+/**
+ * The screens a diff reaches: every screen when a change matches `all`, otherwise each screen one
+ * of whose globs a change matches. A deleted path counts — the screen drew it.
+ */
+export function capturesReached(changes: readonly Change[], manifest: CaptureManifest): Pick {
+  const paths = changes.map((change) => change.path).filter((path) => !drawsNothing(path));
+  const compiled = new Map<string, RegExp>();
+  const regexp = (glob: string): RegExp => compiled.get(glob) ?? (compiled.set(glob, globToRegExp(glob)), compiled.get(glob) as RegExp);
+  const matches = (globs: readonly string[]): boolean => globs.some((glob) => paths.some((path) => regexp(glob).test(path)));
+  if (matches(manifest.all)) return 'all';
+  return Object.keys(manifest.screens)
+    .filter((screen) => matches(screenGlobs(manifest, screen)))
+    .sort();
+}
+
 /** `git diff --name-status -M` lines, renames split into a deletion and an addition. */
 export function parseNameStatus(text: string): Change[] {
   const changes: Change[] = [];
@@ -199,7 +264,25 @@ function report(selection: Selection): void {
   appendFileSync(out, `${lines.join('\n')}\n`);
 }
 
+/** `--captures`: the screens `captures.yml` re-shoots, as `captures=all|some|none` and `capture_screens=a,b`. */
+function reportCaptures(pick: Pick): void {
+  console.log(`captures: ${pick === 'all' ? 'all' : pick.length === 0 ? 'none' : `${pick.length} screen(s)`}`);
+  if (pick !== 'all') for (const screen of pick) console.log(`  ${screen}`);
+  const out = process.env['GITHUB_OUTPUT'];
+  if (!out) return;
+  const mode = pick === 'all' ? 'all' : pick.length === 0 ? 'none' : 'some';
+  appendFileSync(out, `captures=${mode}\ncapture_screens=${pick === 'all' ? '' : pick.join(',')}\n`);
+}
+
 function main(argv: readonly string[]): void {
+  if (argv[0] === '--captures') {
+    const [, base, head = 'HEAD'] = argv;
+    if (!base) throw new Error('usage: node scripts/ci-affected.ts --captures <base-ref> [<head-ref>]');
+    const manifest = JSON.parse(readFileSync(join(process.cwd(), 'scripts/captures/manifest.json'), 'utf8')) as CaptureManifest;
+    const changes = parseNameStatus(git(['diff', '--name-status', '-M', git(['merge-base', base, head]).trim(), head]));
+    reportCaptures(capturesReached(changes, manifest));
+    return;
+  }
   if (argv[0] === '--all') {
     report({ unit: 'all', e2e: 'all', reason: argv.slice(1).join(' ') || 'asked for everything' });
     return;

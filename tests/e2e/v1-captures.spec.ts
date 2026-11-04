@@ -48,8 +48,9 @@
  * the set reads cloud badges and `GMT-3` clocks where D-179's Paris night read
  * "weather unknown" and UTC. The routes are unchanged; only the seeds moved.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { compressPng } from '../../scripts/captures/compress';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
@@ -1272,12 +1273,22 @@ function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof cap
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
       await settled(page);
       expect(await page.evaluate(() => document.body.innerText)).not.toMatch(NOT_ON_THE_NIGHT);
-      await page.screenshot({ path: `${CAPTURE_DIR}/${file}`, fullPage: FULL_PAGE.has(screen.name) && !view });
+      // R178 (FR-SDD-22, D-1068): written losslessly compressed, the same pixels at deflate level 9.
+      writeFileSync(`${CAPTURE_DIR}/${file}`, compressPng(await page.screenshot({ fullPage: FULL_PAGE.has(screen.name) && !view })));
     });
   }
 }
 
-for (const screen of SCREENS) {
+/**
+ * R178 (FR-SDD-22, D-1068): a run shoots the screens `CAPTURE_SCREENS` names (comma-separated), the ones
+ * `node scripts/ci-affected.ts --captures` says a diff reaches; unset or empty is the whole set (release prep,
+ * `workflow_dispatch`). A name the set does not have is an error, so a stale manifest cannot shoot nothing quietly.
+ */
+const ONLY = (process.env['CAPTURE_SCREENS'] ?? '').split(',').map((name) => name.trim()).filter((name) => name !== '');
+const unknown = ONLY.filter((name) => !SCREENS.some((screen) => screen.name === name));
+if (unknown.length > 0) throw new Error(`CAPTURE_SCREENS names no screen of the set: ${unknown.join(', ')}`);
+
+for (const screen of SCREENS.filter((candidate) => ONLY.length === 0 || ONLY.includes(candidate.name))) {
   // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
   // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
   const captures = captureSet().filter((capture) => capture.screen === screen);

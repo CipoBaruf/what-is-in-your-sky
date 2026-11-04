@@ -160,10 +160,11 @@ describe('the hero and the social preview (FR-PUB-2, FR-PUB-11, D-370)', () => {
     return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
   }
 
-  it('is composed from captures that are in the committed set, at the sizes it declares', () => {
+  // R178 (FR-SDD-22): the set lives on the `captures` branch; the hero's three captures stay on `main` in docs/readme/sources/.
+  it('is composed from captures kept in docs/readme/sources/, at the sizes it declares', () => {
     expect(SOURCES.length).toBeGreaterThanOrEqual(2);
     for (const source of SOURCES) {
-      const path = join('docs/screenshots', source.file);
+      const path = join('docs/readme/sources', source.file);
       expect(existsSync(path), `missing capture ${source.file}`).toBe(true);
       // The declared size is what every box is derived from, so a capture
       // re-shot at another size must fail here rather than skew the layout.

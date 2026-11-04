@@ -146,7 +146,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.56 who
     - `RELEASE.md` holds no per-release section; each moved record is in its phase folder, and the lossless test still passes.
     - `npm test`, lint and typecheck green.
 
-- [ ] **R178 — Captures off `main`'s history: the manifest, the pixel diff, the compression, the `captures` branch and `captures.yml` on the manifest**
+- [x] **R178 — Captures off `main`'s history: the manifest, the pixel diff, the compression, the `captures` branch and `captures.yml` on the manifest**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus

@@ -14,13 +14,21 @@
  * column beside every 390 one, a 768 px column for four screens and the home at
  * 1920 — is pinned here as well, so the arithmetic of D-626 is a test and not a
  * count somebody did once.
+ *
+ * R178 (FR-SDD-22, PLAN D-1068): the set lives on the orphan `captures` branch, not on `main`. So `main`
+ * tracks no `v1-*` file, and the on-disk checks run where a whole set is on disk: `captures.yml` restores the
+ * branch's set, shoots what the manifest picked and runs this file with `CAPTURES_SET=1`. Locally, a partial
+ * `CAPTURES=1` run leaves untracked files (`.gitignore` keeps them out of commits) and the checks stay off.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CAPTURE_DIR, CAPTURE_FILE, captureSet, DESIGN_CAPTURE_DIR, DESIGN_FILE, designCaptureSet, LOCALES, SCREENS, THEMES } from '../e2e/captureSet';
 
 const files = new Set(readdirSync(CAPTURE_DIR));
+/** R178: a whole set is on disk only in `captures.yml`, which says so. */
+const wholeSet = process.env['CAPTURES_SET'] === '1';
 const v1Files = [...files].filter((file) => file.startsWith('v1-')).sort();
 /** R108: the design captures' directory, read the same way; absent is an empty list and the test below says so. */
 const designFiles = existsSync(DESIGN_CAPTURE_DIR) ? readdirSync(DESIGN_CAPTURE_DIR).sort() : [];
@@ -194,7 +202,14 @@ describe('the v1 capture set', () => {
     expect(captureSet().filter((capture) => capture.view).every((capture) => capture.file.includes(`-${String(capture.width)}-view-`))).toBe(true);
   });
 
-  it('has every capture on disk, and none of them empty', () => {
+  it('R178: main tracks no file of the set — it lives on the captures branch (FR-SDD-22)', () => {
+    const tracked = execFileSync('git', ['ls-files', '-z', '--', CAPTURE_DIR], { encoding: 'utf8' })
+      .split('\0')
+      .filter((path) => /\/v1-[^/]*\.png$/.test(path));
+    expect(tracked).toEqual([]);
+  });
+
+  it.runIf(wholeSet)('has every capture on disk, and none of them empty', () => {
     const missing = captureSet()
       .filter((capture) => !files.has(capture.file))
       .map((capture) => capture.file);
@@ -203,7 +218,7 @@ describe('the v1 capture set', () => {
     expect(empty.map((capture) => capture.file)).toEqual([]);
   });
 
-  it('carries no v1 capture the set does not name', () => {
+  it.runIf(wholeSet)('carries no v1 capture the set does not name', () => {
     const named = new Set(captureSet().map((capture) => capture.file));
     expect(v1Files.filter((file) => !named.has(file))).toEqual([]);
   });

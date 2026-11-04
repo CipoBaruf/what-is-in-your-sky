@@ -92,13 +92,23 @@ describe('the capture set off the pull-request path (FR-CI-2, F-46)', () => {
     expect(captures).toContain('npx playwright test v1-captures');
   });
 
-  it('runs on a push to main and on demand, uploads the set, and commits nothing', () => {
+  it('runs on a push to main and on demand, uploads the set, and commits only to the captures branch (FR-SDD-22)', () => {
     expect(captures).toMatch(/on:\n\s+push:\n\s+branches: \[main\]\n\s+workflow_dispatch:/);
     expect(captures).toContain('path: docs/screenshots/v1-*.png');
-    // Incomplete is a failure: the committed files are cleared first, so the check is about this run.
-    expect(captures).toContain("find docs/screenshots -name 'v1-*.png' -delete");
+    // Incomplete is a failure: the files this run shoots are cleared first, so the check is about this run.
+    expect(captures).toContain("find docs/screenshots -maxdepth 1 -name 'v1-*.png' -delete");
     expect(captures).toContain('npx vitest run tests/docs/captures.test.ts');
-    expect(captures).not.toMatch(/git (commit|push)/);
+    // R178 (D-1068): the manifest picks the screens, and no screen is no capture job.
+    expect(captures).toContain('node scripts/ci-affected.ts --captures');
+    expect(captures).toContain("if: needs.pick.outputs.captures != 'none'");
+    // The one push is to the orphan branch, from `main` only; nothing is committed to the checked-out ref.
+    const pushes = [...captures.matchAll(/git push(?: --force)? (\S+ \S+?);?(?=\s)/g)].map((match) => match[1]);
+    expect(pushes.length).toBeGreaterThan(0);
+    expect(pushes.every((target) => target === 'origin captures')).toBe(true);
+    expect(captures).toContain("if: github.ref == 'refs/heads/main'");
+    // FR-SDD-23: the pixel diff writes the side-by-side images and the job summary shows them.
+    expect(captures).toContain('npx tsx scripts/captures/diff.ts base set --out sides');
+    expect(captures).toContain('GITHUB_STEP_SUMMARY');
   });
 });
 
