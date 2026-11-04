@@ -51,6 +51,13 @@ No dependency is added (§11.1 unchanged): the schema uses `zod`, the pixel diff
 - **D-1081 — `ids.md`'s kinds, and TASKS.md over its ceiling.** (FR-SDD-6, FR-SDD-13; R175.)
   A kind is read only from its document (SPEC: FR, G, US, F, OQ, V; PLAN: D; TASKS: tasks), first definition first; an old section is listed for each numbered heading of a one-document file. `--check` checks staleness; whether every cited id resolves is R179's.
   SPEC.md and PLAN.md are under `INDEX_MAX_KB`; TASKS.md is about 25 KB because the open v2.13 block alone is 23.8 KB, so FR-SDD-3 and FR-SDD-13 cannot both hold for it without rewording a task. Proposed: the ceiling binds TASKS.md from the next phase, when the closed v2.13 block leaves.
+- **D-1082 — The release records keep their numbers.** (FR-SDD-9; R176.)
+  RELEASE.md §6–§9 and §11–§25 moved byte for byte, heading and number kept, to `docs/sdd/phases/<version>/release.md`; RELEASE.md keeps §1–§5 and §10 under their old numbers and a table from each old § to its file, so "RELEASE §23.1" in code and in the records resolves with no edit.
+  `ids.md` does not index `release.md`. The doc tests read the records from their folders; the budget test reads the last record, and each release task points it at its own.
+- **D-1083 — The reading rows are tested now; the review's file is the prompt's.** (FR-SDD-8, FR-SDD-9, D-1063, D-1065; R176.)
+  `tests/docs/sdd-workflows.test.ts` checks `AGENTS.md`'s size and table, the import line, each workflow's size and its `Reads:`/`Never reads:` lines against its table row (two rows sharing `implement.md` read `headless, …; interactive, …`), and the skill pointers; R179 moves the size rules onto `limits.ts`.
+  `accuracy.test.ts` scans `AGENTS.md` and the workflows for paths and scripts, R178's three capture scripts allowed until they exist.
+  `review.md` writes D-1065's JSON lines to "the handoff file the prompt names"; R177 names it.
 
 ---
 

@@ -112,7 +112,10 @@ The clearest way to see the loop is to follow a single task through it.
 ## 6. [The four skills](../.claude/skills/) — what the sessions were told
 
 Small Markdown files, **written by hand**, that a session loads by name. They are the
-whole of the process instruction; there is no hidden prompt.
+whole of the process instruction; there is no hidden prompt. Since v2.13 (R176) each skill
+is a one-line pointer to a plain procedure in [`docs/sdd/workflows/`](sdd/workflows/) that
+any coding agent can follow, beside the review, fix and release procedures; the skill names
+still work.
 
 - [`sdd-spec`](../.claude/skills/sdd-spec/SKILL.md) — revise SPEC.md and then PLAN.md for a
   new phase or a scope change. Asks the owner one question at a time.
@@ -143,7 +146,8 @@ this one first.
 The process paperwork is in the tree on purpose, because the process is the thing this
 repository shows: [`.claude/settings.json`](../.claude/settings.json) (one allow rule,
 `gh pr merge`, for the driver's merge step and nothing else), the four skills above,
-[`CLAUDE.md`](../CLAUDE.md) (the few lines every session starts with) and
+[`AGENTS.md`](../AGENTS.md) (what every session starts with, imported by
+[`CLAUDE.md`](../CLAUDE.md)) and
 [`scripts/sdd/`](../scripts/sdd/) (the driver's parts: the brief, the session, the waves,
 the git and `gh` calls, the report). No tracked file names a path on the owner's machine
 or a conversation of theirs; [`tests/docs/public.test.ts`](../tests/docs/public.test.ts)
