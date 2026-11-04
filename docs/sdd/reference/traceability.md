@@ -559,22 +559,26 @@
 | FR-SDD-1 | `tests/sdd/ledger.test.ts`, `tests/sdd/session.test.ts` |
 | FR-SDD-2 | `tests/sdd/agents.test.ts`, `tests/sdd/ledger.test.ts`, `tests/sdd/session.test.ts` |
 | FR-SDD-3 | `tests/sdd/split.test.ts` |
-| FR-SDD-4 | `tests/sdd/rewrap.test.ts` |
+| FR-SDD-4 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/rewrap.test.ts` |
 | FR-SDD-5 | `tests/sdd/split.test.ts` |
-| FR-SDD-6 | `tests/sdd/ids.test.ts` |
+| FR-SDD-6 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/ids.test.ts` |
 | FR-SDD-7 | `tests/sdd/brief.test.ts`, `tests/sdd/rewrap.test.ts`, `tests/sdd/split.test.ts` |
-| FR-SDD-8 | `tests/docs/sdd-workflows.test.ts` |
-| FR-SDD-9 | `tests/docs/accuracy.test.ts`, `tests/docs/sdd-workflows.test.ts`, `tests/sdd/review.test.ts` |
-| FR-SDD-10 | `tests/sdd/agents.test.ts`, `tests/sdd/cli.test.ts`, `tests/sdd/session.test.ts`, `tests/sdd/tasks.test.ts` |
+| FR-SDD-8 | `tests/docs/sdd-workflows.test.ts`, `tests/sdd/check-sdd.test.ts` |
+| FR-SDD-9 | `tests/docs/accuracy.test.ts`, `tests/docs/sdd-workflows.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/review.test.ts` |
+| FR-SDD-10 | `tests/sdd/agents.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/cli.test.ts`, `tests/sdd/session.test.ts`, `tests/sdd/tasks.test.ts` |
 | FR-SDD-11 | `tests/sdd/agents.test.ts`, `tests/sdd/cli.test.ts`, `tests/sdd/tasks.test.ts` |
 | FR-SDD-12 | `tests/docs/sdd-ignore.test.ts` |
-| FR-SDD-14 | `tests/docs/sdd-ignore.test.ts` |
+| FR-SDD-13 | `tests/sdd/check-sdd.test.ts` |
+| FR-SDD-14 | `tests/docs/sdd-ignore.test.ts`, `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-15 | `tests/sdd/check.test.ts` |
 | FR-SDD-16 | `tests/sdd/ci-digest.test.ts`, `tests/sdd/cli.test.ts`, `tests/sdd/git.test.ts`, `tests/sdd/review.test.ts` |
 | FR-SDD-18 | `tests/sdd/review.test.ts` |
+| FR-SDD-19 | `tests/sdd/check-sdd.test.ts` |
+| FR-SDD-20 | `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-21 | `tests/docs/sdd-workflows.test.ts` |
-| FR-SDD-22 | `tests/docs/captures.test.ts`, `tests/docs/ci.test.ts` |
+| FR-SDD-22 | `tests/docs/captures.test.ts`, `tests/docs/ci.test.ts`, `tests/sdd/check-sdd.test.ts` |
 | FR-SDD-23 | `tests/captures/diff.test.ts` |
+| FR-SDD-24 | `tests/sdd/check-sdd.test.ts`, `tests/sdd/traceability.test.ts` |
 | FR-SDD-25 | `tests/docs/ci.test.ts` |
 | FR-SET-1 | `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-SET-2 | `tests/e2e/settings.spec.ts` |
@@ -695,4 +699,4 @@
 | US-38 | `tests/e2e/stars.spec.ts` |
 | US-39 | `tests/e2e/stars.spec.ts` |
 | US-44 | `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
-| US-51 | `tests/docs/accuracy.test.ts`, `tests/sdd/ids.test.ts` |
+| US-51 | `tests/docs/accuracy.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/ids.test.ts` |
