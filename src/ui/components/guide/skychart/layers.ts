@@ -24,12 +24,18 @@ import type { SkyScene, StarField } from './window/scene';
  * (FR-PHONE-11). The landmark's name stays the window's: the polar chart names
  * stars through `names` like any other, and its ring is the mark (FR-SKY-11).
  *
+ * R184 (FR-WIDE-3, FR-SKY-1 as amended v2.14; PLAN D-1099): the globe gains a
+ * row, the window's — the window has no field outline of its own, so the row is
+ * the window's minus `fieldOutline` as it stands — and no star cap: the globe
+ * draws the whole catalogue. On a desk page the stars toggle turns the stars
+ * off under the arcs on the globe as on the window.
+ *
  * Pure: no React, no DOM, no clock. The passes and the bodies are rows of the
  * table but stay on their own props (`passes`, `sun`, `moon`): the table says
  * a view draws them, the props carry them, as before.
  */
 
-export type SkyView = 'dome' | 'polar' | 'window';
+export type SkyView = 'dome' | 'polar' | 'window' | 'globe';
 
 /**
  * The table's rows. R158: `surface` is the sky surface with its horizon band and twilight tint (FR-LOOK-1, FR-LOOK-2),
@@ -47,10 +53,12 @@ export const LAYERS: Record<SkyView, readonly Layer[]> = {
   window: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc'],
   polar: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc', 'fieldOutline'],
   dome: ['passes', 'bodies', 'stars', 'planets', 'landmark'],
+  // R184 (D-1099): the window's row, `fieldOutline` off.
+  globe: ['passes', 'bodies', 'stars', 'figures', 'planets', 'names', 'landmark', 'surface', 'haze', 'bloom', 'moonDisc'],
 };
 
 /** The star cap per view: the window draws the whole catalogue, whose own cut is FR-STAR-1's. */
-const STAR_MAG: Record<SkyView, number> = { window: Infinity, polar: POLAR_STAR_MAG, dome: DOME_STAR_MAG };
+const STAR_MAG: Record<SkyView, number> = { window: Infinity, globe: Infinity, polar: POLAR_STAR_MAG, dome: DOME_STAR_MAG };
 
 export function drawsLayer(view: SkyView, layer: Layer): boolean {
   return LAYERS[view].includes(layer);
