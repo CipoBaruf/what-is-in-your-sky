@@ -45,7 +45,7 @@ function withBlock(png: PNG, left: number, top: number, side: number): PNG {
   return out;
 }
 
-describe('diffPng', () => {
+describe('FR-SDD-23: diffPng', () => {
   it('an identical pair is under CAPTURE_DIFF_SHARE, with no pixel counted', () => {
     const diff = diffPng(picture(), picture());
     expect(diff).toEqual({ sameSize: true, pixels: 0, share: 0, changed: false });

@@ -6,6 +6,7 @@
 import { createWriteStream, mkdirSync, writeFileSync, type WriteStream } from 'node:fs';
 import { join } from 'node:path';
 import type { LedgerEntry } from './ledger';
+import { PR_BODY_MAX_KB } from './limits';
 
 export const LOG_DIR = 'logs/sdd';
 
@@ -115,8 +116,7 @@ export function writeRunReport(report: RunReport, dir = LOG_DIR, at = new Date()
   return path;
 }
 
-/** FR-SDD-20: a PR body's ceiling, in KB of UTF-8 (SPEC's constants table). */
-export const PR_BODY_MAX_KB = 1.5;
+/** FR-SDD-20: a PR body's ceiling in bytes of UTF-8, from `limits.ts`. */
 const PR_BODY_MAX_BYTES = Math.floor(PR_BODY_MAX_KB * 1024);
 /** FR-SDD-20: what changed is at most this many lines. */
 const CHANGED_LINES = 3;

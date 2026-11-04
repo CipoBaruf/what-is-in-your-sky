@@ -4,8 +4,7 @@
  * block, which is what the brief needs to come out byte for byte (FR-SDD-7). Whitespace only.
  */
 
-/** SPEC §4.56's `DOC_LINE_MAX`; R179's `limits.ts` takes the constants over. */
-export const DOC_LINE_MAX = 400;
+import { DOC_LINE_MAX } from './limits';
 
 /** D-1060: a terminator after one of these is not a sentence end. */
 const ABBREVIATIONS = ['e.g.', 'i.e.', 'vs.', 'No.', 'approx.'];

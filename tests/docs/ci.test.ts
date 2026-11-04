@@ -210,7 +210,7 @@ describe('the tests a change reaches (D-1031)', () => {
 });
 
 /** D-1067 (FR-SDD-16, FR-SDD-25): CI does less, and a failure leaves a digest. */
-describe('CI does less (D-1067)', () => {
+describe('FR-SDD-25: CI does less (D-1067)', () => {
   const job = (name: string): string => {
     const start = ci.indexOf(`\n  ${name}:\n`);
     const next = ci.slice(start + 1).search(/\n {2}[a-z-]+:\n/);

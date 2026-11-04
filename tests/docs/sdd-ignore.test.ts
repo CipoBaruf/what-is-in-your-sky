@@ -67,7 +67,7 @@ describe('.ignore', () => {
   });
 });
 
-describe('docs/sdd/gotchas.md', () => {
+describe('FR-SDD-12: docs/sdd/gotchas.md', () => {
   const text = readFileSync(resolve(root, 'docs/sdd/gotchas.md'), 'utf8');
   const headings = text.split('\n').filter((l) => l.startsWith('## ')).map((l) => l.slice(3).trim());
 
