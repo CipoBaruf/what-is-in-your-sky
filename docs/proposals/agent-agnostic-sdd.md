@@ -200,6 +200,38 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 - **Captures only when captured screens change.** `captures.yml` uses the capture manifest on `main` instead of running for 20 minutes on every push, plus `workflow_dispatch` at release.
 - **The failure digest is a CI artifact** (§3a 7), written by the job, so neither the fix session nor the owner opens a raw log.
 
+## 3c. Workflows and cleanup
+
+### The workflows, rewritten (not just moved)
+
+| Workflow | Today's problem | Rewrite |
+|---|---|---|
+| `spec.md` (was `sdd-spec`) | Step 1 reads SPEC, PLAN and TASKS "in full", about 750 k tokens. It amends one big file in place, status lines and history included. | Read the index files, the touched area files and `ids.md`. Write the phase folder and update the area files. Hold the entry shapes and size ceilings of §3a. |
+| `breakdown.md` (was `sdd-breakdown`) | Reads SPEC and PLAN first. Names models in `Model:`. Sizes tasks as "~3 modules". | Read only the new phase's `spec.md` and `plan.md`. Use `Tier:` with an optional `Agent:`. Aim for about 600 changed lines per task. Each task lists the superseded tests it deletes and the capture-manifest entries it adds. |
+| `implement.md` (was `sdd-implement`) | Interactive mode reads all three documents. Runs the full `npm test`. Appends to PLAN's Decisions. No limit on the PR body. | Look up ids with `sdd:id`. Run `npm run check`. Write decisions to the phase's `plan.md`. Use the 1.5 KB PR template. |
+| `visual-review.md` | Reads every PNG and copies captures to `docs/screenshots/` on `main`. | Pixel-diff first and look only at what changed. Captures go to the `captures` branch, with a manifest entry each. |
+| `review.md` (new) | The driver's review prompt lives in code, so only the driver can use it. | Written down, with the tier rules of §3a 12 and structured findings. |
+| `fix-ci.md` (new) | Fix sessions start from raw logs. | Start from the failure digest and touch only the failing checks. |
+| `release.md` (new) | Release prep has run about ten times from `RELEASE.md`, now 188 KB. | One procedure. Each release's record goes in its phase folder, and `RELEASE.md` becomes the procedure only. |
+
+### Obsolete after this phase
+
+- **`CLAUDE.md`'s body** becomes `@AGENTS.md`. **The four skills' bodies** become pointers to their workflows.
+- **About 30 of the 48 agent-memory files** are removed once `gotchas.md` holds them. Personal preferences stay.
+- **PLAN §12's hand-kept traceability table** is replaced by the table generated from test names (§3b).
+- **`docs/screenshots/` on `main`** (116 MB) moves to the `captures` branch.
+- **`RELEASE.md`'s per-release sections** move into the phase folders.
+- **The closed spikes and the evidence for decisions already made**, about 23 MB on `main`: `spike/` (including the panorama prototype, dropped 2026-11-03), `docs/dome-composition/`, `docs/mockups/`, `docs/stars/`, `docs/spike-glyphcss/`, `docs/window/` and the `spike:*` npm scripts. They move to an orphan `archive` branch and stay in git history. A decision that cites one of these files cites it through `ids.md`, which records the archive path.
+
+### Obsolete after the renderer phase (listed here so that phase removes them)
+
+glyphcss and `@glyphcss/react`, `scripts/build-braille-font.ts` and its npm script, `wiys-braille.otf`, the dome palette, the `#glyph-styles` sentinel, and the glyphcss allowances in the CSP.
+
+### Housekeeping, once and then in CI
+
+- `scripts/prune-merged-branches.ts` runs after each merge in the driver. Today there are 138 local and 136 remote branches.
+- The driver removes a task's worktree once its PR merges.
+
 ## 4. Checks
 
 - `npm run check:sdd` in CI:
@@ -224,6 +256,8 @@ None of these rules lowers the bar. The golden fixtures, the axe cases, the bund
 6a. The token rules of §3a: the usage ledger and tier budgets in the driver, the rewrap (inside step 1), `.ignore`, `map.md`, the quiet `npm run check`, CI failure digests, the pixel-diff step in visual review, the cache-friendly brief order.
 
 6b. §3b: the PR template and title rule, the capture manifest and the captures move, compression, test-name ids with the generated traceability, the CI changes (concurrency, build once, browser cache, path skips, captures by manifest).
+
+6c. §3c: the seven workflows, the memory trim, the generated traceability replacing PLAN §12, the captures and archive branches, RELEASE.md split, branch and worktree pruning in the driver.
 
 Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task.
 
