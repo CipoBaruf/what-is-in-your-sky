@@ -2211,6 +2211,8 @@ V214-19	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-20	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-21	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-22	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-23	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-24	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

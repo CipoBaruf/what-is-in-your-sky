@@ -1,0 +1,41 @@
+{
+  "note": "FR-FACT-3's rise and set reference, fetched 2026-11-04 in P10's session (V214-19, V214-23). Geometric horizon crossings (no refraction, the body's centre at 0°) over Bariloche on the night of 2026-01-15 (ART, UTC-3), to the minute. JPL Horizons has no stars, so Sirius comes from the US Naval Observatory's celestial-navigation API: its computed altitude `hc` (apparent place, before refraction) sampled each minute, the API drops a star below about 1°, so the crossing is a straight-line fit over the ten minutes nearest the horizon (0.18° a minute, linear to 0.001°). The planet and the Moon are Horizons' own rise and set (`R_T_S_ONLY`, `APPARENT=AIRLESS`, `TVH` at 0°). Never edit by hand.",
+  "observer": { "lat": -41.14557, "lon": -71.30822, "altM": 839, "label": "Bariloche" },
+  "night": "2026-01-15",
+  "toleranceMin": 2,
+  "bodies": [
+    {
+      "name": "Sirius",
+      "kind": "star",
+      "rise": "2026-01-15T20:49Z",
+      "set": "2026-01-16T10:49Z",
+      "source": {
+        "source": "US Naval Observatory, Astronomical Applications API, celnav, https://aa.usno.navy.mil/api/celnav?date=2026-01-15&time=20:56&coords=-41.14557,-71.30822",
+        "date": "2026-11-04",
+        "note": "First listed 20:56Z at hc 1.174°, last listed 10:43Z at hc 1.048°; linear fit over the first and last ten listed minutes gives 20:49:20Z and 10:48:56Z."
+      }
+    },
+    {
+      "name": "Jupiter",
+      "kind": "planet",
+      "rise": "2026-01-15T23:43Z",
+      "set": "2026-01-16T09:11Z",
+      "source": {
+        "source": "NASA/JPL Horizons API, COMMAND=599, CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0.839, R_T_S_ONLY=YES, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
+        "date": "2026-11-04",
+        "note": "Transit 2026-01-16T04:27Z at 26.5°."
+      }
+    },
+    {
+      "name": "Moon",
+      "kind": "moon",
+      "rise": "2026-01-16T06:54Z",
+      "set": "2026-01-15T22:32Z",
+      "source": {
+        "source": "NASA/JPL Horizons API, COMMAND=301 (DE441), CENTER=coord@399, SITE_COORD=-71.30822,-41.14557,0.839, R_T_S_ONLY=YES, APPARENT=AIRLESS, STEP_SIZE=1 m, https://ssd.jpl.nasa.gov/api/horizons.api",
+        "date": "2026-11-04",
+        "note": "The Moon sets in the evening and rises before dawn on this night; the centre's crossing, not the upper limb's."
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/build-braille-font.ts` — exports: none — R15 review (PLAN D-65): the dome's raster is braille cells and spaces, and glyphcss measures its cell from the letter M in the page font.
 - `scripts/build-mark.ts` — exports: RASTERS_PATH, ICON_TONES, sparse, generateRasters, serialise, readCommitted, png, svg, +1 — R74 (FR-MARK-6, D-438, D-440): the mark's build step.
 - `scripts/build-places.ts` — exports: buildPlaces — FR-LOC-1 (c) as amended 2026-11-02 (PLAN D-1025): `src/data/places/places.txt`, the towns a device location is named after, offline.
-- `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +11 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
+- `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +12 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
 - `scripts/build-stored-run.ts` — exports: none — R37 (FR-CI-3): writes `tests/fixtures/stored-run-neuquen.json`, the finished 72 h run the e2e suite seeds into IndexedDB (`liveHelpers.seed…
 - `scripts/bundle-budget.ts` — exports: Budget, BUDGETS, PHASE_BUDGETS, ChunkSize, mainChunkFile, measure — PLAN §11 bundle budgets (R15): gzipped sizes of the built chunks against their budgets, printed as a table after `vite build`.
 - `scripts/captures/compress.ts` — exports: opaque, compressPng, compressFiles — PLAN D-1068 (FR-SDD-22): captures are written losslessly compressed.

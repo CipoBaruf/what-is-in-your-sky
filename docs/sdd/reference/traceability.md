@@ -511,6 +511,8 @@
 | FR-MOON-3 | `src/lib/moonPhrases.test.ts`, `src/physics/now.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/now/ConditionsTable.test.tsx` |
 | FR-MOON-4 | `src/data/moon/lore.test.ts`, `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonLore.test.tsx` |
 | FR-MOON-5 | `src/data/moon/lore.test.ts`, `src/lib/moonPhrases.test.ts`, `src/ui/components/moon/MoonLore.test.tsx` |
+| FR-NAME-1 | `tests/data/starCatalog.test.ts` |
+| FR-NAME-2 | `tests/data/starCatalog.test.ts` |
 | FR-NIGHT-1 | `src/ui/screens/home/tonight.test.ts` |
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
