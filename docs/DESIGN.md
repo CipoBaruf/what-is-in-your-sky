@@ -146,6 +146,14 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `--chart-series-4` | `#f48fb1` | `#ffd0c0` | 8.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 14.71 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
 | `--chart-series-5` | `#c8a6ff` | `#ff8c42` | 9.48 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 8.88 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
 | `--chart-series-6` | `#7fe0d6` | `#c8574b` | 12.39 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 4.81 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
+| `--chart-planet-mercury` | `#c4b5a5` | `#ffd8cd` | 9.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 15.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | Mercury, a warm grey |
+| `--chart-planet-venus` | `#f7e7b4` | `#ffd8cd` | 15.60 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 15.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | Venus, a pale cream |
+| `--chart-planet-mars` | `#ff8a65` | `#ffd8cd` | 8.31 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 15.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | Mars, red-orange |
+| `--chart-planet-jupiter` | `#e9b98c` | `#ffd8cd` | 10.78 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 15.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | Jupiter, tan |
+| `--chart-planet-saturn` | `#d9c27a` | `#ffd8cd` | 10.93 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 15.61 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | Saturn, gold |
+| `--chart-cloud-1` | `#626d7a` | `#9b4238` | 3.65 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 3.16 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | some cloud |
+| `--chart-cloud-2` | `#8a94a1` | `#a3453a` | 6.25 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 3.39 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | mostly cloudy |
+| `--chart-cloud-3` | `#b8c0ca` | `#c04a3a` | 10.46 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 4.19 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | overcast |
 
 ## The primitives
 

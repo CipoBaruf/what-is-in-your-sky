@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ICON_TONES } from '../../scripts/build-mark';
 import { HORIZON_STRENGTH } from '../../src/data/stars/constants';
-import { BAND_ALPHA_AT_HORIZON, bandLightest, CHART_MARK_TOKENS, CHART_SKY_TOKENS, CHART_STAR_TONE_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, composite, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
+import { BAND_ALPHA_AT_HORIZON, bandLightest, CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_SKY_TOKENS, CHART_STAR_TONE_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, composite, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
 
 const css = readFileSync(TOKENS_PATH, 'utf8');
 /** The header comment wraps, so the prose assertions read it as one line. */
@@ -124,6 +124,17 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
    * sits below `--chart-star-dim`, so the faintest rung is the dimmest mark and
    * a figure's name is dimmer than a star's.
    */
+  /** FR-NAME-3, FR-WIDE-8 (R184, D-1104): the planets' discs and the cloud band's shades stand on the sky surface at the chart's 3 : 1; in night the five planets are one red. */
+  it('FR-NAME-3: has the planet and cloud tokens at ≥ 3 : 1 on the deep sky, the night planets one value, the clouds rising', () => {
+    for (const mark of CHART_DESK_TOKENS) expect(contrastRatio(token(theme, mark), token(theme, 'chart-sky-deep')), mark).toBeGreaterThanOrEqual(3);
+    const planets = CHART_DESK_TOKENS.filter((name) => name.startsWith('chart-planet-')).map((name) => token(theme, name));
+    expect(planets).toHaveLength(5);
+    expect(new Set(planets).size).toBe(theme === 'night' ? 1 : 5);
+    const clouds = [1, 2, 3].map((k) => contrastRatio(token(theme, `chart-cloud-${String(k)}`), token(theme, 'bg')));
+    expect([...clouds].sort((a, b) => a - b)).toEqual(clouds);
+    for (const mark of CHART_DESK_TOKENS) expect(CHART_MARK_TOKENS).toContain(mark);
+  });
+
   it('has the faint star and the figure name at FR-DS-8’s ratios, each below the dim star', () => {
     const on = (mark: string): number => contrastRatio(token(theme, mark), token(theme, 'bg'));
     expect(on('chart-star-faint')).toBeGreaterThanOrEqual(3);
