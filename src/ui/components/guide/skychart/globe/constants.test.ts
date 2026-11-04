@@ -18,6 +18,10 @@ import {
   GLOBE_ZOOM_MAX,
   GLOBE_ZOOM_MIN,
   GLOBE_ZOOM_STEP,
+  ARC_ARROW_SHARE,
+  ARC_TICK_MIN,
+  PLANET_MARK_PX,
+  SKY_GLOBE_KB,
 } from './constants';
 
 /** R167: SPEC §4.55's constants table, value for value. */
@@ -56,6 +60,11 @@ describe('the globe’s constants (SPEC §4.55)', () => {
       GLOBE_MAIN_KB: 1.5,
       GLOBE_STARS_KB: 1.5,
     });
+  });
+
+  /** R184: SPEC §4.57's four the globe draws by. */
+  it('carry §4.57’s arc, planet and budget values', () => {
+    expect({ ARC_TICK_MIN, ARC_ARROW_SHARE, PLANET_MARK_PX, SKY_GLOBE_KB }).toEqual({ ARC_TICK_MIN: 1, ARC_ARROW_SHARE: 0.5, PLANET_MARK_PX: 5, SKY_GLOBE_KB: 4 });
   });
 
   it('share what they say they share: the window’s key step, the live page’s bodies budget', () => {
