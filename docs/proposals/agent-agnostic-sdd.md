@@ -129,9 +129,41 @@ The project facts in Claude's memory move into `docs/sdd/gotchas.md`, one sectio
 
 Personal preferences stay in Claude's memory: commit trailers, asking questions one by one, promo voice. After the move, the memory index shrinks to those plus a pointer to `gotchas.md`.
 
+## 3a. Token economy as a rule
+
+Token cost is a requirement, not a habit. Every workflow, document, script and code change is held to it, and the checks in §4 enforce what can be enforced.
+
+### Measure first
+
+- **A usage ledger.** The driver records each session's tokens from the agent's result: input, cached input, output, turns, tier and outcome. It appends them to `sdd-run/usage.jsonl` and prints a per-task line in the PR body. Every rule below is judged against this ledger, and each phase's release notes report the phase's total and the most expensive task.
+- **A budget per tier.** Each tier in `sdd.agents.json` carries a token ceiling next to `maxTurns`. The driver stops a session that passes it and reports the overrun, the way it handles the wall clock today.
+
+### What a session reads
+
+1. **One sentence per line in the documents.** Today 747 lines in SPEC, PLAN and TASKS are over 1,000 characters, so one `rg` hit prints a whole paragraph. The split rewraps the text at sentence ends: whitespace only, which the lossless test checks. `check:sdd` then fails on any line over 400 characters.
+2. **Size ceilings.** The index files stay at 15 KB or less. A phase's `spec.md` or `plan.md` stays at 60 KB or less, an area file at 30 KB or less, a workflow at 4 KB or less, and `AGENTS.md` at 6 KB or less. `check:sdd` enforces all of them.
+3. **A shape for each entry.** A decision gets an id, a one-line title and at most five lines of body. Its rationale goes in the phase's `plan.md` only when it's longer. A requirement is one testable statement. History lives in the phase files and never in the area files.
+4. **A `.ignore` file** (read by `rg`, `fd` and most agents' search tools) leaves out `dist/`, `node_modules/`, `docs/screenshots/`, `**/__snapshots__/`, fixtures, `public/data/`, the places and star catalogues, and lockfiles. A search then hits source and docs only.
+5. **A code map.** `docs/sdd/map.md` is generated: one line per source file with its purpose (the file's first doc-comment sentence) and its exports. An agent locates code from the map before it opens anything. `check:sdd` keeps it current.
+
+### What a session writes and runs
+
+6. **Quiet commands.** `npm run check` runs typecheck, lint, unit tests and the affected e2e tests (`scripts/ci-affected.ts`). It prints only failures: the test name, the first assertion and five lines of stack, and nothing on success. The workflows tell every agent to run it in place of the raw tools.
+7. **Failure digests for fix sessions.** When CI fails, the driver hands the fix session a digest of the failing jobs (test names and first errors, capped at 4 KB), not the job log.
+8. **Pixel diffs before images.** Visual review compares captures with a pixel-diff script first. An agent looks only at the captures that differ past a threshold, at reduced size, and side by side in one image. An image costs about as much as a page of text.
+9. **Comments.** A comment cites the id and says in one line what the code can't. A new file keeps a header of at most five lines. Existing comments are left alone; this rule is for new code.
+10. **File size.** A new source file stays under 500 lines. The five files over 880 lines (`SkyWindow`, `Live`, `GlobeRenderer`, `Stars`, `StarField`) are split when a task next touches them, not in a sweep. A lint warning flags any file over 600 lines.
+
+### How sessions run
+
+11. **A stable prefix for the prompt cache.** The brief puts the parts every session shares first, in a fixed order: rules, tool policy, gotchas digest. The task's own parts come last. Sessions in one wave then share a cached prefix, and cached input costs a fraction of fresh input.
+12. **The cheapest tier that works.** Review runs on `light` unless the task's tier is `hard`. A task that changes only docs or tests gets no review session; CI and the owner's read cover it. `hard` is kept for tasks marked hard in the breakdown.
+13. **One task per session, no re-reading.** The workflows repeat this: read once, locate before reading, slice large files, delegate broad searches to a search subagent where the agent has one, and keep the handoff file under 2 KB.
+
 ## 4. Checks
 
 - `npm run check:sdd` in CI:
+  - doc line length and size ceilings (§3a 1–2), the code map is current (§3a 5);
   - every id cited anywhere resolves in `ids.md`;
   - `ids.md` is up to date with the files;
   - every workflow file names its reading row;
@@ -148,6 +180,7 @@ Personal preferences stay in Claude's memory: commit trailers, asking questions 
 4. `sdd.agents.json`, the config-driven `session.ts`, tiers in TASKS.md, and the fallback and limit settings as data.
 5. `gotchas.md` and the memory trim.
 6. `check:sdd` in CI.
+6a. The token rules of §3a: the usage ledger and tier budgets in the driver, the rewrap (inside step 1), `.ignore`, `map.md`, the quiet `npm run check`, CI failure digests, the pixel-diff step in visual review, the cache-friendly brief order.
 7. Seed the area files for chart-views, stars, globe and live, ready for the renderer phase.
 
 Steps 1–2 must land together, or the driver breaks. Steps 3–6 can each be a task. Step 7 can be the first task of the renderer phase instead.
