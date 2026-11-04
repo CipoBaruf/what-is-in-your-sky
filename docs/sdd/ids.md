@@ -1901,6 +1901,8 @@ D-1110	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 de
 D-1113	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1114	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1115	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
+D-1116	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
+D-1117	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1111	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1112	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1132	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)

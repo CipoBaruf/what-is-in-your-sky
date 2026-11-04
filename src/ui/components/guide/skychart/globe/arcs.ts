@@ -134,7 +134,7 @@ export const arrowPath = (a: Heading | null): string =>
   a ? `M${fmt(a.x + a.hx * ARROW_LEN)} ${fmt(a.y + a.hy * ARROW_LEN)}L${fmt(a.x - a.hy * ARROW_HALF)} ${fmt(a.y + a.hx * ARROW_HALF)}L${fmt(a.x + a.hy * ARROW_HALF)} ${fmt(a.y - a.hx * ARROW_HALF)}Z` : '';
 
 /** FR-WIDE-7: an arc is under the pointer within this distance of its drawn line, px. */
-export const ARC_HIT_PX = 8;
+const ARC_HIT_PX = 8;
 
 function segmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
