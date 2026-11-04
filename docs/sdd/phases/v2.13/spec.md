@@ -183,3 +183,34 @@ Constants (FR-VIS-6 style; they live in `scripts/sdd/limits.ts` and `check:sdd` 
 - **FR-SDD-28** **The app does not change.**
   No file under `src/` or `public/` changes in this phase; `package.json` stays 2.12.0; no tag and no deploy (V213-1).
   *Verification:* `git diff --stat` from the phase's base to its end shows no `src/` or `public/` path; `npm run build`'s `dist/` asset names are the same as the base's.
+
+---
+
+### 2.20 Goals (v2.13, "the workflow")
+
+- **G59. Every kind of work reads only what it needs.**
+  A spec, breakdown, review, fix or ad-hoc session reads the index files and the ids it needs, not the 3 MB of SPEC, PLAN and TASKS, and the documents say what each kind of work reads.
+- **G60. Any coding agent can run the workflow.**
+  An agent that reads `AGENTS.md` can do every kind of work interactively, and the driver runs any agent a config entry describes.
+- **G61. Cost is measured, and quality with it.**
+  Every session's tokens are in a ledger, and the findings, flakes and CI reruns per phase are reported beside them, so each rule of the phase can be judged and reverted.
+
+### Phase 2v — v2.13 ("the workflow", as decided 2026-11-03, V213-1)
+
+After v2.12 is on `main`.
+The development process only; the app is untouched and no release is cut.
+
+- The ledger, alone and first, then the tasks before the split as its baseline (FR-SDD-1, FR-SDD-2).
+- The split, the rewrap, the Decision Log's move, `ids.md` and `sdd:id`, with the briefs reading the new layout in the same task (FR-SDD-3..7).
+- `AGENTS.md`, the workflows, the config-driven driver and tiers, `gotchas.md` (FR-SDD-8..12).
+- `check:sdd`, `.ignore`, `map.md`, quiet checks, failure digests, the brief's prefix, review tiers (FR-SDD-13..19).
+- PRs, task size, captures branch and manifest, pixel diffs, test ids, CI (FR-SDD-20..25).
+- The archive branch, pruning, and the phase report (FR-SDD-26..28, FR-SDD-1).
+
+Definition of done:
+- FR-SDD-1..25, FR-SDD-27 and FR-SDD-28 met, each by its verification line (FR-SDD-26 moved to the renderer phase, V213-12); US-51's criteria green.
+- `npm run check:sdd` green in CI on `main`; the driver's tests green on the `claude` entry; `npm test` and the e2e suite unchanged and green.
+- Every task `Gate: auto`, merged on CI green and a clean review; at most one `fable` (`hard`) task per wave, the driver's wait-and-resume on (V213-11).
+- Each tier's ceiling set in `sdd.agents.json` from the phase's ledger (FR-SDD-2); the phase report written into `docs/sdd/phases/v2.13/`; `package.json` still 2.12.0, no tag, no deploy.
+  Trimming the agent memory is the owner's.
+- Left for the renderer phase: the area files (V213-9) and the glyphcss removal list in the proposal's §3c.
