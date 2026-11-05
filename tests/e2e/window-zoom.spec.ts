@@ -5,7 +5,7 @@
  * stars page's. `+` three times narrows the field to 30° and spreads the
  * drawing about its centre; `0` restores it; ctrl + wheel and a synthetic
  * two-pointer pinch move the field the same way; a plain wheel is left to the
- * browser; the field is never saved, so a reload opens at 60°; and the drag at
+ * browser; R190 (FR-KEEP-1, amending R125) the field is kept, so a reload opens at the field left; and the drag at
  * the narrowest field still turns the window at the dome's rate.
  *
  * The readout's suffix (` · field 30°`) is R123's string: the field is read
@@ -203,13 +203,13 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-look-az', '60');
     await expect(w).toHaveAttribute('data-fov', '20');
-    // The dome and back keeps the camera (the chart's slot, D-789), the field with it; nothing of it is saved.
+    // The dome and back keeps the camera (the chart's slot, D-789), the field with it; R190 (FR-KEEP-1): the field is kept, the aim is not.
     const toggle = page.getByRole('group', { name: 'Chart view' });
     await toggle.getByRole('button', { name: 'Dome' }).click();
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     await expect(page.getByTestId('sky-chart').locator('[data-look-az]')).toHaveAttribute('data-fov', '20');
-    expect(JSON.stringify(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)))).not.toMatch(/fov/i);
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY))).toMatchObject({ windowFov: 20 });
   });
 });
 
@@ -242,7 +242,7 @@ test.describe('the deep chunk on the live page (R155, FR-LOOK-8 as amended)', ()
 test.describe('zoom on the stars page', () => {
   test.use({ viewport: DESK, hasTouch: false });
 
-  test('+ narrows the field and the list with it, 0 restores it, the pinch and ctrl + wheel work on the box, and a reload opens at 60°', async ({ page }) => {
+  test('+ narrows the field and the list with it, 0 restores it, the pinch and ctrl + wheel work on the box, and a reload opens at the kept field (FR-KEEP-1)', async ({ page }) => {
     const w = await openStars(page);
     await expect(w).toHaveAttribute('data-fov', '60');
     await expect(readout(page)).toHaveText(READOUT);
@@ -278,11 +278,11 @@ test.describe('zoom on the stars page', () => {
     await expect(w).toHaveAttribute('data-fov', '25');
     expect(await wheel(box(w), 100, false)).toBe(true);
     await expect(w).toHaveAttribute('data-fov', '25');
-    // Never saved: the reload opens at the default field.
+    // R190 (FR-KEEP-1): kept on the device, so the reload opens at the field left, the aim at its opening rule (FR-KEEP-2).
     await page.reload();
     await onWindow(page);
-    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '60');
-    expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov/i);
+    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '25');
+    expect(Math.round(Number((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { windowFov?: number }).windowFov))).toBe(25);
   });
 });
 
@@ -385,7 +385,8 @@ test.describe('zoom on a compact page without a sensor', () => {
     await expect(back).toHaveAttribute('data-state', 'hand');
     await expect(back).toHaveAttribute('data-fov', '90');
     await expect(back).toHaveAttribute('data-look-alt', '90');
-    expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov/i);
+    // R190 (FR-KEEP-1): the field the pinch reached before the handoff is the reader's zoom, and kept; the handoff writes nothing.
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY))).toMatchObject({ windowFov: 90 });
     expect(await storedView()).toBe(picked);
   });
 });
