@@ -7,6 +7,9 @@ import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
 import { formatClockDuration, formatDateZone } from '../../lib/format';
 import { hintFitsBeside } from '../../lib/layout';
+import { LIVE_WINDOW_MS } from '../../lib/livePasses';
+import { BODIES_EVERY_MS } from '../../lib/playback';
+import type { Span } from '../../lib/timeStripe';
 import type { ChartView, EpochMs, Observer, Pass } from '../../model';
 import { countdownState } from '../components/common/Countdown';
 import { ShareButton } from '../components/common/ShareButton';
@@ -22,6 +25,9 @@ import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
+import { GLOBE_SPAN_DAYS } from '../components/guide/skychart/globe/constants';
+import { useWallThrottle } from '../components/live/useWallThrottle';
+import { usePlayback } from '../components/sky/time/usePlayback';
 import { viewFor } from './chartViewDefault';
 import { PassGroup } from './sky/pass/Group';
 import { PassTime } from './sky/pass/Time';
@@ -136,9 +142,19 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * drawing's instant holds where it was and neither the bodies nor the stars are evaluated again until the sheet
    * is back; the countdown keeps the clock.
    */
-  const [drawnNow, setDrawnNow] = useState(now);
-  if (!inert && drawnNow !== now) setDrawnNow(now);
-  const bodies = useSkyBodies({ observer, now: drawnNow });
+  /*
+   * R187 (FR-WIDE-4, D-1100): the page's instant `t`, the shared time control's — it opens at now and follows the
+   * tick; on wide the time control and the rise, peak and set buttons move it (a move past the span moves the span,
+   * so a pass days ahead is reachable). Compact draws no control, so there `t` is the tick (FR-WIDE-12).
+   */
+  const baseSpan = useMemo<Span>(() => ({ start: now, end: now + LIVE_WINDOW_MS }), [now]);
+  const playback = usePlayback({ span: baseSpan, realNow: now, initial: null, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone } });
+  const shownT = playback.t;
+  const [drawnNow, setDrawnNow] = useState(shownT);
+  if (!inert && drawnNow !== shownT) setDrawnNow(shownT);
+  // FR-LIVE-5's rule, as the live page has it: the two bodies at most once per second of wall time, whatever the speed.
+  const bodiesAt = useWallThrottle(drawnNow, BODIES_EVERY_MS);
+  const bodies = useSkyBodies({ observer, now: bodiesAt });
   const starsLayer = useAppStore((s) => s.starsLayer);
   /*
    * R127 (FR-SKY-12, D-826): the source is asked for whatever the toggle says, because the `Among` column is about
@@ -214,9 +230,22 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * the box is the layout's to size (a square on the phone, the panel's remaining height on a desk).
    */
   const chartHand = useChartHand();
-  const chartView = useAppStore((s) => s.chartView);
-  // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it, else the window on a phone and the globe on a desk.
-  const view = viewFor('pass', mode, chartView);
+  /*
+   * R186 (FR-WIDE-2, D-1095): the saved view as this page offers it, else the window on a phone and the globe on a desk.
+   * R187 (R186's review): held here and handed to `SkyChart`, so a hold the reader did not choose (following turning on,
+   * a pinch handoff) is the view the hint and the facing row read too; a pick saves and clears the hold.
+   */
+  const savedView = useAppStore((s) => s.chartView);
+  const setChartView = useAppStore((s) => s.setChartView);
+  const [heldView, setHeldView] = useState<ChartView | null>(null);
+  const view = heldView ?? viewFor('pass', mode, savedView);
+  const onChartView = useCallback(
+    (next: ChartView) => {
+      setHeldView(null);
+      setChartView(next);
+    },
+    [setChartView],
+  );
   const hintShown = useSkyHintShown(view);
   const proseId = useId();
   const landmark =
@@ -233,7 +262,8 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
     </p>
   );
   // The wide band's three cells (the compact sheet draws its own one-row form, R164).
-  const times = <TimesRow pass={pass} timeZone={timeZone} />;
+  // R187 (FR-WIDE-4): on wide each cell is a button that sets `t` to its instant.
+  const times = <TimesRow pass={pass} timeZone={timeZone} onSet={playback.goTo} />;
   const viewRow = (
     <>
       <SkyViewChartSlot name="control" />
@@ -254,6 +284,9 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
       chartHand={chartHand}
       facingOptions={PEAK_FACING_OPTIONS}
       page="pass"
+      view={view}
+      onViewChange={onChartView}
+      onViewHold={setHeldView}
       follow={following}
       onFollowEnd={follow.onFollowEnd}
       legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
@@ -309,8 +342,8 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           viewRow={viewRow}
           drawing={chart}
           hint={hintShown && <SkyHint view={view} />}
-          timeline={<PassTime pass={pass} now={now} timeZone={timeZone} />}
-          action={<PassGroup view={view} times={times} prose={prose} foot={foot} follow={action} />}
+          timeline={<PassTime pass={pass} observer={observer} playback={playback} now={now} />}
+          action={<PassGroup view={following ? 'window' : view} times={times} prose={prose} foot={foot} follow={action} />}
           {...(passList === null ? {} : { list: passList })}
         />
       </div>

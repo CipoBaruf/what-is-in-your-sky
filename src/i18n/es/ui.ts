@@ -356,6 +356,7 @@ export const ui: typeof EnUi = {
     rise: 'salida',
     peak: 'máximo',
     set: 'fin',
+    showAt: (p) => `Mostrar el cielo a la hora de ${p.word}, ${p.time}`,
     row: { at: 'a', shadow: 'sombra' },
   },
 

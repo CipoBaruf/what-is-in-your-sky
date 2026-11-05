@@ -81,6 +81,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".countdown.row.at:string",
   ".countdown.row.shadow:string",
   ".countdown.set:string",
+  ".countdown.showAt:function",
   ".countdown.steps:string",
   ".doors.live.hint:string",
   ".doors.live.line:string",

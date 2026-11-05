@@ -510,6 +510,8 @@ export const ui = {
     rise: 'rise',
     peak: 'peak',
     set: 'set',
+    /** R187 (FR-WIDE-4): a wide times cell's button, which sets the page's time to that instant. */
+    showAt: (p: { word: string; time: string }) => `Show the sky at ${p.word}, ${p.time}`,
     /** R156 (FR-PHONE-14): the compact times row's words — "07:20 → 07:23 at 48° NNE → 07:27 shadow" (`lib/format.ts`'s `formatTimesRow`). */
     row: { at: 'at', shadow: 'shadow' },
   },
