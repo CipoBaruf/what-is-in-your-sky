@@ -18,7 +18,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, normalize } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { geometry, HERO, PREVIEW, previewSources, SOURCES } from '../../scripts/readme-hero';
+import { geometry, HERO, HERO_LAYOUT, PREVIEW, previewSources, SOURCES } from '../../scripts/readme-hero';
 import { DATA_RULE, productionPackages, RULE } from '../../scripts/third-party-notices';
 
 const readme = readFileSync('README.md', 'utf8');
@@ -160,7 +160,7 @@ describe('the hero and the social preview (FR-PUB-2, FR-PUB-11, D-370)', () => {
     return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
   }
 
-  // R178 (FR-SDD-22): the set lives on the `captures` branch; the hero's three captures stay on `main` in docs/readme/sources/.
+  // R178 (FR-SDD-22): the set lives on the `captures` branch; the hero's captures stay on `main` in docs/readme/sources/.
   it('is composed from captures kept in docs/readme/sources/, at the sizes it declares', () => {
     expect(SOURCES.length).toBeGreaterThanOrEqual(2);
     for (const source of SOURCES) {
@@ -177,8 +177,8 @@ describe('the hero and the social preview (FR-PUB-2, FR-PUB-11, D-370)', () => {
     // tiles and one landscape one, so a change to SOURCES moved the pictures and
     // not the boxes. Every tile is placed from its own declared size now, and
     // this is what says so — the placed tiles are exactly the sources.
-    const layout = { width: HERO.width, height: null, pad: 20, gap: 20, mainWidth: 400, title: false };
-    const { main, stack, height } = geometry(layout);
+    // R191: the hero's own layout, the one the script shoots.
+    const { main, stack, height } = geometry(HERO_LAYOUT);
     expect([main, ...stack].map((tile) => tile.source.file)).toEqual(SOURCES.map((source) => source.file));
     for (const tile of [main, ...stack]) {
       expect(tile.height, `${tile.source.file} keeps its aspect`).toBe(Math.round((tile.width * tile.source.h) / tile.source.w));

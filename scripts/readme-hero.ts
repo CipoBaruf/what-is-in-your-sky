@@ -14,9 +14,9 @@
  * phase fails a test instead of leaving a broken image in the README.
  *
  * R178 (FR-SDD-22, D-1068): the capture set left `main` for the orphan `captures`
- * branch, so the three captures the hero is made of stay on `main` as README
+ * branch, so the captures the hero is made of stay on `main` as README
  * images, under `docs/readme/sources/` with the set's names. To move the hero to
- * a newer shoot, copy the three files from the branch (`git show
+ * a newer shoot, copy the files `SOURCES` names from the branch (`git show
  * origin/captures:<file>`) into that directory and run this script. The output
  * never goes under `docs/screenshots/`.
  *
@@ -60,49 +60,32 @@ export interface Source {
 }
 
 /**
- * The captures, in this order. Each is a release capture from the v1.3 set,
- * shot in the dark theme in English from the production build — so the picture
- * cannot disagree with the build the capture set was shot from.
+ * The captures, in this order: the two FR-PUB-14 names for 2.14.0, shot in the
+ * dark theme in English from the production build, so the picture cannot
+ * disagree with the build the set was shot from.
  *
- * Three answers to the three things a reader wants in the first ten seconds:
- * what the sky over them looks like (the live page on a standing phone, the
- * tile the eye lands on first), what the app is for outdoors (the stars page
- * on a phone turned sideways since R153; the sky screen held up until v2.9
- * retired it), and what it actually
- * shows you (the laptop's pass detail on the window since R128: the pass's arc
- * under the stars it crosses, faced to its peak, with its time, peak and
- * brightness in the card beside it — v2.5's one sky, FR-SKY-9).
+ * R191 (FR-PUB-14, D-1107): a phone in the window over a pass, and a desk on
+ * the globe with the pass's arc and the satellite's facts. Until 2.13 there
+ * were three tiles — the live page on a phone, the stars page turned sideways
+ * and the pass detail on the window at a laptop (R128, R153); 2.14's desk is
+ * one sky on the globe, so the desk tile is `sky-pass-facts` and the sideways
+ * phone left the picture (the stars page on a phone did not change in 2.14).
  */
 export const SOURCES = [
   {
-    // R80: the set's `live` screen is `live-watching` since v2.0 split the live page into
-    // its two states (FR-WATCH-9 f). Watching is the right half of that split for a first
-    // picture: it is the page as it opens, with no scrub block over the sky. R135 (FR-FLOW-14):
-    // a phone opens on the window since v2.6, following the pass that is up, so the tile is the
-    // pass among the stars and no longer the braille dome; the caption says what it shows. R145 (FR-TONIGHT-6):
-    // since v2.7 the tile also carries the shown time, the context line, the time track and the three taps.
-    // R149 (FR-FULL-1, FR-FULL-2): since v2.8 the tile is all sky, `[ ← ]` and the shown time over it and `[ controls ]` at its foot.
+    // R80, R135, R145, R149: the live page as a phone opens it — on the window, following the pass
+    // that is up, all sky, the shown time over it and `[ controls ]` at its foot.
     file: 'v1-live-watching-390-dark-en.png',
-    caption: 'The sky over you, the pass among the stars',
+    caption: 'On a phone: the window on the pass that is up',
     w: 390,
     h: 844,
     slot: 'main',
   },
   {
-    // R153 (FR-GYRO-6, FR-GYRO-9; PLAN D-960): v2.9 retires the sky screen this tile was, so the phone turned is the
-    // stars page now — the constellations over the place, the facing row and the layers in the rail beside them.
-    file: 'v1-stars-844-dark-en.png',
-    caption: 'The stars tonight, on a phone turned sideways',
-    w: 844,
-    h: 390,
-    slot: 'stack',
-  },
-  {
-    // R128 (FR-SKY-9): v2.5 draws one sky in every view, so the laptop tile is the pass detail on the
-    // window — the pass among the stars it crosses, with its time, peak and brightness in the card beside
-    // it — where it was the home page; the same size, so the layout does not move.
-    file: 'v1-guide-window-1280-dark-en.png',
-    caption: 'And on a laptop: the pass among the stars, when, how high, how bright',
+    // R191 (FR-PUB-14): the pass detail at a desk on the globe — the pass's arc among the stars, its
+    // times in the rail and `This satellite` under them (FR-WIDE-3, FR-FACT-2).
+    file: 'v1-sky-pass-facts-1280-dark-en.png',
+    caption: "At a desk: the globe, the pass's arc and the satellite's facts",
     w: 1280,
     h: 800,
     slot: 'stack',
@@ -157,8 +140,20 @@ export interface Layout {
   gap: number;
   /** The standing phone's width; every other box is derived from it. */
   mainWidth: number;
+  /** R191: the column's width when it must not take all the room beside the phone (the preview's desk tile); absent, it does. */
+  stackWidth?: number;
   title: boolean;
 }
+
+/**
+ * The hero's sheet: the tiles set the height, so only the width is fixed. The
+ * padding and the gaps are as small as they can be — GitHub renders a README
+ * image at about 880 px, so every pixel not spent on a screen is a pixel of
+ * text the reader loses to the downscale. R191: the phone is 300 px wide with
+ * two tiles, so the desk beside it gets 840 px and the two columns are near
+ * one height (at 400 the phone stood twice the desk's height).
+ */
+export const HERO_LAYOUT: Layout = { width: HERO.width, height: null, pad: 20, gap: 20, mainWidth: 300, title: false };
 
 /** One tile, placed. */
 export interface Placed {
@@ -181,8 +176,9 @@ export function geometry(layout: Layout, sources: readonly Source[] = SOURCES): 
   if (stacked.length === 0) throw new Error('the sheet needs at least one stacked tile');
 
   const inner = layout.width - 2 * layout.pad;
-  const stackWidth = inner - layout.gap - layout.mainWidth;
-  if (stackWidth <= 0) throw new Error(`mainWidth ${String(layout.mainWidth)} leaves no room beside it in ${String(layout.width)} px`);
+  const room = inner - layout.gap - layout.mainWidth;
+  const stackWidth = Math.min(room, layout.stackWidth ?? room);
+  if (room <= 0 || stackWidth <= 0) throw new Error(`mainWidth ${String(layout.mainWidth)} leaves no room beside it in ${String(layout.width)} px`);
 
   const place = (source: Source, width: number): Placed => ({ source, width, height: Math.round((width * source.h) / source.w) });
   const main = place(only, layout.mainWidth);
@@ -195,14 +191,25 @@ export function geometry(layout: Layout, sources: readonly Source[] = SOURCES): 
 }
 
 /**
- * The widest standing phone that keeps the sheet inside `ceiling`. The social
- * preview is 1280 x 640 whatever is in it, so the tiles are sized down to that
- * rather than the frame cropping whatever overflowed it.
+ * The widest standing phone and the widest column beside it that keep the sheet
+ * inside `ceiling`. The social preview is 1280 x 640 whatever is in it, so the
+ * tiles are sized down to that rather than the frame cropping whatever
+ * overflowed it. R191: each column is fitted to the height on its own — a desk
+ * tile in the column is 0.625 of its width tall, so letting it take all the
+ * room beside the phone makes it taller the narrower the phone is, and no
+ * phone width fits — and the row is centred in the width left over.
  */
-function fitMainWidth(layout: Layout, ceiling: number, sources: readonly Source[]): number {
-  const widest = Math.floor((layout.width - 2 * layout.pad - layout.gap) / 2);
+function fitWidths(layout: Layout, ceiling: number, sources: readonly Source[]): Layout {
+  const inner = layout.width - 2 * layout.pad;
+  const widest = Math.floor((inner - layout.gap) / 2);
+  const fits = (candidate: Layout): boolean => geometry(candidate, sources).height <= ceiling;
   for (let width = widest; width >= 80; width -= 2) {
-    if (geometry({ ...layout, mainWidth: width }, sources).height <= ceiling) return width;
+    const room = inner - layout.gap - width;
+    // The phone alone must fit: a column of width 1 is never the taller one.
+    if (!fits({ ...layout, mainWidth: width, stackWidth: 1 })) continue;
+    for (let column = room; column >= 80; column -= 2) {
+      if (fits({ ...layout, mainWidth: width, stackWidth: column })) return { ...layout, mainWidth: width, stackWidth: column };
+    }
   }
   throw new Error(`no tile width fits ${String(sources.length)} captures into ${String(layout.width)} x ${String(ceiling)}`);
 }
@@ -273,12 +280,7 @@ export async function main(): Promise<void> {
   const urls = new Map(SOURCES.map((source) => [source.file, pathToFileURL(join(SCREENSHOTS, source.file)).href]));
   const browser = await chromium.launch();
   try {
-    // The hero: the tiles set the height, so only the width is fixed. The
-    // padding and the gaps are as small as they can be — GitHub renders a
-    // README image at about 880 px, so every pixel not spent on a screen is a
-    // pixel of text the reader loses to the downscale.
-    const hero: Layout = { width: HERO.width, height: null, pad: 20, gap: 20, mainWidth: 400, title: false };
-    await shoot(browser, scratch, 'hero.html', compose(hero, urls), HERO.path);
+    await shoot(browser, scratch, 'hero.html', compose(HERO_LAYOUT, urls), HERO.path);
 
     // The preview: 1280 x 640 exactly, which is what GitHub asks for, so the
     // sheet is given both and the standing phone is sized down until the title
@@ -286,7 +288,7 @@ export async function main(): Promise<void> {
     // `previewSources`.
     const chosen = previewSources();
     const preview: Layout = { width: PREVIEW.width, height: PREVIEW.height, pad: 24, gap: 16, mainWidth: 0, title: true };
-    const fitted: Layout = { ...preview, mainWidth: fitMainWidth(preview, PREVIEW.height, chosen) };
+    const fitted = fitWidths(preview, PREVIEW.height, chosen);
     await shoot(browser, scratch, 'preview.html', compose(fitted, urls, chosen), PREVIEW.path);
   } finally {
     await browser.close();
