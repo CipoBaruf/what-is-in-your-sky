@@ -269,6 +269,15 @@ describe('a frame’s attributes (FR-GLOBE-2, FR-GLOBE-13)', () => {
 });
 
 describe('the names (FR-GLOBE-11, D-1041)', () => {
+  it('R185 (FR-NAME-2): makes a name node for every star the one label rule names — the 33 designations among them', () => {
+    const { r } = mount();
+    const nodes = [...r.svg.querySelectorAll<SVGTextElement>('[data-star-name]')].map((n) => Number(n.getAttribute('data-star-name')));
+    const designations = nodes.filter((i) => catalog.name[i] === '');
+    expect(designations).toHaveLength(33);
+    expect(designations.map((i) => catalog.desig[i])).toContain('γ² Vel');
+    expect(nodes.every((i) => catalog.name[i] !== '' || (catalog.mag[i] ?? 9) < 3)).toBe(true);
+  });
+
   it('draws star names and figure names with the layer on, none with it off, and the bodies’ names as fixed labels', () => {
     const { r } = mount();
     // Thirteen named stars are on the near side at the opening view; D-755's rule (no name over a mark, a line or another name) keeps about eight.

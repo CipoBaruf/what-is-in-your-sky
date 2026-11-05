@@ -6,7 +6,7 @@ import { useLocale } from '../../../../../i18n/useT';
 import { useStarsPageT, type StarsPageMessages } from '../../../../../i18n/starsPageT';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
-import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
+import { figureName, starLabelKind, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { whenIdle } from '../../../../screens/whenIdle';
@@ -22,7 +22,8 @@ import { HORIZON_BAND_STEPS, horizonBand, stripOpacity, tintStep, type TintStep 
 import styles from './SkyWindow.module.css';
 import { bloomed, collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, markFor, planetMarkFor, SIZE_PX, type CharMark, type Mark, type Point, type StarGlyph } from './starGlyphs';
 import glyphStyles from './starGlyphs.module.css';
-import { ADVANCE_EM, placeLabels, textWidth, type Box, type FigureLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
+import { ADVANCE_EM, placeLabels, textWidth, type Box, type FigureLabel, type FixedLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
+import { PLANET_MARK_PX } from '../globe/constants';
 import type { RotationListener } from './useViewRotation';
 
 /**
@@ -101,7 +102,15 @@ export interface StarFieldProps {
   lineHits?: { current: readonly (LabelSegment | null)[] };
   /** R127 (FR-SKY-11): the landmark star to ring and name, a catalogue index, or `null` (`layers.ts`'s `landmarkFor`). */
   landmark?: number | null;
+  /** R185 (FR-NAME-3): on wide, each planet is a disc of `PLANET_MARK_PX` in its own token, named with `names` off too. */
+  planetDiscs?: boolean;
 }
+
+/** R185 (FR-NAME-3; D-1113): a planet disc as the placer's mark (its diameter as an em box), and its name's size, a type step over a star name's. */
+const PLANET_DISC_MARK_PX = (2 * PLANET_MARK_PX) / ADVANCE_EM;
+const PLANET_NAME_PX = 14;
+/** The labels `labelInput` hands the placement, with the planets' names as fixed ones (R185). */
+type FieldLabels = LabelInput & { fixed?: readonly FixedLabel[] };
 
 /** R127 (D-832): the catalogue as the name readers take it; a catalogue without the Spanish tables (a test's) reads in English. */
 function catalogNames(catalog: StarFieldData['catalog']): StarNamesSource {
@@ -180,7 +189,7 @@ export interface Prepared {
   figureRanges: readonly (readonly [number, number])[];
   /** Each figure's name in the reader's language (D-832). */
   figureNames: readonly string[];
-  /** The stars that may be named, brightest first: every star to `MAX_NAMED_MAG` (the frame cuts to its row's). */
+  /** The stars that may be named, brightest first: `starLabelKind` at `MAX_NAMED_MAG` (the frame cuts the proper names to its row's; R185, FR-NAME-2). */
   nameStars: readonly number[];
   /** Each named star's name in the reader's language, by catalogue index. */
   starNames: ReadonlyMap<number, string>;
@@ -217,10 +226,10 @@ export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
     return range;
   });
   const figureNames = catalog.figures.map((figure) => figureLabelName(names, figure.con, figure.part, lang));
-  const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
   const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
-  // FR-LOOK-9: by designation where the star has no proper name (`starName` falls back to it).
-  const nameStars = order.filter((k) => k < n && mag(k) <= MAX_NAMED_MAG);
+  // FR-LOOK-9, R185 (FR-NAME-2): a proper name to the faintest row's magnitude, a designation brighter than `BAYER_LABEL_MAG`.
+  const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
+  const nameStars = order.filter((k) => k < n && starLabelKind(labelSource, k, MAX_NAMED_MAG) !== null);
   const starNames = new Map(nameStars.map((i) => [i, starName(names, i, lang)]));
   return { marks, planetMarks, bloomStars, frame, haze, segments, figureRanges, figureNames, nameStars, starNames, order };
 }
@@ -432,7 +441,7 @@ function drawnKey(frame: FieldFrame): string {
  * middle of its drawn segment, so its label stands beside the line as a
  * star's beside its glyph.
  */
-export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null, landmark: number | null = null, lang?: Locale, nameMag: number = MAX_NAMED_MAG): LabelInput {
+export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null, landmark: number | null = null, lang?: Locale, nameMag: number = MAX_NAMED_MAG, planetNames: readonly string[] | null = null): FieldLabels {
   const { catalog, positions, layers } = field;
   const n = catalog.mag.length;
   const marks: LabelMark[] = [];
@@ -440,8 +449,16 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
   frame.drawn.forEach((p, k) => {
     if (!p) return;
     markOf.set(k, marks.length);
-    marks.push({ x: p.x, y: p.y, sizePx: sizeOf(prepared, n, k) });
+    marks.push({ x: p.x, y: p.y, sizePx: planetNames !== null && k >= n ? PLANET_DISC_MARK_PX : sizeOf(prepared, n, k) });
   });
+  // R185 (FR-NAME-3): with the discs, each drawn planet's name is a fixed label — placed before every star name, never dropped.
+  const fixed: FixedLabel[] = [];
+  if (planetNames !== null && layers.planets) {
+    positions.planets.forEach((_, k) => {
+      const mark = markOf.get(n + k);
+      if (mark !== undefined) fixed.push({ key: k, mark, text: planetNames[k] ?? '', sizePx: PLANET_NAME_PX });
+    });
+  }
   const segments = frame.lines.filter((line): line is LabelSegment => line !== null);
   // A star whose glyph the collision hid is still named when it is the labelled one (a row of `In this field` can
   // name it) or the landmark, at its own point.
@@ -472,11 +489,12 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
   const stars: MarkLabel[] = [];
   const figures: FigureLabel[] = [];
   if (layers.names) {
-    // FR-LOOK-9: named to the field's row — the stars are brightest first, so the first past the row ends the walk.
+    // FR-LOOK-9: a proper name to the field's row; R185 (FR-NAME-2): a designation at every row, placed after them.
+    const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
     for (const i of prepared.nameStars) {
-      if ((catalog.mag[i] ?? 0) > nameMag) break;
+      const kind = starLabelKind(labelSource, i, nameMag);
       const mark = markOf.get(i);
-      if (mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '' });
+      if (kind !== null && mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '', ...(kind === 'designation' ? { designation: true } : {}) });
     }
     if (layers.figures) {
       catalog.figures.forEach((figure, f) => {
@@ -496,7 +514,7 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
       });
     }
   }
-  return { width: view.width, height: view.height, marks, segments, compass: frame.compass, named, landmark: landmarkLabel, stars, figures, ...(lang === undefined ? {} : { lang }) };
+  return { width: view.width, height: view.height, marks, segments, compass: frame.compass, named, landmark: landmarkLabel, stars, figures, ...(lang === undefined ? {} : { lang }), ...(fixed.length > 0 ? { fixed } : {}) };
 }
 
 /** The nodes the per-rotation pass writes, found once per node set. */
@@ -510,7 +528,9 @@ interface Nodes {
   deep: SVGCircleElement[];
   lines: SVGLineElement[];
   stars: (SVGTextElement | SVGCircleElement)[];
-  planets: SVGTextElement[];
+  planets: (SVGTextElement | SVGCircleElement)[];
+  /** R185 (FR-NAME-3): the planets' names beside their discs, on wide. */
+  planetNames: SVGTextElement[];
   starNames: Map<number, SVGTextElement>;
   figureNames: SVGTextElement[];
   label: SVGTextElement | null;
@@ -528,7 +548,8 @@ const collect = (group: SVGGElement): Nodes => ({
   deep: [...group.querySelectorAll<SVGCircleElement>('[data-deep-pool] > circle')],
   lines: [...group.querySelectorAll<SVGLineElement>('[data-figures] > line')],
   stars: [...group.querySelectorAll<SVGTextElement | SVGCircleElement>('[data-marks] > *')],
-  planets: [...group.querySelectorAll<SVGTextElement>('[data-planet-marks] > text')],
+  planets: [...group.querySelectorAll<SVGTextElement | SVGCircleElement>('[data-planet-marks] > *')],
+  planetNames: [...group.querySelectorAll<SVGTextElement>('[data-planet-name]')],
   starNames: new Map([...group.querySelectorAll<SVGTextElement>('[data-star-name]')].map((node) => [Number(node.dataset.starName), node])),
   figureNames: [...group.querySelectorAll<SVGTextElement>('[data-figure-name]')],
   label: group.querySelector<SVGTextElement>('[data-star-label]'),
@@ -642,8 +663,8 @@ function drawDeep(nodes: Nodes, held: Int32Array, drawn: readonly DeepDrawn[], d
 }
 
 /** The names' write: every name node hidden unless the placement drew it, the figures' words where they changed. */
-function drawNames(nodes: Nodes, input: LabelInput | null): void {
-  const placed = input ? placeLabels(input) : [];
+function drawNames(nodes: Nodes, input: FieldLabels | null): void {
+  const placed = input ? placeLabels(input, input.fixed ? { fixed: input.fixed } : {}) : [];
   const at = (node: SVGTextElement | null | undefined, x: number, y: number): void => {
     if (!node) return;
     node.setAttribute('x', fmt(x));
@@ -652,7 +673,7 @@ function drawNames(nodes: Nodes, input: LabelInput | null): void {
   };
   const shown = new Set<Element>();
   for (const label of placed) {
-    const node = label.kind === 'named' ? nodes.label : label.kind === 'landmark' ? nodes.landmarkName : label.kind === 'star' ? nodes.starNames.get(label.key) : nodes.figureNames[label.key];
+    const node = label.kind === 'named' ? nodes.label : label.kind === 'landmark' ? nodes.landmarkName : label.kind === 'star' ? nodes.starNames.get(label.key) : label.kind === 'fixed' ? nodes.planetNames[label.key] : nodes.figureNames[label.key];
     if (!node) continue;
     // A figure's words change with the placement; the landmark's with the star (R127), written here so the node is one.
     if ((label.kind === 'figure' || label.kind === 'landmark') && node.textContent !== label.text) node.textContent = label.text;
@@ -666,6 +687,7 @@ function drawNames(nodes: Nodes, input: LabelInput | null): void {
   hide(nodes.landmarkName);
   for (const node of nodes.starNames.values()) hide(node);
   for (const node of nodes.figureNames) hide(node);
+  for (const node of nodes.planetNames) hide(node);
 }
 
 /** D-752: the measurement landed after the nodes were made — their `dx`/`dy` are written once more, and never again. */
@@ -695,7 +717,7 @@ function Dot({ mark, ...rest }: { mark: Mark } & Record<`data-${string}`, string
   return <circle data-tone={mark.tone} r={mark.r} {...(mark.opacity === 1 ? {} : { fillOpacity: mark.opacity })} visibility="hidden" {...rest} />;
 }
 
-export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits, lineHits, landmark = null }: StarFieldProps) {
+export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits, lineHits, landmark = null, planetDiscs = false }: StarFieldProps) {
   const group = useRef<SVGGElement>(null);
   /** FR-LOOK-9: which deep star each pool node holds, kept across effects so a tick rewrites a node's dot only when its star changes. */
   const held = useRef<Int32Array | null>(null);
@@ -706,6 +728,9 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const measuredAtRender = inkMeasured();
   const p = useStarsPageT();
   const label = labelled === null ? null : labelText(field, prepared, labelled, p, locale);
+  // R185 (FR-NAME-3): the planets' names in the reader's language where the discs are drawn; `null` keeps the glyphs.
+  const planetKey = planetDiscs ? field.positions.planets.map((planet) => p.planets[planet.body]).join('|') : null;
+  const planetNames = useMemo(() => (planetKey === null ? null : planetKey.split('|')), [planetKey]);
   const gradientId = `${useId().replaceAll(':', '')}`;
   // FR-LOOK-2: the surface's step from the Sun's altitude the positions carry; the deep stars draw at full night only (FR-STAR-13).
   const tint: TintStep = tintStep(field.positions.sunAltDeg);
@@ -777,9 +802,9 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       if (placedAt !== null && drawnSet === placedSet && converged(placedAt, rotation)) return;
       placedAt = rotation;
       placedSet = drawnSet;
-      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale, detail.nameMag));
+      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale, detail.nameMag, planetNames));
     });
-  }, [subscribe, view, field, prepared, preparedDeep, tint, labelled, label, hits, lineHits, landmark, locale]);
+  }, [subscribe, view, field, prepared, preparedDeep, tint, labelled, label, hits, lineHits, landmark, locale, planetNames]);
 
   // D-752: the offsets are measured once, after the fonts are ready. Nodes made before that carry 0 and are
   // written once when the measurement lands; nodes made after it carry the measured values from their render.
@@ -854,10 +879,24 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
         ))}
       </g>
       <g data-planet-marks {...hidden(layers.planets)}>
-        {positions.planets.map((planet, k) => (
-          <Glyph key={planet.body} mark={prepared.planetMarks[k] ?? planetMarkFor(planet.mag)} data-planet={planet.body} />
-        ))}
+        {positions.planets.map((planet, k) =>
+          planetDiscs ? (
+            <circle key={planet.body} className={styles.planetDisc} data-planet={planet.body} data-tone={`chart-planet-${planet.body.toLowerCase()}`} r={PLANET_MARK_PX} visibility="hidden" />
+          ) : (
+            <Glyph key={planet.body} mark={prepared.planetMarks[k] ?? planetMarkFor(planet.mag)} data-planet={planet.body} />
+          ),
+        )}
       </g>
+      {/* R185 (FR-NAME-3): on wide the planets' names, apart from the names layer: they are drawn with it off. */}
+      {planetDiscs && (
+        <g data-planet-names {...hidden(layers.planets)}>
+          {positions.planets.map((planet, k) => (
+            <text key={planet.body} className={styles.planetName} data-planet-name={k} visibility="hidden">
+              {planetNames?.[k]}
+            </text>
+          ))}
+        </g>
+      )}
       {/* R127 (FR-SKY-11): the landmark's ring over the marks, written per rotation like them; its name is placed with the names below. */}
       <circle className={styles.landmarkRing} data-landmark-ring={landmark ?? ''} r={LANDMARK_RING_PX} visibility="hidden" />
       {/* R116: the names, over the marks; placed by `starLabels`, written by ref like the marks. */}

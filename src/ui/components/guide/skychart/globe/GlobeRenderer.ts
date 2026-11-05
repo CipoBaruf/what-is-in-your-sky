@@ -5,7 +5,7 @@ import { STARS_PAGE_CATALOGS } from '../../../../../i18n/starsPageT';
 import { CATALOGS } from '../../../../../i18n/useT';
 import { compassPoint, type CompassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
-import { figureName, PLANETS, starName } from '../../../../../lib/skyStars';
+import { figureName, PLANETS, starLabelKind, starName } from '../../../../../lib/skyStars';
 import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkOffsetPx } from '../window/inkOffsets';
@@ -130,9 +130,9 @@ const MARK_WORD_DY = -12;
 const RIM_DEPTH = 0.02;
 /** A body's disc as the placer's mark: the disc's diameter as an em box of `ADVANCE_EM` cells. */
 const DISC_MARK_PX = MOON_DISC_PX / ADVANCE_EM;
-/** FR-NAME-3: a planet's disc as the placer's mark, and its name's box widened by the type step over a star name (14 on 12). */
+/** FR-NAME-3: a planet's disc as the placer's mark, and its name's size, the type step over a star name's (R185: measured at it, D-1113). */
 const PLANET_DISC_MARK_PX = (2 * PLANET_MARK_PX) / ADVANCE_EM;
-const PLANET_NAME_SCALE = 14 / 12;
+const PLANET_NAME_PX = 14;
 /** The limb point a degree from the Moon toward the Sun (`MoonDisc`'s `LIMB_STEP_DEG`), radians. */
 const LIMB_RAD = Math.PI / 180;
 /** The horizon's samples. */
@@ -340,6 +340,8 @@ export class GlobeRenderer {
   private readonly horizon: SVGPathElement;
   private readonly glyphs: GlyphStar[] = [];
   private readonly starNames = new Map<number, SVGTextElement>();
+  /** R185 (FR-NAME-2): the named stars labelled by their designation, placed after the proper names. */
+  private readonly designations = new Set<number>();
   private readonly figureNodes: FigureNode[] = [];
   private readonly bodies: BodyNode[] = [];
   private readonly moonLit: SVGPathElement;
@@ -407,10 +409,16 @@ export class GlobeRenderer {
         const { dx, dy } = inkOffsetPx(mark.glyph, mark.px);
         const node = text(cls('mark'), mark.glyph, { 'data-star': i, 'data-glyph': mark.glyph, 'data-px': mark.px, 'data-tone': mark.tone, 'font-size': mark.px, dx, dy, visibility: 'hidden' }, stars);
         this.glyphs.push({ index: i, node, px: mark.px });
-        if (mag <= NAMED_MAG && catalog.name[i]) this.starNames.set(i, text(cls('starName'), '', { 'data-star-name': i, visibility: 'hidden' }, names));
       } else {
         this.bucketFor(mark.tone, mark.r).dirs.push(this.dirs[3 * i] ?? 0, this.dirs[3 * i + 1] ?? 0, this.dirs[3 * i + 2] ?? 0);
       }
+    }
+    // R185 (FR-NAME-2): the one label rule — a proper name to `NAMED_MAG`, a designation brighter than `BAYER_LABEL_MAG` (a dot too).
+    for (let i = 0; i < n; i += 1) {
+      const kind = starLabelKind(catalog, i, NAMED_MAG);
+      if (kind === null) continue;
+      this.starNames.set(i, text(cls('starName'), '', { 'data-star-name': i, visibility: 'hidden' }, names));
+      if (kind === 'designation') this.designations.add(i);
     }
     for (const bucket of this.buckets) bucket.bright = bucket.dirs.length;
     catalog.figures.forEach((figure, f) => {
@@ -740,9 +748,9 @@ export class GlobeRenderer {
       markOf.set(b.slot, marks.length);
       const planet = b.target.kind === 'planet';
       marks.push({ x, y, sizePx: planet ? PLANET_DISC_MARK_PX : DISC_MARK_PX });
-      // FR-NAME-3: a planet's name is placed with `names` off too; its box is padded to the larger type it is drawn in.
+      // FR-NAME-3: a planet's name is placed with `names` off too, measured at the larger type it is drawn in.
       const word = b.name.textContent ?? '';
-      if (planet || s.layers.names) fixed.push({ key: b.slot, mark: marks.length - 1, text: planet ? word.padEnd(Math.ceil(word.length * PLANET_NAME_SCALE)) : word });
+      if (planet || s.layers.names) fixed.push({ key: b.slot, mark: marks.length - 1, text: word, ...(planet ? { sizePx: PLANET_NAME_PX } : {}) });
     }
 
     // R184 (FR-WIDE-3, FR-WIDE-7): the passes, their keys, the highlighted one's ticks and arrow.
@@ -800,8 +808,14 @@ export class GlobeRenderer {
     if (s.layers.names) {
       // Brightest first: the map was filled in catalogue order, which is magnitude order (D-748).
       for (const [i, node] of this.starNames) {
-        const mark = markOf.get(i);
-        if (mark !== undefined) starLabels.push({ key: i, mark, text: node.textContent ?? '' });
+        let mark = markOf.get(i);
+        const hit = hits[i];
+        if (mark === undefined && hit) {
+          // R185: a dot star's designation, at a mark of no size at its point.
+          mark = marks.length;
+          marks.push({ x: hit.x, y: hit.y, sizePx: 0 });
+        }
+        if (mark !== undefined) starLabels.push({ key: i, mark, text: node.textContent ?? '', ...(this.designations.has(i) ? { designation: true } : {}) });
       }
       if (s.layers.figures) {
         for (const f of this.figureNodes) {
