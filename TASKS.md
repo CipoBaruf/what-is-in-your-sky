@@ -235,7 +235,7 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 5
 
-- [ ] **R190 — Your sky as you left it: every page reads and writes the kept choices, opens at now, and the privacy note closes for good**
+- [x] **R190 — Your sky as you left it: every page reads and writes the kept choices, opens at now, and the privacy note closes for good**
   - **Lane:** data
   - **Tier:** standard
   - **Turns:** 500
@@ -250,6 +250,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Deletes:** the tests that pin the stars page's view or the faint stars resetting at each open (FR-PHONE-7, FR-GLOBE-10 amended).
   - **Captures:** none added; files showing the privacy line move by its `[ × ]`.
   - **Out of scope:** the release (R191).
+  - **Done note:** the settings page keeps its footer's privacy part, plain, rather than a line of its own (that broke FR-SET-2's fit; D-1129), and the desk footer's one-line fold moved to 1176/1195 px for the `[ × ]`.
   - **Note (from R186):** on the live page, crossing the 963/964 px breakpoint re-mounts the page (main kept one tree), so state not in the URL or the kept choices is lost; keep one tree across the breakpoint or carry that state, with a test that resizes across it.
   - **Done when:**
     - `keep.spec.ts` at 390 × 844 and 1280 × 800: make every choice, reload, find it; scrub, turn, pick a saved place, reload: now, the opening aim, the reader's place; an empty store opens on FR-KEEP-3's table; close the note on the home, reload, the stars page has none, the settings page has the sentence.
