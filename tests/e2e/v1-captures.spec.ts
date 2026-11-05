@@ -1196,6 +1196,18 @@ const REACH: Record<string, Reach> = {
     await blurFocus(page);
   },
 
+  /** R187 (FR-WIDE-4, FR-WIDE-8): the live page one `[ scrub ]` on — the time control with the cloud band on its overview and stripe. */
+  async 'sky-clouds'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    await enterScrubbing(page);
+    await page.clock.runFor(1000);
+    const time = page.getByTestId('time-control');
+    for (const row of ['stripe-overview', 'time-stripe', 'playback-row']) await expect(time.getByTestId(row)).toBeVisible();
+    for (const row of ['stripe-overview', 'time-stripe']) await expect(time.getByTestId(row).locator('[data-row="clouds"]')).toBeAttached();
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
   /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */
   async 'stars-globe'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);

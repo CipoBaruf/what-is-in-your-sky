@@ -56,6 +56,7 @@
     "stars-globe-named": {"route": "stars", "extras": ["tests/e2e/globeHelpers.ts"]},
     "sky-live-globe": {"route": "live", "extras": []},
     "sky-pass-globe": {"route": "detail", "extras": []},
+    "sky-clouds": {"route": "live", "extras": []},
     "stars-whole-following": {"route": "stars", "extras": []},
     "stars-following": {"route": "stars", "extras": []},
     "stars-sheet": {"route": "stars", "extras": []},

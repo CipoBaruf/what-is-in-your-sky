@@ -211,6 +211,9 @@
  * the dome only by choice, so the wide live and pass-detail screens are shot with `Dome` seeded as the reader's saved
  * view, and two screens join at 1280: `sky-live-globe` and `sky-pass-globe`, the live page and the pass detail as a
  * fresh desk opens them, on the globe with the passes' arcs. The set is 444 files.
+ *
+ * R187 (FR-WIDE-4, FR-WIDE-8; D-1100): the time control is one on the three desk pages, and `sky-clouds` joins at 1280:
+ * the live page scrubbing, its overview and stripe with the cloud band along their foot. The set is 448 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -396,6 +399,11 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'sky-pass-globe',
     widths: [1280],
     what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
+  },
+  {
+    name: 'sky-clouds',
+    widths: [1280],
+    what: "The live page at the set's instant one `[ scrub ]` on (FR-WIDE-4, FR-WIDE-8, R187): the rail's `Time` group — the overview, the stripe and the playback row — with the cloud band `CLOUD_BAND_PX` high along the foot of the overview and the stripe, one cell per forecast hour shaded in the `--chart-cloud-*` tokens, clear and an hour with no forecast left blank.",
   },
   {
     name: 'stars-whole-following',
