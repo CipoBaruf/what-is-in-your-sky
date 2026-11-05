@@ -1,0 +1,13 @@
+/* R187 (FR-WIDE-8, D-1100): the cloud band's three shades, some to overcast, in
+   the desk's cloud tokens; clear and a gap are not drawn. */
+.some {
+  fill: var(--chart-cloud-1);
+}
+
+.mostly {
+  fill: var(--chart-cloud-2);
+}
+
+.overcast {
+  fill: var(--chart-cloud-3);
+}

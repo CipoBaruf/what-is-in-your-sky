@@ -164,7 +164,7 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 3
 
-- [ ] **R187 — One time control: the live page's overview, stripe and playback on all three desk pages, the stars page's day steps under it, the pass's times as buttons, the clouds on the stripe**
+- [x] **R187 — One time control: the live page's overview, stripe and playback on all three desk pages, the stars page's day steps under it, the pass's times as buttons, the clouds on the stripe** — the stars page's time-lapse is the playback row's, shown while the instant is held (D-1122); the pass detail's times are buttons on wide, where the time control is (D-1123).
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 500

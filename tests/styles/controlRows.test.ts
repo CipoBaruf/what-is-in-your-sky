@@ -47,7 +47,7 @@ import { IDLE_PASSES } from '../../src/state/slices/passes';
 import { fixtureRecords } from '../support/catalogFixtures';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
-import { HiddenToggle } from '../../src/ui/components/live/PlaybackControls';
+import { HiddenToggle } from '../../src/ui/components/sky/time/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { ToggleGroup } from '../../src/ui/components/primitives/ToggleGroup';
@@ -94,7 +94,7 @@ const CSS = [
   'src/ui/components/primitives/BracketLink.module.css',
   'src/ui/components/primitives/OptionToggle.module.css',
   'src/ui/components/common/ShareButton.module.css',
-  'src/ui/components/live/PlaybackControls.module.css',
+  'src/ui/components/sky/time/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
   'src/ui/screens/Settings.module.css',
   'src/ui/components/location/UseMyLocation.module.css',
@@ -590,7 +590,7 @@ describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) 
 
 /**
  * R170 (FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-16; D-1035): the wide stars page's globe rail — the view row
- * `[ Window ] Globe`, the clock line, the steps, `[ now ]` with the three speeds, the turn and the layer rows with
+ * `[ Window ] Globe`, R187's `[ now ]` with the four steps under the time control, the turn and the layer rows with
  * `[ ] faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
  * cut at the rail's width with an ellipsis (FR-GLOBE-9) and are not counted.
  */
@@ -615,8 +615,7 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
   });
 
   it.each([
-    ['the steps', () => screen.getByTestId('globe-steps')],
-    ['[ now ] and the speeds', () => screen.getByTestId('globe-speeds')],
+    ['[ now ] and the steps', () => screen.getByTestId('globe-steps')],
     ['the turn', () => screen.getByTestId('globe-turn-row')],
     ['the first layer row', () => screen.getAllByTestId('stars-layers-row')[0] as Element],
     ['the second layer row, with faint', () => screen.getAllByTestId('stars-layers-row')[1] as Element],
@@ -624,14 +623,6 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
     const row = find();
     const cells = rowCells(row, table);
     expect(cells, `${name} in ${locale}: ${rowParts(row, table).join(' | ')}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
-  });
-
-  it('the clock line, with its chip', () => {
-    const line = screen.getByTestId('globe-clock').textContent ?? '';
-    expect(line).toMatch(/^.+: \d\d:\d\d:\d\d GMT[−-]3 · \d{4}-\d\d-\d\d · .+$/);
-    // The accessible prefix is visually hidden; the drawn line is what follows it.
-    const drawn = line.slice(line.indexOf(': ') + 2);
-    expect([...drawn].length, drawn).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 });
 

@@ -86,6 +86,16 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
 - **D-1121 — The perf numbers on the live page.** *(R186)*
   (FR-WIDE-11, D-1114.) `globe-perf.spec.ts` measures the live page's three passes (`tests/e2e/threePasses.ts` seeds them), so `window.__globeHarness` goes. Measured (Apple silicon, 4× CPU, best of three): drag 48.8 and 50.3 updates/s at 1280 × 800 and 1920 × 1080, ×3600 57.2 and 57.9.
   The `globe` row measures 16.0 KB, inside `SKY_GLOBE_KB`; R184's note asked to move it, but `tests/docs` pins it to v2.12's record of 15, so it stays and warns (D-1115) and the release re-sets it by D-178.
+- **D-1122 — The stars page's instant is the time control's, and holding it is scrubbing.** *(R187)*
+  (FR-WIDE-4, FR-GLOBE-7, FR-LIVE-5; D-1100.) The globe's instant is the shared `TimeControl`'s `t` (one `usePlayback` over FR-LIVE-4's span, now to now + 24 h, with `maxDays` = `GLOBE_SPAN_DAYS`).
+  A step or a press on the overview holds it and the control scrubs, so the playback row — and with it the time-lapse — is shown only while held, as on the live page. The speeds are therefore the playback row's 1×, 60×, 600×, 3600× with a play button, not FR-GLOBE-7's press-to-play `GLOBE_SPEEDS`.
+  The globe's clock row, its speeds and their catalog words are deleted and the readout is the control's, in the shown place's zone (FR-GLOBE-8).
+  `globe.spec.ts` and `globe-perf.spec.ts` step an hour on before a time-lapse so the span has room to play.
+  `shiftDays` past the span re-anchors it at the stepped day's noon (`lib/playback.ts`), clamped to `maxDays` of real time; `[ now ]` (`toNow`) restores the real span.
+- **D-1123 — The pass detail has its own `t`; its times are buttons on wide.** *(R187)*
+  (FR-WIDE-4, FR-FLOW-7; D-1100, D-1133.) The pass detail owns a `usePlayback` opened at now; `TimesRow` takes an `onSet` and renders the rise, peak and set cells as buttons (`data-set`) that `goTo` their instant, on wide only: compact has no time control to set, so its cells stay text.
+  The live page and the pass detail feed their page group the view `SkyChart` draws (`onViewHold`), so the facing slot follows a held window (R186's review).
+  Live.tsx's wide overlay branch, the fold and the overlay inventory went with D-1133; their fixme'd cases in `shapes.spec.ts` and `live-states.spec.ts` went with them.
 - **D-1124 — The bundle carries the facts the group shows, not their sources; the hover is page state that never leaves the page.** *(R188)*
   (FR-FACT-1, FR-WIDE-7, FR-WIDE-11; D-1101.) `facts.json` with a `{ source, date }` per fact would not fit `FACTS_BUDGET_KB`, so the `facts` chunk imports `components/sky/facts/factsShown.json`, the same entries without `source`; `FactsGroup.test.tsx` pins it equal to `facts.json` minus the sources, so the two cannot drift, and `facts.json` stays the audited file (FR-FACT-1's test).
   The chunk is reached through `facts.ts` so Rollup names it `facts-*.js`; `LazyFacts.tsx` loads it on the first open and, on wide, on idle after the globe's chunk; compact never calls it.

@@ -728,7 +728,7 @@ async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await page.clock.runFor(1000);
   await pinnedAt(page, CLOCK);
   await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
-  await expect(page.getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
+  await expect(page.getByTestId('stars-time').getByTestId('stripe-overview')).toHaveAttribute('aria-valuenow', String(CLOCK));
   await blurFocus(page);
   await page.mouse.move(0, 0);
 }
@@ -1212,6 +1212,18 @@ const REACH: Record<string, Reach> = {
     await blurFocus(page);
   },
 
+  /** R187 (FR-WIDE-4, FR-WIDE-8): the live page one `[ scrub ]` on — the time control with the cloud band on its overview and stripe. */
+  async 'sky-clouds'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    await enterScrubbing(page);
+    await page.clock.runFor(1000);
+    const time = page.getByTestId('time-control');
+    for (const row of ['stripe-overview', 'time-stripe', 'playback-row']) await expect(time.getByTestId(row)).toBeVisible();
+    for (const row of ['stripe-overview', 'time-stripe']) await expect(time.getByTestId(row).locator('[data-row="clouds"]')).toBeAttached();
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
   /** R188 (FR-FACT-2): `sky-pass-globe` with `This satellite` in the rail, scrolled into view. */
   async 'sky-pass-facts'(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'globe');
@@ -1315,7 +1327,7 @@ const REACH: Record<string, Reach> = {
     });
     await page.clock.runFor(FRAME_MS);
     await pinnedAt(page, CLOCK);
-    await expect(page.getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
+    await expect(page.getByTestId('stars-time').getByTestId('stripe-overview')).toHaveAttribute('aria-valuenow', String(CLOCK));
     await blurFocus(page);
     await page.mouse.move(0, 0);
   },

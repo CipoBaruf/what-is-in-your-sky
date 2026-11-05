@@ -7,9 +7,9 @@
  * shadow, both languages), then the forms that give up a word to fit, then
  * wide's three cells, unchanged.
  */
-import { render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
@@ -101,5 +101,34 @@ describe('TimesRow wide (FR-FLOW-7, unchanged)', () => {
     const cellsShown = row.querySelectorAll('[data-cell]');
     expect([...cellsShown].map((cell) => cell.getAttribute('data-cell'))).toEqual(['rise', 'peak', 'set']);
     expect(cellsShown[1]).toHaveTextContent(/^peak07:23:40 GMT-3 · 48° NNE$/);
+  });
+});
+
+afterEach(cleanup);
+
+describe('TimesRow wide with onSet (R187, FR-WIDE-4)', () => {
+  it('FR-WIDE-4: the rise, peak and set are buttons that set the page\'s time to their instant, named in both languages', () => {
+    const onSet = vi.fn();
+    const { unmount } = render(
+      <I18nProvider locale="en">
+        <TimesRow pass={PLAIN} timeZone={ZONE} onSet={onSet} />
+      </I18nProvider>,
+    );
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.map((b) => b.getAttribute('data-set'))).toEqual(['rise', 'peak', 'set']);
+    fireEvent.click(screen.getByRole('button', { name: /^Show the sky at peak, 07:23:40/ }));
+    expect(onSet).toHaveBeenCalledWith(PLAIN.peak.t);
+    unmount();
+    render(
+      <I18nProvider locale="es">
+        <TimesRow pass={PLAIN} timeZone={ZONE} onSet={onSet} />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole('button', { name: /^Mostrar el cielo a la hora de máximo, 07:23:40/ })).toBeInTheDocument();
+  });
+
+  it('draws no button on compact or without onSet', () => {
+    show(PLAIN, 'en', false);
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 });

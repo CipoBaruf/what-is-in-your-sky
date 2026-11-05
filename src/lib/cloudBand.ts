@@ -9,6 +9,9 @@ import { effectiveCloudPct } from './cloudVerdict';
 /** SPEC v2.14's constants table: the cuts between clear, some, mostly and overcast, in effective cover %. */
 export const CLOUD_STEPS = [20, 50, 80] as const;
 
+/** SPEC v2.14's constants table: the band's height under the overview row and the stripe. */
+export const CLOUD_BAND_PX = 4;
+
 export type CloudBand = 'clear' | 'some' | 'mostly' | 'overcast';
 
 const HOUR_MS = 3_600_000;

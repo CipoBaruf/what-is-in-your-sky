@@ -9,3 +9,14 @@
 .group > :global(*) {
   min-width: 0;
 }
+
+/* R187 (FR-WIDE-4): the stars page's `[ now ]` and day steps under the time control — one control row at the tap
+   height, never wrapping, as the globe's rows were (`controlRows.test.ts` counts it against the rail). */
+.steps {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+  white-space: nowrap;
+}

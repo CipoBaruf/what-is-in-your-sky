@@ -105,7 +105,7 @@ export const ui: typeof EnUi = {
   },
 
   starsHeading: 'Estrellas esta noche',
-  skyView: { view: 'Vista', facing: 'Hacia' },
+  skyView: { view: 'Vista', time: 'Hora', now: 'ahora', facing: 'Hacia' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
 
@@ -356,6 +356,7 @@ export const ui: typeof EnUi = {
     rise: 'salida',
     peak: 'máximo',
     set: 'fin',
+    showAt: (p) => `Mostrar el cielo a la hora de ${p.word}, ${p.time}`,
     row: { at: 'a', shadow: 'sombra' },
   },
 

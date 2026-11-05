@@ -60,6 +60,13 @@ export const live: typeof EnLive = {
     shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,
     stripe: 'Franja de tiempo: cuatro de las próximas 24 horas',
     overview: 'Vista de la noche',
+    clouds: {
+      band: { clear: 'despejado', some: 'algo nublado', mostly: 'mayormente nublado', overcast: 'cubierto', none: 'sin pronóstico' },
+      sentence: (parts) => `Nubes: ${parts.join(', ')}`,
+      until: (band, to) => `${band} hasta las ${to}`,
+      between: (band, from, to) => `${band} ${from}–${to}`,
+      then: (band) => `luego ${band}`,
+    },
     playback: 'Reproducción',
     play: 'Reproducir',
     pause: 'Pausa',

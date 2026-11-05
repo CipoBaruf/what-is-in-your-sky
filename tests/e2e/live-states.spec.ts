@@ -14,7 +14,6 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { backToLive, closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
-import { openParisLive } from './parisLive';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
 const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
@@ -246,54 +245,6 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
     expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(closed.box));
   });
 }
-
-/**
- * R85 (F-81, FR-CAP-5, D-549): at 1200 × 450 the watching inventory — the legend between the rail's head and
- * foot — ends on a whole row: the list's bottom edge is the bottom edge of the last entry it shows, and a
- * whole number of text rows from its top. The entries under it are counted in the `+n` line, and the header
- * row names the three times. Paris on R45's instant (`parisLive.ts`): four passes up and the Sun, more entries
- * than the rail has rows.
- */
-test('the short wide inventory ends on a whole row with a +n line, and names its times (F-81, FR-CAP-5)', async ({ page }) => {
-  // R132 (D-864): the rail's View and Facing rows leave the short wide window's list no row at 1200 × 450; the short shapes are R133's and R136's.
-  test.fixme(true, 'R132: the short wide rail leaves the inventory no row until R133/R136 re-cut the short shapes');
-  await openParisLive(page, 'shortWide', 'dark');
-  // D-1133: wide has no overlay placement.
-  await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');
-  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
-  const list = page.getByTestId('chart-legend');
-  await expect(list).toHaveAttribute('data-clip-rows', /^\d+$/);
-  const more = page.getByTestId('legend-more');
-  await expect(more).toBeVisible();
-  // D-863: no header row; each row names its own times.
-  await expect(page.getByTestId('legend-times-header')).toHaveCount(0);
-  const geometry = await list.evaluate((ol) => {
-    const box = ol.getBoundingClientRect();
-    const items = Array.from(ol.children, (li) => li.getBoundingClientRect());
-    const shown = items.filter((item) => item.top < box.bottom - 0.5);
-    return {
-      top: box.top,
-      bottom: box.bottom,
-      rowPx: parseFloat(getComputedStyle(ol).lineHeight),
-      entries: items.length,
-      shown: shown.length,
-      lastBottom: shown[shown.length - 1]?.bottom ?? box.top,
-    };
-  });
-  expect(geometry.shown, 'the list shows at least one entry').toBeGreaterThan(0);
-  expect(geometry.shown, 'and not all of them').toBeLessThan(geometry.entries);
-  expect(Math.abs(geometry.lastBottom - geometry.bottom), 'the last entry shown ends on the list’s bottom edge').toBeLessThanOrEqual(0.5);
-  const rows = (geometry.bottom - geometry.top) / geometry.rowPx;
-  expect(Math.abs(rows - Math.round(rows)), 'the list is a whole number of rows').toBeLessThanOrEqual(0.02);
-  await expect(more).toHaveText(`+${String(geometry.entries - geometry.shown)} more`);
-  // The line stays inside the box the rail gives the list: the inventory is what the rail leaves, not more.
-  const moreBox = await more.boundingBox();
-  const scrollBox = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
-  if (!moreBox || !scrollBox) throw new Error('the inventory is not laid out');
-  expect(moreBox.y + moreBox.height).toBeLessThanOrEqual(scrollBox.y + scrollBox.height + 0.5);
-  // Each row's times are named, drawn and read (FR-FLOW-13, V26-13); the inventory keeps rise and end (D-863).
-  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d\s*·\s*end \d\d:\d\d:\d\d \S+/);
-});
 
 /**
  * R85 (FR-COMP-7, F-82) → R148 (FR-FULL-2, FR-FULL-4): at 360 × 640 in Spanish `[ ← ]` heads the sky with the shown

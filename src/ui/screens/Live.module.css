@@ -56,13 +56,6 @@
   }
 }
 
-/* R48 (FR-TRAJ-4, FR-TRAJ-5): the readout, the stripe and the stepping row, one block. */
-.stripeBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 /* R59 (FR-LIVE-7 as amended v1.2, F-55, D-281): one spacing token for the rows under the box on compact; the
    layout's own gaps are its slots' (`SkyViewLayout.module.css`). */
 .page[data-compact='true'] {
@@ -281,64 +274,6 @@
    the half row its hit boxes overhang (D-913) inside its own box, so nothing spills past the timeline slot. */
 .page[data-shape='landscape-phone'] .tapsRow {
   padding-block: calc((var(--tap) - var(--row)) / 2);
-}
-
-/* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */
-.overviewRow {
-  display: block;
-  height: var(--row);
-}
-
-.timeRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* R48/R54: the playback controls (FR-LIVE-7 as amended v1.1.1); R61 (V12-13): on wide, on the time row. */
-.playbackRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389) → R78 (D-448): the wide page on a window too short for the box's
-   floor lets its air out — `Live.tsx` writes `data-fold` from `lib/layout.ts`'s `foldRows` — and every control
-   around the box keeps its 48 px hit box by D-246's device while its row is one text row. R132: the rail is the
-   layout's, so the `actions` fold (the rail's rows as one wrapped line) is gone with the frame's aside; R133
-   sizes the box and R136 the short shapes. */
-.page[data-compact='false'][data-fold] {
-  --live-row-gap: calc(var(--row) / 6);
-  /* The last line's hit boxes overhang their row by half a row (D-246's negative margin), and an overhang past
-     the page's bottom is a scrollbar: the padding under the page is that half row while the fold is on. */
-  padding-bottom: calc(var(--row) / 2);
-}
-
-.page[data-compact='false'][data-fold] .stripeBlock {
-  gap: var(--live-row-gap);
-}
-
-.page[data-compact='false'][data-fold] button {
-  padding-block: calc((var(--tap) - var(--row)) / 2);
-  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
-}
-
-/* The share action is bracketed text here, as on compact (D-245): a boxed button's border has no row to sit in. */
-.page[data-compact='false'][data-fold] .actions button {
-  padding-inline: 0;
-  border: 0;
-  background: none;
-}
-
-.page[data-compact='false'][data-fold] .actions p {
-  gap: 0;
-}
-
-/* R78: …and where the actions wrap — Spanish, in a 44-cell rail — their lines stand a row apart, so no hit box lies over the line above. */
-.page[data-compact='false'][data-fold] .actions {
-  row-gap: var(--row);
 }
 
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */

@@ -50,12 +50,12 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
     expect(LIVE_BOX_MIN_PX / ROW_PX).toBe(8);
   });
 
-  it("takes the page's padding and gap from the stylesheet: a quarter row each, and the folded page's from its fold block", () => {
+  it("takes the page's padding and gap from the stylesheet: a quarter row each; the folded page's numbers stand without their block (D-1133)", () => {
     expect(liveCss).toMatch(/\.page \{[^}]*padding: calc\(var\(--row\) \/ 4\) calc\(2 \* var\(--cell\)\);/);
     expect(liveCss).toMatch(/\.page \{[^}]*gap: calc\(var\(--row\) \/ 4\);/);
     expect(LIVE_PAGE_PADDING_PX).toBe(ROW_PX / 2);
     expect(LIVE_GAP_PX).toBe(ROW_PX / 4);
-    expect(liveCss).toMatch(/\.page\[data-compact='false'\]\[data-fold\] \{[^}]*--live-row-gap: calc\(var\(--row\) \/ 6\);[^}]*padding-bottom: calc\(var\(--row\) \/ 2\);/);
+    // R187 (D-1133): the wide page no longer folds, so `Live.module.css` has no fold block to read the folded numbers from.
     expect(LIVE_FOLDED_GAP_PX).toBe(ROW_PX / 6);
     expect(LIVE_FOLDED_PADDING_PX).toBe(ROW_PX / 4 + ROW_PX / 2);
   });

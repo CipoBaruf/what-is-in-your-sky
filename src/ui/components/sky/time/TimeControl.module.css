@@ -1,0 +1,28 @@
+/* R187 (FR-WIDE-4, D-1100): the desk's time control, the rows R48, R61 and R70 gave the live page's scrub block. */
+.time,
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */
+.overviewRow {
+  display: block;
+  height: var(--row);
+}
+
+/* The readout with the playback controls after it (R61, V12-13), and the playback row itself. */
+.timeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(2 * var(--cell));
+}
+
+/* `[ now ]` on a row of its own, at the tap height (the stars page's steps fill the rail's 44 cells in Spanish). */
+.nowRow {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+}

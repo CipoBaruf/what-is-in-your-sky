@@ -318,6 +318,28 @@ for (const locale of LOCALES) {
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });
 
+    // R187 (FR-WIDE-4, US-52 AC4): held, the three Time groups show the same controls in order; the rows a page adds are its own.
+    test('FR-WIDE-4: the three Time groups have the same controls in the same order', async ({ page }) => {
+      const controls: Record<string, string[]> = {};
+      for (const [name, open] of [
+        ['live', openLive], ['stars', openStarsDesk], ['pass', openDetail],
+      ] as const) {
+        const layout = await open(page, locale);
+        const control = layout.getByTestId('time-control');
+        await expect(control, name).toHaveAttribute('data-state', 'watching', { timeout: 30_000 });
+        await control.getByTestId('stripe-overview').click();
+        await expect(control, name).toHaveAttribute('data-state', 'scrubbing');
+        controls[name] = await control.evaluate((el: HTMLElement) =>
+          [...el.querySelectorAll('button, [role="slider"]')]
+            .filter((c) => !c.closest('[data-testid="globe-steps"], [data-testid="step-controls"], [data-testid="time-now-row"]'))
+            .map((c) => `${c.getAttribute('role') ?? c.tagName.toLowerCase()}:${c.getAttribute('aria-label') ?? c.textContent?.trim() ?? ''}`),
+        );
+      }
+      expect(controls['live']?.length, JSON.stringify(controls)).toBeGreaterThanOrEqual(7);
+      expect(controls['stars'], 'the stars page').toEqual(controls['live']);
+      expect(controls['pass'], 'the pass detail').toEqual(controls['live']);
+    });
+
     test('FR-WIDE-5: each view keeps its extras in their corners on every page', async ({ page }) => {
       for (const open of [openLive, openStarsDesk, openDetail]) {
         const layout = await open(page, locale);

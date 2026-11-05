@@ -123,13 +123,18 @@ async function drag(page: Page): Promise<Sample> {
 }
 
 async function lapse(page: Page): Promise<Sample> {
-  const fast = page.getByTestId('globe-speeds').getByRole('button', { name: 'Time-lapse at 3600 times real time' });
+  // R187 (FR-WIDE-4): the time-lapse is the playback row's, shown once the instant is held (an hour on).
+  await page.getByTestId('globe-steps').getByRole('button', { name: 'An hour later' }).click();
+  const fast = page.getByTestId('stars-time').getByRole('button', { name: '3600×' });
   await fast.click();
   await expect(fast).toHaveAttribute('aria-pressed', 'true');
+  const play = page.getByTestId('stars-time').getByTestId('live-play');
+  await play.click();
+  await expect(play).toHaveAttribute('data-playing', 'true');
   await page.evaluate(installCounter);
   await page.waitForTimeout(SECONDS * 1000);
   const sample = await stop(page);
-  await fast.click();
+  await play.click();
   return sample;
 }
 

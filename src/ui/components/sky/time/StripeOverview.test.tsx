@@ -9,10 +9,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
-import { I18nProvider } from '../../../i18n/useT';
-import { chunkFor, CHUNK_MS, HOUR_MS, xAt, type SkyBand, type Span } from '../../../lib/timeStripe';
-import type { Pass } from '../../../model';
+import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
+import { I18nProvider } from '../../../../i18n/useT';
+import { chunkFor, CHUNK_MS, HOUR_MS, xAt, type SkyBand, type Span } from '../../../../lib/timeStripe';
+import type { Pass } from '../../../../model';
 import { DEFAULT_WIDTH, StripeOverview } from './StripeOverview';
 
 const pass = goldenPassFixture();

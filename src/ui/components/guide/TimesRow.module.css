@@ -23,6 +23,17 @@
   white-space: nowrap;
 }
 
+/* R187 (FR-WIDE-4): on wide the time is a button that sets the page's time — the words in the accent, no box; the
+   48 px hit box is global.css's `inline-control`. */
+.set {
+  border: 0;
+  background: none;
+  padding-inline: 0;
+  color: var(--accent);
+  font: inherit;
+  white-space: nowrap;
+}
+
 .peak {
   color: var(--fg-dim);
 }

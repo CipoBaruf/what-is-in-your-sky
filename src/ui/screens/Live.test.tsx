@@ -597,7 +597,8 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('stripe-block')).toBeNull();
     scrub();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
   });
 
@@ -701,14 +702,16 @@ describe('<LivePage>', () => {
     // the legend in the list; the scrub block is the `Time` row and the actions the page group.
     expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
     expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
     expect(screen.getByTestId('live-actions').closest('[data-slot]')).toHaveAttribute('data-slot', 'action');
     // The narrowest wide page: the same foot, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'rail');
     // Compact: no cut box, and (R144, FR-TONIGHT-6) no stripe block at all — the track and the taps are the column's timeline slot.
     act(() => {
@@ -760,7 +763,8 @@ describe('<LivePage>', () => {
     expect(within(screen.getByTestId('live-group')).getByTestId('live-actions')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     // R132 → R186: the stripe block is the rail's Time row: the time row — the readout and the playback row — the overview, the stripe, the stepping row.
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
     expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
@@ -1625,7 +1629,7 @@ describe('<LivePage>', () => {
     // `[ back to live ]` is at the rail's head; the scrub block, the overview in it, is the rail's `Time` row.
     expect(head.getByTestId('live-now')).toBeInTheDocument();
     const block = screen.getByTestId('stripe-block');
-    expect(block.parentElement).toBe(screen.getByTestId('live-time'));
+    expect(block.parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     for (const id of ['time-row', 'playback-row', 'overview-row', 'time-stripe', 'step-controls']) expect(within(block).getByTestId(id)).toBeInTheDocument();
     expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');

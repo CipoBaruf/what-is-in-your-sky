@@ -181,9 +181,10 @@ for (const viewport of DESKS) {
       await expect.poll(() => globeAt(page)).toBe(at + DAY_MS);
       await steps.getByRole('button', { name: 'An hour earlier' }).click();
       await expect.poll(() => globeAt(page)).toBe(at + DAY_MS - HOUR_MS);
-      await expect(page.getByTestId('globe-chip')).not.toHaveAttribute('data-kind', 'now');
-      await page.getByTestId('globe-now').click();
-      await expect(page.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
+      // R187 (FR-WIDE-4): a step holds the instant (the control scrubbing); `[ now ]` lets it go.
+      await expect(page.getByTestId('time-control')).toHaveAttribute('data-state', 'scrubbing');
+      await page.getByTestId('time-now').click();
+      await expect(page.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
       expect(await page.evaluate(() => window.location.hash)).toBe(hash);
       expect(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))).toBe(prefs);
     });
@@ -194,16 +195,20 @@ for (const viewport of DESKS) {
       const hash = await page.evaluate(() => window.location.hash);
       const now = await page.evaluate(() => Date.now());
       await page.clock.pauseAt(now + 1_000);
-      const fast = page.getByTestId('globe-speeds').getByRole('button', { name: 'Time-lapse at 3600 times real time' });
+      // R187 (FR-WIDE-4): the speeds are the playback row's, which the held instant shows; an hour on leaves the span room.
+      await page.getByTestId('globe-steps').getByRole('button', { name: 'An hour later' }).click();
+      const time = page.getByTestId('stars-time');
+      await time.getByRole('button', { name: '3600×' }).click();
+      const fast = time.getByTestId('live-play');
       await fast.click();
-      await expect(fast).toHaveAttribute('aria-pressed', 'true');
+      await expect(fast).toHaveAttribute('data-playing', 'true');
       const from = await globeAt(page);
       await page.clock.runFor(1_000);
       const moved = (await globeAt(page)) - from;
       // One second of frames at ×3600: an hour, give or take the frames at either end.
       expect(Math.abs(moved - HOUR_MS), `moved ${String(moved)} ms`).toBeLessThanOrEqual(3 * 3_600 * 17);
       await fast.click();
-      await expect(fast).toHaveAttribute('aria-pressed', 'false');
+      await expect(fast).toHaveAttribute('data-playing', 'false');
       expect(await page.evaluate(() => window.location.hash)).toBe(hash);
     });
 
@@ -213,11 +218,14 @@ for (const viewport of DESKS) {
       const prefs = await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'));
       const places = page.getByTestId('globe-place');
       await expect(places.getByRole('button')).toHaveCount(2);
+      // R187 (FR-WIDE-4, FR-GLOBE-8): held an hour on, the readout is in the shown place's zone.
+      await page.getByTestId('globe-steps').getByRole('button', { name: 'An hour later' }).click();
       const at = await globeAt(page);
+      const readout = page.getByTestId('stars-time').getByTestId('time-readout');
+      const before = await readout.textContent();
       await places.getByRole('button', { name: 'London' }).click();
       await expect(places.getByRole('button', { name: 'London' })).toHaveAttribute('aria-pressed', 'true');
-      // The suite's night is in September: London keeps summer time.
-      await expect(page.getByTestId('globe-clock')).toContainText(/GMT\+1|BST/);
+      await expect(readout).not.toHaveText(before ?? '');
       await expect(page.getByRole('heading', { name: 'Up from London' })).toBeVisible();
       await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /over London/);
       expect(await globeAt(page)).toBe(at);
@@ -240,7 +248,8 @@ for (const viewport of DESKS) {
           }),
         );
       }
-      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'Time-lapse at 3600 times real time', 'with the stars', 'London', 'faint'];
+      // R187 (FR-WIDE-4): the time control (the overview while watching), then the steps, then the page's group.
+      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'stripe-overview', 'A day earlier', 'A day later', 'with the stars', 'London', 'faint'];
       // The rail's scrolling row is a stop of its own (a scroll container takes the focus in Chromium): names are matched whole.
       const at = order.map((name) => seen.indexOf(name));
       expect(at.every((index) => index >= 0), seen.join(' | ')).toBe(true);

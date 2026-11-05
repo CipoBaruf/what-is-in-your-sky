@@ -10,21 +10,11 @@ export const globe = {
   globe: {
     /** FR-GLOBE-1: the view row's second value on wide, `[ Window ] Globe`. */
     view: 'Globe',
-    /** FR-GLOBE-7: the rail's time group. */
-    timeHeading: 'Time',
-    /** FR-GLOBE-8: the clock line's accessible prefix. */
-    clock: 'Globe time',
-    /** FR-GLOBE-7: back to real time, stopped. */
-    now: 'now',
     /** FR-GLOBE-7: the four steps as drawn, `[ −1 d ] [ −1 h ] [ +1 h ] [ +1 d ]`. */
     steps: { dayBack: '−1 d', hourBack: '−1 h', hourAhead: '+1 h', dayAhead: '+1 d' },
     /** The steps' accessible names. */
     stepNames: { dayBack: 'A day earlier', hourBack: 'An hour earlier', hourAhead: 'An hour later', dayAhead: 'A day later' },
     stepGroup: 'Steps',
-    /** FR-GLOBE-7: the time-lapse's group, its options `×60`, `×600`, `×3600`. */
-    speedGroup: 'Time-lapse',
-    speed: (rate: number) => `×${String(rate)}`,
-    speedName: (rate: number) => `Time-lapse at ${String(rate)} times real time`,
     /** FR-GLOBE-5: the turn's row. */
     turnHeading: 'Turn',
     turn: { you: 'with you', stars: 'with the stars' },

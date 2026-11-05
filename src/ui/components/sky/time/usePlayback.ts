@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, type Advance, type PassTimes, type Speed } from '../../../lib/playback';
-import { clampToSpan, type Span } from '../../../lib/timeStripe';
-import type { EpochMs } from '../../../model';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, spanFor, type Advance, type PassTimes, type Speed } from '../../../../lib/playback';
+import { clampToSpan, DAY_MS, type Span } from '../../../../lib/timeStripe';
+import type { EpochMs } from '../../../../model';
 
 /**
  * R33 (FR-LIVE-4, FR-LIVE-5, D-81): the live page's instant. It is either
@@ -23,6 +23,9 @@ import type { EpochMs } from '../../../model';
  * `readerWrote` records whether the reader has moved the instant or touched a
  * control; a write the page makes itself (the jump) passes `'page'` and leaves
  * it alone.
+ *
+ * R187 (FR-WIDE-4, D-1100): with `shift` a move past the span moves the span with it — `goTo` and `shiftDays` — to
+ * the 24 h from the noon before the new instant, up to `maxDays` from real time either way; `toNow` brings it back.
  */
 
 /** Who made a write: the page itself (the jump, FR-TONIGHT-1) passes `'page'`; anything else is the reader's. */
@@ -50,6 +53,12 @@ export interface Playback {
   setSpeed: (speed: Speed) => void;
   /** FR-LIVE-5's `now` action: back to real time, stopped. */
   toNow: (origin?: WriteOrigin) => void;
+  /** R187 (FR-WIDE-4): the span the instant is in — the caller's, or the 24 h a move past it went to (`shift`). */
+  span: Span;
+  /** R187 (FR-WIDE-4): sets the held instant, moving the span where it falls outside it (with `shift`; a scrub otherwise). */
+  goTo: (t: EpochMs) => void;
+  /** R187 (FR-WIDE-4): moves the shown instant by `days` (an hour is 1/24), the span with it where it leaves it. */
+  shiftDays: (days: number) => void;
   /** R141 (FR-TONIGHT-1): true once the reader has written the instant or tapped a time control; the frame loop and `'page'` writes never set it. */
   readerWrote: RefObject<boolean>;
 }
@@ -80,6 +89,8 @@ export interface PlaybackOptions {
    * last tick. Read at the tap and clamped to the span; `realNow` without it.
    */
   realFrom?: () => EpochMs;
+  /** R187 (FR-WIDE-4, D-1100): lets a move past the span move it, within `maxDays` of real time; the noon is the zone's. */
+  shift?: { maxDays: number; timeZone: string | null };
   /** Injected for tests; the window's by default. */
   raf?: { request: (callback: (wall: number) => void) => number; cancel: (id: number) => void };
 }
@@ -93,7 +104,11 @@ const windowRaf = {
 
 const NO_PASSES: readonly PassTimes[] = [];
 
-export function usePlayback({ span, realNow, initial, speed: speedOption, passes = NO_PASSES, end, realFrom, raf = windowRaf }: PlaybackOptions): Playback {
+export function usePlayback({ span: base, realNow, initial, speed: speedOption, passes = NO_PASSES, end, realFrom, shift, raf = windowRaf }: PlaybackOptions): Playback {
+  // R187 (D-1100): the start of the 24 h a move past the caller's span went to; `null` is the caller's span.
+  const [anchor, setAnchor] = useState<EpochMs | null>(null);
+  const baseLength = base.end - base.start;
+  const span = useMemo<Span>(() => (anchor === null ? base : { start: anchor, end: anchor + baseLength }), [anchor, base, baseLength]);
   const auto = speedOption === 'auto';
   const [held, setHeldState] = useState<EpochMs | null>(initial);
   const [playing, setPlaying] = useState(false);
@@ -181,6 +196,7 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
     if (playing || held === null || !aheadRef.current || realNow < held) return;
     setPlaying(false);
     setHeld(null);
+    setAnchor(null);
   }, [realNow, held, playing, setHeld]);
 
   useEffect(() => {
@@ -262,13 +278,43 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
       mark(origin);
       setPlaying(false);
       setHeld(null);
+      setAnchor(null);
     },
     [setHeld, mark],
+  );
+  const maxDays = shift?.maxDays ?? null;
+  const shiftZone = shift?.timeZone ?? null;
+  const goTo = useCallback(
+    (target: EpochMs) => {
+      if (maxDays === null) {
+        scrub(target);
+        return;
+      }
+      mark(undefined);
+      const reach = maxDays * DAY_MS;
+      const at = Math.min(Math.max(target, realNowRef.current - reach), realNowRef.current + reach);
+      const next = spanFor(at, base, span, shiftZone);
+      setAnchor(next);
+      anchorStop(at);
+      setHeld(next === null ? clampToSpan(at, base) : at);
+    },
+    [maxDays, shiftZone, base, span, scrub, mark, anchorStop, setHeld],
+  );
+  const shiftDays = useCallback(
+    (days: number) => {
+      // From real time the step is from the instant shown, the tick, so +1 h reads as one hour on the readout.
+      const from = heldRef.current === null ? realNowRef.current : clampToSpan(heldRef.current, span);
+      goTo(from + days * DAY_MS);
+    },
+    [goTo, span],
   );
 
   const t = held === null ? realNow : clampToSpan(held, span);
   return {
     t,
+    span,
+    goTo,
+    shiftDays,
     realTime: held === null,
     playing,
     // Paused (a scrub, `now`, the stop at the night's end) no frame runs, so the readout is the rate at `t` itself.

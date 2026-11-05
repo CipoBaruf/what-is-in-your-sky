@@ -62,7 +62,7 @@ export async function showGlobe(page: Page, locale: 'en' | 'es' = 'en'): Promise
   await expect(page.getByTestId('stars-group')).toBeVisible({ timeout: 30_000 });
 }
 
-/** The globe's instant, as the clock line carries it. */
+/** The globe's instant: R187 (FR-WIDE-4) made it the time control's `t`, the overview slider's value. */
 export async function globeAt(page: Page): Promise<number> {
-  return Number(await page.getByTestId('globe-clock').getAttribute('data-at'));
+  return Number(await page.getByTestId('stars-time').getByTestId('stripe-overview').getAttribute('aria-valuenow'));
 }

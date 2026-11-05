@@ -2,7 +2,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatTimesRow } from '../../../lib/format';
 import { formatClock } from '../../../lib/timeFormat';
-import type { Pass } from '../../../model';
+import type { EpochMs, Pass } from '../../../model';
 import styles from './TimesRow.module.css';
 
 /**
@@ -22,12 +22,14 @@ export interface TimesRowProps {
    * `DETAIL_TIMES_CELLS` (`formatTimesRow`), with no zone: the head's date line says it once. Wide keeps the cells.
    */
   compact?: boolean;
+  /** R187 (FR-WIDE-4): on wide each cell's time is a button that sets the page's `t` to its instant. */
+  onSet?: ((t: EpochMs) => void) | undefined;
 }
 
 const CELLS = ['start', 'peak', 'end'] as const;
 const WORD = { start: 'rise', peak: 'peak', end: 'set' } as const;
 
-export function TimesRow({ pass, timeZone, compact = false }: TimesRowProps) {
+export function TimesRow({ pass, timeZone, compact = false, onSet }: TimesRowProps) {
   const t = useT();
   const locale = useLocale();
   if (compact) {
@@ -44,7 +46,21 @@ export function TimesRow({ pass, timeZone, compact = false }: TimesRowProps) {
         <div key={key} className={styles.cell} data-cell={WORD[key]}>
           <dt className={styles.word}>{t.countdown[WORD[key]]}</dt>
           <dd className={styles.value}>
-            <time dateTime={new Date(pass[key].t).toISOString()}>{formatClock(pass[key].t, timeZone, locale)}</time>
+            {onSet === undefined ? (
+              <time dateTime={new Date(pass[key].t).toISOString()}>{formatClock(pass[key].t, timeZone, locale)}</time>
+            ) : (
+              <button
+                type="button"
+                className={`${styles.set} inline-control`}
+                data-set={WORD[key]}
+                aria-label={t.countdown.showAt({ word: t.countdown[WORD[key]], time: formatClock(pass[key].t, timeZone, locale) })}
+                onClick={() => {
+                  onSet(pass[key].t);
+                }}
+              >
+                <time dateTime={new Date(pass[key].t).toISOString()}>{formatClock(pass[key].t, timeZone, locale)}</time>
+              </button>
+            )}
             {key === 'peak' && (
               <span className={styles.peak} data-testid="pass-times-peak">
                 {` · ${degrees(Math.round(pass.peak.elDeg))} ${compassPoint(pass.peak.azDeg)}`}

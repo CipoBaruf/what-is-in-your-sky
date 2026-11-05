@@ -133,7 +133,8 @@ export const ui = {
   starsHeading: 'Stars tonight',
 
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
-  skyView: { view: 'View', facing: 'Facing' },
+  // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
+  skyView: { view: 'View', time: 'Time', now: 'now', facing: 'Facing' },
 
   banner: { info: 'Note', warning: 'Warning' },
 
@@ -509,6 +510,8 @@ export const ui = {
     rise: 'rise',
     peak: 'peak',
     set: 'set',
+    /** R187 (FR-WIDE-4): a wide times cell's button, which sets the page's time to that instant. */
+    showAt: (p: { word: string; time: string }) => `Show the sky at ${p.word}, ${p.time}`,
     /** R156 (FR-PHONE-14): the compact times row's words — "07:20 → 07:23 at 48° NNE → 07:27 shadow" (`lib/format.ts`'s `formatTimesRow`). */
     row: { at: 'at', shadow: 'shadow' },
   },
