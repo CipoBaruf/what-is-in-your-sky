@@ -11,7 +11,7 @@ import type { FactsGroupProps } from './FactsGroup';
 type FactsModule = typeof import('./facts');
 let facts: Promise<FactsModule> | undefined;
 
-export function loadFacts(): Promise<FactsModule> {
+function loadFacts(): Promise<FactsModule> {
   facts ??= import('./facts').catch((reason: unknown) => {
     facts = undefined;
     throw reason;

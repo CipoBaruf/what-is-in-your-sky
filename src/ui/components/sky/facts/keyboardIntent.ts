@@ -22,7 +22,5 @@ export function fromKeyboard(): boolean {
   return keyboard;
 }
 
-/** Called where a page mounts, so the first press is already heard. */
-export function listenForKeyboard(): void {
-  listen();
-}
+// The pages that pick import this module, so the first press is heard before any pick asks about it.
+listen();
