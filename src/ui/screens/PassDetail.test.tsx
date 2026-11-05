@@ -392,16 +392,20 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
       expect(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
-      // R136 (D-876): still nothing saved, and a desk opens on the dome.
-      expect(within(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
+      // R186 (FR-WIDE-2, D-1095): still nothing saved, and a desk opens on the globe of `[ Globe ] Window Dome`.
+      const wideControl = within(wideRow).getByRole('group', { name: en.chart.viewGroup });
+      expect(within(wideControl).getAllByRole('button').map((b) => b.textContent?.replace(/[[\] ]/g, ''))).toEqual(['Globe', 'Window', 'Dome']);
+      expect(within(wideControl).getByRole('button', { name: /Globe/ })).toHaveAttribute('aria-pressed', 'true');
       expect(within(wideRow).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
-      // FR-FLOW-7 on wide: the panel's head is one band — the name, the countdown, the times — and the layout is the panel.
-      const head = screen.getByTestId('guide-head');
-      expect(within(head).getByRole('heading', { level: 2, name: 'ISS (Zarya)' })).toBeInTheDocument();
-      expect(within(head).getByRole('timer')).toBeInTheDocument();
-      expect(within(head).getByTestId('pass-times')).toBeInTheDocument();
-      expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'panel');
+      // R186 (FR-WIDE-1, D-1098): on wide the rail's head is the pass's name as the page's h1 with [ × ], the times are
+      // the page group's, the countdown the Time row's, and the layout is the desk's rail shape.
+      const head = screen.getByTestId('pass-head');
+      expect(within(head).getByRole('heading', { level: 1, name: 'ISS (Zarya)' })).toBeInTheDocument();
+      expect(within(head).getByTestId('pass-close')).toBeInTheDocument();
+      expect(within(screen.getByTestId('pass-group')).getAllByTestId('pass-times').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('pass-time')).toBeInTheDocument();
+      expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'rail');
       expect(within(screen.getByTestId('pass-layout')).getByRole('figure', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     } finally {
       media.restore();

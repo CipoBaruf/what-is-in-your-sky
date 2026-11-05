@@ -224,25 +224,3 @@ export function GlobeField({ place, instant, layers, faint, named, onName }: Glo
     </section>
   );
 }
-
-export interface GlobeGroupsProps {
-  playback: Playback;
-  zone: string | null;
-  turn: GlobeTurn;
-  onTurn: (turn: GlobeTurn) => void;
-  observer: Observer;
-  places: readonly Favourite[];
-  choice: PlaceChoice;
-  onChoice: (choice: PlaceChoice) => void;
-}
-
-/** The rail's `Time`, `Turn` and `Place` groups, a group apart, as the page's `timeline` slot holds them. */
-export function GlobeGroups({ playback, zone, turn, onTurn, observer, places, choice, onChoice }: GlobeGroupsProps) {
-  return (
-    <div className={styles.groups} data-testid="globe-groups">
-      <GlobeTime playback={playback} zone={zone} />
-      <GlobeTurnRow turn={turn} onTurn={onTurn} />
-      <GlobePlaces observer={observer} places={places} choice={choice} onChoice={onChoice} />
-    </div>
-  );
-}

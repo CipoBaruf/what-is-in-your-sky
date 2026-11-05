@@ -603,14 +603,14 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
     media = stubMatchMedia(1280);
     appStore.setState({ observer: place });
     render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
-    fireEvent.click(within(screen.getByTestId('stars-view-row')).getByRole('button', { name: t.globe.view }));
-    await screen.findByTestId('globe-groups', {}, { timeout: 5_000 });
+    // R186 (FR-WIDE-2, D-1095): a desk with nothing saved opens on the globe; the rail's groups are the shell's slots.
+    await screen.findByTestId('globe-turn-row', {}, { timeout: 5_000 });
   });
 
-  it('the view row reads [ Window ] Globe', () => {
+  it('FR-WIDE-2: the view row reads [ Globe ] Window Dome', () => {
     const row = screen.getByTestId('stars-view-row');
-    // The globe pressed: its brackets are drawn, the window's are not.
-    expect(rowParts(row, textButtonTable)).toEqual([t.chart.views.window, `####${t.globe.view}`]);
+    // The globe pressed: its brackets are drawn, the others' are not.
+    expect(rowParts(row, textButtonTable)).toEqual([`####${t.globe.view}`, t.chart.views.window, t.chart.view.dome]);
     expect(rowCells(row, textButtonTable)).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 
