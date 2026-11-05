@@ -1,8 +1,10 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../../i18n/useT';
 import { formatClock } from '../../../../lib/timeFormat';
 import { cursorAt, drawnSpan, nightBands, overviewKeyStep, passSegments, timeAt, xAt, type SkyBand, type Span } from '../../../../lib/timeStripe';
-import type { EpochMs, Pass } from '../../../../model';
+import type { EpochMs, HourlyCloud, Pass } from '../../../../model';
+import { VisuallyHidden } from '../../primitives/VisuallyHidden';
+import { CloudBandPaths, useCloudSentence } from './CloudBand';
 import styles from './StripeOverview.module.css';
 
 /**
@@ -36,6 +38,8 @@ export interface StripeOverviewProps {
   /** R70 (FR-SPAN-6): the speed playback is running at, or `null` while it is paused — the same value the stripe takes. */
   speed?: number | null;
   onScrub: (t: EpochMs) => void;
+  /** R187 (FR-WIDE-8): the forecast's hours, for the cloud band along the foot and its sentence; none draws no band. */
+  clouds?: readonly HourlyCloud[] | undefined;
 }
 
 /** One text row in CSS pixels at the 16 px base (`--row`, 1.5 rem): the overview is one row tall (FR-SPAN-2). */
@@ -45,7 +49,9 @@ export const DEFAULT_WIDTH = 600;
 /** A pass mark is at least this wide, so a ten-minute pass in 24 h is still a mark and not a hairline. */
 const MARK_MIN_PX = 2;
 
-export function StripeOverview({ span, passes, bands, t, timeZone, speed = null, onScrub }: StripeOverviewProps) {
+export function StripeOverview({ span, passes, bands, t, timeZone, speed = null, onScrub, clouds }: StripeOverviewProps) {
+  const describedId = useId();
+  const cloudText = useCloudSentence(clouds, span, timeZone);
   const m = useT();
   const locale = useLocale();
   const ref = useRef<SVGSVGElement>(null);
@@ -107,55 +113,60 @@ export function StripeOverview({ span, passes, bands, t, timeZone, speed = null,
   const cursor = cursorAt(t, span, width);
 
   return (
-    <svg
-      ref={ref}
-      className={styles.overview}
-      viewBox={`0 0 ${String(width)} ${String(height)}`}
-      width="100%"
-      role="slider"
-      tabIndex={0}
-      aria-label={m.live.overview}
-      aria-valuemin={span.start}
-      aria-valuemax={span.end}
-      aria-valuenow={t}
-      aria-valuetext={formatClock(t, timeZone, locale)}
-      aria-orientation="horizontal"
-      data-testid="stripe-overview"
-      data-dragging={dragging}
-      data-chunk-start={chunk.start}
-      data-chunk-end={chunk.end}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onKeyDown={onKeyDown}
-    >
-      <rect className={styles.day} x="0" y="0" width={fmt(width)} height={fmt(height)} />
-      {night.map((band) => (
-        <rect key={band.x} className={styles.night} data-sky={band.sky} x={fmt(band.x)} y="0" width={fmt(band.width)} height={fmt(height)} />
-      ))}
-      {/* One mark per pass, in the colour its arc carries on the dome (FR-LEG-5); they sit on one row, unlike the stripe's lanes. */}
-      <g data-row="marks">
-        {marks.map((mark) => (
-          <rect
-            key={mark.passId}
-            className={styles.mark}
-            data-pass-mark={mark.passId}
-            data-series={mark.series}
-            x={fmt(mark.x)}
-            y={fmt(height / 4)}
-            width={fmt(Math.max(MARK_MIN_PX, mark.width))}
-            height={fmt(height / 2)}
-            rx="1"
-          />
+    <>
+      <svg
+        ref={ref}
+        className={styles.overview}
+        viewBox={`0 0 ${String(width)} ${String(height)}`}
+        width="100%"
+        role="slider"
+        tabIndex={0}
+        aria-label={m.live.overview}
+        aria-valuemin={span.start}
+        aria-valuemax={span.end}
+        aria-valuenow={t}
+        aria-valuetext={formatClock(t, timeZone, locale)}
+        aria-orientation="horizontal"
+        {...(cloudText !== null ? { 'aria-describedby': describedId } : {})}
+        data-testid="stripe-overview"
+        data-dragging={dragging}
+        data-chunk-start={chunk.start}
+        data-chunk-end={chunk.end}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onKeyDown={onKeyDown}
+      >
+        <rect className={styles.day} x="0" y="0" width={fmt(width)} height={fmt(height)} />
+        {night.map((band) => (
+          <rect key={band.x} className={styles.night} data-sky={band.sky} x={fmt(band.x)} y="0" width={fmt(band.width)} height={fmt(height)} />
         ))}
-      </g>
-      {/* What the stripe below is drawing (FR-SPAN-2): a bracket, open at the top and the bottom so the marks inside it still read. */}
-      <g data-testid="overview-bracket" data-x={fmt(bracketX)} data-width={fmt(bracketWidth)}>
-        <rect className={styles.bracket} x={fmt(bracketX)} y="0.5" width={fmt(bracketWidth)} height={fmt(height - 1)} rx="1" />
-      </g>
-      <line className={styles.cursor} data-testid="overview-cursor" data-x={fmt(cursor.x)} x1={fmt(cursor.x)} x2={fmt(cursor.x)} y1="0" y2={fmt(height)} />
-    </svg>
+        {/* One mark per pass, in the colour its arc carries on the dome (FR-LEG-5); they sit on one row, unlike the stripe's lanes. */}
+        <g data-row="marks">
+          {marks.map((mark) => (
+            <rect
+              key={mark.passId}
+              className={styles.mark}
+              data-pass-mark={mark.passId}
+              data-series={mark.series}
+              x={fmt(mark.x)}
+              y={fmt(height / 4)}
+              width={fmt(Math.max(MARK_MIN_PX, mark.width))}
+              height={fmt(height / 2)}
+              rx="1"
+            />
+          ))}
+        </g>
+        {clouds !== undefined && <CloudBandPaths hourly={clouds} drawn={span} width={width} height={height} />}
+        {/* What the stripe below is drawing (FR-SPAN-2): a bracket, open at the top and the bottom so the marks inside it still read. */}
+        <g data-testid="overview-bracket" data-x={fmt(bracketX)} data-width={fmt(bracketWidth)}>
+          <rect className={styles.bracket} x={fmt(bracketX)} y="0.5" width={fmt(bracketWidth)} height={fmt(height - 1)} rx="1" />
+        </g>
+        <line className={styles.cursor} data-testid="overview-cursor" data-x={fmt(cursor.x)} x1={fmt(cursor.x)} x2={fmt(cursor.x)} y1="0" y2={fmt(height)} />
+      </svg>
+      {cloudText !== null && <VisuallyHidden id={describedId}>{cloudText}</VisuallyHidden>}
+    </>
   );
 }
 

@@ -106,6 +106,14 @@ export const live = {
     stripe: 'Time stripe: four hours of the coming 24',
     /** R70 (FR-SPAN-2): the overview row above the stripe — the whole span, a slider of its own, whose value text is the clock time under the cursor. */
     overview: 'Night overview',
+    /** R187 (FR-WIDE-8): the cloud band's text alternative on the overview and the stripe, the runs of equal bands joined. */
+    clouds: {
+      band: { clear: 'clear', some: 'some cloud', mostly: 'mostly cloudy', overcast: 'overcast', none: 'no forecast' },
+      sentence: (parts: readonly string[]) => `Clouds: ${parts.join(', ')}`,
+      until: (band: string, to: string) => `${band} until ${to}`,
+      between: (band: string, from: string, to: string) => `${band} ${from}–${to}`,
+      then: (band: string) => `then ${band}`,
+    },
     /** R33 (FR-LIVE-5): the playback controls. */
     playback: 'Playback',
     play: 'Play',
