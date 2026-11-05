@@ -1,7 +1,9 @@
 /** TASKS R12 (FR-X-2): the footer carries the three attribution sentences, each source linked, and the privacy note. R17: in whichever language is active, with the provider names untranslated (FR-I18N-6). R23 (D-120): and the author's credit, in both of the two forms the layout picks between. R102 (FR-SHOW-8, D-657; V22-15): and the chart's credit — glyphcss, one link, the library alone — in all three forms and both languages. */
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
+import { appStore } from '../../../state';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import type { LinkedText } from '../../../i18n/messages';
@@ -107,7 +109,7 @@ describe('<Footer>', () => {
     expect(footer).toHaveAttribute('data-form', 'short');
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     expectCredits();
-    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
+    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*×\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
     expect(footer).not.toHaveTextContent('Chart:');
   });
 
@@ -152,8 +154,8 @@ describe('<Footer>', () => {
   // D-1023 (FR-X-2 as amended 2026-11-02): the controls sheet's foot on the phone's sky pages — D-120's row, its privacy
   // word kept, at a compact width; a `div`, so the page has no second `contentinfo`; one of the sheet's groups.
   it.each([
-    ['en', /^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*No tracking\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/],
-    ['es', /^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/],
+    ['en', /^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*No tracking\s*×\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/],
+    ['es', /^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*×\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/],
   ] as const)('is the one row with its privacy word in the short form, at a compact width, in %s', async (locale, text) => {
     media = stubMatchMedia(390);
     const { container } = render(
@@ -171,6 +173,49 @@ describe('<Footer>', () => {
     for (const [name, href] of Object.entries(CREDITS)) expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     expect(row).toHaveTextContent(text);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  // R190 (FR-KEEP-4, D-1105): `[ × ]` beside the sentence and the word; either closes both, and the row closes up.
+  describe('the privacy note (FR-KEEP-4)', () => {
+    afterEach(() => {
+      act(() => {
+        appStore.setState({ privacyNoteClosed: false });
+      });
+      localStorage.clear();
+    });
+
+    it('FR-KEEP-4: is shown with its [ × ] in the full form, and closed is gone from it and from every later footer', async () => {
+      render(<Footer />);
+      const footer = screen.getByRole('contentinfo');
+      expect(footer).toHaveTextContent(en.footer.privacy);
+      await userEvent.click(screen.getByRole('button', { name: en.footer.closePrivacy }));
+      expect(footer).not.toHaveTextContent(en.footer.privacy);
+      expect(footer.querySelectorAll('p')).toHaveLength(5);
+      expect(appStore.getState().privacyNoteClosed).toBe(true);
+      cleanup();
+      media = stubMatchMedia(1280);
+      render(<Footer />);
+      // The one row closes up: no privacy word and no separator left for it.
+      expect(screen.getByRole('contentinfo')).toHaveTextContent(/^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
+      expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
+    });
+
+    it('FR-KEEP-4: the short form’s [ × ] closes it, named in Spanish too', async () => {
+      media = stubMatchMedia(390);
+      render(
+        <I18nProvider locale="es">
+          <Footer form="short" />
+        </I18nProvider>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: es.footer.closePrivacy }));
+      expect(screen.getByTestId('app-footer')).not.toHaveTextContent('Sin rastreo');
+    });
+
+    it('FR-KEEP-4: the settings page’s footer has no privacy part at all', () => {
+      render(<Footer privacy={false} />);
+      expect(screen.getByRole('contentinfo')).not.toHaveTextContent(en.footer.privacy);
+      expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
+    });
   });
 
   it('is inert while the detail sheet is up', () => {

@@ -175,6 +175,8 @@ export const ui = {
     skyLabel: 'Sky',
     sunGlow: 'sun glow',
     sunGlowName: 'The Sun’s glow on the horizon',
+    /** R190 (FR-KEEP-4, D-1105): the privacy sentence, plain, at the page's foot; the footer's own closes. */
+    privacy: 'No analytics, no tracking: your location is saved in this browser only.',
   },
 
   compass,
@@ -722,6 +724,8 @@ export const ui = {
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
     geonames: { before: "Place search by Open-Meteo geocoding, and the town named for your device's location, with data from ", link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
+    /** R190 (FR-KEEP-4): the `[ × ]` beside either privacy line, which hides both for good. */
+    closePrivacy: 'Close the privacy note',
     credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
     /* R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): the library
        the sky is drawn with — the library alone, its name a link and not

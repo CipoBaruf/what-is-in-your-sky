@@ -1,7 +1,9 @@
 import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
+import { usePrivacyNote } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { Rule } from '../primitives/Rule';
+import { TextButton } from '../primitives/TextButton';
 import styles from './Footer.module.css';
 
 /**
@@ -65,6 +67,19 @@ export interface FooterProps {
   form?: 'full' | 'line' | 'short';
   /** Placement only (D-704): the controls sheet fits the row to its body. */
   className?: string | undefined;
+  /** R190 (FR-KEEP-4, D-1105): `false` on the settings page, which states the sentence itself, plainly. */
+  privacy?: boolean;
+}
+
+/** R190 (FR-KEEP-4): the `[ × ]` that closes the privacy note here and under the place search, for good. */
+function ClosePrivacy({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  return (
+    <>
+      {' '}
+      <TextButton inline label="×" aria-label={t.footer.closePrivacy} onClick={onClose} data-testid="privacy-close" />
+    </>
+  );
 }
 
 function Linked({ text, href }: { text: LinkedText; href: string }) {
@@ -85,8 +100,11 @@ function Attribution({ text, href }: { text: LinkedText; href: string }) {
   );
 }
 
-export function Footer({ inert = false, form = 'full', className }: FooterProps) {
+export function Footer({ inert = false, form = 'full', className, privacy = true }: FooterProps) {
   const t = useT();
+  // R190 (FR-KEEP-4): once either `[ × ]` is pressed the privacy part is gone, its separator with it, so the row closes up.
+  const note = usePrivacyNote();
+  const privacyShown = privacy && note.shown;
   const wide = useLayoutMode() === 'wide';
   const line = form === 'line';
   const footerClass = className ? `${styles.footer} ${className}` : styles.footer;
@@ -107,11 +125,12 @@ export function Footer({ inert = false, form = 'full', className }: FooterProps)
           <a href={ATTRIBUTION_URLS.openMeteo}>Open-Meteo.com</a>
           {', '}
           <a href={ATTRIBUTION_URLS.geonames}>GeoNames</a> {t.footer.short.licence}
-          {!line && (
-            <>
+          {!line && privacyShown && (
+            <span data-testid="privacy-note">
               <span className={styles.dot}>·</span>
               {t.footer.short.privacy}
-            </>
+              <ClosePrivacy onClose={note.close} />
+            </span>
           )}
           <span className={styles.dot}>·</span>
           <Linked text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
@@ -128,7 +147,12 @@ export function Footer({ inert = false, form = 'full', className }: FooterProps)
       <Attribution text={t.footer.celestrak} href={ATTRIBUTION_URLS.celestrak} />
       <Attribution text={t.footer.openMeteo} href={ATTRIBUTION_URLS.openMeteo} />
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />
-      <p className={styles.line}>{t.footer.privacy}</p>
+      {privacyShown && (
+        <p className={styles.line} data-testid="privacy-note">
+          {t.footer.privacy}
+          <ClosePrivacy onClose={note.close} />
+        </p>
+      )}
       <Attribution text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
       <Attribution text={t.footer.chart} href={ATTRIBUTION_URLS.glyphcss} />
     </footer>

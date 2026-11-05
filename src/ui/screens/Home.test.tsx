@@ -156,7 +156,8 @@ describe.each([
     // Board 1B gives each look one note, as the group's foot, after the last field, hung off no control: on a
     // phone "Saved in this browser only. No account, no tracking.", in the wide pane the precision note (US-1 AC4).
     const foot = within(group).getByTestId('location-foot');
-    const note = mode === 'compact' ? t.home.savedFoot : t.location.precisionNote;
+    // R190 (FR-KEEP-4): the phone's line carries its `[ × ]`.
+    const note = mode === 'compact' ? `${t.home.savedFoot} ×` : t.location.precisionNote;
     // R105 (D-720): the boxed foot is ruled off above by a presentational `Rule`, which is a divider and not a note.
     expect([...foot.children].filter((child) => child.getAttribute('role') !== 'presentation').map((child) => child.textContent)).toEqual([note]);
     expect(group).toHaveAttribute('data-look', mode === 'compact' ? 'boxed' : 'plain');
