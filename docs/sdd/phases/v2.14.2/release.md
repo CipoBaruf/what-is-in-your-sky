@@ -18,8 +18,9 @@ v2.14.2 is one change asked by the owner on 2026-11-05 (V214-39..V214-44): a pho
 ### 28.3 The release itself — `v2.14.2`
 
 - [x] `package.json` is `2.14.2`.
-- [ ] Tag the squash merge of this release's pull request: `git tag -a v2.14.2 <sha> -m "v2.14.2: ask before following" && git push origin v2.14.2`.
-- [ ] Deploy it: `git push origin <sha>:release` (D-739; `docs/DEPLOY.md`), then on an iPhone and an Android phone open `#live`, `#stars` and a pass: the question once per visit, both answers.
+- [x] Tag the squash merge of this release's pull request (`c1c89c2a`): `git tag -a v2.14.2 <sha> -m "v2.14.2: ask before following" && git push origin v2.14.2`.
+- [x] Deploy it: `git push origin <sha>:release` (D-739; `docs/DEPLOY.md`), live 2026-11-05.
+- [ ] On an iPhone and an Android phone open `#live`, `#stars` and a pass: the question once per visit, both answers.
 
 ### 28.4 v2.14.3
 
@@ -27,4 +28,5 @@ The follow question ran off the right edge on phones under about 430 px (#300): 
 It is now one column at the viewport's width with the sentence wrapping, checked centred at eight phone sizes in both languages (`follow-ask.spec.ts`).
 
 - [x] `package.json` is `2.14.3`.
-- [ ] Tag the squash merge `v2.14.3` and fast-forward `release` to it.
+- [x] Tag the squash merge `v2.14.3` (`cd6ccb82`) and fast-forward `release` to it.
+- [x] Deployed 2026-11-05 with `npx wrangler deploy` from `cd6ccb82`: the `release` build sat queued through Cloudflare's "Workers Builds Issues" incident (`docs/DEPLOY.md`'s command, run by hand).
