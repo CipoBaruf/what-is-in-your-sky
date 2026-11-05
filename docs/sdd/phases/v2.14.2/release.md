@@ -12,7 +12,7 @@ v2.14.2 is one change asked by the owner on 2026-11-05 (V214-39..V214-44): a pho
 
 ### 28.2 The checks
 
-- `npm run check` and `npm test` on the branch; `follow-ask.spec.ts` 17 of 17, `follow.spec.ts` and `live-dialog.spec.ts` 65 of 65, `live-full.spec.ts` and `whole-sky.spec.ts` 34 of 34 with the question answered for the visit.
+- `npm run check` and `npm test` on the branch; `follow-ask.spec.ts` 18 of 18, `follow.spec.ts` and `live-dialog.spec.ts` 65 of 65, `live-full.spec.ts` and `whole-sky.spec.ts` 34 of 34 with the question answered for the visit.
 - The capture set was not re-shot; no capture spec opens a phone page with the sensor, so none should move.
 
 ### 28.3 The release itself — `v2.14.2`

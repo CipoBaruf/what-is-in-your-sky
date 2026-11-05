@@ -22,6 +22,12 @@ const WORDS = {
 } as const;
 const PAGES: readonly Which[] = ['live', 'stars', 'detail'];
 
+/** Until the stub has dispatched `n` more readings than it had, so an Android question has had its chance to open. */
+async function readingsPass(page: Page, n = 3): Promise<void> {
+  const at = await page.evaluate(() => (window as unknown as { __orientationNext: number }).__orientationNext);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __orientationNext: number }).__orientationNext)).toBeGreaterThanOrEqual(at + n);
+}
+
 /** The page as a reader opens it from a settled home, the dome the saved view; returns the page's layout. */
 async function openPage(page: Page, which: Which, locale: Locale): Promise<Locator> {
   await seedStoredRun(page, { locale, settled: true, prefs: { chartView: 'dome' } });
@@ -98,6 +104,7 @@ for (const locale of ['en', 'es'] as const) {
       });
       const stars = page.getByTestId('stars-layout');
       await expect(control(stars)).toBeAttached({ timeout: 30_000 });
+      await readingsPass(page);
       await expect(question(page)).toHaveCount(0);
       await expect(control(stars)).toHaveAttribute('aria-pressed', 'false');
     });
@@ -115,6 +122,7 @@ for (const locale of ['en', 'es'] as const) {
       });
       await page.reload();
       await expect(control(root)).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
+      await readingsPass(page);
       await expect(question(page)).toHaveCount(0);
     });
   });
@@ -123,11 +131,14 @@ for (const locale of ['en', 'es'] as const) {
 test.describe('the follow question on wide (FR-PHONE-17)', () => {
   test.use({ viewport: { width: 1280, height: 800 }, hasTouch: true });
 
-  test('a wide window never asks, with or without a request', async ({ page }) => {
-    await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)] });
-    const root = await openPage(page, 'live', 'en');
-    await expect(root).toBeVisible({ timeout: 30_000 });
-    await expect(root.getByTestId('follow-toggle')).toBeAttached();
-    await expect(question(page)).toHaveCount(0);
-  });
+  for (const request of [true, false]) {
+    test(`a wide window never asks, ${request ? 'with' : 'without'} a request`, async ({ page }) => {
+      await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)], request });
+      const root = await openPage(page, 'live', 'en');
+      await expect(root).toBeVisible({ timeout: 30_000 });
+      await expect(root.getByTestId('follow-toggle')).toBeAttached();
+      if (!request) await readingsPass(page);
+      await expect(question(page)).toHaveCount(0);
+    });
+  }
 });

@@ -266,6 +266,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       fireEvent.click(screen.getByTestId('follow-ask-allow'));
       expect(requestPermission).toHaveBeenCalledTimes(1);
       await flush();
+      // The answer hands the focus to the guide's heading, not the list behind it.
+      expect(document.activeElement?.tagName).toBe('H1');
       expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
       fireEvent.pointerDown(sky(), { pointerId: 2, pointerType: 'touch' });
       fireEvent.pointerUp(sky(), { pointerId: 2, pointerType: 'touch' });

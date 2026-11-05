@@ -228,6 +228,13 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   // second pass is a second instance — `App` keys this by the pass — so
   // "on open" is once per guide and not once per selection.
   useOpenerFocus(headingRef);
+  // v2.14.2 (FR-PHONE-17, D-1144): the follow question opens with the guide and takes the focus its heading would have
+  // had (the page is inert under it); when it is answered the focus goes to the heading, not back to the list behind.
+  const wasAsking = useRef(follow.asking);
+  useEffect(() => {
+    if (wasAsking.current && !follow.asking) headingRef.current?.focus();
+    wasAsking.current = follow.asking;
+  }, [follow.asking]);
 
   // Lock the page scroll behind the sheet; the list keeps its scroll position
   // for the return. Only compact: the wide panel covers nothing.
