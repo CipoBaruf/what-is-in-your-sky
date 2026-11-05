@@ -393,7 +393,7 @@ export function App() {
           routeKey={routeKey}
           title={title}
           banner={<Header page="live" context={observer?.label ?? null} onBack={live.leave} inert={helpOpen} />}
-          beforeMain={<PageNotices kinds={LIVE_NOTES} />}
+          beforeMain={<PageNotices kinds={LIVE_NOTES} inert={helpOpen} />}
           mainProps={{ inert: helpOpen, className: styles.stars }}
           footer={<Footer inert={helpOpen} />}
           after={overlay}

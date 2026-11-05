@@ -26,10 +26,11 @@ export const WIDE_VIEWS: readonly ChartView[] = ['globe', 'window', 'dome'];
 
 /**
  * R186 (FR-WIDE-2, FR-DESK-4): what `v` saves — on wide the next of the row's three after the view shown; on compact
- * 2.13's toggle between the dome and the polar chart.
+ * 2.13's toggles: the dome and the polar chart, and on the stars page its window and whole sky.
  */
 export function nextView(page: SkyPage, mode: LayoutMode, saved: ChartView | undefined): ChartView {
   const shown = viewFor(page, mode, saved);
+  if (mode === 'compact' && page === 'stars') return shown === 'window' ? 'polar' : 'window';
   if (mode === 'compact') return shown === 'dome' ? 'polar' : 'dome';
   return WIDE_VIEWS[(WIDE_VIEWS.indexOf(shown) + 1) % WIDE_VIEWS.length] ?? 'globe';
 }

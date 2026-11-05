@@ -58,4 +58,11 @@ describe('nextView', () => {
     expect(nextView('live', 'compact', undefined)).toBe('dome');
     expect(nextView('live', 'compact', 'dome')).toBe('polar');
   });
+
+  it('FR-DESK-4: on the compact stars page v toggles the window and the whole sky, as on 2.13', () => {
+    expect(nextView('stars', 'compact', undefined)).toBe('polar');
+    expect(nextView('stars', 'compact', 'polar')).toBe('window');
+    expect(nextView('stars', 'compact', 'dome')).toBe('window');
+    expect(nextView('stars', 'compact', 'globe')).toBe('window');
+  });
 });
