@@ -492,19 +492,23 @@ describe('the contribution stance (FR-PUB-10)', () => {
 });
 
 describe('repository metadata, ready to paste (FR-PUB-11)', () => {
-  const metadata = section(release, '10. Repository metadata (FR-PUB-11)');
+  const metadata = section(release, '10. Repository metadata (FR-PUB-11, FR-PUB-16)');
+  /** FR-PUB-16 (R191): the 2.14 text, which `docs/sdd/phases/v2.14/release.md` §26.7 carries for `gh repo edit`. */
+  const DESCRIPTION = 'Naked-eye sky in the browser: which satellites cross your sky tonight, when and where to look, and the stars, constellations and planets on a celestial globe.';
+  const TOPICS = ['astronomy', 'iss', 'orbital-mechanics', 'pwa', 'react', 'satellite', 'satellite-tracking', 'sgp4', 'spec-driven-development', 'stargazing', 'typescript', 'web-worker', 'star-chart', 'constellations', 'celestial-globe', 'offline-first', 'i18n', 'cloudflare-workers', 'claude-code', 'ai-agents'];
+  /** The topics a text's `**Topics**` item names: the item runs from its own bullet to the next one. */
+  const topicsOf = (text: string): string[] => [...(/\*\*Topics\*\*[\s\S]*?(?=\n- \[ \]|$)/.exec(text)?.[0] ?? '').matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1] ?? '');
+  const record = readFileSync('docs/sdd/phases/v2.14/release.md', 'utf8');
 
-  it('carries the description', () => {
+  it('carries the description, the release record’s', () => {
     expect(metadata).toMatch(/\*\*Description\*\*/);
-    expect(metadata).toMatch(/Naked-eye satellite spotting/);
+    expect(metadata).toContain(DESCRIPTION);
+    expect(record).toContain(DESCRIPTION);
   });
 
-  it('carries at most twelve topics', () => {
-    // The item runs from its own bullet to the next one.
-    const topics = /\*\*Topics\*\*[\s\S]*?(?=\n- \[ \]|$)/.exec(metadata)?.[0] ?? '';
-    const names = [...topics.matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1]);
-    expect(names.length).toBeGreaterThan(0);
-    expect(names.length).toBeLessThanOrEqual(12);
+  it('carries the twenty topics, the twelve of 2.13 kept, as the release record does', () => {
+    expect(topicsOf(metadata)).toEqual(TOPICS);
+    expect(topicsOf(record)).toEqual(TOPICS);
   });
 
   it('carries the homepage URL, which is the live site the README names', () => {

@@ -12,54 +12,80 @@ Every count on this page lives in one table at the end, [By the numbers](#by-the
 beside the command that produces it and the commit it was read at, so a post and the tree
 quote one source and a stale figure has one place to be wrong.
 
-Read it in this order and the workflow explains itself in about twenty minutes.
+Read it in this order and the workflow explains itself in about twenty minutes. Since v2.13
+the paperwork is laid out for any coding agent, not for one: an entry file, three short
+indexes, a folder per phase, and a lookup that hands a session one id at a time.
 
-## 1. [SPEC.md](../SPEC.md) — what the product does
+## 1. [AGENTS.md](../AGENTS.md) — where every session starts
 
-Numbered requirements (`FR-LOC-3`, `FR-LIVE-6`), user stories with acceptance criteria,
-a findings table (§4.20, `F-` rows), and a Decision Log (§12, `V-` rows) that is fixed
-once written. **Written by hand**, with the `sdd-spec` skill below, in a conversation with
-the owner: the owner answers scope questions one at a time and the session writes the
-requirement. Every `FR-` id here is the thing a later session's tests have to point at,
-so a change to the product starts on this page and nowhere else. Its §1 and §5 still
-carry the wording of the first proposal, with a dated *as built* note on each (V22-7),
-because the history of what was proposed is part of the record.
+One page, **written by hand**, that any agent reads first ([CLAUDE.md](../CLAUDE.md) only
+imports it). It names the documents, and a table says, for each kind of work — a new phase,
+a breakdown, a task headless or interactive, a review, a fix, a release, a bug — which
+workflow under [`docs/sdd/workflows/`](sdd/workflows/) it follows, what it reads and what it
+never reads. The *never reads* column is the point: a session that implements a task reads
+its brief and the ids it names, and not the documents whole.
 
-## 2. [PLAN.md](../PLAN.md) — how it is built
+## 2. [SPEC.md](../SPEC.md) and [PLAN.md](../PLAN.md) — the indexes
 
-Architecture, the data model, the Web Worker message contract, the testing strategy, the
-bundle budgets, and §16 — how the tasks are delivered. **Written by hand** in the same
-way, one section per question the spec left to engineering. Its Decision Log (the `D-`
-rows, from `D-1` up; the highest is in the table below) is the other half of the
-paperwork: a decision records the question, the answer and what was given up, so a later
-session that disagrees has to argue with a written reason rather than with a silence.
+**Written by hand**, with the `sdd-spec` skill below, in a conversation with the owner: the
+owner answers scope questions one at a time and the session writes the requirement. Since
+v2.13 (R173–R176) both are indexes of the phases rather than the text itself. SPEC.md says
+what the product does and, phase by phase, where the requirements (`FR-LOC-3`, `FR-LIVE-6`),
+the user stories and the findings (`F-` rows) went; PLAN.md says how it is built — the fixed
+inputs, the architecture, a map of the files — and where each phase's decisions are.
+[TASKS.md](../TASKS.md) holds the open phase's slices and a status table of every phase.
 
-The section to read is [§16, Delivery](../PLAN.md#16-delivery-of-the-v1-and-v11-tasks-v1-11-v11-9).
-It opens with the v1 contract — lanes (which files a task may touch), waves (which tasks
-can run at once), what an entry must carry, the driver, the merge policy and the model
-policy — and then one delivery section per phase: §16.9 to §16.23, v1.2 through
-v2.5, then §16.24 to §16.30, v2.6 through v2.11, and §16.31, v2.12, under way, each with its wave table and the block
-of decision numbers its tasks may spend.
+The Decision Log is [`docs/sdd/decisions.md`](sdd/decisions.md): the `V-` rows, fixed once
+written, a later row superseding an earlier one and never editing it. The `D-` decisions (from
+`D-1` up; the highest is in the table below) are the other half of the paperwork: each records
+the question, the answer and what was given up, so a later session that disagrees has to argue
+with a written reason rather than with a silence.
 
-## 3. [TASKS.md](../TASKS.md) — the ordered slices
+How tasks are delivered is [§16, Delivery](sdd/reference/delivery.md), with the rest of
+the reference — the glossary, the data model, the worker contract, testing, build and deploy —
+beside it in [`docs/sdd/reference/`](sdd/reference/). It opens with the v1 contract — lanes
+(which files a task may touch), waves (which tasks can run at once), what an entry must
+carry, the driver, the merge policy and the model policy — and then one delivery section per
+phase: §16.9 to §16.23, v1.2 through v2.5, then §16.24 onward, v2.6 to v2.12, each with its
+wave table and the block of decision numbers its tasks may spend; from v2.13 a phase's
+delivery is in its own `plan.md`.
 
-One entry per task: a goal, the requirement ids it satisfies, its lane, its dependencies,
-its scope, a *done when* list, and — once it is merged — a **Done** note. **Generated by a
-session** from the two documents above with the `sdd-breakdown` skill, and never edited
-by hand except to check a task off. That sentence is true of hands and not of sessions:
-the **Done** notes are written by the implementing session at the end of its own run.
-They are where a task says what it did differently from what it was asked, and they are
-the most honest thing in the repository.
+## 3. [A phase folder](sdd/phases/v2.14/) — one release's paperwork
 
-## 4. [scripts/sdd-run.ts](../scripts/sdd-run.ts) — the driver
+Each phase has a folder under [`docs/sdd/phases/`](sdd/phases/): its `spec.md` (the goals,
+the requirements with their verification lines, the user stories with acceptance criteria,
+the constants and the definition of done), its `plan.md` (the design and the decisions its
+tasks spent), its `tasks.md` once the phase closes, and its `release.md` once it ships. The
+v2.14 folder is the one to open first: "one sky on a desk", the globe on the three desk pages.
+
+The slices are **generated by a session** with the `sdd-breakdown` skill and never edited by
+hand except to check a task off. Each entry carries a goal, the ids it satisfies, its lane,
+its dependencies, its scope, a *done when* list and — once merged — a **Done** note, written
+by the implementing session at the end of its own run. The notes are where a task says what
+it did differently from what it was asked, and they are the most honest thing in the
+repository.
+
+## 4. [ids.md](sdd/ids.md) and `npm run sdd:id` — one id at a time
+
+[`docs/sdd/ids.md`](sdd/ids.md) is generated: every `FR-`, `US-`, `F-`, `D-` and `V-` id with
+the file and the heading it lives under. `npm run sdd:id FR-WIDE-3` prints that one id's
+text and where it is, which is the cheapest lookup there is, so an interactive session reads
+the ids its task names and nothing else. [`docs/sdd/map.md`](sdd/map.md) is its twin for the
+code: one line per source file with its purpose and its exports, read before opening files.
+`npm run check:sdd` fails CI when either is stale.
+
+## 5. [scripts/sdd-run.ts](../scripts/sdd-run.ts) — the driver
 
 One file plus [scripts/sdd/](../scripts/sdd/) beside it. **Written outside the task
 loop**, first committed on `main` on 2026-09-03 (`6b79db1`), after the MVP had shipped
 and before the first v1 wave, from PLAN §16.4; then amended by the decisions it ran into:
 `D-89` (a headless session commits as it goes, because a session that commits once at
 the end turns any limit into total loss), `D-131` (a per-task model override), `D-132`
-(waves run concurrently, capped at three, one task per lane), `D-198` (the brief). It
-reads `TASKS.md`, works out which tasks are ready, and for each one:
+(waves run concurrently, capped at three, one task per lane), `D-198` (the brief). Since
+v2.13 it runs whatever agent [`sdd.agents.json`](../sdd.agents.json) describes: how to start
+it, its tool policy, how to read its output and which model each tier (`hard`, `standard`,
+`light`) gets, so any agent a config entry describes can run a task. It reads `TASKS.md`,
+works out which tasks are ready, and for each one:
 
 1. makes a worktree and a branch off `origin/main`, installs the dependencies;
 2. writes `sdd-run/<id>.brief.md` — the task's entry plus every requirement, story,
@@ -77,14 +103,14 @@ reads `TASKS.md`, works out which tasks are ready, and for each one:
 run in parallel without stepping on each other, and the lanes in PLAN §16.1 are why two
 sessions editing at the same time do not collide.
 
-## 5. One task, end to end: R28
+## 6. One task, end to end: R28
 
 The clearest way to see the loop is to follow a single task through it.
 
-- **The entry:** [R28 in TASKS.md](../TASKS.md) — *Install hint, update banner and the
-  favourites list*. Goal, `FR-OFF-6` and `FR-OFF-1`, three dependencies, a scope naming the
-  components, a *done when* list of four items, and the lane crossings declared up front.
-  Written by the breakdown session.
+- **The entry:** [R28 in the v1 phase's tasks](sdd/phases/v1/tasks.md) — *Install hint,
+  update banner and the favourites list*. Goal, `FR-OFF-6` and `FR-OFF-1`, three
+  dependencies, a scope naming the components, a *done when* list of four items, and the
+  lane crossings declared up front. Written by the breakdown session.
 - **The branch and the pull request:**
   [#54](https://github.com/CipoBaruf/what-is-in-your-sky/pull/54), opened by the driver
   from what the implementing session committed. Its body is the summary that session wrote
@@ -93,7 +119,7 @@ The clearest way to see the loop is to follow a single task through it.
   *Automated review (PLAN §16.4)* —
   [the conversation](https://github.com/CipoBaruf/what-is-in-your-sky/pull/54). It found
   five things, which became `F-29` … `F-33` in
-  [the findings table in SPEC §4.20](../SPEC.md): a saved place that does not reseed
+  [the v1.1 phase's findings table](sdd/phases/v1.1/spec.md): a saved place that does not reseed
   the coordinates field, an update offer still reachable under an open pass, an install
   listener that only exists while the shell is mounted, an uncaught `prompt()` rejection,
   and an e2e assertion that ran before hydration and passed without the guard it was
@@ -109,7 +135,7 @@ The clearest way to see the loop is to follow a single task through it.
   paragraph of it: two of the things it records were caught by the tests rather than by
   the review, and it says which.
 
-## 6. [The four skills](../.claude/skills/) — what the sessions were told
+## 7. [The four skills](../.claude/skills/) — what the sessions were told
 
 Small Markdown files, **written by hand**, that a session loads by name. They are the
 whole of the process instruction; there is no hidden prompt. Since v2.13 (R176) each skill
@@ -128,7 +154,7 @@ still work.
   390 px and 1280 px, in both languages and both themes, and file them under
   `docs/screenshots/`.
 
-## 7. [docs/DESIGN.md](DESIGN.md) — the design system
+## 8. [docs/DESIGN.md](DESIGN.md) — the design system
 
 What a screen is built from: every token of `src/ui/styles/tokens.css` with its value in both
 themes and the contrast the tests compute, every primitive under
@@ -165,13 +191,15 @@ has no such folder and the ignore file does not name it.
 ## Why `docs/` is as big as it is
 
 Most of it is [`docs/screenshots/`](screenshots/): the sizes and counts are in the table
-below. They are not decoration. Each phase's definition of done requires a capture set
-shot from the release build in both languages and both themes (`FR-COMP-6`, `D-179`) —
-the `v1-*` files — and [`tests/docs/captures.test.ts`](../tests/docs/captures.test.ts)
-fails if a file the set names is missing or a file it does not name has appeared. The
-rest of the directory are the per-task captures each pull request carried. That is the
-acceptance evidence for every screen in the app, held in the repository at the commit it
-was shot from, which is the only place it can be checked against later. The remainder is
+below. They are not decoration: they are the per-task captures each pull request carried
+until v2.13, the acceptance evidence for every screen in the app, held at the commit it was
+shot from, which is the only place it can be checked against later. The release capture set
+— the `v1-*` files every phase's definition of done asks for, shot from the release build in
+both languages and both themes (`FR-COMP-6`, `D-179`) — left `main` in v2.13 (R178,
+`FR-SDD-22`) for an orphan `captures` branch that `captures.yml` writes, squashed at each
+release, so `main` stops growing by a few hundred PNGs a phase;
+[`tests/docs/captures.test.ts`](../tests/docs/captures.test.ts) holds the set's names to
+[`tests/e2e/captureSet.ts`](../tests/e2e/captureSet.ts) and fails if `main` tracks one. The remainder is
 [`docs/mockups/`](mockups/) (the two owner-approved references), four spike folders —
 [`dome-composition/`](dome-composition/), [`spike-glyphcss/`](spike-glyphcss/),
 [`window/`](window/) and [`stars/`](stars/FINDINGS.md), the v2.4 spike the stars page was cut

@@ -256,17 +256,16 @@ describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R1
   // R165: §24.2 is that table now; §23.2 is v2.10's as it was measured.
   // R171: §25.2 is that table now, `globe` among its rows; §24.2 is v2.11's as it was measured.
   // R176: §25 is `docs/sdd/phases/v2.12/release.md`; the next release task points this at its own record.
-  it("§25.2's budget column is the script's rows, one row each and no other", () => {
-    const budget = record('v2.12').split('### 25.2')[1]?.split('### 25.3')[0] ?? '';
+  // R191: §26.2 (`docs/sdd/phases/v2.14/release.md`) is that table now, `facts` among its rows; §25.2 is v2.12's as it was measured.
+  it("§26.2's budget column is the script's rows, one row each and no other", () => {
+    const budget = record('v2.14').split('### 26.2')[1]?.split('### 26.3')[0] ?? '';
     const rows = budget
       .split('\n')
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
       .map((line) => line.split('|').map((cell) => cell.trim()));
     const table = rows.map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }));
-    // R188 (FR-WIDE-11, D-1101): the `facts` row is v2.14’s; v2.12’s record predates it, and v2.14’s release record carries it.
-    const rows12 = BUDGETS.filter(({ name }) => name !== 'facts');
-    expect(table).toEqual(expect.arrayContaining(rows12.map(({ name, limitKb }) => ({ name, limitKb }))));
-    expect(table).toHaveLength(rows12.length);
+    expect(table).toEqual(expect.arrayContaining(BUDGETS.map(({ name, limitKb }) => ({ name, limitKb }))));
+    expect(table).toHaveLength(BUDGETS.length);
   });
 });
 
