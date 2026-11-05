@@ -25,4 +25,6 @@ v2.14.2 is one change asked by the owner on 2026-11-05 (V214-39..V214-44): a pho
 
 The follow question ran off the right edge on phones under about 430 px (#300): `AskDialog`'s column took the sentence's width.
 It is now one column at the viewport's width with the sentence wrapping, checked centred at eight phone sizes in both languages (`follow-ask.spec.ts`).
-Tagged `v2.14.3` and deployed with `release` fast-forwarded to it.
+
+- [x] `package.json` is `2.14.3`.
+- [ ] Tag the squash merge `v2.14.3` and fast-forward `release` to it.
