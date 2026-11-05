@@ -302,7 +302,8 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
   );
   const shiftDays = useCallback(
     (days: number) => {
-      const from = heldRef.current === null ? (realFromRef.current?.() ?? realNowRef.current) : clampToSpan(heldRef.current, span);
+      // From real time the step is from the instant shown, the tick, so +1 h reads as one hour on the readout.
+      const from = heldRef.current === null ? realNowRef.current : clampToSpan(heldRef.current, span);
       goTo(from + days * DAY_MS);
     },
     [goTo, span],

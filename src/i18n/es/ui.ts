@@ -105,7 +105,7 @@ export const ui: typeof EnUi = {
   },
 
   starsHeading: 'Estrellas esta noche',
-  skyView: { view: 'Vista', facing: 'Hacia' },
+  skyView: { view: 'Vista', time: 'Hora', now: 'ahora', facing: 'Hacia' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
 

@@ -133,7 +133,8 @@ export const ui = {
   starsHeading: 'Stars tonight',
 
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
-  skyView: { view: 'View', facing: 'Facing' },
+  // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
+  skyView: { view: 'View', time: 'Time', now: 'now', facing: 'Facing' },
 
   banner: { info: 'Note', warning: 'Warning' },
 

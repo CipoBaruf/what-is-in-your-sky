@@ -1,7 +1,10 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useT } from '../../../../i18n/useT';
 import type { SkyBand } from '../../../../lib/timeStripe';
 import type { EpochMs, HourlyCloud, Pass } from '../../../../model';
 import { TimeReadout } from '../../live/TimeReadout';
+import { SectionHeading } from '../../primitives/SectionHeading';
+import { TextButton } from '../../primitives/TextButton';
 import { PlaybackControls } from './PlaybackControls';
 import { StripeOverview } from './StripeOverview';
 import styles from './TimeControl.module.css';
@@ -11,7 +14,7 @@ import type { Playback } from './usePlayback';
 /**
  * R187 (FR-WIDE-4, FR-WIDE-8, D-1100): the desk's one time control, the rail's `Time` row on the live page, the stars
  * page and the pass detail — the overview while watching; while scrubbing the time row (the readout and the playback
- * row), the overview, the stripe; then the page's own row (`under`). All over `playback`'s span and instant.
+ * row), the overview, the stripe; then the page's own row (`under`); all under the `Time` heading, over `playback`.
  * It does not know which page it is on: what each page adds is `under`, and what it draws is the props.
  */
 export interface TimeControlProps {
@@ -25,9 +28,14 @@ export interface TimeControlProps {
   clouds?: readonly HourlyCloud[] | undefined;
   /** The page's own row under the rest: the live page's steps, the stars page's day steps. */
   under?: ReactNode;
+  /** FR-WIDE-4: a `[ now ]` row last while the instant is held, where the page has no way back of its own (the live page's is its head's). */
+  withNow?: boolean;
 }
 
-export function TimeControl({ playback, passes, bands, now, timeZone, clouds, under }: TimeControlProps) {
+export function TimeControl({ playback, passes, bands, now, timeZone, clouds, under, withNow = false }: TimeControlProps) {
+  const m = useT();
+  const headingId = useId();
+  const heading = <SectionHeading id={headingId}>{m.skyView.time}</SectionHeading>;
   const { t, span } = playback;
   const scrubbing = !playback.realTime;
   const speed = playback.playing ? playback.speed : null;
@@ -57,14 +65,16 @@ export function TimeControl({ playback, passes, bands, now, timeZone, clouds, un
   );
   if (!scrubbing) {
     return (
-      <div className={styles.time} data-testid="time-control" data-state="watching">
+      <section className={styles.time} aria-labelledby={headingId} data-testid="time-control" data-state="watching">
+        {heading}
         {overview}
         {under}
-      </div>
+      </section>
     );
   }
   return (
-    <div className={styles.time} data-testid="time-control" data-state="scrubbing">
+    <section className={styles.time} aria-labelledby={headingId} data-testid="time-control" data-state="scrubbing">
+      {heading}
       <div className={styles.block} data-testid="stripe-block" data-placement="under">
         <div className={styles.timeRow} data-testid="time-row">
           <TimeReadout t={t} now={now} timeZone={timeZone} />
@@ -75,7 +85,12 @@ export function TimeControl({ playback, passes, bands, now, timeZone, clouds, un
         {overview}
         <TimeStripe span={span} passes={passes} bands={bands} t={t} timeZone={timeZone} speed={speed} onScrub={playback.scrub} clouds={clouds} />
         {under}
+        {withNow && (
+          <div className={styles.nowRow} data-testid="time-now-row">
+            <TextButton className="target" label={m.skyView.now} data-testid="time-now" onClick={() => playback.toNow()} />
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

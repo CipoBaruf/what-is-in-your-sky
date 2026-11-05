@@ -19,3 +19,10 @@
   align-items: baseline;
   gap: 0 calc(2 * var(--cell));
 }
+
+/* `[ now ]` on a row of its own, at the tap height (the stars page's steps fill the rail's 44 cells in Spanish). */
+.nowRow {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+}

@@ -181,7 +181,7 @@ for (const viewport of DESKS) {
       await steps.getByRole('button', { name: 'An hour earlier' }).click();
       await expect.poll(() => globeAt(page)).toBe(at + DAY_MS - HOUR_MS);
       await expect(page.getByTestId('globe-chip')).not.toHaveAttribute('data-kind', 'now');
-      await page.getByTestId('globe-now').click();
+      await page.getByTestId('time-now').click();
       await expect(page.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
       expect(await page.evaluate(() => window.location.hash)).toBe(hash);
       expect(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))).toBe(prefs);
@@ -239,7 +239,7 @@ for (const viewport of DESKS) {
           }),
         );
       }
-      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'Time-lapse at 3600 times real time', 'with the stars', 'London', 'faint'];
+      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'time-now', 'Time-lapse at 3600 times real time', 'with the stars', 'London', 'faint'];
       // The rail's scrolling row is a stop of its own (a scroll container takes the focus in Chromium): names are matched whole.
       const at = order.map((name) => seen.indexOf(name));
       expect(at.every((index) => index >= 0), seen.join(' | ')).toBe(true);

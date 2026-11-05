@@ -18,28 +18,6 @@
   white-space: nowrap;
 }
 
-.speeds {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0 var(--cell);
-}
-
-/* FR-GLOBE-8: the clock line; the chip in the dim ink after it, the accent while it is `now` (FR-TONIGHT-7). */
-.clock {
-  margin: 0;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.chip {
-  color: var(--fg-dim);
-}
-
-.chip[data-kind='now'] {
-  color: var(--accent);
-}
-
 /* FR-GLOBE-9: the places as one column, each option cut at the rail's width with its full name as its accessible name. */
 .places {
   flex-direction: column;

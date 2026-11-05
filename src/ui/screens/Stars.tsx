@@ -10,7 +10,8 @@ import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
 import { BODIES_EVERY_MS } from '../../lib/playback';
 import { formatShortClock } from '../../lib/timeFormat';
-import { DAY_MS, HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
+import { LIVE_WINDOW_MS } from '../../lib/livePasses';
+import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
 import type { ChartView, EpochMs, Locale, Observer, TonightCloud } from '../../model';
 import { favouriteCellKey, mostRecentlyUsed, useActiveObserver, useAppStore } from '../../state';
@@ -291,18 +292,6 @@ function StarsSky({ observer }: { observer: Observer }) {
     };
   }, [named]);
 
-  /*
-   * R170 (FR-GLOBE-7, FR-GLOBE-8; D-1039): the globe's own time — a second `usePlayback`, its span now ±
-   * `GLOBE_SPAN_DAYS` read once per visit. It writes no hash, no pref and no store; the window keeps real time. Held
-   * here, so leaving the globe and coming back within the visit keeps the instant; a time-lapse pauses when the globe
-   * is left (the page would otherwise re-render per frame under the window).
-   */
-  const [globeSpan] = useState<Span>(() => ({ start: now - GLOBE_SPAN_DAYS * DAY_MS, end: now + GLOBE_SPAN_DAYS * DAY_MS }));
-  const globeClock = usePlayback({ span: globeSpan, realNow: now, initial: null, realFrom: Date.now });
-  const { playing: globePlaying, pause: pauseGlobe } = globeClock;
-  useEffect(() => {
-    if (!globeShown && globePlaying) pauseGlobe();
-  }, [globeShown, globePlaying, pauseGlobe]);
   // FR-GLOBE-5: the turn, the visit's and not saved.
   const [turn, setTurn] = useState<GlobeTurn>('you');
   /*
@@ -319,6 +308,19 @@ function StarsSky({ observer }: { observer: Observer }) {
   const chosenPlace = placeChoice === null ? undefined : places.find((place) => place.cellKey === placeChoice);
   const shownChoice: PlaceChoice = chosenPlace === undefined ? null : placeChoice;
   const shownPlace = chosenPlace?.observer ?? observer;
+  /*
+   * R170 (FR-GLOBE-7, FR-GLOBE-8; D-1039) → R187 (FR-WIDE-4, D-1100): the globe's own time — a second `usePlayback`
+   * over the live page's span, now to now + 24 h, which a day step past it moves (`shift`, the shown place's noon)
+   * up to `GLOBE_SPAN_DAYS` either way. It writes no hash, no pref and no store; the window keeps real time. Held
+   * here, so leaving the globe and coming back within the visit keeps the instant; a time-lapse pauses when the globe
+   * is left (the page would otherwise re-render per frame under the window).
+   */
+  const globeBase = useMemo<Span>(() => ({ start: now, end: now + LIVE_WINDOW_MS }), [now]);
+  const globeClock = usePlayback({ span: globeBase, realNow: now, initial: null, realFrom: Date.now, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone: shownPlace.timeZone } });
+  const { playing: globePlaying, pause: pauseGlobe } = globeClock;
+  useEffect(() => {
+    if (!globeShown && globePlaying) pauseGlobe();
+  }, [globeShown, globePlaying, pauseGlobe]);
   // FR-GLOBE-10: `[ ] faint`, off on every visit and not saved; a failed load unpresses it.
   const [faint, setFaint] = useState(false);
   const onFaintFailed = useCallback(() => {
@@ -707,7 +709,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           viewRow={viewRow}
           drawing={drawing}
           hint={hintShown && <SkyHint view={chartView} />}
-          {...(globeShown ? { timeline: <StarsTime playback={globeClock} zone={shownPlace.timeZone} /> } : {})}
+          {...(globeShown ? { timeline: <StarsTime playback={globeClock} place={shownPlace} now={now} /> } : {})}
           action={
             <StarsGroup globe={globeChoices}>
               {facingGroup}

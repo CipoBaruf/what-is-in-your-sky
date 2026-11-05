@@ -184,14 +184,11 @@ function render(t: Messages): string[] {
     t.chart.liveLabel,
     // R170 (FR-GLOBE-16): the globe rail's words, and the drawing's (R169).
     t.globe.view,
-    t.globe.timeHeading,
-    t.globe.clock,
-    t.globe.now,
+    t.skyView.time,
+    t.skyView.now,
     ...Object.values(t.globe.steps),
     ...Object.values(t.globe.stepNames),
     t.globe.stepGroup,
-    t.globe.speedGroup,
-    ...[60, 600, 3600].flatMap((rate) => [t.globe.speed(rate), t.globe.speedName(rate)]),
     t.globe.turnHeading,
     ...Object.values(t.globe.turn),
     t.globe.placeHeading,
@@ -387,9 +384,8 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
       // R77: the held offset (numbers and `min`/`h`, the same abbreviations in both).
       en.live.heldOffset({ sign: '+', hours: 0, minutes: 33 }),
       en.live.heldOffset({ sign: '−', hours: 2, minutes: 5 }),
-      // R170 (FR-GLOBE-7, FR-I18N-4): the steps' and the speeds' labels are numbers and units, the same in both.
+      // R170 (FR-GLOBE-7, FR-I18N-4): the steps' labels are numbers and units, the same in both.
       ...Object.values(en.globe.steps),
-      ...[60, 600, 3600].map((rate) => en.globe.speed(rate)),
       '.',
       ' (CC BY 4.0).',
     ]);
