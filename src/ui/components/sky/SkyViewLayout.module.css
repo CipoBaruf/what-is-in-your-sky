@@ -210,6 +210,14 @@
   position: relative;
 }
 
+/* v2.14.1 (V214-33, D-1135): first, on the pass page, the list is as tall as its rows and the rail scrolls as a whole,
+   so `View` and `Time` follow it rather than being squeezed under it. */
+.rail[data-list-first] > .list {
+  flex: none;
+  min-height: 0;
+  overflow-y: visible;
+}
+
 /* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself
    lets the pointer through to the sky and what stands in it (the zoom, full screen) takes it back. */
 .corner {

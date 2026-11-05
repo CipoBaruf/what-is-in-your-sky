@@ -375,7 +375,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           hint={hintShown && <SkyHint view={view} />}
           timeline={<PassTime pass={pass} observer={observer} playback={playback} now={now} />}
           action={<PassGroup view={following ? 'window' : view} times={times} facts={<LazyFacts subject={satellite} observer={observer} at={now} />} prose={prose} foot={foot} follow={action} />}
-          {...(passList === null ? {} : { list: passList })}
+          {...(passList === null ? {} : { list: passList, listFirst: true })}
         />
       </div>
     );

@@ -57,6 +57,7 @@ export function PassEmpty({ observer, passList }: { observer: Observer; passList
         }
         drawing={<SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={bodies.sun} moon={bodies.moon} scene={scene} fill chartHand={chartHand} page="pass" view={view} onViewChange={onChartView} />}
         list={passList}
+        listFirst
       />
     </div>
   );

@@ -29,7 +29,7 @@ import { SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { onWindow } from './globeHelpers';
-import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
+import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, LIST_FIRST_ORDER, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -310,10 +310,14 @@ for (const locale of LOCALES) {
       for (const [name, shell] of Object.entries(measured)) {
         expect(shell.box, `${name}'s box`).toEqual(live.box);
         expect(shell.rail, `${name}'s rail`).toEqual(live.rail);
-        // The rows a page fills are SLOT_ORDER's, in that order.
-        expect(shell.order, name).toEqual(SHELL_ORDER.filter((slot) => shell.order.includes(slot)));
-        expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
-        expect(shell.order.at(-1), name).toBe('list');
+        // The rows a page fills are SLOT_ORDER's, in that order; the pass page's list comes right under the head (V214-33, D-1135).
+        const order = name === 'pass' ? LIST_FIRST_ORDER : SHELL_ORDER;
+        expect(shell.order, name).toEqual(order.filter((slot) => shell.order.includes(slot)));
+        if (name === 'pass') expect(shell.order.slice(0, 5), name).toEqual(['answer', 'list', 'viewRow', 'timeline', 'action']);
+        else {
+          expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
+          expect(shell.order.at(-1), name).toBe('list');
+        }
       }
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });

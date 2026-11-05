@@ -17,7 +17,7 @@ import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { fireEvent } from '@testing-library/react';
-import { CORNERS, SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
+import { CORNERS, LIST_FIRST_ORDER, SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
 
 let media: MatchMediaStub | null = null;
 stubResizeObserver(390, 390);
@@ -245,6 +245,22 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
     expect(screen.getByTestId('layout')).toHaveAttribute('data-shape', 'rail');
     expect(railSlots()).toEqual([...SLOT_ORDER]);
     expect(screen.queryByText('over')).toBeNull();
+  });
+
+  it('V214-33 (D-1135): listFirst puts the list right under the head, before View and Time, as tall as its rows', () => {
+    media = stubMatchMedia(WIDE_PX);
+    all('en', { listFirst: true });
+    expect(LIST_FIRST_ORDER).toEqual(['answer', 'list', 'viewRow', 'timeline', 'action', 'layers']);
+    expect(railSlots()).toEqual([...LIST_FIRST_ORDER]);
+    const rail = screen.getByTestId('layout').querySelector('[data-rail]');
+    expect(rail).toHaveAttribute('data-list-first');
+    // The rail scrolls as a whole, so the list is no keyboard stop of its own.
+    expect(rail?.querySelector('[data-slot="list"]')).not.toHaveAttribute('tabindex');
+    cleanup();
+    all('en');
+    expect(screen.getByTestId('layout').querySelector('[data-rail]')).not.toHaveAttribute('data-list-first');
+    expect(screen.getByTestId('layout').querySelector('[data-slot="list"]')).toHaveAttribute('tabindex', '0');
+    media.restore();
   });
 
   /**

@@ -77,6 +77,12 @@ export const SLOT_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = {
  */
 export const SLOT_ORDER: readonly SkyViewRailSlot[] = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
 
+/**
+ * v2.14.1 (FR-WIDE-1 as amended, V214-33; D-1135): the pass page's rail — the list right under the head, before `View`
+ * and `Time`, so another satellite is one look away. It takes its own height there and the rail scrolls as a whole.
+ */
+export const LIST_FIRST_ORDER: readonly SkyViewRailSlot[] = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
+
 /** R186 (FR-WIDE-5): the corners in the order they are rendered over the box. */
 export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint', 'zoom'];
 
@@ -124,6 +130,8 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   keys?: SkyKeyActions | undefined;
   /** R189 (FR-WIDE-10): the instant the full screen's time readout (FR-TRAJ-4) shows over the box's top edge. */
   clock?: { t: EpochMs; now: EpochMs; timeZone: string | null } | undefined;
+  /** v2.14.1 (V214-33, D-1135): the rail in `LIST_FIRST_ORDER` — the pass page's; written as `data-list-first` on the rail. */
+  listFirst?: boolean | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -140,7 +148,7 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, keys, clock, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, keys, clock, listFirst = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   // R165 (D-1000): compact is the full form, in both shapes; R186 (D-1098): wide is the rail on every page.
@@ -317,7 +325,8 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     const label = name === 'viewRow' ? { id: viewId, text: t.skyView.view } : null;
     // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`).
     // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
-    const scrolls = name === 'list';
+    // First (D-1135) it takes its own height and the rail scrolls, so it is no stop of its own.
+    const scrolls = name === 'list' && !listFirst;
     return (
       <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
@@ -403,8 +412,8 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
           {slots.drawing}
           {CORNERS.map(corner)}
         </div>
-        <div className={styles.rail} data-rail="">
-          {SLOT_ORDER.map(slot)}
+        <div className={styles.rail} data-rail="" {...(listFirst ? { 'data-list-first': '' } : {})}>
+          {(listFirst ? LIST_FIRST_ORDER : SLOT_ORDER).map(slot)}
         </div>
       </div>
     </SkyViewContext.Provider>

@@ -98,11 +98,14 @@ for (const [width, height] of SIZES) {
           await expect(card).toBeFocused();
         });
 
-        test('FR-WIDE-1: the rail’s list is tonight’s passes, this one aria-current; a second row opens its pass in place (D-1135)', async ({ page }, info) => {
+        test('FR-WIDE-1: the rail’s first group is tonight’s passes, this one aria-current; a second row opens its pass in place (D-1135)', async ({ page }, info) => {
           test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
           await home(page, locale);
           const layout = await openFromHeader(page);
           const rail = layout.locator('[data-slot="list"]');
+          // V214-33: the list is the rail's first group after the head, before `View` and `Time`.
+          const order = await layout.locator('[data-rail] > [data-slot]').evaluateAll((slots) => slots.map((el) => el.getAttribute('data-slot')));
+          expect(order.slice(0, 4)).toEqual(['answer', 'list', 'viewRow', 'timeline']);
           const rows = rail.locator('article[data-pass-id]');
           const first = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
           const ids = await rows.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));

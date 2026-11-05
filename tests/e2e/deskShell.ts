@@ -27,6 +27,8 @@ export interface Shell {
 }
 
 export const SHELL_ORDER = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
+/** v2.14.1 (V214-33, D-1135): the pass page's rail, the list under the head. */
+export const LIST_FIRST_ORDER = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
 export const SHELL_DESKS = [
   { width: 1024, height: 640 },
   { width: 1280, height: 800 },
