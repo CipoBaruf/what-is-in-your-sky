@@ -43,11 +43,12 @@ for (const viewport of DESKS) {
   test.describe(`the globe at ${String(viewport.width)} × ${String(viewport.height)}`, () => {
     test.use({ viewport });
 
-    test('opens on the globe, reads [ Window ] Globe, and keeps the choice across the breakpoint (FR-GLOBE-1 as amended, V212-11)', async ({ page }) => {
+    test('opens on the globe, reads [ Globe ] Window Dome, and keeps the choice across the breakpoint (FR-GLOBE-1 as amended, FR-WIDE-2, V212-11)', async ({ page }) => {
       await openStarsPage(page);
       const hash = await page.evaluate(() => window.location.hash);
       const row = page.getByTestId('stars-view-row');
-      await expect(row.getByRole('button')).toHaveText(['Window', 'Globe']);
+      // R186 (FR-WIDE-2): the wide row is the three pages' one row.
+      await expect(row.getByRole('button')).toHaveText(['Globe', 'Window', 'Dome']);
       // A desk opens on the globe, unsaved; the window is one press away.
       await expect(row.getByRole('button', { name: 'Globe' })).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByTestId('globe-box')).toBeVisible();
@@ -222,12 +223,13 @@ for (const viewport of DESKS) {
       expect(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))).toBe(prefs);
     });
 
-    test('Tabs through the view row, the box and the rail in reading order (FR-GLOBE-16)', async ({ page }) => {
+    test('Tabs through the box, the view row and the rail in reading order (FR-GLOBE-16, FR-WIDE-1)', async ({ page }) => {
       await openStarsPage(page, { favourites: [LONDON] });
       await showGlobe(page);
-      await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_WORD.en }).focus();
+      // R186 (FR-WIDE-1, D-1098): the shell reads left to right — the box, its corners, then the rail from its head.
+      await page.getByTestId('globe-box').focus();
       const seen: string[] = [];
-      for (let i = 0; i < 24; i += 1) {
+      for (let i = 0; i < 30; i += 1) {
         await page.keyboard.press('Tab');
         seen.push(
           await page.evaluate(() => {
@@ -237,13 +239,13 @@ for (const viewport of DESKS) {
           }),
         );
       }
-      const order = ['globe-box', 'A day earlier', 'A day later', 'globe-now', 'Time-lapse at 3600 times real time', 'with the stars', 'London', 'faint'];
+      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'Time-lapse at 3600 times real time', 'with the stars', 'London', 'faint'];
       // The rail's scrolling row is a stop of its own (a scroll container takes the focus in Chromium): names are matched whole.
       const at = order.map((name) => seen.indexOf(name));
       expect(at.every((index) => index >= 0), seen.join(' | ')).toBe(true);
       expect([...at].sort((a, b) => a - b), seen.join(' | ')).toEqual(at);
-      // The box is the first stop after the view row.
-      expect(seen[0]).toBe('globe-box');
+      // Nothing before the view row but the box's own corners.
+      expect(seen.slice(0, at[0]).every((name) => !order.includes(name)), seen.join(' | ')).toBe(true);
     });
   });
 }
