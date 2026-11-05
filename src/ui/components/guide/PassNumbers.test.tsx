@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it } from 'vitest';
+import { COMPACT_PX, stubMatchMedia, WIDE_PX } from '../../../../tests/support/matchMedia';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { I18nProvider } from '../../../i18n/useT';
 import { PassNumbers } from './PassNumbers';
@@ -80,5 +81,26 @@ describe('<PassNumbers> (US-6 AC2, FR-VIS-3)', () => {
   it('has no axe violations', async () => {
     const { container } = render(<PassNumbers pass={pass} timeZone={null} />);
     expect(await axe(container)).toHaveNoViolations();
+  });
+  /*
+   * v2.14.1 (FR-WIDE-1 as amended, D-1136): on wide the table is the rail's width — the `fit` form, its prose cells
+   * wrapping — with no sideways scroll box and so no Tab stop; compact keeps the scroll box FR-A11Y-7 names.
+   */
+  it.each([
+    ['wide', WIDE_PX, false],
+    ['compact', COMPACT_PX, true],
+  ] as const)('%s: the scroll box only where the table may scroll (D-1136)', async (_mode, px, scrolls) => {
+    const media = stubMatchMedia(px);
+    try {
+      const { container } = render(<PassNumbers pass={pass} timeZone={null} />);
+      const table = container.querySelector('table');
+      expect(table?.className).toMatch(scrolls ? /^\S*table\S*$/ : /fit/);
+      expect(container.querySelector('dl')?.className).toMatch(scrolls ? /^\S*fields\S*$/ : /fitFields/);
+      expect(screen.queryByRole('region') !== null).toBe(scrolls);
+      expect(container.querySelector('[tabindex="0"]') !== null).toBe(scrolls);
+      expect(await axe(container)).toHaveNoViolations();
+    } finally {
+      media.restore();
+    }
   });
 });

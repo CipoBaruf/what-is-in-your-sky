@@ -1,6 +1,11 @@
 .numbers {
   display: grid;
   gap: var(--row);
+  min-width: 0;
+}
+
+.numbers > * {
+  min-width: 0;
 }
 
 .scroll {
@@ -76,3 +81,33 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* v2.14.1 (FR-WIDE-1 as amended, D-1136): on wide the table is the rail's width and never wider, so the rail has no
+   sideways scroll. Its columns are sized by the table at that width: the clock and the numbers stay on one line, the
+   prose — the column heads, the points' names (`Leaves shadow`), `Among` — wraps between words, and the columns stand
+   one cell apart (the table's spare width spreads them), the last with none after it. */
+.fit {
+  width: 100%;
+}
+
+.fit th,
+.fit .among {
+  white-space: normal;
+}
+
+.fit th,
+.fit td {
+  padding-right: var(--cell);
+}
+
+.fit th:last-child,
+.fit td:last-child {
+  padding-right: 0;
+}
+
+/* D-1136: and the fields' names are a column as wide as the longest of them (15 cells at least), so a name of exactly
+   15 cells and its colon do not run a fraction of a pixel past the 15-cell column. */
+.fitFields {
+  grid-template-columns: minmax(calc(15 * var(--cell)), max-content) minmax(0, 1fr);
+}
+

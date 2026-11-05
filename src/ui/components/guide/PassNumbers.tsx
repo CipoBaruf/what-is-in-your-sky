@@ -6,6 +6,7 @@ import type { LegendColor } from '../../../lib/legend';
 import { brightnessBand } from '../../../lib/phrases';
 import { formatClock } from '../../../lib/timeFormat';
 import type { Pass } from '../../../model';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { LegendSwatch } from './skychart/LegendSwatch';
 import styles from './PassNumbers.module.css';
 
@@ -52,49 +53,59 @@ export function PassNumbers({ pass, timeZone, legendKey, colorToken, among }: Pa
   const locale = useLocale();
   const numbers = t.guide.numbers;
   const captionId = useId();
+  // v2.14.1 (FR-WIDE-1 as amended, D-1136): on wide the table is the rail's width — its prose cells wrap, the clock
+  // and the numbers do not — so it needs no sideways scroll, and no scroll box (nor its Tab stop) is drawn.
+  const wide = useLayoutMode() === 'wide';
   // The shadow boundary, where there is one: the row is the drawing's shadow marker, so it is named for it (D-257).
   const shadow = (key: (typeof POINTS)[number]): boolean => (key === 'start' && pass.startReason === 'shadow') || (key === 'end' && pass.endReason === 'shadow');
   const pointLabel = (key: (typeof POINTS)[number]): string => (shadow(key) ? (key === 'start' ? numbers.leavesShadow : numbers.entersShadow) : numbers[key]);
+  const table = (
+    <table className={wide ? `${styles.table} ${styles.fit}` : styles.table}>
+      <caption id={captionId} className={styles.caption}>
+        {legendKey !== undefined && <span className={styles.key}>{legendKey}</span>}
+        {colorToken !== undefined && <LegendSwatch color={colorToken} className={styles.swatch} />}
+        {numbers.caption}
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">{numbers.point}</th>
+          <th scope="col">{numbers.time}</th>
+          <th scope="col">{numbers.azimuth}</th>
+          <th scope="col">{numbers.elevation}</th>
+          <th scope="col">{numbers.range}</th>
+          {among !== undefined && <th scope="col">{numbers.among}</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {POINTS.map((key) => (
+          <tr key={key} data-point={shadow(key) ? 'shadow' : key}>
+            <th scope="row">{pointLabel(key)}</th>
+            <td>{formatClock(pass[key].t, timeZone, locale)}</td>
+            <td>{t.guide.azimuth({ point: compassPoint(pass[key].azDeg), degrees: degrees(pass[key].azDeg) })}</td>
+            <td>{degrees(pass[key].elDeg)}</td>
+            <td>{formatRange(pass[key].rangeKm, locale)}</td>
+            {among !== undefined && (
+              <td className={styles.among} data-among={among[key] ?? ''}>
+                {among[key] ?? NO_CONSTELLATION}
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
   return (
     <div className={styles.numbers}>
-      {/* R96 (FR-A11Y-7, axe `scrollable-region-focusable`): the table scrolls sideways on a narrow screen, so its box
-          is a named stop in the Tab order and a keyboard can scroll it. */}
-      <div className={styles.scroll} role="region" aria-labelledby={captionId} tabIndex={0}>
-        <table className={styles.table}>
-          <caption id={captionId} className={styles.caption}>
-            {legendKey !== undefined && <span className={styles.key}>{legendKey}</span>}
-            {colorToken !== undefined && <LegendSwatch color={colorToken} className={styles.swatch} />}
-            {numbers.caption}
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">{numbers.point}</th>
-              <th scope="col">{numbers.time}</th>
-              <th scope="col">{numbers.azimuth}</th>
-              <th scope="col">{numbers.elevation}</th>
-              <th scope="col">{numbers.range}</th>
-              {among !== undefined && <th scope="col">{numbers.among}</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {POINTS.map((key) => (
-              <tr key={key} data-point={shadow(key) ? 'shadow' : key}>
-                <th scope="row">{pointLabel(key)}</th>
-                <td>{formatClock(pass[key].t, timeZone, locale)}</td>
-                <td>{t.guide.azimuth({ point: compassPoint(pass[key].azDeg), degrees: degrees(pass[key].azDeg) })}</td>
-                <td>{degrees(pass[key].elDeg)}</td>
-                <td>{formatRange(pass[key].rangeKm, locale)}</td>
-                {among !== undefined && (
-                  <td className={styles.among} data-among={among[key] ?? ''}>
-                    {among[key] ?? NO_CONSTELLATION}
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <dl className={styles.fields}>
+      {/* R96 (FR-A11Y-7, axe `scrollable-region-focusable`): on compact the table scrolls sideways on a narrow screen, so
+          its box is a named stop in the Tab order and a keyboard can scroll it. */}
+      {wide ? (
+        table
+      ) : (
+        <div className={styles.scroll} role="region" aria-labelledby={captionId} tabIndex={0}>
+          {table}
+        </div>
+      )}
+      <dl className={wide ? `${styles.fields} ${styles.fitFields}` : styles.fields}>
         <dt>{numbers.duration}</dt>
         <dd>{formatDuration(pass.durationS)}</dd>
         <dt>{numbers.magnitude}</dt>

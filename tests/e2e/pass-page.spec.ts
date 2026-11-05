@@ -109,6 +109,37 @@ for (const [width, height] of SIZES) {
           expect(seen.hashes.every((hash) => hash.startsWith('#pass=')), seen.hashes.join(' ')).toBe(true);
           expect(seen.homeSeen).toBe(false);
         });
+
+        test('FR-WIDE-1: nothing scrolls sideways — the document and every element in the rail — and the rail stays inside the header (D-1136)', async ({ page }, info) => {
+          test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
+          await home(page, locale);
+          const layout = await openFromHeader(page);
+          const rail = layout.locator('[data-slot="list"]').locator('xpath=..');
+          const ids = await rail.locator('article[data-pass-id]').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
+          // Every pass of the list in turn: its table, its names and its facts are what widen a rail.
+          for (const id of ids) {
+            await page.evaluate((hash) => {
+              window.location.hash = hash;
+            }, `#pass=${id}`);
+            await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', id);
+            await expect(rail.locator('table')).toBeVisible();
+            const m = await rail.evaluate((element) => {
+              const doc = document.documentElement;
+              // A visually hidden heading is a 1 px clip by design and draws nothing; an inline box has no client width.
+              const wide = [element, ...element.querySelectorAll<HTMLElement>('*')]
+                .filter((el) => el.clientWidth > 1 && el.scrollWidth > el.clientWidth)
+                .map((el) => `${el.tagName}.${String(el.className)} "${(el.textContent ?? "").slice(0, 30)}" ${String(el.scrollWidth)} > ${String(el.clientWidth)}`);
+              const header = document.querySelector('#root > header')?.getBoundingClientRect();
+              return { doc: doc.scrollWidth - doc.clientWidth, docY: doc.scrollHeight - doc.clientHeight, wide, right: element.getBoundingClientRect().right, headerRight: header?.right ?? NaN };
+            });
+            expect(m.doc, `${id}: the document scrolls sideways`).toBe(0);
+            expect(m.wide, `${id}: elements in the rail wider than their box`).toEqual([]);
+            expect(m.right, `${id}: the rail runs past the header`).toBeLessThanOrEqual(m.headerRight + 0.5);
+            // The rail alone scrolls down: the page does not, and the sky's box stays in view.
+            expect(m.docY, `${id}: the page scrolls`).toBeLessThanOrEqual(1);
+            await expect(layout.locator('[data-slot="drawing"]').first()).toBeInViewport({ ratio: 0.9 });
+          }
+        });
       });
     }
   });
