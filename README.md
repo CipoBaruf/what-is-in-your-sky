@@ -3,11 +3,11 @@
 A web app for the naked-eye sky. Give it a place and it lists which of about thirty bright
 satellites (the ISS, Tiangong, Hubble and others) cross the sky there in the next three
 nights: when each appears, where to look, how high and how bright, and the cloud forecast.
-A pass opens with a countdown and its path over the stars it crosses; the stars page names
-the stars, the constellations and the planets for any hour, turned by hand or held up to the
-sky. At a desk the satellites, the live sky and the stars share one celestial globe, with
-each pass's arc and a satellite's facts beside it. It runs in the browser, with no backend
-and no account, works offline, and speaks English and Spanish.
+A pass opens with a countdown and its path over the stars it crosses. The stars page names
+the stars, the constellations and the planets for any hour, turned by hand or
+held up to the sky. At a desk the satellites, the live sky and the stars share one celestial
+globe, with each pass's arc and a satellite's facts beside it. It runs in the browser, with
+no backend and no account, works offline, and speaks English and Spanish.
 
 **Live:** <https://inyoursky.app> (2.14.0)
 
