@@ -500,13 +500,13 @@ describe('repository metadata, ready to paste (FR-PUB-11)', () => {
   const topicsOf = (text: string): string[] => [...(/\*\*Topics\*\*[\s\S]*?(?=\n- \[ \]|$)/.exec(text)?.[0] ?? '').matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1] ?? '');
   const record = readFileSync('docs/sdd/phases/v2.14/release.md', 'utf8');
 
-  it('carries the description, the release record’s', () => {
+  it('FR-PUB-16: carries the description, the release record’s', () => {
     expect(metadata).toMatch(/\*\*Description\*\*/);
     expect(metadata).toContain(DESCRIPTION);
     expect(record).toContain(DESCRIPTION);
   });
 
-  it('carries the twenty topics, the twelve of 2.13 kept, as the release record does', () => {
+  it('FR-PUB-16: carries the twenty topics, the twelve of 2.13 kept, as the release record does', () => {
     expect(topicsOf(metadata)).toEqual(TOPICS);
     expect(topicsOf(record)).toEqual(TOPICS);
   });

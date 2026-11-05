@@ -189,7 +189,12 @@ Sessions have no network; the owner applies these with `gh repo edit` and reads 
 - [ ] Apply them:
 
       ```
-      gh repo edit --description "Naked-eye sky in the browser: which satellites cross your sky tonight, when and where to look, and the stars, constellations and planets on a celestial globe." --homepage https://inyoursky.app --add-topic astronomy,iss,orbital-mechanics,pwa,react,satellite,satellite-tracking,sgp4,spec-driven-development,stargazing,typescript,web-worker,star-chart,constellations,celestial-globe,offline-first,i18n,cloudflare-workers,claude-code,ai-agents
+      gh repo edit \
+        --description "Naked-eye sky in the browser: which satellites cross your sky tonight, when and where to look, and the stars, constellations and planets on a celestial globe." \
+        --homepage https://inyoursky.app \
+        --add-topic astronomy,iss,orbital-mechanics,pwa,react,satellite,satellite-tracking,sgp4 \
+        --add-topic spec-driven-development,stargazing,typescript,web-worker,star-chart,constellations \
+        --add-topic celestial-globe,offline-first,i18n,cloudflare-workers,claude-code,ai-agents
       ```
 
 - [ ] Read them back equal to the text above:

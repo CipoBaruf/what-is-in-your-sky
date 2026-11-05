@@ -206,6 +206,16 @@ describe('the v1 capture set', () => {
     expect(captureSet()).toHaveLength(464);
   });
 
+  it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {
+    const EIGHT = ['sky-live-globe', 'sky-pass-globe', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover', 'sky-clouds', 'sky-fullscreen'];
+    for (const name of EIGHT) {
+      expect(SCREENS.find((screen) => screen.name === name)?.widths, name).toEqual([1280]);
+      expect(captureSet().filter((capture) => capture.file.startsWith(`v1-${name}-1280-`)), name).toHaveLength(4);
+    }
+    // R191 (FR-WIDE-2, D-1131): a desk opens a saved `polar` on the globe, so the polar chart is shot on a phone only.
+    expect(SCREENS.find((screen) => screen.name === 'polar')?.widths).toEqual([360, 390]);
+  });
+
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
     for (const capture of captureSet()) expect(capture.file).toMatch(CAPTURE_FILE);
     expect(v1Files.filter((file) => !CAPTURE_FILE.test(file))).toEqual([]);

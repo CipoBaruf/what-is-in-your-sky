@@ -259,7 +259,8 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 6
 
-- [ ] **R191 — 2.14.0: the capture set re-shot, every budget row re-set, the README, the reading order, the images, the repository's description and topics**
+- [x] **R191 — 2.14.0: the capture set re-shot, every budget row re-set, the README, the reading order, the images, the repository's description and topics**
+  - **Done note:** the set's globe screens turn to the pass, which is behind the opening view, and `polar` left 1280 (464 files, D-1131); `main` is 192.0 KB, left at 185 for the owner, and the `stars` row takes the shared catalogue (D-1130); the `captures.yml` runs and their report are the owner's, since a session has no `gh`.
   - **Lane:** docs
   - **Tier:** standard
   - **Turns:** 500
