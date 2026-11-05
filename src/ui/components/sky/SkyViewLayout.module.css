@@ -186,6 +186,7 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  position: relative;
 }
 
 .rail > .slot {
@@ -197,6 +198,9 @@
   flex: 1 1 0;
   min-height: calc(6 * var(--row));
   overflow-y: auto;
+  /* The containing block of what the list places absolutely (the cards' stretched buttons, the hidden headings), so
+     its scroll clips them: without it they ran the page 358 px past a 1280 × 800 window on the pass detail. */
+  position: relative;
 }
 
 /* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself

@@ -278,7 +278,9 @@ export function SkyChart(props: SkyChartProps) {
   // R186 (FR-WIDE-6, D-1099): on wide the globe's chunk on idle — in the dome's place, which is fetched only when chosen.
   useGlobePrefetch(!compact);
   // R160 (D-971): the page holds the view itself — the stars page's, never saved — and every change goes to it.
-  const { view: givenView, onViewChange } = props;
+  const { view: givenView, onViewChange, onViewHold } = props;
+  // R186 (FR-PHONE-10, FR-KEEP-2): what the reader did not choose is held by the page, not saved, where it says how.
+  const onPageHold = onViewHold ?? onViewChange;
   const controlled = givenView !== undefined;
   // R186 (D-1095): the saved view as this page and width offer it, else the window on compact and the globe on wide (`viewFor`).
   const pageView: ChartView = givenView ?? pageViewFor(props.page ?? 'live', mode, chartView);
@@ -303,8 +305,8 @@ export function SkyChart(props: SkyChartProps) {
   useLayoutEffect(() => {
     const was = followedRef.current;
     followedRef.current = follow;
-    if (follow && !was && controlled && givenView !== 'window') onViewChange?.('window');
-  }, [follow, controlled, givenView, onViewChange]);
+    if (follow && !was && controlled && givenView !== 'window') onPageHold?.('window');
+  }, [follow, controlled, givenView, onPageHold]);
   // FR-GYRO-2: following, the dome is never the view — it has no camera to follow with — so a pick of it while following
   // saves it and shows the window until following ends (as D-957 had every view); the polar chart is shown, with the
   // field outlined and moving (FR-PHONE-8: the whole sky one tap away from every sky view, FR-PHONE-9).
@@ -335,10 +337,10 @@ export function SkyChart(props: SkyChartProps) {
   const [opening, setOpening] = useState<FieldAim | undefined>(undefined);
   const hold = useCallback(
     (id: ChartView): void => {
-      if (controlled) onViewChange?.(id);
+      if (controlled) onPageHold?.(id);
       else setHeldView(id);
     },
-    [controlled, onViewChange],
+    [controlled, onPageHold],
   );
   const onFieldHandoff = useCallback(
     (aim?: FieldAim): void => {
@@ -460,7 +462,7 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
-  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, page: _page, ...forwarded } = props;
+  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, onViewHold: _onViewHold, page: _page, ...forwarded } = props;
   // R160 (D-970): the handoff's callback goes to either drawing only where the row offers the other view (`onFieldHandoff` sorts out which).
   const handoff = offers('polar') && offers('window') ? { onFieldHandoff, ...(opening === undefined ? {} : { opening }) } : {};
   // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).

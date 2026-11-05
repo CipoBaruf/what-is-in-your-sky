@@ -334,6 +334,12 @@ export interface SkyChartProps {
   view?: ChartView;
   onViewChange?: (view: ChartView) => void;
   /**
+   * R186 (FR-PHONE-10, FR-KEEP-1, FR-KEEP-2): where the page holds the view and saves the reader's pick
+   * (`onViewChange`), the changes the reader did not choose — a pinch handoff, following turning on — go here instead,
+   * so the page shows them without saving them. Absent, they go to `onViewChange`. Read by `SkyChart` alone.
+   */
+  onViewHold?: (view: ChartView) => void;
+  /**
    * R186 (FR-WIDE-2, D-1095): the page the chart stands on, for `viewFor` — the saved view mapped to what the page and
    * the width offer. Absent, the live page's. Read by `SkyChart` alone.
    */

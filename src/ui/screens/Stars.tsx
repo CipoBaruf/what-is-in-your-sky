@@ -253,9 +253,15 @@ function StarsSky({ observer }: { observer: Observer }) {
   // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it at this width — the globe on wide and the window on compact with nothing saved.
   const savedView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
-  const chartView = viewFor('stars', mode, savedView);
+  /*
+   * R186 (FR-PHONE-10, FR-KEEP-1, FR-KEEP-2): a pinch handoff or following turning on changes the view without the
+   * reader choosing it, so it is held here and not saved; a pick from the row or `v` saves and clears the hold.
+   */
+  const [heldView, setHeldView] = useState<ChartView | null>(null);
+  const chartView = heldView ?? viewFor('stars', mode, savedView);
   const onChartView = useCallback(
     (next: ChartView) => {
+      setHeldView(null);
       setChartView(next);
     },
     [setChartView],
@@ -434,11 +440,11 @@ function StarsSky({ observer }: { observer: Observer }) {
    */
   const sheetOpenRef = useRef(sheetOpen);
   const compactRef = useRef(compact);
-  const savedRef = useRef(savedView);
+  const savedRef = useRef<ChartView>(chartView);
   useLayoutEffect(() => {
     sheetOpenRef.current = sheetOpen;
     compactRef.current = compact;
-    savedRef.current = savedView;
+    savedRef.current = chartView;
   });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -450,13 +456,13 @@ function StarsSky({ observer }: { observer: Observer }) {
       event.preventDefault();
       event.stopPropagation();
       if (closes) closeSheet();
-      else setChartView(nextView('stars', compactRef.current ? 'compact' : 'wide', savedRef.current));
+      else onChartView(nextView('stars', compactRef.current ? 'compact' : 'wide', savedRef.current));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [closeSheet, setChartView]);
+  }, [closeSheet, onChartView]);
 
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);
@@ -521,7 +527,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} />
         </Suspense>
       ) : (
-        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} />
+        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} onViewHold={setHeldView} />
       )}
     </div>
   );
