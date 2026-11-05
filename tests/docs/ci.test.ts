@@ -160,7 +160,8 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // and the two waits that were theirs went with their routes.
     // R153 (FR-GYRO-9): the live page following puts it back on `SHOWN` after the window has settled on the reading.
     // R161 (FR-PHONE-16, D-993): the whole sky with `[ passes ]` puts it back on `SHOWN` after the polar chart's wait.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(8);
+    // R191 (FR-WIDE-12): the pass detail on the globe is pinned to `SHOWN` before its arc is waited for, since R190 opens it at now.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(9);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });

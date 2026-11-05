@@ -24,7 +24,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/design-guide.ts` — exports: GUIDE_PATH, MANIFEST_PATH, PRIMITIVES_DIR, DEV_PAGE_URL, readNotes, renderGuide — R108 (FR-DS-6, FR-DS-9; D-707, D-729): `docs/DESIGN.md`, generated.
 - `scripts/mockup-capture.ts` — exports: none — FR-DESK-5 and FR-COMP-6: regenerate the mockups' captures, one per theme, from the pages under `docs/mockups/`.
 - `scripts/prune-merged-branches.ts` — exports: PROTECTED_BRANCHES, PROTECTED, parseBranches, deletable, PullRequestFact, PruneFacts, PrunePlan, planPrune, +4 — FR-PUB-13 (D-377): the branches on `origin` whose pull request is merged, listed — and deleted only when asked in so many words.
-- `scripts/readme-hero.ts` — exports: HERO, PREVIEW, Source, SOURCES, brailleFontFace, Layout, Placed, geometry, +2 — FR-PUB-2, FR-PUB-11 (D-370): the README's one image and the repository's social preview, composed from captures of the set kept beside them…
+- `scripts/readme-hero.ts` — exports: HERO, PREVIEW, Source, SOURCES, brailleFontFace, Layout, HERO_LAYOUT, Placed, +3 — FR-PUB-2, FR-PUB-11 (D-370): the README's one image and the repository's social preview, composed from captures of the set kept beside them…
 - `scripts/sdd-map.ts` — exports: MAP_DIRS, MAP_PATH, listSourceFiles, firstSentence, exportNames, mapLine, renderMap, run — FR-SDD-14: the generated code map, `docs/sdd/map.md`, one line per source file.
 - `scripts/sdd-run.ts` — exports: none — PLAN §16: the v1 task driver.
 - `scripts/sdd/agents.ts` — exports: TIERS, Tier, AgentEntry, AgentsConfig, LimitConfig, Agent, parseAgents, loadAgents, +9 — FR-SDD-10, FR-SDD-11 (D-1064): an agent is an entry in `sdd.agents.json`.

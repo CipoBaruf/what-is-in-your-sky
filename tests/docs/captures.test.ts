@@ -81,7 +81,8 @@ describe('the v1 capture set', () => {
     // never folded (D-844), so there is nothing to open and no 1280 px file to shoot.
     // R145 (FR-TONIGHT-1): the jumped live page was a phone's screen too, at 360 and 390 — wide never jumps; R149
     // turned it into the card and gave it the turned phone, below.
-    const PHONE_ONLY = new Set(['where-opened']);
+    // R191 (FR-WIDE-2, D-1095): and the polar chart, which a desk no longer offers; a saved `polar` opens the globe there.
+    const PHONE_ONLY = new Set(['where-opened', 'polar']);
     // R149 (FR-FULL-9, FR-FULL-10, D-937): the sheet open and the sheet with the list are the phone's two sizes
     // FR-FULL-9 names, upright and turned, and the card is the day's opening state upright (with the 360 beside the
     // 390) and turned; wide has no sheet and never asks, so a 1280 px file would be `live-watching`'s.
@@ -201,7 +202,18 @@ describe('the v1 capture set', () => {
     // R187 (FR-WIDE-8, D-1100): + 4 for `sky-clouds` (1280).
     // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): + 4 each for `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover` (1280).
     // R189 (FR-WIDE-10, D-1103): + 4 for `sky-fullscreen` (1280).
-    expect(captureSet()).toHaveLength(468);
+    // R191 (FR-WIDE-2): − 4 `polar` at 1280, which a desk opens on the globe.
+    expect(captureSet()).toHaveLength(464);
+  });
+
+  it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {
+    const EIGHT = ['sky-live-globe', 'sky-pass-globe', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover', 'sky-clouds', 'sky-fullscreen'];
+    for (const name of EIGHT) {
+      expect(SCREENS.find((screen) => screen.name === name)?.widths, name).toEqual([1280]);
+      expect(captureSet().filter((capture) => capture.file.startsWith(`v1-${name}-1280-`)), name).toHaveLength(4);
+    }
+    // R191 (FR-WIDE-2, D-1131): a desk opens a saved `polar` on the globe, so the polar chart is shot on a phone only.
+    expect(SCREENS.find((screen) => screen.name === 'polar')?.widths).toEqual([360, 390]);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

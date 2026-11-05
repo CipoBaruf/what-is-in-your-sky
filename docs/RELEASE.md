@@ -148,7 +148,7 @@ Once, on the day a phase goes live, for the place the owner will actually observ
       contract check).
 - [ ] The README's live link still resolves.
 
-## 10. Repository metadata (FR-PUB-11)
+## 10. Repository metadata (FR-PUB-11, FR-PUB-16)
 
 GitHub keeps the description, the topics, the homepage and the social preview in the
 repository settings, not in the tree, so this section is the exact text to paste and the
@@ -157,12 +157,15 @@ URL or the phase changes.
 
 - [ ] **Description** (*About*, the pencil at the top right of the repository page):
 
-      Naked-eye satellite spotting in the browser: which bright satellites cross your sky tonight, when, and where to look.
+      Naked-eye sky in the browser: which satellites cross your sky tonight, when and where to look, and the stars, constellations and planets on a celestial globe.
 
-- [ ] **Topics** (same dialog, twelve of them, in this order):
+- [ ] **Topics** (same dialog, twenty since 2.14, the twelve of 2.13 first; FR-PUB-16, and
+      `docs/sdd/phases/v2.14/release.md` §26.7 has the `gh repo edit` line):
 
-      `satellite-tracking`, `astronomy`, `satellite`, `iss`, `sgp4`, `orbital-mechanics`,
-      `stargazing`, `typescript`, `react`, `web-worker`, `pwa`, `spec-driven-development`
+      `astronomy`, `iss`, `orbital-mechanics`, `pwa`, `react`, `satellite`, `satellite-tracking`,
+      `sgp4`, `spec-driven-development`, `stargazing`, `typescript`, `web-worker`, `star-chart`,
+      `constellations`, `celestial-globe`, `offline-first`, `i18n`, `cloudflare-workers`,
+      `claude-code`, `ai-agents`
 
 - [ ] **Homepage URL** (same dialog, *Website*):
 

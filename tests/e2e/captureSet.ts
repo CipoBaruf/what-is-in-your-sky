@@ -220,6 +220,10 @@
  *
  * R189 (FR-WIDE-10; D-1103): `sky-fullscreen` joins at 1280, the live page's globe given the whole screen. The set is
  * 468 files.
+ *
+ * R191 (FR-WIDE-12): the set re-shot whole for 2.14.0. The pass the globe screens draw is on the far side of
+ * FR-GLOBE-5's opening view at the set's instant, so `globeDrawn` turns the globe to it by its own key. `polar` keeps 360 and 390: a desk offers no polar chart since
+ * R186 (FR-WIDE-2), so its 1280 file would be `sky-pass-globe`'s. The set is 464 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -321,7 +325,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   { name: 'settings', widths: [360, 390, 768, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it. 768 is the tablet, where the column is capped and centred (FR-TAB-3).' },
   { name: 'guide', widths: [360, 390, 768, 844, 1024, 1280], what: 'The night\'s brightest pass (Tiangong at 07:20 local, peak −2.1) open on the dome view, three minutes in, with the Sun and the Moon on the chart. The Moon-glare state D-179\'s Paris pass carried is absent: no pass on the showcase night is flagged with glare (D-684). Since v2.6 the head is the name, the countdown, the landmark line and the three times (FR-FLOW-7), above the view row, the drawing and its hint (FR-FLOW-4, FR-FLOW-6). At 768 it is the sheet inside the tablet\'s capped column (FR-TAB-3); at 844 × 390 the phone turned, the drawing left at full height and the rail beside it (FR-FLOW-15, R135); at 1024 it has the right column to itself (F-6). Since v2.11 (FR-CLEAN-1, FR-CLEAN-5, R164) the pass detail on a phone, upright (360, 390, 768) and turned (844), is the sky in the full form with its sheet closed: the countdown head with the name chip, the corner readout with the landmark, and `[ follow ] [ controls ]` at the foot; the times, the view row and the prose are the sheet\'s (`guide-sheet`).' },
-  { name: 'polar', widths: [360, 390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements. Since v2.11 at 360 and 390 the full form\'s sky with the sheet closed (FR-CLEAN-1, R164).' },
+  { name: 'polar', widths: [360, 390], what: 'The same pass on the polar view: the live marker and the flown arc as elements. Since v2.11 at 360 and 390 the full form\'s sky with the sheet closed (FR-CLEAN-1, R164). Since v2.14 a phone\'s screen alone: a desk offers `[ Globe ] Window Dome` and opens a saved `polar` on the globe (FR-WIDE-2, D-1095), so its 1280 file was `sky-pass-globe` under a second name (R191).' },
   { name: 'legend', touch: true, widths: [360, 390, 1280], what: 'The legend (FR-LEG-3): the live page with the hidden objects shown and one row activated so its arc is highlighted and the others dim (FR-LEG-4). At 360 and 390 the satellites open at the end of the controls sheet on a touch phone (FR-GYRO-10, R150, R153), in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have. On the showcase night the one drawn row is `up` beside the Sun and the Moon: the night\'s passes do not overlap, so no instant holds `soon` or `gone` beside it, and nothing hidden is above the horizon in the morning twilight, so the FR-LIVE-6 rows are absent too (FR-SHOW-9); the per-task captures that showed them keep pointing at them.' },
   { name: 'favourites', widths: [360, 390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [360, 390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
@@ -399,12 +403,12 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'sky-live-globe',
     widths: [1280],
-    what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
+    what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. R191: the set's one pass is on the far side of the opening view, so the globe is turned by `ArrowLeft` to the step that draws most of its arc (`globeDrawn`). The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
   },
   {
     name: 'sky-pass-globe',
     widths: [1280],
-    what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
+    what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant (R191: the globe turned to the arc, as `sky-live-globe` is) — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
   },
   {
     name: 'sky-clouds',

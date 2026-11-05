@@ -51,6 +51,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { compressPng } from '../../scripts/captures/compress';
+import { GLOBE_KEY_STEP_DEG } from '../../src/ui/components/guide/skychart/globe/constants';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
@@ -286,8 +287,11 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await page.clock.runFor(1000);
   if (view === 'dome') await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   // R186 (FR-WIDE-3): the globe draws its stars as dot paths, not marks; the wait is its disc and the pass's arc.
-  if (view === 'globe') await globeDrawn(page, 1);
-  else await starsDrawn(page, figure);
+  // R191: since R190 (FR-KEEP-2) the detail opens at now, before the pass, when its arc is not drawn; the pass's instant first.
+  if (view === 'globe') {
+    await pinnedAt(page, SHOWN);
+    await globeDrawn(page, 1);
+  } else await starsDrawn(page, figure);
 
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
   await pinnedAt(page, SHOWN);
@@ -295,7 +299,8 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await expect(guide(page).getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
   await expect(guide(page).getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
   if (view === 'polar') await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
-  await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
+  // R191: the globe is an `svg[data-globe]`, not a `[data-drawing]`.
+  await figure.locator(view === 'globe' ? 'svg[data-globe]' : '[data-drawing]').scrollIntoViewIfNeeded();
   await page.mouse.move(0, 0);
 }
 
@@ -689,16 +694,44 @@ const TURN_STARS = { en: 'with the stars', es: 'con las estrellas' } as const;
  */
 /**
  * R186 (FR-WIDE-3): the live page's or the pass detail's globe drawn — its SVG laid out and at least `arcs` of the
- * passes' series paths written — ticking the paused clock, which holds the chunk's reveal (R32).
+ * passes' series paths given a pass — ticking the paused clock, which holds the chunk's reveal (R32).
+ * R191 (FR-WIDE-12): at the set's instant over Bariloche the one pass (Tiangong, N low → NNE → E) is on the far side
+ * of FR-GLOBE-5's pole-side opening view, so its path is empty as the page opens (the R186 note in `globe.spec.ts`).
+ * The screen then turns the globe by its own key, `ArrowLeft` one `GLOBE_KEY_STEP_DEG` at a time: once round, reading
+ * how much of the arcs each step draws, and then to the step that draws the most. The steps are fixed by the instant,
+ * so the frame is the same each run.
  */
 async function globeDrawn(page: Page, arcs: number): Promise<void> {
+  const paths = page.locator('[data-globe] [data-arc-series]');
+  const drawn = (): Promise<number[]> => paths.evaluateAll((all) => all.map((path) => (path.getAttribute('d') ?? '').length).filter((length) => length > 0));
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
       if ((await page.locator('svg[data-globe][viewBox]').count()) === 0) return 0;
-      return page.locator('[data-globe] [data-arc-series]').evaluateAll((paths) => paths.filter((path) => (path.getAttribute('d') ?? '') !== '').length);
+      return paths.evaluateAll((all) => all.filter((path) => (path.getAttribute('data-pass-ids') ?? '') !== '').length);
     }, { timeout: 30_000 })
     .toBeGreaterThanOrEqual(arcs);
+  await page.clock.runFor(FRAME_MS);
+  const box = page.getByTestId('globe-box');
+  const steps = 360 / GLOBE_KEY_STEP_DEG;
+  const turn = async (): Promise<void> => {
+    await box.focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.clock.runFor(FRAME_MS);
+  };
+  const score = async (): Promise<number> => {
+    const lengths = await drawn();
+    return lengths.length >= arcs ? lengths.reduce((a, b) => a + b, 0) : 0;
+  };
+  const scores = [await score()];
+  for (let step = 1; step < steps; step += 1) {
+    await turn();
+    scores.push(await score());
+  }
+  const best = scores.indexOf(Math.max(...scores));
+  // One more press closes the circle, at the opening view again; then on to the best step.
+  for (let step = 0; step < 1 + best; step += 1) await turn();
+  expect(await score()).toBeGreaterThan(0);
   await page.clock.runFor(1000);
 }
 

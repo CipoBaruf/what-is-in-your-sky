@@ -1,70 +1,77 @@
 # What is in your sky right now
 
-A web app for spotting satellites with the naked eye. Give it a place and it lists which of
-about thirty bright satellites (the ISS, Tiangong, Hubble and others) cross the sky there in
-the next three nights: when each appears, where to look, how high and how bright, and the
-cloud forecast. A pass opens with a countdown and its path over the stars it crosses; the
-live sky follows the phone as you point it up; the stars page shows tonight's stars and
-constellations by name, turned by hand or held up to the sky. It runs in the browser, with
+A web app for the naked-eye sky. Give it a place and it lists which of about thirty bright
+satellites (the ISS, Tiangong, Hubble and others) cross the sky there in the next three
+nights: when each appears, where to look, how high and how bright, and the cloud forecast.
+A pass opens with a countdown and its path over the stars it crosses. The stars page names
+the stars, the constellations and the planets for any hour, turned by hand or
+held up to the sky. At a desk the satellites, the live sky and the stars share one celestial
+globe, with each pass's arc and a satellite's facts beside it. It runs in the browser, with
 no backend and no account, works offline, and speaks English and Spanish.
 
-**Live:** <https://inyoursky.app> (2.11.0)
+**Live:** <https://inyoursky.app> (2.14.0)
 
-![Three screens: a phone following the pass that is up, drawn among the stars; a phone turned sideways showing tonight's stars and constellations; and a laptop showing the home page with its three doors, Satellites, Stars and Live sky, and the next pass with its countdown, its path and its rise, peak and set times](docs/readme/hero.png)
+![Two screens: a phone on the live sky, the window following the pass that is up among the stars; and a desk on a pass, the celestial globe drawing the pass's arc among the stars and the planets, with its rise, peak and set times and the satellite's facts in the rail beside it](docs/readme/hero.png)
 
-**How it is built.** Spec-driven, by Claude Code sessions rather than by hand. `SPEC.md` says
-what it does, `PLAN.md` how, `TASKS.md` cuts it into slices. [`scripts/sdd-run.ts`](scripts/sdd-run.ts)
-runs each task as a headless session in its own git worktree, opens a pull request, waits for
-CI, has a second session review the diff, and merges. The owner answers the spec's questions,
-tries each release on a real phone, and the notes become the next phase's spec decisions.
+**How it is built.** Spec-driven, by coding-agent sessions rather than by hand. [`AGENTS.md`](AGENTS.md)
+is where every session starts; `SPEC.md`, `PLAN.md` and `TASKS.md` index a folder per phase.
+[`scripts/sdd-run.ts`](scripts/sdd-run.ts) runs each task as a headless session in its own git
+worktree, opens a pull request, waits for CI, has a second session review the diff, and merges.
+The owner answers the spec's questions and tries each release on a phone and at a desk.
 
 [How this was built](docs/HOW-THIS-WAS-BUILT.md) - [The design system](docs/DESIGN.md) -
 [Contributing](CONTRIBUTING.md) - [Licence](LICENSE) (MIT)
 
 ## By the numbers
 
-Read from the repository at `main` on 2026-11-03; each figure's command is in
+Read from the repository on 2026-11-05, for the 2.14.0 release; each figure's command is in
 [docs/HOW-THIS-WAS-BUILT.md](docs/HOW-THIS-WAS-BUILT.md#by-the-numbers).
 
-| | |
-|---|---|
-| Time span | first commit 2026-09-02, 2.11.0 released 2026-11-03 |
-| Tasks done | 178, one session each (3 open, the globe) |
-| Pull requests merged | 260 |
-| Releases | 7 tags, `v1.1.0` to `v2.11.0` |
-| Requirement ids | 410 `FR-` ids in the spec |
-| Decisions | 973 `D-` ids in the spec and the plan, 284 rows in the spec's Decision Log |
-| Tests | 3309 Vitest tests in 272 files, and 112 Playwright specs |
+| Figure | Value | Read on |
+|---|---|---|
+| Time span | first commit 2026-09-02, 2.14.0 prepared 2026-11-05 | 2026-11-05 |
+| Tasks done | 201, one session each (R1–R191, H, P1–P9) | 2026-11-05 |
+| Pull requests merged | 270, and this release's | 2026-11-05 |
+| Phases | 24 phase folders, `mvp` to `v2.14` | 2026-11-05 |
+| Releases | 8 tags, `v1.1.0` to `v2.12.0`; the owner tags `v2.14.0` | 2026-11-05 |
+| Requirement ids | 463 `FR-` ids in the specs | 2026-11-05 |
+| Decisions | 1054 `D-` ids, 323 rows in the Decision Log | 2026-11-05 |
+| Tests | 3793 Vitest tests in 307 files, and 118 Playwright specs | 2026-11-05 |
 
 ## How it was built
 
 ```
-SPEC.md  ->  PLAN.md  ->  TASKS.md  ->  one headless session per task, in its own worktree
-         ->  pull request  ->  CI  ->  a second session reviews the diff  ->  merge
-         ->  the owner tries it on a phone  ->  the notes become spec decisions  ->  SPEC.md
+AGENTS.md  ->  SPEC.md, PLAN.md, TASKS.md (indexes)  ->  a phase folder: spec, plan, tasks
+           ->  one headless session per task, on its brief, in its own worktree
+           ->  pull request  ->  CI  ->  a second session reviews the diff  ->  merge
+           ->  the owner tries it on a phone and at a desk  ->  the notes open the next phase
 ```
 
-- [`SPEC.md`](SPEC.md) says what the product does: numbered requirements (`FR-…`), user
-  stories with acceptance criteria, and a Decision Log that is fixed once written.
-- [`PLAN.md`](PLAN.md) says how it is built: the architecture, the worker contract, the
-  testing strategy, the bundle budgets, numbered decisions (`D-…`), and in §16 how tasks
-  are delivered.
-- [`TASKS.md`](TASKS.md) is the ordered list of vertical slices, each with the requirement
-  ids it satisfies, its lane, its dependencies and a *done when* list. A session generates it
-  from the other two; nobody edits it by hand except to check a task off.
-- [`scripts/sdd-run.ts`](scripts/sdd-run.ts) delivers the tasks, up to three at once in
-  separate lanes: a headless session per task in its own worktree, a pull request, CI, a
-  second session that reviews the diff, and the merge. What the reviewer finds becomes a
-  later task rather than holding the merge open. The MVP (R1–R15 and H) was run by hand,
-  one interactive session per task, before the driver existed; every task from R16 on but
-  one phone spike (R38) went through it.
-- CI is the gate: typecheck, lint, dead-code and commit-message checks, the Vitest suite,
-  a production build checked against the bundle budgets, and the Playwright suite under the
-  strict CSP, in five parallel shards of at most ten minutes. A pull request runs the tests
-  its change can reach, and the whole suite when the build inputs change. Physics changes
-  have to pass the golden fixtures transcribed from Heavens-Above.
-- The owner's part: answering the spec's scope questions, reading each release on a real
-  phone and a desk, and turning what was wrong into the next phase's requirements.
+- [`AGENTS.md`](AGENTS.md) is what every session reads first, whatever the agent: the
+  documents, the workflow each kind of work follows, what it reads and what it never reads.
+  [`CLAUDE.md`](CLAUDE.md) imports it.
+- [`SPEC.md`](SPEC.md), [`PLAN.md`](PLAN.md) and [`TASKS.md`](TASKS.md) are the index files. Each
+  phase has a folder under [`docs/sdd/phases/`](docs/sdd/phases/) with its `spec.md` (numbered
+  requirements, `FR-…`, and user stories with acceptance criteria), its `plan.md` (the
+  decisions, `D-…`), its `tasks.md` (vertical slices, each with its lane, its dependencies and
+  a *done when* list) and, once released, its `release.md`.
+- [`docs/sdd/decisions.md`](docs/sdd/decisions.md) is the Decision Log, fixed once written: a
+  later row may supersede an earlier one, never edit it.
+- [`docs/sdd/ids.md`](docs/sdd/ids.md) says where every id lives, and `npm run sdd:id <id>`
+  prints one id's text, so a session reads the ids its task names and nothing else.
+- [`scripts/sdd-run.ts`](scripts/sdd-run.ts) delivers the tasks, up to three at once in separate
+  lanes: a brief per task, a headless session in its own worktree, a pull request, CI, a review
+  session, and the merge. [`sdd.agents.json`](sdd.agents.json) says how to run an agent and which
+  model each tier (`hard`, `standard`, `light`) gets, so any agent a config entry describes can
+  run a task. The MVP (R1–R15 and H) was run by hand; every task from R16 on but one phone
+  spike (R38) went through the driver.
+- CI is the gate: typecheck, lint, dead-code and commit-message checks, the Vitest suite, a
+  production build checked against the bundle budgets, and the Playwright suite under the
+  strict CSP, in six parallel shards of at most ten minutes. A pull request runs the tests its
+  change can reach. Physics changes have to pass the golden fixtures transcribed from
+  Heavens-Above.
+- The owner's part: answering the spec's scope questions, reading each release on a phone and
+  at a desk, and turning what was wrong into the next phase's requirements.
 
 The long version, with one task followed end to end, is
 [docs/HOW-THIS-WAS-BUILT.md](docs/HOW-THIS-WAS-BUILT.md).
@@ -77,12 +84,13 @@ The long version, with one task followed end to end, is
   the planets with astronomy-engine. Time is always a parameter, never the wall clock, so the
   predictions are tested against fixed, dated fixtures. The compass is corrected for magnetic
   declination with geomagnetism.
-- The sky is drawn as text in the page's monospace grid, in three views: a window on part of
-  the sky that can follow the phone's orientation, a polar chart of the whole sky, and a 3D
-  dome drawn with @glyphcss/react. The live sky and a pass offer all three, the stars page
-  the window and the whole sky. All DOM, no canvas or WebGL. On a phone each of those pages
-  is the drawing full-screen, with its controls in a bottom sheet. In progress on `main`: a
-  celestial globe for the stars page on desktops.
+- The sky is SVG and DOM, no canvas or WebGL, in the page's monospace grid. At a desk the
+  live sky, a pass and the stars page open on a celestial globe seen from outside — the stars,
+  the figures, the planets, the horizon and each pass's arc — with the window, a part of the
+  sky, beside it as a choice, and the dome, a 3D bowl drawn as text with @glyphcss/react, as
+  the other. On a phone each page is the sky full-screen with its controls in a bottom sheet:
+  the window, which can follow the phone's orientation, the polar chart of the whole sky, and
+  the dome by choice.
 - Element sets are cached in IndexedDB; a service worker (vite-plugin-pwa) keeps the app
   working offline after the first visit, and it installs as an app. English and Spanish.
 - Tests: Vitest (unit, golden physics, components, and the worker in a real Chromium) and
