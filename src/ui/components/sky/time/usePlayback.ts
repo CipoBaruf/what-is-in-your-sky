@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, spanFor, type Advance, type PassTimes, type Speed } from '../../../../lib/playback';
+import { advance, advanceAuto, autoRates, autoSpeed, spanFor, type Advance, type PassTimes, type Speed } from '../../../../lib/playback';
 import { clampToSpan, DAY_MS, type Span } from '../../../../lib/timeStripe';
 import type { EpochMs } from '../../../../model';
+import { appStore, useAppStore } from '../../../../state';
 
 /**
  * R33 (FR-LIVE-4, FR-LIVE-5, D-81): the live page's instant. It is either
@@ -113,7 +114,13 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
   const [held, setHeldState] = useState<EpochMs | null>(initial);
   const [playing, setPlaying] = useState(false);
   const fixed = speedOption === undefined || auto ? null : speedOption;
-  const [chosen, setChosen] = useState<Speed>(fixed ?? DEFAULT_SPEED);
+  /*
+   * R190 (FR-KEEP-1, FR-KEEP-2; D-1097): the rate `play` starts at is the saved `playSpeed`, read once; a speed the
+   * reader picks is saved. The instant is never read from the store: every open is at `initial` (a link's) or now,
+   * watching, whatever rate is saved.
+   */
+  const savePlaySpeed = useAppStore((s) => s.setPlaySpeed);
+  const [chosen, setChosen] = useState<Speed>(() => fixed ?? appStore.getState().playSpeed);
   // A new fixed speed from the caller is adopted during render, as React's "a prop changed" pattern does.
   const [lastFixed, setLastFixed] = useState(fixed);
   if (fixed !== lastFixed) {
@@ -270,8 +277,9 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
     (next: Speed) => {
       mark(undefined);
       setChosen(next);
+      savePlaySpeed(next);
     },
-    [mark],
+    [mark, savePlaySpeed],
   );
   const toNow = useCallback(
     (origin?: WriteOrigin) => {

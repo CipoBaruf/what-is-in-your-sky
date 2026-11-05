@@ -218,9 +218,10 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   /**
    * FR-SKY-14 (R125 review): a zoom moves neither the aim nor the picker's pressed `peak`; the field is page state,
    * so the dome and back keeps it with the facing ("only `0`, the range's ends and a reload change it"), and a new
-   * page — every pass detail — opens at `WINDOW_FOV`.
+   * page — every pass detail — opens at `WINDOW_FOV`. R190 (FR-KEEP-1, D-1096; amends the last): the zoom is a kept
+   * choice, so a new page opens at the field the reader left, and `0` puts the default back for the next.
    */
-  it('keeps peak pressed through a zoom, keeps the zoom through the dome and back, and opens a new page at 60°', async () => {
+  it('FR-KEEP-1: keeps peak pressed through a zoom, keeps the zoom through the dome and back, and opens a new page at the saved field', async () => {
     const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} facingOptions={PEAK_FACING_OPTIONS} />);
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
     await waitFor(() => {
@@ -250,7 +251,13 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     await waitFor(() => {
       expect(again.container.querySelector('[data-drawing="window"]')).not.toBeNull();
     });
-    expect(again.container.querySelector('[data-look-az]')).toHaveAttribute('data-fov', '60');
+    const reopened = again.container.querySelector('[data-look-az]');
+    expect(reopened).toHaveAttribute('data-fov', '38');
+    expect(appStore.getState().windowFov).toBeCloseTo(38.4, 1);
+    // The opening aim keeps its rule (FR-KEEP-2), reckoned at the saved field.
+    expect(reopened).toHaveAttribute('data-look-alt', String(Math.round(facePeak(pass.peak, appStore.getState().windowFov).altDeg)));
+    fireEvent.keyDown(again.container.querySelector('[data-drawing="window"]')?.closest('[tabindex="0"]') as HTMLElement, { key: '0' });
+    expect(appStore.getState().windowFov).toBe(WINDOW_FOV);
   });
 
   /**

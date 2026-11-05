@@ -281,7 +281,8 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(readoutClock()).toBe(inBuenosAires);
   });
 
-  it('holds [ ] faint off on every visit; on, it asks the deep chunk; a failed load unpresses it (FR-GLOBE-10)', async () => {
+  // R190 (FR-GLOBE-10 as amended by FR-KEEP-1): `[ ] faint` is off with nothing saved and kept once pressed.
+  it('FR-KEEP-1: holds [ ] faint off with nothing saved; on, it asks the deep chunk and is kept; a failed load unpresses it for the visit only (FR-GLOBE-10)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     vi.mocked(loadDeepChunk).mockClear();
@@ -293,9 +294,40 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(loadDeepChunk).not.toHaveBeenCalled();
     fireEvent.click(faint());
     expect(faint()).toHaveAttribute('aria-pressed', 'true');
+    expect(appStore.getState().faintStars).toBe(true);
     await waitFor(() => {
       expect(faint()).toHaveAttribute('aria-pressed', 'false');
     });
     expect(loadDeepChunk).toHaveBeenCalled();
+    expect(appStore.getState().faintStars).toBe(true);
+  });
+
+  it('FR-KEEP-1: a new open finds the layers, the names, the faint stars, the turn and the view as they were left', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    appStore.setState({ observer: BUENOS_AIRES });
+    render(
+      <I18nProvider locale="en">
+        <StarsPage />
+      </I18nProvider>,
+    );
+    await globe();
+    const layer = (key: string) => screen.getByTestId('stars-layers').querySelector(`[data-layer="${key}"]`) as HTMLElement;
+    fireEvent.click(layer('figures'));
+    fireEvent.click(layer('names'));
+    fireEvent.click(layer('faint'));
+    fireEvent.click(within(screen.getByTestId('globe-turn-row')).getByRole('button', { name: en.globe.turn.stars }));
+    expect(appStore.getState()).toMatchObject({ starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars' });
+    cleanup();
+    render(
+      <I18nProvider locale="en">
+        <StarsPage />
+      </I18nProvider>,
+    );
+    await globe();
+    expect(layer('figures')).toHaveAttribute('aria-pressed', 'false');
+    expect(layer('names')).toHaveAttribute('aria-pressed', 'false');
+    expect(layer('stars')).toHaveAttribute('aria-pressed', 'true');
+    expect(layer('faint')).toHaveAttribute('aria-pressed', 'true');
+    expect(within(screen.getByTestId('globe-turn-row')).getByRole('button', { name: en.globe.turn.stars })).toHaveAttribute('aria-pressed', 'true');
   });
 });

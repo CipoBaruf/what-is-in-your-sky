@@ -229,7 +229,10 @@ for (const locale of LOCALES) {
         await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
         // A row of the list names its star on the readout's second line, the page never scrolling.
         const first = list.getByRole('button').first();
-        await first.scrollIntoViewIfNeeded();
+        // The list follows the camera deferred, so it may redraw just after the pick and detach the row mid-scroll.
+        await expect(async () => {
+          await first.scrollIntoViewIfNeeded({ timeout: 2_000 });
+        }).toPass({ timeout: 15_000 });
         const named = (await first.getAttribute('aria-label')) ?? '';
         expect(named).not.toBe('');
         await first.click();

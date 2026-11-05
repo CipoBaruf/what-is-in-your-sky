@@ -380,7 +380,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover, onSkyPick } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover, onSkyPick, fieldDeg = WINDOW_FOV, onFieldChoice } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -430,9 +430,9 @@ export function SkyWindow(props: SkyWindowProps) {
       OPENED.add(opening);
       return createHandCamera(returnedAt(opening));
     }
-    if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
+    if (peak !== null) return createHandCamera(facePeak(peak, fieldDeg));
     const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
-    const opened = createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
+    const opened = createHandCamera(openingFacing({ latDeg: observer.lat, now, fovDeg: fieldDeg }, followed, nextRising(passes, now)));
     if (passes.length === 0) UNTURNED.add(opened);
     return opened;
   });
@@ -487,7 +487,7 @@ export function SkyWindow(props: SkyWindowProps) {
    * and written only by the pinch below; under the hand the field is the camera's and this is not read. Neither
    * reaches the prefs or the hash.
    */
-  const [sensorFov, setSensorFov] = useState(WINDOW_FOV);
+  const [sensorFov, setSensorFov] = useState(() => clampWindowFov(fieldDeg));
   // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
   // The placeholder's altitude reads the box's shape and not its angle (`verticalHalfFieldDeg`), so it is known before the hook that gives the angle.
   // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
@@ -627,10 +627,13 @@ export function SkyWindow(props: SkyWindowProps) {
   const zoomBy = useCallback(
     (factor: number) => {
       if (!(factor > 0) || !Number.isFinite(factor) || factor === 1) return;
-      if (handCamera) handCamera.zoomBy(factor);
-      else setSensorFov((was) => clampWindowFov(was * factor));
+      if (handCamera) {
+        handCamera.zoomBy(factor);
+        // R190 (FR-KEEP-1): the reader zoomed, so the field is told back to be saved; the sensor's own field is not (FR-KEEP-2).
+        onFieldChoice?.(handCamera.get().fovDeg);
+      } else setSensorFov((was) => clampWindowFov(was * factor));
     },
-    [handCamera],
+    [handCamera, onFieldChoice],
   );
   const flush = useCallback(() => {
     frameRef.current = 0;
@@ -916,16 +919,17 @@ export function SkyWindow(props: SkyWindowProps) {
       },
       // FR-SKY-14 (D-798): `+` (or `=`, its unshifted key) narrows the field by `ZOOM_KEY_FACTOR`, `-` widens it, `0` restores `WINDOW_FOV`.
       '+': () => {
-        handCamera.zoomBy(1 / ZOOM_KEY_FACTOR);
+        zoomBy(1 / ZOOM_KEY_FACTOR);
       },
       '=': () => {
-        handCamera.zoomBy(1 / ZOOM_KEY_FACTOR);
+        zoomBy(1 / ZOOM_KEY_FACTOR);
       },
       '-': () => {
-        handCamera.zoomBy(ZOOM_KEY_FACTOR);
+        zoomBy(ZOOM_KEY_FACTOR);
       },
       '0': () => {
         handCamera.resetZoom();
+        onFieldChoice?.(handCamera.get().fovDeg);
       },
     };
     const move = moves[event.key];
@@ -1005,7 +1009,7 @@ export function SkyWindow(props: SkyWindowProps) {
     UNTURNED.delete(slotCamera);
     turningRef.current = true;
     try {
-      slotCamera.open(openingFacing({ latDeg: observer.lat, now }, facingPass, nextRising(passes, now)));
+      slotCamera.open(openingFacing({ latDeg: observer.lat, now, fovDeg: slotCamera.get().fovDeg }, facingPass, nextRising(passes, now)));
     } finally {
       turningRef.current = false;
     }

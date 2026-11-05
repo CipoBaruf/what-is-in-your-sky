@@ -85,3 +85,8 @@
     gap: var(--space-2);
   }
 }
+
+/* R190 (FR-KEEP-4, FR-X-5): the privacy note's `[ × ]` is five cells, 42 px; the floor makes it a 44 px target and more. */
+.close {
+  min-width: var(--tap);
+}

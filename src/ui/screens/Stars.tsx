@@ -18,7 +18,7 @@ import { LIVE_WINDOW_MS } from '../../lib/livePasses';
 import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
 import type { ChartView, EpochMs, Locale, Observer, TonightCloud } from '../../model';
-import { favouriteCellKey, mostRecentlyUsed, useActiveObserver, useAppStore } from '../../state';
+import { appStore, favouriteCellKey, mostRecentlyUsed, useActiveObserver, useAppStore } from '../../state';
 import { GLOBE_SPAN_DAYS } from '../components/guide/skychart/globe/constants';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
@@ -140,9 +140,6 @@ function useGlobeLabel(place: Observer, instant: EpochMs, turn: GlobeTurn): stri
   return t.globe.label({ place: place.label, time: formatShortClock(at, place.timeZone, locale, true), turn });
 }
 
-/** The three layers the page holds as plain switches; `names` is its own override over a default by view and width (R160, D-990). */
-type LayerSwitches = Omit<StarField['layers'], 'names'>;
-const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
 
 /**
  * R160 (FR-PHONE-7): on compact the page offers the window and the whole sky (the polar chart), the window first
@@ -244,7 +241,8 @@ function StarsSky({ observer }: { observer: Observer }) {
    * window subscribes for itself, the picker reads its one pressed option (a string, which a drag leaves at '' after
    * its first frame), the list reads it deferred, and the page's `data-look-*` are written by ref.
    */
-  const [camera] = useState<HandCamera>(() => createHandCamera(initialHand(observer.lat)));
+  // R190 (FR-KEEP-1, FR-KEEP-2): the opening aim by FR-STAR-3, at the saved field.
+  const [camera] = useState<HandCamera>(() => createHandCamera(initialHand(observer.lat, appStore.getState().windowFov)));
 
   const now = useNow(STARS_TICK_MS);
   const catalog = starCatalog();
@@ -254,7 +252,8 @@ function StarsSky({ observer }: { observer: Observer }) {
    * never saved. R160 (FR-PHONE-8, D-968, D-990): the names' default is by view and width — on for the window, and for
    * the whole sky on wide, off for the whole sky on compact — until the `[x] names` toggle is tapped, from when its
    * choice holds for both views; the toggle shows the value in force. FR-GLOBE-1 as amended (V212-11, D-1054): a desk
-   * opens on the globe, a phone on the window; the width at the open picks it, nothing is saved.
+   * opens on the globe, a phone on the window; the width at the open picks it. R186/R190 (FR-KEEP-1, amending both):
+   * the view and the names' tap are now kept choices — the default holds only while nothing is saved.
    */
   // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it at this width — the globe on wide and the window on compact with nothing saved.
   const savedView = useAppStore((s) => s.chartView);
@@ -275,8 +274,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   // The whole sky: the polar chart on compact, the globe on wide (FR-GLOBE-1); the dome is wide's third value.
   const whole = chartView !== 'window';
   const globeShown = wide && chartView === 'globe';
-  const [layers, setLayers] = useState<LayerSwitches>(ALL_LAYERS);
-  const [namesChoice, setNamesChoice] = useState<boolean | null>(null);
+  // R190 (FR-KEEP-1, D-1096): the three switches and `[x] names` are the kept choices; the names' default by view and width holds until tapped.
+  const layers = useAppStore((s) => s.starLayers);
+  const setLayers = useAppStore((s) => s.setStarLayers);
+  const namesChoice = useAppStore((s) => s.namesChoice);
+  const setNamesChoice = useAppStore((s) => s.setNamesChoice);
   const names = namesChoice ?? !(chartView === 'polar');
   const drawnLayers = useMemo<StarField['layers']>(() => ({ ...layers, names }), [layers, names]);
   const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers: drawnLayers } }), [catalog, positions, drawnLayers]);
@@ -297,8 +299,12 @@ function StarsSky({ observer }: { observer: Observer }) {
     };
   }, [named]);
 
-  // FR-GLOBE-5: the turn, the visit's and not saved.
-  const [turn, setTurn] = useState<GlobeTurn>('you');
+  // FR-GLOBE-5 → R190 (FR-KEEP-1): the turn, kept on the device.
+  const turn = useAppStore((s) => s.globeTurn);
+  const setTurn = useAppStore((s) => s.setGlobeTurn);
+  // R190 (FR-KEEP-1): the globe's zoom, read once at mount so a zoom re-renders nothing here, and the reader's saved.
+  const [globeZoom] = useState(() => appStore.getState().globeZoom);
+  const setGlobeZoom = useAppStore((s) => s.setGlobeZoom);
   /*
    * R170 (FR-GLOBE-9, D-1040): the places — the observer, then the saved places by `mostRecentlyUsed` (the observer's
    * own entry not twice), read and never written. The choice is local; a favourite removed meanwhile falls back to the
@@ -347,10 +353,23 @@ function StarsSky({ observer }: { observer: Observer }) {
     () => ({ names: { star: (i, lang) => starName(catalog, i, lang), constellation: (con, lang) => constellationName(catalog, con, lang) }, ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, desig: catalog.desig, con: catalog.con }),
     [catalog],
   );
-  // FR-GLOBE-10: `[ ] faint`, off on every visit and not saved; a failed load unpresses it.
-  const [faint, setFaint] = useState(false);
+  /*
+   * FR-GLOBE-10 as amended by FR-KEEP-1 (R190): `[ ] faint` is kept on the device. A failed load unpresses it for the
+   * visit and leaves the saved choice alone, so the next press, or the next open, fetches again.
+   */
+  const faintStars = useAppStore((s) => s.faintStars);
+  const setFaintStars = useAppStore((s) => s.setFaintStars);
+  const [faintFailed, setFaintFailed] = useState(false);
+  const faint = faintStars && !faintFailed;
+  const setFaint = useCallback(
+    (on: boolean) => {
+      setFaintFailed(false);
+      setFaintStars(on);
+    },
+    [setFaintStars],
+  );
   const onFaintFailed = useCallback(() => {
-    setFaint(false);
+    setFaintFailed(true);
   }, []);
   useGlobePrefetch(wide);
   const globeLabel = useGlobeLabel(shownPlace, globeClock.t, turn);
@@ -501,7 +520,7 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);
-    else setLayers((was) => ({ ...was, [key]: !was[key] }));
+    else setLayers({ ...layers, [key]: !layers[key] });
   };
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={drawnLayers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
   const firstRow = firstRowCount(
@@ -559,7 +578,7 @@ function StarsSky({ observer }: { observer: Observer }) {
     <div className={styles.sky} ref={skyRef} role="group" aria-label={globeShown ? globeLabel : p.drawing} data-testid="stars-sky" data-view={globeShown ? 'globe' : chartView} onPointerDownCapture={markSkyHintSeen}>
       {globeShown ? (
         <Suspense fallback={null}>
-          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} onPick={pickOnGlobe} />
+          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} onPick={pickOnGlobe} zoom={globeZoom} onZoom={setGlobeZoom} />
         </Suspense>
       ) : (
         <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} onViewHold={setHeldView} {...(wide ? { onSkyPick: pickOnWindow } : {})} />

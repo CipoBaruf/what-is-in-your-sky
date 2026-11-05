@@ -520,6 +520,7 @@ export const ui: typeof EnUi = {
     openMeteo: { before: 'Datos meteorológicos de ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' },
     geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, y la ciudad que nombra la ubicación del dispositivo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
     privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
+    closePrivacy: 'Cerrar la nota de privacidad',
     credit: { before: 'Hecho por ', link: 'Ezequiel Baruf', after: '.' },
     chart: { before: 'Carta del cielo: ', link: 'glyphcss', after: '.' },
     short: {

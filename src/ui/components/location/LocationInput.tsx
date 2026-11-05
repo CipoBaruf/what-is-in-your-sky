@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
+import { usePrivacyNote } from '../../../state';
 import { sameLocation } from '../../../state/slices/location';
 import { Rule } from '../primitives/Rule';
 import { SectionHeading } from '../primitives/SectionHeading';
@@ -145,6 +146,8 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   const device = <UseMyLocation onObserver={emit} primary={variant === 'group'} look={look} {...(geolocation ? { env: geolocation } : {})} />;
   const place = <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} look={fieldLook} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />;
   const favourites = showFavourites && <Favourites />;
+  const privacy = usePrivacyNote();
+  const clearShown = observer !== null && showClear;
 
   if (variant === 'group') {
     return (
@@ -158,19 +161,29 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
             {afterCoords}
           </div>
         </div>
-        <div className={styles.foot} data-testid="location-foot">
-          {/* R105 (D-720): the boxed group's foot is ruled off above; the plain one is not. */}
-          {look === 'boxed' && <Rule className={styles.footRule} />}
-          <p className={styles.note}>
-            {look === 'boxed' ? t.home.savedFoot : t.location.precisionNote}
-            {observer && showClear && (
-              <>
-                {' '}
-                <TextButton inline label={t.location.clearSaved} onClick={clear} data-testid="clear-saved-location" />
-              </>
-            )}
-          </p>
-        </div>
+        {/* R190 (FR-KEEP-4, D-1105): the boxed foot's privacy line carries `[ × ]`; closed, the foot holds only the clear action, or is gone. */}
+        {(look !== 'boxed' || privacy.shown || clearShown) && (
+          <div className={styles.foot} data-testid="location-foot">
+            {/* R105 (D-720): the boxed group's foot is ruled off above; the plain one is not. */}
+            {look === 'boxed' && <Rule className={styles.footRule} />}
+            <p className={styles.note}>
+              {look !== 'boxed' ? (
+                t.location.precisionNote
+              ) : privacy.shown ? (
+                <span data-testid="privacy-note">
+                  {t.home.savedFoot}{' '}
+                  <TextButton inline className={styles.close} label="×" aria-label={t.footer.closePrivacy} onClick={privacy.close} data-testid="privacy-close" />
+                </span>
+              ) : null}
+              {clearShown && (
+                <>
+                  {look !== 'boxed' || privacy.shown ? ' ' : null}
+                  <TextButton inline label={t.location.clearSaved} onClick={clear} data-testid="clear-saved-location" />
+                </>
+              )}
+            </p>
+          </div>
+        )}
         {favourites}
       </section>
     );

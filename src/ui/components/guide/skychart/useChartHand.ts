@@ -20,17 +20,30 @@ export function markSkyHintSeen(): void {
   if (!state.skyHintSeen) state.setSkyHintSeen(true);
 }
 
+/** An empty slot: the first window to mount fills it, and every later one takes its camera. */
+function createChartHand(): ChartHand {
+  let kept: HandCamera | null = null;
+  const slot: HandSlot = {
+    get: () => kept,
+    keep: (camera) => {
+      kept = camera;
+    },
+    gesture: markSkyHintSeen,
+  };
+  return { slot };
+}
+
 export function useChartHand(): ChartHand {
-  const [hand] = useState<ChartHand>(() => {
-    let kept: HandCamera | null = null;
-    const slot: HandSlot = {
-      get: () => kept,
-      keep: (camera) => {
-        kept = camera;
-      },
-      gesture: markSkyHintSeen,
-    };
-    return { slot };
-  });
+  const [hand] = useState<ChartHand>(createChartHand);
   return hand;
+}
+
+/**
+ * R190 (R186's note): one slot per visit of a route — a new one each time `active` rises — for a page its parent
+ * mounts in a different tree on each side of the wide breakpoint (the live page), so a resize keeps the facing.
+ */
+export function useVisitHand(active: boolean): ChartHand {
+  const [held, setHeld] = useState(() => ({ active, hand: createChartHand() }));
+  if (held.active !== active) setHeld({ active, hand: active ? createChartHand() : held.hand });
+  return held.hand;
 }

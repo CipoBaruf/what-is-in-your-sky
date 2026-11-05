@@ -97,9 +97,9 @@ export function defaultFacingDeg(latDeg: number): number {
   return latDeg < 0 ? STARS_DEFAULT_FACING.south : STARS_DEFAULT_FACING.north;
 }
 
-/** The hand's first state for an observer: the pole side at the default tilt, at the default field. */
-export function initialHand(latDeg: number): HandState {
-  return { azDeg: defaultFacingDeg(latDeg), altDeg: STARS_DEFAULT_TILT, fovDeg: WINDOW_FOV };
+/** The hand's first state for an observer: the pole side at the default tilt, at the default field or (R190, FR-KEEP-1) the saved one. */
+export function initialHand(latDeg: number, fovDeg: number = WINDOW_FOV): HandState {
+  return { azDeg: defaultFacingDeg(latDeg), altDeg: STARS_DEFAULT_TILT, fovDeg: clampWindowFov(fovDeg) };
 }
 
 export function clampWindowTilt(altDeg: number): number {
@@ -232,6 +232,8 @@ export function facePeak(peak: SkyAim, fovDeg: number): HandState {
 export interface OpeningScene {
   latDeg: number;
   now: EpochMs | undefined;
+  /** R190 (FR-KEEP-1): the field to open at, the saved `windowFov`; `WINDOW_FOV` where absent. The aim keeps its rule (FR-KEEP-2). */
+  fovDeg?: number;
 }
 
 /**
@@ -243,9 +245,9 @@ export interface OpeningScene {
  * side at the opening tilt (`initialHand`). The pass detail keeps `facePeak`.
  */
 export function openingFacing(scene: OpeningScene, highlighted: Pick<Pass, 'id' | 'start' | 'end' | 'track'> | null, nextPass: Pick<Pass, 'start'> | null): HandState {
-  const fallback = initialHand(scene.latDeg);
+  const fallback = initialHand(scene.latDeg, scene.fovDeg);
   if (highlighted !== null) return followPass(fallback, highlighted.id, passPosition(highlighted, scene.now));
-  if (nextPass !== null) return facePeak({ azDeg: nextPass.start.azDeg, elDeg: nextPass.start.elDeg }, WINDOW_FOV);
+  if (nextPass !== null) return facePeak({ azDeg: nextPass.start.azDeg, elDeg: nextPass.start.elDeg }, scene.fovDeg ?? WINDOW_FOV);
   return fallback;
 }
 

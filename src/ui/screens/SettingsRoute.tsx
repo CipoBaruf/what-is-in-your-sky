@@ -60,8 +60,8 @@ export function settingsShell(t: Messages, { onLeave, ...props }: SettingsShellP
     banner: <Header page="settings" context={place} onBack={onLeave} backRef={props.backRef} busy={arriving} />,
     mainProps: { className: styles.page, 'aria-label': t.settings.heading },
     // D-1023 (FR-X-2 and FR-SET-1 as amended 2026-11-02): the app's footer, as on every page — the full credits on a
-    // phone, D-120's one row on a desk. Its privacy sentence is the line this page used to end on.
-    footer: <Footer />,
+    // phone, D-120's one row on a desk. R190 (FR-KEEP-4, D-1129): its privacy part plain, always shown and with no `[ × ]`.
+    footer: <Footer privacy="plain" />,
     children: page ?? (
       <Suspense fallback={<Arriving onChange={onArriving} />}>
         <SettingsPage {...props} />

@@ -252,10 +252,12 @@ for (const size of SIZES) {
         console.log(`[FR-PHONE-10] ${String(size.width)} px ${locale}: the midpoint at az ${expected.azDeg.toFixed(2)}° alt ${expected.altDeg.toFixed(2)}°, the window facing ${String(after.az)}° ${String(after.alt)}° up at ${String(after.fov)}°: error ${error.az.toFixed(2)}° / ${error.alt.toFixed(2)}°`);
         expect(error.az).toBeLessThanOrEqual(1);
         expect(error.alt).toBeLessThanOrEqual(1);
-        // The readout says so; a reload still opens at 60° on the window (nothing of the field or the view is saved).
+        // The readout says so. R190 (FR-KEEP-1, D-1128): the first pinch widened the window to 90° before the handoff,
+        // and the reader's pinch is saved, so a reload opens the window at 90°; the handoffs saved no view.
         await expect(page.getByTestId('window-readout')).toContainText(locale === 'en' ? 'field 90°' : 'campo 90°');
+        expect((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { windowFov?: number }).windowFov).toBe(90);
         await page.reload();
-        await expect(windowRoot(page)).toHaveAttribute('data-fov', '60');
+        await expect(windowRoot(page)).toHaveAttribute('data-fov', '90');
         await expect(chart(page)).toHaveAttribute('data-view', 'window');
       });
 

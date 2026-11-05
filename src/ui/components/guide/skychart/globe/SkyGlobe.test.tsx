@@ -189,6 +189,28 @@ describe('the keys (FR-GLOBE-6)', () => {
   });
 });
 
+describe('the kept zoom (FR-KEEP-1, D-1096)', () => {
+  it('FR-KEEP-1: opens at the saved zoom, clamped, tells back every zoom the reader makes, and a drag tells nothing', () => {
+    const onZoom = vi.fn();
+    const { q, box } = mount({ zoom: 2, onZoom });
+    const disc = q('[data-disc]');
+    expect(num(disc, 'r')).toBeCloseTo(R * 2, 0);
+    fireEvent.keyDown(box, { key: 'ArrowRight' });
+    expect(onZoom).not.toHaveBeenCalled();
+    fireEvent.click(q('[data-testid="globe-zoom-in"]'));
+    expect(onZoom).toHaveBeenLastCalledWith(2 * GLOBE_ZOOM_STEP);
+    fireEvent.keyDown(box, { key: 'Home' });
+    expect(onZoom).toHaveBeenLastCalledWith(1);
+  });
+
+  it('FR-KEEP-1: a saved zoom past the range opens at its end, the button there disabled', () => {
+    const { q } = mount({ zoom: 99 });
+    frames.frame();
+    expect(num(q('[data-disc]'), 'r')).toBeCloseTo(R * GLOBE_ZOOM_MAX, 0);
+    expect(q<HTMLButtonElement>('[data-testid="globe-zoom-in"]').disabled).toBe(true);
+  });
+});
+
 describe('the zoom buttons (FR-GLOBE-6 as amended, V212-12, D-1055)', () => {
   it('zoom one GLOBE_ZOOM_STEP a press, named in both languages, disabled at each end of the range', () => {
     const { q, rerender } = mount();
