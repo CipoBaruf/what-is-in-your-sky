@@ -1,10 +1,10 @@
-import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { starCatalog } from '../../data/stars/catalog';
 import type { Messages } from '../../i18n/messages';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
 import { nightClouds, tonightCloud } from '../../lib/nightClouds';
-import { fitBox, hintFitsBeside, RAIL_MIN_CELLS, SHELL_PADDING_CELLS } from '../../lib/layout';
+import { hintFitsBeside, SHELL_PADDING_CELLS } from '../../lib/layout';
 import { shortcutFor } from '../../lib/shortcuts';
 import type { LegendPass } from '../../lib/legend';
 import { drawnRungs, starsAt } from '../../lib/skyStars';
@@ -42,11 +42,13 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
 import { close } from '../navigation';
-import { viewFor } from './chartViewDefault';
+import { nextView, viewFor, WIDE_VIEWS } from './chartViewDefault';
 import { requestPlace } from './home/placeRequest';
 import { nightWindow } from './home/tonight';
 import { FieldList } from './stars/FieldList';
 import { loadGlobe, loadGlobeRail, useGlobePrefetch } from './stars/globeChunk';
+import { StarsGroup } from './sky/stars/Group';
+import { StarsTime } from './sky/stars/Time';
 import type { GlobeTurn, PlaceChoice } from './stars/GlobeRail';
 import { fieldObjects, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import styles from './Stars.module.css';
@@ -136,21 +138,20 @@ function useGlobeLabel(place: Observer, instant: EpochMs, turn: GlobeTurn): stri
 type LayerSwitches = Omit<StarField['layers'], 'names'>;
 const ALL_LAYERS: LayerSwitches = { stars: true, figures: true, planets: true };
 
-/** R160 (FR-PHONE-7): the two views the page offers, the window first (FR-GYRO-11); no dome, since the page is about the stars. */
-const STARS_VIEWS: readonly ChartView[] = ['window', 'polar'];
-
 /**
- * R170 (FR-GLOBE-1, D-1035): the page's view — the window or the whole sky — one choice at both widths; the width
- * picks what `whole` draws: the polar chart on compact, the globe on wide.
+ * R160 (FR-PHONE-7): on compact the page offers the window and the whole sky (the polar chart), the window first
+ * (FR-GYRO-11). R186 (FR-WIDE-2, FR-WIDE-6; D-1095): on wide the row is every desk page's, `Globe Window Dome`; the
+ * globe is this page's own drawing, the window and the dome the chart's. The view is the saved `chartView` through
+ * `viewFor`, shared with the live page and the pass detail; the page's own `StarsView` state is gone.
  */
-type StarsView = 'window' | 'whole';
-const PAGE_VIEWS: readonly StarsView[] = ['window', 'whole'];
-const chartViewOf = (view: StarsView): ChartView => (view === 'whole' ? 'polar' : 'window');
+const COMPACT_VIEWS: readonly ChartView[] = ['window', 'polar'];
+const WIDE_CHART_VIEWS: readonly ChartView[] = ['window', 'dome'];
 
 /** R170 (FR-GLOBE-15): the globe, its own lazy chunk (`SkyGlobe-*.js`), asked for when the wide page first shows it. */
-const SkyGlobe = lazy(loadGlobe);
+// R186: a promise of its own — two lazies sharing the cached one see it already marked fulfilled and, under `act`, retry
+// before their own resolution lands, forever.
+const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** R170 (FR-GLOBE-15, `GLOBE_STARS_KB`): the globe's rail groups and its list, lazy with the globe so `stars` keeps the wiring alone. */
-const GlobeGroups = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeGroups })));
 const GlobeField = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
 
 /** FR-STAR-3 as amended v2.11: the four layer toggles in this order, over two rows. */
@@ -193,9 +194,6 @@ const WHOLE_SKY_ROTATION: Mat3 = [
 /** R163 (FR-CLEAN-11, D-1004): the chart is handed no pass on this page. */
 const NO_PASSES: readonly LegendPass[] = [];
 
-/** The rail's minimum, from `lib/layout.ts`, as the stylesheet's one input in cells (the probe and the grid read it). */
-const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as CSSProperties;
-
 /** The box `SkyWindow` measures for its projection: the parent of its drawing, the element its `ResizeObserver` reads. */
 const windowBox = (sky: HTMLElement): HTMLElement | null => sky.querySelector('svg[data-drawing="window"]')?.parentElement ?? null;
 
@@ -232,6 +230,7 @@ function StarsSky({ observer }: { observer: Observer }) {
   const wide = mode === 'wide';
   const compact = !wide;
   const layersId = useId();
+  const facingId = useId();
   const fieldId = useId();
 
   /*
@@ -251,17 +250,28 @@ function StarsSky({ observer }: { observer: Observer }) {
    * choice holds for both views; the toggle shows the value in force. FR-GLOBE-1 as amended (V212-11, D-1054): a desk
    * opens on the globe, a phone on the window; the width at the open picks it, nothing is saved.
    */
-  // R182 (D-1095): the opening view is `viewFor`'s with nothing saved (the globe on wide, the window on compact); R190 reads the saved one.
-  const [view, setView] = useState<StarsView>(() => (viewFor('stars', mode, undefined) === 'window' ? 'window' : 'whole'));
-  const chartView = chartViewOf(view);
-  const onChartView = useCallback((next: ChartView) => {
-    setView(next === 'window' ? 'window' : 'whole');
-  }, []);
-  // R170 (FR-GLOBE-1, D-1035): on wide the whole sky is the globe; on compact it stays the polar chart.
-  const globeShown = wide && view === 'whole';
+  // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it at this width — the globe on wide and the window on compact with nothing saved.
+  const savedView = useAppStore((s) => s.chartView);
+  const setChartView = useAppStore((s) => s.setChartView);
+  /*
+   * R186 (FR-PHONE-10, FR-KEEP-1, FR-KEEP-2): a pinch handoff or following turning on changes the view without the
+   * reader choosing it, so it is held here and not saved; a pick from the row or `v` saves and clears the hold.
+   */
+  const [heldView, setHeldView] = useState<ChartView | null>(null);
+  const chartView = heldView ?? viewFor('stars', mode, savedView);
+  const onChartView = useCallback(
+    (next: ChartView) => {
+      setHeldView(null);
+      setChartView(next);
+    },
+    [setChartView],
+  );
+  // The whole sky: the polar chart on compact, the globe on wide (FR-GLOBE-1); the dome is wide's third value.
+  const whole = chartView !== 'window';
+  const globeShown = wide && chartView === 'globe';
   const [layers, setLayers] = useState<LayerSwitches>(ALL_LAYERS);
   const [namesChoice, setNamesChoice] = useState<boolean | null>(null);
-  const names = namesChoice ?? !(view === 'whole' && !wide);
+  const names = namesChoice ?? !(chartView === 'polar');
   const drawnLayers = useMemo<StarField['layers']>(() => ({ ...layers, names }), [layers, names]);
   const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers: drawnLayers } }), [catalog, positions, drawnLayers]);
   const { sun, moon } = useSkyBodies({ observer, now });
@@ -320,7 +330,6 @@ function StarsSky({ observer }: { observer: Observer }) {
   const layoutRef = useRef<HTMLDivElement>(null);
   const skyRef = useRef<HTMLDivElement>(null);
   const hintShown = useSkyHintShown(chartView) && !globeShown;
-  const probeRef = useRef<HTMLSpanElement>(null);
 
   // Where the camera looks, on the page's root for the tests and the captures, written by ref (no render per frame).
   useLayoutEffect(() => {
@@ -334,46 +343,6 @@ function StarsSky({ observer }: { observer: Observer }) {
     write();
     return camera.subscribe(write);
   }, [camera]);
-
-  /*
-   * On wide the box is cut here — the room beside the rail's minimum and over the hint's row (`fitBox`) — and
-   * written as two custom properties the stylesheet sizes it from. R132: the layout's column gap is the one between
-   * the box and the rail now (`SkyViewLayout.module.css`, two cells). R133 (FR-FLOW-9, D-850): the box's height is
-   * the layout's less the hint's row and its gap, so it runs from under the header to the hint line as the live
-   * page's does, and no longer the browser window's shape (R121's `windowBox`, gone); the hint's row is read off
-   * the slot, which is text at the box's width and never depends on the box's height, so nothing feeds back. The
-   * hint comes and goes with the reader's first drag (FR-FLOW-6), so the fit runs again on that.
-   */
-  useEffect(() => {
-    const layout = layoutRef.current;
-    if (!wide || !layout || typeof ResizeObserver === 'undefined') return;
-    const fit = (): void => {
-      const { width, height } = layout.getBoundingClientRect();
-      const skyLayout = layout.querySelector('[data-sky-layout]');
-      const gap = skyLayout ? parseFloat(getComputedStyle(skyLayout).columnGap) || 0 : 0;
-      // The rail as laid out — the layout's column, 44 to 60 cells — read off a rail slot; the probe is its floor.
-      const railSlot = skyLayout?.querySelector('[data-slot="answer"]');
-      const rail = Math.max(probeRef.current?.getBoundingClientRect().width ?? 0, railSlot?.getBoundingClientRect().width ?? 0);
-      // The hint's row under the box: its height and the gap over it (the slot's own margin, D-851's rhythm).
-      const hintSlot = skyLayout?.querySelector('[data-slot="hint"]');
-      const hint = hintSlot ? hintSlot.getBoundingClientRect().height + (parseFloat(getComputedStyle(hintSlot).marginTop) || 0) : 0;
-      const box = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: hint, besideWidthPx: rail + gap });
-      const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
-      if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
-      if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
-    };
-    const observer = new ResizeObserver(fit);
-    observer.observe(layout);
-    // The hint rewraps without the layout changing size (the language, a late font): its height is the box's too.
-    const hintSlot = layout.querySelector('[data-sky-layout] [data-slot="hint"]');
-    if (hintSlot) observer.observe(hintSlot);
-    fit();
-    return () => {
-      observer.disconnect();
-      layout.style.removeProperty('--stars-box-w');
-      layout.style.removeProperty('--stars-box-h');
-    };
-  }, [wide, hintShown]);
 
   /*
    * The list's field is the drawing's own: the page observes the one element `SkyWindow` measures for its projection
@@ -471,9 +440,11 @@ function StarsSky({ observer }: { observer: Observer }) {
    */
   const sheetOpenRef = useRef(sheetOpen);
   const compactRef = useRef(compact);
+  const savedRef = useRef<ChartView>(chartView);
   useLayoutEffect(() => {
     sheetOpenRef.current = sheetOpen;
     compactRef.current = compact;
+    savedRef.current = chartView;
   });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -485,13 +456,13 @@ function StarsSky({ observer }: { observer: Observer }) {
       event.preventDefault();
       event.stopPropagation();
       if (closes) closeSheet();
-      else setView((was) => (was === 'window' ? 'whole' : 'window'));
+      else onChartView(nextView('stars', compactRef.current ? 'compact' : 'wide', savedRef.current));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [closeSheet]);
+  }, [closeSheet, onChartView]);
 
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);
@@ -505,10 +476,11 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` — a `ToggleGroup` in the bracket mark, 20 cells in English and 24 in Spanish.
   // R170 (FR-GLOBE-1, D-1035): on wide the second value is `Globe` / `Globo`.
-  const wholeLabel = wide ? t.globe.view : t.chart.views.wholeSky;
+  // R186 (FR-WIDE-2): on wide `[ Globe ] Window Dome`, the row every desk page has.
+  const viewOptions = wide ? WIDE_VIEWS.map((id) => ({ value: id, label: t.chart.view[id] })) : COMPACT_VIEWS.map((id) => ({ value: id, label: id === 'polar' ? t.chart.views.wholeSky : t.chart.views.window }));
   const viewRow = (
     <div className={styles.row} data-testid="stars-view-row" {...(compact ? { 'data-rhythm': 'group' } : {})}>
-      <ToggleGroup name={t.chart.viewGroup} mark="bracket" options={PAGE_VIEWS.map((id) => ({ value: id, label: id === 'whole' ? wholeLabel : t.chart.views.window }))} value={view} onChange={setView} />
+      <ToggleGroup name={t.chart.viewGroup} mark="bracket" options={viewOptions} value={chartView} onChange={onChartView} />
     </div>
   );
   const faintToggle = globeShown ? <OptionToggle key="faint" label={t.globe.faint} pressed={faint} onPress={() => { setFaint(!faint); }} data-layer="faint" alone /> : null;
@@ -535,19 +507,13 @@ function StarsSky({ observer }: { observer: Observer }) {
   const field = (
     <section aria-labelledby={fieldId} className={styles.block} data-testid="stars-field" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-      <FieldSection camera={camera} catalog={catalog} positions={positions} box={box} layers={drawnLayers} whole={view === 'whole'} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+      <FieldSection camera={camera} catalog={catalog} positions={positions} box={box} layers={drawnLayers} whole={whole} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
     </section>
   );
   // R170 (FR-GLOBE-12, D-1035): on the globe the list is `Up from <place>`, at the globe's place and instant.
   const globeField = (
     <Suspense fallback={null}>
       <GlobeField place={shownPlace} instant={globeClock.t} layers={drawnLayers} faint={faint} named={named?.index ?? null} onName={onName} />
-    </Suspense>
-  );
-  // R170 (FR-GLOBE-5, FR-GLOBE-7..9): the rail's `Time`, `Turn` and `Place` groups, a group apart, under the view row.
-  const globeGroups = (
-    <Suspense fallback={null}>
-      <GlobeGroups playback={globeClock} zone={shownPlace.timeZone} turn={turn} onTurn={setTurn} observer={observer} places={places} choice={shownChoice} onChoice={setPlaceChoice} />
     </Suspense>
   );
   const drawing = (
@@ -561,7 +527,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} />
         </Suspense>
       ) : (
-        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={STARS_VIEWS} view={chartView} onViewChange={onChartView} />
+        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} onViewHold={setHeldView} />
       )}
     </div>
   );
@@ -572,7 +538,7 @@ function StarsSky({ observer }: { observer: Observer }) {
    * under it (`readoutLines`, D-1010); with the sheet open it is the facing row's. The chart portals it into one place,
    * so the two take turns. The polar chart's readout is its convention, not a facing, and stays in the sheet.
    */
-  const cornerReadout = compact && !following && !sheetOpen && view !== 'whole';
+  const cornerReadout = compact && !following && !sheetOpen && chartView !== 'polar';
   /*
    * R157's device (D-965): the head's width, written as `--sky-head-w` on the full layout's root, so the corner
    * readout ends in its ellipsis before it meets the head; by a resize observer and no render. Held here and let go
@@ -647,7 +613,7 @@ function StarsSky({ observer }: { observer: Observer }) {
       </div>
       {pickerOpen && (
         <div className={styles.facingPicker} id={facingPickerId} ref={facingPickerRef} data-testid="stars-facing-picker">
-          {view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" />}
+          {chartView === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" />}
         </div>
       )}
     </div>
@@ -694,7 +660,7 @@ function StarsSky({ observer }: { observer: Observer }) {
     );
     return (
       <div className={styles.page} data-layout={mode}>
-        <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
+        <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page">
           {/* FR-CLEAN-2: the page's name stays in the document for the outline (FR-A11Y-2) and assistive technology; the head over the sky carries the door's line. */}
           <VisuallyHidden as="h1">{t.starsHeading}</VisuallyHidden>
           <SkyViewLayout
@@ -715,47 +681,41 @@ function StarsSky({ observer }: { observer: Observer }) {
   }
 
   /*
-   * R132 (FR-FLOW-4, FR-FLOW-8; D-842): on wide the page is `SkyViewLayout`'s slots — the `h1` block as `answer`,
-   * the view row, the window's readout in `readout` (placed by the window itself, on the box's corner), the drawing,
-   * this page's own facing picker, the hint, `[ follow the phone ]` at the rail's foot where the sensor is (R152),
-   * the layer toggles as one group of two rows, then `In this field`. The box is cut here, as before, and written on
-   * the layout's root.
+   * R186 (FR-WIDE-1, FR-WIDE-5; D-1098): on wide the page is the desk's one shell — the box at the left with its
+   * corners (the readout, the hint, the zoom; the globe and the window place their own), the rail in `SLOT_ORDER`: the
+   * `h1` block, `View`, `Time` (the globe's, `sky/stars/Time.tsx`), the page group (`sky/stars/Group.tsx`: `Turn`
+   * and `Place` on the globe, `Facing` on the window, `[ follow the phone ]` where the sensor is), the layers, and
+   * `Up from <place>` or `In this field`. The box is the room the layout's grid leaves; nothing here measures it.
    */
-  const action = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
+  const facingGroup =
+    chartView === 'window' ? (
+      <section aria-labelledby={facingId} data-testid="stars-facing-group">
+        <SectionHeading id={facingId}>{t.skyView.facing}</SectionHeading>
+        <FacingPicker camera={camera} className={styles.row} />
+      </section>
+    ) : null;
+  const followToggle = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
+  const globeChoices = globeShown ? { turn, onTurn: setTurn, observer, places, choice: shownChoice, onChoice: setPlaceChoice } : undefined;
   return (
     <div className={styles.page} data-layout={mode}>
-      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
-        <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />
+      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page">
         <SkyViewLayout
           onFirstTouch={follow.firstTouch}
           className={styles.skyLayout}
           data-testid="stars-layout"
           answer={<StarsHeading observer={observer} now={now} />}
           viewRow={viewRow}
-          {...(globeShown ? {} : { readout: <SkyViewChartSlot name="readout" /> })}
           drawing={drawing}
-          // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
-          // chart's window. It names itself (`Facing`); the layout labels its row (D-846). R160: on the whole sky the row is the
-          // polar chart's own, its looking-up / map toggle, as FR-FLOW-4 has it on the live page and the pass detail.
-          // R170 (D-1035): the globe has no facing, so its rail draws no picker row.
-          {...(globeShown ? {} : { picker: view === 'window' ? <FacingPicker camera={camera} className={styles.row} /> : <SkyViewChartSlot name="picker" /> })}
           hint={hintShown && <SkyHint view={chartView} />}
-          {...(action === null ? {} : { action })}
-          // R170 (FR-GLOBE-7..10, FR-GLOBE-12): on the globe the rail's groups, the layer rows and the list are the layout's
-          // one scrolling row, in reading order — Time, Turn, Place (up to nine options), the layers, then the count and
-          // `Up from <place>` — so no fixed row outgrows a short window and the list keeps the room that is left.
-          {...(globeShown ? {} : { layers: layerRows })}
-          list={
-            globeShown ? (
-              <div className={styles.globeRail} data-testid="globe-rail">
-                {globeGroups}
-                {layerRows}
-                {globeField}
-              </div>
-            ) : (
-              field
-            )
+          {...(globeShown ? { timeline: <StarsTime playback={globeClock} zone={shownPlace.timeZone} /> } : {})}
+          action={
+            <StarsGroup globe={globeChoices}>
+              {facingGroup}
+              {followToggle}
+            </StarsGroup>
           }
+          layers={layerRows}
+          list={globeShown ? globeField : field}
         />
       </div>
     </div>

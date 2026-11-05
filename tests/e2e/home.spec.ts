@@ -12,7 +12,7 @@
  * still in the document beside it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { ha, NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 
 /** One character advance, as this browser resolves the app's own monospace stack. */
@@ -262,36 +262,23 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
   }
 });
 
-test.describe('an open pass at 1280 × 800 (FR-FIRST-5, D-444)', () => {
+test.describe('an open pass at 1280 × 800 (FR-WIDE-1, amends FR-FIRST-5 and FR-DESK-3)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('takes the first two panes and keeps the list in the third', async ({ page }) => {
+  // R186 (FR-WIDE-1, D-1098, D-1118): a selected pass no longer takes the first two panes; it opens the desk shell in
+  // the home's place, the home's list in the rail's `list` slot with the card highlighted, and `Esc` brings the home back.
+  test('opens the shell in the home’s place, the list in the rail, and Esc brings the panes back', async ({ page }) => {
     await seedStoredRun(page);
-    const cell = await cellPx(page);
-    const [where, when] = await Promise.all([page.getByTestId('reading-where').boundingBox(), page.getByTestId('reading-when').boundingBox()]);
-    if (!where || !when) throw new Error('the panes are not laid out');
-
     await page.getByRole('button', { name: /Open guide/ }).first().click();
     await expect(page).toHaveURL(/#pass=/);
-    const panel = page.getByTestId('guide-panel');
-    await expect(panel).toBeVisible();
-    await expect(page.getByRole('main')).toHaveAttribute('data-guide', 'pane');
+    const layout = page.getByTestId('pass-layout');
+    await expect(layout).toBeVisible();
+    for (const id of ['reading-where', 'reading-when']) await expect(page.getByTestId(id)).toHaveCount(0);
+    await expect(layout.locator('[data-slot="list"] article[data-pass-id][data-selected="true"]')).toHaveCount(1);
+    await expect(page.getByTestId('guide-to-list')).toHaveCount(0);
 
-    const [guide, list] = await Promise.all([panel.boundingBox(), page.getByTestId('list-column').boundingBox()]);
-    if (!guide || !list) throw new Error('the guide and the list are not laid out');
-    // The first two panes' width: from Where's left edge to When's right edge.
-    expect(Math.abs(guide.x - where.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(guide.x + guide.width - (when.x + when.width))).toBeLessThanOrEqual(1);
-    expect(guide.width).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS * cell - 1);
-    // The list is still in the document, on the page, with the open card marked.
-    await expect(page.getByTestId('list-column')).toBeVisible();
-    expect(list.x).toBeGreaterThan(guide.x + guide.width - 1);
-    await expect(page.locator('[data-pass-card][aria-current="true"]')).toHaveCount(1);
-    await expect(page.getByTestId('guide-to-list')).toBeHidden();
-
-    // Escape brings the two panes back.
     await page.keyboard.press('Escape');
-    await expect(panel).toHaveCount(0);
+    await expect(layout).toHaveCount(0);
     await expect(page.getByTestId('reading-where')).toBeVisible();
     await expect(page.getByTestId('reading-when')).toBeVisible();
   });

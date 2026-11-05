@@ -6,6 +6,7 @@ import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { CATALOGS } from '../../../../../i18n/useT';
 import { TextButton } from '../../../primitives/TextButton';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
+import { useChartSlot } from '../../../sky/SkyViewLayout';
 import type { ArcColorBy } from './arcLayer';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
@@ -59,16 +60,7 @@ import styles from './SkyGlobe.module.css';
 /** No passes: the stars page's globe, one array so the renderer sees no change. */
 const NO_PASSES: readonly Pass[] = [];
 
-/**
- * D-1114: `globe-perf.spec.ts`'s harness — passes, and one highlighted, a test puts on `window` before the page loads,
- * drawn where the page gives none, so the stars page's globe is measured with arcs before R186 mounts it on the live
- * page. Nothing in the app writes it.
- */
-interface Harness {
-  passes?: readonly Pass[];
-  highlightedPassId?: string;
-}
-const harness = (): Harness => (window as { __globeHarness?: Harness }).__globeHarness ?? {};
+// R186 (D-1114): the perf harness on `window` is retired; `globe-perf.spec.ts` measures the live page's own passes.
 
 /** R184: what a tap picked — a mark the globe names, or a pass's arc. */
 export type GlobePick = GlobeTarget | { kind: 'pass'; passId: string };
@@ -154,7 +146,7 @@ function listTarget(index: number | null, size: number): GlobeTarget | null {
   return body === undefined ? null : { kind: 'planet', body };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = harness().passes ?? NO_PASSES, t, highlightedPassId = harness().highlightedPassId ?? null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -536,6 +528,29 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const shown = hovered ?? named ?? listed;
   const words = CATALOGS[language].chart.globe;
   const line = shown === null ? null : readoutLine(catalog, { place, t: instant, lang: language }, shown);
+  /*
+   * R186 (FR-WIDE-5, D-1098): inside a desk layout the readout and the zoom are the box's corners — the readout
+   * top-left, `[ + ] [ − ]` bottom-right — portaled into the layout's slots; elsewhere (the stars page's own globe
+   * outside a layout, a test) they are the row under the box, as D-1055 had them.
+   */
+  const readoutSlot = useChartSlot('readout');
+  const zoomSlot = useChartSlot('zoom');
+  const cornered = readoutSlot.target !== null && zoomSlot.target !== null;
+  const readout = (
+    <p className={cornered ? undefined : styles.readout} id={readoutId} data-testid="globe-readout">
+      {line !== null && (
+        <span className={styles.named} data-testid="globe-named">
+          {line}
+        </span>
+      )}
+    </p>
+  );
+  const zoom = (
+    <>
+      <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
+      <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
+    </>
+  );
   return (
     <>
       <div
@@ -558,17 +573,17 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         <svg ref={svgRef} className={styles.svg} role="img" data-globe="" />
       </div>
       {/* D-1055: the row under the box keeps its height named or not — the readout one ellipsised line, the zoom buttons beside it — so a hover never re-measures the box. */}
-      <div className={styles.foot}>
-        <p className={styles.readout} id={readoutId} data-testid="globe-readout">
-          {line !== null && (
-            <span className={styles.named} data-testid="globe-named">
-              {line}
-            </span>
-          )}
-        </p>
-        <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
-        <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
-      </div>
+      {cornered ? (
+        <>
+          {readoutSlot.place(readout)}
+          {zoomSlot.place(zoom)}
+        </>
+      ) : (
+        <div className={styles.foot}>
+          {readout}
+          {zoom}
+        </div>
+      )}
     </>
   );
 }

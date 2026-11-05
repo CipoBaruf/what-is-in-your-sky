@@ -16,12 +16,13 @@ import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
+import { TextButton } from '../../../primitives/TextButton';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type HandState, type SkyCamera } from './camera';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
-import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, followAimShiftPx, followFovDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, followAimShiftPx, followFovDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, WINDOW_FOV_MIN_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
@@ -1096,6 +1097,19 @@ export function SkyWindow(props: SkyWindowProps) {
    */
   const readoutSlot = useChartSlot('readout');
   const pickerSlot = useChartSlot('picker');
+  /*
+   * R186 (FR-WIDE-5, FR-SKY-14): on a desk the window zooms by `[ + ] [ − ]` too, in the box's bottom-right corner (the
+   * layout's `zoom` slot, which only the wide shell renders), one `ZOOM_KEY_FACTOR` a press as the `+` and `-` keys.
+   * Under the sensor or outside a layout there is no corner, and nothing is drawn.
+   */
+  const zoomSlot = useChartSlot('zoom');
+  const zoomButtons =
+    handCamera === null ? null : (
+      <>
+        <TextButton label="+" aria-label={t.chart.globe.zoomIn} disabled={fovDeg <= WINDOW_FOV_MIN_DEG + 0.01} onClick={() => { zoomBy(1 / ZOOM_KEY_FACTOR); }} data-testid="window-zoom-in" />
+        <TextButton label="−" aria-label={t.chart.globe.zoomOut} disabled={fovDeg >= WINDOW_FOV_MAX_DEG - 0.01} onClick={() => { zoomBy(ZOOM_KEY_FACTOR); }} data-testid="window-zoom-out" />
+      </>
+    );
   const facingRow =
     inBox && handCamera ? (
       <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} follow={followTarget} prefix={!compact && !pickerSlot.inLayout} />
@@ -1114,6 +1128,7 @@ export function SkyWindow(props: SkyWindowProps) {
     >
       {readoutSlot.place(shown)}
       {pickerSlot.place(facingRow)}
+      {zoomSlot.place(zoomButtons)}
       <ChartFrame
         fill={fill}
         legend={legend}

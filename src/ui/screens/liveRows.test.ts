@@ -65,17 +65,18 @@ describe('rowsFor (FR-WATCH-4)', () => {
       for (const shape of ['tall', 'short'] as const) {
         for (const row of ['head', 'controls', 'hint', 'card', 'context', 'track', 'taps', 'view-row', 'facing', 'satellites'] as const) expect(rowsFor(state, 'wide', shape)).not.toContain(row);
         expect(rowsFor(state, 'wide', shape, false)).toEqual(rowsFor(state, 'wide', shape, true));
-        expect(rowsFor(state, 'wide', shape)).toContain('top-row');
+        // R186 (FR-WIDE-1, D-1098): the one-row top row is gone on wide; the app's header is the page's.
+        expect(rowsFor(state, 'wide', shape)).not.toContain('top-row');
       }
     }
   });
 
   it('wide, watching: the box and the rail — the indicator with the clock, the next event, the conditions, the overview, [ scrub the night ] [ Hidden ] [ Share this sky ]', () => {
-    expect(rowsFor('watching', 'wide', 'tall')).toEqual(['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']);
+    expect(rowsFor('watching', 'wide', 'tall')).toEqual(['box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']);
   });
 
   it('wide, scrubbing: the scrub block under the box, and the rail with [ back to live ] beside the indicator', () => {
-    expect(rowsFor('scrubbing', 'wide', 'tall')).toEqual(['top-row', 'box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share']);
+    expect(rowsFor('scrubbing', 'wide', 'tall')).toEqual(['box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share']);
   });
 
   it('wide renders no timeline but the overview while watching, and every one of them while scrubbing', () => {
@@ -111,7 +112,7 @@ describe('rowsFor (FR-WATCH-4)', () => {
   it('the short wide window (R78, FR-WATCH-6): watching is the wide page’s; scrubbing, the bar is the time row, the stripe and the step row, and the overview stays in the rail', () => {
     expect(rowsFor('watching', 'wide', 'short')).toEqual(rowsFor('watching', 'wide', 'tall'));
     const scrubbing = rowsFor('scrubbing', 'wide', 'short');
-    expect(scrubbing).toEqual(['top-row', 'box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share']);
+    expect(scrubbing).toEqual(['box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share']);
     // The same rows as the tall page scrubbing — only where the overview stands differs.
     expect([...scrubbing].sort()).toEqual([...rowsFor('scrubbing', 'wide', 'tall')].sort());
     expect(scrubbing.indexOf('overview')).toBeGreaterThan(scrubbing.indexOf('conditions'));

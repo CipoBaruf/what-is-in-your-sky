@@ -71,3 +71,11 @@
   padding-block: 0;
   margin-block: 0;
 }
+
+/* R186 (FR-WIDE-3): the globe fills the box the layout gives the drawing; its readout and zoom are the box's corners. */
+.globe {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}

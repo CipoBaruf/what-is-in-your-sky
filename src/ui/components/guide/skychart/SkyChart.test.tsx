@@ -135,7 +135,7 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     });
   });
 
-  it('opens a fresh profile on the window on compact and on the dome on wide, and a saved view on both', async () => {
+  it('FR-WIDE-2: opens a fresh profile on the window on compact and on the globe on wide, and one saved value across the breakpoint', async () => {
     const media = stubMatchMedia(390);
     try {
       const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
@@ -147,11 +147,12 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
       act(() => {
         media.setWidth(WIDE_PX);
       });
-      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+      // R186 (D-1095): the desk's default is the globe; a saved polar chart reads as the globe on wide.
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'globe');
       act(() => {
         appStore.getState().setChartView('polar');
       });
-      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'globe');
       act(() => {
         media.setWidth(390);
       });
@@ -184,9 +185,10 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
       expect(within(rtl.getByTestId('window-facing')).getByRole('group', { name: 'Facing' })).toBeInTheDocument();
       // No sensor here, so no way to the screen is offered.
       expect(rtl.queryByTestId('window-hold-up')).toBeNull();
-      // The saved view opens the window straight away on a wide reload.
-      fireEvent.click(rtl.getByRole('button', { name: 'Polar' }));
-      expect(savedChartView()).toBe('polar');
+      // R186 (FR-WIDE-2): the polar chart is not offered on wide; the globe is, and it is saved as the others are.
+      expect(rtl.queryByRole('button', { name: 'Polar' })).toBeNull();
+      fireEvent.click(rtl.getByRole('button', { name: 'Globe' }));
+      expect(savedChartView()).toBe('globe');
     } finally {
       media.restore();
     }

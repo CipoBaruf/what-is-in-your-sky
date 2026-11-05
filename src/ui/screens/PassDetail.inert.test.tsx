@@ -30,7 +30,7 @@ describe('<PassDetail> while inert (FR-SKY-8)', () => {
   });
 
   it('places the stars every second while seen, holds them while inert, and catches up when the sheet is back', () => {
-    const props = { pass, observer, onClose: () => undefined, onShowList: () => undefined };
+    const props = { pass, observer, onClose: () => undefined };
     const { rerender } = render(<PassDetail {...props} />);
     // R127 (FR-SKY-12): the `Among` column asks for the positions at the pass's three points once per pass; those calls are not the scene's.
     const points = new Set([pass.start.t, pass.peak.t, pass.end.t]);

@@ -42,22 +42,13 @@
   grid-area: viewRow;
 }
 
-.readout {
-  grid-area: readout;
-}
 
 .drawing {
   grid-area: drawing;
   min-height: 0;
 }
 
-.picker {
-  grid-area: picker;
-}
 
-.hint {
-  grid-area: hint;
-}
 
 /* R144 (FR-TONIGHT-6): the compact live page's time track and taps, between the hint and the action; no other page fills it. */
 .timeline {
@@ -76,9 +67,6 @@
   grid-area: list;
 }
 
-.foot {
-  grid-area: foot;
-}
 
 /* The place a chart's part lands (`SkyViewChartSlot`); the part is what the page sees, not this box. */
 .chartSlot {
@@ -171,110 +159,103 @@
   margin: 0;
 }
 
-/* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
-   at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
+/* --- R186 (FR-WIDE-1, FR-WIDE-5; D-1098): the rail on all three wide pages. Two columns: the box, the room the grid
+   leaves beside the rail (44 to 60 cells, two cells between), from the layout's top to its foot; and the rail, one
+   column in `SLOT_ORDER` that scrolls as a whole only where a short window leaves the list under its minimum. The
+   layout is the page's height (each page's main is one viewport less the header and the footer, D-119). --- */
 .layout[data-shape='rail'] {
   grid-template-columns: minmax(0, 1fr) minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto auto auto;
-  /* The box spans every rail row and the hint has a row of its own under it, so the box's height is the layout's
-     less the hint's and nothing the rail does — a foot that grows, a fold that lets air out — can change what the
-     frame measures for the box (D-448) and feed the fold back on itself. R144: the timeline stands between the list
-     and the action. */
-  grid-template-areas:
-    'drawing answer'
-    'drawing viewRow'
-    'drawing picker'
-    'drawing layers'
-    'drawing list'
-    'drawing timeline'
-    'drawing action'
-    'drawing foot'
-    'hint .';
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'drawing rail';
   column-gap: calc(2 * var(--cell));
   height: 100%;
   min-height: 0;
 }
 
-/* R133 (FR-FLOW-9, D-868): the wide page that gives the layout a height (`fill`, the live page) cuts the box to the
-   layout's height less the hint's row (`--sky-hint-h`, measured by `SkyViewLayout`), so the box never follows a rail that
-   overflows a short window (D-448, FR-WATCH-6). With no hint (the polar chart) the box runs to the layout's foot. */
-.layout[data-shape='rail'][data-mode='wide'][data-fill] {
-  container-type: size;
-}
-
-.layout[data-shape='rail'][data-mode='wide'][data-fill] .drawing {
-  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
-}
-
-.layout[data-shape='rail'][data-mode='wide'][data-fill]:not(:has(.hint)) .drawing {
-  height: 100cqh;
-}
-
-.layout[data-shape='rail'] .drawing,
-.layout[data-shape='rail'] .answer {
+.layout[data-shape='rail'] .drawing {
+  position: relative;
+  height: 100%;
+  min-height: 0;
   margin-top: 0;
 }
 
-.layout[data-shape='rail'] .list {
+.rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  position: relative;
 }
 
-/* The foot pinned to the rail's bottom: its row is the last, after the list's `1fr`. */
-.layout[data-shape='rail'] .foot {
-  align-self: end;
+.rail > .slot {
+  flex: none;
 }
 
-/* --- The panel (D-849): the guide's one column; the view row and the picker share a line, the drawing takes the
-   height the panel leaves (`--sky-drawing-h`, measured by `SkyViewLayout`), the prose and the table follow. --- */
-.layout[data-shape='panel'] {
-  /* The view row and the picker share the control line three to two; a narrow panel wraps each group's options rather than scrolling sideways. */
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  grid-template-areas:
-    'answer answer'
-    'viewRow picker'
-    'drawing drawing'
-    'hint hint'
-    'timeline timeline'
-    'action action'
-    'layers layers'
-    'list list'
-    'foot foot';
-  column-gap: calc(2 * var(--cell));
-  align-items: baseline;
+/* The list takes what the rows above leave and scrolls inside itself, down to six rows; under that the rail scrolls. */
+.rail > .list {
+  flex: 1 1 0;
+  min-height: calc(6 * var(--row));
+  overflow-y: auto;
+  /* The containing block of what the list places absolutely (the cards' stretched buttons, the hidden headings), so
+     its scroll clips them: without it they ran the page 358 px past a 1280 × 800 window on the pass detail. */
+  position: relative;
 }
 
-.layout[data-shape='panel'] .picker {
-  margin-top: var(--space-3);
-}
-
-
-/* A short panel (964 × 700: the band wraps its times under the name and the body has 46 px left) would leave the
-   drawing nothing; it keeps seven rows at least, and the body scrolls (D-119) to the prose under it. */
-.layout[data-shape='panel'] .drawing {
-  height: max(var(--sky-drawing-h, 0px), calc(7 * var(--row)));
-  align-self: stretch;
-}
-
-/* V25-17 (FR-SKY-14): on wide the readout stands in the box's top-left corner on the screen's overlay surface, as
-   the frame's own corner slot drew it (`ChartFrame.module.css` `.cornerStatus`), and takes no row. */
-.layout[data-shape='rail'] .readout,
-.layout[data-shape='panel'] .readout {
-  grid-area: drawing;
-  align-self: start;
-  justify-self: start;
+/* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself
+   lets the pointer through to the sky and what stands in it (the zoom, full screen) takes it back. */
+.corner {
+  position: absolute;
   z-index: var(--z-raised);
-  margin-top: 0;
-  max-width: 100%;
+  display: flex;
+  gap: var(--cell);
+  max-width: calc(100% - 2 * var(--cell));
   box-sizing: border-box;
-  padding: 0 var(--cell);
-  background: var(--sky-corner-surface);
   pointer-events: none;
 }
 
-/* On the panel the drawing keeps its row gap above; the readout shares the area and the gap, so it lands on the box's corner and not above it. */
-.layout[data-shape='panel'] .readout {
-  margin-top: var(--space-1);
+.corner > :global(*) {
+  pointer-events: auto;
+}
+
+.corner-readout {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  padding: 0 var(--cell);
+  background: var(--sky-corner-surface);
+}
+
+.corner-readout > :global(*),
+.corner-hint > :global(*) {
+  pointer-events: none;
+}
+
+.corner-readout:not(:has(p:not(:empty))) {
+  display: none;
+}
+
+.corner-fullscreen {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+
+.corner-hint {
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  max-width: calc(100% - 12 * var(--cell));
+  padding: 0 var(--cell);
+  background: var(--sky-corner-surface);
+}
+
+.corner-zoom {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  background: var(--sky-corner-surface);
+}
+
+.corner-zoom:not(:has(button)) {
+  display: none;
 }
 
 .readout > :global(p) {

@@ -13,6 +13,33 @@
   min-width: 0;
 }
 
+/* R186 (FR-WIDE-1, D-1098): the wide pass detail is the home's `main`, one viewport less the header and the footer
+   (D-119), and the layout fills it as the stars page's does. */
+.desk {
+  height: 100%;
+  min-height: 0;
+}
+
+.deskHead {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The name and `[ × ]` on one row, the close at the row's end. */
+.deskTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cell);
+  min-width: 0;
+}
+
+.deskName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .meta {
   margin: 0;
   color: var(--fg-dim);

@@ -119,6 +119,13 @@
   white-space: nowrap;
 }
 
+/* R186 (FR-WIDE-1): the header asks the shell's column for no width of its own, so the row's context and title give
+   (above) rather than widen every row: at 1024 px in Spanish the live and stars pages' row was 1045 px at its
+   min-content, and the page ran 60 px past the window. */
+.wide {
+  min-width: 0;
+}
+
 .wide .back {
   align-self: baseline;
 }

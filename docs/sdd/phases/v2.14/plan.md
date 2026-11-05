@@ -77,6 +77,15 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   R186 retires the harness when the spec gains the live page.
 - **D-1115 — The `globe` row's accepted overrun (R184).**
   (FR-WIDE-11, D-178.) The arcs, the ticks, the arrow, the planet discs and the hit test take the `globe` row from 13.8 KB to 15.9 KB gzipped: +2.1 KB, inside `SKY_GLOBE_KB`, over the row's 15 KB (`GLOBE_BUDGET_KB`). `bundle:budget` warns and exits 0; the row is not moved here (the script is not the chart lane's) — the release re-sets it by D-178 to at least 2.13.0's measure plus `SKY_GLOBE_KB`.
+- **D-1118 — `GuidePanel` goes, not only its wide split.** *(R186)*
+  (FR-WIDE-1, FR-DESK-3, D-1098.) Compact's sheet never used `GuidePanel` (it is `PassDetail`'s own dialog), so with the wide split retired nothing mounted it; the file, its stylesheet rows and its `@media (width >= 1118px)` / `1272px` queries go with `WIDE_SPLIT_MIN_CELLS`. `[ list ]` goes with it: the shell's rail holds the list.
+- **D-1119 — The wide header drops the tagline on the pass detail and asks for no min-content width.** *(R186)*
+  (FR-WIDE-1.) The three boxes must share one top and one left to the pixel; the home's tagline row would push the pass detail's box down, and the header's min-content width ran the Spanish live and stars pages 60 px past a 1024 px window. Both go on wide only.
+- **D-1120 — The braille font is the mark's before it is the dome's.** *(R186)*
+  (FR-WIDE-6, FR-MARK-3.) The header's mark draws with `wiys-braille` on every page since R74 (D-439), so a desk with nothing saved asks for the font on the home already; FR-WIDE-6's "no `wiys-braille` font" cannot hold without changing the mark. `globe.spec.ts` pins what the dome alone brings, its `SkyDome-*` chunk; the spec text is the owner's to amend at R191.
+- **D-1121 — The perf numbers on the live page.** *(R186)*
+  (FR-WIDE-11, D-1114.) `globe-perf.spec.ts` measures the live page's three passes (`tests/e2e/threePasses.ts` seeds them), so `window.__globeHarness` goes. Measured (Apple silicon, 4× CPU, best of three): drag 48.8 and 50.3 updates/s at 1280 × 800 and 1920 × 1080, ×3600 57.2 and 57.9.
+  The `globe` row measures 16.0 KB, inside `SKY_GLOBE_KB`; R184's note asked to move it, but `tests/docs` pins it to v2.12's record of 15, so it stays and warns (D-1115) and the release re-sets it by D-178.
 - **D-1116 — One label rule, two tiers (R185).**
   (FR-NAME-2, FR-LOOK-9; V214-9.) `lib/skyStars.ts`'s `starLabelKind(source, i, nameMag)` is the one "is labelled" predicate: `proper` for a star with an IAU name to the field's `nameMag` (FR-LOOK-9's row, so the 60° window and the polar chart still stop at 1.5),
   `designation` for one without brighter than `BAYER_LABEL_MAG` at every field, else nothing — so `HR n` and the faint Bayer stars the 20° row used to name are not.
@@ -98,6 +107,10 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   Shard 1 carries the typecheck, lint and the whole unit suite (about 3 min, 3 700 tests) before its share of the e2e, so it is the one that outgrows the budget first.
   `CI_E2E_SHARDS` goes from 5 to 6 and the matrix to `[1, 2, 3, 4, 5, 6]`; the budget is not raised (D-526).
   Numbered after the task blocks because it came after they were reserved (§16.33).
+- **D-1133 — On wide the shell supersedes FR-WATCH-6's overlay bar.** *(R186)*
+  (FR-WIDE-1, FR-WIDE-4, FR-WATCH-5, FR-WATCH-6; D-1098.) On every desk size the scrub block is the rail's `Time` row and the box is the layout's cut, so the box never gives height to the block and wide has no overlay placement and no fold: `data-scrub-placement` is `under` on wide, short or tall.
+  Since `fc31bd91` the live page no longer asks `ChartFrame` to measure the box (`measureBox`, `stacked`), so `boxHeightPx` stays null on wide; the overlay branch, the fold and `useInventoryRows(... 'overlay')` in `Live.tsx` are unreachable there. R187, which owns the time control, removes that dead code.
+  Numbered after the task blocks because it came after they were reserved (§16.33); the owner reviews it at R191's gate.
 
 ### 8.21 One sky on a desk *(v2.14, FR-WIDE-1..12, D-1094..D-1108)*
 

@@ -403,7 +403,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const scrubbing = await invariants(page, size, 'scrubbing');
       const at = label(size);
       if (shortWide.has(at)) {
-        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'overlay');
+        // R186 (D-1133): the scrub block is the rail's `Time` row on every desk size, so there is no overlay placement.
+        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
         // R132 (D-864): the wide rail is content-sized between 44 and 60 cells, and the rows the state swaps can move the box's cut by a pixel; R133 sizes the box.
         expect(Math.abs(scrubbing.height - watching.height), `${at}: the box is the same height watching and scrubbing (FR-WATCH-6): ${String(watching.height)} then ${String(scrubbing.height)}`).toBeLessThanOrEqual(1);
       } else if (landscapePhone.has(at)) {
@@ -416,6 +417,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
       }
       await backToLive(page);
+      // R186 (FR-WIDE-1): the desk's live page stands in the app's shell and the phone's is its own page, so crossing the
+      // breakpoint mounts the other one, which opens from the hash; let the hash's write (twice a second at most) land.
+      await page.clock.runFor(600);
     }
   });
 
@@ -606,8 +610,11 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         expect(Math.round(dome.height), `${at}: the dome is the viewport`).toBe(height);
         await expect(page.getByTestId('live-sheet'), at).not.toHaveAttribute('data-form');
       } else {
-        // Wide: the desktop layout, whatever the height — the box cut to the dome's shape, no landscape tracks (F-65).
-        await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
+        // Wide: the desktop layout, whatever the height, no landscape tracks (F-65). R186 (FR-WIDE-1, D-1098): the layout's
+        // grid cuts the box beside the rail, not the frame, and the scrub block is the rail's (D-1133).
+        await expect(page.getByTestId('live-layout'), at).toHaveAttribute('data-shape', 'rail');
+        await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'false');
+        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
       }
       // Nothing folds on a compact page, and the wide page folds only under the floor (FR-SHP-3).
       if (compact) await expect(page.getByTestId('live-page'), at).not.toHaveAttribute('data-fold', /./);
@@ -616,7 +623,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
 
   test('the short wide window: the desktop layout with a smaller box, the rows folded, no scroll (FR-SHP-3, F-65, US-25 AC3)', async ({ page }) => {
     // R132 (D-864): the box no longer sits over the rows the fold re-cuts, so R69's fold and R78's overlay are decided on a different height; the short shapes are R133's and R136's.
-    test.fixme(true, 'R132: the fold and the overlay at the short wide window are re-cut by R133/R136');
+    test.fixme(true, 'D-1133: wide has no overlay placement and no fold; R187 removes them and this case with them');
     await openLive(page);
     // R77 (FR-WATCH-9 e): the time row is the scrub block's, so the page is scrubbing. R78 (FR-WATCH-6): at these
     // heights the block is the bar over the drawing, and the matrix test above walks both states.
@@ -695,7 +702,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
 
   function sweep(locale: 'en' | 'es'): void {
     test(`dragged short through the threshold: the placement turns once, with the fold, and the page settles at every height, ${locale} (D-448)`, async ({ page }) => {
-      test.fixme(true, 'R132: the fold and the overlay at the short wide window are re-cut by R133/R136');
+      test.fixme(true, 'D-1133: wide has no overlay placement and no fold; R187 removes them and this case with them');
       await openLive(page, locale);
       await sweepBody(page);
     });

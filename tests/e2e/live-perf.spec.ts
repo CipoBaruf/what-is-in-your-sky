@@ -26,7 +26,7 @@
  * placement is not in it; it runs once per instant on the stars page.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { ha, stubNetwork, T, withSettings } from './liveHelpers';
+import { ha, savedDome, stubNetwork, T, withSettings } from './liveHelpers';
 
 const THROTTLE = 6;
 const PLAY_SECONDS = 5;
@@ -82,6 +82,8 @@ function installCounter(view: 'dome' | 'polar' = 'dome'): void {
 /** The live page at `T` on real timers: `setFixedTime` fixes the date and leaves the frames running. */
 async function openLive(page: Page): Promise<void> {
   await page.clock.setFixedTime(T);
+  // R186 (FR-WIDE-6): a desk opens on the globe; the dome measured here is the reader's choice.
+  await savedDome(page);
   await stubNetwork(page);
   await page.goto('/');
   await withSettings(page, async () => {

@@ -92,8 +92,9 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     await globe();
     expect(screen.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
     expect(viewRow().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
-      ['Window', 'false'],
       ['Globe', 'true'],
+      ['Window', 'false'],
+      ['Dome', 'false'],
     ]);
     expect(appStore.getState().chartView).toBe(before);
     cleanup();
@@ -107,13 +108,14 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(screen.queryByTestId('globe-box')).toBeNull();
   });
 
-  it('reads [ Window ] Globe, draws the globe in the box with its rail, and keeps the choice across the breakpoint (FR-GLOBE-1)', async () => {
+  it('FR-WIDE-2: reads [ Globe ] Window Dome, draws the globe in the box with its rail, and keeps the choice across the breakpoint (FR-GLOBE-1)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     const { container } = await opened();
     expect(viewRow().getAllByRole('button').map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
-      ['Window', 'true'],
       ['Globe', 'false'],
+      ['Window', 'true'],
+      ['Dome', 'false'],
     ]);
     await showGlobe();
     expect(container.querySelector('[data-drawing]')).toBeNull();
@@ -144,24 +146,27 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('cycles the two views with v and writes no pref (FR-GLOBE-1, FR-DESK-4)', async () => {
+  // R186 (FR-WIDE-2, D-1095; amends FR-GLOBE-1): the row has three values and the stars page saves the choice.
+  it('FR-WIDE-2: cycles Globe Window Dome with v and saves each choice (FR-DESK-4)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened();
-    const before = appStore.getState().chartView;
+    expect(appStore.getState().chartView).toBe('window');
+    fireEvent.keyDown(document.body, { key: 'v' });
+    await waitFor(() => {
+      expect(screen.getByTestId('stars-sky')).toHaveAttribute('data-view', 'dome');
+    });
+    expect(appStore.getState().chartView).toBe('dome');
     fireEvent.keyDown(document.body, { key: 'v' });
     await globe();
-    fireEvent.keyDown(document.body, { key: 'v' });
-    await drawn('window');
-    expect(screen.queryByTestId('globe-box')).toBeNull();
-    expect(appStore.getState().chartView).toBe(before);
+    expect(appStore.getState().chartView).toBe('globe');
   });
 
   it('is all Spanish in Spanish: the view, the groups, the turn, the faint toggle, now and the label (FR-GLOBE-16)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened('es');
-    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Ventana', 'Globo']);
+    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Globo', 'Ventana', 'Domo']);
     await showGlobe('Globo');
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([es.skyView.view, es.globe.timeHeading, es.globe.turnHeading, es.globe.placeHeading, STARS_PAGE_CATALOGS.es.layersHeading, es.globe.upFrom('Buenos Aires')]);
     expect(within(screen.getByTestId('globe-turn')).getAllByRole('button').map((b) => b.textContent)).toEqual([es.globe.turn.you, es.globe.turn.stars]);

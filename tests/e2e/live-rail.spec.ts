@@ -38,10 +38,13 @@
  *
  * R166 (FR-CLEAN-12, D-1003): from 1541 px the page is the home's 160-cell column, centred, so "hard against the
  * page's right edge" is the column's edge, not the viewport's.
+ *
+ * R186 (FR-WIDE-1, FR-WIDE-4, D-1098, D-1133): the shell's grid cuts the box beside the rail and the stripe block is the
+ * rail's `Time` row, so the box is the same in both states and the rail is hard against the page's right edge.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
-import { bandUnderBox, domeDrawn, enterScrubbing, footerBelowPx, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -98,20 +101,23 @@ for (const [width, height] of [
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await enterScrubbing(page);
       await boxSettled(page);
-      // R132 (FR-FLOW-4, D-864): the rail is the layout's; the frame cuts the box inside the drawing slot (`stacked`) and has no aside.
+      // R186 (FR-WIDE-1, D-1098, D-1133): the rail and the box are the layout's; the layout's grid cuts the box (as on the
+      // stars page), so the frame neither stacks nor cuts it, and has no aside.
       await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
-      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+      await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       const block = await page.getByTestId('stripe-block').boundingBox();
       if (!box || !block) throw new Error('the page is not laid out');
 
-      // The box is the room over the block, to the pixel the grid rounds to: as wide as the watching one.
+      // The block is the rail's `Time` row, so the box gives it nothing: the same box in both states, to the grid's pixel.
       expect(box.width).toBeCloseTo(watching.width, 0);
-      expect(watching.height, 'the watching box is the scrubbing one or taller').toBeGreaterThanOrEqual(box.height - 1);
+      expect(Math.abs(watching.height - box.height), 'the box does not change between the states').toBeLessThanOrEqual(1);
+      expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
 
-      // D-312 → R132 (FR-FLOW-4 wide): the rail is the layout's column beside the box — the answer, the view row, the
-      // legend and the conditions, the foot with the stripe block and the actions — top to bottom.
+      // D-312 → R186 (FR-WIDE-1): the rail is the layout's column beside the box — the head, the view row, `Time` with
+      // the stripe block, the page group with the actions, and the legend with the conditions — top to bottom.
       const rail = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
       if (!rail) throw new Error('no rail');
       expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
@@ -120,7 +126,7 @@ for (const [width, height] of [
       if (!legend) throw new Error('no legend');
       expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
       let above = 0;
-      for (const id of ['live-indicator', 'chart-legend-slot', 'status-strip', 'live-actions']) {
+      for (const id of ['live-indicator', 'stripe-block', 'live-actions', 'chart-legend-slot', 'status-strip']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
@@ -128,23 +134,18 @@ for (const [width, height] of [
         above = row.y + row.height;
       }
       const rightEdge: number = rail.x;
-      // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
-      const foot = await page.getByTestId('live-rail-foot').boundingBox();
-      if (!foot) throw new Error('no foot');
-      // R166 (FR-CLEAN-12, D-1003): the page's right edge is its column's — `HOME_MAX_CELLS` from 1541 px, centred.
+      // R166 (FR-CLEAN-12, D-1003): the page's right edge is its column's — `HOME_MAX_CELLS` from 1541 px, centred. R186:
+      // the box is the room beside the rail, so the rail stands hard against that edge.
       const column = await page.getByTestId('live-page').boundingBox();
       if (!column) throw new Error('no page');
-      const right = column.x + column.width;
-      const heightBound = height - (foot.y + foot.height) <= UNDER_PX;
-      const widthBound = right - (rail.x + rail.width) <= UNDER_PX;
-      expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(right - rail.x - rail.width)} px past the rail)`).toBe(true);
+      expect(column.x + column.width - (rail.x + rail.width), 'the rail is hard against the page’s right edge').toBeLessThanOrEqual(UNDER_PX);
 
       // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its
       // cadence is the stripe's own (FR-TRAJ-4, `labelEveryHours` on the width it measures): every two hours
       // where twelve labels fit — eleven or twelve, one slot being the date at midnight — and every three
       // hours in a narrower box, eight or nine — six where `keepLabels` drops the ones that would touch, in the
       // short one-column window's 40-cell box. `live.spec.ts` holds that none overlap.
-      // R132 (FR-FLOW-4 wide, D-864): the block is the rail's foot now, beside the box and above the actions.
+      // R186 (FR-WIDE-1): the block is the rail's `Time` row, beside the box and above the actions.
       expect(block.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
       const actionsRow = await page.getByTestId('live-actions').boundingBox();
       if (!actionsRow) throw new Error('no actions');
@@ -172,8 +173,9 @@ for (const [width, height] of [
       const wrapped = playback.y >= clock.y + clock.height - 1 && Math.abs(playback.x - clock.x) <= 1;
       expect(beside || wrapped, `the playback row is beside the clock or wrapped under it (clock ${String(clock.x)},${String(clock.y)} ${String(clock.width)}×${String(clock.height)}; playback ${String(playback.x)},${String(playback.y)} ${String(playback.width)}×${String(playback.height)})`).toBe(true);
 
-      // The page never scrolls to make room: the box was cut from what fits. D-1023: the footer's row follows under the fold.
-      expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height + (await footerBelowPx(page))]);
+      // The page never scrolls to make room: the box was cut from what fits. R186 (FR-WIDE-1): the app's footer is under
+      // the layout, inside the viewport, as on the stars page.
+      expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
 
       // …and the drawing in it: at least 90 % of the box's shorter side (FR-DOME-1), centred, not two thirds of it with
       // the top cut off. R133 (FR-FLOW-9, D-850): the box is the room and not the drawing's own shape any more, so the

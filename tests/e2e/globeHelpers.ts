@@ -59,7 +59,7 @@ export async function showGlobe(page: Page, locale: 'en' | 'es' = 'en'): Promise
   await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_WORD[locale] }).click();
   await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
-  await expect(page.getByTestId('globe-groups')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('stars-group')).toBeVisible({ timeout: 30_000 });
 }
 
 /** The globe's instant, as the clock line carries it. */

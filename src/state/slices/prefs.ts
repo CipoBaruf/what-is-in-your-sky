@@ -60,7 +60,7 @@ import type { AppState } from '../store';
  * reaches here (FR-SKY-2).
  * R136 (FR-FLOW-14; V26-11, D-876): the guard is gone. `chartView` is what
  * the reader saved, the window included, on compact as on wide, and
- * `undefined` while nothing is saved — the default is `defaultChartView`'s
+ * `undefined` while nothing is saved — the default is `viewFor`'s (D-1095)
  * (`ui/screens/chartViewDefault.ts`), which needs the mode the page lays out
  * by and so is a page's question, not the store's.
  *
@@ -88,7 +88,7 @@ export interface PrefsSlice {
   setSort: (sort: PassSort) => void;
   /**
    * The saved sky chart view (US-6 AC5), any of the three on either mode, `undefined` until the reader picks one
-   * (D-876): what a page shows is `defaultChartView(mode, chartView)` — the window on compact, the dome on wide.
+   * (D-876): what a page shows is `viewFor(page, mode, chartView)` (D-1095) — the window on compact, the globe on wide.
    */
   chartView: ChartView | undefined;
   /** Sets the view, through to storage, on compact as on wide (FR-FLOW-14). */

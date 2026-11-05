@@ -100,8 +100,11 @@ test('v toggles the chart view and n toggles the palette (FR-DOME-7, FR-THEME-1)
   const chart = page.getByTestId('sky-chart');
   await expect(chart).toHaveAttribute('data-view', 'dome');
 
+  // R186 (FR-WIDE-2, FR-DESK-4): on a desk `v` cycles the row's three, `Globe Window Dome`, from the one shown.
   await page.keyboard.press('v');
-  await expect(chart).toHaveAttribute('data-view', 'polar');
+  await expect(chart).toHaveAttribute('data-view', 'globe');
+  await page.keyboard.press('v');
+  await expect(chart).toHaveAttribute('data-view', 'window');
   await page.keyboard.press('v');
   await expect(chart).toHaveAttribute('data-view', 'dome');
 

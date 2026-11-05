@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useT } from '../../../../i18n/useT';
+import { useLocale, useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
@@ -13,7 +13,10 @@ import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { FieldAim, SkyChartProps, SkyChartView } from './SkyChart.types';
-import { defaultChartView } from '../../../screens/chartViewDefault';
+import { viewFor as pageViewFor } from '../../../screens/chartViewDefault';
+import { loadGlobe, useGlobePrefetch } from '../../../screens/stars/globeChunk';
+import type { GlobePick } from './globe/SkyGlobe';
+import type { GlobeLayers } from './globe/GlobeRenderer';
 import { useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
 
@@ -79,7 +82,7 @@ import { useSkyBodies } from './useSkyBodies';
  * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12, D-876): the compact cases
  * are gone. The window is a view on compact as on wide — chosen, it is saved
  * and laid out in the box — and the default with nothing saved is the window
- * on compact and the dome on wide (`defaultChartView`).
+ * on compact and, since R186 (D-1095), the globe on wide (`viewFor`).
  *
  * R152 (FR-GYRO-2, FR-GYRO-6; D-941, D-945): the sky screen is retired with
  * `screen`, `overlay`, `inventory` and the store's one-shot refocus. `follow`
@@ -126,6 +129,56 @@ function DomeView(props: SkyChartProps) {
 const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 
 /**
+ * R186 (FR-WIDE-3, FR-WIDE-6; D-1099): the globe as a view of the live page and the pass detail — the stars page
+ * mounts its own, with its time and its place. The page's passes at the shown instant over the observer's place,
+ * turning with you, with the layers the window takes (`layers.ts`'s `globe` row, read off the page's scene); a tap
+ * on an arc selects its pass as a legend row does. Its own lazy chunk (`SkyGlobe-*.js`), prefetched on idle on wide.
+ */
+// R186: a promise of its own — two lazies sharing the cached one see it already marked fulfilled and, under `act`, retry
+// before their own resolution lands, forever.
+const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
+/** With no scene (the stars toggle's source not in yet), the globe draws the planets and nothing of the stars. */
+const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
+
+function GlobeView(props: SkyChartProps) {
+  const language = useLocale();
+  const field = props.scene?.stars;
+  const layers = useMemo<GlobeLayers>(() => (field ? { stars: field.layers.stars, figures: field.layers.figures, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
+  const { onSelectPass } = props;
+  // The page's shown instant; a chart given none (a test) draws the moment it mounted.
+  const [mounted] = useState(() => Date.now());
+  const at = props.now ?? mounted;
+  const onPick = useCallback(
+    (pick: GlobePick | null) => {
+      if (pick?.kind === 'pass') onSelectPass?.(pick.passId);
+    },
+    [onSelectPass],
+  );
+  return (
+    <div className={styles.globe} data-testid="chart-globe">
+      <Suspense fallback={<div className={styles.loadingBox} data-testid="globe-loading" />}>
+        <SkyGlobe
+          place={props.observer}
+          instant={at}
+          turn="you"
+          layers={layers}
+          faint={false}
+          language={language}
+          passes={props.passes}
+          t={at}
+          highlightedPassId={props.highlightedPassId}
+          colorBy={props.colorBy ?? 'highlight'}
+          {...(props.legendKeys === undefined ? {} : { legendKeys: props.legendKeys })}
+          onPick={onPick}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+const GLOBE_VIEW: SkyChartView = { Component: GlobeView, id: 'globe' };
+
+/**
  * D-789: whether the window will be laid out in the page's box under the hand — `SkyWindow`'s own `inBox`, read
  * before its chunk arrives, so the fallback's box is already the window's shape and does not jump when it lands.
  */
@@ -162,20 +215,25 @@ function WindowView(props: SkyChartProps) {
 const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 
 // R150 (FR-GYRO-11, D-950): the window first, on every page and width — `[Window] Polar Dome`. Which view opens is the
-// pref's (`defaultChartView`), not this order.
+// pref's (`viewFor`), not this order; R186's wide row is `WIDE_CHART_VIEWS`.
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [WINDOW_VIEW, POLAR_VIEW, DOME_VIEW];
 
+/** R186 (FR-WIDE-2, D-1095): the desk's row, `[ Globe ] Window Dome` on every page; the polar chart is not offered on wide. */
+const WIDE_CHART_VIEWS: readonly SkyChartView[] = [GLOBE_VIEW, WINDOW_VIEW, DOME_VIEW];
+
 /**
- * R160 (D-324, D-971): the views a page offers, in the registered order — all three where it names none.
+ * R160 (D-324, D-971): the views a page offers, in the registered order — all three where it names none. R186: the
+ * width's row is the register — compact's `Window Polar Dome`, wide's `Globe Window Dome`.
  */
-function offeredViews(views: readonly ChartView[] | undefined): readonly SkyChartView[] {
-  const offered = views === undefined ? SKY_CHART_VIEWS : SKY_CHART_VIEWS.filter((candidate) => views.includes(candidate.id));
+function offeredViews(views: readonly ChartView[] | undefined, wide: boolean): readonly SkyChartView[] {
+  const register = wide ? WIDE_CHART_VIEWS : SKY_CHART_VIEWS;
+  const offered = views === undefined ? register : register.filter((candidate) => views.includes(candidate.id));
   if (offered.length === 0) throw new Error('SkyChart: a page must offer at least one view');
   return offered;
 }
 
 /**
- * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
+ * The view for a preference. R136 (D-876): the default is `viewFor`'s alone (D-1095), decided before this. R121 (FR-WIN-4 as
  * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
  * phone with no north loses the sensor, not the view, which it gets in the box under the hand. R160: a saved view
  * the page does not offer is drawn as the first it offers.
@@ -216,12 +274,16 @@ export function SkyChart(props: SkyChartProps) {
   const controlSlot = useChartSlot('control');
   const follow = props.follow ?? false;
   const moonPhase = props.moonPhase ?? false;
-  const offered = useMemo(() => offeredViews(props.views), [props.views]);
+  const offered = useMemo(() => offeredViews(props.views, !compact), [props.views, compact]);
+  // R186 (FR-WIDE-6, D-1099): on wide the globe's chunk on idle — in the dome's place, which is fetched only when chosen.
+  useGlobePrefetch(!compact);
   // R160 (D-971): the page holds the view itself — the stars page's, never saved — and every change goes to it.
-  const { view: givenView, onViewChange } = props;
+  const { view: givenView, onViewChange, onViewHold } = props;
+  // R186 (FR-PHONE-10, FR-KEEP-2): what the reader did not choose is held by the page, not saved, where it says how.
+  const onPageHold = onViewHold ?? onViewChange;
   const controlled = givenView !== undefined;
-  // D-876 (R136): the saved view, else the window on compact and the dome on wide (`defaultChartView`).
-  const pageView: ChartView = givenView ?? defaultChartView(mode, chartView);
+  // R186 (D-1095): the saved view as this page and width offer it, else the window on compact and the globe on wide (`viewFor`).
+  const pageView: ChartView = givenView ?? pageViewFor(props.page ?? 'live', mode, chartView);
   /*
    * FR-GYRO-2 (D-941, D-957): following, the view is the window and the preference is neither read for it nor
    * written. Once following has been on, the window stays the view after it ends — "the view becomes the window",
@@ -243,8 +305,8 @@ export function SkyChart(props: SkyChartProps) {
   useLayoutEffect(() => {
     const was = followedRef.current;
     followedRef.current = follow;
-    if (follow && !was && controlled && givenView !== 'window') onViewChange?.('window');
-  }, [follow, controlled, givenView, onViewChange]);
+    if (follow && !was && controlled && givenView !== 'window') onPageHold?.('window');
+  }, [follow, controlled, givenView, onPageHold]);
   // FR-GYRO-2: following, the dome is never the view — it has no camera to follow with — so a pick of it while following
   // saves it and shows the window until following ends (as D-957 had every view); the polar chart is shown, with the
   // field outlined and moving (FR-PHONE-8: the whole sky one tap away from every sky view, FR-PHONE-9).
@@ -275,10 +337,10 @@ export function SkyChart(props: SkyChartProps) {
   const [opening, setOpening] = useState<FieldAim | undefined>(undefined);
   const hold = useCallback(
     (id: ChartView): void => {
-      if (controlled) onViewChange?.(id);
+      if (controlled) onPageHold?.(id);
       else setHeldView(id);
     },
-    [controlled, onViewChange],
+    [controlled, onPageHold],
   );
   const onFieldHandoff = useCallback(
     (aim?: FieldAim): void => {
@@ -358,14 +420,15 @@ export function SkyChart(props: SkyChartProps) {
   /*
    * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the chart draws none of its rows itself. The view
    * control goes to the page's `viewRow` slot in the facing picker's idiom — the chosen view bracketed, the others
-   * plain, `[Window] Polar Dome` (R150, the window first), a cell between — and the legend to the `list` slot; the views send their readout
+   * plain, `[Window] Polar Dome` (R150, the window first), a cell between — on wide R186's `[ Globe ] Window Dome` in the
+   * bracket mark the stars page's row has (FR-WIDE-2) — and the legend to the `list` slot; the views send their readout
    * and their picker the same way (`useChartSlot`). The figure then has no caption and no controls row of its own:
    * the page's prose is its description (`describedBy`), and the frame is the box alone.
    */
   const listSlot = useChartSlot('list');
   const inLayout = controlSlot.inLayout;
   const viewControl = inLayout ? (
-    <ToggleGroup name={t.chart.viewGroup} mark="tight" options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+    <ToggleGroup name={t.chart.viewGroup} mark={compact ? 'tight' : 'bracket'} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   ) : (
     <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
   );
@@ -399,7 +462,7 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
-  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, ...forwarded } = props;
+  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, onViewHold: _onViewHold, page: _page, ...forwarded } = props;
   // R160 (D-970): the handoff's callback goes to either drawing only where the row offers the other view (`onFieldHandoff` sorts out which).
   const handoff = offers('polar') && offers('window') ? { onFieldHandoff, ...(opening === undefined ? {} : { opening }) } : {};
   // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).

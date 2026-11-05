@@ -65,6 +65,16 @@ async function openStars(page: Page, locale: Locale, prefs: Record<string, unkno
  * is paused there (`homeAt`), so the lazy chunks land as it is run (R32).
  */
 async function openStarsWithRun(page: Page, locale: Locale): Promise<Locator> {
+  // R186 (D-1095, FR-KEEP-1): `homeAt` saves the dome for the live specs, which the compact stars page reads as its
+  // whole sky; this reader saved the window, so the page opens on it.
+  await page.addInitScript(
+    ([key]: [string]) => {
+      const raw = localStorage.getItem(key);
+      const saved = (raw === null ? {} : JSON.parse(raw)) as Record<string, unknown>;
+      if (saved['chartView'] === undefined) localStorage.setItem(key, JSON.stringify({ ...saved, chartView: 'window' }));
+    },
+    [PREFS_KEY] as [string],
+  );
   await homeAt(page, T, locale, true);
   await page.evaluate(() => {
     location.hash = '#stars';
@@ -114,7 +124,7 @@ for (const size of SIZES) {
     test.describe(`the whole sky on the stars page at ${String(size.width)} × ${String(size.height)}, ${locale}`, () => {
       test.use({ viewport: { width: size.width, height: size.height }, hasTouch: size.touch });
 
-      test('the view row, the whole sky with the layers on and off, In this field, the camera kept, nothing saved (FR-PHONE-7)', async ({ page }) => {
+      test('the view row, the whole sky with the layers on and off, In this field, the camera kept, the view saved (FR-PHONE-7, FR-KEEP-1)', async ({ page }) => {
         // R170 (FR-GLOBE-1): on wide the second value is the globe, the polar chart not offered there — `globe.spec.ts`.
         test.skip(size.wide, 'on wide the whole sky is the globe (FR-GLOBE-1): globe.spec.ts');
         const layout = await openStarsWithRun(page, locale);
@@ -174,7 +184,8 @@ for (const size of SIZES) {
         await expect(page.locator('[data-layer="passes"]')).toHaveCount(0);
         console.log(`[FR-PHONE-7] ${String(size.width)} px ${locale}: ${String(drawn)} stars drawn on the whole sky, ${String(await figures(page).count())} figure paths`);
 
-        // Back to the window: the camera where it was. A reload opens on the window; nothing of the view is saved.
+        // Back to the window: the camera where it was. R186 (FR-KEEP-1, amends FR-PHONE-7): the stars page's view is
+        // saved, so the whole sky chosen is `polar` in the store, and the window chosen again is what a reload opens on.
         await row.getByRole('button', { name: words.window }).click();
         await expect(chart(page)).toHaveAttribute('data-view', 'window');
         await page.clock.runFor(200);
@@ -182,8 +193,11 @@ for (const size of SIZES) {
         await expect(windowRoot(page)).toHaveAttribute('data-look-az', '180');
         await expect(windowRoot(page)).toHaveAttribute('data-look-alt', '35');
         await chooseWholeSky(page, locale, true);
-        expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/polar/);
-        expect((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).chartView).toBe('dome');
+        const savedView = async (): Promise<string | undefined> => (JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).chartView;
+        expect(await savedView()).toBe('polar');
+        await row.getByRole('button', { name: words.window }).click();
+        await expect(chart(page)).toHaveAttribute('data-view', 'window');
+        expect(await savedView()).toBe('window');
         await page.reload();
         await expect
           .poll(async () => {
@@ -202,10 +216,12 @@ for (const size of SIZES) {
         const box = page.getByTestId('stars-sky').locator('div[data-dragging]');
         // Out past the end by the ratio: from 60°, fingers from 200 px to 100 px ask for 120°, past 103.5°.
         await pinch(box, 200, 100);
-        // R170 (FR-GLOBE-1): on wide the whole sky is the globe, so the pinch out opens it, and the globe has no pinch back.
+        // R186 (FR-WIDE-2, FR-PHONE-10): on wide the row is `Globe Window Dome` and offers no whole sky, so the pinch
+        // stops at the widest field and the row is the way across.
         if (size.wide) {
-          await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
-          await expect(viewRow(page).locator('button', { hasText: locale === 'en' ? 'Globe' : 'Globo' })).toHaveAttribute('aria-pressed', 'true');
+          await expect(w).toHaveAttribute('data-fov', '90');
+          await expect(chart(page)).toHaveAttribute('data-view', 'window');
+          await expect(page.getByTestId('globe-box')).toHaveCount(0);
           return;
         }
         await expect(chart(page)).toHaveAttribute('data-view', 'polar');

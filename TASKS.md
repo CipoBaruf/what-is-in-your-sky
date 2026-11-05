@@ -139,7 +139,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `npm run check` green; `sky-window.spec.ts` green.
   - **Done (R185):** also touched, for the goal's "the polar chart, the globe and the lists": `polar/PolarStars.tsx`, `globe/GlobeRenderer.ts` (the rule, and the planet padding dropped), `globe/arcs.ts` and `arcLayer.ts` (the shared helpers), `SkyChart.types.ts` (`onPassHover`); D-1116, D-1117.
 
-- [ ] **R186 — One shell on a desk: the live page, the stars page and the pass detail in `SkyViewLayout`, the globe on all three, the dome by choice, the box's corners**
+- [x] **R186 — One shell on a desk: the live page, the stars page and the pass detail in `SkyViewLayout`, the globe on all three, the dome by choice, the box's corners** — `GuidePanel` went whole (D-1118); the braille font is the mark's, so only the dome chunk is pinned absent (D-1120); the `globe` row stays at 15 and warns (D-1121).
   - **Lane:** ui
   - **Tier:** hard
   - **Turns:** 500
@@ -176,6 +176,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Satisfies:** FR-WIDE-4, FR-WIDE-8; US-52 AC4, US-55 AC3.
   - **Scope (D-1100):** `StripeOverview`, `TimeStripe`, `PlaybackControls` and `usePlayback` move from `components/live/` to `components/sky/time/` (imports updated, the `Live` chunk no longer their only home); `usePlayback` gains `shiftDays`; the three pages' `screens/sky/<page>/Time.tsx`; the pass detail's FR-FLOW-7 cells become buttons; the cloud band as one `<path>` per band from `lib/cloudBand.ts`, an empty hour left blank, the runs sentence in the stripe's description in both catalogs.
   - **Touches outside the lane:** `components/sky/time/**`, `screens/sky/*/Time.tsx`, the pass detail's times row, `src/i18n/**` (the cloud sentence, in the `live` section).
+  - **Note (from R186):** remove the wide overlay branch, the fold and the overlay inventory (`useInventoryRows(... 'overlay')`) in `Live.tsx` per D-1133.
   - **Deletes:** the stars page's clock row and its tests (FR-GLOBE-7's steps re-tested under the playback row).
   - **Captures:** the manifest gains `sky-clouds` (1280 × 800).
   - **Out of scope:** the keys `,` `.` `t` `Space` (R189); `playSpeed` read from the store (R190).

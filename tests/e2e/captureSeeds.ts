@@ -61,7 +61,8 @@ export interface SeedPrefs {
   locale: 'en' | 'es';
   theme: 'dark' | 'night';
   observer?: Observer;
-  chartView?: 'dome' | 'polar';
+  /** R186 (FR-WIDE-2): `globe` is the desk's own value; absent is a fresh profile (the globe on wide, the window on compact). */
+  chartView?: 'dome' | 'polar' | 'globe' | undefined;
   favourites?: { cellKey: string; observer: Observer; addedAt: number; lastUsedAt: number }[];
   /** FR-LIVE-6: the hidden-objects toggle's saved state, which the legend screen wants on. */
   liveHidden?: boolean;

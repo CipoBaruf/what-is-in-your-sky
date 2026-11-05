@@ -189,8 +189,8 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     await pinch(box(w), 50, 500);
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '20');
-    // Picking a facing point keeps the zoom (FR-SKY-14).
-    await page.getByTestId('live-layout').locator('[data-slot="picker"]').getByRole('group', { name: 'Facing' }).locator('[data-option="E"]').click();
+    // Picking a facing point keeps the zoom (FR-SKY-14); on a desk `Facing` is the rail's page group (FR-WIDE-1).
+    await page.getByTestId('live-layout').locator('[data-slot="action"]').getByRole('group', { name: 'Facing' }).locator('[data-option="E"]').click();
     await expect(w).toHaveAttribute('data-look-az', '90');
     await expect(w).toHaveAttribute('data-fov', '20');
 
@@ -350,6 +350,10 @@ test.describe('zoom on a compact page without a sensor', () => {
     await toPhone(page);
     await expect(w).toHaveAttribute('data-fov', '60');
     const chart = page.getByTestId('sky-chart');
+    // R186 (FR-KEEP-1): `Window` pressed on the desk (`onWindow`) is the reader's pick and saved; the pinches after it write nothing (FR-PHONE-10).
+    const storedView = async (): Promise<unknown> => (JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as Record<string, unknown>)['chartView'];
+    const picked = await storedView();
+    expect(picked).toBe('window');
     // To the end exactly (60 × 150 / 100 = 90°), and then 10 % past it: the field holds at 90 and the view stays the window.
     await pinch(box(w), 150, 100);
     await expect(w).toHaveAttribute('data-fov', '90');
@@ -366,6 +370,7 @@ test.describe('zoom on a compact page without a sensor', () => {
     // Past the end by the ratio: 90 × 120 / 100 = 108° asked, over 103.5: the whole sky, the camera at 90°.
     await pinch(box(w), 120, 100);
     await expect(chart).toHaveAttribute('data-view', 'polar');
+    expect(await storedView()).toBe(picked);
     const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
     await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/, { timeout: 30_000 });
     // In on the whole sky (the fingers spreading) short of the ratio: it stays; past it, about the zenith: the window, up, at 90°.
@@ -380,6 +385,7 @@ test.describe('zoom on a compact page without a sensor', () => {
     await expect(back).toHaveAttribute('data-state', 'hand');
     await expect(back).toHaveAttribute('data-fov', '90');
     await expect(back).toHaveAttribute('data-look-alt', '90');
-    expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov|chartView/i);
+    expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', PREFS_KEY)).not.toMatch(/fov/i);
+    expect(await storedView()).toBe(picked);
   });
 });

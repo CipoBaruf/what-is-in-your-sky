@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { LayoutMode } from '../../lib/layout';
 import type { ChartView } from '../../model';
-import { defaultChartView, viewFor, type SkyPage } from './chartViewDefault';
+import { nextView, viewFor, type SkyPage } from './chartViewDefault';
 
 type Saved = ChartView | undefined;
 
 /**
- * FR-WIDE-2 (D-1095): every page × width × saved value. On wide the row is Globe, Window, Dome (the stars page has no
- * dome, FR-KEEP-1); on compact the live page and the pass detail offer the window, the dome and the polar chart, the
+ * FR-WIDE-2 (D-1095): every page × width × saved value. On wide the row is Globe, Window, Dome on all three pages (R186,
+ * FR-WIDE-6); on compact the live page and the pass detail offer the window, the dome and the polar chart, the
  * stars page the window and the whole sky (the polar chart).
  */
 const EXPECTED: Record<SkyPage, Record<LayoutMode, [Saved, ChartView][]>> = {
@@ -21,7 +21,7 @@ const EXPECTED: Record<SkyPage, Record<LayoutMode, [Saved, ChartView][]>> = {
   },
   stars: {
     compact: [[undefined, 'window'], ['globe', 'polar'], ['polar', 'polar'], ['window', 'window'], ['dome', 'polar']],
-    wide: [[undefined, 'globe'], ['globe', 'globe'], ['polar', 'globe'], ['window', 'window'], ['dome', 'globe']],
+    wide: [[undefined, 'globe'], ['globe', 'globe'], ['polar', 'globe'], ['window', 'window'], ['dome', 'dome']],
   },
 };
 
@@ -44,22 +44,25 @@ describe('viewFor', () => {
   });
 });
 
-/** R136 (D-876) as kept by R182 until R186: the live page and the pass detail draw no globe yet, so 2.13's answer holds. */
-describe('defaultChartView', () => {
-  it('opens a phone on the window and a desk on the dome when nothing is saved', () => {
-    expect(defaultChartView('compact', undefined)).toBe('window');
-    expect(defaultChartView('wide', undefined)).toBe('dome');
-  });
-
-  it("opens on the saved view, whichever of 2.13's three it is, in both modes", () => {
-    for (const saved of ['dome', 'polar', 'window'] as const) {
-      expect(defaultChartView('compact', saved)).toBe(saved);
-      expect(defaultChartView('wide', saved)).toBe(saved);
+describe('nextView', () => {
+  it('FR-WIDE-2: v cycles Globe, Window, Dome on wide from the view shown', () => {
+    for (const page of ['live', 'pass', 'stars'] as const) {
+      expect(nextView(page, 'wide', undefined)).toBe('window');
+      expect(nextView(page, 'wide', 'window')).toBe('dome');
+      expect(nextView(page, 'wide', 'dome')).toBe('globe');
+      expect(nextView(page, 'wide', 'polar')).toBe('window');
     }
   });
 
-  it('reads a saved globe as the polar chart on compact and the dome on wide', () => {
-    expect(defaultChartView('compact', 'globe')).toBe('polar');
-    expect(defaultChartView('wide', 'globe')).toBe('dome');
+  it('FR-DESK-4: on compact v toggles the dome and the polar chart, as on 2.13', () => {
+    expect(nextView('live', 'compact', undefined)).toBe('dome');
+    expect(nextView('live', 'compact', 'dome')).toBe('polar');
+  });
+
+  it('FR-DESK-4: on the compact stars page v toggles the window and the whole sky, as on 2.13', () => {
+    expect(nextView('stars', 'compact', undefined)).toBe('polar');
+    expect(nextView('stars', 'compact', 'polar')).toBe('window');
+    expect(nextView('stars', 'compact', 'dome')).toBe('window');
+    expect(nextView('stars', 'compact', 'globe')).toBe('window');
   });
 });

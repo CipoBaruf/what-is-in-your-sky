@@ -62,7 +62,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   it('is a labelled dialog carrying the guide sentence (once, as the chart caption), the numbers, the twilight label and the sky chart', async () => {
     // R136 (D-876): a phone with nothing saved opens on the window (the [ stars ] test below); this one reads the dome.
     appStore.getState().setChartView('dome');
-    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
@@ -97,7 +97,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
    * once, not once as the legend and once as a block further down the sheet.
    */
   it('shows the numeric table as the chart legend, under the drawing, keyed and swatched', () => {
-    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     const table = within(dialog).getByRole('table');
     const lead = dialog.querySelector('[data-testid="legend-lead"]');
@@ -120,7 +120,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
     document.documentElement.style.overflow = 'auto';
-    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     expect(document.documentElement.style.overflow).toBe('hidden');
     unmount();
     expect(document.documentElement.style.overflow).toBe('auto');
@@ -163,7 +163,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
       resetOrientationAccess();
     });
-    const detail = () => render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const detail = () => render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const windowRoot = (): HTMLElement | null => document.querySelector<HTMLElement>('[data-look-az]');
     /** The phone's back toward `azDeg`, `altDeg` up, as the W3C event the window listens for. */
     const reading = (azDeg: number, altDeg: number): void => {
@@ -277,7 +277,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
     it('stands in the sheet after the view row and [ follow ] in the bottom row on a phone, and is absent without the sensor; no sky screen, no hold-up (FR-CLEAN-3)', () => {
       appStore.getState().setChartView('dome');
-      const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       expect(screen.queryByTestId('pass-follow')).toBeNull();
       expect(screen.queryByTestId('follow-toggle')).toBeNull();
       expect(screen.queryByTestId('live-follow-control')).toBeNull();
@@ -286,7 +286,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
       // An iPhone's first visit: off until asked (FR-PHONE-2).
       withPhone(() => Promise.resolve('granted'));
-      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       const row = screen.getByTestId('pass-follow');
       expect(within(row).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
       expect(within(row).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
@@ -301,7 +301,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       appStore.getState().setChartView('dome');
-      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       const figure = screen.getByRole('figure', { name: 'ISS (Zarya)' });
       expect(figure).toHaveAttribute('data-view', 'dome');
       fireEvent.click(screen.getByTestId('follow-toggle'));
@@ -328,7 +328,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       const lock = stubWakeLock();
       withPhone(() => Promise.resolve('granted'));
       appStore.getState().setChartView('dome');
-      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       await flush();
       expect(lock.request).not.toHaveBeenCalled();
       fireEvent.click(screen.getByTestId('follow-toggle'));
@@ -345,11 +345,11 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   it('adds the Moon warning under the chart when the pass has glare, and nothing when it has not (FR-MOON-2)', () => {
     const { rerender } = render(
-      <PassDetail pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} observer={observer} onClose={() => undefined} onShowList={() => undefined} />,
+      <PassDetail pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} observer={observer} onClose={() => undefined} />,
     );
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('The Moon is bright and close to the track.')).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
-    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('The Moon is bright');
   });
 
@@ -357,13 +357,13 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   // when the worker found no glare in it.
   it('names the Moon at the peak whenever it is up, glare or not', () => {
     const upNoGlare = { ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
-    const { rerender } = render(<PassDetail pass={upNoGlare} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const { rerender } = render(<PassDetail pass={upNoGlare} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
     expect(dialog).not.toHaveTextContent('The Moon is bright');
 
     // With the Moon below the horizon there is nothing to say about it here.
-    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     expect(within(screen.getByRole('dialog')).queryByTestId('moon-at-peak')).toBeNull();
   });
 
@@ -372,7 +372,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
    * live page's — on the view row after the view control, `inline` on compact so it takes the row's second line.
    */
   it('offers [ stars ] on the view row on compact and on wide, and a press is the saved toggle', () => {
-    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the view control in the picker's idiom, `[x] stars` at the row's end.
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
@@ -389,19 +389,23 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     unmount();
     const media = stubMatchMedia(1280, 800);
     try {
-      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
       const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
       expect(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
-      // R136 (D-876): still nothing saved, and a desk opens on the dome.
-      expect(within(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
+      // R186 (FR-WIDE-2, D-1095): still nothing saved, and a desk opens on the globe of `[ Globe ] Window Dome`.
+      const wideControl = within(wideRow).getByRole('group', { name: en.chart.viewGroup });
+      expect(within(wideControl).getAllByRole('button').map((b) => b.textContent?.replace(/[[\] ]/g, ''))).toEqual(['Globe', 'Window', 'Dome']);
+      expect(within(wideControl).getByRole('button', { name: /Globe/ })).toHaveAttribute('aria-pressed', 'true');
       expect(within(wideRow).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
-      // FR-FLOW-7 on wide: the panel's head is one band — the name, the countdown, the times — and the layout is the panel.
-      const head = screen.getByTestId('guide-head');
-      expect(within(head).getByRole('heading', { level: 2, name: 'ISS (Zarya)' })).toBeInTheDocument();
-      expect(within(head).getByRole('timer')).toBeInTheDocument();
-      expect(within(head).getByTestId('pass-times')).toBeInTheDocument();
-      expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'panel');
+      // R186 (FR-WIDE-1, D-1098): on wide the rail's head is the pass's name as the page's h1 with [ × ], the times are
+      // the page group's, the countdown the Time row's, and the layout is the desk's rail shape.
+      const head = screen.getByTestId('pass-head');
+      expect(within(head).getByRole('heading', { level: 1, name: 'ISS (Zarya)' })).toBeInTheDocument();
+      expect(within(head).getByTestId('pass-close')).toBeInTheDocument();
+      expect(within(screen.getByTestId('pass-group')).getAllByTestId('pass-times').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('pass-time')).toBeInTheDocument();
+      expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'rail');
       expect(within(screen.getByTestId('pass-layout')).getByRole('figure', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     } finally {
       media.restore();
@@ -411,12 +415,12 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   });
 
   it('omits the twilight label when the pass is not a twilight one', () => {
-    render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');
   });
 
   it('counts down every second without remounting', () => {
-    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const timer = screen.getByRole('timer');
     expect(timer).toHaveTextContent('Appears in 12:34');
     act(() => {
@@ -441,7 +445,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     opener.textContent = 'opener';
     document.body.appendChild(opener);
     opener.focus();
-    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} />);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'ISS (Zarya)' }));
 
     await user.click(screen.getByRole('button', { name: en.header.backName }));
@@ -471,7 +475,7 @@ describe('<PassDetail> in the full form (FR-CLEAN-1..3, FR-CLEAN-5, FR-CLEAN-6)'
   const detail = (locale: Locale = 'en') =>
     render(
       <I18nProvider locale={locale}>
-        <PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />
+        <PassDetail pass={pass} observer={observer} onClose={() => undefined} />
       </I18nProvider>,
     );
   const openSheet = (): void => {

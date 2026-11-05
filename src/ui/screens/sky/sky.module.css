@@ -1,0 +1,11 @@
+/* R186 (FR-WIDE-1, D-1098): a page's rail group on wide — its rows a group apart (D-851's `--space-3`), as the
+   layout's own rows are, so the three pages' groups read alike. */
+.group {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.group > :global(*) {
+  min-width: 0;
+}

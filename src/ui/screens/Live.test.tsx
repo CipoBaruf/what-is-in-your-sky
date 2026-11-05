@@ -36,7 +36,7 @@ import { LEGEND_OPEN_ROWS } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
 import { LivePage, TICK_MS, visibleCount } from './Live';
-import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
+import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS } from './liveRows';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
 const pass = goldenPassFixture();
@@ -459,8 +459,9 @@ describe('<LivePage>', () => {
         <LivePage link={null} onLeave={() => undefined} />
       </I18nProvider>,
     );
-    // R129 (FR-FLOW-3, D-845): the wide row's way back is the header's `[ ← ]` too.
-    expect(screen.getByRole('button', { name })).toHaveTextContent(/^←$/);
+    // R186 (FR-WIDE-1, D-1098): on wide the page draws no head of its own — the app's header, with its `[ ← ]`, is App's.
+    expect(screen.queryByRole('button', { name })).toBeNull();
+    expect(screen.queryByTestId('live-top-row')).toBeNull();
   });
 
   /**
@@ -526,8 +527,8 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(screen.queryByRole('group', { name: 'Language' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Theme' })).toBeNull();
-    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-link')).toHaveAttribute('aria-current', 'page');
-    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-place')).toHaveTextContent(observer.label);
+    // R186 (FR-WIDE-1): the one-row top row is gone on wide; the app's header (App's) names the page and the place.
+    expect(screen.queryByTestId('live-top-row')).toBeNull();
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
   });
 
@@ -566,6 +567,10 @@ describe('<LivePage>', () => {
     const sheet = screen.getByTestId('live-layout').querySelector('[data-slot="sheet"]') as HTMLElement;
     for (const id of ['live-controls', 'live-sheet', 'live-actions', 'live-track', 'live-taps', 'live-context', 'live-view-row', 'live-facing']) expect(within(sheet).getByTestId(id), id).toBeInTheDocument();
     unmount();
+    // R186 (FR-WIDE-6, D-1098): the dome, chosen — a desk's saved polar chart reads as the globe.
+    act(() => {
+      appStore.getState().setChartView('dome');
+    });
     // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box.
     for (const [width, height] of [
       [WIDE_MIN_PX, 700],
@@ -578,21 +583,22 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('live-layout'), `the rail at ${String(width)} px`).toHaveAttribute('data-shape', 'rail');
       expect(screen.getByTestId('live-layout')).not.toHaveAttribute('data-readout');
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
-      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-      // The rail's order: the answer, the view row, the facing row, the legend and the conditions, the foot (no hint on the polar chart).
-      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'list', 'foot']);
+      // R186 (FR-WIDE-1, D-1098): the layout's grid cuts the box (as on the stars page), not the frame inside the slot.
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+      // The box and its corners, then the rail in SLOT_ORDER: head, View, Time, the page group, the legend.
+      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['drawing', 'readout', 'hint', 'answer', 'viewRow', 'timeline', 'action', 'list']);
       wide.unmount();
     }
     media?.restore();
     media = stubMatchMedia(1660, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // R77 (FR-WATCH-4): watching there is no scrub block; scrubbing it is the rail's foot (FR-FLOW-4 wide: the stripe and the actions).
+    // R77 (FR-WATCH-4): watching there is no scrub block; scrubbing it is the rail's `Time` row (R186, FR-WIDE-1).
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.queryByTestId('stripe-block')).toBeNull();
     scrub();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
   });
 
   /**
@@ -683,24 +689,26 @@ describe('<LivePage>', () => {
    * chart is handed the dome's aspect so the frame cuts the box to it. Compact keeps both in the page: a phone
    * never has a cut box, and its stripe is a row of the page under the drawing as it has been since R48.
    */
-  it('puts the stripe block at the rail’s foot on wide at every width, hands the chart the dome’s aspect there, and keeps it in the column’s foot on compact', () => {
+  it('puts the stripe block in the rail’s Time row on wide at every width, and keeps it off the compact sheet (FR-WIDE-1)', () => {
     withSky();
+    // R186 (FR-WIDE-6): the dome, chosen — a desk opens on the globe.
+    appStore.getState().setChartView('dome');
     media = stubMatchMedia(1920, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
     scrub();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-    // R132 (FR-FLOW-4 wide): the rail's head is the answer — the indicator line and the headline; the conditions follow the legend in the list; the foot is the scrub block and the actions.
+    // R132 → R186 (FR-WIDE-1, D-1098): the head is the answer — the indicator line and the headline; the conditions follow
+    // the legend in the list; the scrub block is the `Time` row and the actions the page group.
     expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
     expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    expect(screen.getByTestId('live-rail-foot').closest('[data-slot]')).toHaveAttribute('data-slot', 'foot');
-    expect([...screen.getByTestId('live-rail-foot').children].map((el) => el.getAttribute('data-testid'))).toEqual(['stripe-block', 'live-actions']);
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
+    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
+    expect(screen.getByTestId('live-actions').closest('[data-slot]')).toHaveAttribute('data-slot', 'action');
     // The narrowest wide page: the same foot, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
     expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'rail');
     // Compact: no cut box, and (R144, FR-TONIGHT-6) no stripe block at all — the track and the taps are the column's timeline slot.
     act(() => {
@@ -747,12 +755,12 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     scrub();
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    // The rail is the sky's: the conditions after the legend in the list, the actions at its foot, the toggle among them.
+    // The rail is the sky's: the conditions after the legend in the list, the actions in the page group, the toggle among them.
     expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    expect(within(screen.getByTestId('live-rail-foot')).getByTestId('live-actions')).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-group')).getByTestId('live-actions')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    // R132: the stripe block is the rail's foot: the time row — the readout and the playback row — the overview, the stripe, the stepping row.
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
+    // R132 → R186: the stripe block is the rail's Time row: the time row — the readout and the playback row — the overview, the stripe, the stepping row.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-time'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
     expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
@@ -794,10 +802,15 @@ describe('<LivePage>', () => {
   });
 
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. R144: on wide, where the stripe and the step row are. */
-  it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
+  it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', async () => {
     withSky();
+    // R186 (FR-WIDE-2): a saved polar chart reads as the globe on wide; the window marks each pass's arc state.
+    appStore.getState().setChartView('window');
     media = stubMatchMedia(1280, 800);
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
     scrub();
     const stripe = screen.getByTestId('time-stripe');
     const arc = (): string | null => container.querySelector('[data-drawing] [data-pass-id="later"]')?.getAttribute('data-arc') ?? null;
@@ -847,7 +860,7 @@ describe('<LivePage>', () => {
     // R77 (FR-WATCH-2), R132 (FR-FLOW-4 wide): the readout heads the time row of the scrub block at the rail's foot,
     // over the overview, the stripe and the stepping row.
     const readout = within(screen.getByTestId('time-row')).getByTestId('time-readout');
-    expect(screen.getByTestId('stripe-block').closest('[data-slot]')).toHaveAttribute('data-slot', 'foot');
+    expect(screen.getByTestId('stripe-block').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect(readout).toHaveTextContent(/^09:48 · \+0 min$/);
     expect(readout).toHaveAttribute('data-today', 'true');
@@ -960,13 +973,18 @@ describe('<LivePage>', () => {
    * strip, the share link. R70 (FR-SPAN-2, US-24 AC2): the whole span is the overview's row now, so a drag
    * across the night is a drag on it; the stripe below redraws around wherever it lands.
    */
-  it('scrubbing the overview sets the shown instant: the stripe, the marker, the count, the strip and the share link follow', () => {
+  it('scrubbing the overview sets the shown instant: the stripe, the marker, the count, the strip and the share link follow', async () => {
     withSky();
+    // R186 (FR-WIDE-2): a desk opens on the globe; the window, chosen, marks the pass under the marker.
+    appStore.getState().setChartView('window');
     // R144: the overview is wide's (FR-TONIGHT-6 gives compact the track; its own test is below).
     media = stubMatchMedia(1280, 800);
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
     const overview = screen.getByTestId('stripe-overview');
     // The overview carries the drawn passes as marks in the same series order as the dome.
     expect([...container.querySelectorAll('[data-pass-mark]')].map((el) => el.getAttribute('data-series'))).toEqual(['1', '2', '3']);
@@ -1066,12 +1084,17 @@ describe('<LivePage>', () => {
       for (const row of LIVE_ROWS) {
         const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
         if (listed.has(row)) expect(found, `${mode} ${state}: ${row} is rendered`).not.toBeNull();
-        else expect(found, `${mode} ${state}: ${row} is not in the DOM`).toBeNull();
+        // R186 (FR-WIDE-5): the readout and the hint are the box's corners on wide, each on its own condition (below).
+        else if (WIDE_CORNERS.includes(row)) {
+          if (found !== null) expect(found.closest('[data-slot]'), `${mode} ${state}: ${row} is a corner of the box`).toHaveAttribute('data-slot', row);
+        } else expect(found, `${mode} ${state}: ${row} is not in the DOM`).toBeNull();
       }
     };
 
     // Watching: the next event is the headline, the mark runs, and the word says `live`.
     inventory('watching');
+    // R186 (FR-WIDE-5): the hint, not seen yet, stands in the box's bottom-left corner slot.
+    expect(screen.getByTestId('sky-hint').closest('[data-slot]')).toHaveAttribute('data-slot', 'hint');
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
     expect(within(screen.getByTestId('live-indicator')).getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
@@ -1564,75 +1587,52 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-9 a; D-448, D-449): the two short shapes, each rendering `rowsFor`'s
-   * short inventory. The landscape phone is a media query away. The short wide window is a measurement away:
-   * jsdom lays nothing out, so the frame's own rect is stubbed to the 384 px a 1200 × 450 page leaves it, and
-   * the frame's report of it — not the viewport — is what turns the block into the bar.
+   * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-9 a; D-448, D-449) → R186 (FR-WIDE-1, FR-WIDE-4, D-1098): on a short wide
+   * window the time control is the rail's `Time` row in both states, as on every desk page, so the scrub block never
+   * stands under the box and the box has no height to give it: there is no bar over the drawing and nothing folds.
+   * The box is the layout's cut (`fitBox` beside the rail), the same in watching and in scrubbing.
    */
-  it.each([['wide', [1200, 450], 'overlay']] as const)('renders the short %s page as rowsFor lists it in both states, the scrub block placed by scrubPlacement (FR-WATCH-5, FR-WATCH-6)', (mode, size, placement) => {
+  it('renders the short wide page with the scrub block in the rail’s Time row in both states, no bar over the drawing (FR-WATCH-6, FR-WIDE-1, FR-WIDE-4)', () => {
     withSky();
-    media = stubMatchMedia(size[0], size[1]);
-    const realGetRect = HTMLElement.prototype.getBoundingClientRect;
-    if (placement === 'overlay') {
-      vi.stubGlobal(
-        'ResizeObserver',
-        class {
-          observe(): void {
-            /* the frame measures once on mount, which is all this needs */
-          }
-          disconnect(): void {
-            /* nothing to detach */
-          }
-        },
-      );
-      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
-        const rect = realGetRect.call(this);
-        return this.dataset['testid'] === 'chart-frame' ? { ...rect, width: 1161, height: 384, right: 1161, bottom: 384, toJSON: () => ({}) } : rect;
-      };
-    }
-    try {
-      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
-      const inventory = (state: 'watching' | 'scrubbing'): void => {
-        const listed = new Set(rowsFor(state, mode, 'short'));
-        for (const row of LIVE_ROWS) {
-          const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
-          if (listed.has(row)) expect(found, `short ${mode} ${state}: ${row} is rendered`).not.toBeNull();
-          else expect(found, `short ${mode} ${state}: ${row} is not in the DOM`).toBeNull();
-        }
-      };
-      const page = screen.getByTestId('live-page');
-      // The placement does not read the state: it is decided while watching already, so the box cannot move on the tap.
-      expect(page).toHaveAttribute('data-scrub-placement', placement);
-      inventory('watching');
-      const head = within(screen.getByTestId('live-rail-head'));
-      expect(head.getByTestId('live-indicator')).toBeInTheDocument();
-      expect(head.getByTestId('live-clock')).toBeInTheDocument();
-      expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
-      if (placement === 'overlay') expect(page).toHaveAttribute('data-fold', 'controls actions');
-      else expect(page).not.toHaveAttribute('data-fold');
-      const fold = page.getAttribute('data-fold');
+    // R186 (FR-WIDE-6): the dome, chosen — a desk opens on the globe.
+    appStore.getState().setChartView('dome');
+    media = stubMatchMedia(1200, 450);
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const inventory = (state: 'watching' | 'scrubbing'): void => {
+      const listed = new Set(rowsFor(state, 'wide', 'tall'));
+      for (const row of LIVE_ROWS) {
+        const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
+        if (listed.has(row)) expect(found, `short wide ${state}: ${row} is rendered`).not.toBeNull();
+        else if (WIDE_CORNERS.includes(row)) {
+          if (found !== null) expect(found.closest('[data-slot]'), `short wide ${state}: ${row} is a corner of the box`).toHaveAttribute('data-slot', row);
+        } else expect(found, `short wide ${state}: ${row} is not in the DOM`).toBeNull();
+      }
+    };
+    const page = screen.getByTestId('live-page');
+    expect(page).toHaveAttribute('data-scrub-placement', 'under');
+    expect(page).not.toHaveAttribute('data-fold');
+    inventory('watching');
+    const head = within(screen.getByTestId('live-rail-head'));
+    expect(head.getByTestId('live-indicator')).toBeInTheDocument();
+    expect(head.getByTestId('live-clock')).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-time')).getByTestId('overview-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
 
-      scrub();
-      inventory('scrubbing');
-      expect(page).toHaveAttribute('data-scrub-placement', placement);
-      expect(page.getAttribute('data-fold')).toBe(fold);
-      // `[ back to live ]` is at the rail's head at both shapes, and the overview is the rail's, not the block's.
-      expect(head.getByTestId('live-now')).toBeInTheDocument();
-      const bar = within(within(screen.getByTestId('chart-box')).getByTestId('chart-bottom-overlay'));
-      for (const id of ['time-row', 'playback-row', 'time-stripe', 'step-controls']) expect(bar.getByTestId(id)).toBeInTheDocument();
-      expect(bar.queryByTestId('overview-row')).toBeNull();
-      expect(within(screen.getByTestId('live-rail-foot')).getByTestId('overview-row')).toBeInTheDocument();
-      expect(screen.queryByTestId('chart-stripe')).toBeNull();
-      expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    scrub();
+    inventory('scrubbing');
+    expect(page).toHaveAttribute('data-scrub-placement', 'under');
+    expect(page).not.toHaveAttribute('data-fold');
+    // `[ back to live ]` is at the rail's head; the scrub block, the overview in it, is the rail's `Time` row.
+    expect(head.getByTestId('live-now')).toBeInTheDocument();
+    const block = screen.getByTestId('stripe-block');
+    expect(block.parentElement).toBe(screen.getByTestId('live-time'));
+    for (const id of ['time-row', 'playback-row', 'overview-row', 'time-stripe', 'step-controls']) expect(within(block).getByTestId(id)).toBeInTheDocument();
+    expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
 
-      // `[ back to live ]` dismisses the bar with the state.
-      fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
-      inventory('watching');
-      expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
-    } finally {
-      HTMLElement.prototype.getBoundingClientRect = realGetRect;
-      vi.unstubAllGlobals();
-    }
+    fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
+    inventory('watching');
+    expect(screen.queryByTestId('stripe-block')).toBeNull();
   });
 
   it('enters scrubbing on a key on the overview, and on wide keeps the focus on it as it moves under the box (FR-WATCH-1 b)', () => {
@@ -1640,7 +1640,8 @@ describe('<LivePage>', () => {
     media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
     const before = screen.getByTestId('stripe-overview');
-    expect(before.closest('[data-testid="live-rail-foot"]')).not.toBeNull();
+    // R186 (FR-WIDE-1): watching, the overview is the rail's Time row.
+    expect(before.closest('[data-testid="live-time"]')).not.toBeNull();
     act(() => {
       before.focus();
     });

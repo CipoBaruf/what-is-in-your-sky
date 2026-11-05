@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { bandUnderBox, domeDrawn, enterScrubbing, footerBelowPx, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -173,7 +173,8 @@ for (const width of [390, 1280] as const) {
       const side = await page.getByTestId('live-rail-head').boundingBox();
       expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
     }
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
+    // R186 (FR-WIDE-2): the phone's row is 2.13's; the desk's is Globe, Window, Dome.
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(width === 390 ? ['Window', 'Polar', 'Dome'] : ['Globe', 'Window', 'Dome']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
     await reenterLiveWithTheme(page, 'en', 'night');
@@ -244,9 +245,9 @@ test.describe('the wide live page (R61)', () => {
   };
 
   /**
-   * The rail's rows, top to bottom, and every one of them beside the box rather than under it. R132 (FR-FLOW-4
-   * wide, D-864): the stripe block is the rail's foot, under the conditions and above the actions, with the
-   * playback row on its clock row (V12-13) and the stripe under that; R61's row under the box (D-315) is gone.
+   * The rail's rows, top to bottom, and every one of them beside the box rather than under it. R186 (FR-WIDE-1,
+   * D-1098): the stripe block is the rail's `Time` group, with the playback row on its clock row (V12-13) and the
+   * stripe under that; the actions are the page group under it, and the conditions follow the legend in the list.
    */
   const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
     const strip = await page.getByTestId('status-strip').boundingBox();
@@ -254,11 +255,11 @@ test.describe('the wide live page (R61)', () => {
     const playback = await page.getByTestId('playback-row').boundingBox();
     const actions = await page.getByTestId('live-actions').boundingBox();
     for (const row of [strip, block, playback, actions]) rightOf(row, box);
-    below(block, strip);
     band(playback, block);
     const stripeRows = await page.getByTestId('time-stripe').boundingBox();
     below(stripeRows, playback);
     below(actions, block);
+    below(strip, actions);
   };
 
   /** FR-TRAJ-4: whatever cadence the stripe's width buys, no label is drawn over the one beside it. */
@@ -271,7 +272,7 @@ test.describe('the wide live page (R61)', () => {
     }
   };
 
-  test('at 1920 × 1080: the view row in the rail beside the box, the strip and the actions with it, the stripe at the rail’s foot with the playback on its clock row, nothing scrolls, no stepping row', async ({ page }) => {
+  test('at 1920 × 1080: the view row in the rail beside the box, the strip and the actions with it, the stripe in the rail’s Time group with the playback on its clock row, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -297,11 +298,13 @@ test.describe('the wide live page (R61)', () => {
     // bottom, and the page does not scroll.
     if (!box) throw new Error('no box');
     expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
-    // The hint's row under the box is the layout's last, so the foot ends a hint's row above the page's padding.
-    const foot = await page.getByTestId('live-rail-foot').boundingBox();
-    expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
-    // D-1023: the page is one viewport; the footer's row follows under the fold.
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080 + (await footerBelowPx(page)));
+    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page: the rail's list ends over it, and
+    // the page is one viewport that does not scroll.
+    const foot = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
+    const footer = await page.locator('#root > footer').boundingBox();
+    if (!foot || !footer) throw new Error('no list or footer');
+    expect(foot.y + foot.height).toBeLessThanOrEqual(footer.y + 1);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
   });
 
   /*
@@ -310,7 +313,7 @@ test.describe('the wide live page (R61)', () => {
    * so this width gets the same rail as 1920 does, and this test fails on the old rule: it asserted
    * `data-columns='one'` and no `chart-aside`, and both are gone.
    */
-  test('at 1280 × 800: the rail beside the box, the stripe at its foot with the playback on its clock row, and no label over another', async ({ page }) => {
+  test('at 1280 × 800: the rail beside the box, the stripe in its Time group with the playback on its clock row, and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -324,20 +327,19 @@ test.describe('the wide live page (R61)', () => {
     rightOf(toggle, box);
     await inCorner(page, box);
     await expectTheRail(page, box);
-    // The legend is in that column too, over the rail's foot (FR-LEG-2 as amended v1.4; R132: in the `list` slot, above the conditions).
-    const rail = await page.getByTestId('live-rail-foot').boundingBox();
+    // The legend is in that column too, under the page group (FR-LEG-2 as amended v1.4; R186: the `list` slot, above the conditions).
+    const actions = await page.getByTestId('live-actions').boundingBox();
     const legend = await page.getByTestId('chart-legend-slot').boundingBox();
     rightOf(legend, box);
-    below(rail, legend);
+    below(legend, actions);
     // The block stacks: the clock readout over the stripe.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line; the rail's foot reaches the page's bottom. The page does not scroll.
+    // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line.
     if (!box) throw new Error('no box');
     expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
-    const foot = await page.getByTestId('live-rail-foot').boundingBox();
-    expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
-    // D-1023: the page is one viewport; the footer's row follows under the fold.
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800 + (await footerBelowPx(page)));
+    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page; at this height the rail runs past
+    // the layout's foot and scrolls inside itself (the stars page's rail does the same), and the page does not scroll.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
   });
 });

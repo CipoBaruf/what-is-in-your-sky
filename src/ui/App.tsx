@@ -1,4 +1,4 @@
-import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
@@ -6,7 +6,6 @@ import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
-import { HOME_THREE_PANE_QUERY } from '../lib/layout';
 import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
@@ -15,10 +14,10 @@ import { Header } from './components/common/Header';
 import { PageNotices } from './components/common/VisitNotice';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { useLayoutMode } from './hooks/useLayoutMode';
-import { useMediaQuery } from './hooks/useMediaQuery';
+import { PassList } from './components/passes/PassList';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
-import { defaultChartView } from './screens/chartViewDefault';
+import { nextView } from './screens/chartViewDefault';
 import { Home, useSteps } from './screens/Home';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
@@ -43,6 +42,9 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
  * of the build, not merely one the app declines to fetch.
  */
 const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').then((module) => ({ default: module.MoonLore }))) : undefined;
+
+/** R186: the live page's link notes (FR-VISIT-3), under the app's header on wide as the page's top row held them. */
+const LIVE_NOTES = ['past', 'far'] as const;
 
 /** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
 const HOME_NOTES = ['unreadable'] as const;
@@ -203,54 +205,38 @@ export function App() {
   const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active || stars.active);
   const stepping = mode === 'compact' && steps.step !== null;
   /*
-   * R50 (FR-DESK-3 as amended, F-6, D-253): which of the right column's two
-   * tracks the reader asked for. Below `WIDE_SPLIT_MIN_CELLS` only one of them
-   * is on the page — the guide when a pass is opened, the list when `[ list ]`
-   * is pressed — and above it the stylesheet shows both and this says nothing.
-   * The selection is untouched by the swap: the pass stays open and stays in
-   * the hash (D-13), which is what makes `[ list ]` different from closing.
+   * R186 (FR-WIDE-1, D-1098; amends FR-DESK-3): on wide a selected pass is the desk's shell in the home's place, so
+   * the right column's tracks (D-253's split, R76's `pane`) are gone; only the compact sheet stands over the home.
    */
-  // The pass the reader asked to see the list beside (F-6's `[ list ]`), if
-  // any. The view is derived from it rather than stored, so a pass that
-  // arrives by any other route — Back, a pasted link, `j` — is a new guide,
-  // exactly as one opened from a card is: the list was asked for at *that*
-  // pass, and a different pass is a different question.
-  const [listFor, setListFor] = useState<string | null>(null);
-  const guideView: 'guide' | 'list' = selected !== null && listFor === selected.id ? 'list' : 'guide';
-  /*
-   * R76 (FR-FIRST-5, D-444): at three-pane widths an open pass is a grid change
-   * — the wide panel across the Where and When panes, the list kept in What —
-   * so the `[ list ]` swap has nothing to do there and the page says `pane`.
-   * Under that width D-253's two values stand exactly as they were.
-   */
-  const threePane = useMediaQuery(HOME_THREE_PANE_QUERY);
-  const guide = selected === null ? 'closed' : threePane ? 'pane' : guideView === 'list' ? 'list' : 'open';
+  const guide = selected === null ? 'closed' : 'open';
   const openPass = (passId: string): void => {
-    setListFor(null);
     open(passId);
   };
   /*
-   * The control the reader pressed goes away with the panel, so focus would
-   * fall to the body and `j` would start from the top of the list again. It
-   * goes to the card of the pass they were reading, which is where the compact
-   * sheet's `[ ← ]` leaves them too.
+   * FR-WIDE-1: `Esc`, `[ × ]` and `[ home ]` return to the home with the list at the card. The home mounts again on the
+   * close, so its card is a new element: once it is there it is scrolled into view and takes the focus, its folded
+   * night unfolded first (`passCursor`: `focus()` on a hidden card does nothing).
    */
+  const returnTo = useRef<string | null>(null);
   useEffect(() => {
-    if (guideView !== 'list') return;
-    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-selected]`);
+    if (selected !== null) {
+      if (mode === 'wide') returnTo.current = selected.id;
+      return;
+    }
+    const id = returnTo.current;
+    if (id === null) return;
+    returnTo.current = null;
+    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-pass-id="${CSS.escape(id)}"]`);
     if (!card) return;
-    // A card inside a folded night is in the DOM but not on the page, and
-    // `focus()` on it does nothing (`passCursor`): the reader asked for the
-    // list at this pass, so its night unfolds first — through its toggle, so
-    // the list keeps its memory of it (R81: the toggles are buttons under the
-    // cards), and on the element at once, so the focus lands this frame.
     const night = card.closest<HTMLElement>('[data-night-group][hidden]');
     if (night) {
       document.querySelector<HTMLButtonElement>(`[aria-controls="${night.id}"]`)?.click();
       night.hidden = false;
     }
-    card.focus();
-  }, [guideView]);
+    // As `passCursor`: jsdom has no `scrollIntoView`.
+    card.scrollIntoView?.({ block: 'center' });
+    card.focus({ preventScroll: true });
+  }, [selected, mode]);
   /*
    * R39 (F-34): `startApp` reads a link's observer once, before the first
    * render (D-135), which covers the arrival — a pasted URL, a reload. A
@@ -339,8 +325,8 @@ export function App() {
       return true;
     },
     view: () => {
-      // D-876: the view shown, which with nothing saved is the window on compact and the dome on wide.
-      setChartView(defaultChartView(mode, chartView) === 'dome' ? 'polar' : 'dome');
+      // R186 (FR-WIDE-2, FR-DESK-4): on wide the next of `Globe Window Dome` after the view shown, saved for the three pages.
+      setChartView(nextView('pass', mode, chartView));
       return true;
     },
     // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.
@@ -398,8 +384,28 @@ export function App() {
     // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
     // D-1023 (FR-X-2 as amended 2026-11-02): on a desk the footer's one row follows the page's one viewport, under the
     // fold (`Live.module.css`); on a phone the row is the controls sheet's last (`ControlsSheet`).
+    // R186 (FR-WIDE-1, D-1098): on wide the live page is a page like the stars page — the app's header (`live` current,
+    // `[ ← ]` and the place), the page in the shell's `main`, the footer under it; on a phone it is its own screen (D-529).
+    if (mode === 'wide') {
+      return (
+        <Shell
+          chrome="stars"
+          routeKey={routeKey}
+          title={title}
+          banner={<Header page="live" context={observer?.label ?? null} onBack={live.leave} inert={helpOpen} />}
+          beforeMain={<PageNotices kinds={LIVE_NOTES} inert={helpOpen} />}
+          mainProps={{ inert: helpOpen, className: styles.stars }}
+          footer={<Footer inert={helpOpen} />}
+          after={overlay}
+        >
+          <Suspense fallback={<p className={styles.starsLoading}>{t.live.loading}</p>}>
+            <LivePage link={live.link} onLeave={live.leave} />
+          </Suspense>
+        </Shell>
+      );
+    }
     return (
-      <Shell chrome="live" routeKey={routeKey} title={title} {...(mode === 'wide' ? { footer: <Footer /> } : {})}>
+      <Shell chrome="live" routeKey={routeKey} title={title}>
         <Suspense
           fallback={
             <main className={styles.liveLoading}>
@@ -444,6 +450,27 @@ export function App() {
       </Shell>
     );
   }
+  /*
+   * R186 (FR-WIDE-1, D-1098): on wide a selected pass is a page of its own in the home's place — the app's header (its
+   * `[ home ]` a link back), the desk's shell with the home's list in its rail, the footer — and the home's doors and
+   * panes are not mounted. The hash is still `#pass=<id>` (D-13).
+   */
+  if (mode === 'wide' && selected !== null && observer !== null) {
+    return (
+      <Shell
+        chrome="home"
+        routeKey={routeKey}
+        title={title}
+        banner={<Header inert={helpOpen} homeLink />}
+        beforeMain={<PageNotices kinds={HOME_NOTES} inert={helpOpen} />}
+        mainProps={{ inert: helpOpen, className: styles.stars, 'data-sky': 'pass' }}
+        footer={<Footer inert={helpOpen} />}
+        after={overlay}
+      >
+        <PassDetail key={selected.id} pass={selected} observer={observer} onClose={close} inert={helpOpen} passList={<PassList onOpenPass={openPass} selectedPassId={selected.id} />} />
+      </Shell>
+    );
+  }
   return (
     <Shell
       chrome="home"
@@ -474,9 +501,6 @@ export function App() {
                   pass={selected}
                   observer={observer}
                   onClose={close}
-                  onShowList={() => {
-                    setListFor(selected.id);
-                  }}
                   inert={helpOpen}
                 />
               )

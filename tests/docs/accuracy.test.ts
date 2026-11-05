@@ -48,7 +48,8 @@ const DOCUMENTS = [
 ];
 
 /** Paths a workflow names before the task that adds them has merged: R178 builds D-1068's capture scripts. */
-const PENDING = new Set(['scripts/captures/manifest.json', 'scripts/captures/diff.ts', 'scripts/captures/compress.ts']);
+const PENDING = new Set(['scripts/captures/manifest.json', 'scripts/captures/diff.ts', 'scripts/captures/compress.ts', 'GuidePanel.tsx']);
+// R186 (FR-WIDE-1, D-1098): `GuidePanel.tsx` went with the wide split; v2.6.1's live record still names it as it was run.
 
 /** The files FR-SHOW-1's audit table covers: the documents above plus the two READMEs it corrected. */
 const AUDITED = [...DOCUMENTS, 'docs/mockups/README.md', 'tests/fixtures/heavens-above/README.md'];
