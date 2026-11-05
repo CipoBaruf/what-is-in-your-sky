@@ -96,6 +96,15 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   (FR-WIDE-4, FR-FLOW-7; D-1100, D-1133.) The pass detail owns a `usePlayback` opened at now; `TimesRow` takes an `onSet` and renders the rise, peak and set cells as buttons (`data-set`) that `goTo` their instant, on wide only: compact has no time control to set, so its cells stay text.
   The live page and the pass detail feed their page group the view `SkyChart` draws (`onViewHold`), so the facing slot follows a held window (R186's review).
   Live.tsx's wide overlay branch, the fold and the overlay inventory went with D-1133; their fixme'd cases in `shapes.spec.ts` and `live-states.spec.ts` went with them.
+- **D-1124 — The bundle carries the facts the group shows, not their sources; the hover is page state that never leaves the page.** *(R188)*
+  (FR-FACT-1, FR-WIDE-7, FR-WIDE-11; D-1101.) `facts.json` with a `{ source, date }` per fact would not fit `FACTS_BUDGET_KB`, so the `facts` chunk imports `components/sky/facts/factsShown.json`, the same entries without `source`; `FactsGroup.test.tsx` pins it equal to `facts.json` minus the sources, so the two cannot drift, and `facts.json` stays the audited file (FR-FACT-1's test).
+  The chunk is reached through `facts.ts` so Rollup names it `facts-*.js`; `LazyFacts.tsx` loads it on the first open and, on wide, on idle after the globe's chunk; compact never calls it.
+  The hover is a `useState` id beside the page's highlight, fed by the rows' `pointerenter`/`focus` and the drawing's `onPassHover`, never the store or the hash; the drawing shows `hover ?? highlight`.
+  A group opened by a key moves the focus to its heading (`keyboardIntent.ts` reads the last press in the capture phase); one opened by a click leaves it.
+  A star's place at `t` and a body's magnitude and constellation join `lib/riseSet.ts` (`starAltAz`, `bodyNow`) under its existing `astronomy-engine` allowance.
+  Measured: `facts` 4.8 KB of 6; `main` 184.2 → 185.2 KB (+1.0: the hover in `SkyChart` and `Legend`, `LazyFacts`, `orbitHeight` in the elements slice by D-1101), so `main` warns over 185 and over `SKY_MAIN_KB`; V214-20 leaves the ceiling to the owner at R191.
+- **D-1125 — The facts words ride in the chunk.** *(R188)*
+  (FR-I18N-2, D-1101.) `src/i18n/{en,es}/facts.ts` are not merged into the catalogs: like `starsPage.ts` they are read through `i18n/factsT.ts`, imported only from the `facts` chunk, so `main` carries none of the purpose phrases or country names; `es/facts.ts` is typed against `en/facts.ts`, so a missing Spanish message fails the typecheck as the catalogs do.
 - **D-1116 — One label rule, two tiers (R185).**
   (FR-NAME-2, FR-LOOK-9; V214-9.) `lib/skyStars.ts`'s `starLabelKind(source, i, nameMag)` is the one "is labelled" predicate: `proper` for a star with an IAU name to the field's `nameMag` (FR-LOOK-9's row, so the 60° window and the polar chart still stop at 1.5),
   `designation` for one without brighter than `BAYER_LABEL_MAG` at every field, else nothing — so `HR n` and the faint Bayer stars the 20° row used to name are not.

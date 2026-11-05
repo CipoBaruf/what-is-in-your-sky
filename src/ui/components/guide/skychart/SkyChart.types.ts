@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { SkyPick } from '../../sky/facts/subject';
 import type { ArcState } from '../../../../lib/arcReveal';
 import type { CompassPoint } from '../../../../lib/compass';
 import type { LegendRow } from '../../../../lib/legend';
@@ -95,6 +96,13 @@ export interface SkyChartProps {
   onSelectPass?: (passId: string) => void;
   /** R185 (FR-WIDE-7): on wide, the window reports the arc within 8 px of the mouse, `null` on leaving it; a change only. */
   onPassHover?: (passId: string | null) => void;
+  /**
+   * R188 (FR-WIDE-7): a pass the page emphasises for a moment — its list card under the pointer or the focus — drawn
+   * as the highlight is while it stays, never saved; the chart's own rows and arcs feed the same through `onPassHover`.
+   */
+  hoveredPassId?: string | null;
+  /** R188 (FR-FACT-3): a click, a tap or `Enter` on a star, a planet or the Moon, on the globe or the window. */
+  onSkyPick?: (pick: SkyPick) => void;
   /** Optional: marks the satellite's current position on its arc, and is the instant the Sun and Moon are drawn at (FR-DOME-5, FR-DOME-6). */
   now?: EpochMs;
   /**

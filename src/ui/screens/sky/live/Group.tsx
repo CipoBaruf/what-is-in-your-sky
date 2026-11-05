@@ -8,9 +8,9 @@ import styles from '../sky.module.css';
 /**
  * R186 (FR-WIDE-1, D-1098): the wide live page's group — `Facing` while the window is the view (the chart's picker,
  * placed here), then the page's actions: `[ scrub here ]`, the next event's jump, `[ hidden ]` and `[ Share ]`.
- * R188 adds a picked object's facts here.
+ * R188 (FR-FACT-2, FR-FACT-3): a picked pass's or sky object's facts under `Facing` (`facts`, the lazy group).
  */
-export function LiveGroup({ view, actions }: { view: ChartView; actions: ReactNode }) {
+export function LiveGroup({ view, actions, facts = null }: { view: ChartView; actions: ReactNode; facts?: ReactNode }) {
   const t = useT();
   const facingId = useId();
   return (
@@ -21,6 +21,7 @@ export function LiveGroup({ view, actions }: { view: ChartView; actions: ReactNo
           <SkyViewChartSlot name="picker" />
         </section>
       )}
+      {facts}
       {actions}
     </div>
   );

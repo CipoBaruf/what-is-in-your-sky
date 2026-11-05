@@ -382,8 +382,9 @@
 | FR-DS-3 | `tests/styles/breakpoint.test.ts` |
 | FR-DS-6 | `tests/docs/design.test.ts` |
 | FR-DS-8 | `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/styles/tokens.test.ts` |
-| FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts` |
-| FR-FACT-3 | `src/lib/riseSet.test.ts` |
+| FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx` |
+| FR-FACT-2 | `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/live.spec.ts` |
+| FR-FACT-3 | `src/lib/riseSet.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/stars.spec.ts` |
 | FR-FAIL-1 | `src/state/effects.test.ts`, `src/ui/screens/Live.test.tsx` |
 | FR-FAIL-3 | `src/state/effects.test.ts` |
 | FR-FAIL-4 | `src/state/effects.test.ts`, `src/state/workerClient.test.ts`, `src/ui/components/passes/PassList.test.tsx`, `tests/e2e/failure-line.spec.ts` |
@@ -673,9 +674,9 @@
 | FR-WIDE-4 | `src/lib/playback.test.ts`, `src/ui/components/guide/TimesRow.test.tsx`, `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/pass-detail.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-WIDE-5 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-WIDE-6 | `tests/e2e/globe.spec.ts` |
-| FR-WIDE-7 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx` |
+| FR-WIDE-7 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx`, `tests/e2e/legend-hover.spec.ts` |
 | FR-WIDE-8 | `src/lib/cloudBand.test.ts`, `src/ui/components/sky/time/CloudBand.test.tsx` |
-| FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts` |
+| FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
@@ -717,3 +718,4 @@
 | US-39 | `tests/e2e/stars.spec.ts` |
 | US-44 | `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | US-51 | `tests/docs/accuracy.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/ids.test.ts` |
+| US-54 | `tests/e2e/stars.spec.ts` |

@@ -15,6 +15,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { bandUnderBox, SPACE_3_PX } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { onWindow } from './globeHelpers';
+import { clickFirstRowMark } from './factsHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -171,6 +172,29 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await rows.first().focus();
     await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
     await expect(rows.first()).toHaveAttribute('aria-pressed', 'false', { timeout: 6_000 });
+  });
+
+  test('R188 (FR-FACT-3, US-54 AC1): a click on the list’s first row’s mark on the globe shows its facts; [ × ] and Esc close them', async ({ page }) => {
+    await asReader(page);
+    await page.goto('/#stars');
+    await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
+    const kind = await clickFirstRowMark(page);
+    const group = page.getByTestId('facts-group');
+    await expect(group).toBeVisible({ timeout: 30_000 });
+    await expect(group).toHaveAttribute('data-facts', kind);
+    await expect(group.getByRole('heading', { name: 'In the sky' })).toBeVisible();
+    await expect(group.getByTestId('facts-where')).toHaveText(/^mag −?\d\.\d · \d+° (up|below) · [NESW]{1,3}$/);
+    await expect(group.getByTestId('facts-times')).toHaveText(/rises|sets|never/);
+    // In the page group, under the globe's Turn and Place.
+    await expect(page.getByTestId('stars-group').getByTestId('facts-group')).toBeVisible();
+    await group.getByRole('button', { name: 'Close the facts' }).click();
+    await expect(group).toHaveCount(0);
+    await clickFirstRowMark(page);
+    await expect(group).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(group).toHaveCount(0);
+    // The page stays: Esc closed the facts, not the page.
+    await expect(page).toHaveURL(/#stars$/);
   });
 
   test('s opens the page from home, and the ? overlay lists s and the page’s four keys (FR-DESK-4 as amended v2.4)', async ({ page }) => {

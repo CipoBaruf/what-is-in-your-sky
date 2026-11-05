@@ -25,6 +25,7 @@ export function followHash(hash: string, now: number = Date.now()): void {
   followHashIn(appStore, hash, now);
 }
 export type { ElementsState } from './slices/elements';
+export { selectOrbitHeight } from './slices/elements';
 /** R86 (D-540): failures are stored as kinds; the UI renders the sentence from `kind` and shows `detail` only behind `[ details ]`. */
 export { toFailure, type Failure } from './failure';
 export type { PassesState } from './slices/passes';
@@ -58,6 +59,12 @@ export function catalogName(noradId: number): string {
 export function isFeatured(noradId: number): boolean {
   return CATALOG.find((entry) => entry.noradId === noradId)?.featured === true;
 }
+/** R188 (FR-FACT-2): a catalog object's English description, for the facts group; the UI never reads the catalog itself (PLAN §3). */
+export function catalogDescription(noradId: number): string | undefined {
+  return CATALOG.find((entry) => entry.noradId === noradId)?.description;
+}
+/** R188 (FR-FACT-1): the facts' entry type, for the group that shows them. */
+export type { FactEntry } from '../data/catalog/facts';
 
 /**
  * The pieces `startApp` would otherwise reach for itself: the singleton store,

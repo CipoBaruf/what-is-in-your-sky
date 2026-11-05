@@ -13,8 +13,8 @@ import { tonightBand } from '../../lib/shownTime';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
 import { nextTarget, openingChoice, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
-import type { ChartView, EpochMs, Observer, Pass } from '../../model';
-import { useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
+import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
+import { selectOrbitHeight, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { FailureLine } from '../components/common/FailureLine';
 import { Header } from '../components/common/Header';
@@ -24,6 +24,9 @@ import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { viewFor } from './chartViewDefault';
 import { LiveGroup } from './sky/live/Group';
+import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
+import { fromKeyboard } from '../components/sky/facts/keyboardIntent';
+import type { FactsStars, FactsSubject, SkyPick } from '../components/sky/facts/subject';
 import { LiveTime } from './sky/live/Time';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
@@ -555,6 +558,12 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     pause();
   }, [answered, pause]);
   /*
+   * R188 (FR-FACT-2, FR-FACT-3; D-1101): on wide a click, a tap or `Enter` on a legend row or an arc shows its
+   * satellite's facts in the page group, and one on a star, a planet or the Moon its facts, until `Esc`, `[ × ]` or
+   * another pick; the row's highlight is the chart's (FR-LEG-4). Page state, never in the hash or the store.
+   */
+  const [picked, setPicked] = useState<{ what: { kind: 'pass'; noradId: NoradId; name: string } | { kind: 'sky'; pick: SkyPick }; keyboard: boolean } | null>(null);
+  /*
    * FR-FULL-10: when the card goes, focus returns to `[ controls ]` — where the card held it (its first button took
    * it on appearing, and the card's unmount dropped it to the body). A reader who answered from the sheet keeps the
    * control under their finger (D-934).
@@ -579,6 +588,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       }
       if (sheetOpen) {
         closeSheet();
+        return true;
+      }
+      // R188 (FR-FACT-2, FR-FACT-3): then the facts group, before the page is left.
+      if (picked !== null) {
+        setPicked(null);
         return true;
       }
       return false;
@@ -656,6 +670,29 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * where they are shown — and not the Sun and Moon lines (OQ-26). R150 (D-954): the panel is always open at the
    * sheet's end, and R152 took the `liveLegendOpen` pref out of the store with nothing reading it.
    */
+  useFactsPrefetch(!compact);
+  const pickPass = useCallback(
+    (passId: string) => {
+      const pass = passes.find((candidate) => candidate.id === passId);
+      if (pass) setPicked({ what: { kind: 'pass', noradId: pass.noradId, name: pass.name }, keyboard: fromKeyboard() });
+    },
+    [passes],
+  );
+  const pickSky = useCallback((pick: SkyPick) => {
+    setPicked({ what: { kind: 'sky', pick }, keyboard: fromKeyboard() });
+  }, []);
+  const closeFacts = useCallback(() => {
+    setPicked(null);
+  }, []);
+  const factsSubject = useMemo<FactsSubject | null>(() => {
+    if (picked === null) return null;
+    const { what } = picked;
+    return what.kind === 'sky' ? what : { kind: 'satellite', noradId: what.noradId, name: what.name, description: undefined, height: selectOrbitHeight(elements, what.noradId) };
+  }, [picked, elements]);
+  const factsStars = useMemo<FactsStars | null>(
+    () => (starSource ? { names: starSource.names, ra: starSource.catalog.ra, dec: starSource.catalog.dec, mag: starSource.catalog.mag, desig: starSource.catalog.desig, con: starSource.catalog.con } : null),
+    [starSource],
+  );
   const legendRowsNow = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }), [chartPasses, shown, hidden]);
   const legendCount = legendRowsNow.length;
   /*
@@ -985,6 +1022,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             view={chartView}
             onViewChange={onChartView}
             onViewHold={setHeldView}
+            {...(compact ? {} : { onSelectPass: pickPass, onSkyPick: pickSky })}
           />
     </div>
   );
@@ -1076,7 +1114,13 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
           <TimeControl playback={playback} passes={passes} bands={bands} now={now} timeZone={observer.timeZone} clouds={snapshot?.hourly} under={steps} />
         </LiveTime>
       }
-      action={<LiveGroup view={following ? 'window' : chartView} actions={actions} />}
+      action={
+        <LiveGroup
+          view={following ? 'window' : chartView}
+          actions={actions}
+          facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}
+        />
+      }
       list={list}
     />,
   );

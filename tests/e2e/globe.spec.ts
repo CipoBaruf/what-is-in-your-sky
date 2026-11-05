@@ -8,6 +8,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { globeAt, GLOBE_WORD, LONDON, openStarsPage, showGlobe } from './globeHelpers';
 import { seedThreePasses } from './threePasses';
+import { seedStoredRun } from './liveHelpers';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -275,6 +276,27 @@ test.describe('the compact stars page', () => {
     await page.waitForTimeout(1_500);
     expect(asked).toEqual([]);
     await expect(page.getByTestId('globe-box')).toHaveCount(0);
+  });
+
+  test('R188 (FR-WIDE-11): the compact pages never ask for facts-*.js — the home, a pass, the live page and the stars page', async ({ page }) => {
+    const asked: string[] = [];
+    page.on('request', (request) => {
+      if (/\/facts-[^/]*\.(js|css)$/.test(request.url())) asked.push(request.url());
+    });
+    await seedStoredRun(page, { settled: true });
+    await page.getByRole('button', { name: 'Open guide' }).first().click();
+    await expect(page.locator('[role="dialog"][data-pass-id]')).toBeVisible();
+    await page.waitForTimeout(1_500);
+    await page.goto('/#live');
+    await page.reload();
+    await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(1_500);
+    await page.goto('/#stars');
+    await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+    // Past the idle the wide pages prefetch on.
+    await page.waitForTimeout(1_500);
+    expect(asked).toEqual([]);
+    await expect(page.getByTestId('facts-group')).toHaveCount(0);
   });
 });
 

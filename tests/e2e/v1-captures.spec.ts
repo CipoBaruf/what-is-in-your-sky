@@ -61,6 +61,7 @@ import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSh
 // saved places.
 import { BARILOCHE, FIXTURE_DATE, LONDON, NEUQUEN } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
+import { clickFirstRowMark } from './factsHelpers';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
 const localHhmmss = (t: number): string =>
@@ -701,6 +702,21 @@ async function globeDrawn(page: Page, arcs: number): Promise<void> {
   await page.clock.runFor(1000);
 }
 
+/** R188: the lazy facts group in `scope`, the paused clock run until it lands (the e2e gotcha's poll), and in view. */
+async function factsShown(page: Page, scope: Locator): Promise<void> {
+  const group = scope.getByTestId('facts-group');
+  await expect
+    .poll(
+      async () => {
+        await page.clock.runFor(200);
+        return group.count();
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(1);
+  await group.scrollIntoViewIfNeeded();
+}
+
 async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_OPTION[locale] }).click();
   await expect
@@ -1206,6 +1222,41 @@ const REACH: Record<string, Reach> = {
     for (const row of ['stripe-overview', 'time-stripe']) await expect(time.getByTestId(row).locator('[data-row="clouds"]')).toBeAttached();
     await blurFocus(page);
     await page.mouse.move(0, 0);
+  },
+
+  /** R188 (FR-FACT-2): `sky-pass-globe` with `This satellite` in the rail, scrolled into view. */
+  async 'sky-pass-facts'(page, width, theme, locale) {
+    await openChart(page, width, theme, locale, 'globe');
+    await factsShown(page, page.getByTestId('pass-group'));
+    await blurFocus(page);
+  },
+
+  /** R188 (FR-FACT-2): the live page with the legend's first row clicked, `This satellite` in the page group. */
+  async 'sky-live-facts'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale, SHOWN, { chartView: undefined });
+    await page.getByTestId('chart-legend').locator('button[data-pass-id]').first().click();
+    await factsShown(page, page.getByTestId('live-group'));
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R188 (FR-FACT-3): `stars-globe` with the mark of the list's first row clicked, its facts in the page group. */
+  async 'sky-stars-star-facts'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    await globeShown(page, locale);
+    await clickFirstRowMark(page);
+    await factsShown(page, page.getByTestId('stars-group'));
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R188 (FR-WIDE-7): the live page with the pointer resting on the legend's first row. */
+  async 'sky-hover'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale, SHOWN, { chartView: undefined });
+    await blurFocus(page);
+    const row = page.getByTestId('chart-legend').locator('button[data-pass-id]').first();
+    await row.hover();
+    await expect(row).toHaveAttribute('data-hovered', 'true');
   },
 
   /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */

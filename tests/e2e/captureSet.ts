@@ -214,6 +214,9 @@
  *
  * R187 (FR-WIDE-4, FR-WIDE-8; D-1100): the time control is one on the three desk pages, and `sky-clouds` joins at 1280:
  * the live page scrubbing, its overview and stripe with the cloud band along their foot. The set is 448 files.
+ *
+ * R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7; D-1101): four screens join at 1280, the facts groups and the hover —
+ * `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover`. The set is 464 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -404,6 +407,26 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'sky-clouds',
     widths: [1280],
     what: "The live page at the set's instant one `[ scrub ]` on (FR-WIDE-4, FR-WIDE-8, R187): the rail's `Time` group — the overview, the stripe and the playback row — with the cloud band `CLOUD_BAND_PX` high along the foot of the overview and the stripe, one cell per forecast hour shaded in the `--chart-cloud-*` tokens, clear and an hour with no forecast left blank.",
+  },
+  {
+    name: 'sky-pass-facts',
+    widths: [1280],
+    what: "`sky-pass-globe` with the rail's page group in view (FR-FACT-2, US-53 AC2, R188): `This satellite` under the pass's times — the name, the countries, the operator and the purpose, the launch year, its age, the size and the height range from the pass's elements, and the description in the reader's language.",
+  },
+  {
+    name: 'sky-live-facts',
+    widths: [1280],
+    what: "`sky-live-globe` with the legend's first row clicked (FR-FACT-2, US-53 AC3, R188): its arc highlighted, the others dimmed, and `This satellite` with `[ × ]` in the page group under `Facing`.",
+  },
+  {
+    name: 'sky-stars-star-facts',
+    widths: [1280],
+    what: "`stars-globe` with the mark of `Up from Bariloche`'s first row clicked (FR-FACT-3, US-54 AC1, R188): the object named on the globe, and its facts with `[ × ]` in the page group under `Turn` and `Place` — the names (`Sirio · Sirius` in Spanish), the designation and the constellation, the magnitude, the altitude and the point, and the night's rise and set.",
+  },
+  {
+    name: 'sky-hover',
+    widths: [1280],
+    what: "`sky-live-globe` with the pointer resting on the legend's first row (FR-WIDE-7, US-55 AC1, R188): the row at full ink and its arc emphasised as the highlight draws it, with the ticks and the arrow, the others dimmed; nothing pressed, nothing in the hash.",
   },
   {
     name: 'stars-whole-following',

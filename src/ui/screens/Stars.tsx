@@ -7,7 +7,11 @@ import { nightClouds, tonightCloud } from '../../lib/nightClouds';
 import { hintFitsBeside, SHELL_PADDING_CELLS } from '../../lib/layout';
 import { shortcutFor } from '../../lib/shortcuts';
 import type { LegendPass } from '../../lib/legend';
-import { drawnRungs, starsAt } from '../../lib/skyStars';
+import { constellationName, drawnRungs, starName, starsAt } from '../../lib/skyStars';
+import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
+import { fromKeyboard } from '../components/sky/facts/keyboardIntent';
+import type { FactsStars, SkyPick } from '../components/sky/facts/subject';
+import type { GlobePick } from '../components/guide/skychart/globe/SkyGlobe';
 import { BODIES_EVERY_MS } from '../../lib/playback';
 import { formatShortClock } from '../../lib/timeFormat';
 import { LIVE_WINDOW_MS } from '../../lib/livePasses';
@@ -321,6 +325,27 @@ function StarsSky({ observer }: { observer: Observer }) {
   useEffect(() => {
     if (!globeShown && globePlaying) pauseGlobe();
   }, [globeShown, globePlaying, pauseGlobe]);
+  /*
+   * R188 (FR-FACT-3; D-1101): on wide a click or `Enter` on a star, a planet or the Moon shows its facts in the page
+   * group — at the globe's place and instant on the globe, the page's on the window — until `Esc`, `[ × ]` or another
+   * pick. The label's hold (FR-STAR-7) does not close it. Page state, never saved.
+   */
+  const [picked, setPicked] = useState<{ pick: SkyPick; onGlobe: boolean; keyboard: boolean } | null>(null);
+  useFactsPrefetch(wide);
+  const pickOnWindow = useCallback((pick: SkyPick) => {
+    setPicked({ pick, onGlobe: false, keyboard: fromKeyboard() });
+  }, []);
+  const pickOnGlobe = useCallback((pick: GlobePick | null) => {
+    const sky: SkyPick | null = pick?.kind === 'star' ? { kind: 'star', index: pick.index } : pick?.kind === 'planet' ? { kind: 'planet', body: pick.body } : pick?.kind === 'moon' ? { kind: 'moon' } : null;
+    if (sky !== null) setPicked({ pick: sky, onGlobe: true, keyboard: fromKeyboard() });
+  }, []);
+  const closeFacts = useCallback(() => {
+    setPicked(null);
+  }, []);
+  const factsStars = useMemo<FactsStars>(
+    () => ({ names: { star: (i, lang) => starName(catalog, i, lang), constellation: (con, lang) => constellationName(catalog, con, lang) }, ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, desig: catalog.desig, con: catalog.con }),
+    [catalog],
+  );
   // FR-GLOBE-10: `[ ] faint`, off on every visit and not saved; a failed load unpresses it.
   const [faint, setFaint] = useState(false);
   const onFaintFailed = useCallback(() => {
@@ -448,23 +473,30 @@ function StarsSky({ observer }: { observer: Observer }) {
     compactRef.current = compact;
     savedRef.current = chartView;
   });
+  // R188 (FR-FACT-3): `Esc` closes an open facts group on wide before the app's listener reads it.
+  const pickedRef = useRef(picked);
+  useLayoutEffect(() => {
+    pickedRef.current = picked;
+  });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       const closes = event.key === 'Escape' && compactRef.current && sheetOpenRef.current;
-      const cycles = !closes && shortcutFor(event)?.id === 'view';
-      if (!closes && !cycles) return;
+      const closesFacts = !closes && event.key === 'Escape' && !compactRef.current && pickedRef.current !== null;
+      const cycles = !closes && !closesFacts && shortcutFor(event)?.id === 'view';
+      if (!closes && !closesFacts && !cycles) return;
       // The shortcuts overlay over the page makes the page inert (D-73's "overlay first"): the key is the overlay's.
       if (layoutRef.current?.closest('[inert]')) return;
       event.preventDefault();
       event.stopPropagation();
       if (closes) closeSheet();
+      else if (closesFacts) closeFacts();
       else onChartView(nextView('stars', compactRef.current ? 'compact' : 'wide', savedRef.current));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [closeSheet, onChartView]);
+  }, [closeSheet, onChartView, closeFacts]);
 
   const toggle = (key: keyof StarField['layers']) => () => {
     if (key === 'names') setNamesChoice(!names);
@@ -526,10 +558,10 @@ function StarsSky({ observer }: { observer: Observer }) {
     <div className={styles.sky} ref={skyRef} role="group" aria-label={globeShown ? globeLabel : p.drawing} data-testid="stars-sky" data-view={globeShown ? 'globe' : chartView} onPointerDownCapture={markSkyHintSeen}>
       {globeShown ? (
         <Suspense fallback={null}>
-          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} />
+          <SkyGlobe place={shownPlace} instant={globeClock.t} turn={turn} layers={drawnLayers} faint={faint} language={lang} onFaintFailed={onFaintFailed} named={named?.index ?? null} onPick={pickOnGlobe} />
         </Suspense>
       ) : (
-        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} onViewHold={setHeldView} />
+        <SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} follow={following} onFollowEnd={follow.onFollowEnd} views={compact ? COMPACT_VIEWS : WIDE_CHART_VIEWS} view={chartView} page="stars" onViewChange={onChartView} onViewHold={setHeldView} {...(wide ? { onSkyPick: pickOnWindow } : {})} />
       )}
     </div>
   );
@@ -714,6 +746,9 @@ function StarsSky({ observer }: { observer: Observer }) {
             <StarsGroup globe={globeChoices}>
               {facingGroup}
               {followToggle}
+              {wide && picked !== null && (
+                <LazyFacts subject={{ kind: 'sky', pick: picked.pick }} observer={picked.onGlobe ? shownPlace : observer} at={picked.onGlobe ? globeClock.t : now} stars={factsStars} onClose={closeFacts} focusOnOpen={picked.keyboard} />
+              )}
             </StarsGroup>
           }
           layers={layerRows}

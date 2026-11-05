@@ -1,0 +1,317 @@
+{
+  "694": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "rocket-stage",
+    "launched": "1963-11-27",
+    "sizeM": 8.6,
+    "descriptionEs": "Etapa superior Centaur de un vuelo de prueba de 1963, uno de los objetos brillantes más antiguos en órbita."
+  },
+  "10967": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "ocean-observation",
+    "launched": "1978-06-27",
+    "sizeM": 21,
+    "descriptionEs": "Satélite de radar oceánico de la NASA de 1978, todavía uno de los objetos viejos más brillantes."
+  },
+  "20580": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "space-telescope",
+    "launched": "1990-04-24",
+    "sizeM": 13,
+    "descriptionEs": "El Telescopio Espacial Hubble, en una órbita de baja inclinación que solo se ve desde latitudes bajas y medias."
+  },
+  "21610": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "1991-07-17",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica."
+  },
+  "22219": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "military",
+    "launched": "1992-11-17",
+    "sizeM": 23,
+    "descriptionEs": "Satélite ruso de inteligencia electrónica (Tselina-2)."
+  },
+  "22220": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1992-11-17",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "23088": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1994-04-23",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "23561": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "1995-04-21",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica."
+  },
+  "23705": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1995-10-31",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "24298": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1996-09-04",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "25407": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "1998-07-28",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "25544": {
+    "countries": [
+      "US",
+      "RU",
+      "JP",
+      "CA",
+      "ESA"
+    ],
+    "operator": "NASA, Roscosmos, JAXA, CSA, ESA",
+    "purpose": "crewed-station",
+    "launched": "1998-11-20",
+    "sizeM": 110,
+    "descriptionEs": "La Estación Espacial Internacional: lo más brillante en órbita, muchas veces más que cualquier estrella."
+  },
+  "25860": {
+    "countries": [
+      "UA",
+      "RU"
+    ],
+    "operator": "NKAU, Roscosmos",
+    "purpose": "ocean-observation",
+    "launched": "1999-07-17",
+    "sizeM": 11,
+    "descriptionEs": "Satélite oceanográfico ruso-ucraniano, fuera de servicio."
+  },
+  "25994": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "earth-observation",
+    "launched": "1999-12-18",
+    "sizeM": 10,
+    "descriptionEs": "Satélite de observación de la Tierra de la NASA en órbita heliosincrónica, visible cerca del amanecer y del anochecer."
+  },
+  "26070": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2000-02-03",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "26474": {
+    "countries": [
+      "US"
+    ],
+    "operator": "USAF",
+    "purpose": "rocket-stage",
+    "launched": "2000-08-17",
+    "sizeM": 9.9,
+    "descriptionEs": "Etapa superior de un Titan IVB del lanzamiento de Lacrosse 4."
+  },
+  "27386": {
+    "countries": [
+      "ESA"
+    ],
+    "operator": "ESA",
+    "purpose": "earth-observation",
+    "launched": "2002-03-01",
+    "sizeM": 25,
+    "descriptionEs": "Satélite ambiental de la ESA, la nave civil de observación de la Tierra más grande que se construyó."
+  },
+  "27422": {
+    "countries": [
+      "FR"
+    ],
+    "operator": "Arianespace",
+    "purpose": "rocket-stage",
+    "launched": "2002-05-04",
+    "sizeM": 12,
+    "descriptionEs": "Tercera etapa de un Ariane 4 en órbita heliosincrónica."
+  },
+  "27424": {
+    "countries": [
+      "US"
+    ],
+    "operator": "NASA",
+    "purpose": "earth-observation",
+    "launched": "2002-05-04",
+    "sizeM": 17,
+    "descriptionEs": "Satélite de observación de la Tierra de la NASA, gemelo de Terra."
+  },
+  "27597": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "NASDA",
+    "purpose": "earth-observation",
+    "launched": "2002-12-14",
+    "sizeM": 28,
+    "descriptionEs": "Gran satélite japonés de observación de la Tierra, fuera de servicio pero todavía brillante."
+  },
+  "27601": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "NASDA",
+    "purpose": "rocket-stage",
+    "launched": "2002-12-14",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA."
+  },
+  "28353": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2004-06-10",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "28931": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "JAXA",
+    "purpose": "earth-observation",
+    "launched": "2006-01-24",
+    "sizeM": 27,
+    "descriptionEs": "Satélite japonés de observación de la Tierra con un gran panel solar."
+  },
+  "28932": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "JAXA",
+    "purpose": "rocket-stage",
+    "launched": "2006-01-24",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA."
+  },
+  "29228": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "Roscosmos",
+    "purpose": "earth-observation",
+    "launched": "2006-06-15",
+    "sizeM": 14,
+    "descriptionEs": "Satélite ruso de imágenes de la Tierra en órbita baja."
+  },
+  "29507": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CASC",
+    "purpose": "rocket-stage",
+    "launched": "2006-10-23",
+    "sizeM": 6.9,
+    "descriptionEs": "Etapa superior de un cohete chino Larga Marcha 4B."
+  },
+  "31114": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CASC",
+    "purpose": "rocket-stage",
+    "launched": "2007-04-11",
+    "sizeM": 8.4,
+    "descriptionEs": "Etapa superior de un cohete chino Larga Marcha 2C."
+  },
+  "31792": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "military",
+    "launched": "2007-06-29",
+    "sizeM": 23,
+    "descriptionEs": "Gran satélite ruso de inteligencia electrónica (Tselina-2)."
+  },
+  "31793": {
+    "countries": [
+      "RU"
+    ],
+    "operator": "VKS",
+    "purpose": "rocket-stage",
+    "launched": "2007-06-29",
+    "sizeM": 11,
+    "descriptionEs": "Segunda etapa de un Zenit-2, un gran cilindro que gira sobre sí mismo y puede rivalizar con las estrellas más brillantes."
+  },
+  "38341": {
+    "countries": [
+      "JP"
+    ],
+    "operator": "MHI",
+    "purpose": "rocket-stage",
+    "launched": "2012-05-17",
+    "sizeM": 9.2,
+    "descriptionEs": "Etapa superior de un cohete japonés H-IIA."
+  },
+  "48274": {
+    "countries": [
+      "CN"
+    ],
+    "operator": "CMSA",
+    "purpose": "crewed-station",
+    "launched": "2021-04-29",
+    "sizeM": 55,
+    "descriptionEs": "La estación espacial china. Sus módulos Wentian y Mengtian y las naves Shenzhou están acoplados a este núcleo, así que figura una sola vez, con el número de catálogo de Tianhe."
+  }
+}

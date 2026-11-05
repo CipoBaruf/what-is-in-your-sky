@@ -1,0 +1,26 @@
+/**
+ * R188 (FR-FACT-2): whether the last press was a key — a group opened by `Enter` moves the focus to its heading, one
+ * opened by a click or a tap leaves it where it is. Listened for once, in the capture phase, before any handler runs.
+ */
+let keyboard = false;
+let listening = false;
+
+function listen(): void {
+  if (listening || typeof document === 'undefined') return;
+  listening = true;
+  document.addEventListener('keydown', () => {
+    keyboard = true;
+  }, true);
+  document.addEventListener('pointerdown', () => {
+    keyboard = false;
+  }, true);
+}
+
+/** Starts listening on first call; answers for the press that is being handled now. */
+export function fromKeyboard(): boolean {
+  listen();
+  return keyboard;
+}
+
+// The pages that pick import this module, so the first press is heard before any pick asks about it.
+listen();

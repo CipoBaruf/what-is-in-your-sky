@@ -42,6 +42,11 @@
   color: var(--accent);
 }
 
+/* R188 (FR-WIDE-7): the row under the pointer or the focus, or whose arc the pointer is on, reads at full ink. */
+.hovered .name {
+  color: var(--fg);
+}
+
 .row[data-highlighted='false'] .name,
 .row[data-highlighted='false'] .times {
   color: var(--fg-dim);
