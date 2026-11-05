@@ -1260,6 +1260,37 @@ const REACH: Record<string, Reach> = {
     await expect(row).toHaveAttribute('data-hovered', 'true');
   },
 
+  /**
+   * R189 (FR-WIDE-10): `sky-live-globe` with `f` pressed. A headless browser may not grant the Fullscreen API, so it is
+   * stubbed before the page loads and the page's own full form (`data-full`, the box fixed over the viewport) is shot.
+   */
+  async 'sky-fullscreen'(page, width, theme, locale) {
+    await page.addInitScript(() => {
+      let element: Element | null = null;
+      const change = (next: Element | null): void => {
+        element = next;
+        document.dispatchEvent(new Event('fullscreenchange'));
+      };
+      Object.defineProperty(Document.prototype, 'fullscreenEnabled', { configurable: true, get: () => true });
+      Object.defineProperty(Document.prototype, 'fullscreenElement', { configurable: true, get: () => element });
+      Document.prototype.exitFullscreen = function exitFullscreen() {
+        change(null);
+        return Promise.resolve();
+      };
+      Element.prototype.requestFullscreen = function requestFullscreen(this: Element) {
+        change(this);
+        return Promise.resolve();
+      };
+    });
+    await liveAt(page, width, theme, locale, SHOWN, { chartView: undefined });
+    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
+    await blurFocus(page);
+    await page.keyboard.press('f');
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-full', '');
+    await page.clock.runFor(FRAME_MS);
+    await page.mouse.move(0, 0);
+  },
+
   /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */
   async 'stars-globe'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
