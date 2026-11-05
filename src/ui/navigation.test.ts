@@ -3,7 +3,7 @@
  * what opened the route. jsdom traverses the history a task later, as a browser does, hence the waits.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearRoute, close, depth, home, isRouteHref, open, resetNavigation, subscribe, takeFocusTarget } from './navigation';
+import { clearRoute, close, depth, home, isRouteHref, open, replace, resetNavigation, subscribe, takeFocusTarget } from './navigation';
 
 // Every traversal here lands on home; waiting for it rather than for a fixed time keeps a loaded run honest.
 const settle = (): Promise<void> =>
@@ -65,6 +65,25 @@ describe('navigation (D-533)', () => {
     close();
     await settle();
     expect(window.location.hash).toBe('');
+  });
+
+  it('replace turns a bare #pass into a pass in its entry, tells the subscribers, and keeps the opener (D-1134, V214-35)', async () => {
+    const link = document.body.appendChild(document.createElement('a'));
+    open('#pass', link);
+    const entries = window.history.length;
+    const heard = vi.fn();
+    const off = subscribe(heard);
+    replace('#pass=25544-1');
+    off();
+    expect(window.location.hash).toBe('#pass=25544-1');
+    expect(window.history.length).toBe(entries);
+    expect(depth()).toBe(1);
+    expect(heard).toHaveBeenCalledTimes(1);
+    replace('#pass=25544-1');
+    expect(heard).toHaveBeenCalledTimes(1);
+    close();
+    await settle();
+    expect(takeFocusTarget()).toBe(link);
   });
 
   it('clearRoute leaves the state as it is and changes no entry', () => {

@@ -348,7 +348,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/hooks/useOnline.ts` — exports: useOnline — Whether the browser believes it has a connection (FR-OFF-8).
 - `src/ui/hooks/useOpenerFocus.ts` — exports: useOpenerFocus — R50 (F-43): what opens over the page — the compact guide sheet, the shortcuts overlay — moves focus to its own heading and gives it back to…
 - `src/ui/hooks/useShortcuts.ts` — exports: useShortcuts — R35 (FR-DESK-4, D-73): mounts the one `keydown` listener for as long as the screen that owns the shortcuts is up.
-- `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, close, home, clearRoute, takeFocusTarget, +2 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
+- `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, replace, close, home, clearRoute, +3 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
 - `src/ui/screens/Home.tsx` — exports: WhereReadingProps, WhereReading, HomeProps, useSteps, Home, StepLine, Step — R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings — **where**, **when**, **what**.
 - `src/ui/screens/Live.tsx` — exports: LivePageProps, TICK_MS, resetFirstPassAsked, visibleCount, LivePage, LiveState, liveState, LIVE_ROUTE_HASH — R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9): the live page at `#live`.
 - `src/ui/screens/LiveRoute.ts` — exports: LiveRoute, useLiveRoute — R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route, read from the hash the way the pass selection is (D-13: no router, the hash is the source of…

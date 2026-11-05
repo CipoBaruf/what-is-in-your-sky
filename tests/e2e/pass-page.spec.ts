@@ -203,6 +203,46 @@ for (const [width, height] of SIZES) {
   });
 }
 
+/*
+ * V214-35 (D-1134): `[ ← ]` is the browser's back — to the page the reader came from. From the home that is the home
+ * with the card (above); from the stars page, the stars page. A bare `#pass`, opened before the passes are known,
+ * becomes the pass `[ satellites ]` names once they arrive, in its own entry.
+ */
+test.describe('FR-WIDE-1: [ ← ] goes back to where the reader came from; a bare #pass finds its pass (V214-35)', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  for (const locale of LOCALES) {
+    test(`from the stars page, [ satellites ] then [ ← ] is the stars page again, in ${locale}`, async ({ page }) => {
+      await home(page, locale);
+      await page.locator('#root > header').getByTestId('stars-link').click();
+      await expect(page).toHaveURL(/#stars/);
+      await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+      await openFromHeader(page);
+      await expect(page).toHaveURL(/#pass=\d+-\d+$/);
+      await page.locator('#root > header').getByRole('button', { name: WORD[locale].back }).click();
+      await expect(page).toHaveURL(/#stars/);
+      await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('pass-layout')).toHaveCount(0);
+      await expect(page.locator('#root > header').getByTestId('stars-link')).toHaveAttribute('aria-current', 'page');
+    });
+  }
+
+  test('a bare #pass loaded before the passes are known becomes [ satellites ]’ pass, in place', async ({ page }) => {
+    await home(page, 'en');
+    const href = (await page.getByTestId('pass-link').getAttribute('href')) ?? '';
+    expect(href).toMatch(/^#pass=\d+-\d+$/);
+    // A hash-only goto stays in the document; the reload is a fresh start on `#pass` (gotchas).
+    await page.goto('/#pass');
+    await page.reload();
+    const entries = await page.evaluate(() => window.history.length);
+    await expect(page).toHaveURL(new RegExp(`${href}$`), { timeout: 30_000 });
+    await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', href.slice('#pass='.length));
+    await expect(page.getByTestId('pass-empty')).toHaveCount(0);
+    // Replaced, not pushed: the history is as long as it was on `#pass`.
+    expect(await page.evaluate(() => window.history.length)).toBe(entries);
+  });
+});
+
 test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, else the page with no pass (D-1134)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

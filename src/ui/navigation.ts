@@ -138,6 +138,16 @@ export function open(hash: string, opener: HTMLElement | null = focusedElement()
   announce();
 }
 
+/**
+ * v2.14.1 (D-1134, V214-35): the current entry becomes `hash` in place — no new entry, and what opened the entry stays
+ * what the focus goes back to. A bare `#pass` becomes the pass `[ satellites ]` names once the passes are known.
+ */
+export function replace(hash: string): void {
+  if (window.location.hash === hash) return;
+  window.history.replaceState(window.history.state, '', hash);
+  announce();
+}
+
 /** Leaves the current route: back to the entry it was opened from, or home in place when it was the load's. */
 export function close(): void {
   if (window.location.hash === '') return;
