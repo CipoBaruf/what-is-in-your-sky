@@ -24,7 +24,7 @@ import { markSkyHintSeen } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { FollowControl } from '../components/live/FollowControl';
 import { useSkyBands } from '../components/live/useSkyBands';
-import { usePlayback } from '../components/live/usePlayback';
+import { usePlayback } from '../components/sky/time/usePlayback';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { OptionToggle } from '../components/primitives/OptionToggle';

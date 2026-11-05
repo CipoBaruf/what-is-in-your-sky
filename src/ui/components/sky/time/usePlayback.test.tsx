@@ -6,8 +6,8 @@
  */
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { nightEnd, type Speed } from '../../../lib/playback';
-import { HOUR_MS, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { nightEnd, type Speed } from '../../../../lib/playback';
+import { HOUR_MS, type SkyBand, type Span } from '../../../../lib/timeStripe';
 import { usePlayback } from './usePlayback';
 
 const NOW = Date.UTC(2026, 8, 11, 9, 30, 0);

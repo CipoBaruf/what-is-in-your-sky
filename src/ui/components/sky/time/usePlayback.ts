@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, type Advance, type PassTimes, type Speed } from '../../../lib/playback';
-import { clampToSpan, type Span } from '../../../lib/timeStripe';
-import type { EpochMs } from '../../../model';
+import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, type Advance, type PassTimes, type Speed } from '../../../../lib/playback';
+import { clampToSpan, type Span } from '../../../../lib/timeStripe';
+import type { EpochMs } from '../../../../model';
 
 /**
  * R33 (FR-LIVE-4, FR-LIVE-5, D-81): the live page's instant. It is either

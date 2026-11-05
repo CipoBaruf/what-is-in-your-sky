@@ -9,7 +9,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { I18nProvider } from '../../../i18n/useT';
+import { I18nProvider } from '../../../../i18n/useT';
 import { BackToLive, HiddenToggle, PlaybackControls, ScrubButton, type PlaybackControlsProps } from './PlaybackControls';
 
 const handlers = () => ({ onPlay: vi.fn(), onPause: vi.fn(), onSpeed: vi.fn() });

@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { useLocale, useT } from '../../../i18n/useT';
-import { formatClock } from '../../../lib/timeFormat';
-import { cursorAt, drawnSpan, hourTicks, isCurrent, keepLabels, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, tickLabel, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
-import type { EpochMs, Pass } from '../../../model';
+import { useLocale, useT } from '../../../../i18n/useT';
+import { formatClock } from '../../../../lib/timeFormat';
+import { cursorAt, drawnSpan, hourTicks, isCurrent, keepLabels, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, tickLabel, timeAt, type SkyBand, type Span } from '../../../../lib/timeStripe';
+import type { EpochMs, Pass } from '../../../../model';
 import styles from './TimeStripe.module.css';
 
 /**

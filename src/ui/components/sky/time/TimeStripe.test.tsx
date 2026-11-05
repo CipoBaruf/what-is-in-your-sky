@@ -7,9 +7,9 @@
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
-import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
-import { chunkFor, CHUNK_MS, HOUR_MS, type SkyBand, type Span } from '../../../lib/timeStripe';
-import type { Pass } from '../../../model';
+import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
+import { chunkFor, CHUNK_MS, HOUR_MS, type SkyBand, type Span } from '../../../../lib/timeStripe';
+import type { Pass } from '../../../../model';
 import { DEFAULT_WIDTH, STRIPE_HEIGHT, TimeStripe } from './TimeStripe';
 
 /**
@@ -17,8 +17,8 @@ import { DEFAULT_WIDTH, STRIPE_HEIGHT, TimeStripe } from './TimeStripe';
  * a frame of playback — can be held to recomputing none of them.
  */
 const calls = vi.hoisted(() => ({ hourTicks: 0, nightBands: 0, passSegments: 0 }));
-vi.mock('../../../lib/timeStripe', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../lib/timeStripe')>();
+vi.mock('../../../../lib/timeStripe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../lib/timeStripe')>();
   return {
     ...actual,
     hourTicks: (...args: Parameters<typeof actual.hourTicks>) => {

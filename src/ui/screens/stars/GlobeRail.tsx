@@ -11,7 +11,7 @@ import { DAY_MS, HOUR_MS, shortWeekday } from '../../../lib/timeStripe';
 import type { EpochMs, Favourite, Observer } from '../../../model';
 import { GLOBE_SPEEDS } from '../../components/guide/skychart/globe/constants';
 import { globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
-import type { Playback } from '../../components/live/usePlayback';
+import type { Playback } from '../../components/sky/time/usePlayback';
 import { useWallThrottle } from '../../components/live/useWallThrottle';
 import { SectionHeading } from '../../components/primitives/SectionHeading';
 import { TextButton } from '../../components/primitives/TextButton';

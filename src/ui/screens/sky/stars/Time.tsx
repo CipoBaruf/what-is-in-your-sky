@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { Playback } from '../../../components/live/usePlayback';
+import type { Playback } from '../../../components/sky/time/usePlayback';
 import { loadGlobeRail } from '../../stars/globeChunk';
 
 /**

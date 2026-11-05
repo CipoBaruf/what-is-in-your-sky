@@ -47,7 +47,7 @@ import { IDLE_PASSES } from '../../src/state/slices/passes';
 import { fixtureRecords } from '../support/catalogFixtures';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
-import { HiddenToggle } from '../../src/ui/components/live/PlaybackControls';
+import { HiddenToggle } from '../../src/ui/components/sky/time/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { ToggleGroup } from '../../src/ui/components/primitives/ToggleGroup';
@@ -94,7 +94,7 @@ const CSS = [
   'src/ui/components/primitives/BracketLink.module.css',
   'src/ui/components/primitives/OptionToggle.module.css',
   'src/ui/components/common/ShareButton.module.css',
-  'src/ui/components/live/PlaybackControls.module.css',
+  'src/ui/components/sky/time/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
   'src/ui/screens/Settings.module.css',
   'src/ui/components/location/UseMyLocation.module.css',

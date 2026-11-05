@@ -1,9 +1,9 @@
-import { useT } from '../../../i18n/useT';
-import { isSpeed, SPEEDS, type Speed } from '../../../lib/playback';
-import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { OptionToggle } from '../primitives/OptionToggle';
-import { TextButton } from '../primitives/TextButton';
-import { ToggleGroup } from '../primitives/ToggleGroup';
+import { useT } from '../../../../i18n/useT';
+import { isSpeed, SPEEDS, type Speed } from '../../../../lib/playback';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
+import { OptionToggle } from '../../primitives/OptionToggle';
+import { TextButton } from '../../primitives/TextButton';
+import { ToggleGroup } from '../../primitives/ToggleGroup';
 import styles from './PlaybackControls.module.css';
 
 /**

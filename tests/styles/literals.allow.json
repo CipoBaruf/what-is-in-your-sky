@@ -43,17 +43,9 @@
     "count": 4,
     "reason": "R110 (D-736): 4 the sheet names — the SVG root's font-family: inherit (the stack, already inherited), 12px, 15px and 14px (--chart-text-12, -15, -14)."
   },
-  "src/ui/components/live/StripeOverview.module.css": {
-    "count": 3,
-    "reason": "R110 (D-736): 3 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border) and 2px radius (--radius-2)."
-  },
   "src/ui/components/live/TimeReadout.module.css": {
     "count": 2,
     "reason": "R110 (D-736): 2 the sheet names — the readout's 1.25rem (--text-heading), the offset's 1rem (--text-body)."
-  },
-  "src/ui/components/live/TimeStripe.module.css": {
-    "count": 4,
-    "reason": "R110 (D-736): 4 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border), 2px radius (--radius-2) and the hour's 1rem (--text-body)."
   },
   "src/ui/components/location/UseMyLocation.module.css": {
     "count": 1,
@@ -82,6 +74,14 @@
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,
     "reason": "R110 (D-736): 2 the sheet names — two 0.75rem gaps (--space-2)."
+  },
+  "src/ui/components/sky/time/StripeOverview.module.css": {
+    "count": 3,
+    "reason": "R110 (D-736): 3 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border) and 2px radius (--radius-2)."
+  },
+  "src/ui/components/sky/time/TimeStripe.module.css": {
+    "count": 4,
+    "reason": "R110 (D-736): 4 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border), 2px radius (--radius-2) and the hour's 1rem (--text-body)."
   },
   "src/ui/components/weather/CloudBadge.module.css": {
     "count": 3,
