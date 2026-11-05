@@ -9,7 +9,7 @@ held up to the sky. At a desk the satellites, the live sky and the stars share o
 globe, with each pass's arc and a satellite's facts beside it. It runs in the browser, with
 no backend and no account, works offline, and speaks English and Spanish.
 
-**Live:** <https://inyoursky.app> (2.14.1)
+**Live:** <https://inyoursky.app> (2.14.2)
 
 ![Two screens: a phone on the live sky, the window following the pass that is up among the stars; and a desk on a pass, the celestial globe drawing the pass's arc among the stars and the planets, with its rise, peak and set times and the satellite's facts in the rail beside it](docs/readme/hero.png)
 
