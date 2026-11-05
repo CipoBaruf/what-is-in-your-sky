@@ -378,6 +378,12 @@ export interface SkyChartProps {
   /** R190 (FR-KEEP-1): the same for the globe's zoom (`globeZoom`), read by the globe view alone. */
   globeZoom?: number;
   onGlobeZoom?: (zoom: number) => void;
+  /**
+   * v2.14.1 (FR-WIDE-3 as amended, D-1137): the pass page's globe — the direction it opens on (the pass's peak, so the
+   * whole arc is on the near side) and its passes drawn whole at every `t`. The globe view alone reads them.
+   */
+  globeOpenCentre?: { azDeg: number; altDeg: number };
+  globeWholeArcs?: boolean;
   className?: string;
 }
 

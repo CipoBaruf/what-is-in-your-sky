@@ -177,6 +177,8 @@ function GlobeView(props: SkyChartProps) {
           {...(onPassHover === undefined ? {} : { onPassHover })}
           {...(props.globeZoom === undefined ? {} : { zoom: props.globeZoom })}
           {...(props.onGlobeZoom === undefined ? {} : { onZoom: props.onGlobeZoom })}
+          {...(props.globeOpenCentre === undefined ? {} : { openCentre: props.globeOpenCentre })}
+          wholeArcs={props.globeWholeArcs ?? false}
         />
       </Suspense>
     </div>

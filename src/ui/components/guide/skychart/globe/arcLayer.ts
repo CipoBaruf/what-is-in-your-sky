@@ -23,6 +23,8 @@ export interface ArcInput {
   highlightedPassId: string | null;
   colorBy: ArcColorBy;
   keys: Readonly<Record<string, string>> | null;
+  /** v2.14.1 (D-1137): the pass page's whole tracks at every `t` (`globeArcs`' `whole`). */
+  whole?: boolean;
 }
 
 const fmt = (n: number): string => n.toFixed(1);
@@ -53,13 +55,13 @@ export class GlobeArcLayer {
   /** `arcs.ts`'s geometry and the keys for this sky and input, made again only when one of them changed. */
   private geometry(sky: GlobeSky, input: ArcInput): { arcs: GlobeArc[]; keys: Readonly<Record<string, string>>; guides: ArcGuides } {
     const m = this.memo;
-    if (m && m.sky === sky && m.input.passes === input.passes && m.input.t === input.t && m.input.keys === input.keys && m.input.highlightedPassId === input.highlightedPassId) return m;
-    const arcs = globeArcs(sky, input.passes, input.t);
+    if (m && m.sky === sky && m.input.passes === input.passes && m.input.t === input.t && m.input.keys === input.keys && m.input.highlightedPassId === input.highlightedPassId && m.input.whole === input.whole) return m;
+    const arcs = globeArcs(sky, input.passes, input.t, input.whole ?? false);
     const keys = input.keys ?? legendKeys(legendRows({ passes: input.passes.map((pass) => ({ ...pass, arc: arcs.find((a) => a.id === pass.id)?.state ?? 'hidden' })), highlightedPassId: input.highlightedPassId, now: input.t }));
     // D-1113: the highlighted pass's ticks and arrow are geometry too, so a drag only projects them.
     const arc = arcs.find((a) => a.id === input.highlightedPassId);
     const pass = arc ? input.passes.find((q) => q.id === arc.id) : undefined;
-    const guides = arc && pass ? arcGuides(sky, pass, input.t) : NO_GUIDES;
+    const guides = arc && pass ? arcGuides(sky, pass, input.t, input.whole ?? false) : NO_GUIDES;
     this.memo = { sky, input, arcs, keys, guides };
     return this.memo;
   }
@@ -78,7 +80,11 @@ export class GlobeArcLayer {
       const first = mine[0];
       let d = '';
       let keyAt: [number, number] | null = null;
+      // D-1137: how many of the series' points are drawn (on the near side) of how many there are, as `data-near`.
+      let near = 0;
+      let total = 0;
       for (const arc of mine) {
+        total += arc.points.length;
         const runs: number[][] = [];
         let run: number[] = [];
         for (const v of arc.points) {
@@ -90,6 +96,7 @@ export class GlobeArcLayer {
           }
           d += `${run.length === 0 ? 'M' : 'L'}${fmt(xy[0])} ${fmt(xy[1])}`;
           run.push(xy[0], xy[1]);
+          near += 1;
         }
         if (run.length > 0) runs.push(run);
         this.drawn.set(arc.id, runs);
@@ -103,6 +110,7 @@ export class GlobeArcLayer {
       }
       path.setAttribute('d', d);
       path.setAttribute('data-pass-ids', mine.map((a) => a.id).join(' '));
+      path.setAttribute('data-near', `${String(near)}/${String(total)}`);
       if (first) {
         path.setAttribute('data-state', first.state);
         const lit = highlighted === null || mine.some((a) => a.id === highlighted);

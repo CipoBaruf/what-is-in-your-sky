@@ -63,3 +63,13 @@ export const SKY_GLOBE_KB = 4;
 
 /** FR-GLOBE-7: the bodies are recomputed at most this often in wall time, as the live page's are (one constant, `lib/playback.ts`'s). */
 export { BODIES_EVERY_MS } from '../../../../../lib/playback';
+
+/**
+ * D-1137: the pass page's opening centre — the pass's peak azimuth, at its peak altitude up to
+ * `PASS_OPEN_ALT_MAX_DEG`, so the whole arc is on the globe's near side.
+ */
+export const PASS_OPEN_ALT_MAX_DEG = 60;
+
+export function passOpenCentre(pass: { peak: { azDeg: number; elDeg: number } }): { azDeg: number; altDeg: number } {
+  return { azDeg: pass.peak.azDeg, altDeg: Math.min(pass.peak.elDeg, PASS_OPEN_ALT_MAX_DEG) };
+}

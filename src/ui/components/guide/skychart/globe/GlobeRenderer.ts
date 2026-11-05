@@ -114,6 +114,8 @@ export interface GlobeState {
   highlightedPassId?: string | null;
   colorBy?: ArcColorBy;
   keys?: Readonly<Record<string, string>> | null;
+  /** v2.14.1 (D-1137): the pass page draws its pass's whole track at every `t`. */
+  wholeArcs?: boolean;
 }
 
 type Body = GlobeSky['sun'];
@@ -754,7 +756,7 @@ export class GlobeRenderer {
     }
 
     // R184 (FR-WIDE-3, FR-WIDE-7): the passes, their keys, the highlighted one's ticks and arrow.
-    this.arcs.draw(p, sky, { passes: s.passes ?? [], t: s.passT ?? s.t, highlightedPassId: s.highlightedPassId ?? null, colorBy: s.colorBy ?? 'pass', keys: s.keys ?? null }, (s.passes?.length ?? 0) > 0);
+    this.arcs.draw(p, sky, { passes: s.passes ?? [], t: s.passT ?? s.t, highlightedPassId: s.highlightedPassId ?? null, colorBy: s.colorBy ?? 'pass', keys: s.keys ?? null, whole: s.wholeArcs ?? false }, (s.passes?.length ?? 0) > 0);
 
     // The horizon, the compass, the zenith and the poles (FR-GLOBE-2, FR-GLOBE-3); their boxes are occupied before any name.
     this.horizon.setAttribute('d', pathOf(p, greatCircle(sky.zenith, HORIZON_STEPS)));

@@ -5,6 +5,7 @@
  * amended requirements, at 1024 × 640, 1280 × 800 and 1920 × 1080, in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { shownInstant } from './deskPages';
 import { NINE_DAYS_ON, seedStoredRun, STORED_RUN, stubNetwork } from './liveHelpers';
 
 type Locale = 'en' | 'es';
@@ -44,6 +45,34 @@ async function passPage(page: Page): Promise<Locator> {
 }
 
 const startOf = (id: string): number => Number(/-(\d+)$/.exec(id)?.[1] ?? NaN);
+
+type Point = [number, number];
+
+/** An arc path's polyline (its `M`/`L` points) and its marker's centre (the ring, `M x−r y a…`), px of the drawing. */
+async function geometryOf(arc: Locator): Promise<{ line: Point[]; marker: Point | null }> {
+  const d = (await arc.getAttribute('d')) ?? '';
+  const ringAt = d.search(/M[-\d.]+ [-\d.]+a/);
+  const line = [...(ringAt === -1 ? d : d.slice(0, ringAt)).matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map((m): Point => [Number(m[1]), Number(m[2])]);
+  const ring = /M(-?[\d.]+) (-?[\d.]+)a([\d.]+)/.exec(d);
+  return { line, marker: ring ? [Number(ring[1]) + Number(ring[3]), Number(ring[2])] : null };
+}
+
+const distance = (a: Point | null | undefined, b: Point | null | undefined): number => (a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : NaN);
+
+/** How far a point is from the nearest segment of a polyline, px. */
+function offLine(p: Point | null, line: readonly Point[]): number {
+  if (!p) return NaN;
+  let best = Infinity;
+  for (let k = 0; k + 1 < line.length; k += 1) {
+    const [a, b] = [line[k] as Point, line[k + 1] as Point];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = dx * dx + dy * dy;
+    const f = len > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len)) : 0;
+    best = Math.min(best, Math.hypot(p[0] - a[0] - f * dx, p[1] - a[1] - f * dy));
+  }
+  return best;
+}
 
 for (const [width, height] of SIZES) {
   test.describe(`${String(width)} × ${String(height)}`, () => {
@@ -139,6 +168,32 @@ for (const [width, height] of SIZES) {
             expect(m.docY, `${id}: the page scrolls`).toBeLessThanOrEqual(1);
             await expect(layout.locator('[data-slot="drawing"]').first()).toBeInViewport({ ratio: 0.9 });
           }
+        });
+
+        test('FR-WIDE-3: opens paused at the rise, the whole arc drawn on the near side; Play moves the marker along it (D-1137)', async ({ page }, info) => {
+          test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
+          await home(page, locale);
+          const layout = await openFromHeader(page);
+          const id = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
+          // The readout is the rise, held: the overview's instant and the time control's state.
+          await expect.poll(() => shownInstant(layout)).toBe(startOf(id));
+          await expect(layout.getByTestId('time-control')).toHaveAttribute('data-state', 'scrubbing');
+          await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+          const arc = layout.locator(`[data-arc-series][data-pass-ids~="${id}"]`);
+          await expect(arc).toHaveAttribute('data-near', /^\d+\/\d+$/);
+          const [near, total] = ((await arc.getAttribute('data-near')) ?? '').split('/').map(Number);
+          expect(total, 'the whole track is the polyline').toBeGreaterThan(2);
+          expect(near, 'every point of the arc on the near side').toBe(total);
+          const before = await geometryOf(arc);
+          expect(before.marker, 'the marker at the rise').not.toBeNull();
+          expect(distance(before.marker, before.line[0])).toBeLessThan(2);
+          await layout.getByTestId('live-play').click();
+          await expect.poll(async () => distance((await geometryOf(arc)).marker, before.marker), { timeout: 10_000 }).toBeGreaterThan(3);
+          const after = await geometryOf(arc);
+          // Along the drawn path: the line is the same, and the marker stands on it.
+          expect(after.line).toEqual(before.line);
+          expect(offLine(after.marker, after.line)).toBeLessThan(3);
+          expect(await shownInstant(layout)).toBeGreaterThan(startOf(id));
         });
       });
     }

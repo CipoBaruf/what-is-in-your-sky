@@ -59,6 +59,8 @@ test('a faint pass’s #pass link opens that pass with faint passes hidden (FR-F
   await expect(card).toHaveAttribute('data-selected', 'true', { timeout: 30_000 });
   await expect(card.getByTestId('card-faint')).toHaveCount(0);
   await expect(faintCards(page)).toHaveCount(0);
-  await expect(page.getByTestId('faint-toggle')).toHaveText(`show ${String(FAINT_COUNT - 1)} faint`);
+  // v2.14.1 (FR-WIDE-1 as amended, D-1135): on a desk the rail is tonight's list, the 24 h of the page's time control,
+  // so its toggle counts the faint passes of those hours only — none here but the open one, which is not faint.
+  await expect(page.getByTestId('faint-toggle')).toHaveCount(0);
   await expect(page.getByTestId('guide-panel')).toContainText('Titan 4B R/B');
 });

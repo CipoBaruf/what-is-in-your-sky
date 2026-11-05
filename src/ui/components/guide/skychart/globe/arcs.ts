@@ -48,20 +48,29 @@ export function horizonDir(sky: GlobeSky, azDeg: number, altDeg: number): Vec3 {
 
 const dirOf = (sky: GlobeSky, p: PassPoint): Vec3 => horizonDir(sky, p.azDeg, p.elDeg);
 
-/** FR-WIDE-3: every pass drawn at `t`, in `passes` order; a hidden one (FR-TRAJ-1) is left out, its series kept by its index. */
-export function globeArcs(sky: GlobeSky, passes: readonly Pass[], t: number): GlobeArc[] {
+/**
+ * FR-WIDE-3: every pass drawn at `t`, in `passes` order; a hidden one (FR-TRAJ-1) is left out, its series kept by its
+ * index.
+ *
+ * v2.14.1 (FR-WIDE-3 as amended, D-1137): with `whole` — the pass page — the polyline is the pass's whole track at
+ * every `t`, as the dome drew it: up, ahead, gone or an hour later. Its state is `live` while the pass is up, with the
+ * marker at its place at `t` on the drawn path, and `full` otherwise (drawn solid in its colour, no rise dot).
+ */
+export function globeArcs(sky: GlobeSky, passes: readonly Pass[], t: number, whole = false): GlobeArc[] {
   const arcs: GlobeArc[] = [];
   passes.forEach((pass, index) => {
-    const state = arcState(pass, t);
+    const reveal = arcState(pass, t);
+    const state = whole ? (reveal === 'live' ? 'live' : 'full') : reveal;
     if (state === 'hidden' || pass.track.length === 0) return;
-    const drawn = state === 'live' ? cutTrack(pass, t) : pass.track;
+    const drawn = whole || state !== 'live' ? pass.track : cutTrack(pass, t);
     const points = drawn.map((p) => dirOf(sky, p));
+    const marker = state !== 'live' ? null : whole ? dirOf(sky, interpolateTrack(pass.track, t)) : (points[points.length - 1] ?? null);
     arcs.push({
       id: pass.id,
       series: (index % SERIES_COUNT) + 1,
       state,
       points,
-      marker: state === 'live' ? (points[points.length - 1] ?? null) : null,
+      marker,
       rise: state === 'ahead' ? (points[0] ?? null) : null,
     });
   });
@@ -78,8 +87,8 @@ function markAt(sky: GlobeSky, pass: Pass, from: number, to: number, time: numbe
  * up and over the whole track otherwise; a tick stands at every whole `ARC_TICK_MIN` after the rise inside it, the
  * arrow at the marker while up and at `ARC_ARROW_SHARE` of the drawn part's time otherwise. A pass not drawn has none.
  */
-export function arcGuides(sky: GlobeSky, pass: Pass, t: number): ArcGuides {
-  const g = guideTimes(pass, t);
+export function arcGuides(sky: GlobeSky, pass: Pass, t: number, whole = false): ArcGuides {
+  const g = guideTimes(pass, t, arcState(pass, t), whole);
   if (g === null) return { ticks: [], arrow: null };
   return { ticks: g.ticks.map((at) => markAt(sky, pass, g.from, g.to, at)), arrow: g.arrow === null ? null : markAt(sky, pass, g.from, g.to, g.arrow) };
 }
@@ -92,11 +101,15 @@ export interface GuideTimes {
   arrow: number | null;
 }
 
-/** `arcGuides`'s rule, in time: the window projects these through its own camera, with the page's arc state (R185). */
-export function guideTimes(pass: Pass, t: number, state: ArcState = arcState(pass, t)): GuideTimes | null {
-  if (state === 'hidden' || pass.track.length === 0) return null;
+/**
+ * `arcGuides`'s rule, in time: the window projects these through its own camera, with the page's arc state (R185).
+ * D-1137: with `whole` the drawn part is the whole track at every state, so the ticks cover it all; the arrow is at
+ * `t` while the pass is up, as the marker is.
+ */
+export function guideTimes(pass: Pass, t: number, state: ArcState = arcState(pass, t), whole = false): GuideTimes | null {
+  if ((state === 'hidden' && !whole) || pass.track.length === 0) return null;
   const from = pass.start.t;
-  const to = state === 'live' ? t : pass.end.t;
+  const to = state === 'live' && !whole ? t : pass.end.t;
   const step = ARC_TICK_MIN * 60_000;
   const ticks: number[] = [];
   for (let at = from + step; at < to; at += step) ticks.push(at);

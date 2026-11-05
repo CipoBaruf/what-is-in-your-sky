@@ -326,7 +326,8 @@ for (const locale of LOCALES) {
       ] as const) {
         const layout = await open(page, locale);
         const control = layout.getByTestId('time-control');
-        await expect(control, name).toHaveAttribute('data-state', 'watching', { timeout: 30_000 });
+        // v2.14.1 (D-1137): the pass page opens held at its rise, the other two watching.
+        await expect(control, name).toHaveAttribute('data-state', name === 'pass' ? 'scrubbing' : 'watching', { timeout: 30_000 });
         await control.getByTestId('stripe-overview').click();
         await expect(control, name).toHaveAttribute('data-state', 'scrubbing');
         controls[name] = await control.evaluate((el: HTMLElement) =>
