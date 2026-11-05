@@ -3,9 +3,8 @@ import { createPortal } from 'react-dom';
 import { HIT_RADIUS_PX } from '../guide/skychart/window/starGlyphs';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { useShortcuts } from '../../hooks/useShortcuts';
 import { enterFullscreen, exitFullscreen, fullscreenElement, fullscreenSupported } from '../../../lib/fullscreen';
-import { skyShortcuts, type SkyKeyActions } from '../../../lib/shortcuts';
+import { installShortcuts, skyShortcuts, type ShortcutActions, type SkyKeyActions } from '../../../lib/shortcuts';
 import type { EpochMs } from '../../../model';
 import { TimeReadout } from '../live/TimeReadout';
 import { TextButton } from '../primitives/TextButton';
@@ -290,11 +289,22 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   }, [full]);
   /*
    * R189 (FR-WIDE-9, D-1102): the page's sky keys and `f`, one listener while the layout is the desk's. The shortcuts
-   * overlay makes the page inert (D-73's "overlay first"), and then no key here is the page's.
+   * overlay makes the page inert (D-73's "overlay first"), and then no key here is the page's. The listener is the
+   * table's own (`installShortcuts`), installed once per shape and reading the page's latest actions through a ref.
    */
-  const rows = keys === undefined ? { full: toggleFull } : skyShortcuts(keys, toggleFull, () => document.activeElement);
-  const live = Object.fromEntries(Object.entries(rows).map(([id, run]) => [id, () => rootRef.current?.closest('[inert]') == null && run()])) as typeof rows;
-  useShortcuts(live, shape === 'rail');
+  const keysRef = useRef(keys);
+  useLayoutEffect(() => {
+    keysRef.current = keys;
+  });
+  useEffect(() => {
+    if (shape !== 'rail') return;
+    return installShortcuts(document, () => {
+      const page = keysRef.current;
+      const rows: ShortcutActions = page === undefined ? { full: toggleFull } : skyShortcuts(page, toggleFull, () => document.activeElement);
+      const inert = rootRef.current?.closest('[inert]') != null;
+      return Object.fromEntries(Object.entries(rows).map(([id, run]) => [id, () => !inert && run()]));
+    });
+  }, [shape, toggleFull]);
 
   const given =(name: SkyViewSlotName): boolean => {
     const node = slots[name];

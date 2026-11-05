@@ -33,7 +33,7 @@ export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'star
  * `Space` plays, `a` faces the pass (FR-SKY-13's key, moved from `f`), `f` is full screen (FR-WIDE-10). They run where
  * a `SkyViewLayout` in its wide form is mounted (`skyShortcuts`); the app's own listener has no action for them.
  */
-export type SkyShortcutId = 'globe' | 'window' | 'dome' | 'back' | 'ahead' | 'now' | 'play' | 'face' | 'full';
+type SkyShortcutId ='globe' | 'window' | 'dome' | 'back' | 'ahead' | 'now' | 'play' | 'face' | 'full';
 
 /** The ids the app's listener runs (`App.tsx`): every row but the sky pages'. */
 export type AppShortcutId = Exclude<ShortcutId, SkyShortcutId>;
