@@ -68,14 +68,45 @@ export interface PassCardProps {
   headingLevel?: 3 | 4;
   /** FR-FAINT-2: the pass is faint and shown; the name is dimmed and the third line carries `[faint]`. */
   faint?: boolean;
+  /** v2.14.1 (V214-38, D-1135): one line — the time, the name, the detail — for the pass page's list in the rail. */
+  dense?: boolean;
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3, faint = false }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3, faint = false, dense = false }: PassCardProps) {
   const Name = headingLevel === 4 ? 'h4' : 'h3';
   const t = useT();
   const locale = useLocale();
   const headingId = useId();
   const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare || faint;
+  const peak = {
+    altitude: degrees(pass.peak.elDeg),
+    point: compassPoint(pass.peak.azDeg),
+    brightness: detail === 'phrase' ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
+  };
+  if (dense) {
+    // V214-38: the one-line row drops the minutes so the detail fits the rail's 44..60 cells; the name gives first.
+    const detailText = t.passes.cardDetailShort(peak);
+    const cardClass = [styles.dense, faint ? styles.faint : undefined].filter(Boolean).join(' ');
+    return (
+      <Card selected={selected} className={cardClass} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" data-dense="" tabIndex={-1}>
+        <div className={styles.first} data-testid="card-first-line">
+          <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
+          <Name id={headingId} className={styles.name}>
+            {pass.name}
+          </Name>
+          {tag !== undefined && (
+            <span className={[styles.tag, styles.denseTag].join(' ')} data-testid="next-tag">
+              {tag}
+            </span>
+          )}
+          <span className={styles.denseDetail} data-testid="card-detail">
+            {ended ? t.passes.ended : detailText}
+          </span>
+        </div>
+        {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} />}
+      </Card>
+    );
+  }
   return (
     <Card selected={selected} className={faint ? styles.faint : undefined} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1}>
       <div className={styles.first} data-testid="card-first-line">
@@ -90,12 +121,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
         )}
       </div>
       <p className={styles.detail} data-testid="card-detail">
-        {t.passes.cardDetail({
-          minutes: passMinutes(pass),
-          altitude: degrees(pass.peak.elDeg),
-          point: compassPoint(pass.peak.azDeg),
-          brightness: detail === 'phrase' ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
-        })}
+        {t.passes.cardDetail({ minutes: passMinutes(pass), ...peak })}
       </p>
       {flags && (
         <div className={styles.flags} data-testid="card-flags">

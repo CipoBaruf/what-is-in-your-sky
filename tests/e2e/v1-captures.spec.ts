@@ -761,7 +761,7 @@ async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await page.clock.runFor(1000);
   await pinnedAt(page, CLOCK);
   await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
-  await expect(page.getByTestId('stars-time').getByTestId('stripe-overview')).toHaveAttribute('aria-valuenow', String(CLOCK));
+  await expect(page.getByTestId('stars-time').getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
   await blurFocus(page);
   await page.mouse.move(0, 0);
 }
@@ -1392,7 +1392,7 @@ const REACH: Record<string, Reach> = {
     });
     await page.clock.runFor(FRAME_MS);
     await pinnedAt(page, CLOCK);
-    await expect(page.getByTestId('stars-time').getByTestId('stripe-overview')).toHaveAttribute('aria-valuenow', String(CLOCK));
+    await expect(page.getByTestId('stars-time').getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
     await blurFocus(page);
     await page.mouse.move(0, 0);
   },

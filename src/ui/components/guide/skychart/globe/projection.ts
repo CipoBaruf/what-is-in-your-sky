@@ -263,3 +263,14 @@ export function dragTurn(p: Projector, from: readonly [number, number], to: read
 export function openView(sky: { frame: Frame; lat: number }): GlobeView {
   return { frame: sky.frame, lon: sky.lat < 0 ? 180 : 0, lat: GLOBE_OPEN_ALT_DEG };
 }
+
+/**
+ * v2.14.1 (FR-WIDE-3 as amended, D-1137): an opening view centred on a sky direction — azimuth from north through
+ * east and altitude, degrees — in the place's local frame, where a direction's longitude is its azimuth's negative
+ * (`localFrame`). The pass page opens on its pass's peak this way, in place of `openView`.
+ */
+export function centreView(sky: { frame: Frame }, centre: { azDeg: number; altDeg: number }): GlobeView {
+  const lon = -centre.azDeg;
+  return { frame: sky.frame, lon: lon <= -180 ? lon + 360 : lon, lat: Math.max(-90, Math.min(90, centre.altDeg)) };
+}
+

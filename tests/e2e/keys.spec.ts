@@ -6,7 +6,7 @@
  */
 import { expect, test } from '@playwright/test';
 import { HOUR_MS } from '../../src/lib/timeStripe';
-import { DESK_PAGES, openDeskPage, shownInstant, shownView, timeState } from './deskPages';
+import { DESK_PAGES, openDeskPage, playState, shownInstant, shownView, timeState } from './deskPages';
 
 test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
@@ -27,7 +27,8 @@ for (const which of DESK_PAGES) {
 
     test(', and . step the instant an hour, t returns to now, Space plays and pauses', async ({ page }) => {
       const layout = await openDeskPage(page, which);
-      await expect(timeState(layout)).toHaveAttribute('data-state', 'watching', { timeout: 30_000 });
+      // v2.14.1 (D-1137): the pass page opens held at its pass's rise, the other two at now; the steps are from there.
+      await expect(timeState(layout)).toHaveAttribute('data-state', which === 'pass' ? 'scrubbing' : 'watching', { timeout: 30_000 });
       const now = await shownInstant(layout);
       await page.keyboard.press('.');
       await expect(timeState(layout)).toHaveAttribute('data-state', 'scrubbing');
@@ -39,7 +40,7 @@ for (const which of DESK_PAGES) {
       await expect(timeState(layout)).toHaveAttribute('data-state', 'watching');
 
       await page.keyboard.press(' ');
-      const play = layout.getByTestId('live-play');
+      const play = playState(layout);
       await expect(play).toHaveAttribute('data-playing', 'true');
       await page.keyboard.press(' ');
       await expect(play).toHaveAttribute('data-playing', 'false');
@@ -52,8 +53,10 @@ for (const which of DESK_PAGES) {
       await layout.locator('[data-slot="viewRow"]').getByRole('button', { name: /^(\[ )?Window( \])?$/ }).focus();
       await page.keyboard.press(' ');
       await expect.poll(() => shownView(layout), { timeout: 30_000 }).toBe('window');
-      // Nothing played: the instant is still real time (no playback row; the stars page's window has no time control).
-      await expect(layout.getByTestId('live-play')).toHaveCount(0);
+      // Nothing played: the instant is still real time (no playback row; the stars page's window has no time control) —
+      // on the pass page, still held at the rise and paused (v2.14.1, D-1137).
+      if (which === 'pass') await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+      else await expect(layout.getByTestId('live-play')).toHaveCount(0);
 
       await page.keyboard.press('?');
       const overlay = page.getByTestId('shortcuts-overlay');

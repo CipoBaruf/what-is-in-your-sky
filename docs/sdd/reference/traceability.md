@@ -356,6 +356,7 @@
 | FR-CLEAN-8 | `tests/e2e/rhythm.spec.ts`, `tests/e2e/targets.spec.ts` |
 | FR-CLEAN-11 | `src/ui/screens/Stars.test.tsx`, `tests/e2e/clean-sky.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-CLEAN-12 | `tests/e2e/wide.spec.ts`, `tests/styles/breakpoint.test.ts` |
+| FR-CLEAN-14 | `tests/e2e/pass-page.spec.ts` |
 | FR-CLEAN-15 | `tests/e2e/rhythm.spec.ts` |
 | FR-CLEAN-16 | `src/ui/components/primitives/Card.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx`, `tests/e2e/wide.spec.ts`, `tests/styles/doorRows.test.ts` |
 | FR-COMP-1 | `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
@@ -639,7 +640,7 @@
 | FR-STAR-9 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/starGlyphs.test.ts`, `tests/docs/accuracy.test.ts`, `tests/e2e/stars-perf.spec.ts` |
 | FR-STAR-10 | `src/ui/screens/Stars.test.tsx`, `src/ui/screens/stars/field.test.ts`, `tests/data/starCatalog.test.ts`, `tests/e2e/stars.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-STAR-11 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
-| FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
+| FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-STAR-14 | `src/ui/components/guide/skychart/window/starLabels.test.ts` |
 | FR-TAB-1 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-2 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
@@ -672,9 +673,9 @@
 | FR-WATCH-6 | `src/lib/scrubPlacement.test.ts`, `src/ui/components/guide/skychart/ChartFrame.overlay.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts` |
 | FR-WATCH-8 | `src/ui/components/sky/time/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
-| FR-WIDE-1 | `src/ui/App.structure.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/desktop.spec.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
+| FR-WIDE-1 | `src/ui/App.structure.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/desktop.spec.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/pass-page.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
 | FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `src/ui/screens/viewFor.test.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/styles/controlRows.test.ts` |
-| FR-WIDE-3 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `tests/e2e/globe.spec.ts` |
+| FR-WIDE-3 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-WIDE-4 | `src/lib/playback.test.ts`, `src/ui/components/guide/TimesRow.test.tsx`, `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/pass-detail.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-WIDE-5 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-WIDE-6 | `tests/e2e/globe.spec.ts` |
@@ -684,6 +685,8 @@
 | FR-WIDE-10 | `src/lib/fullscreen.test.ts`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/fullscreen.spec.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-12 | `tests/docs/captures.test.ts` |
+| FR-WIDE-13 | `src/ui/components/sky/FirstPassDialog.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-dialog.spec.ts` |
+| FR-WIDE-14 | `tests/e2e/focus.spec.ts`, `tests/styles/focus.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |

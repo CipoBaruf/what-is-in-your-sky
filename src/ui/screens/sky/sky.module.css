@@ -20,3 +20,42 @@
   min-height: var(--tap);
   white-space: nowrap;
 }
+
+/* v2.14.1 (FR-WIDE-4 as amended, D-1138): the stars page's `Time` group — R170's rows (`GlobeRail.module.css`), the
+   clock, the steps and `[ now ]` with the time-lapse, `--space-1` apart. */
+.time {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* v2.14.1 (V214-34, D-1138): `[ now ]` then the live page's playback row (`[ Play ]` and its speeds), its parts
+   laid out as this row's own so it breaks once, before the speeds, where the rail is at its minimum (44 cells); at
+   the rail's usual 60 cells it is one line in both languages (`controlRows.test.ts`). */
+.playRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+  white-space: nowrap;
+}
+
+.playRow > :global([data-testid='playback-controls']) {
+  display: contents;
+}
+
+/* FR-GLOBE-8: the clock line; the chip in the dim ink after it, the accent while it is `now` (FR-TONIGHT-7). */
+.clock {
+  margin: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  color: var(--fg-dim);
+}
+
+.chip[data-kind='now'] {
+  color: var(--accent);
+}

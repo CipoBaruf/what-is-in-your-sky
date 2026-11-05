@@ -126,7 +126,7 @@ export const ui = {
     back: '←',
     backName: 'Back',
     nav: 'Pages',
-    pages: { home: 'home', live: 'live', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    pages: { home: 'home', live: 'live', pass: 'satellites', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
   },
 
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
@@ -448,6 +448,9 @@ export const ui = {
      */
     cardDetail: (p: { minutes: number; altitude: string; point: CompassPoint; brightness: { magnitude: string } | { band: BrightnessBand } }) =>
       `${String(p.minutes)} min · peak ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
+    /** v2.14.1 (V214-38): the pass page's one-line list row — the detail without the minutes, `peak 32° ESE · mag +3.6`. */
+    cardDetailShort: (p: { altitude: string; point: CompassPoint; brightness: { magnitude: string } | { band: BrightnessBand } }) =>
+      `peak ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'sky still bright',
     /** FR-NIGHT-2: in place of the cloud word for the minute an ended pass stays a card. */
     ended: 'ended',

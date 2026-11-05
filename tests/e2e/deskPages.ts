@@ -33,10 +33,18 @@ export async function shownView(layout: Locator): Promise<string> {
   return (await layout.locator('[data-slot="drawing"] [data-drawing]').first().getAttribute('data-drawing')) ?? '';
 }
 
-/** The page's shown instant `t`, as the time control's overview slider says it. */
+/**
+ * The page's shown instant `t`, as the time control's overview slider says it — or, on the stars page, whose `Time`
+ * group has no overview since v2.14.1 (FR-WIDE-4 as amended, D-1138), the globe clock's `data-at`.
+ */
 export async function shownInstant(layout: Locator): Promise<number> {
+  const clock = layout.getByTestId('globe-clock');
+  if ((await clock.count()) > 0) return Number(await clock.getAttribute('data-at'));
   return Number(await layout.getByTestId('stripe-overview').getAttribute('aria-valuenow'));
 }
 
-/** The time control's state: `watching` at real time, `scrubbing` while an instant is held. */
-export const timeState = (layout: Locator): Locator => layout.getByTestId('time-control');
+/** The time control's state: `watching` at real time, `scrubbing` while an instant is held (the stars page's group says it too). */
+export const timeState = (layout: Locator): Locator => layout.locator('[data-testid="time-control"], [data-testid="stars-time"]');
+
+/** Whether the page plays: the playback row's `[ Play ]`, on the stars page too since V214-34 (D-1138). */
+export const playState = (layout: Locator): Locator => layout.getByTestId('live-play');

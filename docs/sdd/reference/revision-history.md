@@ -14,6 +14,9 @@ When the spec is revised, the Status line it replaces goes to the top of this li
 
 ### Status, newest first
 
+- **Draft v2.14 — for review.**
+  Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57, G62–G66, Decision Log V214-1..V214-22 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`.
+  The owner's answers of 2026-11-04 are V214-1..V214-14.
 - **Draft v2.13 — for review.**
   Phase v2.13 "the workflow" (the development process; no change to the app): §4.56, FR-SDD-1..28, US-51, G59–G61, Decision Log V213-1..V213-11 and roadmap §9 Phase 2v, from `docs/proposals/agent-agnostic-sdd.md`; no open questions (the owner's answers of 2026-11-03 are V213-1..V213-7).
 - **Draft v2.12 — for review.**
@@ -173,6 +176,8 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Status, newest first
 
+- **Draft v0.22 — for review.**
+  Plans SPEC v2.14 "one sky on a desk": the decisions are §2.50 (D-1094..D-1108 this plan's, D-1109..D-1131 the blocks its tasks spend) and the delivery is §16.33 (P10 first, then R182–R191 in six waves, auto-merged; 2.14.0 tagged by the owner), in `docs/sdd/phases/v2.14/plan.md`.
 - **Draft v0.21 — for review.**
   Plans SPEC v2.13 "the workflow": the decisions are §2.49 (D-1057..D-1072 this plan's, D-1073..D-1093 the blocks its tasks spend) and the delivery is §16.32 (R172–R181 in seven waves, auto-merged; no release).
 - **Draft v0.20 — for review.**

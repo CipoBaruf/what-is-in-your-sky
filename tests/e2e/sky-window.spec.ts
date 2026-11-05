@@ -20,7 +20,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { bandUnderBox, openSheet, SPACE_3_PX } from './liveHelpers';
+import { bandUnderBox, openSheet, SPACE_3_PX, stayOnFirstPass } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -319,6 +319,7 @@ const ORION_CLOCK = ORION_RISE - 5 * 60_000;
 
 /** The showcase night's home page, the passes computed. */
 async function openShowcase(page: Page, viewport: { width: number; height: number }, locale: CaptureLocale, chartView: 'dome' | 'window'): Promise<string> {
+  await stayOnFirstPass(page);
   await page.setViewportSize(viewport);
   await page.addInitScript(
     ([key, value]: [string, string]) => {

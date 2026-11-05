@@ -185,8 +185,14 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  /* v2.14.1 (D-1136): the rail scrolls down only; nothing in it is wider than it. */
+  overflow-x: hidden;
   overflow-y: auto;
   position: relative;
+}
+
+.rail > * {
+  min-width: 0;
 }
 
 .rail > .slot {
@@ -197,10 +203,19 @@
 .rail > .list {
   flex: 1 1 0;
   min-height: calc(6 * var(--row));
+  overflow-x: hidden;
   overflow-y: auto;
   /* The containing block of what the list places absolutely (the cards' stretched buttons, the hidden headings), so
      its scroll clips them: without it they ran the page 358 px past a 1280 × 800 window on the pass detail. */
   position: relative;
+}
+
+/* v2.14.1 (V214-33, V214-37, V214-38, D-1135): first, on the pass page, the list shows its count line, three one-line
+   passes and the top of a fourth, and scrolls inside itself, so `View`, `Time` and `[ Play ]` stay in view under it. */
+.rail[data-list-first] > .list {
+  flex: none;
+  min-height: 0;
+  max-height: calc(7.5 * var(--row));
 }
 
 /* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself

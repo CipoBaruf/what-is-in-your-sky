@@ -298,6 +298,17 @@ export function isStarsRoute(hash: string): boolean {
 export const STARS_HASH = '#stars';
 
 /**
+ * v2.14.1 (FR-CLEAN-14 as amended, D-1134): the pass page with no pass — what the wide header's `[ satellites ]`
+ * opens when the span holds none, drawn with the list's empty line and no arc. `parseHash` still reads it as nothing:
+ * it names no pass, and a bare `#pass` is a route only here.
+ */
+export const PASS_PAGE_HASH = '#pass';
+
+export function isPassPageRoute(hash: string): boolean {
+  return (hash.startsWith('#') ? hash.slice(1) : hash) === 'pass';
+}
+
+/**
  * R32 (FR-LIVE-1): whether the app is on the live page — `#live` on its own,
  * or a `#live?…` link whether or not it parses. A link that parses also sets
  * the observer (`parseHash`); one that does not still opens the page, which

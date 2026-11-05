@@ -1,6 +1,7 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
+import { LIVE_WINDOW_MS, livePasses } from '../../../lib/livePasses';
 import { nextNight, nightAt, type NightKey } from '../../../lib/nights';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { EpochMs, Observer, Pass } from '../../../model';
@@ -133,9 +134,17 @@ export interface PassListProps {
   onOpenPass?: (passId: string) => void;
   /** The open pass, marked on its card (FR-DESK-3). The wide layout leaves the list on screen beside the guide, so it has to say which one is open. */
   selectedPassId?: string | null;
+  /**
+   * v2.14.1 (FR-WIDE-1 as amended, D-1135): the wide pass page's rail — only the span of the page's time control,
+   * `now` to `now + LIVE_WINDOW_MS` (`livePasses` on the list's clock), the open pass kept whatever its time, and the
+   * count line over those 24 h.
+   */
+  onlyTonight?: boolean;
 }
 
-export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
+const SPAN_HOURS = LIVE_WINDOW_MS / 3_600_000;
+
+export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = false }: PassListProps) {
   const t = useT();
   const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
@@ -146,7 +155,22 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const headingId = useId();
   const nightsId = useId();
   const now = useShownClock();
-  const listed = useListedPasses(selectedPassId);
+  const listedAll = useListedPasses(selectedPassId);
+  // v2.14.1 (V214-37): on the pass page the list scrolls inside itself, so the open pass's card is brought into it.
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!onlyTonight || selectedPassId === null) return;
+    const card = sectionRef.current?.querySelector<HTMLElement>(`[data-pass-id="${CSS.escape(selectedPassId)}"]`);
+    card?.scrollIntoView?.({ block: 'nearest' });
+  }, [onlyTonight, selectedPassId]);
+  const listed = useMemo(() => {
+    if (!onlyTonight) return listedAll;
+    const inSpan = (list: readonly Pass[]): readonly Pass[] => {
+      const span = new Set(livePasses(list, now).map((pass) => pass.id));
+      return list.filter((pass) => span.has(pass.id) || pass.id === selectedPassId);
+    };
+    return { ...listedAll, shown: inSpan(listedAll.shown), faint: inSpan(listedAll.faint), listed: inSpan(listedAll.listed) };
+  }, [listedAll, onlyTonight, now, selectedPassId]);
   const shown = listed.shown;
   const faint = useMemo(() => faintIds(listed), [listed]);
   const hidden = listed.showFaint ? null : faint;
@@ -195,7 +219,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   // there is one night and so no night heading.
   const cards = (items: readonly Pass[], headingLevel: 3 | 4) =>
     items.length === 0 || !observer ? null : (
-      <ol className={styles.list}>
+      <ol className={onlyTonight ? `${styles.list} ${styles.dense}` : styles.list}>
         {items.map((pass) => (
           <li key={pass.id}>
             <PassCard
@@ -206,6 +230,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               ended={hasEnded(pass, now)}
               headingLevel={headingLevel}
               faint={faint.has(pass.id)}
+              dense={onlyTonight}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />
@@ -224,7 +249,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
     setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.key]: next } }));
   };
   return (
-    <section aria-labelledby={headingId} className={styles.section}>
+    <section ref={sectionRef} aria-labelledby={headingId} className={styles.section}>
       {/* R76 (D-471), R107 (D-725): the list keeps its headed region and the heading is read, not drawn — the reading's own `── What ──` is over it. */}
       <SectionHeading id={headingId} visuallyHidden>
         {t.passes.heading}
@@ -240,7 +265,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
             </div>
           ) : (
             <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-              {statusText(observer, elements, passes, shown.length, t, faint.size)}
+              {statusText(observer, elements, onlyTonight ? { ...passes, spanHours: SPAN_HOURS } : passes, shown.length, t, faint.size)}
             </p>
           )}
           {showList && faint.size > 0 && (

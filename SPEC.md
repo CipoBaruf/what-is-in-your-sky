@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.14 — for review.** Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57, G62–G66, Decision Log V214-1..V214-22 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`; the owner's answers of 2026-11-04 are V214-1..V214-14. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-04 (v2.14). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v2.14.1 — for review.** Phase v2.14.1 "the desk, reviewed" (the owner's desk review of 2.14.0: the pass page's way back and pass list, the `[ satellites ]` link, a pass opening on its whole path at its rise, the stars page without the satellites' time, faint day stars on the globe, the live page's first-pass dialog, one-line field focus): FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3, FR-WIDE-4 and FR-STAR-13 amended, FR-WIDE-13..14, Decision Log V214-25..V214-32, in `docs/sdd/phases/v2.14.1/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Date | 2026-11-05 (v2.14.1). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -65,7 +65,12 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 ---
 
-### Current phase — v2.14 ("one sky on a desk", as decided 2026-11-04, V214-1)
+### Current phase — v2.14.1 ("the desk, reviewed", as decided 2026-11-05, V214-25)
+
+After v2.14 is on `main` (2.14.0, not tagged).
+The owner's desk review of 2.14.0, fixed on one branch read locally before it is pushed: FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3, FR-WIDE-4 and FR-STAR-13 as amended and FR-WIDE-13..14 are in [the phase spec](docs/sdd/phases/v2.14.1/spec.md); the decisions are V214-25..V214-32.
+
+### Previous phase — v2.14 ("one sky on a desk", as decided 2026-11-04, V214-1)
 
 After v2.13 is on `main`.
 On a desk the satellites, the live sky and the stars become one layout with the globe as their whole sky, the dome by choice and one time control; the satellites, stars and planets the reader picks say what they are, the Spanish star names are reviewed, and the desk gains hover, clouds on the stripe, keys and a full-screen sky.
@@ -117,7 +122,8 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.11 | [spec](docs/sdd/phases/v2.11/spec.md) | [plan](docs/sdd/phases/v2.11/plan.md) | [tasks](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | [spec](docs/sdd/phases/v2.12/spec.md) | [plan](docs/sdd/phases/v2.12/plan.md) | [tasks](docs/sdd/phases/v2.12/tasks.md) |
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
-| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | — |
+| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | [TASKS.md](TASKS.md) |
+| v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),

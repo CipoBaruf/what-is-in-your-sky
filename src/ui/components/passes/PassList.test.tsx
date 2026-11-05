@@ -527,4 +527,30 @@ describe('<PassList>', () => {
     set({ weather: { observer: { ...observer, lat: 0 }, status: 'ready', snapshot: forecast, error: null } });
     expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
   });
+  /*
+   * v2.14.1 (FR-WIDE-1 as amended, D-1135): the wide pass page's rail is tonight's passes — the span of the page's time
+   * control, now to now + 24 h — the open pass marked `aria-current` (and kept, whatever its time), and a row opens its
+   * pass through the page's `openPass`.
+   */
+  it('onlyTonight: the 24 h from the list’s clock, the open pass aria-current, a row opens its pass (D-1135)', async () => {
+    const far = shifted(goldenPass, 'far', 5, 'Far object', 30, 45, -1.5);
+    const farther = shifted(goldenPass, 'farther', 6, 'Farther object', 40, 45, -1.5);
+    set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later, far, farther], hasDarkness: true } });
+    const onOpenPass = vi.fn();
+    const { container, rerender } = render(<PassList onOpenPass={onOpenPass} selectedPassId="average" onlyTonight />);
+    expect(container.querySelectorAll('article[data-pass-id]')).toHaveLength(2);
+    expect([...container.querySelectorAll('article[data-pass-id]')].map((card) => card.getAttribute('data-pass-id'))).toEqual(['later', 'average']);
+    expect(screen.getByRole('status')).toHaveTextContent(/^2 visible passes in 24 h$/);
+    expect(container.querySelector('article[data-pass-id="average"]')).toHaveAttribute('aria-current', 'true');
+    expect(container.querySelector('article[data-pass-id="later"]')).not.toHaveAttribute('aria-current');
+    await userEvent.click(within(container.querySelector('article[data-pass-id="later"]') as HTMLElement).getByRole('button'));
+    expect(onOpenPass).toHaveBeenCalledWith('later');
+    // A pass opened past the span (from the home's list) stays the marked row.
+    rerender(<PassList onOpenPass={onOpenPass} selectedPassId="far" onlyTonight />);
+    expect([...container.querySelectorAll('article[data-pass-id]')].map((card) => card.getAttribute('data-pass-id'))).toEqual(['later', 'average', 'far']);
+    expect(container.querySelector('article[data-pass-id="far"]')).toHaveAttribute('aria-current', 'true');
+    // Without the flag the list is the home's 72 h.
+    rerender(<PassList onOpenPass={onOpenPass} />);
+    expect(container.querySelectorAll('article[data-pass-id]')).toHaveLength(4);
+  });
 });

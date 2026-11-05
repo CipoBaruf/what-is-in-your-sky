@@ -1,4 +1,3 @@
-import type { Speed } from '../../../../../lib/playback';
 
 /**
  * R167 (SPEC §4.55's constants table, FR-GLOBE-17; PLAN D-1036, D-1037): every
@@ -25,6 +24,15 @@ export const GLOBE_KEY_STEP_DEG = 15;
 /** FR-GLOBE-3: what is under the shown place's horizon is drawn at this opacity, never removed. */
 export const GLOBE_DIM_OPACITY = 0.4;
 
+/**
+ * v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139): while the Sun is above −6° (day and twilight) the globe
+ * draws its stars and figures at this share of their night strength over the surface, instead of hiding them.
+ */
+export const DAY_STARS_ALPHA = 0.35;
+
+/** V214-36 (D-1139): the faintest magnitude the globe draws while the Sun is above −6° — a sky, not a dozen points. */
+export const DAY_STARS_MAG = 3.5;
+
 /** FR-GLOBE-3: the ground side's shade in `--chart-ground`. */
 export const GLOBE_GROUND_OPACITY = 0.85;
 
@@ -33,9 +41,6 @@ export const GLOBE_GRID_STEP_DEG = 30;
 
 /** FR-GLOBE-7: how far the globe's instant may run either side of now, days. */
 export const GLOBE_SPAN_DAYS = 366;
-
-/** FR-GLOBE-7: the time-lapse's three rates, the live page's `SPEEDS` past real time — typed as `Speed` so `usePlayback`'s `setSpeed` takes them. */
-export const GLOBE_SPEEDS = [60, 600, 3600] as const satisfies readonly Speed[];
 
 /** FR-GLOBE-4: the SVG's node ceiling; the faint stars add none. */
 export const GLOBE_MAX_NODES = 400;
@@ -63,3 +68,13 @@ export const SKY_GLOBE_KB = 4;
 
 /** FR-GLOBE-7: the bodies are recomputed at most this often in wall time, as the live page's are (one constant, `lib/playback.ts`'s). */
 export { BODIES_EVERY_MS } from '../../../../../lib/playback';
+
+/**
+ * D-1137: the pass page's opening centre — the pass's peak azimuth, at its peak altitude up to
+ * `PASS_OPEN_ALT_MAX_DEG`, so the whole arc is on the globe's near side.
+ */
+export const PASS_OPEN_ALT_MAX_DEG = 60;
+
+export function passOpenCentre(pass: { peak: { azDeg: number; elDeg: number } }): { azDeg: number; altDeg: number } {
+  return { azDeg: pass.peak.azDeg, altDeg: Math.min(pass.peak.elDeg, PASS_OPEN_ALT_MAX_DEG) };
+}

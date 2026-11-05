@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isLiveRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
+import { isLiveRoute, isPassPageRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
 
 /**
  * R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app
@@ -138,6 +138,16 @@ export function open(hash: string, opener: HTMLElement | null = focusedElement()
   announce();
 }
 
+/**
+ * v2.14.1 (D-1134, V214-35): the current entry becomes `hash` in place — no new entry, and what opened the entry stays
+ * what the focus goes back to. A bare `#pass` becomes the pass `[ satellites ]` names once the passes are known.
+ */
+export function replace(hash: string): void {
+  if (window.location.hash === hash) return;
+  window.history.replaceState(window.history.state, '', hash);
+  announce();
+}
+
 /** Leaves the current route: back to the entry it was opened from, or home in place when it was the load's. */
 export function close(): void {
   if (window.location.hash === '') return;
@@ -195,7 +205,9 @@ export function isRouteHref(href: string): boolean {
   return isLiveRoute(href) || isSettingsRoute(href) || isStarsRoute(href) || isPassHash(href);
 }
 
+/** A pass's hash, or v2.14.1's bare `#pass` (D-1134): the pass page, so a pass opened from it takes its entry in place. */
 function isPassHash(hash: string): boolean {
+  if (isPassPageRoute(hash)) return true;
   const parsed = parseHash(hash);
   return parsed !== null && (parsed.kind === 'pass' || parsed.kind === 'passId');
 }

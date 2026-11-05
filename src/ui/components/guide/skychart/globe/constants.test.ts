@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BODIES_EVERY_MS as LIVE_BODIES_EVERY_MS, SPEEDS } from '../../../../../lib/playback';
+import { BODIES_EVERY_MS as LIVE_BODIES_EVERY_MS } from '../../../../../lib/playback';
 import { YAW_STEP_DEG } from '../dome/camera';
 import {
   BODIES_EVERY_MS,
@@ -13,7 +13,6 @@ import {
   GLOBE_OPEN_ALT_DEG,
   GLOBE_RADIUS_SHARE,
   GLOBE_SPAN_DAYS,
-  GLOBE_SPEEDS,
   GLOBE_STARS_KB,
   GLOBE_ZOOM_MAX,
   GLOBE_ZOOM_MIN,
@@ -38,7 +37,6 @@ describe('the globe’s constants (SPEC §4.55)', () => {
       GLOBE_GROUND_OPACITY,
       GLOBE_GRID_STEP_DEG,
       GLOBE_SPAN_DAYS,
-      GLOBE_SPEEDS,
       GLOBE_MAX_NODES,
       GLOBE_BUDGET_KB,
       GLOBE_MAIN_KB,
@@ -54,7 +52,6 @@ describe('the globe’s constants (SPEC §4.55)', () => {
       GLOBE_GROUND_OPACITY: 0.85,
       GLOBE_GRID_STEP_DEG: 30,
       GLOBE_SPAN_DAYS: 366,
-      GLOBE_SPEEDS: [60, 600, 3600],
       GLOBE_MAX_NODES: 400,
       GLOBE_BUDGET_KB: 15,
       GLOBE_MAIN_KB: 1.5,
@@ -70,8 +67,6 @@ describe('the globe’s constants (SPEC §4.55)', () => {
   it('share what they say they share: the window’s key step, the live page’s bodies budget', () => {
     expect(GLOBE_KEY_STEP_DEG).toBe(YAW_STEP_DEG);
     expect(BODIES_EVERY_MS).toBe(LIVE_BODIES_EVERY_MS);
-    // The time-lapse's rates are the live page's, past real time (FR-GLOBE-7).
-    expect(GLOBE_SPEEDS).toEqual(SPEEDS.filter((s) => s > 1));
     // Ten zoom steps cover the range (§4.55): 1.25^10 ≈ 9.3 against 4 / 0.5 = 8.
     expect(GLOBE_ZOOM_STEP ** 10).toBeGreaterThan(GLOBE_ZOOM_MAX / GLOBE_ZOOM_MIN);
     expect(GLOBE_ZOOM_STEP ** 9).toBeLessThan(GLOBE_ZOOM_MAX / GLOBE_ZOOM_MIN);

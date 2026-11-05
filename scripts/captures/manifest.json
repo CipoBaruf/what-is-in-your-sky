@@ -9,6 +9,7 @@
     "src/ui/styles/**",
     "src/ui/hooks/**",
     "src/ui/components/{common,primitives,mark}/**",
+    "src/ui/screens/home/shownPasses.ts",
     "src/i18n/**",
     "src/state/**",
     "src/model/**",

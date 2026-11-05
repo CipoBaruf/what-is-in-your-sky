@@ -65,6 +65,11 @@
   gap: 0.75rem;
 }
 
+/* v2.14.1 (V214-38, D-1135): the pass page's one-line rows stand a row's step apart. */
+.list.dense {
+  gap: var(--space-1);
+}
+
 /* US-16 AC5: one night's cards; closed nights are `hidden`. */
 .night {
   display: grid;

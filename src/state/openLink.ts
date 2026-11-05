@@ -41,7 +41,7 @@ export const LINK_SPAN_MS = 24 * 3_600_000;
 /** The hash's text without the `#`, and whether it is one of the routes that carry no place. */
 function routeOf(hash: string): { text: string; placeless: boolean } {
   const text = hash.startsWith('#') ? hash.slice(1) : hash;
-  const placeless = text === '' || text === 'live' || text === 'settings' || text === 'stars' || (text.startsWith('pass=') && parseHash(text)?.kind === 'passId');
+  const placeless = text === '' || text === 'live' || text === 'settings' || text === 'stars' || text === 'pass' || (text.startsWith('pass=') && parseHash(text)?.kind === 'passId');
   return { text, placeless };
 }
 

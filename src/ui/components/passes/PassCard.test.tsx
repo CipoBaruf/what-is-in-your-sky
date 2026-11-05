@@ -68,6 +68,24 @@ describe('<PassCard> (FR-FIRST-10)', () => {
     expect(screen.getByTestId('next-tag')).toHaveTextContent('Próxima ISS');
   });
 
+  it('dense, is one line — the time, the name, the peak and the brightness, no minutes — in both languages (V214-38)', () => {
+    const pass = { ...samplePass, durationS: 600, peakMagnitude: 3.6, peak: { ...samplePass.peak, elDeg: 32, azDeg: 112.5 } };
+    const { unmount } = render(<PassCard pass={pass} timeZone={null} dense />);
+    const line = screen.getByTestId('card-first-line');
+    expect(line).toHaveTextContent(/^09:48 UTC\s*ISS \(Zarya\)\s*peak 32° ESE · mag \+3\.6$/);
+    expect(within(line).getByTestId('card-detail')).toHaveTextContent('peak 32° ESE · mag +3.6');
+    expect(line).not.toHaveTextContent('min');
+    expect(screen.getAllByTestId('card-detail')).toHaveLength(1);
+    unmount();
+    render(
+      <I18nProvider locale="es">
+        <PassCard pass={pass} timeZone={null} dense detail="phrase" />
+      </I18nProvider>,
+    );
+    expect(screen.getByTestId('card-detail')).toHaveTextContent(/^máx\. 32° ESE · \S/);
+    expect(screen.getByTestId('card-first-line')).not.toHaveTextContent('min');
+  });
+
   it('carries a tag on its first line only when given one (§8 rank 1 as amended)', () => {
     const { rerender } = render(<PassCard pass={samplePass} timeZone={null} />);
     expect(screen.queryByTestId('next-tag')).toBeNull();

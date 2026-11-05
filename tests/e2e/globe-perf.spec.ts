@@ -123,18 +123,15 @@ async function drag(page: Page): Promise<Sample> {
 }
 
 async function lapse(page: Page): Promise<Sample> {
-  // R187 (FR-WIDE-4): the time-lapse is the playback row's, shown once the instant is held (an hour on).
-  await page.getByTestId('globe-steps').getByRole('button', { name: 'An hour later' }).click();
-  const fast = page.getByTestId('stars-time').getByRole('button', { name: '3600×' });
-  await fast.click();
-  await expect(fast).toHaveAttribute('aria-pressed', 'true');
-  const play = page.getByTestId('stars-time').getByTestId('live-play');
-  await play.click();
-  await expect(play).toHaveAttribute('data-playing', 'true');
+  // FR-WIDE-4 as amended (V214-34): the live page's playback row — 3600×, then `[ Play ]`.
+  const row = page.getByTestId('stars-time').getByTestId('playback-controls');
+  await row.getByRole('button', { name: '3600×' }).click();
+  await row.getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
   await page.evaluate(installCounter);
   await page.waitForTimeout(SECONDS * 1000);
   const sample = await stop(page);
-  await play.click();
+  await row.getByRole('button', { name: 'Pause' }).click();
   return sample;
 }
 

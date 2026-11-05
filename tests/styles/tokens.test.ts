@@ -96,6 +96,11 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
     for (const ground of GROUND_TOKENS) expect(contrastRatio(token(theme, 'edge'), token(theme, ground)), `edge on ${ground}`).toBeGreaterThanOrEqual(3);
   });
 
+  // v2.14.1 (FR-WIDE-14, D-1141): a focused field's one line is its border in the ring's colour, `--accent`.
+  it('has a focused field’s border, the accent, at ≥ 3 : 1 on every ground (WCAG 2.4.11)', () => {
+    for (const ground of GROUND_TOKENS) expect(contrastRatio(token(theme, 'accent'), token(theme, ground)), `accent border on ${ground}`).toBeGreaterThanOrEqual(3);
+  });
+
   /** FR-DOME-2 / FR-THEME-3: a mark carries meaning, so it meets the non-text bar; the two base surfaces are not marks. */
   it('has every chart mark at ≥ 3 : 1 on the page ground, and the base surfaces below 1.5 : 1', () => {
     for (const mark of CHART_MARK_TOKENS) expect(contrastRatio(token(theme, mark), token(theme, 'bg')), mark).toBeGreaterThanOrEqual(3);

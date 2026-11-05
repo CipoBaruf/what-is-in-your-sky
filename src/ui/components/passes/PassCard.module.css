@@ -88,3 +88,23 @@
 .faint .name {
   color: var(--fg-dim);
 }
+
+/* v2.14.1 (V214-38, D-1135): the pass page's list in the rail — one line a pass, the card's frame closer in. The
+   element in the selector outranks the `Card` primitive's padding whatever order the modules load in. */
+article.dense {
+  padding: calc(var(--space-1) / 2) var(--space-2);
+}
+
+/* The detail is the part that stays (it says where and how bright); the name gives, with its ellipsis. */
+.denseDetail {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--small);
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+
+/* The `[ Next ISS ]` tag keeps its place on the one line, before the detail, which then takes the line's end. */
+.denseTag {
+  margin-left: 0;
+}

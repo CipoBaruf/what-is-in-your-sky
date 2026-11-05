@@ -27,7 +27,7 @@ import type { FactsSubject } from '../components/sky/facts/subject';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
-import { GLOBE_SPAN_DAYS } from '../components/guide/skychart/globe/constants';
+import { GLOBE_SPAN_DAYS, passOpenCentre } from '../components/guide/skychart/globe/constants';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { usePlayback } from '../components/sky/time/usePlayback';
 import { viewFor } from './chartViewDefault';
@@ -150,8 +150,24 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * tick; on wide the time control and the rise, peak and set buttons move it (a move past the span moves the span,
    * so a pass days ahead is reachable). Compact draws no control, so there `t` is the tick (FR-WIDE-12).
    */
-  const baseSpan = useMemo<Span>(() => ({ start: now, end: now + LIVE_WINDOW_MS }), [now]);
-  const playback = usePlayback({ span: baseSpan, realNow: now, initial: null, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone } });
+  /*
+   * v2.14.1 (FR-WIDE-3 as amended, D-1137): on wide the page opens paused at the pass's rise — the span reaches back to
+   * it for a pass already up — `Play` runs the marker along the drawn path, `[ now ]` returns to real time. A pass
+   * past the span is reached by `goTo` once, at open, as its rise button would (a move past the span moves the span).
+   */
+  const rise = pass.start.t;
+  const baseSpan = useMemo<Span>(() => {
+    const start = compact ? now : Math.min(now, rise);
+    return { start, end: start + LIVE_WINDOW_MS };
+  }, [now, rise, compact]);
+  const playback = usePlayback({ span: baseSpan, realNow: now, initial: compact ? null : rise, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone } });
+  const { goTo } = playback;
+  const openedAtRise = useRef(false);
+  useEffect(() => {
+    if (compact || openedAtRise.current) return;
+    openedAtRise.current = true;
+    if (rise > baseSpan.end) goTo(rise);
+  }, [compact, rise, baseSpan.end, goTo]);
   const shownT = playback.t;
   const [drawnNow, setDrawnNow] = useState(shownT);
   if (!inert && drawnNow !== shownT) setDrawnNow(shownT);
@@ -245,6 +261,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   const setChartView = useAppStore((s) => s.setChartView);
   const [heldView, setHeldView] = useState<ChartView | null>(null);
   const view = heldView ?? viewFor('pass', mode, savedView);
+  const openCentre = useMemo(() => passOpenCentre(pass), [pass]);
   const onChartView = useCallback(
     (next: ChartView) => {
       setHeldView(null);
@@ -296,6 +313,9 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
       follow={following}
       onFollowEnd={follow.onFollowEnd}
       legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
+      // D-1137: the globe opens facing the pass's peak and draws its whole path at every `t`.
+      globeOpenCentre={openCentre}
+      globeWholeArcs
     />
   );
   // The FR-GUIDE-1 sentence and the glare line: wide's page group, compact's sheet with the table after them.
@@ -355,7 +375,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           hint={hintShown && <SkyHint view={view} />}
           timeline={<PassTime pass={pass} observer={observer} playback={playback} now={now} />}
           action={<PassGroup view={following ? 'window' : view} times={times} facts={<LazyFacts subject={satellite} observer={observer} at={now} />} prose={prose} foot={foot} follow={action} />}
-          {...(passList === null ? {} : { list: passList })}
+          {...(passList === null ? {} : { list: passList, listFirst: true })}
         />
       </div>
     );

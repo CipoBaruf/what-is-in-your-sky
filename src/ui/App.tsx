@@ -3,7 +3,7 @@ import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
-import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
+import { isPassPageRoute, observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
@@ -25,7 +25,8 @@ import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/
 import { settingsShell } from './screens/SettingsRoute';
 import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
 import { StarsPage, useStarsRoute } from './screens/StarsRoute';
-import { clearRoute, open as openRoute } from './navigation';
+import { clearRoute, open as openRoute, useHash } from './navigation';
+import { PassEmpty } from './screens/sky/pass/Empty';
 import { Shell } from './Shell';
 import { useVisitHand } from './components/guide/skychart/useChartHand';
 
@@ -193,6 +194,8 @@ export function App() {
   const settings = useSettingsRoute();
   // R115 (FR-STAR-3, D-756): the fourth, the stars page.
   const stars = useStarsRoute();
+  // v2.14.1 (FR-CLEAN-14 as amended, D-1134): `#pass` with no id, the wide pass page with no pass in the span.
+  const passPageEmpty = isPassPageRoute(useHash()) && mode === 'wide' && observer !== null;
   /*
    * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
    * steps are held here rather than in `Home`, because the footer is this
@@ -309,7 +312,7 @@ export function App() {
         stars.leave();
         return true;
       }
-      if (selected === null) return false;
+      if (selected === null && !passPageEmpty) return false;
       close();
       return true;
     },
@@ -382,7 +385,7 @@ export function App() {
       }}
     />
   );
-  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : stars.active ? 'stars' : selected !== null ? 'pass' : 'home';
+  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : stars.active ? 'stars' : selected !== null || passPageEmpty ? 'pass' : 'home';
   const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
   const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
   if (liveShown) {
@@ -456,23 +459,29 @@ export function App() {
     );
   }
   /*
-   * R186 (FR-WIDE-1, D-1098): on wide a selected pass is a page of its own in the home's place — the app's header (its
-   * `[ home ]` a link back), the desk's shell with the home's list in its rail, the footer — and the home's doors and
-   * panes are not mounted. The hash is still `#pass=<id>` (D-13).
+   * R186 (FR-WIDE-1, D-1098): on wide a selected pass is a page of its own in the home's place — the app's header, the
+   * desk's shell with the pass list in its rail, the footer — and the home's doors and panes are not mounted. The hash
+   * is still `#pass=<id>` (D-13).
+   *
+   * v2.14.1 (FR-WIDE-1, FR-CLEAN-14 as amended; D-1134): it is a header page — `page="pass"`, so `[ ← ]` before the
+   * title and `[ satellites ]` the current link — and `[ ← ]` is the page's close (`Esc`, `[ × ]`): home with the card
+   * scrolled into view. A bare `#pass` is the same page with no pass (`PassEmpty`).
    */
-  if (mode === 'wide' && selected !== null && observer !== null) {
+  if (mode === 'wide' && observer !== null && (selected !== null || passPageEmpty)) {
+    // D-1135 (FR-WIDE-1 as amended): the rail's list is tonight's passes, the open one `aria-current`; a row opens its pass in place.
+    const passList = <PassList onOpenPass={openPass} selectedPassId={selected?.id ?? null} onlyTonight />;
     return (
       <Shell
         chrome="home"
         routeKey={routeKey}
         title={title}
-        banner={<Header inert={helpOpen} homeLink />}
+        banner={<Header page="pass" context={observer.label} onBack={close} inert={helpOpen} />}
         beforeMain={<PageNotices kinds={HOME_NOTES} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars, 'data-sky': 'pass' }}
         footer={<Footer inert={helpOpen} />}
         after={overlay}
       >
-        <PassDetail key={selected.id} pass={selected} observer={observer} onClose={close} inert={helpOpen} passList={<PassList onOpenPass={openPass} selectedPassId={selected.id} />} />
+        {selected !== null ? <PassDetail key={selected.id} pass={selected} observer={observer} onClose={close} inert={helpOpen} passList={passList} /> : <PassEmpty observer={observer} passList={passList} />}
       </Shell>
     );
   }

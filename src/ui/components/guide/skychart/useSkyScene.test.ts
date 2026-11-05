@@ -129,8 +129,9 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
       expect(at(-2).stars?.catalog).toBe(field?.catalog);
     });
 
-    it('draws nothing at +1°', () => {
-      expect(at(1)).toEqual({ stars: null });
+    // v2.14.1 (D-1139): no field at +1° still, and the scene says it is daylight, for the globe's day stars.
+    it('draws no field at +1°, and says it is daylight (D-1139)', () => {
+      expect(at(1)).toEqual({ stars: null, daylight: true });
     });
 
     it('steps with the shown instant itself: a scrub from night into day thins and then empties the field at once', () => {
@@ -139,7 +140,7 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
       rerender(-5);
       expect(result.current.stars?.catalog.mag).toHaveLength(2);
       rerender(5);
-      expect(result.current).toEqual({ stars: null });
+      expect(result.current).toEqual({ stars: null, daylight: true });
     });
 
     /*

@@ -1,11 +1,13 @@
 import type { MouseEvent, ReactNode, Ref } from 'react';
 import type { HeaderPage } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
-import { SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
+import { firstPassFor } from '../../../lib/livePasses';
+import { PASS_PAGE_HASH, passIdHash, SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
 import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { home } from '../../navigation';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
+import { useShownClock, useShownPasses } from '../../screens/home/shownPasses';
 import { loadStarsChunk } from '../../screens/starsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
@@ -36,7 +38,8 @@ import styles from './Header.module.css';
  * only while no place is known (the inert page).
  *
  * **Wide.** One row on every page: `[ ← ]` on a sub-page, the mark and the
- * title, the page links `[ home ] [ live ] [ stars ]` one cell apart — R166
+ * title, the page links `[ home ] [ live ] [ satellites ] [ stars ]` one cell apart (v2.14.1, FR-CLEAN-14 as
+ * amended, D-1134: the pass page is one of them, its link the pass up now or the span's next) — R166
  * (FR-CLEAN-14): `BracketLink`s, the current one the primitive's dim
  * `aria-current` span, as `[ settings ]` is on its own page — the context on a
  * sub-page, and `[ settings ]` at the row's right end. The tagline is the home's only, under the row. The
@@ -74,23 +77,33 @@ export interface HeaderProps {
   landmark?: boolean;
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
   inert?: boolean;
-  /** R186 (FR-WIDE-1): the wide pass detail stands in the home's place, under the home's header, and `[ home ]` is a link back to the home there. */
-  homeLink?: boolean;
   /** R93 (D-545): the page under this header is still on its way (the settings chunk), so the bead runs. */
   busy?: boolean;
 }
 
-/** The wide row's page links, in order (FR-FLOW-3). */
-const NAV_PAGES = ['home', 'live', 'stars'] as const satisfies readonly HeaderPage[];
-const NAV_HREF: Record<(typeof NAV_PAGES)[number], string> = { home: '#', live: '#live', stars: STARS_HASH };
+/** The wide row's page links, in order (FR-FLOW-3; v2.14.1, FR-CLEAN-14 as amended, D-1134: `pass` between `live` and `stars`). */
+const NAV_PAGES = ['home', 'live', 'pass', 'stars'] as const satisfies readonly HeaderPage[];
+const NAV_HREF: Record<Exclude<(typeof NAV_PAGES)[number], 'pass'>, string> = { home: '#', live: '#live', stars: STARS_HASH };
+
+/**
+ * D-1134: `[ satellites ]`'s href — `#pass=<id>` of the pass up now, else the span's next (`firstPassFor`, over the
+ * passes the list shows on its clock), and `#pass` with no id when the span holds none (the page's empty line).
+ */
+function usePassPageHref(): string {
+  const passes = useShownPasses();
+  const clock = useShownClock();
+  const first = firstPassFor(passes, clock);
+  return first === null ? PASS_PAGE_HASH : passIdHash(first.id);
+}
 
 /** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
 const TARGET = 'target';
 
-export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false, homeLink = false }: HeaderProps) {
+export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
   const loading = (useAppStore(isLoading) && page === 'home') || busy;
+  const passHref = usePassPageHref();
   const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
   // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
   // Best effort: a prefetch that fails is dropped by `loadSettingsChunk`, and the tap will ask again.
@@ -152,20 +165,21 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   }
 
   // The home and settings pages have no `h1` of their own on wide; the live and stars pages do (FR-A11Y-1).
-  // R186 (FR-WIDE-1): the wide pass detail (`homeLink`) names itself by the pass's h1 in its rail, as the stars page does.
-  const Title = (page === 'home' && !homeLink) || page === 'settings' ? 'h1' : 'p';
+  // R186 (FR-WIDE-1): the wide pass page names itself by the pass's h1 in its rail, as the stars page does.
+  const Title = page === 'home' || page === 'settings' ? 'h1' : 'p';
   /*
    * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `[ home ] [ live ] [ stars ]`, so they read
    * as the controls they are, like `[ settings ]`; the current page is the primitive's dim `aria-current` span.
    */
   const navLink = (target: (typeof NAV_PAGES)[number]): ReactNode => {
     const label = t.header.pages[target];
+    const href = target === 'pass' ? passHref : NAV_HREF[target];
     // The current page is not a control, so it carries no target floor: a flex item, the floor would make it a 44 px block and the row 20 px taller.
-    if (target === page && !(homeLink && target === 'home')) return <BracketLink key={target} href={NAV_HREF[target]} label={label} current data-testid={`${target}-link`} />;
+    if (target === page) return <BracketLink key={target} href={href} label={label} current data-testid={`${target}-link`} />;
     return (
       <BracketLink
         key={target}
-        href={NAV_HREF[target]}
+        href={href}
         label={label}
         className={TARGET}
         data-testid={`${target}-link`}
@@ -201,7 +215,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
         {settings}
       </div>
       {/* R186 (FR-WIDE-1): the wide pass detail's header is one row, as the other sky pages' are, so the three boxes stand at one top. */}
-      {page === 'home' && !homeLink && <p className={styles.tagline}>{t.app.tagline}</p>}
+      {page === 'home' && <p className={styles.tagline}>{t.app.tagline}</p>}
       {/* R105 (D-720): the wide header's rule under its last line (R23, FR-DESK-2). The live page's own grid draws its
           rows (D-855): there the header is the top row, one text row on a short window (FR-SHP-3), and carries no rule. */}
       {landmark && <Rule className={styles.rule} />}

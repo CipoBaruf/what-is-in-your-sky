@@ -1,0 +1,36 @@
+/* v2.14.1 (FR-WIDE-13, D-1140): the first-pass dialog — the page dimmed under the raised surface at
+   `--screen-overlay-alpha`, and the question in a block with a hairline edge at the centre, as wide as its sentence
+   and no wider than the viewport less a gutter. Every length is a token or a count of cells (FR-DS-2). */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--space-3) calc(2 * var(--cell));
+  background: color-mix(in srgb, var(--bg) var(--screen-overlay-alpha), transparent);
+}
+
+.frame {
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: min(100%, calc(64 * var(--cell)));
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) calc(2 * var(--cell));
+  border: var(--border);
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.question {
+  margin: 0;
+  line-height: var(--row);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 calc(2 * var(--cell));
+}

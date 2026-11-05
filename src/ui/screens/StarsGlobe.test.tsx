@@ -76,10 +76,10 @@ const showGlobe = (name = 'Globe'): Promise<HTMLElement> => {
   fireEvent.click(viewRow().getByRole('button', { name }));
   return globe();
 };
-// R187 (FR-WIDE-4): the globe's instant is the time control's `t`, the overview slider's value.
-const clockAt = (): number => Number(screen.getByTestId('stripe-overview').getAttribute('aria-valuenow'));
-const timeState = (): string | null => screen.getByTestId('time-control').getAttribute('data-state');
-const readoutClock = (): string => screen.getByTestId('time-readout').textContent ?? '';
+// v2.14.1 (FR-WIDE-4 as amended, D-1138; was R187's overview slider): the globe's instant is the clock's `data-at`.
+const clockAt = (): number => Number(screen.getByTestId('globe-clock').getAttribute('data-at'));
+const chipKind = (): string | null => screen.getByTestId('globe-chip').getAttribute('data-kind');
+const readoutClock = (): string => screen.getByTestId('globe-clock').querySelector('time')?.textContent ?? '';
 const skyLabel = (): string => screen.getByTestId('stars-sky').getAttribute('aria-label') ?? '';
 
 describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE-12)', () => {
@@ -175,7 +175,10 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(within(screen.getByTestId('globe-turn')).getAllByRole('button').map((b) => b.textContent)).toEqual([es.globe.turn.you, es.globe.turn.stars]);
     expect(screen.getByRole('button', { name: es.globe.faint })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByRole('button', { name: es.globe.stepNames.hourAhead }));
-    expect(screen.getByTestId('time-now')).toHaveTextContent(es.skyView.now);
+    expect(screen.getByTestId('globe-now')).toHaveTextContent(es.skyView.now);
+    // V214-34: the live page's playback row, in Spanish.
+    expect(within(screen.getByTestId('stars-time')).getByTestId('live-play')).toHaveTextContent(es.live.play);
+    expect(within(screen.getByRole('group', { name: es.live.speedGroup })).getAllByRole('button').map((b) => b.textContent)).toEqual([1, 60, 600, 3600].map((rate) => es.live.speed(rate)));
     const time = /\d\d:\d\d GMT[−-]3/.exec(skyLabel())?.[0] ?? '';
     expect(skyLabel()).toBe(es.globe.label({ place: 'Buenos Aires', time, turn: 'you' }));
   });
@@ -188,10 +191,10 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     const hash = window.location.hash;
     const stored = JSON.stringify(window.localStorage);
     const at = clockAt();
-    expect(timeState()).toBe('watching');
+    expect(chipKind()).toBe('now');
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.dayAhead }));
     expect(clockAt() - at).toBe(24 * HOUR_MS);
-    expect(timeState()).toBe('scrubbing');
+    expect(chipKind()).not.toBe('now');
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.hourBack }));
     expect(clockAt() - at).toBe(23 * HOUR_MS);
     // The window keeps real time; back on the globe, its instant is where it was left.
@@ -202,49 +205,49 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(window.location.hash).toBe(hash);
     expect(JSON.stringify(window.localStorage)).toBe(stored);
     // `[ now ]`: real time again, stopped.
-    fireEvent.click(screen.getByTestId('time-now'));
-    expect(timeState()).toBe('watching');
+    fireEvent.click(screen.getByTestId('globe-now'));
+    expect(chipKind()).toBe('now');
   });
 
-  it('FR-WIDE-4: the steps stand under the playback row; a day step past the span moves the span to that night, [ now ] brings it back', async () => {
+  it('FR-WIDE-4 as amended (D-1138, V214-34): the Time group is the clock, the steps, [ now ] and the playback row — no overview, no stripe, no pass marks', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened();
     await showGlobe();
-    const overview = (): HTMLElement => screen.getByTestId('stripe-overview');
-    const start = Number(overview().getAttribute('aria-valuemin'));
+    const time = screen.getByTestId('stars-time');
+    expect([...time.children].map((el) => el.getAttribute('data-testid') ?? el.tagName)).toEqual(['H2', 'globe-clock', 'globe-steps', 'globe-speeds']);
+    for (const id of ['stripe-overview', 'time-stripe', 'time-control', 'overview-row']) expect(within(time).queryByTestId(id)).toBeNull();
+    expect(document.querySelector('[data-rail] [data-pass-mark], [data-rail] [data-pass-id]')).toBeNull();
+    expect(within(time).getAllByRole('button').map((b) => b.textContent)).toEqual(['−1 d', '−1 h', '+1 h', '+1 d', en.skyView.now, en.live.play, '1×', '60×', '600×', '3600×']);
+    // `[ now ]` then the playback row, on one line.
+    expect([...screen.getByTestId('globe-speeds').children].map((el) => el.getAttribute('data-testid'))).toEqual(['globe-now', 'playback-controls']);
+    // A day step past the 24 h moves the span with it (R187's `shiftDays`), two days on, and `[ now ]` comes back.
     const at = clockAt();
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.dayAhead }));
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.dayAhead }));
     expect(clockAt() - at).toBe(48 * HOUR_MS);
-    const moved = Number(overview().getAttribute('aria-valuemin'));
-    expect(moved).toBeGreaterThan(start + 24 * HOUR_MS);
-    expect(Number(overview().getAttribute('aria-valuemax')) - moved).toBe(24 * HOUR_MS);
-    expect(clockAt()).toBeGreaterThanOrEqual(moved);
-    // The control's rows, in order: the time row with the playback row, the overview, the stripe, then the steps.
-    const block = screen.getByTestId('stripe-block');
-    expect([...block.children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'globe-steps', 'time-now-row']);
-    fireEvent.click(screen.getByTestId('time-now'));
-    expect(timeState()).toBe('watching');
-    expect(Number(overview().getAttribute('aria-valuemin'))).toBe(start);
+    fireEvent.click(screen.getByTestId('globe-now'));
+    expect(chipKind()).toBe('now');
   });
 
-  it('FR-WIDE-4: plays at the playback row\'s speeds, and pauses (FR-GLOBE-7)', async () => {
+  it('plays as the live page does: a speed picks the rate, [ Play ] runs the clock, [ Pause ] holds it (FR-WIDE-4 as amended, V214-34)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened();
     await showGlobe();
-    fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.hourAhead }));
+    const time = within(screen.getByTestId('stars-time'));
     const speeds = within(screen.getByRole('group', { name: en.live.speedGroup }));
-    expect(speeds.getAllByRole('button').map((b) => b.textContent)).toEqual(['1×', '60×', '600×', '3600×']);
-    const fast = speeds.getByRole('button', { name: '3600×' });
+    const fast = speeds.getByRole('button', { name: en.live.speed(3600) });
     fireEvent.click(fast);
     expect(fast).toHaveAttribute('aria-pressed', 'true');
-    const play = screen.getByTestId('live-play');
-    fireEvent.click(play);
-    expect(play).toHaveAttribute('data-playing', 'true');
-    fireEvent.click(play);
-    expect(play).toHaveAttribute('data-playing', 'false');
+    expect(appStore.getState().playSpeed).toBe(3600);
+    // A speed alone does not play; `[ Play ]` does, and its word turns to `Pause`.
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
+    fireEvent.click(time.getByRole('button', { name: en.live.play }));
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
+    fireEvent.click(time.getByRole('button', { name: en.live.pause }));
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
+    expect(chipKind()).not.toBe('now');
   });
 
   it('lists the observer then the saved places; a press moves the clock’s zone and the list and leaves the store alone (FR-GLOBE-8, FR-GLOBE-9)', async () => {
@@ -260,7 +263,7 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
       ['London', 'false'],
       ['Tokyo', 'false'],
     ]);
-    // R187 (FR-WIDE-4, FR-GLOBE-8): the readout, while the instant is held, is in the shown place's zone — three hours on in London.
+    // FR-GLOBE-8: the clock is in the shown place's zone — three hours on in London.
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.hourAhead }));
     const at = clockAt();
     const inBuenosAires = readoutClock();

@@ -9,6 +9,10 @@
  * language or theme switch anywhere.
  *
  * R166 (FR-CLEAN-14): on wide the page links are `[ home ] [ live ] [ stars ]`, the current one dimmed.
+ *
+ * v2.14.1 (FR-CLEAN-14, FR-WIDE-1 as amended; D-1134): four links, `[ home ] [ live ] [ satellites ] [ stars ]`, and
+ * the pass page is a sub-page like the others — `[ ← ]` first, `satellites` the current form. `[ satellites ]` opens
+ * the pass up now, else the span's next, else the bare `#pass`.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -19,6 +23,11 @@ import type { HeaderPage } from '../../../i18n/messages';
 import { CATALOGS, I18nProvider } from '../../../i18n/useT';
 import { LOCALES } from '../../../i18n/locale';
 import type { Locale } from '../../../model';
+import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
+import { LIVE_WINDOW_MS } from '../../../lib/livePasses';
+import type { Pass } from '../../../model';
+import { appStore } from '../../../state';
+import { IDLE_PASSES } from '../../../state/slices/passes';
 import { open, resetNavigation, subscribe } from '../../navigation';
 import { Header, type HeaderProps } from './Header';
 
@@ -29,7 +38,9 @@ afterEach(() => {
   window.history.replaceState(null, '', window.location.pathname);
 });
 
-const SUB_PAGES = ['live', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
+// D-1134: the pass page is a sub-page, `[ ← ]` and its name, as the live and stars pages are.
+const SUB_PAGES = ['live', 'pass', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
+const NAV = ['home', 'live', 'pass', 'stars'] as const;
 const PLACE = '−38.93, −67.99';
 
 const renderIn = (locale: Locale, props: HeaderProps = {}) => render(<I18nProvider locale={locale}>{<Header {...props} />}</I18nProvider>);
@@ -107,7 +118,7 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
  * span (no `href`), the other two links in the accent; no accent rule under the current one.
  */
 function expectBracketedLinks(page: HeaderPage): void {
-  for (const target of ['home', 'live', 'stars'] as const) {
+  for (const target of NAV) {
     const link = screen.getByTestId(`${target}-link`);
     expect(link.className, target).toMatch(/bracketLink/);
     expect(link.className, target).not.toMatch(/navCurrent|navLink/);
@@ -132,10 +143,14 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     expect(within(banner).getByRole('heading', { level: 1, name: t.app.title })).toBeInTheDocument();
     expect(banner).toHaveTextContent(t.app.tagline);
     const nav = screen.getByRole('navigation', { name: t.header.nav });
-    expect(within(nav).getAllByTestId(/-link$/).map((link) => link.textContent)).toEqual([t.header.pages.home, t.header.pages.live, t.header.pages.stars]);
+    // D-1134: four forms, `satellites` / `satélites` between `live` and `stars`.
+    expect(within(nav).getAllByTestId(/-link$/).map((link) => link.textContent)).toEqual(NAV.map((page) => t.header.pages[page]));
+    expect(t.header.pages.pass).toBe(locale === 'es' ? 'satélites' : 'satellites');
     expect(screen.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('home-link')).not.toHaveAttribute('href');
     expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
+    // No pass in the store: the pass page with no id (D-1134).
+    expect(screen.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
     expect(screen.getByTestId('stars-link')).toHaveAttribute('href', '#stars');
     expectBracketedLinks('home');
     expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
@@ -162,7 +177,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     fireEvent.click(back);
     expect(onBack).toHaveBeenCalledOnce();
     // The current page is marked where it is one of the links; the others are links in the accent.
-    for (const target of ['home', 'live', 'stars'] as const) {
+    for (const target of NAV) {
       const link = screen.getByTestId(`${target}-link`);
       if (target === page) {
         expect(link).toHaveAttribute('aria-current', 'page');
@@ -173,7 +188,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     }
     expect(screen.getByTestId('settings-link').hasAttribute('aria-current')).toBe(page === 'settings');
     expectBracketedLinks(page);
-    // The live and stars pages carry their own h1, and the wide pass is the home's panel; settings has the title as its h1.
+    // The live, stars and pass pages carry their own h1 (the pass's name, D-1134); settings has the title as its h1.
     expect(screen.queryAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(page === 'settings' ? [t.app.title] : []);
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();
@@ -181,6 +196,26 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
 });
 
 describe('<Header> wide links', () => {
+  it.each([
+    ['a pass up', ['up', 'next'], '#pass=up'],
+    ['one ahead', ['gone', 'next', 'later'], '#pass=next'],
+    ['none in the span', ['gone', 'tomorrow'], '#pass'],
+  ] as const)('[ satellites ] with %s opens the pass it names (D-1134)', (_case, ids, href) => {
+    media = stubMatchMedia(WIDE_PX);
+    const T0 = Date.UTC(2026, 10, 5, 0, 0);
+    const MIN = 60_000;
+    const starts: Record<string, number> = { gone: T0 - 60 * MIN, up: T0 - 2 * MIN, next: T0 + 30 * MIN, later: T0 + 90 * MIN, tomorrow: T0 + LIVE_WINDOW_MS + MIN };
+    const passes = ids.map((id) => ({ id, noradId: 25544, peakMagnitude: -2, start: { t: starts[id] }, peak: { t: (starts[id] ?? 0) + 2 * MIN }, end: { t: (starts[id] ?? 0) + 5 * MIN }, ...NO_MOON_AT_PEAK }) as unknown as Pass);
+    const initial = appStore.getInitialState();
+    appStore.setState({ nowMs: T0, elements: { status: 'ready', records: [], unavailable: [], rejected: [], fetchedAt: T0, stale: false, persistent: true }, passes: { ...IDLE_PASSES, status: 'done', passes, hasDarkness: true } });
+    try {
+      render(<Header page="live" onBack={vi.fn()} />);
+      expect(screen.getByTestId('pass-link')).toHaveAttribute('href', href);
+    } finally {
+      appStore.setState(initial, true);
+    }
+  });
+
   it('home leaves every entry this session pushed, in one step', () => {
     media = stubMatchMedia(WIDE_PX);
     const go = vi.spyOn(window.history, 'go').mockImplementation(() => undefined);

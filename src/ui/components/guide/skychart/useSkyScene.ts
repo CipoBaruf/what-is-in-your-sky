@@ -113,7 +113,10 @@ export interface SkySceneInput {
 }
 
 /** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen, shared with `starScene.ts`. */
-export const NO_STARS: SkyScene = Object.freeze({ stars: null });
+const NO_STARS: SkyScene = Object.freeze({ stars: null });
+
+/** D-1139: the stars layer on under a Sun above 0° — no field for the window, the dome or the polar chart; the globe's day stars. Frozen, shared with `starScene.ts`. */
+export const DAY_SKY: SkyScene = Object.freeze({ stars: null, daylight: true });
 
 export function useSkyScene({ observer, now, starsLayer, source, pass = null }: SkySceneInput): SkyScene {
   const { lat, lon } = observer;

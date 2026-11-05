@@ -7,6 +7,7 @@ export const globe: typeof EnGlobe = {
     steps: { dayBack: '−1 d', hourBack: '−1 h', hourAhead: '+1 h', dayAhead: '+1 d' },
     stepNames: { dayBack: 'Un día antes', hourBack: 'Una hora antes', hourAhead: 'Una hora después', dayAhead: 'Un día después' },
     stepGroup: 'Pasos',
+    clock: 'Hora del globo',
     turnHeading: 'Giro',
     turn: { you: 'con el horizonte', stars: 'con las estrellas' },
     placeHeading: 'Lugar',

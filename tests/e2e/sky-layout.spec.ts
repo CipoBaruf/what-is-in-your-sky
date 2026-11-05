@@ -29,7 +29,7 @@ import { SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { onWindow } from './globeHelpers';
-import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
+import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, LIST_FIRST_ORDER, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -310,23 +310,29 @@ for (const locale of LOCALES) {
       for (const [name, shell] of Object.entries(measured)) {
         expect(shell.box, `${name}'s box`).toEqual(live.box);
         expect(shell.rail, `${name}'s rail`).toEqual(live.rail);
-        // The rows a page fills are SLOT_ORDER's, in that order.
-        expect(shell.order, name).toEqual(SHELL_ORDER.filter((slot) => shell.order.includes(slot)));
-        expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
-        expect(shell.order.at(-1), name).toBe('list');
+        // The rows a page fills are SLOT_ORDER's, in that order; the pass page's list comes right under the head (V214-33, D-1135).
+        const order = name === 'pass' ? LIST_FIRST_ORDER : SHELL_ORDER;
+        expect(shell.order, name).toEqual(order.filter((slot) => shell.order.includes(slot)));
+        if (name === 'pass') expect(shell.order.slice(0, 5), name).toEqual(['answer', 'list', 'viewRow', 'timeline', 'action']);
+        else {
+          expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
+          expect(shell.order.at(-1), name).toBe('list');
+        }
       }
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });
 
-    // R187 (FR-WIDE-4, US-52 AC4): held, the three Time groups show the same controls in order; the rows a page adds are its own.
-    test('FR-WIDE-4: the three Time groups have the same controls in the same order', async ({ page }) => {
+    // R187 (FR-WIDE-4, US-52 AC4): held, the live and pass Time groups show the same controls in order; the rows a page
+    // adds are its own. v2.14.1 (FR-WIDE-4 as amended, D-1138): the stars page's is FR-GLOBE-7's own (`stars.spec.ts`).
+    test('FR-WIDE-4: the live and pass Time groups have the same controls in the same order', async ({ page }) => {
       const controls: Record<string, string[]> = {};
       for (const [name, open] of [
-        ['live', openLive], ['stars', openStarsDesk], ['pass', openDetail],
+        ['live', openLive], ['pass', openDetail],
       ] as const) {
         const layout = await open(page, locale);
         const control = layout.getByTestId('time-control');
-        await expect(control, name).toHaveAttribute('data-state', 'watching', { timeout: 30_000 });
+        // v2.14.1 (D-1137): the pass page opens held at its rise, the other two watching.
+        await expect(control, name).toHaveAttribute('data-state', name === 'pass' ? 'scrubbing' : 'watching', { timeout: 30_000 });
         await control.getByTestId('stripe-overview').click();
         await expect(control, name).toHaveAttribute('data-state', 'scrubbing');
         controls[name] = await control.evaluate((el: HTMLElement) =>
@@ -336,7 +342,6 @@ for (const locale of LOCALES) {
         );
       }
       expect(controls['live']?.length, JSON.stringify(controls)).toBeGreaterThanOrEqual(7);
-      expect(controls['stars'], 'the stars page').toEqual(controls['live']);
       expect(controls['pass'], 'the pass detail').toEqual(controls['live']);
     });
 

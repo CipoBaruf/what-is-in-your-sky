@@ -11,7 +11,7 @@ import type { ArcColorBy } from './arcLayer';
 import { GLOBE_KEY_STEP_DEG, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { frameFor, GlobeRenderer, projectorFor, readoutLine, sameTarget, type GlobeLayers, type GlobeTarget, type Turn } from './GlobeRenderer';
 import { PLANETS } from '../../../../../lib/skyStars';
-import { coordsIn, dragTurn, EQUATORIAL, openView } from './projection';
+import { centreView, coordsIn, dragTurn, EQUATORIAL, openView } from './projection';
 import { globeSky } from './scene';
 import styles from './SkyGlobe.module.css';
 
@@ -96,10 +96,20 @@ export interface SkyGlobeProps {
   onPassHover?: (passId: string | null) => void;
   /** What a tap hit, or `null` for nothing. */
   onPick?: (pick: GlobePick | null) => void;
+  /** v2.14.1 (FR-WIDE-3 as amended, D-1137): the sky direction the view opens on — at mount, on a place change and on `Home` — in place of FR-GLOBE-1's (`openView`). */
+  openCentre?: OpenCentre | undefined;
+  /** D-1137: the passes' whole tracks at every `t` (the pass page), not only their part up at `t`. */
+  wholeArcs?: boolean;
   /** R190 (FR-KEEP-1, D-1096): the zoom the globe opens at, the saved `globeZoom` (clamped); 1 where absent. Read once. */
   zoom?: number;
   /** R190 (FR-KEEP-1): the reader's zoom (`+`, `-`, wheel, pinch, `Home`), told back to be saved; a drag never calls it. */
   onZoom?: (zoom: number) => void;
+}
+
+/** A sky direction: azimuth from north through east, altitude, degrees. */
+export interface OpenCentre {
+  azDeg: number;
+  altDeg: number;
 }
 
 interface View {
@@ -125,9 +135,10 @@ function wheelNotches(event: WheelEvent, pagePx: number): number {
 }
 
 /** FR-GLOBE-5, D-1036: the opening view in `turn`'s frame — the local frame's opening view, carried into the equatorial one when turning with the stars. */
-function openingView(turn: Turn, place: Observer, t: EpochMs): View {
+function openingView(turn: Turn, place: Observer, t: EpochMs, centre?: OpenCentre): View {
   const sky = globeSky(place, t);
-  const view = openView(sky);
+  // D-1137: a page's own centre (the pass page's peak) in place of FR-GLOBE-1's.
+  const view = centre ? centreView(sky, centre) : openView(sky);
   const inFrame = turn === 'stars' ? coordsIn(EQUATORIAL, sky.frame, view.lon, view.lat) : view;
   return { lon: inFrame.lon, lat: inFrame.lat, zoom: 1 };
 }
@@ -152,12 +163,17 @@ function listTarget(index: number | null, size: number): GlobeTarget | null {
   return body === undefined ? null : { kind: 'planet', body };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick, zoom: openingZoom = 1, onZoom }: SkyGlobeProps) {
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick, zoom: openingZoom = 1, onZoom, openCentre, wholeArcs = false }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const rendererRef = useRef<GlobeRenderer | null>(null);
-  const viewRef = useViewRef(() => ({ ...openingView(turn, place, instant), zoom: clampZoom(openingZoom) }));
+  const viewRef = useViewRef(() => ({ ...openingView(turn, place, instant, openCentre), zoom: clampZoom(openingZoom) }));
+  // Read when the view re-opens (a place change, `Home`), so a new object each render is not a change.
+  const openCentreRef = useRef(openCentre);
+  useLayoutEffect(() => {
+    openCentreRef.current = openCentre;
+  }, [openCentre]);
   const [named, setNamed] = useState<GlobeTarget | null>(null);
   const [hovered, setHovered] = useState<GlobeTarget | null>(null);
   const listed = useMemo(() => listTarget(listNamed, catalog.size), [listNamed, catalog]);
@@ -176,7 +192,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     const svg = svgRef.current;
     if (!box || !svg) return;
     const view = viewRef.current;
-    const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null });
+    const renderer = new GlobeRenderer(svg, catalog, { place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, ...measure(box), named: null, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null, wholeArcs });
     rendererRef.current = renderer;
     // FR-A11Y-1..3 with V212-11 (D-1054): a desk opens on the globe, so its box takes the page's focus as the window's does — unless the reader has put it somewhere already.
     const active = document.activeElement;
@@ -219,13 +235,13 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (was.lat !== place.lat || was.lon !== place.lon || was.altM !== place.altM) {
       placeRef.current = place;
       if (turn === 'you') {
-        const opened = openingView(turn, place, instant);
+        const opened = openingView(turn, place, instant, openCentreRef.current);
         view.lon = opened.lon;
         view.lat = opened.lat;
       }
     }
-    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named ?? listed, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null });
-  }, [place, instant, turn, layers, faint, language, hovered, named, listed, viewRef, passes, t, highlightedPassId, colorBy, legendKeys]);
+    renderer?.set({ place, t: instant, turn, lon: view.lon, lat: view.lat, zoom: view.zoom, layers, faint, lang: language, named: hovered ?? named ?? listed, passes, passT: t ?? instant, highlightedPassId, colorBy, keys: legendKeys ?? null, wholeArcs });
+  }, [place, instant, turn, layers, faint, language, hovered, named, listed, viewRef, passes, t, highlightedPassId, colorBy, legendKeys, wholeArcs]);
 
   // FR-WIDE-7 (D-1099): the arc under the mouse, tested at most once an animation frame; the page hears only a change.
   const hoverRef = useRef<{ x: number; y: number; frame: number; pass: string | null }>({ x: 0, y: 0, frame: 0, pass: null });
@@ -528,7 +544,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
         zoomBy(1 / GLOBE_ZOOM_STEP);
       },
       Home: () => {
-        writeView(openingView(turn, place, instant));
+        writeView(openingView(turn, place, instant, openCentreRef.current));
       },
     };
     const move = moves[event.key];

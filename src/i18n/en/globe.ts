@@ -3,7 +3,7 @@
  * stars page's globe rail — the view's name on wide, the `Time`, `Turn` and `Place` groups, `faint`, the count, the
  * planets' line, `Up from <place>` and the drawing's name. In `main` with the rest of the catalog (FR-I18N-2's one
  * catalog, within `GLOBE_MAIN_KB`). The drawing's own words (the poles, the zenith, "below") are `chart.globe`'s
- * (R169). The steps' and the speeds' visible labels are numbers and the same in both languages (FR-I18N-4); their
+ * (R169). The steps' visible labels are numbers and the same in both languages (FR-I18N-4); their
  * accessible names are words.
  */
 export const globe = {
@@ -15,6 +15,8 @@ export const globe = {
     /** The steps' accessible names. */
     stepNames: { dayBack: 'A day earlier', hourBack: 'An hour earlier', hourAhead: 'An hour later', dayAhead: 'A day later' },
     stepGroup: 'Steps',
+    /** FR-GLOBE-8 (restored v2.14.1, D-1138): the clock line's accessible prefix. */
+    clock: 'Globe time',
     /** FR-GLOBE-5: the turn's row. */
     turnHeading: 'Turn',
     turn: { you: 'with you', stars: 'with the stars' },

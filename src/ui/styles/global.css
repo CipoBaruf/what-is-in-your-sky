@@ -190,6 +190,15 @@ p {
   outline: none;
 }
 
+/* v2.14.1 (FR-WIDE-14, V214-31; D-1141): a focused field draws one line — its own border in the ring's colour, and
+   no ring round it. The ring above, two px out from the field's hairline border, read as a double line. Buttons,
+   links and every other control keep the ring (D-704). No module restates this; `tokens.test.ts` holds the accent
+   at 3 : 1 on every ground. */
+:is(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
 input,
 button {
   font: inherit;

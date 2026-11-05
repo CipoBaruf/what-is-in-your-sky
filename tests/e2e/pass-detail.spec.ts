@@ -167,7 +167,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
 });
 
 /**
- * R187 (FR-WIDE-4, FR-FLOW-7; D-1100): on a desk the pass detail's `t` opens at now; its rise, peak and set cells are
+ * R187 (FR-WIDE-4, FR-FLOW-7; D-1100): on a desk the pass detail's `t` opens at the rise (v2.14.1, D-1137); its rise, peak and set cells are
  * buttons that set `t` to their instant, which the shared time control's readout then shows.
  */
 test.describe('the pass detail on a desk (FR-WIDE-4)', () => {
@@ -179,7 +179,8 @@ test.describe('the pass detail on a desk (FR-WIDE-4)', () => {
     const layout = page.getByTestId('pass-layout');
     await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
     const control = layout.getByTestId('time-control');
-    await expect(control).toHaveAttribute('data-state', 'watching');
+    // v2.14.1 (FR-WIDE-3 as amended, D-1137; before: it opened watching at now): it opens held at the rise.
+    await expect(control).toHaveAttribute('data-state', 'scrubbing');
     const peak = layout.locator('[data-set="peak"]');
     const clock = ((await peak.textContent()) ?? '').slice(0, 5);
     expect(clock).toMatch(/^\d\d:\d\d$/);
