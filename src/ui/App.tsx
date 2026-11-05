@@ -468,7 +468,8 @@ export function App() {
    * scrolled into view. A bare `#pass` is the same page with no pass (`PassEmpty`).
    */
   if (mode === 'wide' && observer !== null && (selected !== null || passPageEmpty)) {
-    const passList = <PassList onOpenPass={openPass} selectedPassId={selected?.id ?? null} />;
+    // D-1135 (FR-WIDE-1 as amended): the rail's list is tonight's passes, the open one `aria-current`; a row opens its pass in place.
+    const passList = <PassList onOpenPass={openPass} selectedPassId={selected?.id ?? null} onlyTonight />;
     return (
       <Shell
         chrome="home"

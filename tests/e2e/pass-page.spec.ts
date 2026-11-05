@@ -5,7 +5,7 @@
  * amended requirements, at 1024 × 640, 1280 × 800 and 1920 × 1080, in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { NINE_DAYS_ON, seedStoredRun, STORED_RUN } from './liveHelpers';
+import { NINE_DAYS_ON, seedStoredRun, STORED_RUN, stubNetwork } from './liveHelpers';
 
 type Locale = 'en' | 'es';
 const SIZES = [
@@ -68,6 +68,47 @@ for (const [width, height] of SIZES) {
           await expect(card).toBeInViewport();
           await expect(card).toBeFocused();
         });
+
+        test('FR-WIDE-1: the rail’s list is tonight’s passes, this one aria-current; a second row opens its pass in place (D-1135)', async ({ page }, info) => {
+          test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
+          await home(page, locale);
+          const layout = await openFromHeader(page);
+          const rail = layout.locator('[data-slot="list"]');
+          const rows = rail.locator('article[data-pass-id]');
+          const first = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
+          const ids = await rows.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
+          expect(ids.length).toBeGreaterThan(1);
+          // Tonight's: every row inside the 24 h from now (D-1135), the open pass the marked one.
+          for (const id of ids) expect(startOf(id), id).toBeLessThanOrEqual(NINE_DAYS_ON + LIVE_WINDOW_MS);
+          await expect(rail.locator('article[aria-current]')).toHaveCount(1);
+          await expect(rail.locator(`article[data-pass-id="${first}"]`)).toHaveAttribute('aria-current', 'true');
+          // No home in between: every hash the page passes through, and whether the home's main was ever mounted.
+          await page.evaluate(() => {
+            const w = window as unknown as { hashes: string[]; homeSeen: boolean };
+            w.hashes = [];
+            w.homeSeen = false;
+            window.addEventListener('hashchange', () => w.hashes.push(window.location.hash));
+            new MutationObserver(() => {
+              if (document.querySelector('main[data-home]')) w.homeSeen = true;
+            }).observe(document.body, { subtree: true, childList: true });
+          });
+          const second = ids.find((id) => id !== first) ?? '';
+          const row = rail.locator(`article[data-pass-id="${second}"]`);
+          if (ids.indexOf(second) % 2 === 0) await row.getByRole('button').click();
+          else {
+            await row.getByRole('button').focus();
+            await page.keyboard.press('Enter');
+          }
+          await expect(page).toHaveURL(new RegExp(`#pass=${second}$`));
+          await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', second);
+          await expect(rail.locator(`article[data-pass-id="${second}"]`)).toHaveAttribute('aria-current', 'true');
+          const seen = await page.evaluate(() => {
+            const w = window as unknown as { hashes: string[]; homeSeen: boolean };
+            return { hashes: w.hashes, homeSeen: w.homeSeen };
+          });
+          expect(seen.hashes.every((hash) => hash.startsWith('#pass=')), seen.hashes.join(' ')).toBe(true);
+          expect(seen.homeSeen).toBe(false);
+        });
       });
     }
   });
@@ -105,13 +146,25 @@ test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, els
   });
 
   test('with none in the span: `#pass`, the list’s empty line and no arc', async ({ page }) => {
-    const later = RUN_PASSES.filter((pass) => pass.start.t > NINE_DAYS_ON + LIVE_WINDOW_MS);
-    await seedStoredRun(page, { settled: false, elements: 'down', run: { ...STORED_RUN, passes: later }, prefs: { chartView: undefined } });
+    // A place with no pass to see: near the pole on the day the specs run at, the Sun never sets (the run is computed).
+    await page.clock.setFixedTime(NINE_DAYS_ON);
+    await stubNetwork(page);
+    await page.addInitScript(
+      ([key, value]: [string, string]) => {
+        if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+      },
+      ['wiys:prefs:v1', JSON.stringify({ locale: 'en', observer: { lat: 89.9, lon: 0, altM: 0, label: 'North Pole', source: 'coords', timeZone: 'UTC' } })] as [string, string],
+    );
+    await page.goto('/');
+    await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/No darkness/, { timeout: 60_000 });
     await expect(page.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
     const layout = await openFromHeader(page);
     await expect(page).toHaveURL(/#pass$/);
     await expect(page.getByTestId('pass-empty')).toBeVisible();
     await expect(page.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
+    // D-1135: the rail's list is the span's, and the span holds none: its empty line, over 24 h.
+    await expect(layout.locator('[data-slot="list"] article[data-pass-id]')).toHaveCount(0);
+    await expect(layout.locator('[data-slot="list"]').getByRole('status')).toHaveText(/in the next 24 h/);
     await expect(layout.locator('[data-arc-series][data-pass-ids]:not([data-pass-ids=""])')).toHaveCount(0);
   });
 });
