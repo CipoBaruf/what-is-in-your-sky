@@ -1921,6 +1921,16 @@ D-1111	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 de
 D-1112	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1132	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
 D-1133	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04	2.50 v2.14 decisions (2026-11-04)
+FR-WIDE-13	docs/sdd/phases/v2.14.1/spec.md#the-sky-by-day	The sky by day
+FR-WIDE-14	docs/sdd/phases/v2.14.1/spec.md#focus	Focus
+D-1134	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1135	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1136	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1137	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1138	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1139	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1140	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
+D-1141	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05	2.51 v2.14.1 decisions (2026-11-05)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2248,6 +2258,14 @@ V214-21	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-22	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-23	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-24	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-25	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-26	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-27	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-28	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-29	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-30	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-31	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V214-32	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp
@@ -2483,6 +2501,8 @@ PLAN §2.50	docs/sdd/phases/v2.14/plan.md#250-v214-decisions-2026-11-04
 PLAN §8.21	docs/sdd/phases/v2.14/plan.md#821-one-sky-on-a-desk-v214-fr-wide-112-d-1094d-1108
 PLAN §9.16	docs/sdd/phases/v2.14/plan.md#916-v214-additions-fr-wide-fr-fact-fr-name-fr-keep-fr-pub
 PLAN §16.33	docs/sdd/phases/v2.14/plan.md#1633-delivery-of-the-v214-tasks-v214-1v214-22-d-1094d-1108
+PLAN §2.51	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05
+PLAN §16.34	docs/sdd/phases/v2.14.1/plan.md#1634-v2141-delivery
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies

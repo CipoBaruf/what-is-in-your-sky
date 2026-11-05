@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v0.22 — for review.** Plans SPEC v2.14 "one sky on a desk": the decisions are §2.50 (D-1094..D-1108 this plan's, D-1109..D-1131 the blocks its tasks spend) and the delivery is §16.33 (P10 first, then R182–R191 in six waves, auto-merged; 2.14.0 tagged by the owner), in `docs/sdd/phases/v2.14/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history) at the end of this document. |
-| Date | 2026-11-04 (v0.22). Earlier dates are in the [revision history](#revision-history). |
-| Input | `SPEC.md` v2.14: V214-1..V214-22 are fixed like the rows before them, and SPEC §5.18's proposal is adopted where §2.50 does not say otherwise. Earlier inputs are in the [revision history](#revision-history). |
+| Status | **Draft v0.23 — for review.** Plans SPEC v2.14.1 "the desk, reviewed": the decisions are §2.51 (D-1134..D-1141) and the delivery is §16.34 (one local branch, the owner's read before any push), in `docs/sdd/phases/v2.14.1/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Date | 2026-11-05 (v0.23). Earlier dates are in the [revision history](#revision-history). |
+| Input | `SPEC.md` v2.14.1: V214-25..V214-32 are fixed like the rows before them. Earlier inputs are in the [revision history](#revision-history). |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the tasks of every phase from v1 on are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---
@@ -147,7 +147,8 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.11 | [spec](docs/sdd/phases/v2.11/spec.md) | [plan](docs/sdd/phases/v2.11/plan.md) | [tasks](docs/sdd/phases/v2.11/tasks.md) |
 | v2.12 | [spec](docs/sdd/phases/v2.12/spec.md) | [plan](docs/sdd/phases/v2.12/plan.md) | [tasks](docs/sdd/phases/v2.12/tasks.md) |
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
-| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | — |
+| v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | [TASKS.md](TASKS.md) |
+| v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),
