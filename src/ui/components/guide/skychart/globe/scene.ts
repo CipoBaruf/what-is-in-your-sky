@@ -1,11 +1,12 @@
 import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR } from 'astronomy-engine';
 import { compassPoint } from '../../../../../lib/compass';
 import { skyBodiesAt } from '../../../../../lib/skyBodies';
-import { PLANETS, starName, type StarNamesSource, type StarPositionsSource } from '../../../../../lib/skyStars';
+import { drawnMagLimit, drawnRungs, PLANETS, starName, type StarNamesSource, type StarPositionsSource } from '../../../../../lib/skyStars';
 import type { EpochMs, Locale, MoonState, Observer } from '../../../../../model';
 import { FIELD_LIST_MAX, type FieldObject } from '../../../../screens/stars/field';
 import type { Point } from '../window/starGlyphs';
 import { tintStep, type TintStep } from '../window/skySurface';
+import { DAY_STARS_ALPHA } from './constants';
 import { add, dot, localFrame, scale, type Frame, type Vec3 } from './projection';
 
 /**
@@ -214,4 +215,22 @@ export function figureAnchor(figure: { segments: ArrayLike<number> }, drawn: rea
 /** FR-GLOBE-13: the disc's surface step — FR-LOOK-2's, for the Sun's altitude at the place and the globe's instant. */
 export function surfaceAt(sky: GlobeSky): TintStep {
   return tintStep(sky.sunAltDeg);
+}
+
+/** D-1139: how the globe draws its stars by day — the faintest magnitude drawn and the opacity stars and figures take. */
+export interface DayStars {
+  maxMag: number;
+  alpha: number;
+}
+
+/**
+ * v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139): the globe's stars while the surface is `day` (the Sun above 0°)
+ * — the first two rungs, `drawnRungs` at the Sun held at −1° (the twilight step's), at `DAY_STARS_ALPHA` — and
+ * `null` otherwise, when the globe draws as it did (the window, the dome and the polar chart keep FR-STAR-13 as
+ * written). With the stars layer off nothing is drawn, whatever this says.
+ */
+export function dayStars(sunAltDeg: number): DayStars | null {
+  if (tintStep(sunAltDeg) !== 'day') return null;
+  // The plan's `max(sunAlt, −1)` reads as the Sun held at −1° (a max would leave +20° at none): the twilight step's rungs.
+  return { maxMag: drawnMagLimit(drawnRungs(Math.min(sunAltDeg, -1))), alpha: DAY_STARS_ALPHA };
 }

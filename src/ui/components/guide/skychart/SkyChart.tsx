@@ -139,11 +139,14 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** With no scene (the stars toggle's source not in yet), the globe draws the planets and nothing of the stars. */
 const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
+/** D-1139: by day with `[x] stars`, the globe draws its faint day stars and figures (FR-STAR-13 as amended). */
+const DAY_STARS: GlobeLayers = { stars: true, figures: true, planets: true, names: false };
 
 function GlobeView(props: SkyChartProps) {
   const language = useLocale();
   const field = props.scene?.stars;
-  const layers = useMemo<GlobeLayers>(() => (field ? { stars: field.layers.stars, figures: field.layers.figures, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
+  const daylight = props.scene?.daylight === true;
+  const layers = useMemo<GlobeLayers>(() => (field ? { stars: field.layers.stars, figures: field.layers.figures, planets: field.layers.planets, names: field.layers.names } : daylight ? DAY_STARS : NO_STARS), [field, daylight]);
   const { onSelectPass, onSkyPick, onPassHover } = props;
   // The page's shown instant; a chart given none (a test) draws the moment it mounted.
   const [mounted] = useState(() => Date.now());

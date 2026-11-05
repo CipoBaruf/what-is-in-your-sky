@@ -1,7 +1,7 @@
 import type { Among, Landmark, SkyPoint } from '../../../../lib/landmark';
 import type { EpochMs, Observer } from '../../../../model';
 import { cutCatalog } from './catalogCut';
-import { NO_STARS, type ScenePass, type StarNames, type StarSource } from './useSkyScene';
+import { DAY_SKY, type ScenePass, type StarNames, type StarSource } from './useSkyScene';
 import type { SkyLandmark, SkyScene, StarField } from './window/scene';
 
 /**
@@ -67,7 +67,7 @@ const TWILIGHT_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figure
  * The source `useSkyScene` takes, from the chunk's parts: the scene at an instant with the twilight step applied
  * (D-815) — the whole field with every rung drawn, the catalogue cut to the drawn rungs' magnitude (a prefix in
  * D-748's order, `cutCatalog`, made once per catalogue and limit) with no figures in twilight, and the shared
- * `NO_STARS` with no rung drawn. Built once per set of parts, so the hook's memo on `sceneAt` holds.
+ * `DAY_SKY` (D-1139) with no rung drawn. Built once per set of parts, so the hook's memo on `sceneAt` holds.
  *
  * R127 (FR-SKY-11; D-826): handed the highlighted pass, the scene carries its landmark, picked among the stars at
  * the pass's peak instant — placed once per pass and kept here (a few passes', so two pages do not evict each other), so a tick places only the shown
@@ -84,7 +84,8 @@ export function starSourceOf({ catalog, positionsAt, drawnRungs, drawnMagLimit, 
     sceneAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs, pass?: ScenePass | null): SkyScene => {
       const positions = positionsAt(observer, t);
       const rungs = drawnRungs(positions.sunAltDeg);
-      if (rungs === 0) return NO_STARS;
+      // D-1139: no rung drawn is daylight — no field, and the globe's day stars (it draws its own catalogue).
+      if (rungs === 0) return DAY_SKY;
       const limit = drawnMagLimit(rungs);
       const stars: StarField = limit === Number.POSITIVE_INFINITY ? { catalog, positions, layers: ALL_LAYERS } : { catalog: cutCatalog(catalog, limit), positions, layers: TWILIGHT_LAYERS };
       if (!pass) return { stars };

@@ -35,7 +35,7 @@ import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LEGEND_OPEN_ROWS } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
-import { LivePage, TICK_MS, visibleCount } from './Live';
+import { LivePage, resetFirstPassAsked, TICK_MS, visibleCount } from './Live';
 import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS } from './liveRows';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
@@ -2204,5 +2204,86 @@ describe('<LivePage>', () => {
     fireEvent.click(toggle);
     expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
     expect(appStore.getState().liveHidden).toBe(false);
+  });
+
+  /*
+   * v2.14.1 (FR-WIDE-13, V214-31; D-1140): on wide, a page that opens with nothing up asks once per visit whether to
+   * go to the first pass and play; not with a pass up, not with a time in the URL, not on compact.
+   */
+  describe('the first-pass dialog (FR-WIDE-13)', () => {
+    beforeEach(() => {
+      resetFirstPassAsked();
+    });
+    const dialog = (): HTMLElement | null => screen.queryByRole('dialog');
+
+    it('asks with nothing up, focus on [ go and play ], the page behind inert; go and play holds the rise and plays', () => {
+      media = stubMatchMedia(1280, 800);
+      withSky([later, tomorrow]);
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const shown = screen.getByRole('dialog', { name: en.live.firstPass.question });
+      expect(shown).toHaveAttribute('aria-modal', 'true');
+      expect(within(shown).getAllByRole('button').map((b) => b.textContent)).toEqual([en.live.firstPass.go, en.live.firstPass.stay]);
+      expect(document.activeElement).toBe(screen.getByTestId('first-pass-go'));
+      expect(screen.getByTestId('live-page').closest('[inert]')).not.toBeNull();
+      // It stands in for the headline's `[ see this pass ]` while it asks.
+      expect(screen.queryByTestId('next-event-see')).toBeNull();
+      fireEvent.click(screen.getByTestId('first-pass-go'));
+      expect(dialog()).toBeNull();
+      expect(screen.getByTestId('live-page').closest('[inert]')).toBeNull();
+      expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
+      expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
+    });
+
+    it('stay here and Esc leave the page at now; Esc does not also leave the page; not asked again in the visit', () => {
+      media = stubMatchMedia(1280, 800);
+      withSky([later, tomorrow]);
+      const onLeave = vi.fn();
+      const { unmount } = render(<LivePage link={null} onLeave={onLeave} />);
+      expect(dialog()).not.toBeNull();
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      expect(dialog()).toBeNull();
+      expect(onLeave).not.toHaveBeenCalled();
+      expect(screen.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
+      unmount();
+      render(<LivePage link={null} onLeave={onLeave} />);
+      expect(dialog()).toBeNull();
+    });
+
+    it('stay here closes it at now, in Spanish', () => {
+      media = stubMatchMedia(1280, 800);
+      withSky([later, tomorrow]);
+      render(
+        <I18nProvider locale="es">
+          <LivePage link={null} onLeave={() => undefined} />
+        </I18nProvider>,
+      );
+      const shown = screen.getByRole('dialog', { name: es.live.firstPass.question });
+      expect(within(shown).getAllByRole('button').map((b) => b.textContent)).toEqual([es.live.firstPass.go, es.live.firstPass.stay]);
+      fireEvent.click(screen.getByTestId('first-pass-stay'));
+      expect(dialog()).toBeNull();
+      expect(screen.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
+      expect(screen.getByTestId('next-event-see')).toBeInTheDocument();
+    });
+
+    it('is not shown with a pass up, with a time in the URL, with no pass in the span, or on compact', () => {
+      media = stubMatchMedia(1280, 800);
+      withSky();
+      const first = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(dialog()).toBeNull();
+      first.unmount();
+      withSky([later, tomorrow]);
+      const linked = render(<LivePage link={{ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: later.start.t - HOUR }} onLeave={() => undefined} />);
+      expect(dialog()).toBeNull();
+      linked.unmount();
+      withSky([beyond]);
+      const empty = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(dialog()).toBeNull();
+      empty.unmount();
+      media.restore();
+      media = stubMatchMedia(390, 844);
+      withSky([later, tomorrow]);
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(dialog()).toBeNull();
+    });
   });
 });

@@ -6,7 +6,7 @@
  */
 import { expect, test } from '@playwright/test';
 import { HOUR_MS } from '../../src/lib/timeStripe';
-import { DESK_PAGES, openDeskPage, shownInstant, shownView, timeState } from './deskPages';
+import { DESK_PAGES, openDeskPage, playState, shownInstant, shownView, timeState } from './deskPages';
 
 test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
@@ -40,7 +40,7 @@ for (const which of DESK_PAGES) {
       await expect(timeState(layout)).toHaveAttribute('data-state', 'watching');
 
       await page.keyboard.press(' ');
-      const play = layout.getByTestId('live-play');
+      const play = playState(layout);
       await expect(play).toHaveAttribute('data-playing', 'true');
       await page.keyboard.press(' ');
       await expect(play).toHaveAttribute('data-playing', 'false');

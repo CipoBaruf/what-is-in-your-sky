@@ -23,7 +23,8 @@ const windowRoot = (page: Page): Locator => sky(page).locator('[data-look-az]');
 const viewButton = (page: Page, name: string): Locator => page.getByTestId('stars-view-row').getByRole('button', { name, exact: true });
 // The options' names carry their `[x]` mark, so they are found by value.
 const turnButton = (page: Page, value: 'you' | 'stars'): Locator => page.getByTestId('globe-turn-row').locator(`[data-option="${value}"]`);
-const speedButton = (page: Page, speed: number): Locator => page.getByTestId('stars-time').locator(`[data-option="${String(speed)}"]`);
+// v2.14.1 (D-1138): FR-GLOBE-7's time-lapse buttons, found by rate.
+const speedButton = (page: Page, speed: number): Locator => page.getByTestId('stars-time').locator(`[data-speed="${String(speed)}"]`);
 
 /** The window's box under the hand: the one the keys go to. */
 async function windowKey(page: Page, key: string): Promise<void> {
@@ -64,9 +65,8 @@ for (const viewport of VIEWPORTS) {
       if (wide) {
         await expect(layer(page, 'faint')).toHaveAttribute('aria-pressed', 'false');
         await expect(turnButton(page, 'you')).toHaveAttribute('aria-pressed', 'true');
-        // The speeds are the playback row's, which a held instant shows (R187).
-        await hourLater(page);
-        await expect(speedButton(page, 60)).toHaveAttribute('aria-pressed', 'true');
+        // v2.14.1 (D-1138): FR-GLOBE-7's speeds are pressed only while playing; the page opens paused.
+        for (const rate of [60, 600, 3600]) await expect(speedButton(page, rate)).toHaveAttribute('aria-pressed', 'false');
       } else {
         await expect(windowRoot(page)).toHaveAttribute('data-fov', '60');
       }
@@ -91,6 +91,7 @@ for (const viewport of VIEWPORTS) {
         await page.getByTestId('globe-zoom-in').click();
         await hourLater(page);
         await speedButton(page, 600).click();
+        await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'true');
         expect(await stored(page)).toMatchObject({ chartView: 'globe', starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars', windowFov: 48, playSpeed: 600 });
         const zoom = (await stored(page))['globeZoom'];
         expect(zoom).toBeGreaterThan(1);
@@ -104,10 +105,12 @@ for (const viewport of VIEWPORTS) {
         await expect(turnButton(page, 'stars')).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('[data-globe] [data-disc]')).toHaveAttribute('r', radius ?? '');
         // FR-KEEP-2: the page opens at now, watching; the speed is where `play` starts once the instant is held.
-        await expect(page.getByTestId('stars-time').getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
-        await hourLater(page);
-        await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'true');
-        await expect(page.getByTestId('stars-time').getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+        await expect(page.getByTestId('stars-time')).toHaveAttribute('data-state', 'watching');
+        // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's speeds press only while playing, so the kept rate is read
+        // from the store, and the page opens paused.
+        expect((await stored(page))['playSpeed']).toBe(600);
+        await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'false');
+        await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
         await viewButton(page, 'Window').click();
         await expect(windowRoot(page)).toHaveAttribute('data-fov', '48', { timeout: 30_000 });
         await showGlobe(page);
@@ -150,7 +153,7 @@ for (const viewport of VIEWPORTS) {
         await page.reload();
         await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
         expect(await globeAt(page)).toBe(at);
-        await expect(page.getByTestId('stars-time').getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
+        await expect(page.getByTestId('stars-time')).toHaveAttribute('data-state', 'watching');
         await expect(page.getByTestId('globe-place').getByRole('button', { name: NEUQUEN.label })).toHaveAttribute('aria-pressed', 'true');
         expect(await zenith(page)).toBe(aim);
         return;

@@ -318,11 +318,12 @@ for (const locale of LOCALES) {
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });
 
-    // R187 (FR-WIDE-4, US-52 AC4): held, the three Time groups show the same controls in order; the rows a page adds are its own.
-    test('FR-WIDE-4: the three Time groups have the same controls in the same order', async ({ page }) => {
+    // R187 (FR-WIDE-4, US-52 AC4): held, the live and pass Time groups show the same controls in order; the rows a page
+    // adds are its own. v2.14.1 (FR-WIDE-4 as amended, D-1138): the stars page's is FR-GLOBE-7's own (`stars.spec.ts`).
+    test('FR-WIDE-4: the live and pass Time groups have the same controls in the same order', async ({ page }) => {
       const controls: Record<string, string[]> = {};
       for (const [name, open] of [
-        ['live', openLive], ['stars', openStarsDesk], ['pass', openDetail],
+        ['live', openLive], ['pass', openDetail],
       ] as const) {
         const layout = await open(page, locale);
         const control = layout.getByTestId('time-control');
@@ -337,7 +338,6 @@ for (const locale of LOCALES) {
         );
       }
       expect(controls['live']?.length, JSON.stringify(controls)).toBeGreaterThanOrEqual(7);
-      expect(controls['stars'], 'the stars page').toEqual(controls['live']);
       expect(controls['pass'], 'the pass detail').toEqual(controls['live']);
     });
 

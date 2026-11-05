@@ -100,7 +100,7 @@
     "reason": "R110 (D-736): 9 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), a 0.75rem gap and a padding (--space-2), the box's 1px border (--border); 2 off the scale — a 0.5rem margin and a 0.25rem gap (OQ-37). D-1021 took the cards' gap and the more row's 2.75rem min-height."
   },
   "src/ui/styles/global.css": {
-    "count": 10,
-    "reason": "R110 (D-736): 3 the sheet names — the headings' 1rem (--text-body), the controls' 1px border (--border-control), the skip link's z-index 100 (--z-banner); 1 off the scale — the link's 0.15em underline offset (OQ-37); 6 stay — html's 16px base, the one length every rem is a share of; the one ring's two outline lines and the two outline: none resets, the card's inner button and the landmarks (D-704); the skip link's -10000px, an off-screen magnitude and not a length on the grid (D-737)."
+    "count": 11,
+    "reason": "R110 (D-736): 3 the sheet names — the headings' 1rem (--text-body), the controls' 1px border (--border-control), the skip link's z-index 100 (--z-banner); 1 off the scale — the link's 0.15em underline offset (OQ-37); 7 stay — html's 16px base, the one length every rem is a share of; the one ring's two outline lines and the three outline: none resets, the card's inner button, the landmarks (D-704) and a focused field, whose border is its line (D-1141); the skip link's -10000px, an off-screen magnitude and not a length on the grid (D-737)."
   }
 }

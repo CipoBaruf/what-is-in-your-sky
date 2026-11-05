@@ -20,6 +20,7 @@ import { CAPTURE_DIR } from './captureSet';
 import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
 import { ctrlWheel, pinch, pinchPolar, placedAt, skyUnder, wheel } from './windowZoom';
 import { onWindow } from './globeHelpers';
+import { stayOnFirstPass } from './liveHelpers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -33,6 +34,8 @@ const READOUT = /^Facing [NESW]{1,3} \(\d+°\) · up -?\d+°( · field \d+°)?$/
 
 /** `sky-window.spec.ts`'s opening: the saved view in the prefs, the elements from the fixtures, the clock paused. */
 async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window'; starsLayer?: boolean }): Promise<Locator> {
+  // v2.14.1 (FR-WIDE-13): nothing is up as the page opens, so the first-pass dialog asks; these specs stay.
+  await stayOnFirstPass(page);
   await page.setViewportSize(DESK);
   await page.addInitScript(
     ([key, value]: [string, string]) => {

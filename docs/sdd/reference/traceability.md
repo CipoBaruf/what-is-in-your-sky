@@ -640,7 +640,7 @@
 | FR-STAR-9 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/starGlyphs.test.ts`, `tests/docs/accuracy.test.ts`, `tests/e2e/stars-perf.spec.ts` |
 | FR-STAR-10 | `src/ui/screens/Stars.test.tsx`, `src/ui/screens/stars/field.test.ts`, `tests/data/starCatalog.test.ts`, `tests/e2e/stars.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-STAR-11 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
-| FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
+| FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-STAR-14 | `src/ui/components/guide/skychart/window/starLabels.test.ts` |
 | FR-TAB-1 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-2 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
@@ -685,6 +685,8 @@
 | FR-WIDE-10 | `src/lib/fullscreen.test.ts`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/fullscreen.spec.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-12 | `tests/docs/captures.test.ts` |
+| FR-WIDE-13 | `src/ui/components/sky/FirstPassDialog.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-dialog.spec.ts` |
+| FR-WIDE-14 | `tests/e2e/focus.spec.ts`, `tests/styles/focus.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
 | FR-WIN-5 | `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |

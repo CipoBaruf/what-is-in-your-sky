@@ -265,6 +265,18 @@ export async function savedDome(page: Page): Promise<void> {
   }, PREFS_KEY);
 }
 
+/**
+ * v2.14.1 (FR-WIDE-13, D-1140): the wide live page asks once per visit, at the seed's instant (nothing up), whether to
+ * go to the first pass. A spec about something else answers `stay here` — the page as it was before the dialog — by a
+ * locator handler, which Playwright runs before any action or visibility check the dialog would block.
+ */
+export async function stayOnFirstPass(page: Page): Promise<void> {
+  // `Esc` is `stay here`, and a key rather than a click keeps the focus the keyboard's (the opener's ring, F-100).
+  await page.addLocatorHandler(page.getByTestId('first-pass-dialog'), async () => {
+    await page.keyboard.press('Escape');
+  });
+}
+
 export async function seedStoredRun(
   page: Page,
   {
@@ -273,6 +285,7 @@ export async function seedStoredRun(
     settled = false,
     run = STORED_RUN,
     elements = 'fixtures',
+    firstPass = 'stay',
   }: {
     locale?: 'en' | 'es';
     prefs?: Record<string, unknown>;
@@ -280,8 +293,11 @@ export async function seedStoredRun(
     /** R92: a run of the spec's own making (the 40-pass list); with `elements: 'down'` no recompute replaces it. */
     run?: StoredRun;
     elements?: 'fixtures' | 'down';
+    /** v2.14.1 (FR-WIDE-13): `stay` answers the wide live page's first-pass dialog whenever it stands in the way (`stayOnFirstPass`); `ask` leaves it to the spec. */
+    firstPass?: 'stay' | 'ask';
   } = {},
 ): Promise<void> {
+  if (firstPass === 'stay') await stayOnFirstPass(page);
   await page.clock.setFixedTime(NINE_DAYS_ON);
   await stubNetwork(page, elements);
   await page.goto('/');

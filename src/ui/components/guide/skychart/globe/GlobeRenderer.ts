@@ -15,7 +15,7 @@ import { ADVANCE_EM, placeLabels, STAR_NAME_PX, textWidth, type Box, type Figure
 import { GlobeArcLayer, type ArcColorBy } from './arcLayer';
 import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Frame, type Projector, type Vec3 } from './projection';
-import { altAz, figureAnchor, globeSky, starVectors, surfaceAt, type GlobeSky } from './scene';
+import { altAz, dayStars, figureAnchor, globeSky, starVectors, surfaceAt, type GlobeSky } from './scene';
 import styles from './SkyGlobe.module.css';
 
 /**
@@ -339,6 +339,9 @@ export class GlobeRenderer {
   private readonly figuresBelow: SVGPathElement;
   /** FR-GLOBE-11 as amended (V212-13, D-1056): the named figure's lines again, over the rest, in the emphasis. */
   private readonly figureNamed: SVGPathElement;
+  /** D-1139: the groups `DAY_STARS_ALPHA` fades by day — the figures' lines, the dots and the `*` marks. */
+  private readonly dayFaded: SVGGElement[];
+  private dayAlpha: number | null = null;
   private readonly horizon: SVGPathElement;
   private readonly glyphs: GlyphStar[] = [];
   private readonly starNames = new Map<number, SVGTextElement>();
@@ -387,9 +390,10 @@ export class GlobeRenderer {
     this.gridPath = el('path', { class: cls('grid'), 'data-grid': '' }, lines);
     this.eclipticPath = el('path', { class: cls('ecliptic'), 'data-ecliptic': '' }, lines);
     this.milkyPath = el('path', { class: cls('milky'), 'data-milky-way': '' }, lines);
-    this.figuresBelow = el('path', { class: `${cls('figures')} ${DIM}`, 'data-figures': 'below', opacity: GLOBE_DIM_OPACITY }, lines);
-    this.figuresAbove = el('path', { class: cls('figures'), 'data-figures': 'above' }, lines);
-    this.figureNamed = el('path', { class: cls('figureNamed'), 'data-figure-named': '' }, lines);
+    const figures = el('g', { 'data-figure-lines': '' }, lines);
+    this.figuresBelow = el('path', { class: `${cls('figures')} ${DIM}`, 'data-figures': 'below', opacity: GLOBE_DIM_OPACITY }, figures);
+    this.figuresAbove = el('path', { class: cls('figures'), 'data-figures': 'above' }, figures);
+    this.figureNamed = el('path', { class: cls('figureNamed'), 'data-figure-named': '' }, figures);
 
     // FR-GLOBE-4: the 40 dot paths, 4 tones × 5 sizes × 2 sides; a bucket's stroke is twice its radius.
     const dots = g(cls('dots'), { 'data-dots': '' });
@@ -403,6 +407,7 @@ export class GlobeRenderer {
     }
 
     const stars = g(cls('marks'), { 'data-stars': '' });
+    this.dayFaded = [figures, dots, stars];
     const names = g(cls('names'), { 'data-names': '' });
     for (let i = 0; i < n; i += 1) {
       const mag = catalog.mag[i] ?? 99;
@@ -604,6 +609,16 @@ export class GlobeRenderer {
     node.setAttribute('visibility', on ? 'visible' : 'hidden');
   }
 
+  /** D-1139: `DAY_STARS_ALPHA` on the stars' and figures' groups by day (it multiplies FR-GLOBE-3's dim), none by night. */
+  private fadeForDay(alpha: number | null): void {
+    if (this.dayAlpha === alpha) return;
+    this.dayAlpha = alpha;
+    for (const group of this.dayFaded) {
+      if (alpha === null) group.removeAttribute('opacity');
+      else group.setAttribute('opacity', String(alpha));
+    }
+  }
+
   /** FR-GLOBE-3: the dimmed class and `GLOBE_DIM_OPACITY` on what is below the horizon; neither on what is above. */
   private dim(node: Element, below: boolean): void {
     if (this.dimmed.get(node) === below) return;
@@ -638,6 +653,11 @@ export class GlobeRenderer {
     this.disc.setAttribute('r', fmt(p.radius));
     this.disc.setAttribute('data-tint', surfaceAt(sky));
     this.ground.setAttribute('d', groundPath(p, sky.zenith));
+    // v2.14.1 (FR-STAR-13 as amended, D-1139): by day the first two rungs only, the stars and figures at `DAY_STARS_ALPHA`.
+    const day = dayStars(sky.sunAltDeg);
+    const maxMag = day?.maxMag ?? Number.POSITIVE_INFINITY;
+    const drawsStar = (i: number): boolean => s.layers.stars && this.near[i] === 1 && (this.catalog.mag[i] ?? 0) <= maxMag;
+    this.fadeForDay(day?.alpha ?? null);
 
     // The grid, the ecliptic, the Milky Way (FR-GLOBE-2).
     this.gridPath.setAttribute('d', this.grid.map((line) => pathOf(p, line)).join(''));
@@ -671,7 +691,8 @@ export class GlobeRenderer {
       const x2 = xs[seg.b] ?? 0;
       const y2 = ys[seg.b] ?? 0;
       const length = Math.hypot(x2 - x1, y2 - y1);
-      if (!s.layers.figures || !near[seg.a] || !near[seg.b] || length <= 2 * COLLISION_PX) {
+      // D-1139: by day a line is drawn only between two stars the day draws, so none ends on an empty sky.
+      if (!s.layers.figures || !near[seg.a] || !near[seg.b] || length <= 2 * COLLISION_PX || (day !== null && !(drawsStar(seg.a) && drawsStar(seg.b)))) {
         this.lines[k] = null;
         return;
       }
@@ -693,7 +714,8 @@ export class GlobeRenderer {
     for (const bucket of this.buckets) {
       let above = '';
       let below = '';
-      if (s.layers.stars) {
+      // The dots are every star fainter than `STAR_DOT_MAG`, so the day's cut, brighter than that, draws none of them.
+      if (s.layers.stars && maxMag > STAR_DOT_MAG) {
         const limit = s.faint ? bucket.dirs.length : bucket.bright;
         for (let k = 0; k + 2 < limit; k += 3) {
           const x = bucket.dirs[k] ?? 0;
@@ -713,9 +735,9 @@ export class GlobeRenderer {
     const marks: LabelMark[] = [];
     const markOf = new Map<number, number>();
     const { hits } = this;
-    for (let i = 0; i < n; i += 1) hits[i] = s.layers.stars && near[i] === 1 && (this.catalog.mag[i] ?? 0) > STAR_DOT_MAG ? { x: xs[i] ?? 0, y: ys[i] ?? 0 } : null;
+    for (let i = 0; i < n; i += 1) hits[i] = drawsStar(i) && (this.catalog.mag[i] ?? 0) > STAR_DOT_MAG ? { x: xs[i] ?? 0, y: ys[i] ?? 0 } : null;
     for (const glyph of this.glyphs) {
-      const on = s.layers.stars && near[glyph.index] === 1;
+      const on = drawsStar(glyph.index);
       this.show(glyph.node, on);
       if (!on) continue;
       const x = xs[glyph.index] ?? 0;
@@ -784,7 +806,7 @@ export class GlobeRenderer {
 
     // The names (FR-GLOBE-11): the named label, the bodies' fixed, the star names brightest first, the figures from their vertex.
     const drawn: (Point | null)[] = [];
-    for (let i = 0; i < n; i += 1) drawn.push(near[i] === 1 && s.layers.stars ? { x: xs[i] ?? 0, y: ys[i] ?? 0 } : null);
+    for (let i = 0; i < n; i += 1) drawn.push(drawsStar(i) ? { x: xs[i] ?? 0, y: ys[i] ?? 0 } : null);
     let named: MarkLabel | null = null;
     const target = s.named;
     if (target !== null) {

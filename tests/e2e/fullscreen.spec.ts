@@ -41,7 +41,7 @@ async function state(layout: Locator): Promise<{ readout: string; look: string |
   const looks = layout.locator('[data-look-az]');
   const look = (await looks.count()) === 0 ? null : await looks.first().evaluate((el) => ['data-look-az', 'data-look-alt', 'data-fov'].map((name) => el.getAttribute(name)).join(' '));
   // The stars page's window and dome show real time and draw no time control.
-  const t = (await layout.getByTestId('stripe-overview').count()) === 0 ? null : await shownInstant(layout);
+  const t = (await layout.locator('[data-testid="stripe-overview"], [data-testid="globe-clock"]').count()) === 0 ? null : await shownInstant(layout);
   return { readout, look, t };
 }
 

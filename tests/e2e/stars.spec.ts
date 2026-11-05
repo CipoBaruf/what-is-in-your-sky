@@ -216,38 +216,39 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
 });
 
 /**
- * R187 (FR-WIDE-4, US-52 AC4; D-1100): on a desk the globe's instant is the shared time control's `t`; the day steps
- * stand under it, and a day step past the span moves the span — the stripe then draws that night — until `[ now ]`.
+ * v2.14.1 (FR-WIDE-4 as amended, V214-29; D-1138; was R187's shared time control): on a desk the stars page's `Time`
+ * group is FR-GLOBE-7's clock, steps, `[ now ]` and time-lapse — no overview, no stripe, no pass marks — and a day
+ * step past the 24 h still moves the globe a day, until `[ now ]`.
  */
-test.describe('the stars page’s time control on a desk (FR-WIDE-4)', () => {
+test.describe('the stars page’s time on a desk (FR-WIDE-4 as amended)', () => {
   test.use({ viewport: DESK });
 
-  test('FR-WIDE-4: +1 d twice moves the globe two days and the stripe to that night; [ now ] brings it back', async ({ page }) => {
+  test('FR-WIDE-4: no stripe-overview, no time-stripe, no pass mark in the rail; +1 d moves the globe a day, twice two; [ now ] brings it back', async ({ page }) => {
     const DAY = 86_400_000;
     await asReader(page);
     await page.goto('/#stars');
     await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
     const time = page.getByTestId('stars-time');
-    const control = time.getByTestId('time-control');
-    const overview = time.getByTestId('stripe-overview');
-    await expect(control).toHaveAttribute('data-state', 'watching');
-    const at = Number(await overview.getAttribute('aria-valuenow'));
-    const start = Number(await overview.getAttribute('aria-valuemin'));
+    await expect(time.getByTestId('globe-clock')).toBeVisible();
+    await expect(page.getByTestId('stripe-overview')).toHaveCount(0);
+    await expect(page.getByTestId('time-stripe')).toHaveCount(0);
+    await expect(page.getByTestId('time-control')).toHaveCount(0);
+    const rail = page.getByTestId('stars-page').locator('[data-rail]');
+    await expect(rail.locator('[data-pass-mark], [data-pass-segment], [data-pass-id], [data-testid="overview-row"]')).toHaveCount(0);
+    await expect(time.getByRole('button')).toHaveText(['−1 d', '−1 h', '+1 h', '+1 d', 'now', '×60', '×600', '×3600']);
+    const clock = time.getByTestId('globe-clock');
+    await expect(time.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
+    const at = Number(await clock.getAttribute('data-at'));
     const later = time.getByTestId('globe-steps').getByRole('button', { name: 'A day later' });
     await later.click();
+    await expect.poll(async () => Number(await clock.getAttribute('data-at'))).toBe(at + DAY);
+    // A second day leaves the 24 h the page opened on (R187's moving span, kept).
     await later.click();
-    await expect.poll(async () => Number(await overview.getAttribute('aria-valuenow'))).toBe(at + 2 * DAY);
-    // The stripe draws that night: the 24 h from the noon before the instant, past the span the page opened on.
-    const stripe = time.getByTestId('time-stripe');
-    const from = Number(await stripe.getAttribute('aria-valuemin'));
-    expect(Number(await stripe.getAttribute('aria-valuemax')) - from).toBe(DAY);
-    expect(from).toBeGreaterThan(start + DAY);
-    expect(at + 2 * DAY - from).toBeGreaterThanOrEqual(0);
-    expect(at + 2 * DAY - from).toBeLessThan(DAY);
-    await time.getByTestId('time-now').click();
-    await expect(control).toHaveAttribute('data-state', 'watching');
-    expect(Number(await overview.getAttribute('aria-valuemin'))).toBe(start);
-    expect(Number(await overview.getAttribute('aria-valuenow'))).toBe(at);
+    await expect.poll(async () => Number(await clock.getAttribute('data-at'))).toBe(at + 2 * DAY);
+    await expect(time.getByTestId('globe-chip')).not.toHaveAttribute('data-kind', 'now');
+    await time.getByTestId('globe-now').click();
+    await expect(time.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
+    expect(Number(await clock.getAttribute('data-at'))).toBe(at);
   });
 });
 

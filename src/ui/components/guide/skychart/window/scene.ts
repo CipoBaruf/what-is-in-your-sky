@@ -139,4 +139,9 @@ export interface SkyLandmark {
 export interface SkyScene {
   stars: StarField | null;
   landmark?: SkyLandmark | null;
+  /**
+   * v2.14.1 (FR-STAR-13 as amended, D-1139): the stars layer is on and the Sun is up. The window, the dome and the
+   * polar chart draw no field (`stars: null`, as written); the globe draws its day stars from it.
+   */
+  daylight?: true;
 }
