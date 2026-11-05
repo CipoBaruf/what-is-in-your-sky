@@ -3,8 +3,8 @@
     "@media (height <= 700px)",
     "@media (width >= 964px)",
     "@media (width >= 964px) and (height <= 720px)",
-    "@media (width >= 964px) and (width < 1118px)",
-    "@media (width >= 964px) and (width < 1137px)",
+    "@media (width >= 964px) and (width < 1176px)",
+    "@media (width >= 964px) and (width < 1195px)",
     "@media (width >= 1118px)"
   ],
   "src/ui/Shell.module.css": [

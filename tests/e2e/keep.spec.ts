@@ -187,7 +187,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.getByTestId('app-footer')).not.toContainText('No tracking');
       await page.goto('/#settings');
       // D-1129: the settings page’s footer keeps its privacy part plain — the sentence on a phone, the word in the desk’s row.
-      await expect(page.getByTestId('settings-privacy')).toHaveText(wide ? 'No tracking' : 'No analytics, no tracking: your location is saved in this browser only.', { timeout: 30_000 });
+      await expect(page.getByTestId('settings-privacy')).toHaveText(wide ? '·No tracking' : 'No analytics, no tracking: your location is saved in this browser only.', { timeout: 30_000 });
       await expect(close).toHaveCount(0);
     });
   });

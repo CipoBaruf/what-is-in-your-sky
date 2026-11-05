@@ -127,7 +127,8 @@ export const COMPACT_MAX_CELLS = 60;
  * but a link's underline and the separators' padding are what decide the
  * wrap, so the literal is what the browser showed. With the library alone in
  * the row (V22-15) the fold is 1118 px in English and 1137 in Spanish (it was
- * 1330/1349 with the author's name). Below it the row is two lines, from
+ * 1330/1349 with the author's name). R190 (FR-KEEP-4, D-1129): the privacy
+ * note's `[ × ]` lengthens the row while shown, so 1176 and 1195. Below it the row is two lines, from
  * `WIDE_MIN_PX` up, the 1024 px capture width among them and the 1280 one
  * not; where it is, the shell pays the row from its air — the main's padding
  * above and below the panes halves and the footer's top padding halves
@@ -136,7 +137,7 @@ export const COMPACT_MAX_CELLS = 60;
  * under `:root[lang]` the way the header's folds are (D-546);
  * `tests/styles/breakpoint.test.ts` holds them to these.
  */
-export const FOOTER_ONE_LINE_MIN_PX = { en: 1118, es: 1137 } as const;
+export const FOOTER_ONE_LINE_MIN_PX = { en: 1176, es: 1195 } as const;
 
 /**
  * R93 (FR-HOME-1, D-546, D-605), named here by R103 (FR-DS-3, D-702): the

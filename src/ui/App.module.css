@@ -341,8 +341,8 @@
 
 /* R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the two-line
    footer. With its fourth credit the wide one-row footer (D-120) holds one line
-   only from `FOOTER_ONE_LINE_MIN_PX` — 1118 px in English, 1137 in Spanish,
-   measured on the built app with the library alone in the row (V22-15;
+   only from `FOOTER_ONE_LINE_MIN_PX` — 1176 px in English, 1195 in Spanish,
+   measured on the built app with the library and the privacy note's `[ × ]` in the row (V22-15, R190;
    `lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`) — and below
    that it is two lines, one row taller than the desk requirements under
    those widths were measured against. The row is paid
@@ -355,7 +355,7 @@
    footer. One literal per language under `:root[lang]`, the way the header's
    folds are written (`Header.module.css`, D-546). `tests/e2e/home-desk.spec.ts`
    at 1024 × 768 and 1118 × 700 is the proof. */
-@media (width >= 964px) and (width < 1118px) {
+@media (width >= 964px) and (width < 1176px) {
   :global(:root[lang='en']) .main {
     --two-line-footer: 0.5;
   }
@@ -366,7 +366,7 @@
   }
 }
 
-@media (width >= 964px) and (width < 1137px) {
+@media (width >= 964px) and (width < 1195px) {
   :global(:root[lang='es']) .main {
     --two-line-footer: 0.5;
   }
