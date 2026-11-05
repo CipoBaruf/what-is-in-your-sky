@@ -668,7 +668,7 @@
 | FR-WATCH-6 | `src/lib/scrubPlacement.test.ts`, `src/ui/components/guide/skychart/ChartFrame.overlay.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts` |
 | FR-WATCH-8 | `src/ui/components/live/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
-| FR-WIDE-1 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
+| FR-WIDE-1 | `src/ui/App.wide.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
 | FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/screens/viewFor.test.ts`, `tests/e2e/sky-layout.spec.ts` |
 | FR-WIDE-3 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-5 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts` |

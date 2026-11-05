@@ -19,7 +19,7 @@ const POINTS = 37;
 const STEP_MS = 10_000;
 
 /** The run: pass `k` rose `k + 1` minutes before `now` and is up for six, `PERF k`, the norad id 90000 + k. */
-export function threePassRun(now = NINE_DAYS_ON): StoredRun {
+function threePassRun(now = NINE_DAYS_ON): StoredRun {
   const template = STORED_RUN.passes[0] as Record<string, unknown>;
   const passes = [0, 1, 2].map((k) => {
     const start = now - 60_000 * (k + 1);

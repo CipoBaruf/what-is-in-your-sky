@@ -217,7 +217,7 @@ const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [WINDOW_VIEW, POLAR_VIEW, DOME_VIEW];
 
 /** R186 (FR-WIDE-2, D-1095): the desk's row, `[ Globe ] Window Dome` on every page; the polar chart is not offered on wide. */
-export const WIDE_CHART_VIEWS: readonly SkyChartView[] = [GLOBE_VIEW, WINDOW_VIEW, DOME_VIEW];
+const WIDE_CHART_VIEWS: readonly SkyChartView[] = [GLOBE_VIEW, WINDOW_VIEW, DOME_VIEW];
 
 /**
  * R160 (D-324, D-971): the views a page offers, in the registered order — all three where it names none. R186: the
