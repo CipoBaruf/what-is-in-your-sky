@@ -34,7 +34,7 @@
  * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { COMPACT_MAX_CELLS, LIVE_BOX_MIN_PX, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
 import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, reenterLiveWithTheme, seedStoredRun, stripFilled } from './liveHelpers';
@@ -140,9 +140,6 @@ const FLOOR_ALLOWANCE: Readonly<Record<string, Partial<Record<'watching' | 'scru
   '360x640': { scrubbing: 7 * ROW_PX },
 };
 
-/** The viewport height under which the actions fold too: the unfolded watching page's rows over the box height `foldRows` names (D-448). */
-const FOLD_ACTIONS_UNDER_VIEWPORT_PX = liveKeptPx('watching') + foldBelowPx('actions');
-
 const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_ALLOWANCE[label(size)]?.[state] ?? LIVE_BOX_MIN_PX;
 
 /**
@@ -157,13 +154,6 @@ const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_
  * (FR-LEG-8) and R101's `[ see this pass ]` on the headline, which is how `openLive` leaves the page. The compact
  * rows outside these two rules keep `FLOOR_ALLOWANCE`'s: 360 × 640 and 844 × 501 are the compact page's own.
  */
-
-/**
- * R71: the stripe block's width from which its time row — the clock readout and the six playback controls —
- * is one line. Measured: 424 px (the stripe's 44-cell floor) takes three, and the 1920 px rows one. 600 px is
- * between them, and the number only decides which rows the one-row rule below is asserted of.
- */
-const TIME_ROW_ONE_LINE_PX = 600;
 
 /**
  * R70: the rows whose box is smaller than the frame's own minimum, where the drawing overhangs the box
@@ -533,7 +523,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // R132 (FR-FLOW-4, D-864) → R144 (FR-TONIGHT-9): every shape is one viewport high — the compact column's box is
       // what its rows leave, and the landscape phone's rail scrolls inside the layout, not the page.
       // …except the short wide rows, where the rail's labelled rows exceed the window by a few px until R133/R136
-      // re-cut the short shapes (the fold's and the overlay's own tests above carry the same `fixme`).
+      // re-cut the short shapes.
       const short = MATRIX.shortWide.some((row) => label(row) === label(size));
       if (!short) expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
 
@@ -616,122 +606,10 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'false');
         await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
       }
-      // Nothing folds on a compact page, and the wide page folds only under the floor (FR-SHP-3).
-      if (compact) await expect(page.getByTestId('live-page'), at).not.toHaveAttribute('data-fold', /./);
+      // R187 (D-1133): no page folds, compact or wide.
+      await expect(page.getByTestId('live-page'), at).not.toHaveAttribute('data-fold', /./);
     }
   });
-
-  test('the short wide window: the desktop layout with a smaller box, the rows folded, no scroll (FR-SHP-3, F-65, US-25 AC3)', async ({ page }) => {
-    // R132 (D-864): the box no longer sits over the rows the fold re-cuts, so R69's fold and R78's overlay are decided on a different height; the short shapes are R133's and R136's.
-    test.fixme(true, 'D-1133: wide has no overlay placement and no fold; R187 removes them and this case with them');
-    await openLive(page);
-    // R77 (FR-WATCH-9 e): the time row is the scrub block's, so the page is scrubbing. R78 (FR-WATCH-6): at these
-    // heights the block is the bar over the drawing, and the matrix test above walks both states.
-    await enterScrubbing(page);
-    for (const size of MATRIX.shortWide) {
-      const [width, height] = size;
-      const at = label(size);
-      await page.setViewportSize({ width, height });
-      const { box } = await settled(page);
-      const livePage = page.getByTestId('live-page');
-      await expect(livePage, at).toHaveAttribute('data-compact', 'false');
-      // The fold is on, in the order (FR-SHP-3 as amended v2.0): the control rows go to one text row, then the actions
-      // join the conditions' line — both at 480 px and under, the first alone at 1920 × 500 (`foldRows`, D-448).
-      await expect(livePage, at).toHaveAttribute('data-fold', height < FOLD_ACTIONS_UNDER_VIEWPORT_PX ? 'controls actions' : 'controls');
-      // The overview does not fold: it is the rail's, in both states (FR-WATCH-6).
-      await expect(page.getByTestId('live-rail-foot').getByTestId('stripe-overview'), `${at}: the overview stays in the rail`).toBeVisible();
-      await expect(page.getByTestId('chart-bottom-overlay').getByTestId('stripe-block'), `${at}: the scrub block is the bar`).toBeVisible();
-      if (height >= FOLD_ACTIONS_UNDER_VIEWPORT_PX) {
-        expect(box.height, at).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
-        continue;
-      }
-      const actions = await page.getByTestId('live-actions').boundingBox();
-      const moon = await page.getByTestId('live-moon').boundingBox();
-      const sky = await page.getByTestId('live-sky').boundingBox();
-      if (!actions || !moon || !sky) throw new Error(`${at}: the strip's line is not laid out`);
-      // R132 (FR-FLOW-4 wide, D-864): the actions are the rail's foot, under the conditions; R69's shared line went with the frame's aside.
-      expect(actions.y, `${at}: the actions are under the strip`).toBeGreaterThanOrEqual(moon.y + moon.height - 1);
-      expect(sky.y, `${at}: the strip is above the actions`).toBeLessThan(actions.y);
-      // Every row around the box is one text row: the top row, the time row (its clock keeps the heading's line), the actions.
-      const top = await page.getByTestId('live-top-row').boundingBox();
-      const timeRow = await page.getByTestId('time-row').boundingBox();
-      expect(top?.height, `${at}: the top row`).toBeLessThanOrEqual(ROW_PX + 1);
-      expect(actions.height, `${at}: the actions row`).toBeLessThanOrEqual(ROW_PX + 1);
-      /*
-       * The time row is the clock readout and the playback controls on one line, and it is as wide as the
-       * stripe under the box — the box's width, or the stripe's 44-cell floor where the box is narrower
-       * (`ChartFrame.module.css`). R71 (D-386) puts the rail beside the box at these widths too, and a short
-       * window then cuts the box small: the block is at its 44-cell floor, where the clock and the six
-       * playback controls take three lines whatever air the fold lets out. So the one-row rule is asserted of
-       * the rows that are the page's own width — the top row and the actions, above — and of the time row
-       * only where its block has the width for one line.
-       */
-      const block = await page.getByTestId('stripe-block').boundingBox();
-      if ((block?.width ?? 0) >= TIME_ROW_ONE_LINE_PX) expect(timeRow?.height, `${at}: the time row in a ${String(Math.round(block?.width ?? 0))} px block`).toBeLessThanOrEqual(ROW_PX + 2);
-      // The box is the desktop's: the dome's own shape, and no landscape grid (the page's rows are the page's width).
-      await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
-      expect(top?.width, `${at}: the top row is the page's width, not a 2fr column's`).toBeGreaterThan(width * 0.9);
-      expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size, 'scrubbing'));
-    }
-    // Back above the floor: the fold comes off with the height (foldRows is monotonic), and the overview is back.
-    await page.setViewportSize({ width: 1200, height: 700 });
-    await settled(page);
-    await expect(page.getByTestId('live-page')).not.toHaveAttribute('data-fold', /./);
-    await expect(page.getByTestId('stripe-overview')).toBeVisible();
-    const actions = await page.getByTestId('live-actions').boundingBox();
-    // R132 (D-864): the actions are the rail's foot; unfolded, the row is at least a text row (its tap height is R136's).
-    expect(actions?.height).toBeGreaterThanOrEqual(ROW_PX - 1);
-  });
-
-  /*
-   * R78 (D-448): the decision is made from what the frame measures, and folding changes what it measures — the
-   * control rows give the box 46 px. If the rule read the folded number it would unfold itself and fold again,
-   * a frame apart, for ever. It reads the number with the fold taken back out, and this drags a window through
-   * the threshold, in both states, to hold that: at every height the page settles, the answer changes once and
-   * only once on the way down — at the table's own pixel — and the fold and the overlay arrive together.
-   *
-   * One pixel at a time for four either side of the turn, then every eight down through the 46 px the fold
-   * gives, which is the band a rule that fed itself would flicker in (FR-CI-1: 19 heights, not 60).
-   */
-  /** The viewport height at which the block under the box leaves the box exactly its floor: 602 px. */
-  const TURN_PX = liveKeptPx('watching') + foldBelowPx('controls');
-  const SWEEP_PX: readonly number[] = [TURN_PX + 16, TURN_PX + 8, ...Array.from({ length: 9 }, (_, index) => TURN_PX + 4 - index), ...Array.from({ length: 8 }, (_, index) => TURN_PX - 12 - 8 * index)];
-
-  // Both languages: the table counts the time row as Spanish wraps it (`LIVE_TIME_ROW_FLOOR_PX`), and the floor holds in each.
-  for (const locale of ['en', 'es'] as const) sweep(locale);
-
-  function sweep(locale: 'en' | 'es'): void {
-    test(`dragged short through the threshold: the placement turns once, with the fold, and the page settles at every height, ${locale} (D-448)`, async ({ page }) => {
-      test.fixme(true, 'D-1133: wide has no overlay placement and no fold; R187 removes them and this case with them');
-      await openLive(page, locale);
-      await sweepBody(page);
-    });
-  }
-
-  async function sweepBody(page: Page): Promise<void> {
-    {
-    for (const state of ['watching', 'scrubbing'] as const) {
-      if (state === 'scrubbing') await enterScrubbing(page);
-      const answers: string[] = [];
-      for (const height of SWEEP_PX) {
-        await page.setViewportSize({ width: 1200, height });
-        const { box } = await settled(page);
-        const livePage = page.getByTestId('live-page');
-        const placement = (await livePage.getAttribute('data-scrub-placement')) ?? '';
-        const fold = (await livePage.getAttribute('data-fold')) ?? '';
-        expect(fold === '' ? 'under' : 'overlay', `${state} at ${String(height)} px: the fold and the overlay are one decision`).toBe(placement);
-        expect(box.height, `${state} at ${String(height)} px`).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
-        answers.push(placement);
-      }
-      expect(answers[0], state).toBe('under');
-      expect(answers.at(-1), state).toBe('overlay');
-      expect(answers.filter((answer, index) => index > 0 && answer !== answers[index - 1]), `${state}: one turn on the way down`).toHaveLength(1);
-      // …and at the unfolded page's own arithmetic: under the box at the turn, over the drawing one pixel shorter.
-      expect(answers[SWEEP_PX.indexOf(TURN_PX)], state).toBe('under');
-      expect(answers[SWEEP_PX.indexOf(TURN_PX - 1)], state).toBe('overlay');
-    }
-    }
-  }
 
   test('the home page: no element over another and no sideways scroll at the compact-portrait and desktop rows', async ({ page }) => {
     await seedStoredRun(page, { settled: true });

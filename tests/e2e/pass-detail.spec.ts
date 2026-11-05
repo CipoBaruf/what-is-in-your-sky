@@ -165,3 +165,28 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-high-390.png' });
 });
+
+/**
+ * R187 (FR-WIDE-4, FR-FLOW-7; D-1100): on a desk the pass detail's `t` opens at now; its rise, peak and set cells are
+ * buttons that set `t` to their instant, which the shared time control's readout then shows.
+ */
+test.describe('the pass detail on a desk (FR-WIDE-4)', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+  test('FR-WIDE-4: the peak cell sets the readout to the peak time; [ now ] lets it go', async ({ page }) => {
+    await seedStoredRun(page, { settled: true });
+    await page.locator('article[data-pass-id]').first().getByRole('button', { name: /^Open guide/ }).click();
+    const layout = page.getByTestId('pass-layout');
+    await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
+    const control = layout.getByTestId('time-control');
+    await expect(control).toHaveAttribute('data-state', 'watching');
+    const peak = layout.locator('[data-set="peak"]');
+    const clock = ((await peak.textContent()) ?? '').slice(0, 5);
+    expect(clock).toMatch(/^\d\d:\d\d$/);
+    await peak.click();
+    await expect(control).toHaveAttribute('data-state', 'scrubbing');
+    await expect(control.getByTestId('time-readout')).toContainText(clock);
+    await control.getByTestId('time-now').click();
+    await expect(control).toHaveAttribute('data-state', 'watching');
+  });
+});

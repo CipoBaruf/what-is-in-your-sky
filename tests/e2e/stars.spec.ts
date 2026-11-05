@@ -191,6 +191,42 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   });
 });
 
+/**
+ * R187 (FR-WIDE-4, US-52 AC4; D-1100): on a desk the globe's instant is the shared time control's `t`; the day steps
+ * stand under it, and a day step past the span moves the span — the stripe then draws that night — until `[ now ]`.
+ */
+test.describe('the stars page’s time control on a desk (FR-WIDE-4)', () => {
+  test.use({ viewport: DESK });
+
+  test('FR-WIDE-4: +1 d twice moves the globe two days and the stripe to that night; [ now ] brings it back', async ({ page }) => {
+    const DAY = 86_400_000;
+    await asReader(page);
+    await page.goto('/#stars');
+    await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
+    const time = page.getByTestId('stars-time');
+    const control = time.getByTestId('time-control');
+    const overview = time.getByTestId('stripe-overview');
+    await expect(control).toHaveAttribute('data-state', 'watching');
+    const at = Number(await overview.getAttribute('aria-valuenow'));
+    const start = Number(await overview.getAttribute('aria-valuemin'));
+    const later = time.getByTestId('globe-steps').getByRole('button', { name: 'A day later' });
+    await later.click();
+    await later.click();
+    await expect.poll(async () => Number(await overview.getAttribute('aria-valuenow'))).toBe(at + 2 * DAY);
+    // The stripe draws that night: the 24 h from the noon before the instant, past the span the page opened on.
+    const stripe = time.getByTestId('time-stripe');
+    const from = Number(await stripe.getAttribute('aria-valuemin'));
+    expect(Number(await stripe.getAttribute('aria-valuemax')) - from).toBe(DAY);
+    expect(from).toBeGreaterThan(start + DAY);
+    expect(at + 2 * DAY - from).toBeGreaterThanOrEqual(0);
+    expect(at + 2 * DAY - from).toBeLessThan(DAY);
+    await time.getByTestId('time-now').click();
+    await expect(control).toHaveAttribute('data-state', 'watching');
+    expect(Number(await overview.getAttribute('aria-valuemin'))).toBe(start);
+    expect(Number(await overview.getAttribute('aria-valuenow'))).toBe(at);
+  });
+});
+
 test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
