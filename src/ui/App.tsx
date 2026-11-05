@@ -233,7 +233,8 @@ export function App() {
       document.querySelector<HTMLButtonElement>(`[aria-controls="${night.id}"]`)?.click();
       night.hidden = false;
     }
-    card.scrollIntoView({ block: 'center' });
+    // As `passCursor`: jsdom has no `scrollIntoView`.
+    card.scrollIntoView?.({ block: 'center' });
     card.focus({ preventScroll: true });
   }, [selected, mode]);
   /*
