@@ -45,7 +45,8 @@ export async function shellOf(layout: Locator): Promise<Shell> {
 
 export async function chooseDeskView(layout: Locator, locale: 'en' | 'es', view: DeskView): Promise<void> {
   const label = DESK_LABELS[locale][DESK_VIEWS.indexOf(view)] ?? '';
-  await layout.locator('[data-slot="viewRow"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: label, exact: true }).click();
+  // The pressed value is bracketed in its name (`[ Globe ]`, the bracket mark), the others plain.
+  await layout.locator('[data-slot="viewRow"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: new RegExp(`^(\\[ )?${label}( \\])?$`) }).click();
   await expect(layout.locator(view === 'globe' ? '[data-globe]' : `[data-drawing="${view}"]`).first()).toBeAttached({ timeout: 30_000 });
 }
 
