@@ -342,5 +342,7 @@
 | 2026-11-05 | V214-34 | **The stars page plays time as the live page does.** Its speeds are the live page's playback row, `[ Play ]` and the speeds, under `[ now ]`, in place of 2.13's bare `×60 ×600 ×3600`. | FR-WIDE-4; D-1138. |
 | 2026-11-05 | V214-35 | **The pass page's `[ ← ]` goes back to where the reader came from.** The browser's back: the home with the card from the home, the live or stars page from those. | FR-WIDE-1; D-1134. |
 | 2026-11-05 | V214-36 | **The day globe draws a sky, not a dozen points.** Seen built, the first two rungs gave about 13 stars; the day and twilight globe draws the stars to magnitude 3.5 and their figures, faint, so the figures do not vanish between day and night. | FR-STAR-13; D-1139. |
+| 2026-11-05 | V214-37 | **The pass list first is capped at about three cards.** Seen built, seven full cards pushed `View`, `Time` and `[ Play ]` under the fold; the list scrolls inside itself, the open card in view. | FR-WIDE-1; D-1135. |
+| 2026-11-05 | V214-38 | **The pass page's list rows are one line.** Seen built, three full cards still pushed `[ Play ]` under the fold at 1280 × 800; each row is the time, the name and the peak and brightness without the minutes, three in view and the top of a fourth, the rail closed up round the list. | FR-WIDE-1; D-1135. |
 
 ---

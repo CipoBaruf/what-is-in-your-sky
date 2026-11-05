@@ -310,6 +310,7 @@ export const ui: typeof EnUi = {
     sortShort: { chronological: 'Próximos', best: 'Mejores' } satisfies Record<PassSort, string>,
     nextTag: (p) => (p.iss ? 'Próxima ISS' : `Próximo ${p.name}`),
     cardDetail: (p) => `${String(p.minutes)} min · máx. ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
+    cardDetailShort: (p) => `máx. ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'cielo todavía claro',
     ended: 'terminado',
     openGuide: 'Abrir la guía →',

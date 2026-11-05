@@ -437,6 +437,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".nextEvent.region:string",
   ".nextEvent.withDuration:function",
   ".passes.cardDetail:function",
+  ".passes.cardDetailShort:function",
   ".passes.computing:string",
   ".passes.computingProgress:function",
   ".passes.countLine:function",

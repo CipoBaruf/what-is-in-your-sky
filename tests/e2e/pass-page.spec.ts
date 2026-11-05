@@ -106,6 +106,27 @@ for (const [width, height] of SIZES) {
           // V214-33: the list is the rail's first group after the head, before `View` and `Time`.
           const order = await layout.locator('[data-rail] > [data-slot]').evaluateAll((slots) => slots.map((el) => el.getAttribute('data-slot')));
           expect(order.slice(0, 4)).toEqual(['answer', 'list', 'viewRow', 'timeline']);
+          // V214-37, V214-38: one-line rows, three in view and the top of a fourth, the list scrolling inside itself with
+          // the open row in its view. From 800 px tall (1280 × 800 up) `[ Play ]` is in the viewport without scrolling the
+          // rail; at 1024 × 640 the head, the list and `View` already fill the rail, so there the rail only scrolls to it.
+          const listBox = await rail.boundingBox();
+          expect(listBox?.height ?? Infinity).toBeLessThanOrEqual(7.5 * 24 + 1);
+          const whole = await rail.locator('article[data-pass-id]').evaluateAll((cards, box) => {
+            const top = box?.y ?? 0;
+            const bottom = top + (box?.height ?? 0);
+            return cards.filter((card) => {
+              const r = card.getBoundingClientRect();
+              return r.top >= top - 0.5 && r.bottom <= bottom + 0.5;
+            }).length;
+          }, listBox);
+          expect(whole).toBeGreaterThanOrEqual(3);
+          await expect(rail.locator('article[aria-current]')).toBeInViewport();
+          const play = layout.getByTestId('live-play');
+          if (height >= 800) await expect(play).toBeInViewport({ ratio: 1 });
+          else {
+            await play.scrollIntoViewIfNeeded();
+            await expect(play).toBeInViewport({ ratio: 1 });
+          }
           const rows = rail.locator('article[data-pass-id]');
           const first = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
           const ids = await rows.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
@@ -157,9 +178,10 @@ for (const [width, height] of SIZES) {
             await expect(rail.locator('table')).toBeVisible();
             const m = await rail.evaluate((element) => {
               const doc = document.documentElement;
-              // A visually hidden heading is a 1 px clip by design and draws nothing; an inline box has no client width.
+              // A visually hidden heading is a 1 px clip by design and draws nothing; an inline box has no client width;
+              // a one-line row's name (V214-38) gives with its ellipsis, which is the clip drawn, not a box run over.
               const wide = [element, ...element.querySelectorAll<HTMLElement>('*')]
-                .filter((el) => el.clientWidth > 1 && el.scrollWidth > el.clientWidth)
+                .filter((el) => el.clientWidth > 1 && el.scrollWidth > el.clientWidth && getComputedStyle(el).textOverflow !== 'ellipsis')
                 .map((el) => `${el.tagName}.${String(el.className)} "${(el.textContent ?? "").slice(0, 30)}" ${String(el.scrollWidth)} > ${String(el.clientWidth)}`);
               const header = document.querySelector('#root > header')?.getBoundingClientRect();
               return { doc: doc.scrollWidth - doc.clientWidth, docY: doc.scrollHeight - doc.clientHeight, wide, right: element.getBoundingClientRect().right, headerRight: header?.right ?? NaN };

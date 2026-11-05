@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { LIVE_WINDOW_MS, livePasses } from '../../../lib/livePasses';
@@ -156,6 +156,13 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
   const nightsId = useId();
   const now = useShownClock();
   const listedAll = useListedPasses(selectedPassId);
+  // v2.14.1 (V214-37): on the pass page the list scrolls inside itself, so the open pass's card is brought into it.
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!onlyTonight || selectedPassId === null) return;
+    const card = sectionRef.current?.querySelector<HTMLElement>(`[data-pass-id="${CSS.escape(selectedPassId)}"]`);
+    card?.scrollIntoView?.({ block: 'nearest' });
+  }, [onlyTonight, selectedPassId]);
   const listed = useMemo(() => {
     if (!onlyTonight) return listedAll;
     const inSpan = (list: readonly Pass[]): readonly Pass[] => {
@@ -212,7 +219,7 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
   // there is one night and so no night heading.
   const cards = (items: readonly Pass[], headingLevel: 3 | 4) =>
     items.length === 0 || !observer ? null : (
-      <ol className={styles.list}>
+      <ol className={onlyTonight ? `${styles.list} ${styles.dense}` : styles.list}>
         {items.map((pass) => (
           <li key={pass.id}>
             <PassCard
@@ -223,6 +230,7 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
               ended={hasEnded(pass, now)}
               headingLevel={headingLevel}
               faint={faint.has(pass.id)}
+              dense={onlyTonight}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />
@@ -241,7 +249,7 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
     setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.key]: next } }));
   };
   return (
-    <section aria-labelledby={headingId} className={styles.section}>
+    <section ref={sectionRef} aria-labelledby={headingId} className={styles.section}>
       {/* R76 (D-471), R107 (D-725): the list keeps its headed region and the heading is read, not drawn — the reading's own `── What ──` is over it. */}
       <SectionHeading id={headingId} visuallyHidden>
         {t.passes.heading}

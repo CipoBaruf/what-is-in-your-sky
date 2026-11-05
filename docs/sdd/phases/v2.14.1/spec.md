@@ -6,7 +6,7 @@ Cut from `SPEC.md` by `scripts/sdd/split.ts` (FR-SDD-3); ids resolve through `do
 
 After v2.14 is on `main` (`936b829b`, 2.14.0, not tagged).
 The owner ran 2.14 on a desk and found the pass page hard to use, the opening views empty and the stars page carrying the satellites' time.
-The fixes are the owner's answers of 2026-11-05 (V214-25..V214-36); they amend v2.14's requirements and add three.
+The fixes are the owner's answers of 2026-11-05 (V214-25..V214-38); they amend v2.14's requirements and add three.
 One branch, one pull request, built and reviewed locally; the owner reads it before anything is pushed.
 v2.14.0 is not tagged: the release is 2.14.1 (V214-32).
 
@@ -15,9 +15,10 @@ v2.14.0 is not tagged: the release is 2.14.1 (V214-32).
 - **FR-WIDE-1** *(amended v2.14.1, V214-26; before: the pass page's list was the home's list beside nothing to return by)*
   On wide the pass page's header carries `[ ← ]` before the title, as the live and stars pages' do (FR-FLOW-3); it goes back to where the reader came from (the browser's back): from the home, the home with the list scrolled to the card; from the live or stars page, that page (V214-35).
   Tonight's pass list is the rail's group right under the head, before `View` and `Time`, the selected row marked `aria-current`; a click or `Enter` on another row opens that pass in place (its hash, its arc, its times, opened at its rise), without the home in between (V214-33).
+  The list's rows are one line each (the time, the name, the peak and the brightness, the name giving first), three in view and the top of a fourth (7.5 rows, `--row` 24 px each), and it scrolls inside itself with the open pass's row in view, so `View`, `Time` and `[ Play ]` stay in view under it (V214-37, V214-38).
   A bare `#pass` (no pass known yet) moves to the pass `[ satellites ]` names as soon as the passes arrive.
   The rail stays inside the page's width cap (FR-CLEAN-12): no group, row or table is wider than the rail, nothing on the page scrolls sideways, and the rail alone scrolls vertically while the sky box stays in view.
-  *Verification:* `pass-page.spec.ts` at 1024 × 640, 1280 × 800 and 1920 × 1080 in both languages — the list is the rail's first group after the head.
+  *Verification:* `pass-page.spec.ts` at 1024 × 640, 1280 × 800 and 1920 × 1080 in both languages — the list is the rail's first group after the head, at most 7.5 rows tall with three whole rows in it, and from 800 px tall `[ Play ]` is in the viewport without scrolling the rail (at 1024 × 640 the rail scrolls to it).
   The back arrow returns home with the card in view when entered from the home, and to the stars page when entered from it; a bare `#pass` becomes a pass's hash once passes load; a second row opens its pass with the hash changed and no navigation to home; `scrollWidth` equals `clientWidth` for the document and for every element inside the rail; the rail's right edge is at or inside the header's.
 
 - **FR-CLEAN-14** *(amended v2.14.1, V214-27; before: three page links)*

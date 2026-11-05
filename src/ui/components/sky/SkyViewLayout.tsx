@@ -83,6 +83,12 @@ export const SLOT_ORDER: readonly SkyViewRailSlot[] = ['answer', 'viewRow', 'tim
  */
 export const LIST_FIRST_ORDER: readonly SkyViewRailSlot[] = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
 
+/**
+ * v2.14.1 (V214-38, D-1135): the pass page's rail closes up round its list — the count line a row under the head's date
+ * and `View` a row under the list — so `[ Play ]` is in view at 1280 × 800; the live and stars pages keep `SLOT_RHYTHM`.
+ */
+export const LIST_FIRST_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = { ...SLOT_RHYTHM, list: 'row', viewRow: 'row' };
+
 /** R186 (FR-WIDE-5): the corners in the order they are rendered over the box. */
 export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint', 'zoom'];
 
@@ -325,10 +331,10 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     const label = name === 'viewRow' ? { id: viewId, text: t.skyView.view } : null;
     // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`).
     // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
-    // First (D-1135) it takes its own height and the rail scrolls, so it is no stop of its own.
-    const scrolls = name === 'list' && !listFirst;
+    // First (D-1135, V214-37, V214-38) it is capped at about three one-line rows and scrolls inside itself too.
+    const scrolls = name === 'list';
     return (
-      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={(listFirst ? LIST_FIRST_RHYTHM : SLOT_RHYTHM)[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
         {node}
       </div>
