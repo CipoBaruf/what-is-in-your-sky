@@ -14,10 +14,13 @@ export const stars = {
     /** While the `stars` chunk is on its way. */
     loading: 'Loading the stars…',
     /** FR-DESK-4 as amended v2.4: the `?` overlay's block for the page's four keys. */
-    keysHeading: 'On the stars page',
+    keysHeading: 'With the sky focused',
     keys: {
       starsTurn: 'Turn the sky, with the drawing focused',
       starsTilt: 'Tilt it up or down',
+      /* R189 (FR-WIDE-9): the zoom and the reset of FR-SKY-14 and FR-GLOBE-6. */
+      boxZoom: 'Zoom in or out (globe, window)',
+      boxReset: 'Back to the opening field (0) or view (Home)',
     } satisfies Record<PageKeyId, string>,
   },
 };

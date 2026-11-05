@@ -46,6 +46,7 @@ import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHead } from '../components/sky/SkyHead';
 import { useFollow, type Follow } from '../components/sky/useFollow';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
 
@@ -341,6 +342,9 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
       <div className={styles.desk} data-pass-id={pass.id} data-testid="guide-panel" data-guide-panel="" aria-label={t.guide.panelLabel({ name: pass.name })} role="region">
         <SkyViewLayout
           onFirstTouch={follow.firstTouch}
+          // R189 (FR-WIDE-9, FR-WIDE-10): the desk keys over the page's view and `t`, and the full screen's readout.
+          keys={skyKeys(onChartView, playback)}
+          clock={{ t: playback.t, now, timeZone: observer.timeZone }}
           describedBy={proseId}
           labelledBy={headingId}
           data-testid="pass-layout"

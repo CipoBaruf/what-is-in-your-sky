@@ -1024,7 +1024,7 @@ export function SkyWindow(props: SkyWindowProps) {
     }
     handCamera.followPass(followId, { azDeg: followAz, elDeg: followEl });
   }, [handCamera, followId, followAz, followEl]);
-  // FR-DESK-4 as amended v2.5: `f`, on the live page with the window in the box, through the shortcut table's one guard.
+  // FR-DESK-4 as amended v2.5 → FR-WIDE-9 (R189): `a`, on the live page with the window in the box, through the shortcut table's one guard.
   // The listener is installed once per camera and target and reads the position of the moment through the ref.
   const followRef = useRef<FollowTarget | null>(null);
   useEffect(() => {
@@ -1033,7 +1033,7 @@ export function SkyWindow(props: SkyWindowProps) {
   useEffect(() => {
     if (!handCamera || followId === undefined) return;
     const onKey = (event: globalThis.KeyboardEvent): void => {
-      if (shortcutFor(event)?.id !== 'follow') return;
+      if (shortcutFor(event)?.id !== 'face') return;
       const target = followRef.current;
       if (!target) return;
       event.preventDefault();

@@ -41,6 +41,7 @@ import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHead } from '../components/sky/SkyHead';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useFollow } from '../components/sky/useFollow';
 import { useLayoutMode } from '../hooks/useLayoutMode';
@@ -735,6 +736,9 @@ function StarsSky({ observer }: { observer: Observer }) {
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page">
         <SkyViewLayout
           onFirstTouch={follow.firstTouch}
+          // R189 (FR-WIDE-9, FR-WIDE-10): the time keys are the globe's clock's; the window and the dome show real time.
+          keys={skyKeys(onChartView, globeShown ? globeClock : null)}
+          clock={globeShown ? { t: globeClock.t, now, timeZone: shownPlace.timeZone } : { t: now, now, timeZone: observer.timeZone }}
           className={styles.skyLayout}
           data-testid="stars-layout"
           answer={<StarsHeading observer={observer} now={now} />}

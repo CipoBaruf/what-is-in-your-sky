@@ -1,7 +1,7 @@
 import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
-import { PAGE_KEYS, SHORTCUTS } from '../../../lib/shortcuts';
+import { PAGE_KEYS, SHORTCUTS, type Shortcut } from '../../../lib/shortcuts';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import styles from './ShortcutsOverlay.module.css';
 
@@ -33,6 +33,14 @@ export function ShortcutsOverlay({ onClose }: ShortcutsOverlayProps) {
   // mount effect runs the page behind this is `inert` and the card that had
   // focus has been blurred — `?` on a pass then landed the reader on the body.
   useOpenerFocus(headingRef);
+  const row = (shortcut: Shortcut) => (
+    <tr key={shortcut.id} data-shortcut={shortcut.id}>
+      <td>
+        <kbd className={styles.key}>{shortcut.label}</kbd>
+      </td>
+      <td>{t.shortcuts.does[shortcut.id]}</td>
+    </tr>
+  );
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.overlay} data-testid="shortcuts-overlay">
@@ -53,16 +61,18 @@ export function ShortcutsOverlay({ onClose }: ShortcutsOverlayProps) {
             </tr>
           </thead>
           <tbody>
-            {SHORTCUTS.map((shortcut) => (
-              <tr key={shortcut.id} data-shortcut={shortcut.id}>
-                <td>
-                  <kbd className={styles.key}>{shortcut.label}</kbd>
-                </td>
-                <td>{t.shortcuts.does[shortcut.id]}</td>
-              </tr>
-            ))}
+            {SHORTCUTS.filter((shortcut) => shortcut.group === 'app').map(row)}
           </tbody>
-          {/* R115 (FR-STAR-4, FR-DESK-4 as amended v2.4): the stars page's four keys, which its drawing handles itself. */}
+          {/* R189 (FR-WIDE-9, D-1102): the desk sky pages' keys, the same table's rows under their own heading. */}
+          <tbody data-testid="shortcuts-sky-keys">
+            <tr>
+              <th scope="rowgroup" colSpan={2} className={styles.group}>
+                {t.shortcuts.skyHeading}
+              </th>
+            </tr>
+            {SHORTCUTS.filter((shortcut) => shortcut.group === 'sky').map(row)}
+          </tbody>
+          {/* R115 (FR-STAR-4, FR-DESK-4 as amended v2.4) → R189 (FR-WIDE-9): the focused box's keys, which the drawing handles itself. */}
           <tbody data-testid="shortcuts-page-keys">
             <tr>
               <th scope="rowgroup" colSpan={2} className={styles.group}>

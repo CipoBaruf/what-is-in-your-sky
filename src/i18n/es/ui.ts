@@ -105,7 +105,7 @@ export const ui: typeof EnUi = {
   },
 
   starsHeading: 'Estrellas esta noche',
-  skyView: { view: 'Vista', time: 'Hora', now: 'ahora', facing: 'Hacia' },
+  skyView: { view: 'Vista', time: 'Hora', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa', exitFullscreen: 'Salir de pantalla completa' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
 
@@ -491,6 +491,7 @@ export const ui: typeof EnUi = {
     title: 'Atajos de teclado',
     keyHeading: 'Tecla',
     doesHeading: 'Acción',
+    skyHeading: 'En las páginas del cielo, en la compu',
     close: 'Cerrar',
     does: {
       next: 'Pase siguiente de la lista',
@@ -499,10 +500,18 @@ export const ui: typeof EnUi = {
       close: 'Cerrar la guía, o esta lista',
       live: 'Abrir el cielo en vivo',
       stars: 'Abrir las estrellas',
-      view: 'Cambiar el gráfico entre el domo y la vista polar',
-      follow: 'Girar la ventana hacia el pase destacado y seguirlo (cielo en vivo)',
+      view: 'Cambiar la vista: globo, ventana, domo en la compu; domo y polar en el teléfono',
       theme: 'Cambiar la paleta entre oscura y nocturna',
       help: 'Mostrar esta lista',
+      globe: 'Mostrar el globo',
+      window: 'Mostrar la ventana',
+      dome: 'Mostrar el domo',
+      back: 'Una hora atrás',
+      ahead: 'Una hora adelante',
+      now: 'Volver a ahora',
+      play: 'Reproducir o pausar',
+      face: 'Girar la ventana hacia el pase destacado y seguirlo (cielo en vivo)',
+      full: 'Darle al cielo toda la pantalla, o salir',
     },
   },
 

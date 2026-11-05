@@ -58,6 +58,7 @@ import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { useFollow } from '../components/sky/useFollow';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
+import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { REDUCED_MOTION, useMediaQuery } from '../hooks/useMediaQuery';
@@ -185,6 +186,8 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      // R189: on wide the app's listener runs here too, and its `Esc` closes the shortcuts overlay first (D-73).
+      if (event.defaultPrevented || document.querySelector('[data-testid="shortcuts-overlay"]') !== null) return;
       event.preventDefault();
       if (escRef.current()) return;
       onLeave();
@@ -1105,6 +1108,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       data-testid="live-layout"
       fill
       onFirstTouch={follow.firstTouch}
+      // R189 (FR-WIDE-9, FR-WIDE-10): the desk keys over this page's view and instant, and the full screen's readout.
+      keys={skyKeys(onChartView, playback)}
+      clock={{ t: shown, now, timeZone: observer.timeZone }}
       answer={answer}
       viewRow={viewRow}
       drawing={drawing}

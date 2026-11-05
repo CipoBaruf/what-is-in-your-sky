@@ -134,7 +134,8 @@ export const ui = {
 
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
   // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
-  skyView: { view: 'View', time: 'Time', now: 'now', facing: 'Facing' },
+  /** R189 (FR-WIDE-10): `fullscreen` is the box's top-right control, `exitFullscreen` the accessible name of its `[ × ]`. */
+  skyView: { view: 'View', time: 'Time', now: 'now', facing: 'Facing', fullscreen: 'full screen', exitFullscreen: 'Leave full screen' },
 
   banner: { info: 'Note', warning: 'Warning' },
 
@@ -689,6 +690,8 @@ export const ui = {
     /** Read out for the key column; the keys themselves are printed as they are written on the keyboard. */
     keyHeading: 'Key',
     doesHeading: 'Does',
+    /** R189 (FR-WIDE-9): the group of keys the live page, the stars page and a pass run on a desk. */
+    skyHeading: 'On the sky pages, on a desk',
     close: 'Close',
     does: {
       next: 'Next pass in the list',
@@ -697,11 +700,20 @@ export const ui = {
       close: 'Close the guide, or this list',
       live: 'Open the live sky',
       stars: 'Open the stars',
-      view: 'Switch the chart between the dome and the polar view',
-      /** R127 (FR-DESK-4 as amended v2.5, FR-SKY-13): on the live page with the window in the box; elsewhere it does nothing. */
-      follow: 'Turn the window to the highlighted pass and keep it there (live page)',
+      view: 'Switch the view: globe, window, dome on a desk; dome and polar on a phone',
       theme: 'Switch the palette between dark and night',
       help: 'Show this list',
+      /* R189 (FR-WIDE-9): the desk sky pages' keys. */
+      globe: 'Show the globe',
+      window: 'Show the window',
+      dome: 'Show the dome',
+      back: 'One hour back',
+      ahead: 'One hour ahead',
+      now: 'Back to now',
+      play: 'Play or pause',
+      /** FR-SKY-13 as amended by FR-WIDE-9: on the live page with the window in the box; elsewhere it does nothing. */
+      face: 'Turn the window to the highlighted pass and keep it there (live page)',
+      full: 'Give the sky the whole screen, or leave it',
     } satisfies Record<ShortcutId, string>,
   },
 
