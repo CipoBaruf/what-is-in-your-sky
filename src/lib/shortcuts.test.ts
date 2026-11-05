@@ -5,7 +5,7 @@
  * that the overlay lists exactly this table is `ShortcutsOverlay.test.tsx`.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SHORTCUTS, installShortcuts, isTypingTarget, shortcutFor, type ShortcutActions, type ShortcutId } from './shortcuts';
+import { SHORTCUTS, activatesOnSpace, installShortcuts, isTypingTarget, shortcutFor, skyShortcuts, type ShortcutActions, type ShortcutId } from './shortcuts';
 
 function press(key: string, extra: Partial<KeyboardEventInit> & { target?: EventTarget | null } = {}) {
   return { key, altKey: false, ctrlKey: false, metaKey: false, isComposing: false, ...extra };
@@ -26,12 +26,16 @@ function spyActions(): ShortcutActions & { calls: ShortcutId[] } {
 }
 
 describe('the shortcut table', () => {
-  it('holds FR-DESK-4 exactly: j, k, Enter, Esc, l, s, v, f, n and ? (s since v2.4, V24-1; f since v2.5, V25-11)', () => {
-    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 's', 'v', 'f', 'n', '?']);
-    expect(shortcutFor(press('f'))?.id).toBe('follow');
+  it("holds FR-DESK-4's keys, then FR-WIDE-9's: g w d , . t Space a f (R189)", () => {
+    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 's', 'v', 'n', '?', 'g', 'w', 'd', ',', '.', 't', ' ', 'a', 'f']);
+    expect(SHORTCUTS.filter((shortcut) => shortcut.group === 'sky').map((shortcut) => shortcut.id)).toEqual(['globe', 'window', 'dome', 'back', 'ahead', 'now', 'play', 'face', 'full']);
+    // FR-WIDE-9 amends FR-SKY-13: `a` faces the pass, `f` is full screen.
+    expect(shortcutFor(press('a'))?.id).toBe('face');
+    expect(shortcutFor(press('f'))?.id).toBe('full');
+    expect(SHORTCUTS.find((shortcut) => shortcut.id === 'play')?.label).toBe('Space');
   });
 
-  it('gives every shortcut a distinct id and no key to two shortcuts', () => {
+  it('FR-WIDE-9: no two entries of the key table share a key, and every shortcut has a distinct id', () => {
     expect(new Set(SHORTCUTS.map((s) => s.id)).size).toBe(SHORTCUTS.length);
     const keys = SHORTCUTS.flatMap((s) => s.keys);
     expect(new Set(keys).size).toBe(keys.length);
@@ -138,11 +142,52 @@ describe('the one listener', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it('leaves a key alone where the listener has no row for it (R189: the app has no sky rows, a layout no app rows)', () => {
+    const play = vi.fn(() => true);
+    const target = new EventTarget();
+    const remove = installShortcuts(target, () => ({ play }));
+    const event = new KeyboardEvent('keydown', { key: 'j', cancelable: true });
+    target.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    expect(play).toHaveBeenCalledOnce();
+    remove();
+  });
+
   it('removes itself', () => {
     const target = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
     const remove = installShortcuts(target, spyActions);
     expect(target.addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
     remove();
     expect(target.removeEventListener).toHaveBeenCalledWith('keydown', (target.addEventListener.mock.calls[0] as unknown[])[1]);
+  });
+});
+
+describe('FR-WIDE-9: the sky rows (D-1102)', () => {
+  const sky = () => ({ setView: vi.fn(() => true), stepHour: vi.fn(() => true), toNow: vi.fn(() => true), togglePlay: vi.fn(() => true) });
+
+  it('maps g w d , . t Space f onto the page actions and the layout full screen', () => {
+    const actions = sky();
+    const full = vi.fn(() => true);
+    const rows = skyShortcuts(actions, full, () => null);
+    for (const id of ['globe', 'window', 'dome', 'back', 'ahead', 'now', 'play', 'full'] as const) expect(rows[id]?.()).toBe(true);
+    expect(actions.setView.mock.calls).toEqual([['globe'], ['window'], ['dome']]);
+    expect(actions.stepHour.mock.calls).toEqual([[-1], [1]]);
+    expect(actions.toNow).toHaveBeenCalledOnce();
+    expect(actions.togglePlay).toHaveBeenCalledOnce();
+    expect(full).toHaveBeenCalledOnce();
+    // `a` is the window's own listener.
+    expect(rows.face).toBeUndefined();
+  });
+
+  it('Space with a button focused is the button press, as the browser does', () => {
+    const actions = sky();
+    const button = document.createElement('button');
+    expect(skyShortcuts(actions, () => false, () => button).play?.()).toBe(false);
+    expect(actions.togglePlay).not.toHaveBeenCalled();
+    expect(activatesOnSpace(document.createElement('div'))).toBe(false);
+    const option = document.createElement('div');
+    option.setAttribute('role', 'radio');
+    expect(activatesOnSpace(option)).toBe(true);
   });
 });
