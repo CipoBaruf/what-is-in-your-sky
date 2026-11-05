@@ -16,6 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
+import { clearArcPoint, legendIds, openLiveThreePasses } from './factsHelpers';
 import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
@@ -341,5 +342,38 @@ test.describe('the wide live page (R61)', () => {
     // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page; at this height the rail runs past
     // the layout's foot and scrolls inside itself (the stars page's rail does the same), and the page does not scroll.
     expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
+  });
+});
+
+/*
+ * R188 (FR-FACT-2, US-53 AC3): on a desk a click on an arc highlights its pass and shows `This satellite` in the page
+ * group, under `Facing`; `Esc` closes it and leaves the page where it was; a legend row's `Enter` does the same and
+ * takes the focus to the group's heading.
+ */
+test.describe('the live page’s facts on a desk (R188)', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+  test('FR-FACT-2: click the arc, the group; Esc, gone; Enter on a row, the group with its heading focused', async ({ page }) => {
+    await openLiveThreePasses(page);
+    const [first = '', second = ''] = await legendIds(page);
+    const group = page.getByTestId('facts-group');
+    await expect(group).toHaveCount(0);
+    const on = await clearArcPoint(page, first);
+    await page.mouse.click(on.x, on.y);
+    await expect(group).toBeVisible({ timeout: 30_000 });
+    await expect(group).toHaveAttribute('data-facts', 'satellite');
+    await expect(group.getByRole('heading', { name: 'This satellite' })).toBeVisible();
+    await expect(group.getByTestId('facts-name')).toHaveText(/^PERF \d$/);
+    await expect(page.getByTestId('live-group').getByTestId('facts-group')).toBeVisible();
+    // FR-LEG-4: the pick highlights the pass.
+    await expect(page.getByTestId('chart-legend').locator(`button[data-pass-id="${first}"]`)).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
+    await expect(group).toHaveCount(0);
+    await expect(page.getByTestId('live-page')).toBeVisible();
+    await page.getByTestId('chart-legend').locator(`button[data-pass-id="${second}"]`).focus();
+    await page.keyboard.press('Enter');
+    await expect(group.getByRole('heading', { name: 'This satellite' })).toBeFocused({ timeout: 30_000 });
+    await group.getByRole('button', { name: 'Close the facts' }).click();
+    await expect(group).toHaveCount(0);
   });
 });
