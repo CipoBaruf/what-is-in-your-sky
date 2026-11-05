@@ -291,6 +291,8 @@ test.describe('the live page’s globe at 1280 × 800', () => {
     }
   });
 
+  // FR-WIDE-6: the braille font is not asserted absent — the header's mark (FR-MARK-3) draws with it on every page
+  // since R74, so the home asks for it before any chart; what the dome alone brings is its chunk, pinned here.
   test('FR-WIDE-6: a desk with nothing saved asks for no SkyDome-*.js; Dome chosen asks for it', async ({ page }) => {
     const asked: string[] = [];
     page.on('request', (request) => {
