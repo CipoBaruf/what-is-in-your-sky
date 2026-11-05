@@ -31,12 +31,12 @@ Read from the repository on 2026-11-05, for the 2.14.0 release; each figure's co
 |---|---|---|
 | Time span | first commit 2026-09-02, 2.14.0 prepared 2026-11-05 | 2026-11-05 |
 | Tasks done | 201, one session each (R1–R191, H, P1–P9) | 2026-11-05 |
-| Pull requests merged | 271 | 2026-11-05 |
+| Pull requests merged | 270, and this release's | 2026-11-05 |
 | Phases | 24 phase folders, `mvp` to `v2.14` | 2026-11-05 |
 | Releases | 8 tags, `v1.1.0` to `v2.12.0`; the owner tags `v2.14.0` | 2026-11-05 |
 | Requirement ids | 463 `FR-` ids in the specs | 2026-11-05 |
 | Decisions | 1054 `D-` ids, 323 rows in the Decision Log | 2026-11-05 |
-| Tests | TESTS_FIGURE | 2026-11-05 |
+| Tests | 3793 Vitest tests in 307 files, and 118 Playwright specs | 2026-11-05 |
 
 ## How it was built
 

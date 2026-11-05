@@ -210,30 +210,32 @@ The app itself is well under a megabyte; nothing in `docs/` reaches the bundle.
 
 ## By the numbers
 
-Read at `ec31703`, `main` on 2026-11-03, the commit this table was last refreshed from. Each
-figure is the output of the command beside it at that commit; a later commit moves the
+Read at `260a09d7`, R191's branch on 2026-11-05, the commit before this table: the 2.14.0 release, whose squash merge
+is the release commit. Each figure is the output of the command beside it at that commit; a later commit moves the
 lines and the counts, not the commands. `tests/docs/accuracy.test.ts` asserts the shape
 of this table — a command and a commit on every row — and does not recount the tree,
 because a test that did would make this page wrong the moment the next task merged
-(PLAN D-650).
+(PLAN D-650). Since R191 the pull requests are counted from the merge subjects on `main`, which a session
+without the network can read.
 
 | Figure | Value | Command | Read at |
 |---|---|---|---|
-| Tasks merged | 178 (R1–R168, H, P1–P9) | `grep -c '^- \[x\] \*\*' TASKS.md` | `ec31703` |
-| Tasks open | 3 (R169–R171, v2.12) | `grep -c '^- \[ \] \*\*' TASKS.md` | `ec31703` |
-| Pull requests merged into `main` | 260 | `gh pr list --state merged --base main --limit 1000 --json number \| jq length` | `ec31703` |
-| Commits on `main` | 336, the first on 2026-09-02 | `git rev-list --count origin/main; git log --reverse --format=%as origin/main \| head -1` | `ec31703` |
-| Release tags | 7, `v1.1.0` to `v2.11.0` | `git tag -l 'v*' \| wc -l` | `ec31703` |
-| Requirement ids named in the spec | 410 | `grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' SPEC.md \| sort -u \| wc -l` | `ec31703` |
-| Decision ids named in the spec and the plan | 973 | `cat SPEC.md PLAN.md \| grep -oE '\bD-[0-9]+\b' \| sort -u \| wc -l` | `ec31703` |
-| Highest decision id | `D-1053` | `grep -oE '\bD-[0-9]+' PLAN.md \| sort -t- -k2 -n \| tail -1` | `ec31703` |
-| Findings recorded (SPEC §4.20) | 102 rows, the highest `F-103` | `grep -c '^\| \**F-[0-9]' SPEC.md` | `ec31703` |
-| Decision Log rows (SPEC §12) | 284 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' SPEC.md` | `ec31703` |
-| Lines in the three documents | 2927, 3514, 4893 | `wc -l SPEC.md PLAN.md TASKS.md` | `ec31703` |
-| The driver | 415 lines, plus 7 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `ec31703` |
-| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `ec31703` |
-| Test files | 271 Vitest files, 112 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `ec31703` |
-| Tests | 3309 in 272 files, 7 of them skipped — the last two lines of its output | `npm test` | `ec31703` |
-| Tracked files | 2341 | `git ls-files \| wc -l` | `ec31703` |
-| Captures | 1074 PNGs under `docs/screenshots/`, 416 of them the `v1-*` release set | `git ls-files 'docs/screenshots/*.png' \| wc -l; git ls-files 'docs/screenshots/v1-*.png' \| wc -l` | `ec31703` |
-| Size of `docs/` | 134 MB, of which `docs/screenshots/` is 110 MB | `du -sm docs docs/screenshots` | `ec31703` |
+| Tasks merged | 201 (R1–R191, H, P1–P9), R191 with this release | `cat TASKS.md docs/sdd/phases/*/tasks.md \| grep -c '^- \[x\] \*\*'` | `260a09d7` |
+| Tasks open | 0, the v2.14 phase done | `grep -c '^- \[ \] \*\*' TASKS.md` | `260a09d7` |
+| Pull requests merged into `main` | 270 before this release's, the last `#296` | `git log --format=%s origin/main \| grep -cE '\(#[0-9]+\)$'` | `260a09d7` |
+| Commits on `main` | 368 before this release's squash merge (the branch's own fold into it), the first on 2026-09-02 | `git rev-list --count origin/main; git log --reverse --format=%as origin/main \| head -1` | `260a09d7` |
+| Release tags | 8, `v1.1.0` to `v2.12.0`; `v2.14.0` is the owner's | `git tag -l 'v*' \| wc -l` | `260a09d7` |
+| Phases | 24 folders, `mvp` to `v2.14` | `ls -d docs/sdd/phases/*/ \| wc -l` | `260a09d7` |
+| Requirement ids named in the specs | 463 | `cat SPEC.md docs/sdd/phases/*/spec.md \| grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' \| sort -u \| wc -l` | `260a09d7` |
+| Decision ids named in the specs, the plans and the Decision Log | 1054 | `cat SPEC.md PLAN.md docs/sdd/decisions.md docs/sdd/phases/*/spec.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+\b' \| sort -u \| wc -l` | `260a09d7` |
+| Highest decision id | `D-1133` | `cat PLAN.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+' \| sort -t- -k2 -n \| tail -1` | `260a09d7` |
+| Findings recorded (the phase specs) | 102 rows, the highest `F-103` | `cat docs/sdd/phases/*/spec.md \| grep -c '^\| \**F-[0-9]'` | `260a09d7` |
+| Decision Log rows (`docs/sdd/decisions.md`) | 323 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' docs/sdd/decisions.md` | `260a09d7` |
+| Lines in the three index files, and in the phase folders | 133, 163, 323; 20960 | `wc -l SPEC.md PLAN.md TASKS.md; cat docs/sdd/phases/*/*.md \| wc -l` | `260a09d7` |
+| The driver | 541 lines, plus 18 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `260a09d7` |
+| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `260a09d7` |
+| Test files | 306 Vitest files, 118 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `260a09d7` |
+| Tests | 3793 in 307 files, 9 of them skipped — the last two lines of its output | `npm test` | `260a09d7` |
+| Tracked files | 2170 | `git ls-files \| wc -l` | `260a09d7` |
+| Captures on `main` | 663 PNGs under `docs/screenshots/`, the per-task captures to v2.13; the `v1-*` set, 464 files, is on the `captures` branch | `git ls-files 'docs/screenshots/*.png' \| wc -l` | `260a09d7` |
+| Size of `docs/` | 152 MB, of which `docs/screenshots/` is 124 MB | `du -sm docs docs/screenshots` | `260a09d7` |
