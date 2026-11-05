@@ -615,9 +615,8 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
   });
 
   it.each([
-    // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's two rows again — the steps, and `[ now ]` with the time-lapse.
+    // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's steps again; `[ now ]` and the playback row are below.
     ['the steps', () => screen.getByTestId('globe-steps')],
-    ['[ now ] and the time-lapse', () => screen.getByTestId('globe-speeds')],
     ['the turn', () => screen.getByTestId('globe-turn-row')],
     ['the first layer row', () => screen.getAllByTestId('stars-layers-row')[0] as Element],
     ['the second layer row, with faint', () => screen.getAllByTestId('stars-layers-row')[1] as Element],
@@ -625,6 +624,20 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
     const row = find();
     const cells = rowCells(row, table);
     expect(cells, `${name} in ${locale}: ${rowParts(row, table).join(' | ')}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+  });
+
+  /*
+   * V214-34 (D-1138): `[ now ]` then the live page's playback row — one line at the rail's usual 60 cells
+   * (`SkyViewLayout.module.css`' `minmax(44 cells, 60 cells)`), and at its 44-cell minimum two, broken once before the
+   * speeds: `[ now ] [ Play ]` and the speeds each fit 44.
+   */
+  it('[ now ] and the playback row', () => {
+    const row = screen.getByTestId('globe-speeds');
+    const parts = rowParts(row, table).join(' | ');
+    expect(rowCells(row, table), `${locale}: ${parts}`).toBeLessThanOrEqual(60);
+    const head = rowCells(screen.getByTestId('globe-now'), table) + 1 + rowCells(within(row).getByTestId('live-play'), table);
+    expect(head, `${locale}: ${parts}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+    expect(rowCells(within(row).getByRole('group', { name: t.live.speedGroup }), table), `${locale}: ${parts}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 });
 

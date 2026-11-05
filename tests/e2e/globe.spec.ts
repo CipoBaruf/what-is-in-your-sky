@@ -195,17 +195,18 @@ for (const viewport of DESKS) {
       const hash = await page.evaluate(() => window.location.hash);
       const now = await page.evaluate(() => Date.now());
       await page.clock.pauseAt(now + 1_000);
-      // FR-WIDE-4 as amended (D-1138): the time-lapse is FR-GLOBE-7's again — a speed plays at it, a second press pauses.
-      const fast = page.getByTestId('stars-time').getByRole('button', { name: 'Time-lapse at 3600 times real time' });
-      await fast.click();
-      await expect(fast).toHaveAttribute('aria-pressed', 'true');
+      // FR-WIDE-4 as amended (V214-34): the live page's playback row — 3600× picks the rate, `[ Play ]` plays, `[ Pause ]` holds.
+      const row = page.getByTestId('stars-time').getByTestId('playback-controls');
+      await row.getByRole('button', { name: '3600×' }).click();
+      await row.getByRole('button', { name: 'Play' }).click();
+      await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
       const from = await globeAt(page);
       await page.clock.runFor(1_000);
       const moved = (await globeAt(page)) - from;
       // One second of frames at ×3600: an hour, give or take the frames at either end.
       expect(Math.abs(moved - HOUR_MS), `moved ${String(moved)} ms`).toBeLessThanOrEqual(3 * 3_600 * 17);
-      await fast.click();
-      await expect(fast).toHaveAttribute('aria-pressed', 'false');
+      await row.getByRole('button', { name: 'Pause' }).click();
+      await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
       expect(await page.evaluate(() => window.location.hash)).toBe(hash);
     });
 
@@ -245,8 +246,8 @@ for (const viewport of DESKS) {
           }),
         );
       }
-      // FR-WIDE-4 as amended (D-1138): the steps, `[ now ]` and the time-lapse, then the page's group.
-      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'Time-lapse at 60 times real time', 'with the stars', 'London', 'faint'];
+      // FR-WIDE-4 as amended (D-1138, V214-34): the steps, `[ now ]` and the playback row, then the page's group.
+      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'live-play', 'with the stars', 'London', 'faint'];
       // The rail's scrolling row is a stop of its own (a scroll container takes the focus in Chromium): names are matched whole.
       const at = order.map((name) => seen.indexOf(name));
       expect(at.every((index) => index >= 0), seen.join(' | ')).toBe(true);

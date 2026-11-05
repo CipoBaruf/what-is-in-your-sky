@@ -123,14 +123,15 @@ async function drag(page: Page): Promise<Sample> {
 }
 
 async function lapse(page: Page): Promise<Sample> {
-  // FR-WIDE-4 as amended (D-1138): FR-GLOBE-7's time-lapse again — the ×3600 press plays.
-  const fast = page.getByTestId('stars-time').getByRole('button', { name: 'Time-lapse at 3600 times real time' });
-  await fast.click();
-  await expect(fast).toHaveAttribute('aria-pressed', 'true');
+  // FR-WIDE-4 as amended (V214-34): the live page's playback row — 3600×, then `[ Play ]`.
+  const row = page.getByTestId('stars-time').getByTestId('playback-controls');
+  await row.getByRole('button', { name: '3600×' }).click();
+  await row.getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
   await page.evaluate(installCounter);
   await page.waitForTimeout(SECONDS * 1000);
   const sample = await stop(page);
-  await fast.click();
+  await row.getByRole('button', { name: 'Pause' }).click();
   return sample;
 }
 

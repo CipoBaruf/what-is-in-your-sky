@@ -7,6 +7,7 @@
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { globeAt, LONDON, openStarsPage, showGlobe } from './globeHelpers';
 import { openSheet } from './liveHelpers';
+import { DEFAULT_PLAY_SPEED } from '../../src/model';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -23,8 +24,8 @@ const windowRoot = (page: Page): Locator => sky(page).locator('[data-look-az]');
 const viewButton = (page: Page, name: string): Locator => page.getByTestId('stars-view-row').getByRole('button', { name, exact: true });
 // The options' names carry their `[x]` mark, so they are found by value.
 const turnButton = (page: Page, value: 'you' | 'stars'): Locator => page.getByTestId('globe-turn-row').locator(`[data-option="${value}"]`);
-// v2.14.1 (D-1138): FR-GLOBE-7's time-lapse buttons, found by rate.
-const speedButton = (page: Page, speed: number): Locator => page.getByTestId('stars-time').locator(`[data-speed="${String(speed)}"]`);
+// v2.14.1 (D-1138, V214-34): the playback row's speeds, found by rate.
+const speedButton = (page: Page, speed: number): Locator => page.getByTestId('stars-time').getByTestId('playback-controls').locator(`[data-option="${String(speed)}"]`);
 
 /** The window's box under the hand: the one the keys go to. */
 async function windowKey(page: Page, key: string): Promise<void> {
@@ -65,8 +66,9 @@ for (const viewport of VIEWPORTS) {
       if (wide) {
         await expect(layer(page, 'faint')).toHaveAttribute('aria-pressed', 'false');
         await expect(turnButton(page, 'you')).toHaveAttribute('aria-pressed', 'true');
-        // v2.14.1 (D-1138): FR-GLOBE-7's speeds are pressed only while playing; the page opens paused.
-        for (const rate of [60, 600, 3600]) await expect(speedButton(page, rate)).toHaveAttribute('aria-pressed', 'false');
+        // v2.14.1 (V214-34): the playback row marks the stored speed, the default with nothing saved; the page opens paused.
+        for (const rate of [1, 60, 600, 3600]) await expect(speedButton(page, rate)).toHaveAttribute('aria-pressed', String(rate === DEFAULT_PLAY_SPEED));
+        await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
       } else {
         await expect(windowRoot(page)).toHaveAttribute('data-fov', '60');
       }
@@ -109,7 +111,7 @@ for (const viewport of VIEWPORTS) {
         // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's speeds press only while playing, so the kept rate is read
         // from the store, and the page opens paused.
         expect((await stored(page))['playSpeed']).toBe(600);
-        await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'false');
+        await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'true');
         await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
         await viewButton(page, 'Window').click();
         await expect(windowRoot(page)).toHaveAttribute('data-fov', '48', { timeout: 30_000 });

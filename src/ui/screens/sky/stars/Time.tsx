@@ -3,10 +3,10 @@ import { useLocale, useT } from '../../../../i18n/useT';
 import { chipFor } from '../../../../lib/shownTime';
 import { formatClock, formatDate } from '../../../../lib/timeFormat';
 import { shortWeekday } from '../../../../lib/timeStripe';
-import { GLOBE_SPEEDS } from '../../../components/guide/skychart/globe/constants';
 import { SectionHeading } from '../../../components/primitives/SectionHeading';
 import { TextButton } from '../../../components/primitives/TextButton';
 import { VisuallyHidden } from '../../../components/primitives/VisuallyHidden';
+import { PlaybackControls } from '../../../components/sky/time/PlaybackControls';
 import type { Playback } from '../../../components/sky/time/usePlayback';
 import { useNow } from '../../../hooks/useNow';
 import styles from '../sky.module.css';
@@ -14,7 +14,7 @@ import styles from '../sky.module.css';
 /**
  * R186 (FR-WIDE-1, D-1098) → R187 (FR-WIDE-4, D-1100) → v2.14.1 (FR-WIDE-4 as amended, V214-29; D-1138): the wide
  * stars page's `Time` group while the globe is the view — FR-GLOBE-7's clock, steps, `[ now ]` and time-lapse, and no
- * overview, stripe or pass marks: the stars page carries no satellite's time. The markup is R170's `GlobeClock` and
+ * overview, stripe or pass marks (V214-34: its speeds are the live page's playback row): the stars page carries no satellite's time. The markup is R170's `GlobeClock` and
  * `GlobeTime` (`3cf618fd^:src/ui/screens/stars/GlobeRail.tsx`) over R187's playback, so a day step past the span
  * still moves the span (`shiftDays`) and the globe's instant is the playback's `t`.
  */
@@ -47,31 +47,13 @@ function GlobeClock({ playback, zone }: { playback: Playback; zone: string | nul
   );
 }
 
-/** FR-GLOBE-7: the clock, the four steps, then `[ now ]` and the time-lapse — a speed plays at it, the pressed one pauses. */
+/**
+ * FR-GLOBE-7: the clock, the four steps, then `[ now ]` and the live page's playback row (FR-LIVE-5: `[ Play ]` and
+ * its speeds, V214-34), so time plays the same way on the three desk pages.
+ */
 export function StarsTime({ playback, zone }: { playback: Playback; zone: string | null }) {
   const t = useT();
   const headingId = useId();
-  const speed = (rate: (typeof GLOBE_SPEEDS)[number]) => {
-    const pressed = playback.playing && playback.speed === rate;
-    return (
-      <TextButton
-        key={rate}
-        className="target"
-        label={t.globe.speed(rate)}
-        aria-label={t.globe.speedName(rate)}
-        pressed={pressed}
-        data-speed={rate}
-        onClick={() => {
-          if (pressed) {
-            playback.pause();
-            return;
-          }
-          playback.setSpeed(rate);
-          playback.play();
-        }}
-      />
-    );
-  };
   return (
     <section aria-labelledby={headingId} className={styles.time} data-testid="stars-time" data-state={playback.realTime ? 'watching' : 'scrubbing'} data-playing={playback.playing}>
       <SectionHeading id={headingId}>{t.skyView.time}</SectionHeading>
@@ -90,7 +72,7 @@ export function StarsTime({ playback, zone }: { playback: Playback; zone: string
           />
         ))}
       </div>
-      <div className={styles.steps} data-testid="globe-speeds">
+      <div className={styles.playRow} data-testid="globe-speeds">
         <TextButton
           className="target"
           label={t.skyView.now}
@@ -99,9 +81,7 @@ export function StarsTime({ playback, zone }: { playback: Playback; zone: string
             playback.toNow();
           }}
         />
-        <div role="group" aria-label={t.globe.speedGroup} className={styles.speeds}>
-          {GLOBE_SPEEDS.map(speed)}
-        </div>
+        <PlaybackControls playing={playback.playing} speed={playback.speed} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} />
       </div>
     </section>
   );

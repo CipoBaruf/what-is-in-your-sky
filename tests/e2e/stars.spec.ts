@@ -235,7 +235,8 @@ test.describe('the stars page’s time on a desk (FR-WIDE-4 as amended)', () => 
     await expect(page.getByTestId('time-control')).toHaveCount(0);
     const rail = page.getByTestId('stars-page').locator('[data-rail]');
     await expect(rail.locator('[data-pass-mark], [data-pass-segment], [data-pass-id], [data-testid="overview-row"]')).toHaveCount(0);
-    await expect(time.getByRole('button')).toHaveText(['−1 d', '−1 h', '+1 h', '+1 d', 'now', '×60', '×600', '×3600']);
+    // V214-34: `[ now ]` then the live page's playback row, `[ Play ]` and its speeds.
+    await expect(time.getByRole('button')).toHaveText(['−1 d', '−1 h', '+1 h', '+1 d', 'now', 'Play', '1×', '60×', '600×', '3600×']);
     const clock = time.getByTestId('globe-clock');
     await expect(time.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
     const at = Number(await clock.getAttribute('data-at'));
@@ -249,6 +250,33 @@ test.describe('the stars page’s time on a desk (FR-WIDE-4 as amended)', () => 
     await time.getByTestId('globe-now').click();
     await expect(time.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
     expect(Number(await clock.getAttribute('data-at'))).toBe(at);
+  });
+
+  test('FR-WIDE-4 (V214-34): [ Play ] at 600× runs the globe’s clock, [ Pause ] holds it, as on the live page', async ({ page }) => {
+    await asReader(page);
+    await page.clock.install();
+    await page.goto('/#stars');
+    await page.clock.runFor(1_000);
+    await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
+    const time = page.getByTestId('stars-time');
+    const clock = time.getByTestId('globe-clock');
+    const row = time.getByTestId('playback-controls');
+    await row.locator('[data-option="600"]').click();
+    await expect(row.locator('[data-option="600"]')).toHaveAttribute('aria-pressed', 'true');
+    // A speed alone picks the rate; `[ Play ]` plays at it.
+    await expect(time).toHaveAttribute('data-playing', 'false');
+    const now = await page.evaluate(() => Date.now());
+    await page.clock.pauseAt(now + 1_000);
+    await row.getByRole('button', { name: 'Play' }).click();
+    await expect(time).toHaveAttribute('data-playing', 'true');
+    const from = Number(await clock.getAttribute('data-at'));
+    await page.clock.runFor(2_000);
+    const moved = Number(await clock.getAttribute('data-at')) - from;
+    // Two seconds of frames at 600×: twenty minutes, give or take the frames at either end.
+    expect(Math.abs(moved - 1_200_000), `moved ${String(moved)} ms`).toBeLessThanOrEqual(3 * 600 * 17);
+    await row.getByRole('button', { name: 'Pause' }).click();
+    await expect(time).toHaveAttribute('data-playing', 'false');
+    await expect(time.getByTestId('globe-chip')).not.toHaveAttribute('data-kind', 'now');
   });
 });
 

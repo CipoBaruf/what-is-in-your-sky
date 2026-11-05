@@ -176,7 +176,9 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(screen.getByRole('button', { name: es.globe.faint })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByRole('button', { name: es.globe.stepNames.hourAhead }));
     expect(screen.getByTestId('globe-now')).toHaveTextContent(es.skyView.now);
-    expect(within(screen.getByRole('group', { name: es.globe.speedGroup })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([60, 600, 3600].map((rate) => es.globe.speedName(rate)));
+    // V214-34: the live page's playback row, in Spanish.
+    expect(within(screen.getByTestId('stars-time')).getByTestId('live-play')).toHaveTextContent(es.live.play);
+    expect(within(screen.getByRole('group', { name: es.live.speedGroup })).getAllByRole('button').map((b) => b.textContent)).toEqual([1, 60, 600, 3600].map((rate) => es.live.speed(rate)));
     const time = /\d\d:\d\d GMT[−-]3/.exec(skyLabel())?.[0] ?? '';
     expect(skyLabel()).toBe(es.globe.label({ place: 'Buenos Aires', time, turn: 'you' }));
   });
@@ -207,16 +209,18 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(chipKind()).toBe('now');
   });
 
-  it('FR-WIDE-4 as amended (D-1138): the Time group is the clock, the steps, [ now ] and the time-lapse — no overview, no stripe, no pass marks', async () => {
+  it('FR-WIDE-4 as amended (D-1138, V214-34): the Time group is the clock, the steps, [ now ] and the playback row — no overview, no stripe, no pass marks', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened();
     await showGlobe();
     const time = screen.getByTestId('stars-time');
     expect([...time.children].map((el) => el.getAttribute('data-testid') ?? el.tagName)).toEqual(['H2', 'globe-clock', 'globe-steps', 'globe-speeds']);
-    for (const id of ['stripe-overview', 'time-stripe', 'time-control', 'overview-row', 'live-play']) expect(within(time).queryByTestId(id)).toBeNull();
+    for (const id of ['stripe-overview', 'time-stripe', 'time-control', 'overview-row']) expect(within(time).queryByTestId(id)).toBeNull();
     expect(document.querySelector('[data-rail] [data-pass-mark], [data-rail] [data-pass-id]')).toBeNull();
-    expect(within(time).getAllByRole('button').map((b) => b.textContent)).toEqual(['−1 d', '−1 h', '+1 h', '+1 d', en.skyView.now, '×60', '×600', '×3600']);
+    expect(within(time).getAllByRole('button').map((b) => b.textContent)).toEqual(['−1 d', '−1 h', '+1 h', '+1 d', en.skyView.now, en.live.play, '1×', '60×', '600×', '3600×']);
+    // `[ now ]` then the playback row, on one line.
+    expect([...screen.getByTestId('globe-speeds').children].map((el) => el.getAttribute('data-testid'))).toEqual(['globe-now', 'playback-controls']);
     // A day step past the 24 h moves the span with it (R187's `shiftDays`), two days on, and `[ now ]` comes back.
     const at = clockAt();
     fireEvent.click(screen.getByRole('button', { name: en.globe.stepNames.dayAhead }));
@@ -226,19 +230,24 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(chipKind()).toBe('now');
   });
 
-  it('plays at a speed, and a press on the pressed speed pauses (FR-GLOBE-7, FR-WIDE-4 as amended)', async () => {
+  it('plays as the live page does: a speed picks the rate, [ Play ] runs the clock, [ Pause ] holds it (FR-WIDE-4 as amended, V214-34)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: BUENOS_AIRES });
     await opened();
     await showGlobe();
-    const speeds = within(screen.getByRole('group', { name: en.globe.speedGroup }));
-    expect(speeds.getAllByRole('button').map((b) => b.textContent)).toEqual(['×60', '×600', '×3600']);
-    const fast = speeds.getByRole('button', { name: en.globe.speedName(3600) });
+    const time = within(screen.getByTestId('stars-time'));
+    const speeds = within(screen.getByRole('group', { name: en.live.speedGroup }));
+    const fast = speeds.getByRole('button', { name: en.live.speed(3600) });
     fireEvent.click(fast);
     expect(fast).toHaveAttribute('aria-pressed', 'true');
     expect(appStore.getState().playSpeed).toBe(3600);
-    fireEvent.click(fast);
-    expect(fast).toHaveAttribute('aria-pressed', 'false');
+    // A speed alone does not play; `[ Play ]` does, and its word turns to `Pause`.
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
+    fireEvent.click(time.getByRole('button', { name: en.live.play }));
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
+    fireEvent.click(time.getByRole('button', { name: en.live.pause }));
+    expect(screen.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
+    expect(chipKind()).not.toBe('now');
   });
 
   it('lists the observer then the saved places; a press moves the clock’s zone and the list and leaves the store alone (FR-GLOBE-8, FR-GLOBE-9)', async () => {
