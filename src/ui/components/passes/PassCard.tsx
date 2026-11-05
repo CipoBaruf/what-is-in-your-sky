@@ -94,6 +94,11 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
           <Name id={headingId} className={styles.name}>
             {pass.name}
           </Name>
+          {tag !== undefined && (
+            <span className={[styles.tag, styles.denseTag].join(' ')} data-testid="next-tag">
+              {tag}
+            </span>
+          )}
           <span className={styles.denseDetail} data-testid="card-detail">
             {ended ? t.passes.ended : detailText}
           </span>

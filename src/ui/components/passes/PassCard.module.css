@@ -103,3 +103,8 @@ article.dense {
   color: var(--fg-dim);
   white-space: nowrap;
 }
+
+/* The `[ Next ISS ]` tag keeps its place on the one line, before the detail, which then takes the line's end. */
+.denseTag {
+  margin-left: 0;
+}
