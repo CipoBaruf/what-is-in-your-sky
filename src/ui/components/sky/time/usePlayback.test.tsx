@@ -5,9 +5,11 @@
  * moves the instant without stopping it.
  */
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { nightEnd, type Speed } from '../../../../lib/playback';
 import { HOUR_MS, type SkyBand, type Span } from '../../../../lib/timeStripe';
+import { DEFAULT_PLAY_SPEED } from '../../../../model';
+import { appStore } from '../../../../state';
 import { usePlayback } from './usePlayback';
 
 const NOW = Date.UTC(2026, 8, 11, 9, 30, 0);
@@ -504,6 +506,28 @@ describe('usePlayback', () => {
       tick(100_000);
       expect(result.current.playing).toBe(false);
       expect(result.current.t).toBe(result.current.span.end);
+    });
+  });
+
+  describe('the kept speed (FR-KEEP-1, FR-KEEP-2; D-1097)', () => {
+    afterEach(() => {
+      appStore.setState({ playSpeed: DEFAULT_PLAY_SPEED });
+    });
+
+    it('FR-KEEP-2: opens at now, watching, at the saved rate, and saves the rate the reader picks', () => {
+      appStore.setState({ playSpeed: 3600 });
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null }));
+      expect(result.current).toMatchObject({ t: NOW, realTime: true, playing: false, speed: 3600 });
+      act(() => {
+        result.current.setSpeed(600);
+      });
+      expect(appStore.getState().playSpeed).toBe(600);
+    });
+
+    it('FR-KEEP-2: a link instant wins for the open and writes nothing', () => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: NOW + HOUR_MS }));
+      expect(result.current.t).toBe(NOW + HOUR_MS);
+      expect(appStore.getState().playSpeed).toBe(DEFAULT_PLAY_SPEED);
     });
   });
 });
