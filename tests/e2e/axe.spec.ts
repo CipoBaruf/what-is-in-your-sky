@@ -18,6 +18,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON } from './observers';
 import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
 import { LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { clickFirstRowMark } from './factsHelpers';
+import { seedThreePasses } from './threePasses';
 import { WIDE_MIN_PX } from '../../src/lib/layout';
 
 /** FR-A11Y-7: the WCAG 2.0 and 2.1 A and AA rules. */
@@ -112,6 +114,37 @@ const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: The
         window.location.hash = 'settings';
       });
       await expect(page.getByTestId('settings-back')).toBeVisible();
+    },
+  },
+  // R188 (FR-FACT-2, FR-FACT-3): a facts group open on each desk page — the pass's own, a legend row's, a star's.
+  {
+    name: 'the open guide, This satellite',
+    wideOnly: true,
+    open: async (page, theme) => {
+      await seedStoredRun(page, { prefs: { theme }, settled: true });
+      await page.getByRole('button', { name: 'Open guide' }).first().click();
+      await expect(page.getByTestId('guide-panel').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
+    },
+  },
+  {
+    name: '#live, a pass’s facts',
+    wideOnly: true,
+    open: async (page, theme) => {
+      await seedThreePasses(page, { chartView: undefined, theme });
+      await page.goto('/#live');
+      await page.reload();
+      await page.getByTestId('chart-legend').locator('button[data-pass-id]').first().click();
+      await expect(page.getByTestId('live-group').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
+    },
+  },
+  {
+    name: '#stars, a star’s facts',
+    wideOnly: true,
+    open: async (page, theme) => {
+      await openStarsPage(page, { theme });
+      await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
+      await clickFirstRowMark(page);
+      await expect(page.getByTestId('stars-group').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
     },
   },
   // R170 (FR-GLOBE-16, D-1042): the stars page with the globe shown, its rail's groups and list, a saved place among them, in both languages.
