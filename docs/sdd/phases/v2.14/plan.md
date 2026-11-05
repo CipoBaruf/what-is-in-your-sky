@@ -92,6 +92,7 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   The hover is a `useState` id beside the page's highlight, fed by the rows' `pointerenter`/`focus` and the drawing's `onPassHover`, never the store or the hash; the drawing shows `hover ?? highlight`.
   A group opened by a key moves the focus to its heading (`keyboardIntent.ts` reads the last press in the capture phase); one opened by a click leaves it.
   A star's place at `t` and a body's magnitude and constellation join `lib/riseSet.ts` (`starAltAz`, `bodyNow`) under its existing `astronomy-engine` allowance.
+  Measured: `facts` 4.8 KB of 6; `main` 184.2 → 185.2 KB (+1.0: the hover in `SkyChart` and `Legend`, `LazyFacts`, `orbitHeight` in the elements slice by D-1101), so `main` warns over 185 and over `SKY_MAIN_KB`; V214-20 leaves the ceiling to the owner at R191.
 - **D-1125 — The facts words ride in the chunk.** *(R188)*
   (FR-I18N-2, D-1101.) `src/i18n/{en,es}/facts.ts` are not merged into the catalogs: like `starsPage.ts` they are read through `i18n/factsT.ts`, imported only from the `facts` chunk, so `main` carries none of the purpose phrases or country names; `es/facts.ts` is typed against `en/facts.ts`, so a missing Spanish message fails the typecheck as the catalogs do.
 - **D-1116 — One label rule, two tiers (R185).**
