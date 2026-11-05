@@ -220,6 +220,9 @@
  *
  * R189 (FR-WIDE-10; D-1103): `sky-fullscreen` joins at 1280, the live page's globe given the whole screen. The set is
  * 468 files.
+ *
+ * R191 (FR-WIDE-12): the set re-shot whole for 2.14.0. The pass the globe screens draw is on the far side of
+ * FR-GLOBE-5's opening view at the set's instant, so `globeDrawn` turns the globe to it by its own key; still 468 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -399,12 +402,12 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'sky-live-globe',
     widths: [1280],
-    what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
+    what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. R191: the set's one pass is on the far side of the opening view, so the globe is turned by `ArrowLeft` to the step that draws most of its arc (`globeDrawn`). The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
   },
   {
     name: 'sky-pass-globe',
     widths: [1280],
-    what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
+    what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant (R191: the globe turned to the arc, as `sky-live-globe` is) — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
   },
   {
     name: 'sky-clouds',
