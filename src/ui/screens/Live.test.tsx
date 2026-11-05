@@ -2265,6 +2265,38 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('next-event-see')).toBeInTheDocument();
     });
 
+    it('closes unanswered when the page crosses to compact, leaves compact’s controls as they are, and is not asked again back on wide (D-1140)', () => {
+      media = stubMatchMedia(390, 844);
+      withSky([later, tomorrow]);
+      const fresh = render(<LivePage link={null} onLeave={() => undefined} />);
+      // Compact's controls, as a page that opened there draws them (its opening card among them).
+      const testIds = (): string[] => [...document.body.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid') ?? '').sort();
+      const compactControls = testIds();
+      fresh.unmount();
+      resetFirstPassAsked();
+      media.restore();
+      const desk = stubMatchMedia(1280, 800);
+      media = desk;
+      withSky([later, tomorrow]);
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(dialog()).not.toBeNull();
+      act(() => {
+        desk.setSize(390, 844);
+      });
+      expect(dialog()).toBeNull();
+      expect(screen.getByTestId('live-page').closest('[inert]')).toBeNull();
+      // The same controls; only compact's own opening question (`live-card`) is not put after the question was asked on wide.
+      const card = (id: string): boolean => id.startsWith('live-card');
+      expect(testIds()).toEqual(compactControls.filter((id) => !card(id)));
+      expect(compactControls.some(card)).toBe(true);
+      act(() => {
+        desk.setSize(1280, 800);
+      });
+      expect(dialog()).toBeNull();
+      expect(screen.getByTestId('next-event-see')).toBeInTheDocument();
+      expect(screen.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
+    });
+
     it('is not shown with a pass up, with a time in the URL, with no pass in the span, or on compact', () => {
       media = stubMatchMedia(1280, 800);
       withSky();

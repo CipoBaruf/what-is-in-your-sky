@@ -593,6 +593,13 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     setFirstRise(null);
   }, []);
   /*
+   * D-1140: crossing to compact closes the dialog unanswered and leaves compact's controls as they are. It stays
+   * asked (`askedThisVisit` was set when it showed), so a resize back to wide does not ask again. Set while
+   * rendering, so compact never paints a frame with the question's state.
+   */
+  if (compact && firstRise !== null) setFirstRise(null);
+  const firstPassAsking = !compact && firstRise !== null;
+  /*
    * D-925: the reader moving the time is an answer in itself — a drag or a tap on the track, `[ tonight ]`,
    * `[ next ]`, `[ now ]` or the play control, every one a reader's write (the ones that set `readerWrote`), so
    * each of the page's handlers for them answers the card first. A drag on the sky turns the camera and writes
@@ -800,7 +807,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     <div className={styles.headline} ref={headlineRef}>
       {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
       {/* FR-WIDE-13: while the first-pass dialog asks, it is the way to the pass, and `[ see this pass ]` is not drawn. */}
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' && firstRise === null ? { onSee: seePass } : {})} />
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' && !firstPassAsking ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   // R187 (FR-WIDE-4, D-1100): the wide page's time control is `TimeControl`, shared with the stars page and the pass detail; the step row is this page's own.
@@ -880,7 +887,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const actions = (
     <div className={styles.actions} data-testid="live-actions" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
-      {has('next-event') && jumpAt === 'actions' && firstRise === null && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
+      {has('next-event') && jumpAt === 'actions' && !firstPassAsking && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
@@ -1181,6 +1188,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       list={list}
     />,
     // FR-WIDE-13: a portal to the body, so where it is rendered here does not place it.
-    firstRise !== null && <FirstPassDialog onGo={onFirstPassGo} onStay={onFirstPassStay} />,
+    firstPassAsking && <FirstPassDialog onGo={onFirstPassGo} onStay={onFirstPassStay} />,
   );
 }
