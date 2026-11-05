@@ -1,0 +1,36 @@
+import type { facts as EnFacts } from '../en/facts';
+
+/** FR-I18N-2, FR-FACT-2, FR-FACT-3 (R188, D-1125): las palabras de los grupos de datos, en el chunk `facts`. */
+export const facts: typeof EnFacts = {
+  satelliteHeading: 'Este satélite',
+  skyHeading: 'En el cielo',
+  close: 'cerrar',
+  closeLabel: 'Cerrar los datos',
+  countries: { US: 'Estados Unidos', RU: 'Rusia', JP: 'Japón', CA: 'Canadá', ESA: 'ESA', CN: 'China', UA: 'Ucrania', FR: 'Francia' },
+  purposes: {
+    'crewed-station': 'estación espacial tripulada',
+    'space-telescope': 'telescopio espacial',
+    'earth-observation': 'observación de la Tierra',
+    'ocean-observation': 'observación del océano',
+    'radar-observation': 'observación por radar',
+    military: 'militar',
+    'rocket-stage': 'etapa de cohete',
+  },
+  stageOf: (p) => `etapa de cohete que lanzó ${p.payload}`,
+  launched: (p) => `lanzado en ${p.year}`,
+  age: (p) => (p.years < 1 ? 'este año' : p.years === 1 ? 'hace 1 año' : `hace ${String(p.years)} años`),
+  size: (p) => `unos ${p.metres} m`,
+  heightOne: (p) => `a ${p.km} km`,
+  heightRange: (p) => `a ${p.from}–${p.to} km`,
+  planets: { Mercury: 'Mercurio', Venus: 'Venus', Mars: 'Marte', Jupiter: 'Júpiter', Saturn: 'Saturno' },
+  moon: 'Luna',
+  planet: 'planeta',
+  mag: (p) => `mag ${p.mag}`,
+  up: (p) => `${p.altitude} de altura · ${p.point}`,
+  below: (p) => `${p.altitude} bajo el horizonte · ${p.point}`,
+  rises: (p) => `sale ${p.time}`,
+  sets: (p) => `se pone ${p.time}`,
+  neverSets: 'nunca se pone',
+  neverRises: 'nunca sale',
+  lit: (p) => `${p.phase} · ${p.pct} % iluminada`,
+};

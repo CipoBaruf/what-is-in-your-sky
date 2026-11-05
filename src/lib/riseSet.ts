@@ -1,4 +1,4 @@
-import { Body, Equator, Horizon, MakeTime, Observer as AeObserver, RotateVector, Rotation_EQJ_EQD, SearchAltitude, SiderealTime, Vector } from 'astronomy-engine';
+import { Body, Constellation, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, RotateVector, Rotation_EQJ_EQD, SearchAltitude, SiderealTime, Vector } from 'astronomy-engine';
 import type { EpochMs, Observer } from '../model';
 import { msToDate } from '../physics/time';
 import type { PLANETS } from './skyStars';
@@ -65,4 +65,22 @@ export function bodyRiseSet(body: RiseSetBody, observer: Pick<Observer, 'lat' | 
   const time = MakeTime(msToDate(t));
   const eq = Equator(Body[body], time, where, true, true);
   return Horizon(time, where, eq.ra, eq.dec).altitude > 0 ? { kind: 'never-sets' } : { kind: 'never-rises' };
+}
+
+/** FR-FACT-3 (R188): a planet or the Moon at `t` — where it is (topocentric, geometric), how bright, and its constellation (IAU abbreviation). */
+export interface BodyNow {
+  altDeg: number;
+  azDeg: number;
+  mag: number;
+  con: string;
+}
+
+export function bodyNow(body: RiseSetBody, observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): BodyNow {
+  const time = MakeTime(msToDate(t));
+  const where = new AeObserver(observer.lat, observer.lon, 0);
+  const ofDate = Equator(Body[body], time, where, true, true);
+  const horizon = Horizon(time, where, ofDate.ra, ofDate.dec);
+  // The constellation boundaries are drawn on the J2000 frame.
+  const j2000 = Equator(Body[body], time, where, false, true);
+  return { altDeg: horizon.altitude, azDeg: horizon.azimuth, mag: Illumination(Body[body], time).mag, con: Constellation(j2000.ra, j2000.dec).symbol };
 }
