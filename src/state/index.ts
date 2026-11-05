@@ -25,6 +25,7 @@ export function followHash(hash: string, now: number = Date.now()): void {
   followHashIn(appStore, hash, now);
 }
 export type { ElementsState } from './slices/elements';
+export { selectOrbitHeight } from './slices/elements';
 /** R86 (D-540): failures are stored as kinds; the UI renders the sentence from `kind` and shows `detail` only behind `[ details ]`. */
 export { toFailure, type Failure } from './failure';
 export type { PassesState } from './slices/passes';

@@ -6,9 +6,8 @@ import { INTL_LOCALE } from '../../../../i18n/locale';
 import { useT } from '../../../../i18n/useT';
 import { compassPoint } from '../../../../lib/compass';
 import { degrees } from '../../../../lib/format';
-import { bodyNow, bodyRiseSet, starRiseSet, type RiseSet } from '../../../../lib/riseSet';
+import { bodyNow, bodyRiseSet, nightOf, starAltAz, starRiseSet, type RiseSet } from '../../../../lib/riseSet';
 import { skyBodiesAt } from '../../../../lib/skyBodies';
-import { constellationName, starName, starsAt } from '../../../../lib/skyStars';
 import { formatShortClock } from '../../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../../model';
 import { SectionHeading } from '../../primitives/SectionHeading';
@@ -123,24 +122,31 @@ interface SkyFacts {
 function useSkyFacts(pick: SkyPick, observer: Observer, at: EpochMs, stars: FactsStars | null, f: FactsMessages): SkyFacts | null {
   const locale = useLocale();
   const t = useT();
+  // The rise and set are the night's: searched once a night, not once a frame under playback.
+  const night = nightOf(observer.lon, at).from;
+  const riseSet = useMemo((): RiseSet | null => {
+    if (pick.kind === 'star') return stars === null ? null : starRiseSet(stars.ra[pick.index] ?? 0, stars.dec[pick.index] ?? 0, observer, night);
+    return bodyRiseSet(pick.kind === 'moon' ? 'Moon' : pick.body, observer, night);
+  }, [pick, observer, night, stars]);
   return useMemo(() => {
-    const con = (abbr: string): string | null => (stars ? (constellationName(stars, abbr, locale) ?? null) : null);
+    if (riseSet === null) return null;
+    const con = (abbr: string): string | null => (stars ? (stars.names.constellation(abbr, locale) ?? null) : null);
     if (pick.kind === 'star') {
       if (stars === null) return null;
       const i = pick.index;
-      const own = starName(stars, i, locale);
-      const other = starName(stars, i, locale === 'es' ? 'en' : 'es');
+      const own = stars.names.star(i, locale);
+      const other = stars.names.star(i, locale === 'es' ? 'en' : 'es');
       const desig = stars.desig[i] ?? '';
-      const positions = starsAt({ size: stars.mag.length, ra: stars.ra, dec: stars.dec }, observer, at);
+      const place = starAltAz(stars.ra[i] ?? 0, stars.dec[i] ?? 0, observer, at);
       return {
         names: other !== own && other !== desig ? `${own} · ${other}` : own,
         designation: desig !== '' && desig !== own ? desig : null,
         constellation: con(stars.con[i] ?? ''),
         planet: false,
         mag: stars.mag[i] ?? 0,
-        altDeg: positions.altDeg[i] ?? 0,
-        azDeg: positions.azDeg[i] ?? 0,
-        riseSet: starRiseSet(stars.ra[i] ?? 0, stars.dec[i] ?? 0, observer, at),
+        altDeg: place.altDeg,
+        azDeg: place.azDeg,
+        riseSet,
         moon: null,
       };
     }
@@ -155,10 +161,10 @@ function useSkyFacts(pick: SkyPick, observer: Observer, at: EpochMs, stars: Fact
       mag: now.mag,
       altDeg: now.altDeg,
       azDeg: now.azDeg,
-      riseSet: bodyRiseSet(body, observer, at),
+      riseSet,
       moon: moonState === null ? null : { phase: t.moon.phase[moonState.phase], pct: number(Math.round(moonState.illuminatedFraction * 100), locale) },
     };
-  }, [pick, observer, at, stars, f, locale, t]);
+  }, [pick, observer, at, stars, f, locale, t, riseSet]);
 }
 
 function SkyLines({ pick, observer, at, stars, f }: { pick: SkyPick; observer: Observer; at: EpochMs; stars: FactsStars | null; f: FactsMessages }) {

@@ -18,7 +18,9 @@ import { useOpenerFocus } from '../hooks/useOpenerFocus';
 import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
-import { useAppStore } from '../../state';
+import { selectOrbitHeight, useAppStore } from '../../state';
+import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
+import type { FactsSubject } from '../components/sky/facts/subject';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
@@ -215,6 +217,9 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    */
   const chartHand = useChartHand();
   const chartView = useAppStore((s) => s.chartView);
+  const elements = useAppStore((s) => s.elements);
+  // R188 (FR-WIDE-11): the facts chunk on idle after the globe, on wide only.
+  useFactsPrefetch(!compact);
   // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it, else the window on a phone and the globe on a desk.
   const view = viewFor('pass', mode, chartView);
   const hintShown = useSkyHintShown(view);
@@ -284,6 +289,8 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
     </>
   );
   if (!compact) {
+    // R188 (FR-FACT-2, US-53 AC2): `This satellite` under the times — the height from the record the store holds (FR-FACT-1).
+    const satellite: FactsSubject = { kind: 'satellite', noradId: pass.noradId, name: pass.name, description: undefined, height: selectOrbitHeight(elements, pass.noradId) };
     // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `[ × ]` back to the home, the landmark line and the date.
     const head = (
       <div className={styles.deskHead} data-testid="pass-head">
@@ -310,7 +317,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           drawing={chart}
           hint={hintShown && <SkyHint view={view} />}
           timeline={<PassTime pass={pass} now={now} timeZone={timeZone} />}
-          action={<PassGroup view={view} times={times} prose={prose} foot={foot} follow={action} />}
+          action={<PassGroup view={view} times={times} facts={<LazyFacts subject={satellite} observer={observer} at={now} />} prose={prose} foot={foot} follow={action} />}
           {...(passList === null ? {} : { list: passList })}
         />
       </div>
