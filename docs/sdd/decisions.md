@@ -338,5 +338,9 @@
 | 2026-11-05 | V214-30 | **The globe shows its stars by day, faint.** With the stars layer on and the Sun up, the globe draws the brightest stars faint over the day surface rather than none, on every desk page; the window, dome and polar chart keep what the eye sees. | FR-STAR-13. |
 | 2026-11-05 | V214-31 | **The live page asks when nothing is up; a field's focus is one line.** A dialog offers the first pass and play when the desk's live page opens with nothing up; a focused field's own border takes the ring's colour, with no outline beside it. | FR-WIDE-13, FR-WIDE-14. |
 | 2026-11-05 | V214-32 | **2.14.0 is not tagged; the release is 2.14.1.** | §Phase 2w.1; FR-WIDE-12. |
+| 2026-11-05 | V214-33 | **The pass list comes first on the pass page.** Seen built, the list as the rail's last group needed a scroll past the details to switch satellites; it moves under the head, before `View` and `Time`. | FR-WIDE-1; D-1135. |
+| 2026-11-05 | V214-34 | **The stars page plays time as the live page does.** Its speeds are the live page's playback row, `[ Play ]` and the speeds, under `[ now ]`, in place of 2.13's bare `×60 ×600 ×3600`. | FR-WIDE-4; D-1138. |
+| 2026-11-05 | V214-35 | **The pass page's `[ ← ]` goes back to where the reader came from.** The browser's back: the home with the card from the home, the live or stars page from those. | FR-WIDE-1; D-1134. |
+| 2026-11-05 | V214-36 | **The day globe draws a sky, not a dozen points.** Seen built, the first two rungs gave about 13 stars; the day and twilight globe draws the stars to magnitude 3.5 and their figures, faint, so the figures do not vanish between day and night. | FR-STAR-13; D-1139. |
 
 ---

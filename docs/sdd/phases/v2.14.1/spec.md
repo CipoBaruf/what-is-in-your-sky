@@ -6,17 +6,19 @@ Cut from `SPEC.md` by `scripts/sdd/split.ts` (FR-SDD-3); ids resolve through `do
 
 After v2.14 is on `main` (`936b829b`, 2.14.0, not tagged).
 The owner ran 2.14 on a desk and found the pass page hard to use, the opening views empty and the stars page carrying the satellites' time.
-The fixes are the owner's answers of 2026-11-05 (V214-25..V214-32); they amend v2.14's requirements and add three.
+The fixes are the owner's answers of 2026-11-05 (V214-25..V214-36); they amend v2.14's requirements and add three.
 One branch, one pull request, built and reviewed locally; the owner reads it before anything is pushed.
 v2.14.0 is not tagged: the release is 2.14.1 (V214-32).
 
 #### The pass page
 
 - **FR-WIDE-1** *(amended v2.14.1, V214-26; before: the pass page's list was the home's list beside nothing to return by)*
-  On wide the pass page's header carries `[ ← ]` before the title, as the live and stars pages' do (FR-FLOW-3), and it returns to the home with the list scrolled to the card.
-  Its rail's list group is tonight's pass list, the selected row marked `aria-current`; a click or `Enter` on another row opens that pass in place (its hash, its arc, its times), without the home in between.
+  On wide the pass page's header carries `[ ← ]` before the title, as the live and stars pages' do (FR-FLOW-3); it goes back to where the reader came from (the browser's back): from the home, the home with the list scrolled to the card; from the live or stars page, that page (V214-35).
+  Tonight's pass list is the rail's group right under the head, before `View` and `Time`, the selected row marked `aria-current`; a click or `Enter` on another row opens that pass in place (its hash, its arc, its times, opened at its rise), without the home in between (V214-33).
+  A bare `#pass` (no pass known yet) moves to the pass `[ satellites ]` names as soon as the passes arrive.
   The rail stays inside the page's width cap (FR-CLEAN-12): no group, row or table is wider than the rail, nothing on the page scrolls sideways, and the rail alone scrolls vertically while the sky box stays in view.
-  *Verification:* `pass-page.spec.ts` at 1024 × 640, 1280 × 800 and 1920 × 1080 in both languages — the back arrow returns home with the card in view; a second row opens its pass with the hash changed and no navigation to home; `scrollWidth` equals `clientWidth` for the document and for every element inside the rail; the rail's right edge is at or inside the header's.
+  *Verification:* `pass-page.spec.ts` at 1024 × 640, 1280 × 800 and 1920 × 1080 in both languages — the list is the rail's first group after the head.
+  The back arrow returns home with the card in view when entered from the home, and to the stars page when entered from it; a bare `#pass` becomes a pass's hash once passes load; a second row opens its pass with the hash changed and no navigation to home; `scrollWidth` equals `clientWidth` for the document and for every element inside the rail; the rail's right edge is at or inside the header's.
 
 - **FR-CLEAN-14** *(amended v2.14.1, V214-27; before: three page links)*
   On wide the header's page links are four: `[ home ] [ live ] [ satellites ] [ stars ]` / `[ inicio ] [ en vivo ] [ satélites ] [ estrellas ]`, `satellites` the current form on the pass page.
@@ -32,16 +34,16 @@ v2.14.0 is not tagged: the release is 2.14.1 (V214-32).
 #### The time row
 
 - **FR-WIDE-4** *(amended v2.14.1, V214-29; before: the live page's time control on all three pages)*
-  The stars page has no overview row, no stripe and no satellite marks: its `Time` group is the clock readout and the `−1 d` `−1 h` `+1 h` `+1 d` steps with `[ now ]` and the time-lapse speeds, as FR-GLOBE-7 had it.
+  The stars page has no overview row, no stripe and no satellite marks: its `Time` group is the clock readout (FR-GLOBE-8), the `−1 d` `−1 h` `+1 h` `+1 d` steps, then `[ now ]` and the live page's playback row (FR-LIVE-5: `[ Play ]` and its speeds), so time plays the same way on the three desk pages (V214-34).
   The live page and the pass page keep FR-WIDE-4's control; the pass page opens at the pass's rise (FR-WIDE-3 as amended).
-  *Verification:* `stars.spec.ts` at 1280 × 800 — no `stripe-overview`, no `time-stripe`, no pass mark in the rail; `+1 d` moves the globe a day.
+  *Verification:* `stars.spec.ts` at 1280 × 800 — no `stripe-overview`, no `time-stripe`, no pass mark in the rail; `+1 d` moves the globe a day; `[ Play ]` at `600×` runs the globe's clock.
 
 #### The sky by day
 
 - **FR-STAR-13** *(amended v2.14.1, V214-30; before: nothing drawn above 0°)*
-  On the globe, while the Sun is above 0° and the stars layer is on, the stars and figures are drawn at `DAY_STARS_ALPHA` (0.35) of their night strength over the day surface instead of hidden, so the `[x] stars` choice always shows; the first two rungs only, as at twilight.
+  On the globe, while the Sun is above −6° and the stars layer is on, the stars to magnitude `DAY_STARS_MAG` (3.5) and the figures between them are drawn at `DAY_STARS_ALPHA` (0.35) of their night strength over the day or twilight surface instead of hidden, so the `[x] stars` choice always shows and the figures do not blink out at dusk (V214-36); below −6° the globe draws as at night.
   The window, the dome and the polar chart keep the rule as written (what the eye sees).
-  *Verification:* `globe/scene.test.ts` — at a Sun of +20° the first two rungs are drawn at the alpha, none fainter; the stars layer off draws none.
+  *Verification:* `globe/scene.test.ts` — at a Sun of +20° and of −3° the stars to magnitude 3.5 are drawn at the alpha, none fainter, with their figures; at −10° all at full strength; the stars layer off draws none.
 
 - **FR-WIDE-13** *(V214-31)* **Nothing up: go to the first pass.**
   On wide, when the live page opens and no pass is up at now, a dialog asks `Nothing is up right now. Go to the first pass and play?` with `[ go and play ]` and `[ stay here ]` (`Ahora no hay nada arriba. ¿Ir al primer pase y reproducir?`, `[ ir y reproducir ]`, `[ quedarme ]`).
