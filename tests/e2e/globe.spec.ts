@@ -275,8 +275,8 @@ test.describe('the compact stars page', () => {
 test.describe('the live page’s globe at 1280 × 800', () => {
   test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
-  const drawnArcs = (page: Page): Promise<string[][]> =>
-    page.locator('[data-globe] [data-arc-series]').evaluateAll((paths) => paths.filter((path) => (path.getAttribute('d') ?? '') !== '').map((path) => [path.getAttribute('data-pass-ids') ?? '', path.getAttribute('data-color') ?? '']));
+  const drawnArcs = (page: Page): Promise<[string, string][]> =>
+    page.locator('[data-globe] [data-arc-series]').evaluateAll((paths) => paths.filter((path) => (path.getAttribute('d') ?? '') !== '').map((path): [string, string] => [path.getAttribute('data-pass-ids') ?? '', path.getAttribute('data-color') ?? '']));
 
   test('FR-WIDE-3: three arcs at the instant, each in its legend row’s colour', async ({ page }) => {
     await seedThreePasses(page);
