@@ -7,5 +7,10 @@ export const sheet: typeof EnSheet = {
     follow: 'seguir',
     name: 'Controles del cielo',
     close: 'Cerrar controles',
+    followAsk: {
+      question: '¿Usar el teléfono para mirar el cielo?',
+      allow: 'permitir',
+      notNow: 'ahora no',
+    },
   },
 };

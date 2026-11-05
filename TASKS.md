@@ -40,7 +40,7 @@ Spec Phase 2w.2, "ask before following": on a phone the live page, the stars pag
 Delivery is PLAN §16.35: one task, built interactively on `v2-14-2-follow-ask` with the docs, merged by hand on CI green and a clean review.
 Decision block (§16.2): D-1142..D-1144 are the plan's; R192 spends none of its own.
 
-- [ ] **R192 — A phone page asks before it follows the phone**
+- [x] **R192 — A phone page asks before it follows the phone**
   - **Lane:** ui
   - **Model:** interactive
   - **Gate:** auto

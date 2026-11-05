@@ -264,7 +264,8 @@ for (const size of SIZES) {
       test('the outline on the whole sky moves with the phone while following, and is the hand’s otherwise (FR-PHONE-9)', async ({ page }) => {
         test.skip(!size.touch, 'following is the touch phone’s (FR-WIN-4); the hand’s outline is the handoff case’s');
         await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)], request: false });
-        await openStars(page, locale, {}, 'on');
+        // v2.14.2 (FR-PHONE-1 as amended): following by default on a phone needs an allow saved.
+        await openStars(page, locale, { followGranted: true }, 'on');
         const w = windowRoot(page);
         await expect(w).toHaveAttribute('data-follow', 'true', { timeout: 15_000 });
         await expect.poll(async () => (await look(w)).alt, { timeout: 15_000 }).toBe(30);

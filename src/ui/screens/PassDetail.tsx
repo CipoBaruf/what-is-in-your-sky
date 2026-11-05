@@ -45,6 +45,7 @@ import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHead } from '../components/sky/SkyHead';
 import { useFollow, type Follow } from '../components/sky/useFollow';
+import { FollowAsk } from '../components/sky/FollowAsk';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
 import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
@@ -214,7 +215,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * takes the sky back (`onFollowEnd`). Drawn only where the sensor is (FR-WIN-4's presence test, asked once at
    * mount). R66's sky screen over the sheet is gone (FR-GYRO-6, D-945).
    */
-  const follow = useFollow();
+  const follow = useFollow(compact);
   const following = follow.on;
   const sensor = follow.sensor;
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
@@ -550,6 +551,8 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
 
   const overlay = (
     <>
+      {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question, a portal while asking. */}
+      <FollowAsk follow={follow} />
       <SkyHead
         line={
           <p className={styles.headLine} data-testid="pass-head-line">

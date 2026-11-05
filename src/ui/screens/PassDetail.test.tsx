@@ -16,6 +16,7 @@ import { formatDateZone } from '../../lib/format';
 import type { Locale } from '../../model';
 import { appStore, type ElementsState } from '../../state';
 import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
+import { FOLLOW_ASKED_KEY } from '../components/sky/useFollow';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
 import { PassDetail, TICK_MS } from './PassDetail';
@@ -155,13 +156,17 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       });
     };
 
+    // v2.14.2 (FR-PHONE-17): the tests before the question's own run with it answered for the visit (`not now`).
     beforeEach(() => {
       resetOrientationAccess();
+      window.sessionStorage.setItem(FOLLOW_ASKED_KEY, '1');
     });
     afterEach(() => {
       vi.unstubAllGlobals();
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
       resetOrientationAccess();
+      appStore.getState().setFollowGranted(false);
+      window.sessionStorage.clear();
     });
     const detail = () => render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const windowRoot = (): HTMLElement | null => document.querySelector<HTMLElement>('[data-look-az]');
@@ -196,10 +201,11 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
      * window whatever view is saved, and the opening facing (the peak, FR-SKY-7) is replaced by the pose at the first
      * reading; a drag hands the sky to the finger.
      */
-    it('opens following where nothing is asked, the peak facing replaced by the first reading, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
+    it('with an allow saved, opens following where nothing is asked, the peak facing replaced by the first reading, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
       withPhone();
       const frame = scriptedFrames();
       appStore.getState().setChartView('dome');
+      appStore.getState().setFollowGranted(true);
       detail();
       const figure = screen.getByRole('figure', { name: 'ISS (Zarya)' });
       // D-986: following starts at the first reading with a north; until it the guide is on its saved view.
@@ -245,16 +251,19 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(windowRoot()).toHaveAttribute('data-state', 'hand');
     });
 
-    /** R159 (FR-PHONE-2; US-45 AC2; D-963, D-986): a saved grant arms the guide; the first touch on the sky asks, once. */
-    it('with a saved grant asks once inside the first touch on the sky and follows; a refusal clears the grant and shows the line', async () => {
+    /** v2.14.2 (FR-PHONE-17, FR-PHONE-2 as amended; D-1143): the question's [ allow ] asks, once a visit; the first touch asks nothing. */
+    it('with a saved grant asks once inside the question’s [ allow ] and follows; next visit a refusal clears the grant and shows the line (FR-PHONE-17)', async () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       appStore.getState().setFollowGranted(true);
+      window.sessionStorage.clear();
       const { unmount } = detail();
       expect(requestPermission).not.toHaveBeenCalled();
       const sky = (): HTMLElement => screen.getByTestId('pass-layout').querySelector('[data-slot="drawing"]') as HTMLElement;
       fireEvent.pointerDown(sky(), { pointerId: 1, pointerType: 'touch' });
       fireEvent.pointerUp(sky(), { pointerId: 1, pointerType: 'touch' });
+      expect(requestPermission).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('follow-ask-allow'));
       expect(requestPermission).toHaveBeenCalledTimes(1);
       await flush();
       expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
@@ -264,10 +273,10 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       unmount();
 
       resetOrientationAccess();
+      window.sessionStorage.clear();
       requestPermission.mockResolvedValue('denied');
       detail();
-      fireEvent.pointerDown(sky(), { pointerId: 1, pointerType: 'touch' });
-      fireEvent.pointerUp(sky(), { pointerId: 1, pointerType: 'touch' });
+      fireEvent.click(screen.getByTestId('follow-ask-allow'));
       await flush();
       expect(requestPermission).toHaveBeenCalledTimes(2);
       expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');

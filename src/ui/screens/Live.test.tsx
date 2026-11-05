@@ -28,6 +28,7 @@ import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
+import { FOLLOW_ASKED_KEY } from '../components/sky/useFollow';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
@@ -1828,13 +1829,19 @@ describe('<LivePage>', () => {
     const toggle = (): HTMLElement => screen.getByTestId('follow-toggle');
     const windowRoot = (): HTMLElement => document.querySelector('[data-look-az]') as HTMLElement;
 
+    // v2.14.2 (FR-PHONE-17): the tests before the question's own run with it answered for the visit (`not now`).
+    const unasked = (): void => {
+      window.sessionStorage.removeItem(FOLLOW_ASKED_KEY);
+    };
     beforeEach(() => {
       resetOrientationAccess();
+      window.sessionStorage.setItem(FOLLOW_ASKED_KEY, '1');
     });
     afterEach(() => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
       resetOrientationAccess();
       appStore.getState().setFollowGranted(false);
+      window.sessionStorage.clear();
     });
 
     it('stands in the sheet as its own row after the view row on a phone, and nowhere without the sensor (FR-GYRO-1, FR-GYRO-6)', () => {
@@ -2048,8 +2055,11 @@ describe('<LivePage>', () => {
       withSky();
       media = stubMatchMedia(390, 844);
       scriptedFrames();
+      act(() => {
+        appStore.getState().setFollowGranted(true);
+      });
       render(<LivePage link={null} onLeave={() => undefined} />);
-      // R159 (FR-PHONE-1, D-986): where nothing has to be asked the page follows from the first reading; no tap.
+      // R159 (FR-PHONE-1 as amended v2.14.2, D-986): with an allow saved and nothing to ask the page follows from the first reading; no tap.
       reading(90, 30);
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
       await windowDrawn();
@@ -2066,23 +2076,26 @@ describe('<LivePage>', () => {
       expect(windowRoot()).toHaveAttribute('data-state', 'hand');
     });
     /**
-     * R159 (FR-PHONE-1, FR-PHONE-2; US-45 AC1, AC2; D-962, D-963, D-986, D-987): following by default. Where nothing has
-     * to be asked the page opens following, the card of FR-FULL-10 standing over a sky that already follows; with a
-     * saved grant the first touch on the sky asks, once, and follows; a refusal there clears the grant, leaves the
-     * finger the sky, and puts the one line under the sheet's toggle and beside the overlay's control.
+     * R159 (FR-PHONE-1, D-962, D-986, D-987) as amended by v2.14.2 (FR-PHONE-17, FR-PHONE-2; D-1143, D-1144): with an
+     * allow saved and nothing to ask the page opens following, the card of FR-FULL-10 standing over a sky that already
+     * follows; otherwise the page asks first — at mount where a request exists, at the first reading with a north
+     * where none does — and FR-FULL-10's card waits for the answer. The first touch on the sky asks nothing on compact.
      */
-    it('opens following where nothing is asked, the card standing over the sky, the view not written (FR-PHONE-1, FR-FULL-10)', async () => {
+    it('with an allow saved, opens following where nothing is asked, the card standing over the sky, the view not written (FR-PHONE-1, FR-FULL-10)', async () => {
       withPhone();
       withSky([later, tomorrow]);
       media = stubMatchMedia(390, 844);
       act(() => {
         appStore.getState().setChartView('dome');
+        appStore.getState().setFollowGranted(true);
       });
+      unasked();
       render(<LivePage link={null} onLeave={() => undefined} />);
       expect(screen.getByTestId('live-card')).toHaveAttribute('data-kind', 'ask');
       // D-986: from the first reading with a north.
       expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
       reading(90, 30);
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
       expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
@@ -2092,7 +2105,40 @@ describe('<LivePage>', () => {
       expect(screen.queryByTestId('sky-corner-readout')).toBeNull();
     });
 
-    it('with a saved grant asks nothing at load, asks once inside the first touch on the sky, and follows (FR-PHONE-2)', async () => {
+    it('where nothing is asked, the first reading with a north opens the question over the card; not now leaves the page as it opened (FR-PHONE-17, V214-43)', () => {
+      withPhone();
+      withSky([later, tomorrow]);
+      media = stubMatchMedia(390, 844);
+      act(() => {
+        appStore.getState().setChartView('dome');
+      });
+      unasked();
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
+      expect(screen.getByTestId('live-card')).toBeInTheDocument();
+      // D-986: a reading with no north (a touch laptop) asks nothing.
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: null, beta: null, gamma: null, absolute: false }));
+      });
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
+      reading(90, 30);
+      const dialog = screen.getByTestId('follow-ask');
+      expect(dialog).toHaveAttribute('role', 'dialog');
+      expect(dialog).toHaveTextContent(en.sheet.followAsk.question);
+      expect(screen.getByTestId('follow-ask-allow')).toHaveFocus();
+      expect(screen.queryByTestId('live-card')).toBeNull();
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.click(screen.getByTestId('follow-ask-not-now'));
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
+      expect(screen.getByTestId('live-card')).toBeInTheDocument();
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(window.sessionStorage.getItem(FOLLOW_ASKED_KEY)).toBe('1');
+      reading(100, 30);
+      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('with a saved grant on iOS asks at load in the question, inside [ allow ], and follows; the first touch asks nothing (FR-PHONE-17, FR-PHONE-2)', async () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       withSky();
@@ -2101,27 +2147,24 @@ describe('<LivePage>', () => {
         appStore.getState().setChartView('window');
         appStore.getState().setFollowGranted(true);
       });
+      unasked();
       render(<LivePage link={null} onLeave={() => undefined} />);
       expect(requestPermission).not.toHaveBeenCalled();
-      expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
-      const sky = screen.getByTestId('sky-chart');
-      fireEvent.pointerDown(sky, { pointerId: 1, pointerType: 'touch' });
-      // D-986: the request is the lift's, WebKit's activating moment for a touch.
-      expect(requestPermission).not.toHaveBeenCalled();
-      fireEvent.pointerUp(sky, { pointerId: 1, pointerType: 'touch' });
+      expect(screen.getByTestId('follow-ask')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('follow-ask-allow'));
       expect(requestPermission).toHaveBeenCalledTimes(1);
       await flush();
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
       expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
-      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      const sky = screen.getByTestId('sky-chart');
       expect(sky).toHaveAttribute('data-follow', 'true');
-      // The listener went with its one use: a second touch asks nothing.
       fireEvent.pointerDown(sky, { pointerId: 2, pointerType: 'touch' });
       fireEvent.pointerUp(sky, { pointerId: 2, pointerType: 'touch' });
       expect(requestPermission).toHaveBeenCalledTimes(1);
       expect(appStore.getState().followGranted).toBe(true);
     });
 
-    it('a refusal on the first touch clears the grant, keeps the finger, and draws the one line under the toggle and beside [ follow ] (FR-PHONE-2, FR-GYRO-3)', async () => {
+    it('a refusal in the question clears the grant, keeps the finger, and draws the one line under the toggle and beside [ follow ] (FR-PHONE-17, FR-GYRO-3)', async () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('denied');
       withPhone(requestPermission);
       withSky();
@@ -2131,13 +2174,13 @@ describe('<LivePage>', () => {
         appStore.getState().setFollowGranted(true);
         appStore.getState().setSkyHintSeen(false);
       });
+      unasked();
       const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
       const overlay = container.querySelector('[data-slot="overlay"]') as HTMLElement;
-      // A hint that is not marked seen by the touch itself: the page's own camera (D-848) marks it on the window's gesture.
       const sky = screen.getByTestId('sky-chart');
-      fireEvent.pointerDown(sky, { pointerId: 1, pointerType: 'touch' });
-      fireEvent.pointerUp(sky, { pointerId: 1, pointerType: 'touch' });
+      fireEvent.click(screen.getByTestId('follow-ask-allow'));
       await flush();
+      expect(screen.queryByTestId('follow-ask')).toBeNull();
       expect(requestPermission).toHaveBeenCalledTimes(1);
       expect(appStore.getState().followGranted).toBe(false);
       expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).not.toHaveProperty('followGranted');
