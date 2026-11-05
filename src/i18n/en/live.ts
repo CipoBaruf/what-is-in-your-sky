@@ -239,5 +239,11 @@ export const live = {
       seeNow: 'see now',
       seeSkyNow: 'see the sky now',
     },
+    /** v2.14.1 (FR-WIDE-13, D-1140): the wide page's dialog when nothing is up as it opens. */
+    firstPass: {
+      question: 'Nothing is up right now. Go to the first pass and play?',
+      go: 'go and play',
+      stay: 'stay here',
+    },
   },
 };

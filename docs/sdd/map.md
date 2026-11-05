@@ -323,6 +323,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/components/primitives/VisuallyHidden.tsx` — exports: VisuallyHiddenOwnProps, VisuallyHiddenProps, VisuallyHidden — R107 (FR-DS-4 item 8; D-703, D-704, D-725): the hidden-text block — words for assistive technology that the eye does not get, in the one co…
 - `src/ui/components/primitives/manifest.ts` — exports: PrimitiveEntry, PRIMITIVES — R104 (FR-DS-4, FR-DS-6; D-703): the manifest — one row per primitive, the join between the directory, the guide `scripts/design-guide.ts` p…
 - `src/ui/components/sky/ControlsSheet.tsx` — exports: ControlsSheetProps, ControlsSheet — R147 (FR-FULL-3, FR-FULL-4, FR-FULL-5; D-921): the compact live page's one button over the sky and the sheet it opens.
+- `src/ui/components/sky/FirstPassDialog.tsx` — exports: FirstPassDialogProps, FirstPassDialog — v2.14.1 (FR-WIDE-13, V214-31; D-1140): the wide live page's question when it opens with nothing up — "Nothing is up right now.
 - `src/ui/components/sky/FollowToggle.tsx` — exports: FollowToggleProps, FollowToggle
 - `src/ui/components/sky/SkyHead.tsx` — exports: SkyHeadProps, SkyHead — R147 (FR-FULL-2; D-920): the head over a compact sky page's box — one row on `--screen-overlay` at the box's top-left: `[ ← ]`, the header'…
 - `src/ui/components/sky/SkyHint.tsx` — exports: SkyHintProps, useSkyHintShown, skyHintLine, useSkyHintLine, SkyHint — R132 (FR-FLOW-6, D-848): the hand hint, one line at `--small` in `--fg-dim` under the facing picker (the layout's `hint` slot), in the read…
@@ -349,7 +350,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/hooks/useShortcuts.ts` — exports: useShortcuts — R35 (FR-DESK-4, D-73): mounts the one `keydown` listener for as long as the screen that owns the shortcuts is up.
 - `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, close, home, clearRoute, takeFocusTarget, +2 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
 - `src/ui/screens/Home.tsx` — exports: WhereReadingProps, WhereReading, HomeProps, useSteps, Home, StepLine, Step — R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings — **where**, **when**, **what**.
-- `src/ui/screens/Live.tsx` — exports: LivePageProps, TICK_MS, visibleCount, LivePage, LiveState, liveState, LIVE_ROUTE_HASH — R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9): the live page at `#live`.
+- `src/ui/screens/Live.tsx` — exports: LivePageProps, TICK_MS, resetFirstPassAsked, visibleCount, LivePage, LiveState, liveState, LIVE_ROUTE_HASH — R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9): the live page at `#live`.
 - `src/ui/screens/LiveRoute.ts` — exports: LiveRoute, useLiveRoute — R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route, read from the hash the way the pass selection is (D-13: no router, the hash is the source of…
 - `src/ui/screens/PassDetail.tsx` — exports: PassDetailProps, TICK_MS, PassDetail — US-6 (R6): the guide for one pass.
 - `src/ui/screens/Settings.tsx` — exports: SettingsPageProps, SettingsPage — R52 (FR-COMP-2, US-20, D-184), R75 (FR-SET-1, FR-SET-2, US-29, D-445): the settings page at `#settings`.

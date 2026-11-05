@@ -144,5 +144,10 @@ export const live: typeof EnLive = {
       seeNow: 'ver ahora',
       seeSkyNow: 'ver el cielo ahora',
     },
+    firstPass: {
+      question: 'Ahora no hay nada arriba. ¿Ir al primer pase y reproducir?',
+      go: 'ir y reproducir',
+      stay: 'quedarme',
+    },
   },
 };

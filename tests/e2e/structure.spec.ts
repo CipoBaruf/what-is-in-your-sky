@@ -318,6 +318,9 @@ for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 4
     });
     await domeDrawn(page);
     const back = page.getByTestId('live-back');
+    // v2.14.1 (FR-WIDE-13): on wide the first-pass dialog asks instead; `seedStoredRun`'s handler answers it with `Esc`
+    // and the focus goes back to Back, the keyboard's still.
+    await expect(page.getByTestId('first-pass-dialog')).toHaveCount(0);
     // R148 (FR-FULL-10): on compact nothing is up at the seed's instant, so the card asks and takes the focus; `Esc`
     // answers it, and the Back control is reached by the keyboard, so the ring is still the keyboard's (F-100).
     const card = page.getByTestId('live-card');

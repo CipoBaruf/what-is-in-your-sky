@@ -36,6 +36,7 @@ import { FollowControl } from '../components/live/FollowControl';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
+import { FirstPassDialog } from '../components/sky/FirstPassDialog';
 import { BackToLive, HiddenToggle, ScrubButton } from '../components/sky/time/PlaybackControls';
 import { TimeControl } from '../components/sky/time/TimeControl';
 import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
@@ -163,6 +164,17 @@ export interface LivePageProps {
 
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
 export const TICK_MS = 10_000;
+
+/**
+ * v2.14.1 (FR-WIDE-13, D-1140): the first-pass dialog is asked once per visit — a load of the app — and not again
+ * when the reader leaves the live page and comes back within it. Module state, so a remount does not reset it.
+ */
+let askedThisVisit = false;
+
+/** A new visit, for tests: the next wide opening with nothing up asks again. */
+export function resetFirstPassAsked(): void {
+  askedThisVisit = false;
+}
 
 /** D-160: the satellites visible at `t` are the passes whose interval contains it — exactly the markers on the dome. */
 export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
@@ -551,6 +563,36 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     setOpening(null);
   }, []);
   /*
+   * v2.14.1 (FR-WIDE-13, D-1140): the wide page's question, decided once when the passes arrive, as the card is on
+   * compact — shown when no visible pass is up at now and one rises in the span (`openingChoice`'s `ask`), the URL
+   * holds no `t`, the reader has not moved first, and it has not been asked this visit. `go and play` holds the page
+   * at that pass's rise (FR-JUMP-1's landing, `[ see this pass ]`'s) and plays at the row's speed; `stay here` and
+   * `Esc` leave the page at now.
+   */
+  const [firstRise, setFirstRise] = useState<EpochMs | null>(null);
+  const firstPassDecided = useRef(false);
+  useEffect(() => {
+    if (!passesKnown || firstPassDecided.current) return;
+    firstPassDecided.current = true;
+    if (compact || askedThisVisit || (link?.t ?? null) !== null || readerWrote.current) return;
+    const choice = openingChoice(passes, now, span);
+    if (choice.kind !== 'ask') return;
+    askedThisVisit = true;
+    // Decided once, when the passes arrive, from a ref the render must not read (`readerWrote`), as the card is.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFirstRise(choice.pass.start.t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passesKnown]);
+  const onFirstPassGo = useCallback(() => {
+    if (firstRise === null) return;
+    setFirstRise(null);
+    playback.stepTo(firstRise);
+    play();
+  }, [firstRise, playback, play]);
+  const onFirstPassStay = useCallback(() => {
+    setFirstRise(null);
+  }, []);
+  /*
    * D-925: the reader moving the time is an answer in itself — a drag or a tap on the track, `[ tonight ]`,
    * `[ next ]`, `[ now ]` or the play control, every one a reader's write (the ones that set `readerWrote`), so
    * each of the page's handlers for them answers the card first. A drag on the sky turns the camera and writes
@@ -757,7 +799,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const nextEvent = has('next-event') ? (
     <div className={styles.headline} ref={headlineRef}>
       {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
+      {/* FR-WIDE-13: while the first-pass dialog asks, it is the way to the pass, and `[ see this pass ]` is not drawn. */}
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' && firstRise === null ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   // R187 (FR-WIDE-4, D-1100): the wide page's time control is `TimeControl`, shared with the stars page and the pass detail; the step row is this page's own.
@@ -837,7 +880,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const actions = (
     <div className={styles.actions} data-testid="live-actions" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
-      {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
+      {has('next-event') && jumpAt === 'actions' && firstRise === null && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
@@ -861,11 +904,12 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   ) : (
     <TopRow place={observer.label} onLeave={onLeave} />
   );
-  const page = (children: ReactNode): ReactNode => (
+  const page = (children: ReactNode, after: ReactNode = null): ReactNode => (
     <SecondClock clockRef={clockRef}>
       <Page state="live" wakeLock={wakeLock} placement={placement} shape={shape} top={top} {...(compact ? { form: 'full' as const, title: `${t.header.pages.live} · ${observer.label}` } : {})}>
         {children}
       </Page>
+      {after}
     </SecondClock>
   );
   // FR-FLOW-6: the hint's view is the chart's — the page's held view (above), D-1095's default under it.
@@ -1136,5 +1180,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       }
       list={list}
     />,
+    // FR-WIDE-13: a portal to the body, so where it is rendered here does not place it.
+    firstRise !== null && <FirstPassDialog onGo={onFirstPassGo} onStay={onFirstPassStay} />,
   );
 }
