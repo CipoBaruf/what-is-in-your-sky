@@ -96,6 +96,10 @@ export interface SkyGlobeProps {
   onPassHover?: (passId: string | null) => void;
   /** What a tap hit, or `null` for nothing. */
   onPick?: (pick: GlobePick | null) => void;
+  /** R190 (FR-KEEP-1, D-1096): the zoom the globe opens at, the saved `globeZoom` (clamped); 1 where absent. Read once. */
+  zoom?: number;
+  /** R190 (FR-KEEP-1): the reader's zoom (`+`, `-`, wheel, pinch, `Home`), told back to be saved; a drag never calls it. */
+  onZoom?: (zoom: number) => void;
 }
 
 interface View {
@@ -105,6 +109,8 @@ interface View {
 }
 
 const clampZoom = (zoom: number): number => Math.max(GLOBE_ZOOM_MIN, Math.min(GLOBE_ZOOM_MAX, zoom));
+/** FR-GLOBE-6 as amended (D-1055): which end of the range a zoom is at, for the buttons. */
+const zoomEndOf = (zoom: number): 'min' | 'max' | null => (zoom <= GLOBE_ZOOM_MIN ? 'min' : zoom >= GLOBE_ZOOM_MAX ? 'max' : null);
 const clampLat = (lat: number): number => Math.max(-90, Math.min(90, lat));
 /** The keys ctrl or cmd makes the browser's own zoom, left to it (as the window leaves them). */
 const ZOOM_KEYS = new Set(['+', '=', '-']);
@@ -146,18 +152,22 @@ function listTarget(index: number | null, size: number): GlobeTarget | null {
   return body === undefined ? null : { kind: 'planet', body };
 }
 
-export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick }: SkyGlobeProps) {
+export default function SkyGlobe({ place, instant, turn, layers, faint, language, onFaintFailed, named: listNamed = null, className, passes = NO_PASSES, t, highlightedPassId = null, colorBy = 'pass', legendKeys, onPassHover, onPick, zoom: openingZoom = 1, onZoom }: SkyGlobeProps) {
   const catalog = useMemo(() => starCatalog(), []);
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const rendererRef = useRef<GlobeRenderer | null>(null);
-  const viewRef = useViewRef(() => openingView(turn, place, instant));
+  const viewRef = useViewRef(() => ({ ...openingView(turn, place, instant), zoom: clampZoom(openingZoom) }));
   const [named, setNamed] = useState<GlobeTarget | null>(null);
   const [hovered, setHovered] = useState<GlobeTarget | null>(null);
   const listed = useMemo(() => listTarget(listNamed, catalog.size), [listNamed, catalog]);
   const [dragging, setDragging] = useState(false);
   /** FR-GLOBE-6 as amended (V212-12, D-1055): which end of the zoom's range the view is at, for the buttons; a state that changes only at an end. */
-  const [zoomEnd, setZoomEnd] = useState<'min' | 'max' | null>(null);
+  const [zoomEnd, setZoomEnd] = useState<'min' | 'max' | null>(() => zoomEndOf(clampZoom(openingZoom)));
+  const onZoomRef = useRef(onZoom);
+  useEffect(() => {
+    onZoomRef.current = onZoom;
+  }, [onZoom]);
   const readoutId = `${useId()}-readout`;
 
   // The renderer, once: React renders the empty `<svg>`, the renderer fills it and writes it until unmount. The box is measured here and by the observer.
@@ -309,8 +319,10 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     if (change.lon !== undefined) view.lon = change.lon;
     if (change.lat !== undefined) view.lat = clampLat(change.lat);
     if (change.zoom !== undefined) {
+      const was = view.zoom;
       view.zoom = clampZoom(change.zoom);
-      setZoomEnd(view.zoom <= GLOBE_ZOOM_MIN ? 'min' : view.zoom >= GLOBE_ZOOM_MAX ? 'max' : null);
+      setZoomEnd(zoomEndOf(view.zoom));
+      if (view.zoom !== was) onZoomRef.current?.(view.zoom);
     }
     rendererRef.current?.set({ lon: view.lon, lat: view.lat, zoom: view.zoom });
   }, [viewRef]);

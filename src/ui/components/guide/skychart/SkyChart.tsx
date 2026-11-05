@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useContext, useLayoutEffect, useMemo, useR
 import { useLocale, useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
-import { useAppStore } from '../../../../state';
+import { appStore, useAppStore } from '../../../../state';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { GuideText } from '../GuideText';
@@ -175,6 +175,8 @@ function GlobeView(props: SkyChartProps) {
           {...(props.legendKeys === undefined ? {} : { legendKeys: props.legendKeys })}
           onPick={onPick}
           {...(onPassHover === undefined ? {} : { onPassHover })}
+          {...(props.globeZoom === undefined ? {} : { zoom: props.globeZoom })}
+          {...(props.onGlobeZoom === undefined ? {} : { onZoom: props.onGlobeZoom })}
         />
       </Suspense>
     </div>
@@ -267,6 +269,13 @@ export function SkyChart(props: SkyChartProps) {
   const dropWindowView = useAppStore((s) => s.dropWindowView);
   // FR-FOL-2: the one line the last answer left.
   const note = useAppStore((s) => s.windowNote);
+  /*
+   * R190 (FR-KEEP-1, D-1096): the saved field and zoom, read once at mount so a zoom re-renders no page, and the
+   * reader's zoom written back. A page that gives its own wins.
+   */
+  const [kept] = useState(() => ({ fieldDeg: appStore.getState().windowFov, globeZoom: appStore.getState().globeZoom }));
+  const setWindowFov = useAppStore((s) => s.setWindowFov);
+  const setGlobeZoom = useAppStore((s) => s.setGlobeZoom);
   /*
    * D-789 (R121): the window in the box, under the hand camera. The camera's slot is the page's where it gives one
    * (`chartHand`), else this chart's own: the dome and back keeps the facing, and on the live page so does a turn of
@@ -509,7 +518,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} fieldDeg={props.fieldDeg ?? kept.fieldDeg} onFieldChoice={props.onFieldChoice ?? setWindowFov} globeZoom={props.globeZoom ?? kept.globeZoom} onGlobeZoom={props.onGlobeZoom ?? setGlobeZoom} />
     </figure>
   );
 }

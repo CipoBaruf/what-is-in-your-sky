@@ -368,6 +368,16 @@ export interface SkyChartProps {
    * The window owns the camera's constants and its maker, which `main` may not import. Read by the window alone.
    */
   opening?: FieldAim;
+  /**
+   * R190 (FR-KEEP-1, D-1096): the window's field a camera it makes opens at — the saved `windowFov` — and the reader's
+   * zoom (`+`, `-`, `0`, ctrl + wheel, pinch) told back so the page can save it. `SkyChart` fills both from the store;
+   * absent, `WINDOW_FOV` and nothing told. A handoff or following never calls it: the reader did not zoom.
+   */
+  fieldDeg?: number;
+  onFieldChoice?: (fovDeg: number) => void;
+  /** R190 (FR-KEEP-1): the same for the globe's zoom (`globeZoom`), read by the globe view alone. */
+  globeZoom?: number;
+  onGlobeZoom?: (zoom: number) => void;
   className?: string;
 }
 
