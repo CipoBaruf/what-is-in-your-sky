@@ -15,6 +15,12 @@ export const globe = {
     /** The steps' accessible names. */
     stepNames: { dayBack: 'A day earlier', hourBack: 'An hour earlier', hourAhead: 'An hour later', dayAhead: 'A day later' },
     stepGroup: 'Steps',
+    /** FR-GLOBE-8 (restored v2.14.1, D-1138): the clock line's accessible prefix. */
+    clock: 'Globe time',
+    /** FR-GLOBE-7 (restored v2.14.1, D-1138): the time-lapse's group, its options `×60`, `×600`, `×3600`. */
+    speedGroup: 'Time-lapse',
+    speed: (rate: number) => `×${String(rate)}`,
+    speedName: (rate: number) => `Time-lapse at ${String(rate)} times real time`,
     /** FR-GLOBE-5: the turn's row. */
     turnHeading: 'Turn',
     turn: { you: 'with you', stars: 'with the stars' },

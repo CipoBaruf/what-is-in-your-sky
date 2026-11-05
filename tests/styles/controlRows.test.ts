@@ -590,7 +590,7 @@ describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) 
 
 /**
  * R170 (FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-16; D-1035): the wide stars page's globe rail — the view row
- * `[ Window ] Globe`, R187's `[ now ]` with the four steps under the time control, the turn and the layer rows with
+ * `[ Window ] Globe`, the four steps, `[ now ]` with the time-lapse (D-1138), the turn and the layer rows with
  * `[ ] faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
  * cut at the rail's width with an ellipsis (FR-GLOBE-9) and are not counted.
  */
@@ -615,7 +615,9 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
   });
 
   it.each([
-    ['[ now ] and the steps', () => screen.getByTestId('globe-steps')],
+    // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's two rows again — the steps, and `[ now ]` with the time-lapse.
+    ['the steps', () => screen.getByTestId('globe-steps')],
+    ['[ now ] and the time-lapse', () => screen.getByTestId('globe-speeds')],
     ['the turn', () => screen.getByTestId('globe-turn-row')],
     ['the first layer row', () => screen.getAllByTestId('stars-layers-row')[0] as Element],
     ['the second layer row, with faint', () => screen.getAllByTestId('stars-layers-row')[1] as Element],

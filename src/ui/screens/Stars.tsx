@@ -764,7 +764,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           viewRow={viewRow}
           drawing={drawing}
           hint={hintShown && <SkyHint view={chartView} />}
-          {...(globeShown ? { timeline: <StarsTime playback={globeClock} place={shownPlace} now={now} /> } : {})}
+          {...(globeShown ? { timeline: <StarsTime playback={globeClock} zone={shownPlace.timeZone} /> } : {})}
           action={
             <StarsGroup globe={globeChoices}>
               {facingGroup}

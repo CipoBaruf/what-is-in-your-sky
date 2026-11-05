@@ -20,3 +20,33 @@
   min-height: var(--tap);
   white-space: nowrap;
 }
+
+/* v2.14.1 (FR-WIDE-4 as amended, D-1138): the stars page's `Time` group — R170's rows (`GlobeRail.module.css`), the
+   clock, the steps and `[ now ]` with the time-lapse, `--space-1` apart. */
+.time {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.speeds {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+/* FR-GLOBE-8: the clock line; the chip in the dim ink after it, the accent while it is `now` (FR-TONIGHT-7). */
+.clock {
+  margin: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  color: var(--fg-dim);
+}
+
+.chip[data-kind='now'] {
+  color: var(--accent);
+}
