@@ -59,6 +59,12 @@ export function catalogName(noradId: number): string {
 export function isFeatured(noradId: number): boolean {
   return CATALOG.find((entry) => entry.noradId === noradId)?.featured === true;
 }
+/** R188 (FR-FACT-2): a catalog object's English description, for the facts group; the UI never reads the catalog itself (PLAN §3). */
+export function catalogDescription(noradId: number): string | undefined {
+  return CATALOG.find((entry) => entry.noradId === noradId)?.description;
+}
+/** R188 (FR-FACT-1): the facts' entry type, for the group that shows them. */
+export type { FactEntry } from '../data/catalog/facts';
 
 /**
  * The pieces `startApp` would otherwise reach for itself: the singleton store,

@@ -263,8 +263,10 @@ describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R1
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
       .map((line) => line.split('|').map((cell) => cell.trim()));
     const table = rows.map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }));
-    expect(table).toEqual(expect.arrayContaining(BUDGETS.map(({ name, limitKb }) => ({ name, limitKb }))));
-    expect(table).toHaveLength(BUDGETS.length);
+    // R188 (FR-WIDE-11, D-1101): the `facts` row is v2.14’s; v2.12’s record predates it, and v2.14’s release record carries it.
+    const rows12 = BUDGETS.filter(({ name }) => name !== 'facts');
+    expect(table).toEqual(expect.arrayContaining(rows12.map(({ name, limitKb }) => ({ name, limitKb }))));
+    expect(table).toHaveLength(rows12.length);
   });
 });
 

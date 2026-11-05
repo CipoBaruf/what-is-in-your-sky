@@ -623,6 +623,12 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
     pause();
   }, [answered, pause]);
   /*
+   * R188 (FR-FACT-2, FR-FACT-3; D-1101): on wide a click, a tap or `Enter` on a legend row or an arc shows its
+   * satellite's facts in the page group, and one on a star, a planet or the Moon its facts, until `Esc`, `[ × ]` or
+   * another pick; the row's highlight is the chart's (FR-LEG-4). Page state, never in the hash or the store.
+   */
+  const [picked, setPicked] = useState<{ what: { kind: 'pass'; noradId: NoradId; name: string } | { kind: 'sky'; pick: SkyPick }; keyboard: boolean } | null>(null);
+  /*
    * FR-FULL-10: when the card goes, focus returns to `[ controls ]` — where the card held it (its first button took
    * it on appearing, and the card's unmount dropped it to the body). A reader who answered from the sheet keeps the
    * control under their finger (D-934).
@@ -734,12 +740,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * where they are shown — and not the Sun and Moon lines (OQ-26). R150 (D-954): the panel is always open at the
    * sheet's end, and R152 took the `liveLegendOpen` pref out of the store with nothing reading it.
    */
-  /*
-   * R188 (FR-FACT-2, FR-FACT-3; D-1101): on wide a click, a tap or `Enter` on a legend row or an arc shows its
-   * satellite's facts in the page group, and one on a star, a planet or the Moon its facts, until `Esc`, `[ × ]` or
-   * another pick; the row's highlight is the chart's (FR-LEG-4). Page state, never in the hash or the store.
-   */
-  const [picked, setPicked] = useState<{ what: { kind: 'pass'; noradId: NoradId; name: string } | { kind: 'sky'; pick: SkyPick }; keyboard: boolean } | null>(null);
   useFactsPrefetch(!compact);
   const pickPass = useCallback(
     (passId: string) => {

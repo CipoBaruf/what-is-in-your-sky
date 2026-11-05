@@ -1,9 +1,7 @@
 import { useEffect, useId, useMemo, type ReactNode } from 'react';
-import { CATALOG } from '../../../../data/catalog';
-import { useLocale } from '../../../../i18n/useT';
 import { useFactsT, type FactsMessages } from '../../../../i18n/factsT';
 import { INTL_LOCALE } from '../../../../i18n/locale';
-import { useT } from '../../../../i18n/useT';
+import { useLocale, useT } from '../../../../i18n/useT';
 import { compassPoint } from '../../../../lib/compass';
 import { degrees } from '../../../../lib/format';
 import { bodyNow, bodyRiseSet, nightOf, starAltAz, starRiseSet, type RiseSet } from '../../../../lib/riseSet';
@@ -12,7 +10,7 @@ import { formatShortClock } from '../../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../../model';
 import { SectionHeading } from '../../primitives/SectionHeading';
 import { TextButton } from '../../primitives/TextButton';
-import type { FactEntry } from '../../../../data/catalog/facts';
+import { catalogDescription, type FactEntry } from '../../../../state';
 import shown from './factsShown.json';
 import type { FactsStars, FactsSubject, SkyPick } from './subject';
 import styles from './FactsGroup.module.css';
@@ -77,7 +75,7 @@ export function stagePayload(name: string): string | null {
 function SatelliteLines({ subject, at, f }: { subject: Extract<FactsSubject, { kind: 'satellite' }>; at: EpochMs; f: FactsMessages }) {
   const locale = useLocale();
   const fact = Object.hasOwn(FACTS, String(subject.noradId)) ? FACTS[String(subject.noradId)] : undefined;
-  const description = locale === 'es' && fact ? fact.descriptionEs : (subject.description ?? CATALOG.find((entry) => entry.noradId === subject.noradId)?.description);
+  const description = locale === 'es' && fact ? fact.descriptionEs : (subject.description ?? catalogDescription(subject.noradId));
   const lines: ReactNode[] = [];
   if (fact) {
     const payload = fact.purpose === 'rocket-stage' ? stagePayload(subject.name) : null;

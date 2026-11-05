@@ -172,7 +172,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/effects.ts` — exports: LoadedElements, VisibilitySource, EffectDeps, NOW_TICK_MS, ELEMENTS_RECHECK_MS, documentVisibility, ALWAYS_VISIBLE, startEffects — PLAN §4 `state/effects.ts`: observer change → load elements if needed → hand them to the worker once → `computePasses`.
 - `src/state/failure.ts` — exports: FailureKind, Failure, isFailure, toFailure — R86 (FR-FAIL-2, D-540): a failure is stored as a kind, never as a sentence.
 - `src/state/hash.ts` — exports: clearLocationHash — R83 (D-538): `endVisit` clears the link from the URL.
-- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, StartAppOverrides, startApp, appStore, useActiveObserver, useAppStore, +18
+- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +20
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
