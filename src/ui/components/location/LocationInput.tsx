@@ -172,7 +172,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
               ) : privacy.shown ? (
                 <span data-testid="privacy-note">
                   {t.home.savedFoot}{' '}
-                  <TextButton inline label="×" aria-label={t.footer.closePrivacy} onClick={privacy.close} data-testid="privacy-close" />
+                  <TextButton inline className={styles.close} label="×" aria-label={t.footer.closePrivacy} onClick={privacy.close} data-testid="privacy-close" />
                 </span>
               ) : null}
               {clearShown && (

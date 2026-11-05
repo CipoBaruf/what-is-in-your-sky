@@ -215,7 +215,8 @@ async function fitsOneViewport(page: Page, allowancePx = 0): Promise<void> {
   // The footer is the foot: nothing on the page is drawn below its top, and nothing but it runs past the viewport.
   expect(m.lowest).toBeLessThanOrEqual(m.footTop + 1);
   expect(m.scrollHeight).toBeLessThanOrEqual(m.innerHeight + allowancePx + m.footHeight + 1);
-  await expect(page.getByTestId('settings-privacy')).toHaveCount(0);
+  // R190 (FR-KEEP-4, D-1129): the privacy sentence is the footer’s, plain, below the fit, and not a line of the page.
+  await expect(footer.getByTestId('settings-privacy')).toHaveCount(1);
 }
 
 test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 AC2)', () => {

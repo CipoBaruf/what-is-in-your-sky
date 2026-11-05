@@ -67,8 +67,11 @@ export interface FooterProps {
   form?: 'full' | 'line' | 'short';
   /** Placement only (D-704): the controls sheet fits the row to its body. */
   className?: string | undefined;
-  /** R190 (FR-KEEP-4, D-1105): `false` on the settings page, which states the sentence itself, plainly. */
-  privacy?: boolean;
+  /**
+   * R190 (FR-KEEP-4, D-1105, D-1129): `note` is the privacy part with its `[ × ]`, gone once either is pressed; `plain`,
+   * the settings page’s, is the same part always shown and with no control, so the fact stays one tap away.
+   */
+  privacy?: 'note' | 'plain';
 }
 
 /** R190 (FR-KEEP-4): the `[ × ]` that closes the privacy note here and under the place search, for good. */
@@ -77,7 +80,7 @@ function ClosePrivacy({ onClose }: { onClose: () => void }) {
   return (
     <>
       {' '}
-      <TextButton inline label="×" aria-label={t.footer.closePrivacy} onClick={onClose} data-testid="privacy-close" />
+      <TextButton inline className={styles.close} label="×" aria-label={t.footer.closePrivacy} onClick={onClose} data-testid="privacy-close" />
     </>
   );
 }
@@ -100,11 +103,13 @@ function Attribution({ text, href }: { text: LinkedText; href: string }) {
   );
 }
 
-export function Footer({ inert = false, form = 'full', className, privacy = true }: FooterProps) {
+export function Footer({ inert = false, form = 'full', className, privacy = 'note' }: FooterProps) {
   const t = useT();
   // R190 (FR-KEEP-4): once either `[ × ]` is pressed the privacy part is gone, its separator with it, so the row closes up.
   const note = usePrivacyNote();
-  const privacyShown = privacy && note.shown;
+  const plain = privacy === 'plain';
+  const privacyShown = plain || note.shown;
+  const privacyId = plain ? 'settings-privacy' : 'privacy-note';
   const wide = useLayoutMode() === 'wide';
   const line = form === 'line';
   const footerClass = className ? `${styles.footer} ${className}` : styles.footer;
@@ -126,10 +131,10 @@ export function Footer({ inert = false, form = 'full', className, privacy = true
           {', '}
           <a href={ATTRIBUTION_URLS.geonames}>GeoNames</a> {t.footer.short.licence}
           {!line && privacyShown && (
-            <span data-testid="privacy-note">
+            <span data-testid={privacyId}>
               <span className={styles.dot}>·</span>
               {t.footer.short.privacy}
-              <ClosePrivacy onClose={note.close} />
+              {!plain && <ClosePrivacy onClose={note.close} />}
             </span>
           )}
           <span className={styles.dot}>·</span>
@@ -148,9 +153,9 @@ export function Footer({ inert = false, form = 'full', className, privacy = true
       <Attribution text={t.footer.openMeteo} href={ATTRIBUTION_URLS.openMeteo} />
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />
       {privacyShown && (
-        <p className={styles.line} data-testid="privacy-note">
+        <p className={styles.line} data-testid={privacyId}>
           {t.footer.privacy}
-          <ClosePrivacy onClose={note.close} />
+          {!plain && <ClosePrivacy onClose={note.close} />}
         </p>
       )}
       <Attribution text={t.footer.credit} href={ATTRIBUTION_URLS.author} />

@@ -176,11 +176,6 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
             )}
           </div>
         </section>
-
-        {/* R190 (FR-KEEP-4, D-1105): the privacy sentence, plain and always here, so the fact stays one tap away once the note is closed. */}
-        <p className={styles.privacy} data-rhythm="group" data-testid="settings-privacy">
-          {t.settings.privacy}
-        </p>
     </>
   );
 }

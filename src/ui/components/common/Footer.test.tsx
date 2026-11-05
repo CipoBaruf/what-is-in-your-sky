@@ -211,9 +211,12 @@ describe('<Footer>', () => {
       expect(screen.getByTestId('app-footer')).not.toHaveTextContent('Sin rastreo');
     });
 
-    it('FR-KEEP-4: the settings page’s footer has no privacy part at all', () => {
-      render(<Footer privacy={false} />);
-      expect(screen.getByRole('contentinfo')).not.toHaveTextContent(en.footer.privacy);
+    it('FR-KEEP-4: the settings page’s footer keeps its privacy part plain, with no [ × ], even once closed', () => {
+      act(() => {
+        appStore.getState().closePrivacyNote();
+      });
+      render(<Footer privacy="plain" />);
+      expect(screen.getByTestId('settings-privacy')).toHaveTextContent(en.footer.privacy);
       expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
     });
   });

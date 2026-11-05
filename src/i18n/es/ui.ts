@@ -127,7 +127,6 @@ export const ui: typeof EnUi = {
     skyLabel: 'Cielo',
     sunGlow: 'brillo del sol',
     sunGlowName: 'El brillo del Sol en el horizonte',
-    privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
   },
 
   compass,
