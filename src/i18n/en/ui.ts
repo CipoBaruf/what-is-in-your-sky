@@ -126,7 +126,7 @@ export const ui = {
     back: '←',
     backName: 'Back',
     nav: 'Pages',
-    pages: { home: 'home', live: 'live', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    pages: { home: 'home', live: 'live', pass: 'satellites', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
   },
 
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */

@@ -101,7 +101,7 @@ export const ui: typeof EnUi = {
     back: '←',
     backName: 'Volver',
     nav: 'Páginas',
-    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', settings: 'ajustes' },
+    pages: { home: 'inicio', live: 'en vivo', pass: 'satélites', stars: 'estrellas', settings: 'ajustes' },
   },
 
   starsHeading: 'Estrellas esta noche',

@@ -81,10 +81,21 @@ describe('navigation (D-533)', () => {
     expect(isRouteHref('#settings')).toBe(true);
     expect(isRouteHref('#stars')).toBe(true);
     expect(isRouteHref('#pass=25544-1')).toBe(true);
+    // v2.14.1 (D-1134): the pass page with no pass, `[ satellites ]` with none in the span.
+    expect(isRouteHref('#pass')).toBe(true);
     expect(isRouteHref('#coords-field')).toBe(false);
     expect(isRouteHref('#')).toBe(false);
     expect(isRouteHref('https://celestrak.org/')).toBe(false);
   });
+});
+
+it('opens a pass from the pass page with no pass in its entry, not on top of it (D-1134, D-1135)', () => {
+  resetNavigation();
+  open('#pass');
+  const at = depth();
+  open('#pass=25544-1');
+  expect(depth()).toBe(at);
+  expect(window.location.hash).toBe('#pass=25544-1');
 });
 
 describe('the focus after a route is left (D-532)', () => {

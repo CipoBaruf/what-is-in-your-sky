@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isLiveRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
+import { isLiveRoute, isPassPageRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
 
 /**
  * R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app
@@ -195,7 +195,9 @@ export function isRouteHref(href: string): boolean {
   return isLiveRoute(href) || isSettingsRoute(href) || isStarsRoute(href) || isPassHash(href);
 }
 
+/** A pass's hash, or v2.14.1's bare `#pass` (D-1134): the pass page, so a pass opened from it takes its entry in place. */
 function isPassHash(hash: string): boolean {
+  if (isPassPageRoute(hash)) return true;
   const parsed = parseHash(hash);
   return parsed !== null && (parsed.kind === 'pass' || parsed.kind === 'passId');
 }

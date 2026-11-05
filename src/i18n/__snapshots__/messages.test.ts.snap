@@ -213,6 +213,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".header.nav:string",
   ".header.pages.home:string",
   ".header.pages.live:string",
+  ".header.pages.pass:string",
   ".header.pages.settings:string",
   ".header.pages.stars:string",
   ".home.coldHeading:string",
