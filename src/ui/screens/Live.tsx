@@ -22,6 +22,7 @@ import { ShareButton } from '../components/common/ShareButton';
 import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
+import type { ChartHand } from '../components/guide/skychart/SkyChart.types';
 import { viewFor } from './chartViewDefault';
 import { LiveGroup } from './sky/live/Group';
 import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
@@ -153,6 +154,11 @@ export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
   link: LiveLink | null;
   onLeave: () => void;
+  /**
+   * R190 (R186's note): the hand camera's slot for the visit, held by `App`, which mounts the page in another shell on
+   * each side of the wide breakpoint — so the facing survives the remount as it survives a turn. Absent, the page's own.
+   */
+  chartHand?: ChartHand;
 }
 
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
@@ -163,7 +169,7 @@ export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
   return passes.filter((pass) => pass.start.t <= t && t <= pass.end.t).length;
 }
 
-export function LivePage({ link, onLeave }: LivePageProps) {
+export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps) {
   const t = useT();
   const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
@@ -237,7 +243,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
       </Page>
     );
   }
-  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} escRef={escRef} />;
+  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} escRef={escRef} visitHand={visitHand} />;
 }
 
 /**
@@ -434,7 +440,7 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
 }
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
-function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean> }) {
+function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean>; visitHand: ChartHand | undefined }) {
   const t = useT();
   const mode = useLayoutMode();
   const compact = mode === 'compact';
@@ -456,7 +462,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * D-789 (R121 review): the window in the box is this page's, not its chart's, so the hand camera's facing is held
    * here, where a turn of the phone keeps it (FR-FLOW-15).
    */
-  const chartHand = useChartHand();
+  const ownHand = useChartHand();
+  const chartHand = visitHand ?? ownHand;
   /*
    * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-4; D-943, D-944): whether the page's own window follows the phone. R159
    * (FR-PHONE-1, FR-PHONE-2; D-962): the page's `useFollow()` — on at mount where nothing has to be asked, armed by a

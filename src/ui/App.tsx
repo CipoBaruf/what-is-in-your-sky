@@ -27,6 +27,7 @@ import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
 import { StarsPage, useStarsRoute } from './screens/StarsRoute';
 import { clearRoute, open as openRoute } from './navigation';
 import { Shell } from './Shell';
+import { useVisitHand } from './components/guide/skychart/useChartHand';
 
 /**
  * R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the
@@ -371,6 +372,8 @@ export function App() {
    * resolved to a pass of the run.
    */
   const liveShown = live.active && !liveUnreadable;
+  // R190 (R186's note): the live page is mounted in a different shell either side of the wide breakpoint; its hand camera is the visit's.
+  const liveHand = useVisitHand(liveShown);
   // The shortcuts overlay, over home and over the stars page alike.
   const overlay = helpOpen && (
     <ShortcutsOverlay
@@ -401,7 +404,7 @@ export function App() {
           after={overlay}
         >
           <Suspense fallback={<p className={styles.starsLoading}>{t.live.loading}</p>}>
-            <LivePage link={live.link} onLeave={live.leave} />
+            <LivePage link={live.link} onLeave={live.leave} chartHand={liveHand} />
           </Suspense>
         </Shell>
       );
@@ -415,7 +418,7 @@ export function App() {
             </main>
           }
         >
-          <LivePage link={live.link} onLeave={live.leave} />
+          <LivePage link={live.link} onLeave={live.leave} chartHand={liveHand} />
         </Suspense>
       </Shell>
     );
