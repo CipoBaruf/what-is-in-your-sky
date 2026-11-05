@@ -163,10 +163,11 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
                 onHoverRow?.(null);
               }}
               onPointerEnter={(event) => {
-                if (event.pointerType === 'mouse') onHoverRow?.(row.passId);
+                // A finger has no hover: its tap is the click, which pins the row (FR-LEG-4).
+                if (event.pointerType !== 'touch') onHoverRow?.(row.passId);
               }}
               onPointerLeave={(event) => {
-                if (event.pointerType === 'mouse') onHoverRow?.(null);
+                if (event.pointerType !== 'touch') onHoverRow?.(null);
               }}
             >
               <span className={styles.key}>{row.key}</span>

@@ -229,6 +229,30 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
    * F-53): keyboard focus highlights the row's arc too but leaves the order alone, so Tab can walk the list — the row at
    * the top is the last one clicked or tapped, and the highlight follows the focus.
    */
+  it('FR-WIDE-7 (R188): a hover on a row emphasises its arc while it stays and changes nothing; leaving restores the highlight', () => {
+    const onSelectPass = vi.fn();
+    const onPassHover = vi.fn();
+    const { container, rerender } = render(<SkyChart {...props({ passes: [other, pass], onSelectPass, onPassHover })} />);
+    const row = (id: string) => container.querySelector(`[data-testid="chart-legend"] button[data-pass-id="${id}"]`) as Element;
+    fireEvent.pointerEnter(row('other'));
+    expect(row('other')).toHaveAttribute('data-hovered', 'true');
+    expect(row('other')).toHaveAttribute('data-highlighted', 'true');
+    expect(row(pass.id)).toHaveAttribute('data-highlighted', 'false');
+    // The pin is the click's, not the hover's: the pressed row and the order hold.
+    expect(row(pass.id)).toHaveAttribute('aria-pressed', 'true');
+    expect(onPassHover).toHaveBeenLastCalledWith('other');
+    fireEvent.pointerLeave(row('other'));
+    expect(row('other')).toHaveAttribute('data-hovered', 'false');
+    expect(row(pass.id)).toHaveAttribute('data-highlighted', 'true');
+    expect(row('other')).toHaveAttribute('data-highlighted', 'false');
+    expect(onPassHover).toHaveBeenLastCalledWith(null);
+    expect(onSelectPass).not.toHaveBeenCalled();
+    // The page's card under the pointer (`hoveredPassId`) reads the same.
+    rerender(<SkyChart {...props({ passes: [other, pass], hoveredPassId: 'other' })} />);
+    expect(row('other')).toHaveAttribute('data-hovered', 'true');
+    expect(row(pass.id)).toHaveAttribute('data-highlighted', 'false');
+  });
+
   it('highlights the pass whose legend row is clicked and lists it first; focus highlights without reordering', () => {
     const onSelectPass = vi.fn();
     const { container } = render(<SkyChart {...props({ passes: [other, pass], onSelectPass })} />);
