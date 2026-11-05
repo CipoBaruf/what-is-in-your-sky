@@ -46,5 +46,5 @@ export async function shownInstant(layout: Locator): Promise<number> {
 /** The time control's state: `watching` at real time, `scrubbing` while an instant is held (the stars page's group says it too). */
 export const timeState = (layout: Locator): Locator => layout.locator('[data-testid="time-control"], [data-testid="stars-time"]');
 
-/** Whether the page plays: the playback row's `[ play ]`, or the stars page's `Time` group (FR-GLOBE-7's speeds play). */
-export const playState = (layout: Locator): Locator => layout.locator('[data-testid="live-play"], [data-testid="stars-time"]');
+/** Whether the page plays: the playback row's `[ Play ]`, on the stars page too since V214-34 (D-1138). */
+export const playState = (layout: Locator): Locator => layout.getByTestId('live-play');
