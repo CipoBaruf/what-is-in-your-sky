@@ -220,8 +220,8 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Vista', 'Hacia', p.layersHeading, p.fieldHeading]);
     expect(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'arriba' })).toBeInTheDocument();
     expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres']);
-    // R160 (FR-PHONE-7) → R170 (FR-GLOBE-1): the view row's two words on wide.
-    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Ventana', 'Globo']);
+    // R160 (FR-PHONE-7) → R186 (FR-WIDE-2): the view row's three words on wide.
+    expect(viewRow().getAllByRole('button').map((b) => b.textContent)).toEqual(['Globo', 'Ventana', 'Domo']);
   });
 });
 
@@ -452,11 +452,11 @@ describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)'
     fireEvent.click(screen.getByRole('button', { name: 'stars' }));
     expect(drawnStars()).toBe(0);
     fireEvent.click(screen.getByRole('button', { name: 'stars' }));
-    // Back to the window: the camera where it was (the page's), nothing saved.
+    // Back to the window: the camera where it was (the page's); R186 (D-1095): the page saves the reader's pick.
     fireEvent.click(viewRow().getByRole('button', { name: 'Window' }));
     await drawn('window');
     expect(container.querySelector('[data-look-az][data-fov]')).toHaveAttribute('data-look-az', '180');
-    expect(JSON.stringify(window.localStorage)).not.toMatch(/polar|chartView/);
+    expect(appStore.getState().chartView).toBe('window');
   });
 
   it('names the whole sky’s twelve brightest in In this field', async () => {
