@@ -29,8 +29,8 @@
     "home": ["src/ui/screens/Home.tsx", "src/ui/screens/home/**", "src/ui/components/{location,now,passes,weather,moon,elements,live}/**"],
     "settings": ["src/ui/screens/{Settings.tsx,Settings.module.css,SettingsRoute.tsx,settingsChunk.ts}", "src/ui/components/location/**"],
     "detail": ["src/ui/screens/{PassDetail.tsx,PassDetail.module.css,passSelection.ts,chartViewDefault.ts}", "src/ui/screens/sky/{pass/**,sky.module.css}", "src/ui/screens/stars/{globeChunk,field}.ts", "src/ui/components/{guide,sky,moon,weather,live}/**"],
-    "live": ["src/ui/screens/{Live.tsx,Live.module.css,LiveRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/home/placeRequest.ts", "src/ui/components/{live,sky,guide,passes,moon,weather}/**"],
-    "stars": ["src/ui/screens/{Stars.tsx,Stars.module.css,StarsRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/{stars,home}/**", "src/ui/components/{sky,guide,live,now,passes,moon,weather}/**"]
+    "live": ["src/ui/screens/{Live.tsx,Live.module.css,LiveRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/sky/{live/**,sky.module.css}", "src/ui/screens/stars/{globeChunk,field}.ts", "src/ui/screens/home/placeRequest.ts", "src/ui/components/{live,sky,guide,passes,moon,weather}/**"],
+    "stars": ["src/ui/screens/{Stars.tsx,Stars.module.css,StarsRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/sky/{stars/**,sky.module.css}", "src/ui/screens/{stars,home}/**", "src/ui/components/{sky,guide,live,now,passes,moon,weather}/**"]
   },
   "screens": {
     "location": {"route": "home", "extras": []},

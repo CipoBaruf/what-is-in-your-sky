@@ -57,7 +57,7 @@ for (const viewport of DESKS) {
       await expect(page.locator('[data-drawing]')).toHaveCount(0);
       // The globe's box is the window's: it stands where the window stood, beside the rail.
       const box = await page.getByTestId('globe-box').boundingBox();
-      const rail = await page.getByTestId('globe-groups').boundingBox();
+      const rail = await page.getByTestId('stars-group').boundingBox();
       expect(box && rail && box.x + box.width <= rail.x).toBe(true);
       // Compact: the polar chart, the row in the sheet reading Whole sky; back to wide: the globe.
       await page.setViewportSize({ width: 390, height: 844 });

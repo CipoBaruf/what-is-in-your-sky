@@ -706,7 +706,7 @@ async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      return (await page.locator('svg[data-globe][viewBox]').count()) > 0 && (await page.getByTestId('globe-groups').count()) > 0;
+      return (await page.locator('svg[data-globe][viewBox]').count()) > 0 && (await page.getByTestId('stars-group').count()) > 0;
     }, { timeout: 30_000 })
     .toBe(true);
   await page.clock.runFor(1000);
