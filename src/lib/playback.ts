@@ -1,7 +1,7 @@
 import type { EpochMs } from '../model';
 // D-896 keeps FR-TONIGHT-5's thresholds in `physics/constants.ts` beside FR-TRAJ-2's (`eslint.config.js` allows this one import, D-907).
 import { AUTO_NEAR_MIN, AUTO_SPEED_GAP, AUTO_SPEED_NEAR } from '../physics/constants';
-import type { SkyBand } from './timeStripe';
+import { DAY_MS, zoneOffsetMs, type SkyBand, type Span } from './timeStripe';
 
 /**
  * R33 (FR-LIVE-5, D-81): playback arithmetic, pure and clock-free (D-15).
@@ -222,4 +222,24 @@ export function offsetSpan({ hours, minutes }: Pick<HeldOffset, 'hours' | 'minut
 export function linkInstant(t: EpochMs | null, now: EpochMs, spanMs: number): EpochMs | null {
   if (t === null || t < now) return null;
   return Math.min(t, now + spanMs);
+}
+
+/** The local noon at or before `t` in `zone` (UTC where the zone is unknown, D-3), the start of the night that holds it. */
+export function noonBefore(t: EpochMs, zone: string | null): EpochMs {
+  const local = t + zoneOffsetMs(t, zone);
+  const localNoon = Math.floor((local - DAY_MS / 2) / DAY_MS) * DAY_MS + DAY_MS / 2;
+  const at = localNoon - zoneOffsetMs(localNoon - zoneOffsetMs(t, zone), zone);
+  // A clock change between the noon and `t` can put the answer an hour past `t`; the noon a day earlier holds it then.
+  return at > t ? at - DAY_MS : at;
+}
+
+/**
+ * R187 (FR-WIDE-4, D-1100): where a move to `target` leaves the span. Inside the page's own span (`base`, now to
+ * now + 24 h) the span is the base (`null`); inside the span shown now it stays; past both it is the 24 h from the
+ * noon before `target` in the place's zone, so the stripe draws that night. The caller bounds `target` first.
+ */
+export function spanFor(target: EpochMs, base: Span, shown: Span, zone: string | null): EpochMs | null {
+  if (target >= base.start && target <= base.end) return null;
+  if (target >= shown.start && target <= shown.end && shown.start !== base.start) return shown.start;
+  return noonBefore(target, zone);
 }

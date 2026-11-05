@@ -4,7 +4,7 @@
  * budgets are one rule.
  */
 import { describe, expect, it } from 'vitest';
-import { advance, advanceAuto, autoRates, autoSpeed, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, nightEnd, passUp, rateSpan, SPEEDS } from './playback';
+import { advance, advanceAuto, autoRates, autoSpeed, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, nightEnd, noonBefore, passUp, spanFor, rateSpan, SPEEDS } from './playback';
 import type { SkyBand } from './timeStripe';
 
 const HOUR_MS = 3_600_000;
@@ -198,5 +198,25 @@ describe('linkInstant (R89, FR-VISIT-3)', () => {
     expect(linkInstant(NOW, NOW, SPAN)).toBe(NOW);
     expect(linkInstant(NOW + 3_600_000, NOW, SPAN)).toBe(NOW + 3_600_000);
     expect(linkInstant(NOW + 30 * 3_600_000, NOW, SPAN)).toBe(NOW + SPAN);
+  });
+});
+
+describe('noonBefore and spanFor (R187, FR-WIDE-4, D-1100)', () => {
+  const H = 3_600_000;
+  it('FR-WIDE-4: the local noon at or before an instant, in the zone or UTC', () => {
+    const evening = Date.UTC(2026, 10, 5, 23, 0, 0); // 20:00 in Buenos Aires
+    expect(noonBefore(evening, 'America/Argentina/Buenos_Aires')).toBe(Date.UTC(2026, 10, 5, 15, 0, 0));
+    expect(noonBefore(Date.UTC(2026, 10, 6, 5, 0, 0), 'America/Argentina/Buenos_Aires')).toBe(Date.UTC(2026, 10, 5, 15, 0, 0));
+    expect(noonBefore(evening, null)).toBe(Date.UTC(2026, 10, 5, 12, 0, 0));
+    expect(noonBefore(Date.UTC(2026, 10, 5, 12, 0, 0), null)).toBe(Date.UTC(2026, 10, 5, 12, 0, 0));
+  });
+  it('FR-WIDE-4: the base span inside it, the shown span while it holds the instant, else the night past it', () => {
+    const now = Date.UTC(2026, 10, 5, 10, 0, 0);
+    const base = { start: now, end: now + 24 * H };
+    expect(spanFor(now + 5 * H, base, base, null)).toBeNull();
+    const moved = { start: Date.UTC(2026, 10, 7, 12, 0, 0), end: Date.UTC(2026, 10, 8, 12, 0, 0) };
+    expect(spanFor(Date.UTC(2026, 10, 8, 2, 0, 0), base, moved, null)).toBe(moved.start);
+    expect(spanFor(Date.UTC(2026, 10, 9, 2, 0, 0), base, moved, null)).toBe(Date.UTC(2026, 10, 8, 12, 0, 0));
+    expect(spanFor(now - 2 * H, base, base, null)).toBe(Date.UTC(2026, 10, 4, 12, 0, 0));
   });
 });

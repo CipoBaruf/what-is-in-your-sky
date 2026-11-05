@@ -441,4 +441,69 @@ describe('usePlayback', () => {
     rerender();
     expect(result.current.realTime).toBe(true);
   });
+
+  describe('shiftDays and goTo (R187, FR-WIDE-4, D-1100)', () => {
+    const shift = { maxDays: 3, timeZone: 'Europe/London' };
+    const DAY = 24 * HOUR_MS;
+
+    it('FR-WIDE-4: a day step inside the span keeps it; past it the span is the 24 h from that night\'s noon', () => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, shift }));
+      act(() => {
+        result.current.shiftDays(1);
+      });
+      expect(result.current).toMatchObject({ t: NOW + DAY, realTime: false, span });
+      act(() => {
+        result.current.shiftDays(1);
+      });
+      // NOW is 09:30 UTC on 11 Sep (10:30 BST); two days on is 13 Sep 10:30 BST, whose night began at noon BST on 12 Sep.
+      const noon = Date.UTC(2026, 8, 12, 11, 0, 0);
+      expect(result.current.t).toBe(NOW + 2 * DAY);
+      expect(result.current.span).toEqual({ start: noon, end: noon + DAY });
+      act(() => {
+        result.current.shiftDays(-1 / 24);
+      });
+      expect(result.current.span.start).toBe(noon);
+      act(() => {
+        result.current.toNow();
+      });
+      expect(result.current).toMatchObject({ t: NOW, realTime: true, span });
+    });
+
+    it('FR-WIDE-4: goes back as far as forward, and stops at maxDays from real time', () => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, shift }));
+      act(() => {
+        result.current.shiftDays(-1);
+      });
+      expect(result.current.t).toBe(NOW - DAY);
+      expect(result.current.span.start).toBeLessThanOrEqual(NOW - DAY);
+      act(() => {
+        result.current.goTo(NOW + 10 * DAY);
+      });
+      expect(result.current.t).toBe(NOW + 3 * DAY);
+    });
+
+    it('without shift a move is a scrub, clamped to the span', () => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null }));
+      act(() => {
+        result.current.shiftDays(2);
+      });
+      expect(result.current).toMatchObject({ t: span.end, span });
+    });
+
+    it('plays to the end of the moved span, not the page\'s', () => {
+      const { raf, tick } = scriptedRaf();
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, shift, raf }));
+      act(() => {
+        result.current.shiftDays(2);
+        result.current.setSpeed(3600);
+      });
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(100_000);
+      expect(result.current.playing).toBe(false);
+      expect(result.current.t).toBe(result.current.span.end);
+    });
+  });
 });
