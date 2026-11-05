@@ -27,7 +27,7 @@ export type PlaceChoice = string | null;
 /** The observer's button value inside the group; a cell key is `"lat,lon"`, so it never collides. */
 const OBSERVER_VALUE = 'observer';
 
-/** FR-GLOBE-5: `[x] with you [ ] with the stars`, the visit's and not saved. */
+/** FR-GLOBE-5: `[x] with you [ ] with the stars`; R190 (FR-KEEP-1): the page keeps it on the device (`globeTurn`). */
 export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn: GlobeTurn) => void }) {
   const t = useT();
   const headingId = useId();

@@ -400,8 +400,8 @@ describe('the stars page in the full form (FR-CLEAN-1..4, FR-CLEAN-6)', () => {
 /**
  * R160 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-9; US-46 AC1, AC3; D-968, D-970, D-971, D-990): the whole sky on the stars
  * page — the view row, the polar chart in the box with the page's layers, the names' default by width,
- * `In this field` as the whole sky's twelve brightest, the outline of the page's camera, the view never saved and the
- * window on every open, and the handoff landing on the page's own view. R163: on compact the view row is the sheet's
+ * `In this field` as the whole sky's twelve brightest, the outline of the page's camera (the view, since R186 and
+ * R190's FR-KEEP-1, the saved `chartView`), and the handoff landing on the page's own view. R163: on compact the view row is the sheet's
  * first row and the polar chart's convention line and toggle take the sheet's facing row (FR-CLEAN-4).
  */
 describe('the whole sky on the stars page (FR-PHONE-7, FR-PHONE-9, FR-PHONE-10)', () => {

@@ -252,7 +252,8 @@ function StarsSky({ observer }: { observer: Observer }) {
    * never saved. R160 (FR-PHONE-8, D-968, D-990): the names' default is by view and width — on for the window, and for
    * the whole sky on wide, off for the whole sky on compact — until the `[x] names` toggle is tapped, from when its
    * choice holds for both views; the toggle shows the value in force. FR-GLOBE-1 as amended (V212-11, D-1054): a desk
-   * opens on the globe, a phone on the window; the width at the open picks it, nothing is saved.
+   * opens on the globe, a phone on the window; the width at the open picks it. R186/R190 (FR-KEEP-1, amending both):
+   * the view and the names' tap are now kept choices — the default holds only while nothing is saved.
    */
   // R186 (FR-WIDE-2, D-1095): the saved view as this page offers it at this width — the globe on wide and the window on compact with nothing saved.
   const savedView = useAppStore((s) => s.chartView);
