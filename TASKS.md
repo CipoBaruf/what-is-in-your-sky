@@ -188,7 +188,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - A component test: the band's cells for a fixed forecast, the gap blank, the sentence in both languages; `live-playback.spec.ts` green.
     - `npm run check` green.
 
-- [ ] **R188 — The facts and the hover: `This satellite` on the pass detail and the live page's pick, a star's, a planet's or the Moon's facts, and list rows and arcs answering each other**
+- [x] **R188 — The facts and the hover: `This satellite` on the pass detail and the live page's pick, a star's, a planet's or the Moon's facts, and list rows and arcs answering each other** — the chunk carries `factsShown.json`, the facts without their sources, to fit `FACTS_BUDGET_KB` (D-1124); the words ride in the chunk (D-1125); the stars page's `Group.tsx` takes the group as a child, unchanged.
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 500
