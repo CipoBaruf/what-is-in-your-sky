@@ -415,15 +415,15 @@ test.describe('the landmark and the facing key (R127)', () => {
       await expect(readout).not.toHaveAttribute('data-following', passId);
       await expect(readout).toContainText(locale === 'es' ? 'Hacia el' : 'Facing');
       expect((await look(w)).az).toBe((atPeak.az - 30 + 360) % 360);
-      // FR-DESK-4 as amended v2.5: `f` does the same as the key, and an arrow key ends it.
-      await page.keyboard.press('f');
+      // FR-DESK-4 as amended v2.5 → FR-WIDE-9 (R189): `a` does the same as the key, and an arrow key ends it.
+      await page.keyboard.press('a');
       await page.clock.runFor(FRAME_MS);
       await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
       await expect(readout).toHaveAttribute('data-following', passId);
       await chart.locator('div[data-dragging]').focus();
       await page.keyboard.press('ArrowLeft');
       await expect(keyOption).toHaveAttribute('aria-pressed', 'false');
-      await page.keyboard.press('f');
+      await page.keyboard.press('a');
       await page.clock.runFor(FRAME_MS);
       await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
       // Past the pass, its key gone and the headline on the next: following ends where the camera stands, and no

@@ -929,7 +929,8 @@ const REACH: Record<string, Reach> = {
     await expect(overlay).toBeVisible();
     // R115 (FR-DESK-4 as amended v2.4): `s` for the stars page and that page's two key rows, 8 → 11.
     // R127 (FR-DESK-4 as amended v2.5): `f`, the window turned to the pass, 11 → 12.
-    await expect(overlay.locator('kbd')).toHaveCount(12);
+    // R189 (FR-WIDE-9): the desk sky keys (g w d , . t Space a, `f` now full screen) and the box zoom and reset, 12 → 22.
+    await expect(overlay.locator('kbd')).toHaveCount(22);
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
@@ -1061,14 +1062,14 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R128 (FR-SKY-13, FR-DESK-4 as amended v2.5; US-41 AC5): the same page at 1280 with `f` pressed — the window
+   * R128 (FR-SKY-13, FR-DESK-4 as amended v2.5; US-41 AC5): the same page at 1280 with `a` pressed (R189: FR-WIDE-9 moved it from `f`) — the window
    * turned to the highlighted pass, which at `SHOWN` is the one three minutes in, and the key pressed in the rail.
    */
   async 'live-window-follow'(page, width, theme, locale) {
     await liveAt(page, width, theme, locale);
     const chart = page.getByTestId('sky-chart');
     await windowInTheBox(page, chart, locale, SHOWN);
-    await page.keyboard.press('f');
+    await page.keyboard.press('a');
     await page.clock.runFor(FRAME_MS);
     // The live page's set starts a pass already up at the instant it computed (`CHIP_SHOWN`'s note), so the
     // pass is known by its catalogue number here and not by `SHOWN_PASS`'s start.

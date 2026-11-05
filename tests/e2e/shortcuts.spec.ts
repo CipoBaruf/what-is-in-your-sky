@@ -122,7 +122,7 @@ test('? opens the overlay, which lists the keys, and Esc closes it', async ({ pa
 
   const overlay = page.getByTestId('shortcuts-overlay');
   await expect(overlay).toBeVisible();
-  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'f', 'n', '?', '← →', '↑ ↓']);
+  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'n', '?', 'g', 'w', 'd', ',', '.', 't', 'Space', 'a', 'f', '← →', '↑ ↓', '+ −', '0 Home']);
   // Nothing behind it can be reached while it is up.
   await expect(page.getByRole('main')).toHaveAttribute('inert', '');
 
@@ -153,7 +153,7 @@ test('the overlay reads in Spanish with the keys untranslated (FR-I18N-2/4)', as
   await page.keyboard.press('?');
   const overlay = page.getByTestId('shortcuts-overlay');
   await expect(overlay.getByRole('heading', { name: 'Atajos de teclado' })).toBeVisible();
-  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'f', 'n', '?', '← →', '↑ ↓']);
+  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'n', '?', 'g', 'w', 'd', ',', '.', 't', 'Space', 'a', 'f', '← →', '↑ ↓', '+ −', '0 Home']);
   await expect(overlay).toContainText('Pase siguiente de la lista');
   await expect(overlay).not.toContainText('Next pass in the list');
 });
@@ -165,7 +165,7 @@ for (const locale of ['en', 'es'] as const) {
       if (theme === 'night') await page.keyboard.press('n');
       await page.keyboard.press('?');
       await expect(page.getByTestId('shortcuts-overlay')).toBeVisible();
-      await expect(page.getByTestId('shortcuts-overlay').locator('kbd')).toHaveCount(12); // R115: `s`, and the stars page's two key rows; R127: `f`
+      await expect(page.getByTestId('shortcuts-overlay').locator('kbd')).toHaveCount(22); // R115: `s`, and the stars page's two key rows; R127: `f`; R189: the desk sky keys and the box's zoom and reset
       await page.screenshot({ path: `docs/screenshots/r35-shortcuts-1280-${theme}-${locale}.png` });
     });
   }
