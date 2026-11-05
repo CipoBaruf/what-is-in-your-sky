@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.14.1 — for review.** Phase v2.14.1 "the desk, reviewed" (the owner's desk review of 2.14.0: the pass page's way back and pass list, the `[ satellites ]` link, a pass opening on its whole path at its rise, the stars page without the satellites' time, faint day stars on the globe, the live page's first-pass dialog, one-line field focus): FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3, FR-WIDE-4 and FR-STAR-13 amended, FR-WIDE-13..14, Decision Log V214-25..V214-32, in `docs/sdd/phases/v2.14.1/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
-| Date | 2026-11-05 (v2.14.1). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v2.14.2 — for review.** Phase v2.14.2 "ask before following" (a phone page asks before it follows the phone, Android too, once per visit): FR-PHONE-17, FR-PHONE-1, FR-PHONE-2 and FR-WIN-4 amended on compact, Decision Log V214-39..V214-44, in `docs/sdd/phases/v2.14.2/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Date | 2026-11-05 (v2.14.2). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -124,6 +124,7 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.13 | [spec](docs/sdd/phases/v2.13/spec.md) | [plan](docs/sdd/phases/v2.13/plan.md) | [TASKS.md](TASKS.md) |
 | v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | [TASKS.md](TASKS.md) |
 | v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
+| v2.14.2 | [spec](docs/sdd/phases/v2.14.2/spec.md) | [plan](docs/sdd/phases/v2.14.2/plan.md) | [tasks](docs/sdd/phases/v2.14.2/tasks.md) |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),
