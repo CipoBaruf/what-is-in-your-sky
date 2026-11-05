@@ -36,7 +36,7 @@ export function CloudBandPaths({ hourly, drawn, width, height }: { hourly: reado
 }
 
 /** FR-WIDE-8: "Clouds: clear until 23:00, mostly cloudy 23:00–02:00, then clear" — the runs over `span`, joined. */
-export function cloudSentence(runs: readonly CloudRun[], timeZone: string | null, locale: Locale, words: Messages['live']['clouds']): string {
+function cloudSentence(runs: readonly CloudRun[], timeZone: string | null, locale: Locale, words: Messages['live']['clouds']): string {
   const name = (run: CloudRun): string => words.band[run.band ?? 'none'];
   const at = (t: EpochMs): string => formatShortClock(t, timeZone, locale);
   const parts = runs.map((run, index) => {
