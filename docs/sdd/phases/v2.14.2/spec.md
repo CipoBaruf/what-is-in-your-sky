@@ -20,7 +20,9 @@ One branch, one pull request, merged when CI and the review are green.
   With `followGranted` saved and no request to make (Android after an allow), the page follows from the first reading as FR-PHONE-1 says and the dialog is not shown; with it saved where a request exists (iOS), the dialog is shown once per visit, since iOS grants only inside a tap and `[ allow ]` is that tap.
   It is a modal dialog (`role="dialog"`, `aria-modal`, `aria-labelledby` its question, focus on `[ allow ]`, focus returned on close), on `--screen-overlay` with a hairline edge and its buttons at least `--tap` tall, the same parts as FR-WIDE-13's dialog.
   It is not shown on wide, without the sensor, or while following is already on; FR-FULL-10's card waits until it is answered (V214-43).
-  *Verification:* `useFollow.test.tsx` — with a request: shown at mount, `allow` asks exactly once inside the click and follows on a grant, a refusal clears the pref and sets `refused`, `not now` asks nothing and leaves `on` false; with none: hidden until a reading with a north, then shown, `allow` follows; with `followGranted` and no request: not shown, follows; the session key set by either answer hides it on the next mount.
+  *Verification:* `useFollow.test.tsx` — with a request: shown at mount, `allow` asks exactly once inside the click and follows on a grant, a refusal clears the pref and sets `refused`, `not now` asks nothing and leaves `on` false.
+  With no request: it is hidden until a reading with a north, then shown, and `allow` follows; with `followGranted` saved it is not shown and the page follows.
+  The session key set by either answer hides it on the next mount.
   `follow-ask.spec.ts` at 390 × 844 in both languages with `stubOrientation`, with and without `requestPermission`: the dialog on `#live`, `#stars` and a pass detail, both answers, `Esc`, not shown on the next page or after a reload in the tab, not shown at 1280 × 800; axe on the open dialog.
 
 #### Amended on compact
