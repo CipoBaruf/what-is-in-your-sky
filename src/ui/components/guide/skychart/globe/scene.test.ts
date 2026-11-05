@@ -2,12 +2,14 @@ import { MakeTime, RotateVector, Rotation_EQJ_EQD, Vector } from 'astronomy-engi
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { starsAt } from '../../../../../lib/skyStars';
+import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
 import type { Observer } from '../../../../../model';
 import { FIELD_LIST_MAX, fieldObjects } from '../../../../screens/stars/field';
 import { handRotation } from '../window/camera';
 import { WINDOW_FOV } from '../window/projection';
+import { DAY_STARS_ALPHA } from './constants';
 import { dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, project, projector, radec, type Vec3 } from './projection';
-import { altAz, figureAnchor, globeSky, starVectors, surfaceAt, upCount, upList } from './scene';
+import { altAz, dayStars, figureAnchor, globeSky, starVectors, surfaceAt, upCount, upList } from './scene';
 
 /**
  * R167 (FR-GLOBE-3, FR-GLOBE-12, FR-GLOBE-13, FR-GLOBE-17; PLAN §9.14,
@@ -180,6 +182,25 @@ describe('the surface (FR-GLOBE-13)', () => {
     expect(at('2026-11-03T21:30:00Z')).toBe('day'); // 18:30, the Sun about 10° up
     expect(at('2026-11-03T22:40:00Z')).toBe('twilight'); // 19:40, about 4° down
     expect(at('2026-11-03T23:10:00Z')).toBe('deep'); // 20:10, about 9° down
+  });
+});
+
+/** v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139): the globe's stars by day; the drawing is `GlobeRenderer.test.ts`'s. */
+describe('the day stars (FR-STAR-13 as amended)', () => {
+  it('are the first two rungs at DAY_STARS_ALPHA while the Sun is above 0°, at +20° as just past the horizon', () => {
+    const day = { maxMag: RUNG_MAX_MAG[1], alpha: DAY_STARS_ALPHA };
+    expect(DAY_STARS_ALPHA).toBe(0.35);
+    expect(dayStars(20)).toEqual(day);
+    expect(dayStars(0.1)).toEqual(day);
+    expect(dayStars(70)).toEqual(day);
+    // Over a Buenos Aires morning, the Sun +20° up: the surface's `day` step.
+    const sky = globeSky(BUENOS_AIRES, Date.parse('2026-11-04T10:33:00Z'));
+    expect(sky.sunAltDeg).toBeCloseTo(20, 0);
+    expect(dayStars(sky.sunAltDeg)).toEqual(day);
+  });
+
+  it('are none at 0° and below: twilight and night draw as before', () => {
+    for (const alt of [0, -3, -6, -20, Number.NaN]) expect(dayStars(alt)).toBeNull();
   });
 });
 
