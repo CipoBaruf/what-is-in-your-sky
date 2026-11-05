@@ -9,7 +9,8 @@
  * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-7; US-27 AC5): at all four shapes — 390 × 844, 844 × 390, 1280 × 800 and
  * 1200 × 450. At the two short ones the drawing's box must not move between the states: on the short wide
  * window the scrub block is a bar inside `chart-box`, whose height is identical in both, and on the landscape
- * phone it is the rail's and the dome's column is identical in both.
+ * phone it is the rail's and the dome's column is identical in both. R186 (D-1133): on a desk, short or tall, the
+ * block is the rail's `Time` row and the box does not move between the states.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { backToLive, closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
@@ -31,7 +32,8 @@ const SCRUB_ROWS = ['time-row', 'time-stripe', 'step-controls', 'playback-row'] 
  */
 const SHAPES = [
   [1280, 800, 'under'],
-  [1200, 450, 'overlay'],
+  // R186 (D-1133): the short wide window too — the block is the rail's `Time` row on every desk size.
+  [1200, 450, 'under'],
 ] as const;
 /** The compact shapes: the portrait phone and the landscape phone (R148, FR-FULL-4); the sheet is the bottom sheet in both (R150, FR-GYRO-7). */
 const COMPACT_SHAPES = [
@@ -98,33 +100,18 @@ for (const [width, height, placement] of SHAPES) {
     await expect(page.getByTestId('time-readout')).toHaveText(/^\d\d:\d\d · \+0 min$/);
 
     /*
-     * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-7; US-27 AC5): what the state change does to the drawing's box. At
-     * the two short shapes, nothing: on the short wide window the block is a bar inside the box, over its bottom
-     * edge and at most half of it, and `chart-box` is the height it was; on the landscape phone the block is the
-     * rail's and the dome's column is where it was. On the two tall shapes the box yields to the block under it —
-     * on the reader's own tap, which is the one thing that may resize it.
+     * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-7; US-27 AC5) → R186 (D-1133): what the state change does to the
+     * drawing's box on a desk: nothing, at the tall and the short wide shape alike.
      */
     const scrubbing = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
-    if (placement === 'overlay') {
-      expect(scrubbing.box.height, 'chart-box is the same height watching and scrubbing').toBe(watching.box.height);
-      expect(scrubbing.box).toEqual(watching.box);
-      expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
-      const bar = await settledBox(page, 'chart-bottom-overlay');
-      expect(bar.y, 'the bar is inside the box').toBeGreaterThanOrEqual(scrubbing.box.y);
-      expect(bar.x).toBeGreaterThanOrEqual(scrubbing.box.x - 0.5);
-      expect(bar.x + bar.width).toBeLessThanOrEqual(scrubbing.box.x + scrubbing.box.width + 0.5);
-      expect(Math.abs(bar.y + bar.height - (scrubbing.box.y + scrubbing.box.height)), 'the bar is on the bottom edge').toBeLessThanOrEqual(0.5);
-      expect(bar.height, 'the bar covers at most half the box').toBeLessThanOrEqual(scrubbing.box.height / 2);
-      await expect(page.getByTestId('chart-bottom-overlay').getByTestId('stripe-block')).toBeVisible();
-      await expect(page.getByTestId('chart-stripe'), 'no row under the box').toHaveCount(0);
-      // The overview stays in the rail, and `[ back to live ]` at its head (FR-WATCH-6).
-      await expect(page.getByTestId('live-rail-foot').getByTestId('overview-row')).toBeVisible();
-      await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
-    } else {
-      // R132 (FR-FLOW-4 wide, D-864): the block is the rail's foot, not a row under the box; the box may give the foot height and never grows on the tap.
-      expect(scrubbing.box.height, 'the box never grows on the tap').toBeLessThanOrEqual(watching.box.height + 0.5);
-      expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
-    }
+    // R186 (FR-WIDE-1, FR-WIDE-4, D-1133): on a desk the block is the rail's `Time` row, not a row under the box nor a
+    // bar over it, so the box is the one it was at both shapes (FR-WATCH-6's aim, by the layout).
+    expect(rounded(scrubbing.box), 'chart-box is the box it was watching').toEqual(rounded(watching.box));
+    expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
+    await expect(page.getByTestId('chart-bottom-overlay')).toHaveCount(0);
+    await expect(page.getByTestId('live-layout').locator('[data-slot="timeline"]').getByTestId('stripe-block')).toBeVisible();
+    await expect(page.getByTestId('live-layout').locator('[data-slot="timeline"]').getByTestId('overview-row')).toBeVisible();
+    await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
 
     const held = await shown(page);
@@ -271,7 +258,8 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   // R132 (D-864): the rail's View and Facing rows leave the short wide window's list no row at 1200 × 450; the short shapes are R133's and R136's.
   test.fixme(true, 'R132: the short wide rail leaves the inventory no row until R133/R136 re-cut the short shapes');
   await openParisLive(page, 'shortWide', 'dark');
-  await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'overlay');
+  // D-1133: wide has no overlay placement.
+  await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');
   await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
   const list = page.getByTestId('chart-legend');
   await expect(list).toHaveAttribute('data-clip-rows', /^\d+$/);

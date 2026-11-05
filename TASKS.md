@@ -175,6 +175,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Satisfies:** FR-WIDE-4, FR-WIDE-8; US-52 AC4, US-55 AC3.
   - **Scope (D-1100):** `StripeOverview`, `TimeStripe`, `PlaybackControls` and `usePlayback` move from `components/live/` to `components/sky/time/` (imports updated, the `Live` chunk no longer their only home); `usePlayback` gains `shiftDays`; the three pages' `screens/sky/<page>/Time.tsx`; the pass detail's FR-FLOW-7 cells become buttons; the cloud band as one `<path>` per band from `lib/cloudBand.ts`, an empty hour left blank, the runs sentence in the stripe's description in both catalogs.
   - **Touches outside the lane:** `components/sky/time/**`, `screens/sky/*/Time.tsx`, the pass detail's times row, `src/i18n/**` (the cloud sentence, in the `live` section).
+  - **Note (from R186):** remove the wide overlay branch, the fold and the overlay inventory (`useInventoryRows(... 'overlay')`) in `Live.tsx` per D-1133.
   - **Deletes:** the stars page's clock row and its tests (FR-GLOBE-7's steps re-tested under the playback row).
   - **Captures:** the manifest gains `sky-clouds` (1280 × 800).
   - **Out of scope:** the keys `,` `.` `t` `Space` (R189); `playSpeed` read from the store (R190).

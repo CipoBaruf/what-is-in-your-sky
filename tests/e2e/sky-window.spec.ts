@@ -122,7 +122,8 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await open(page, { width: 1280, height: 800 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
+    // R186 (FR-WIDE-2): the desk's row is the three pages' Globe, Window, Dome.
+    await expect(toggle.getByRole('button')).toHaveText(['Globe', 'Window', 'Dome']);
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     // A view like the other two: drawn here and saved (FR-WIN-5 as amended v2.5).
@@ -220,9 +221,9 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
         // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line (it was the browser window's shape, `windowBox`), and the rail stands beside it.
         expect(await bandUnderBox(page, boxRect)).toBeLessThanOrEqual(SPACE_3_PX);
         expect(rail.x).toBeGreaterThanOrEqual(boxRect.x + boxRect.width - 1);
-        // The facing picker in the rail (FR-SKY-2), the readout in the box's corner.
-        await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').getByTestId('window-facing')).toBeVisible();
-        await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
+        // The facing picker in the rail (FR-SKY-2) — R186 (FR-WIDE-1): the live page's group — the readout in the box's corner.
+        await expect(page.getByTestId('live-group').getByTestId('window-facing')).toBeVisible();
+        await expect(page.getByTestId('live-group').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
         const readout = await rectOf(page.getByTestId('window-readout'));
         expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
         expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
@@ -369,7 +370,8 @@ test.describe('the landmark and the facing key (R127)', () => {
       const starName = linePattern.exec((await line.textContent()) ?? '')?.[1] ?? '';
       expect(starName).not.toBe('');
       // FR-SKY-13: the picker ends with the pass's key, after `up` — one capital, the legend's (the arc itself is not drawn yet five minutes out).
-      const picker = page.getByTestId('live-layout').locator('[data-slot="picker"]').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
+      // R186 (FR-WIDE-1): the picker is the live page's rail group.
+      const picker = page.getByTestId('live-group').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
       const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', locale === 'es' ? 'arriba' : 'up'];
       await expect(picker.getByRole('button')).toHaveText([...points, /^[A-Z]$/]);
       const key = (await picker.getByRole('button').last().textContent()) ?? '';
@@ -437,11 +439,11 @@ test.describe('the landmark and the facing key (R127)', () => {
   }
 
   /**
-   * FR-SKY-11 as amended v2.5 (V25-19, D-840): on a short wide window — FR-SHP-3's shape, the scrub block over the
-   * box — the headline carries no landmark line, the first row to fold; the ring still marks the star. The same page
-   * at 1280 × 800 has the line, so the one condition is the placement.
+   * FR-SKY-11 as amended v2.5 (V25-19, D-840): on a short wide window the headline dropped its landmark line while
+   * the scrub block was a bar over the box. R186 (D-1133): wide has no overlay placement, so the short wide window
+   * keeps the line as the tall one does, and the ring still marks the star.
    */
-  test('the short wide window: no landmark line on the headline, the ring stands, the line back on a tall window', async ({ page }) => {
+  test('the short wide window: the landmark line on the headline as on a tall window, the ring stands (D-1133)', async ({ page }) => {
     await openShowcase(page, { width: 1200, height: 450 }, 'en', 'window');
     await page.getByTestId('live-link').click();
     await expect
@@ -453,9 +455,9 @@ test.describe('the landmark and the facing key (R127)', () => {
     await page.clock.setSystemTime(ORION_RISE - 2 * 60_000 - TICK_MS);
     await page.clock.runFor(TICK_MS);
     await page.clock.runFor(1000);
-    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'overlay');
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');
     await expect(page.getByTestId('sky-chart').locator('[data-landmark-ring]')).toHaveCount(1);
-    await expect(page.getByTestId('next-event-landmark')).toHaveCount(0);
+    await expect(page.getByTestId('next-event-landmark')).toHaveText(/^passes \d+° (?:above|below|beside) .+, in Orion$/);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.clock.runFor(1000);
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');

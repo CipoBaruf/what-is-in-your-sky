@@ -98,6 +98,10 @@ The dome stays on glyphcss (V214-4); the globe of v2.12 becomes every desk page'
   Shard 1 carries the typecheck, lint and the whole unit suite (about 3 min, 3 700 tests) before its share of the e2e, so it is the one that outgrows the budget first.
   `CI_E2E_SHARDS` goes from 5 to 6 and the matrix to `[1, 2, 3, 4, 5, 6]`; the budget is not raised (D-526).
   Numbered after the task blocks because it came after they were reserved (§16.33).
+- **D-1133 — On wide the shell supersedes FR-WATCH-6's overlay bar.** *(R186)*
+  (FR-WIDE-1, FR-WIDE-4, FR-WATCH-5, FR-WATCH-6; D-1098.) On every desk size the scrub block is the rail's `Time` row and the box is the layout's cut, so the box never gives height to the block and wide has no overlay placement and no fold: `data-scrub-placement` is `under` on wide, short or tall.
+  Since `fc31bd91` the live page no longer asks `ChartFrame` to measure the box (`measureBox`, `stacked`), so `boxHeightPx` stays null on wide; the overlay branch, the fold and `useInventoryRows(... 'overlay')` in `Live.tsx` are unreachable there. R187, which owns the time control, removes that dead code.
+  Numbered after the task blocks because it came after they were reserved (§16.33); the owner reviews it at R191's gate.
 
 ### 8.21 One sky on a desk *(v2.14, FR-WIDE-1..12, D-1094..D-1108)*
 
