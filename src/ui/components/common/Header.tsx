@@ -152,7 +152,8 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   }
 
   // The home and settings pages have no `h1` of their own on wide; the live and stars pages do (FR-A11Y-1).
-  const Title = page === 'home' || page === 'settings' ? 'h1' : 'p';
+  // R186 (FR-WIDE-1): the wide pass detail (`homeLink`) names itself by the pass's h1 in its rail, as the stars page does.
+  const Title = (page === 'home' && !homeLink) || page === 'settings' ? 'h1' : 'p';
   /*
    * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `[ home ] [ live ] [ stars ]`, so they read
    * as the controls they are, like `[ settings ]`; the current page is the primitive's dim `aria-current` span.

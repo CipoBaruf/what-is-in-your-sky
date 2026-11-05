@@ -91,13 +91,15 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     expect(outline()).toEqual([[1, en.app.shortTitle], ...HOME_TAIL, [3, pass.name], [3, other.name]]);
   });
 
-  it('the guide: the pass name is its h2, and the page under it keeps one h1', async () => {
+  it('the pass detail on wide: the pass name is the page’s one h1, and nothing under it skips a rank (FR-WIDE-1)', async () => {
     media = stubMatchMedia(WIDE_PX);
     withPasses();
     render(<App />);
     go(`#pass=${pass.id}`);
     const panel = await screen.findByTestId('guide-panel');
-    expect(outline(panel)).toEqual([[2, pass.name]]);
+    // R186 (D-1098): the pass is a page in the home's place, its name the rail head's h1, as the stars page's is.
+    expect(outline(panel)[0]).toEqual([1, pass.name]);
+    expect(outline().filter(([level]) => level === 1)).toEqual([[1, pass.name]]);
     expect(skippedLevels(outline())).toEqual([]);
   });
 

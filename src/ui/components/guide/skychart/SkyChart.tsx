@@ -134,7 +134,9 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
  * turning with you, with the layers the window takes (`layers.ts`'s `globe` row, read off the page's scene); a tap
  * on an arc selects its pass as a legend row does. Its own lazy chunk (`SkyGlobe-*.js`), prefetched on idle on wide.
  */
-const SkyGlobe = lazy(loadGlobe);
+// R186: a promise of its own — two lazies sharing the cached one see it already marked fulfilled and, under `act`, retry
+// before their own resolution lands, forever.
+const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** With no scene (the stars toggle's source not in yet), the globe draws the planets and nothing of the stars. */
 const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
 

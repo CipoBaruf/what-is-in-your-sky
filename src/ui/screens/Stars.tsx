@@ -148,7 +148,9 @@ const COMPACT_VIEWS: readonly ChartView[] = ['window', 'polar'];
 const WIDE_CHART_VIEWS: readonly ChartView[] = ['window', 'dome'];
 
 /** R170 (FR-GLOBE-15): the globe, its own lazy chunk (`SkyGlobe-*.js`), asked for when the wide page first shows it. */
-const SkyGlobe = lazy(loadGlobe);
+// R186: a promise of its own — two lazies sharing the cached one see it already marked fulfilled and, under `act`, retry
+// before their own resolution lands, forever.
+const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** R170 (FR-GLOBE-15, `GLOBE_STARS_KB`): the globe's rail groups and its list, lazy with the globe so `stars` keeps the wiring alone. */
 const GlobeField = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
 
