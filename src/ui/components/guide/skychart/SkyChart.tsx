@@ -82,7 +82,7 @@ import { useSkyBodies } from './useSkyBodies';
  * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12, D-876): the compact cases
  * are gone. The window is a view on compact as on wide — chosen, it is saved
  * and laid out in the box — and the default with nothing saved is the window
- * on compact and the dome on wide (`defaultChartView`).
+ * on compact and, since R186 (D-1095), the globe on wide (`viewFor`).
  *
  * R152 (FR-GYRO-2, FR-GYRO-6; D-941, D-945): the sky screen is retired with
  * `screen`, `overlay`, `inventory` and the store's one-shot refocus. `follow`
@@ -213,7 +213,7 @@ function WindowView(props: SkyChartProps) {
 const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 
 // R150 (FR-GYRO-11, D-950): the window first, on every page and width — `[Window] Polar Dome`. Which view opens is the
-// pref's (`defaultChartView`), not this order.
+// pref's (`viewFor`), not this order; R186's wide row is `WIDE_CHART_VIEWS`.
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [WINDOW_VIEW, POLAR_VIEW, DOME_VIEW];
 
 /** R186 (FR-WIDE-2, D-1095): the desk's row, `[ Globe ] Window Dome` on every page; the polar chart is not offered on wide. */
@@ -231,7 +231,7 @@ function offeredViews(views: readonly ChartView[] | undefined, wide: boolean): r
 }
 
 /**
- * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
+ * The view for a preference. R136 (D-876): the default is `viewFor`'s alone (D-1095), decided before this. R121 (FR-WIN-4 as
  * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
  * phone with no north loses the sensor, not the view, which it gets in the box under the hand. R160: a saved view
  * the page does not offer is drawn as the first it offers.

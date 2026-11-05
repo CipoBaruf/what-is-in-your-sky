@@ -11,10 +11,6 @@
     "count": 3,
     "reason": "R110 (D-736): 3 the sheet names — z-index 20 (--z-overlay), two 1px borders (--border)."
   },
-  "src/ui/components/guide/GuidePanel.module.css": {
-    "count": 2,
-    "reason": "R110 (D-736): 2 the sheet names — the panel's 1px border (--border), the heading's 1.25rem (--text-heading)."
-  },
   "src/ui/components/guide/GuideText.module.css": {
     "count": 1,
     "reason": "R110 (D-736): 1 the sheet names — the guide's 1.125rem (--text-lead)."

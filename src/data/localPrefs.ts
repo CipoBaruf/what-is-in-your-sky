@@ -41,7 +41,7 @@ import { z } from './zod';
  * R136 (FR-FLOW-14, V26-11, D-876): that guard is gone; the window is saved
  * and read back on compact as on wide. With nothing saved (or a value that is
  * not a view) the reader leaves `chartView` out, and the page's
- * `defaultChartView` picks the window on a phone and the dome on a desk.
+ * `viewFor` picks the window on a phone and the globe on a desk (R186, D-1095).
  *
  * R182 (FR-KEEP-1, D-1096): the choices kept on the device — the stars page's layers, the names, the faint stars,
  * the globe's turn and zoom, the window's field, the playback rate and the privacy note — each an optional key
