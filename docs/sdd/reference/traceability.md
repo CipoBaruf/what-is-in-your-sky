@@ -366,7 +366,7 @@
 | FR-COMP-7 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-states.spec.ts` |
 | FR-DESK-1 | `tests/e2e/desktop.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-2 | `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts` |
-| FR-DESK-3 | `src/ui/App.shortcuts.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `tests/styles/breakpoint.test.ts` |
+| FR-DESK-3 | `src/ui/App.shortcuts.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-4 | `src/lib/shortcuts.test.ts`, `src/ui/App.shortcuts.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `src/ui/screens/StarsGlobe.test.tsx`, `src/ui/screens/viewFor.test.ts`, `tests/e2e/shortcuts.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-DESK-5 | `tests/e2e/desktop.spec.ts` |
 | FR-DOME-1 | `src/ui/components/guide/skychart/dome/camera.test.ts`, `tests/e2e/shapes.spec.ts` |
@@ -474,7 +474,7 @@
 | FR-JUMP-1 | `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts`, `tests/e2e/live-jump.spec.ts`, `tests/e2e/shapes.spec.ts` |
 | FR-JUMP-2 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-jump.spec.ts` |
 | FR-JUMP-3 | `src/ui/components/passes/NextEventBlock.test.tsx` |
-| FR-KEEP-1 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts` |
+| FR-KEEP-1 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts`, `tests/e2e/whole-sky.spec.ts` |
 | FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts` |
 | FR-KEEP-4 | `src/model/prefs.test.ts`, `src/ui/hooks/usePrivacyNote.test.ts` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
@@ -668,7 +668,7 @@
 | FR-WATCH-6 | `src/lib/scrubPlacement.test.ts`, `src/ui/components/guide/skychart/ChartFrame.overlay.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/liveRows.test.ts` |
 | FR-WATCH-8 | `src/ui/components/live/PlaybackControls.test.tsx` |
 | FR-WATCH-9 | `tests/e2e/live-states.spec.ts` |
-| FR-WIDE-1 | `src/ui/App.structure.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/desktop.spec.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
+| FR-WIDE-1 | `src/ui/App.structure.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/desktop.spec.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/wide.spec.ts` |
 | FR-WIDE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `src/ui/screens/viewFor.test.ts`, `tests/e2e/globe.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-WIDE-3 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-4 | `src/ui/screens/Live.test.tsx` |

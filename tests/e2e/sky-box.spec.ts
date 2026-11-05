@@ -4,8 +4,8 @@
  * - **Compact, 390 × 844:** the live page's and (R164, FR-CLEAN-1) the pass detail's box is the screen (FR-FULL-1),
  *   and the bowl inside it is checked; FR-FLOW-9's compact cut from the bowl (D-850, `DOME_COMPACT_SLACK_PX`) has no
  *   compact page left to bind (FR-CLEAN-8) and its constant leaves with R165.
- * - **Wide, 1280 × 800:** the box runs from under the header to the hint line for every view — the dome, the polar
- *   chart and the window on the live page, the window on the stars page — so no band under the drawing is taller
+ * - **Wide, 1280 × 800:** the box runs from under the header to the hint line for every view — the dome, the globe
+ *   and the window on the live page (R186, FR-WIDE-2), the window on the stars page — so no band under the drawing is taller
  *   than `--space-3`.
  * - **The pass panel, 1280 × 800:** the drawing is at least `DETAIL_DRAWING_MIN_SHARE` of the panel's body (R132's
  *   reading, D-866); its share of the whole panel is logged beside it for the record.
@@ -106,12 +106,14 @@ test.describe('the wide box runs to the hint line (FR-FLOW-9) and the panel’s 
 
   test('the live page at 1280 × 800: no band taller than --space-3 under the box, in the three views', async ({ page }) => {
     const layout = await openLive(page);
-    for (const view of ['Dome', 'Polar', 'Window'] as const) {
+    // R186 (FR-WIDE-2): the desk's row is `Globe Window Dome`; the polar chart is not offered on wide. The globe is
+    // drawn outside `ChartFrame`, in its own box (`chart-globe`).
+    for (const view of ['Dome', 'Globe', 'Window'] as const) {
       if (view !== 'Dome') {
         await layout.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: view }).click();
-        await expect(layout.locator(`[data-drawing="${view.toLowerCase()}"]`)).toBeAttached({ timeout: 30_000 });
+        await expect(layout.locator(view === 'Globe' ? '[data-globe] > *' : `[data-drawing="${view.toLowerCase()}"]`).first()).toBeAttached({ timeout: 30_000 });
       }
-      const chartBox = await settledBox(layout.getByTestId('chart-box'));
+      const chartBox = await settledBox(layout.getByTestId(view === 'Globe' ? 'chart-globe' : 'chart-box'));
       // Read with the box: a view that scrolls the page or moves the top row moves the layout too.
       const layoutBox = await box(layout);
       const band = await bandUnderBox(page, chartBox);
@@ -147,8 +149,10 @@ test.describe('the wide box runs to the hint line (FR-FLOW-9) and the panel’s 
 
   test('the pass panel at 1280 × 800: the drawing is most of the panel’s body', async ({ page }) => {
     const layout = await openDetail(page);
-    const panel = await box(page.getByTestId('guide-panel'));
-    const body = await box(page.getByTestId('guide-body'));
+    // R186 (FR-WIDE-1, D-1118): the guide panel's body is gone with `GuidePanel`; on a desk the pass detail is the
+    // shell's layout, and the body the drawing has is the layout's box, left of the rail.
+    const panel = await box(layout);
+    const body = await box(layout.locator('[data-slot="drawing"]').first());
     const drawing = await settledBox(layout.getByTestId('chart-box'));
     const ofBody = (drawing.width * drawing.height) / (body.width * body.height);
     const ofPanel = (drawing.width * drawing.height) / (panel.width * panel.height);

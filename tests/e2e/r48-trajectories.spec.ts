@@ -93,39 +93,34 @@ test.describe('the live page on a desk with a touch screen', () => {
     // The dome draws the pass — its key is in the drawing — and the ISS, now over, lingers.
     await expect(dome.locator(`[data-drawing] [data-pass-id="${passId}"]`)).toHaveCount(1);
 
-    // The polar view names the state on the SVG group: the same value the legend shows (D-189).
-    await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: /Polar/ }).tap();
-    await expect(dome.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    /*
+     * R186 (FR-WIDE-2): on a desk the row is `Globe Window Dome` and the polar chart, the one view that names a
+     * pass's state on its SVG group (D-189), is not offered; its arcs and markers are `SkyPolar.test.tsx`'s. Here the
+     * legend's row carries the state, and the dome draws the pass while it is ahead, live or lingering, and not once
+     * it is gone.
+     */
+    const row = legend.locator(`button[data-pass-id="${passId}"]`);
     const arc = dome.locator(`[data-drawing] [data-pass-id="${passId}"]`);
-    await expect(arc).toHaveAttribute('data-arc', 'live');
-    await expect(arc.locator('[data-marker="now"]')).toHaveCount(1);
-    // A minute in: the cut track from the rise to the marker (at the rise itself it is one point, so no path yet).
+    await expect(row).toHaveAttribute('data-state', 'live');
+    // A minute in, and back to a minute before the rise: ahead, still drawn.
     await page.getByRole('button', { name: STEP.en.fwd1 }).tap();
     await page.clock.runFor(300);
-    await expect(arc.locator('[data-marker="live"]')).toHaveCount(1);
-    await expect(arc.locator('[data-marker="now"]')).toHaveCount(1);
-
-    // A minute before the rise: the whole arc, faint and dotted, the rise marked, no marker.
+    await expect(row).toHaveAttribute('data-state', 'live');
     await page.getByRole('button', { name: STEP.en.back1 }).tap();
     await page.getByRole('button', { name: STEP.en.back1 }).tap();
     await page.clock.runFor(300);
-    await expect(arc).toHaveAttribute('data-arc', 'ahead');
-    await expect(legend.locator(`button[data-pass-id="${passId}"]`)).toHaveAttribute('data-state', 'ahead');
-    await expect(arc.locator('[data-marker="ahead"]')).toHaveCount(1);
-    await expect(arc.locator('[data-marker="now"]')).toHaveCount(0);
+    await expect(row).toHaveAttribute('data-state', 'ahead');
+    await expect(arc).toHaveCount(1);
 
-    // Ten minutes at a time past its end: the arc lingers, faint, without a marker… (R70: the ±10 min
+    // Ten minutes at a time past its end: the row lingers and the dome still draws it… (R70: the ±10 min
     // buttons are gone with FR-SPAN-3's re-cut, and Shift and an arrow key are the ten-minute step that stands.)
-    const row = legend.locator(`button[data-pass-id="${passId}"]`);
     await page.getByTestId('time-stripe').focus();
     for (let steps = 0; steps < 12 && (await row.getAttribute('data-state')) !== 'linger'; steps++) {
       await page.keyboard.press('Shift+ArrowRight');
       await page.clock.runFor(300);
     }
     await expect(row).toHaveAttribute('data-state', 'linger');
-    await expect(arc).toHaveAttribute('data-arc', 'linger');
-    await expect(arc.locator('[data-marker="linger"]')).toHaveCount(1);
-    await expect(arc.locator('[data-marker="now"]')).toHaveCount(0);
+    await expect(arc).toHaveCount(1);
 
     // …and ten minutes on it is gone from the drawing and the legend.
     await page.keyboard.press('Shift+ArrowRight');

@@ -48,7 +48,7 @@ async function gapAbove(footer: Locator): Promise<{ gap: number; own: number }> 
 
 async function open(page: Page, which: FlowPage, locale: Locale): Promise<void> {
   if (which === 'detail' && page.viewportSize()?.width === DESK.width) {
-    // On a desk the pass detail is the home's guide panel (D-119): opened from the list, the shell's footer stays.
+    // On a desk the pass detail is the shell's layout in the home's place (FR-WIDE-1): opened from the list, the footer stays.
     await openFlowPage(page, 'home', locale);
     await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
     await expect(page.getByTestId('guide-panel')).toBeVisible({ timeout: 30_000 });
@@ -66,10 +66,6 @@ for (const locale of ['en', 'es'] as const) {
         const footer = page.getByRole('contentinfo');
         await expect(footer).toHaveCount(1);
         await expect(footer).toHaveAttribute('data-form', 'short');
-        if (which === 'live') {
-          // The live page keeps its one viewport for the sky and the rail; the row follows under the fold.
-          await footer.scrollIntoViewIfNeeded();
-        }
         await expect(footer).toBeInViewport({ ratio: 1 });
         await expect(footer).toContainText(PRIVACY_WORD[locale]);
         await expect(footer.getByRole('link', { name: 'glyphcss' })).toBeVisible();
@@ -78,19 +74,10 @@ for (const locale of ['en', 'es'] as const) {
         const { gap, own } = await gapAbove(footer);
         expect(own, `the footer's own space above its rule is ${String(own)} px`).toBeGreaterThanOrEqual(s3 - 1);
         expect(gap, `the gap above the footer's rule is ${String(gap)} px`).toBeGreaterThanOrEqual(s3 - 1);
-        // The page is still one viewport high on a desk — the live page's above its footer, which it scrolls by and no more.
-        const { over, footHeight, pageHeight, innerHeight } = await page.evaluate(() => ({
-          over: document.documentElement.scrollHeight - window.innerHeight,
-          footHeight: document.querySelector('footer')?.getBoundingClientRect().height ?? 0,
-          pageHeight: document.querySelector('[data-testid="live-page"]')?.getBoundingClientRect().height ?? 0,
-          innerHeight: window.innerHeight,
-        }));
-        if (which === 'live') {
-          expect(Math.abs(pageHeight - innerHeight)).toBeLessThanOrEqual(1);
-          expect(over).toBeLessThanOrEqual(footHeight + 1);
-        } else {
-          expect(over).toBeLessThanOrEqual(0);
-        }
+        // The page is one viewport high on a desk. R186 (FR-WIDE-1): the live page is the shell's too, header, layout
+        // and footer in the one viewport as the stars page has them; its footer under the fold (D-1023) is gone.
+        const over = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+        expect(over).toBeLessThanOrEqual(0);
       });
     }
   });

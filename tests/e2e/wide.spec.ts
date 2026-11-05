@@ -209,12 +209,13 @@ async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): 
 }
 
 /**
- * The page's rows, `#root`'s own children that carry its content: the live page's grid (which holds its own
- * landmarks), or the header, `main` and — on every page but the stars page, which has none — the footer, plus the
+ * The page's rows, `#root`'s own children that carry its content: the header, `main` and — on every page but the
+ * stars page, which is not asked for it — the footer, plus the
  * page notices where they say something. Every expected row must be there, so a row moved out of `#root` fails.
  */
 async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
-  const required = target === 'live' ? ['[data-testid="live-page"]'] : target === 'stars' ? ['#root > header', '#root > main'] : ['#root > header', '#root > main', '#root > footer'];
+  // R186 (FR-WIDE-1): the live page is in the shell, inside `main`, with the header and the footer as every page.
+  const required = target === 'stars' ? ['#root > header', '#root > main'] : ['#root > header', '#root > main', '#root > footer'];
   const rows = await page.evaluate((selectors) => selectors.map((selector) => {
     const element = document.querySelector(selector);
     if (!element) return { name: selector, x: NaN, width: NaN };
