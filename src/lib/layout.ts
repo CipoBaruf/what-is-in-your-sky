@@ -389,7 +389,8 @@ export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['controls', 'actions'];
 
 /** The rows of `liveRows.ts`'s table each fold re-cuts: a fold is only named where the state renders all of them (D-447). */
 export const LIVE_FOLD_NEEDS: Readonly<Record<LiveFold, readonly string[]>> = {
-  controls: ['top-row', 'box'],
+  // R186 (FR-WIDE-1, D-1098): the wide top row is gone; the fold re-cuts the box's controls row alone.
+  controls: ['box'],
   actions: ['conditions', 'actions'],
 };
 

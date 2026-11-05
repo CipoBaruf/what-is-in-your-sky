@@ -135,6 +135,13 @@ export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', '
 export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hint', 'card'];
 
 /**
+ * R186 (FR-WIDE-5, D-1098): on wide the facing readout and the hint are two of the box's corners (`SkyViewLayout`'s
+ * `readout` and `hint` slots), each on its own condition — the readout where the view has a facing, the hint until
+ * `skyHintSeen` — so they are part of the `box` row and not rows of `rowsFor`'s rail lists.
+ */
+export const WIDE_CORNERS: readonly LiveRow[] = ['readout', 'hint'];
+
+/**
  * R148 (FR-FULL-4, D-923, D-928) and R150 (FR-GYRO-10, D-949): the sheet's rows, in FR-GYRO-10's order — the
  * context line, the time track and the taps, the view row, the facing row, the actions with `[ Share ]`, and the
  * satellites: "Satellites (n)" with the hidden toggle at its end and the list open under it. v2.8's `[ list (n) ]`
@@ -148,6 +155,7 @@ export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'v
  * - **Compact, both states:** `COMPACT_OVERLAY`, and `COMPACT_SHEET` after it while the sheet is open (R148,
  *   FR-FULL-3, FR-FULL-4). `sheetOpen` is the sheet's state, open by default: the page renders every compact
  *   row in both states and asks with the default; a test asks for the reachable rows with `false`.
+ * - **Wide** (R186, FR-WIDE-1, D-1098): the page's one-row top row is gone — the app's header is the page's.
  * - **Wide, watching:** the box, and the rail — the indicator with the clock,
  *   the next-event block, the conditions line, the overview and
  *   `[ scrub the night ] [ Hidden ] [ Share this sky ]`.
@@ -160,8 +168,8 @@ export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape, sh
   if (mode === 'compact') return sheetOpen ? [...COMPACT_OVERLAY, ...COMPACT_SHEET] : COMPACT_OVERLAY;
   if (shape === 'short') return shortRowsFor(state);
   return state === 'watching'
-    ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
-    : ['top-row', 'box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
+    ? ['box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
+    : ['box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
 }
 
 /**
@@ -243,6 +251,6 @@ export function inventoryClip(entryRows: readonly number[], budgetRows: number):
 
 function shortRowsFor(state: LiveState): readonly LiveRow[] {
   return state === 'watching'
-    ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
-    : ['top-row', 'box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
+    ? ['box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
+    : ['box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
 }
