@@ -380,7 +380,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover, onSkyPick } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -856,6 +856,13 @@ export function SkyWindow(props: SkyWindowProps) {
     pendingRef.current = null;
     const hit = hitAt(event, active.x0, active.y0, true);
     nameStar(hit === namedStar ? null : hit);
+    // R188 (FR-FACT-3): a star or a planet tapped is the page's pick too; a figure's line is not (index below zero).
+    if (hit !== null && hit >= 0 && onSkyPick) {
+      const n = scene.stars.catalog.mag.length;
+      const planet = hit < n ? null : scene.stars.positions.planets[hit - n];
+      if (hit < n) onSkyPick({ kind: 'star', index: hit });
+      else if (planet) onSkyPick({ kind: 'planet', body: planet.body });
+    }
   };
   const onPointerLeave = (event: PointerEvent<HTMLDivElement>): void => {
     if (hovered !== null) setHovered(null);

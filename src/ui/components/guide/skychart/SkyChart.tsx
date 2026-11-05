@@ -144,15 +144,19 @@ function GlobeView(props: SkyChartProps) {
   const language = useLocale();
   const field = props.scene?.stars;
   const layers = useMemo<GlobeLayers>(() => (field ? { stars: field.layers.stars, figures: field.layers.figures, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
-  const { onSelectPass } = props;
+  const { onSelectPass, onSkyPick, onPassHover } = props;
   // The page's shown instant; a chart given none (a test) draws the moment it mounted.
   const [mounted] = useState(() => Date.now());
   const at = props.now ?? mounted;
   const onPick = useCallback(
     (pick: GlobePick | null) => {
       if (pick?.kind === 'pass') onSelectPass?.(pick.passId);
+      // R188 (FR-FACT-3): a star, a planet or the Moon is the page's pick; the Sun and a figure's line only name.
+      else if (pick?.kind === 'star') onSkyPick?.({ kind: 'star', index: pick.index });
+      else if (pick?.kind === 'planet') onSkyPick?.({ kind: 'planet', body: pick.body });
+      else if (pick?.kind === 'moon') onSkyPick?.({ kind: 'moon' });
     },
-    [onSelectPass],
+    [onSelectPass, onSkyPick],
   );
   return (
     <div className={styles.globe} data-testid="chart-globe">
@@ -170,6 +174,7 @@ function GlobeView(props: SkyChartProps) {
           colorBy={props.colorBy ?? 'highlight'}
           {...(props.legendKeys === undefined ? {} : { legendKeys: props.legendKeys })}
           onPick={onPick}
+          {...(onPassHover === undefined ? {} : { onPassHover })}
         />
       </Suspense>
     </div>
@@ -397,12 +402,30 @@ export function SkyChart(props: SkyChartProps) {
     [props.highlightedPassId],
   );
 
+  /*
+   * R188 (FR-WIDE-7): a hover or a focus on a row — or the page's card, `hoveredPassId` — emphasises its arc, and the
+   * pointer on an arc its row, as the highlight does, while it stays; leaving restores the highlight. Transient: never
+   * pinned, saved or put in the hash, and dropped with its pass.
+   */
+  const [ownHover, setOwnHover] = useState<string | null>(null);
+  const { onPassHover: pageHover } = props;
+  const hoverPass = useCallback(
+    (passId: string | null) => {
+      setOwnHover(passId);
+      pageHover?.(passId);
+    },
+    [pageHover],
+  );
+  const hoverCandidate = ownHover ?? props.hoveredPassId ?? null;
+  const hoverId = hoverCandidate !== null && passes.some((pass) => pass.id === hoverCandidate) ? hoverCandidate : null;
+  const shownHighlight = hoverId ?? highlightedPassId;
+
   // FR-LEG-1, FR-LEG-2: the rows and the keys from the caller's props; the pinned row moves first but keeps its key.
   const baseRows = useMemo(() => legendRows({ passes, highlightedPassId: props.highlightedPassId, now, hidden, colorBy }), [passes, props.highlightedPassId, now, hidden, colorBy]);
   // The row reads as its arc does (FR-LEG-4): the highlight follows `highlightedPassId`, whichever row is at the top.
   const rows = useMemo(
-    () => promoteRow(baseRows, promotedId).map((row) => (row.state === 'hidden-object' ? row : { ...row, highlighted: highlightedPassId === null || row.passId === highlightedPassId })),
-    [baseRows, promotedId, highlightedPassId],
+    () => promoteRow(baseRows, promotedId).map((row) => (row.state === 'hidden-object' ? row : { ...row, highlighted: shownHighlight === null || row.passId === shownHighlight })),
+    [baseRows, promotedId, shownHighlight],
   );
   const keys = useMemo(() => legendKeys(baseRows), [baseRows]);
   const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
@@ -413,7 +436,7 @@ export function SkyChart(props: SkyChartProps) {
   // top of the list, but the table is what the guide is about and stays at its head.
   const leadRow = props.legendLead === undefined ? undefined : rows.find((row) => row.passId === props.highlightedPassId);
   const lead = props.legendLead !== undefined && leadRow !== undefined ? { passId: leadRow.passId, node: props.legendLead(leadRow) } : undefined;
-  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} moonPhase={moonPhase} />;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} moonPhase={moonPhase} hoveredPassId={hoverId} onHoverRow={hoverPass} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   const { viewAction } = useContext(ChartFrameSlots);
@@ -462,7 +485,7 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
-  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, onViewHold: _onViewHold, page: _page, ...forwarded } = props;
+  const { chartHand: _chartHand, views: _views, view: _view, onViewChange: _onViewChange, onViewHold: _onViewHold, page: _page, hoveredPassId: _hovered, ...forwarded } = props;
   // R160 (D-970): the handoff's callback goes to either drawing only where the row offers the other view (`onFieldHandoff` sorts out which).
   const handoff = offers('polar') && offers('window') ? { onFieldHandoff, ...(opening === undefined ? {} : { opening }) } : {};
   // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).
@@ -486,7 +509,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} {...handoff} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} />
     </figure>
   );
 }

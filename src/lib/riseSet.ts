@@ -1,4 +1,4 @@
-import { Body, Equator, Horizon, MakeTime, Observer as AeObserver, RotateVector, Rotation_EQJ_EQD, SearchAltitude, SiderealTime, Vector } from 'astronomy-engine';
+import { Body, Constellation, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, RotateVector, Rotation_EQJ_EQD, SearchAltitude, SiderealTime, Vector } from 'astronomy-engine';
 import type { EpochMs, Observer } from '../model';
 import { msToDate } from '../physics/time';
 import type { PLANETS } from './skyStars';
@@ -65,4 +65,33 @@ export function bodyRiseSet(body: RiseSetBody, observer: Pick<Observer, 'lat' | 
   const time = MakeTime(msToDate(t));
   const eq = Equator(Body[body], time, where, true, true);
   return Horizon(time, where, eq.ra, eq.dec).altitude > 0 ? { kind: 'never-sets' } : { kind: 'never-rises' };
+}
+
+/** FR-FACT-3 (R188): one catalogue star's place at `t` — its J2000 RA/Dec carried to the equator of date, no refraction, as `starsAt` places every star. */
+export function starAltAz(raDeg: number, decDeg: number, observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): { altDeg: number; azDeg: number } {
+  const time = MakeTime(msToDate(t));
+  const j2000 = new Vector(Math.cos(decDeg * RAD) * Math.cos(raDeg * RAD), Math.cos(decDeg * RAD) * Math.sin(raDeg * RAD), Math.sin(decDeg * RAD), time);
+  const v = RotateVector(Rotation_EQJ_EQD(time), j2000);
+  const raHours = wrap360(Math.atan2(v.y, v.x) / RAD) / 15;
+  const dec = Math.atan2(v.z, Math.hypot(v.x, v.y)) / RAD;
+  const horizon = Horizon(time, new AeObserver(observer.lat, observer.lon, 0), raHours, dec);
+  return { altDeg: horizon.altitude, azDeg: horizon.azimuth };
+}
+
+/** FR-FACT-3 (R188): a planet or the Moon at `t` — where it is (topocentric, geometric), how bright, and its constellation (IAU abbreviation). */
+export interface BodyNow {
+  altDeg: number;
+  azDeg: number;
+  mag: number;
+  con: string;
+}
+
+export function bodyNow(body: RiseSetBody, observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): BodyNow {
+  const time = MakeTime(msToDate(t));
+  const where = new AeObserver(observer.lat, observer.lon, 0);
+  const ofDate = Equator(Body[body], time, where, true, true);
+  const horizon = Horizon(time, where, ofDate.ra, ofDate.dec);
+  // The constellation boundaries are drawn on the J2000 frame.
+  const j2000 = Equator(Body[body], time, where, false, true);
+  return { altDeg: horizon.altitude, azDeg: horizon.azimuth, mag: Illumination(Body[body], time).mag, con: Constellation(j2000.ra, j2000.dec).symbol };
 }

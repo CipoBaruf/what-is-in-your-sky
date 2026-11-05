@@ -70,7 +70,8 @@ describe('the v1 capture set', () => {
      * screen of that name is left in the set.
      */
     // R186 (FR-WIDE-3): the globe on the live page and the pass detail is a desk's alone.
-    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe']);
+    // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): so are the facts groups and the hover, which compact never loads.
+    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
     const DESK_WIDE = new Set(['live-window']);
@@ -195,7 +196,8 @@ describe('the v1 capture set', () => {
     // R171 (FR-GLOBE-18, D-1042): − 4 `stars-whole` at 1280, + 8 `stars-globe` (1280, 1920) and + 4 each for
     // `stars-globe-stars`, `stars-globe-place`, `stars-globe-named` (1280) and `stars-globe-faint` (1920).
     // R186 (FR-WIDE-3, D-1099): + 4 each for `sky-live-globe` and `sky-pass-globe` (1280).
-    expect(captureSet()).toHaveLength(444);
+    // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): + 4 each for `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover` (1280).
+    expect(captureSet()).toHaveLength(460);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

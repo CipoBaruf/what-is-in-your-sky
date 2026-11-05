@@ -59,6 +59,10 @@ export interface LegendProps {
    * plain line.
    */
   moonPhase?: boolean;
+  /** R188 (FR-WIDE-7): the row a hover or focus emphasises, or the one whose arc the pointer is on. */
+  hoveredPassId?: string | null;
+  /** R188 (FR-WIDE-7): the pointer or the focus came onto a row (its id) or left it (`null`); a hover changes no state. */
+  onHoverRow?: (passId: string | null) => void;
 }
 
 /**
@@ -92,7 +96,7 @@ const ENTRY_ROWS = { row: 2, line: 1 } as const;
 
 type TimeKey = 'rise' | 'peak' | 'end';
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, moonPhase = false }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, moonPhase = false, hoveredPassId = null, onHoverRow }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -141,17 +145,29 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
           <li key={row.passId} className={styles.item}>
             <button
               type="button"
-              className={styles.row}
+              className={[styles.row, hoveredPassId === row.passId ? styles.hovered : undefined].filter(Boolean).join(' ')}
               data-pass-id={row.passId}
               data-key={row.key}
               data-state={row.state}
               data-highlighted={row.highlighted}
+              data-hovered={hoveredPassId === row.passId}
               aria-pressed={highlightedPassId === row.passId}
               onClick={() => {
                 onActivate(row.passId);
               }}
               onFocus={() => {
                 onFocusRow(row.passId);
+                onHoverRow?.(row.passId);
+              }}
+              onBlur={() => {
+                onHoverRow?.(null);
+              }}
+              onPointerEnter={(event) => {
+                // A finger has no hover: its tap is the click, which pins the row (FR-LEG-4).
+                if (event.pointerType !== 'touch') onHoverRow?.(row.passId);
+              }}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== 'touch') onHoverRow?.(null);
               }}
             >
               <span className={styles.key}>{row.key}</span>

@@ -8,11 +8,13 @@ import styles from '../sky.module.css';
 /**
  * R186 (FR-WIDE-1, D-1098): the wide pass detail's group — the pass's times (FR-FLOW-7's row), the chart's table of
  * points (FR-LEG-3, the legend's lead), the prose and the Moon's lines, `Facing` while the window is the view, and
- * the share action. R188 adds `This satellite` (FR-FACT-2) here; the list slot under it is the home's pass list.
+ * the share action. R188: `This satellite` (FR-FACT-2) under the times; the list slot under it is the home's pass list.
  */
 export interface PassGroupProps {
   view: ChartView;
   times: ReactNode;
+  /** R188 (FR-FACT-2, US-53 AC2): `This satellite`, the lazy facts group, under the times. */
+  facts?: ReactNode;
   /** The FR-GUIDE-1 sentence and the glare line, the drawing's text alternative (`describedBy`). */
   prose: ReactNode;
   /** The Moon-at-peak line and the share action. */
@@ -21,12 +23,13 @@ export interface PassGroupProps {
   follow?: ReactNode;
 }
 
-export function PassGroup({ view, times, prose, foot, follow }: PassGroupProps) {
+export function PassGroup({ view, times, facts = null, prose, foot, follow }: PassGroupProps) {
   const t = useT();
   const facingId = useId();
   return (
     <div className={styles.group} data-testid="pass-group">
       <div data-testid="pass-times">{times}</div>
+      {facts}
       {/* FR-LEG-3: the table of points is the chart's legend, placed here. */}
       <SkyViewChartSlot name="list" />
       <div data-testid="pass-prose">{prose}</div>

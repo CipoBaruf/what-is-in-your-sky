@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import reference from '../../tests/fixtures/rise-set-horizons.json';
 import { starCatalog as loadStars } from '../data/stars/catalog';
-import { bodyRiseSet, nightOf, starRiseSet, type RiseSet, type RiseSetBody } from './riseSet';
+import { bodyNow, bodyRiseSet, nightOf, starAltAz, starRiseSet, type RiseSet, type RiseSetBody } from './riseSet';
+import { starsAt } from './skyStars';
 
 const { observer, toleranceMin } = reference;
 /** 2026-01-15 21:00 ART: inside the fixture's night. */
@@ -20,6 +21,25 @@ function expectNear(got: RiseSet, rise: string, set: string): void {
   expect(Math.abs((got.rise ?? NaN) - Date.parse(rise)) / MIN).toBeLessThanOrEqual(toleranceMin);
   expect(Math.abs((got.set ?? NaN) - Date.parse(set)) / MIN).toBeLessThanOrEqual(toleranceMin);
 }
+
+describe('starAltAz and bodyNow (R188)', () => {
+  it('FR-FACT-3: one star placed alone agrees with `starsAt`, which places the list, to a tenth of a degree', () => {
+    const i = starIndex('Sirius');
+    const all = starsAt(starCatalog, observer, T);
+    const one = starAltAz(starCatalog.ra[i] ?? NaN, starCatalog.dec[i] ?? NaN, observer, T);
+    expect(Math.abs(one.altDeg - (all.altDeg[i] ?? NaN))).toBeLessThan(0.1);
+    expect(Math.abs(one.azDeg - (all.azDeg[i] ?? NaN))).toBeLessThan(0.1);
+  });
+
+  it('FR-FACT-3: a planet’s place and magnitude agree with `starsAt`’s, and Jupiter is in Gemini that night', () => {
+    const jupiter = bodyNow('Jupiter', observer, T);
+    const listed = starsAt(starCatalog, observer, T).planets.find((p) => p.body === 'Jupiter');
+    expect(jupiter.con).toBe('Gem');
+    expect(Math.abs(jupiter.altDeg - (listed?.altDeg ?? NaN))).toBeLessThan(0.1);
+    expect(Math.abs(jupiter.mag - (listed?.mag ?? NaN))).toBeLessThan(0.01);
+    expect(bodyNow('Moon', observer, T).mag).toBeLessThan(-5);
+  });
+});
 
 describe('nightOf', () => {
   it('FR-FACT-3: runs local mean noon to noon, so an evening set and a dawn rise share a night', () => {

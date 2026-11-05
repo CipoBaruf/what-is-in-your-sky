@@ -1,0 +1,31 @@
+/* R188 (FR-FACT-2, FR-FACT-3): a facts group in the rail — the heading's rule with `[ × ]` at its end, then the lines. */
+.group {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.group p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+  min-width: 0;
+}
+
+.head > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.name {
+  color: var(--fg);
+}
+
+.description {
+  color: var(--fg-dim);
+}
