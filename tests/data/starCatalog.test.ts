@@ -6,7 +6,7 @@ import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
 import { CONSTELLATION_NAMES } from '../../src/data/stars/constellations';
 import { BV_TONES, DEEP_MAG_LIMIT, MILKY_WAY_BANDS_DEG, STAR_MAG_LIMIT } from '../../src/data/stars/constants';
 import { parseDeepCatalog } from '../../src/data/stars/deepChunk';
-import { constellationName, figureName, starName } from '../../src/lib/skyStars';
+import { BAYER_LABEL_MAG, constellationName, figureName, starLabelKind, starName } from '../../src/lib/skyStars';
 
 /**
  * R112, FR-STAR-1, FR-STAR-10 (as amended, V24-20), D-748: the committed
@@ -304,6 +304,24 @@ describe('the Spanish names (FR-STAR-10 as amended v2.5, D-832)', () => {
     for (const d of catalog.desig) expect(d, d).toMatch(/^([α-ω][¹²³⁴⁵⁶⁷⁸⁹]* |\d+ |HR \d+$)/);
     const nameless = catalog.name.indexOf('');
     expect(starName(catalog, nameless, 'es')).toBe(starName(catalog, nameless, 'en'));
+  });
+
+  it('FR-NAME-2: starLabelKind labels exactly these 33 by designation, brightest first, at any field', () => {
+    const byRule = (nameMag: number) => Array.from(catalog.mag).flatMap((_, i) => (starLabelKind(catalog, i, nameMag) === 'designation' ? [catalog.desig[i]] : []));
+    // HR 5958 is T CrB: the Yale record has no Bayer or Flamsteed letter and carries the 1946 outburst's magnitude.
+    const pinned = ['α² Cru', 'γ² Vel', 'HR 5958', 'γ Cen', 'ε Cen', 'α Lup', 'η Cen', 'κ Sco', 'γ Cas', 'ζ Cen', 'ζ Oph', 'δ Cen', 'β Lup', 'μ Vel', 'α Mus', 'π Pup', 'ι Cen', 'θ Car', 'γ Lup', 'β Hyi', 'ζ Her', 'ζ Per', 'β TrA', 'β Ara', 'α Hyi', 'α Tuc', 'α Gem', 'ε Per', 'γ TrA', 'γ Per', 'τ Pup', 'α Ara', 'ε Leo'];
+    expect(pinned).toHaveLength(33);
+    expect(byRule(1.5)).toEqual(pinned);
+    expect(byRule(3.2)).toEqual(pinned);
+    expect(BAYER_LABEL_MAG).toBe(3);
+    // A proper name stops at the field's row; nothing past the rule is labelled.
+    const sirius = catalog.name.indexOf('Sirius');
+    expect(starLabelKind(catalog, sirius, 1.5)).toBe('proper');
+    const faintNamed = Array.from(catalog.mag).findIndex((m, i) => catalog.name[i] !== '' && m > 2);
+    expect(starLabelKind(catalog, faintNamed, 1.5)).toBeNull();
+    expect(starLabelKind(catalog, faintNamed, 3.2)).toBe((catalog.mag[faintNamed] ?? 9) <= 3.2 ? 'proper' : null);
+    const faintNameless = Array.from(catalog.mag).findIndex((m, i) => catalog.name[i] === '' && m >= 3);
+    expect(starLabelKind(catalog, faintNameless, 6.5)).toBeNull();
   });
 
   it('reads a name only through starName, figureName and constellationName, in the active language', () => {

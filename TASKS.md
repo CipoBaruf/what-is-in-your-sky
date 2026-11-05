@@ -117,7 +117,7 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 2
 
-- [ ] **R185 — The window gets the same: ticks, arrow, the arc's hover, planet discs; and a label for every bright unnamed star**
+- [x] **R185 — The window gets the same: ticks, arrow, the arc's hover, planet discs; and a label for every bright unnamed star**
   - **Lane:** window
   - **Tier:** standard
   - **Turns:** 500
@@ -137,6 +137,7 @@ What every session reads, named in each task as "the phase set": the task's entr
     - `starCatalog.test.ts` pins the 33 designation labels and their count; `starLabels.test.ts`: a designation never displaces a proper name.
     - A window test: the highlighted arc's ticks and arrow; a pointer within 8 px of an arc fires `onPassHover` with its id.
     - `npm run check` green; `sky-window.spec.ts` green.
+  - **Done (R185):** also touched, for the goal's "the polar chart, the globe and the lists": `polar/PolarStars.tsx`, `globe/GlobeRenderer.ts` (the rule, and the planet padding dropped), `globe/arcs.ts` and `arcLayer.ts` (the shared helpers), `SkyChart.types.ts` (`onPassHover`); D-1116, D-1117.
 
 - [x] **R186 — One shell on a desk: the live page, the stars page and the pass detail in `SkyViewLayout`, the globe on all three, the dome by choice, the box's corners** — `GuidePanel` went whole (D-1118); the braille font is the mark's, so only the dome chunk is pinned absent (D-1120); the `globe` row stays at 15 and warns (D-1121).
   - **Lane:** ui

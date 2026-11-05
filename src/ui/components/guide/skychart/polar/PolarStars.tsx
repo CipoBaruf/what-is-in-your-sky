@@ -4,7 +4,7 @@ import { FIELD_DETAIL_STEPS, HORIZON_BAND_DEG, MOON_DISC_PX } from '../../../../
 import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../data/stars/constellations';
 import { useLocale } from '../../../../../i18n/useT';
 import type { SunState } from '../../../../../lib/skyBodies';
-import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
+import { figureName, starLabelKind, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { ChartOrientation, Locale, MoonState, Observer } from '../../../../../model';
 import { useDeclination } from '../../../live/useDeclination';
 import { drawsLayer, sceneFor, starsFor, type PlacedBody } from '../layers';
@@ -267,9 +267,12 @@ function place(field: StarField, whole: StarField, orientation: ChartOrientation
   if (layers.names) {
     const labelMarks: LabelMark[] = marks.map((m) => ({ x: m.p.x + half, y: m.p.y + half, sizePx: sizeOf(m.mark) }));
     const stars: MarkLabel[] = [];
+    // R185 (FR-NAME-2): the one label rule — a proper name to `NAME_MAG`, a designation brighter than `BAYER_LABEL_MAG`.
+    const labelSource = { name: catalog.name, desig: catalog.desig, mag: catalog.mag };
     marks.forEach((m, k) => {
-      if (m.star === undefined || !(m.mag <= NAME_MAG)) return;
-      stars.push({ key: m.star, mark: k, text: starName(names, m.star, lang) });
+      const kind = m.star === undefined ? null : starLabelKind(labelSource, m.star, NAME_MAG);
+      if (m.star === undefined || kind === null) return;
+      stars.push({ key: m.star, mark: k, text: starName(names, m.star, lang), ...(kind === 'designation' ? { designation: true } : {}) });
     });
     labels = placeLabels({
       width: 2 * half,

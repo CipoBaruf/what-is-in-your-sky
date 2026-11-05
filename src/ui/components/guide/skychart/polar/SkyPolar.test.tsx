@@ -610,7 +610,7 @@ describe('<SkyPolar> stars', () => {
   });
 
   /** FR-PHONE-8, D-755 (R158): the names with `names` on — proper names to 1.5, the figures' in spaced capitals — and none with it off. */
-  it('names the stars to 1.5 and the figures in spaced capitals with `names` on, and nothing with it off', async () => {
+  it('names the stars to 1.5, an unnamed one brighter than 3 by its designation, and the figures in spaced capitals with `names` on, and nothing with it off', async () => {
     const figures = [{ con: 'Ori', part: '', segments: [[0, 1], [1, 2], [2, 3]] as (readonly [number, number])[] }];
     const stars: HandStar[] = [
       { mag: 0.1, azDeg: 120, altDeg: 30, name: 'Rigel' },
@@ -621,8 +621,9 @@ describe('<SkyPolar> stars', () => {
     const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars, [], { figures })} />);
     await settle();
     const names = (): string[] => [...container.querySelectorAll('[data-names] text')].map((el) => el.textContent ?? '');
-    // Bellatrix is V 1.6, past the whole sky's named magnitude.
-    expect(names()).toEqual(['Rigel', 'O R I O N']);
+    // Bellatrix is V 1.6, past the whole sky's named magnitude; R185 (FR-NAME-2): the two unnamed stars brighter than 3
+    // are named by their designation (the hand catalogue's `s2`, `s3`), after the proper names.
+    expect(names()).toEqual(['Rigel', 's2', 's3', 'O R I O N']);
     const rigel = container.querySelector('[data-star-name="0"]');
     expect(rigel?.getAttribute('class')).toMatch(/starName/);
     expect(container.querySelector('[data-figure-name="0"]')?.getAttribute('class')).toMatch(/figureName/);

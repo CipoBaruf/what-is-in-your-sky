@@ -516,8 +516,8 @@
 | FR-MOON-4 | `src/data/moon/lore.test.ts`, `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonLore.test.tsx` |
 | FR-MOON-5 | `src/data/moon/lore.test.ts`, `src/lib/moonPhrases.test.ts`, `src/ui/components/moon/MoonLore.test.tsx` |
 | FR-NAME-1 | `tests/data/starCatalog.test.ts` |
-| FR-NAME-2 | `tests/data/starCatalog.test.ts` |
-| FR-NAME-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `tests/styles/tokens.test.ts` |
+| FR-NAME-2 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.labels.test.tsx`, `src/ui/components/guide/skychart/window/starLabels.test.ts`, `tests/data/starCatalog.test.ts` |
+| FR-NAME-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx`, `tests/styles/tokens.test.ts` |
 | FR-NIGHT-1 | `src/ui/screens/home/tonight.test.ts` |
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
@@ -674,7 +674,7 @@
 | FR-WIDE-4 | `src/ui/screens/Live.test.tsx` |
 | FR-WIDE-5 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-WIDE-6 | `tests/e2e/globe.spec.ts` |
-| FR-WIDE-7 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts` |
+| FR-WIDE-7 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx` |
 | FR-WIDE-8 | `src/lib/cloudBand.test.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |

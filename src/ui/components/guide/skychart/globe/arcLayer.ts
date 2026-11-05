@@ -1,6 +1,6 @@
 import { legendKeys, legendRows, SERIES_COUNT } from '../../../../../lib/legend';
 import type { EpochMs, Pass } from '../../../../../model';
-import { arcGuides, globeArcs, type ArcGuides, type ArcMark, type GlobeArc } from './arcs';
+import { arcGuides, arrowPath, globeArcs, headingOf, nearestPass, ticksPath, type ArcGuides, type ArcMark, type GlobeArc, type Heading } from './arcs';
 import { project, type Projector } from './projection';
 import type { GlobeSky } from './scene';
 
@@ -29,24 +29,10 @@ const fmt = (n: number): string => n.toFixed(1);
 /** A marker's ring and the rise point's dot, px of the drawing. */
 const MARKER_R = 4;
 const RISE_R = 2;
-/** Half a tick across the line, and the arrow's length and half-width, px. */
-const TICK_HALF = 4;
-const ARROW_LEN = 9;
-const ARROW_HALF = 4.5;
 /** A key stands this far right of its marker, px. */
 const KEY_DX = 9;
-/** FR-WIDE-7: an arc is under the pointer within this distance of its drawn line, px. */
-const ARC_HIT_PX = 8;
 
 const ring = (x: number, y: number, r: number): string => `M${fmt(x - r)} ${fmt(y)}a${String(r)} ${String(r)} 0 1 0 ${String(2 * r)} 0a${String(r)} ${String(r)} 0 1 0 ${String(-2 * r)} 0`;
-
-function segmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = dx * dx + dy * dy;
-  const k = len > 0 ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len)) : 0;
-  return Math.hypot(px - x1 - k * dx, py - y1 - k * dy);
-}
 
 export class GlobeArcLayer {
   private readonly series: SVGPathElement[] = [];
@@ -139,25 +125,15 @@ export class GlobeArcLayer {
   /** FR-WIDE-7: the highlighted pass's ticks across its line and its arrow along its travel, in its series' colour. */
   private drawGuides(p: Projector, input: ArcInput, arcs: readonly GlobeArc[], guides: ArcGuides): void {
     const arc = arcs.find((a) => a.id === input.highlightedPassId);
-    const heading = (m: ArcMark): { x: number; y: number; hx: number; hy: number } | null => {
+    const heading = (m: ArcMark): Heading | null => {
       const [x, y, z] = project(p, m.at);
       if (z <= 0) return null;
       const [bx, by] = project(p, m.back);
       const [ax, ay] = project(p, m.ahead);
-      const len = Math.hypot(ax - bx, ay - by);
-      return len > 0 ? { x, y, hx: (ax - bx) / len, hy: (ay - by) / len } : null;
+      return headingOf({ x, y }, { x: bx, y: by }, { x: ax, y: ay });
     };
-    let d = '';
-    for (const tick of guides.ticks) {
-      const h = heading(tick);
-      if (h) d += `M${fmt(h.x - h.hy * TICK_HALF)} ${fmt(h.y + h.hx * TICK_HALF)}L${fmt(h.x + h.hy * TICK_HALF)} ${fmt(h.y - h.hx * TICK_HALF)}`;
-    }
-    this.ticks.setAttribute('d', d);
-    const a = guides.arrow ? heading(guides.arrow) : null;
-    this.arrow.setAttribute(
-      'd',
-      a ? `M${fmt(a.x + a.hx * ARROW_LEN)} ${fmt(a.y + a.hy * ARROW_LEN)}L${fmt(a.x - a.hy * ARROW_HALF)} ${fmt(a.y + a.hx * ARROW_HALF)}L${fmt(a.x + a.hy * ARROW_HALF)} ${fmt(a.y - a.hx * ARROW_HALF)}Z` : '',
-    );
+    this.ticks.setAttribute('d', ticksPath(guides.ticks.map(heading).filter((h): h is Heading => h !== null)));
+    this.arrow.setAttribute('d', arrowPath(guides.arrow ? heading(guides.arrow) : null));
     const color = arc ? (this.series[arc.series - 1]?.getAttribute('data-color') ?? '') : '';
     this.ticks.setAttribute('data-color', color);
     this.arrow.setAttribute('data-color', color);
@@ -165,21 +141,6 @@ export class GlobeArcLayer {
 
   /** FR-WIDE-7: the pass whose drawn line is nearest a box point within `ARC_HIT_PX`, as last drawn, or `null`. */
   passAt(x: number, y: number): string | null {
-    let best: string | null = null;
-    let bestD = ARC_HIT_PX;
-    for (const [id, runs] of this.drawn) {
-      for (const run of runs) {
-        for (let k = 0; k + 1 < run.length; k += 2) {
-          const x1 = run[k] ?? 0;
-          const y1 = run[k + 1] ?? 0;
-          const dist = k + 3 < run.length ? segmentDistance(x, y, x1, y1, run[k + 2] ?? 0, run[k + 3] ?? 0) : Math.hypot(x - x1, y - y1);
-          if (dist <= bestD) {
-            bestD = dist;
-            best = id;
-          }
-        }
-      }
-    }
-    return best;
+    return nearestPass(this.drawn, x, y);
   }
 }

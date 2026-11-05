@@ -84,6 +84,17 @@ async function openStars(page: Page): Promise<Locator> {
   return w;
 }
 
+/**
+ * The desk page resized to a phone, once the page itself has seen the width and drawn a frame at it: the resize
+ * reaches the page a frame after `setViewportSize` resolves, and a key pressed in between lands on the wide box,
+ * which the compact layout then replaces (R185: the race ran on 2.14's parent too).
+ */
+async function toPhone(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => window.innerWidth === 390);
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
 /** R155 (FR-LOOK-8 as amended): the two star chunks' requests, in order — `Stars-*.js` (the catalogue) and `deep-*.js` (`stars-deep`, D-976). */
 function watchStarChunks(page: Page): string[] {
   const seen: string[] = [];
@@ -286,7 +297,7 @@ test.describe('zoom on a compact page without a sensor', () => {
   test('a pinch from 60° to 20° brings in the deep stars and names a designation, with the deep chunk requested once after stars', async ({ page }) => {
     const chunks = watchStarChunks(page);
     const w = await openStars(page);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await toPhone(page);
     await expect(w).toHaveAttribute('data-fov', '60');
     // Turned to SW 35° up, where Ara's three bright stars with no proper name stand on the fixture night (Alp, Bet and Zet Ara, V 2.8–3.1).
     await box(w).focus();
@@ -300,7 +311,8 @@ test.describe('zoom on a compact page without a sensor', () => {
     const at60 = await drawnStars(w).count();
     const deepAt60 = await deep.count();
     const names60 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
-    expect(names60.filter((name) => DESIGNATION.test(name))).toEqual([]);
+    // R185 (FR-NAME-2): a nameless star brighter than `BAYER_LABEL_MAG` is named at every field; ζ Ara (V 3.1) is not, at any.
+    expect(names60).not.toContain('ζ Ara');
     await pinch(box(w), 40, 120);
     await expect(w).toHaveAttribute('data-fov', '20');
     const at20 = await drawnStars(w).count();
@@ -309,12 +321,13 @@ test.describe('zoom on a compact page without a sensor', () => {
     const names20 = await w.locator('[data-star-name][visibility="visible"]').allTextContents();
     console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
     expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
+    expect(names20).not.toContain('ζ Ara');
     expect(chunks).toEqual(['Stars', 'deep']);
   });
 
   test('the pinch narrows the stars page’s box on a phone-sized window', async ({ page }) => {
     const w = await openStars(page);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await toPhone(page);
     await expect(w).toHaveAttribute('data-fov', '60');
     await pinch(box(w), 80, 160);
     await expect(w).toHaveAttribute('data-fov', '30');
@@ -334,7 +347,7 @@ test.describe('zoom on a compact page without a sensor', () => {
    */
   test('a pinch stopping at either end stays there; past the widest field by the ratio it opens the whole sky, and the pinch in on it returns to the window', async ({ page }) => {
     const w = await openStars(page);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await toPhone(page);
     await expect(w).toHaveAttribute('data-fov', '60');
     const chart = page.getByTestId('sky-chart');
     // To the end exactly (60 × 150 / 100 = 90°), and then 10 % past it: the field holds at 90 and the view stays the window.
