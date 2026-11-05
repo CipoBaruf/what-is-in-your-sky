@@ -206,6 +206,11 @@
  * 1920 × 1080; `stars-globe-stars` turning with the stars and `stars-globe-place` moved to a saved London, at 1280;
  * `stars-globe-faint` with the faint stars on, at 1920; and `stars-globe-named` with the list's first row named, at 1280.
  * The set is 436 files.
+ *
+ * R186 (FR-WIDE-1, FR-WIDE-3, FR-WIDE-6; D-1098, D-1099): v2.14 opens a fresh desk on the globe on all three pages and
+ * the dome only by choice, so the wide live and pass-detail screens are shot with `Dome` seeded as the reader's saved
+ * view, and two screens join at 1280: `sky-live-globe` and `sky-pass-globe`, the live page and the pass detail as a
+ * fresh desk opens them, on the globe with the passes' arcs. The set is 444 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -381,6 +386,16 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'stars-globe-named',
     widths: [1280],
     what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon (Sirius) named, its row pressed and the rail scrolled to the list, shot inside `STAR_LABEL_HOLD_S`, and the row's naming is the globe's too (FR-GLOBE-12, FR-LEG-4's rule): the label beside Sirius's mark with its magnitude, and the readout line under the box. FR-GLOBE-18 names 1280.",
+  },
+  {
+    name: 'sky-live-globe',
+    widths: [1280],
+    what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
+  },
+  {
+    name: 'sky-pass-globe',
+    widths: [1280],
+    what: "The `guide` screen's pass (Tiangong at 07:20 local) as a fresh desk opens it, three minutes in (FR-WIDE-1, FR-WIDE-3, R186): the desk shell in the home's place — the box at the left with the globe and the pass's arc in its colour, the marker at the shown instant — and the rail with the pass's head and `[ × ]`, `View` reading `[ Globe ] Window Dome`, the times and the pass list with the card highlighted.",
   },
   {
     name: 'stars-whole-following',

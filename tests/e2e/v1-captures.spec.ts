@@ -266,7 +266,7 @@ async function starsChunkLoaded(page: Page, fetched: () => boolean): Promise<voi
 }
 
 /** The chart screens: the night's brightest pass open on `view`, three minutes in (D-684; the night has no glare pass). */
-async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar'): Promise<void> {
+async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar' | 'globe'): Promise<void> {
   await open(page, width, { locale, theme, observer: BARILOCHE, chartView: view });
   const starsFetched = starsChunkWatch(page);
   await page.goto('/');
@@ -284,7 +284,9 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   // The chart chunk, the raster font and glyphcss's first rasterisation all wait on timers the paused clock is holding.
   await page.clock.runFor(1000);
   if (view === 'dome') await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-  await starsDrawn(page, figure);
+  // R186 (FR-WIDE-3): the globe draws its stars as dot paths, not marks; the wait is its disc and the pass's arc.
+  if (view === 'globe') await globeDrawn(page, 1);
+  else await starsDrawn(page, figure);
 
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
   await pinnedAt(page, SHOWN);
@@ -301,7 +303,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
  * saved opens on the window and a desk on the dome, so `domeDrawn`'s wait for the dome's glyphs holds only on wide;
  * on compact the wait is the window's camera in the box. Returns the view, so the caller waits for its stars.
  */
-async function liveDrawn(page: Page): Promise<'dome' | 'window'> {
+async function liveDrawn(page: Page): Promise<'dome' | 'window' | 'globe'> {
   const chart = page.getByTestId('sky-chart');
   // The page's chunk and the chart's are lazy, and the paused clock holds their reveals (R32).
   await expect
@@ -310,7 +312,13 @@ async function liveDrawn(page: Page): Promise<'dome' | 'window'> {
       return (await chart.count()) === 0 ? null : chart.getAttribute('data-view');
     }, { timeout: 30_000 })
     .not.toBeNull();
-  if ((await chart.getAttribute('data-view')) !== 'window') {
+  const shown = await chart.getAttribute('data-view');
+  // R186 (FR-WIDE-2): a fresh desk opens on the globe.
+  if (shown === 'globe') {
+    await globeDrawn(page, 1);
+    return 'globe';
+  }
+  if (shown !== 'window') {
     await domeDrawn(page);
     return 'dome';
   }
@@ -330,8 +338,10 @@ async function liveDrawn(page: Page): Promise<'dome' | 'window'> {
  * are attached and the clock has ticked, the decision has been taken — jumped or not — and nothing after this
  * meets it half-way.
  */
-async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number, prefs: Partial<SeedPrefs> = {}): Promise<'dome' | 'window'> {
-  await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, shown);
+async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number, prefs: Partial<SeedPrefs> = {}): Promise<'dome' | 'window' | 'globe'> {
+  // R186 (FR-WIDE-6, D-1098): a desk's live screens are 2.13's dome, now the reader's choice — seeded as saved, unless the screen names its view.
+  const dome: Partial<SeedPrefs> = VIEWPORTS[width].width >= 964 && !('chartView' in prefs) ? { chartView: 'dome' } : {};
+  await open(page, width, { locale, theme, observer: BARILOCHE, ...dome, ...prefs }, shown);
   const starsFetched = starsChunkWatch(page);
   await page.goto('/');
   await listSettled(page);
@@ -676,6 +686,21 @@ const TURN_STARS = { en: 'with the stars', es: 'con las estrellas' } as const;
  * put back on `CLOCK` (F-48) — the globe's own clock opens at now and ticks with real time (FR-GLOBE-7), so the pin is
  * its instant too. The focus ring leaves the row's button.
  */
+/**
+ * R186 (FR-WIDE-3): the live page's or the pass detail's globe drawn — its SVG laid out and at least `arcs` of the
+ * passes' series paths written — ticking the paused clock, which holds the chunk's reveal (R32).
+ */
+async function globeDrawn(page: Page, arcs: number): Promise<void> {
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      if ((await page.locator('svg[data-globe][viewBox]').count()) === 0) return 0;
+      return page.locator('[data-globe] [data-arc-series]').evaluateAll((paths) => paths.filter((path) => (path.getAttribute('d') ?? '') !== '').length);
+    }, { timeout: 30_000 })
+    .toBeGreaterThanOrEqual(arcs);
+  await page.clock.runFor(1000);
+}
+
 async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
   await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_OPTION[locale] }).click();
   await expect
@@ -1005,7 +1030,7 @@ const REACH: Record<string, Reach> = {
     await windowInTheBox(page, chart, locale, SHOWN);
     await expect(chart).toHaveAttribute('data-view', 'window');
     // R132 (D-864): the facing row is the layout's `picker` slot, outside the figure.
-    const picker = page.getByTestId('live-layout').locator('[data-slot="picker"]');
+    const picker = page.getByTestId('live-layout').locator('[data-slot="picker"], [data-chart-slot="picker"]');
     await expect(picker.getByTestId('window-facing')).toBeVisible();
     if (width >= 1280) {
       // FR-SKY-13: the rail's picker carries the highlighted pass's key after `up`, as the screen's `what` says.
@@ -1034,7 +1059,7 @@ const REACH: Record<string, Reach> = {
     const norad = SHOWN_PASS.split('-')[0] ?? '';
     const readout = page.getByTestId('window-readout');
     await expect(readout).toHaveAttribute('data-following', new RegExp(`^${norad}-`));
-    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').locator(`[data-option^="pass:${norad}-"]`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"], [data-chart-slot="picker"]').locator(`[data-option^="pass:${norad}-"]`)).toHaveAttribute('aria-pressed', 'true');
     // The look is re-aimed each tick while it follows; put the instant back on `SHOWN` so the aim is the instant's.
     await pinnedAt(page, SHOWN);
     await expect(chart.locator(`[data-pass-id^="${norad}-"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
@@ -1056,7 +1081,7 @@ const REACH: Record<string, Reach> = {
     } else await windowInTheBox(page, figure, locale, SHOWN);
     await expect(figure).toHaveAttribute('data-view', 'window');
     // R132 (D-864): the facing picker is the layout's `picker` slot, outside the figure; on a phone it is the sheet's.
-    if (!compact) await expect(guide(page).locator('[data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    if (!compact) await expect(guide(page).locator('[data-chart-slot="picker"] [data-option="peak"], [data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(figure.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     // The box's foot to the panel's edge, as `sky-window.spec.ts` does: on wide the sheet scrolls on its own.
     if (!compact) {
@@ -1155,6 +1180,20 @@ const REACH: Record<string, Reach> = {
     await pinnedAt(page, CLOCK);
     await blurFocus(page);
     await page.mouse.move(0, 0);
+  },
+
+  /** R186 (FR-WIDE-1, FR-WIDE-3): the live page as a fresh desk opens it — the globe with the passes' arcs. */
+  async 'sky-live-globe'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale, SHOWN, { chartView: undefined });
+    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
+  },
+
+  /** R186 (FR-WIDE-1, FR-WIDE-3): the `guide` screen's pass in the desk shell, on the globe a fresh desk opens. */
+  async 'sky-pass-globe'(page, width, theme, locale) {
+    await openChart(page, width, theme, locale, 'globe');
+    await blurFocus(page);
   },
 
   /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */

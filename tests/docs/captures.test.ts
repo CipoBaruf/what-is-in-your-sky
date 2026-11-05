@@ -69,7 +69,8 @@ describe('the v1 capture set', () => {
      * R153 (FR-GYRO-6, FR-GYRO-9): v2.9 retires the sky screen, and the paragraphs above about it are history; no
      * screen of that name is left in the set.
      */
-    const DESK_ONLY = new Set(['live-window-follow']);
+    // R186 (FR-WIDE-3): the globe on the live page and the pass detail is a desk's alone.
+    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
     const DESK_WIDE = new Set(['live-window']);
@@ -193,7 +194,8 @@ describe('the v1 capture set', () => {
     // each for `stars-sheet` and `guide-sheet` (390, 844).
     // R171 (FR-GLOBE-18, D-1042): − 4 `stars-whole` at 1280, + 8 `stars-globe` (1280, 1920) and + 4 each for
     // `stars-globe-stars`, `stars-globe-place`, `stars-globe-named` (1280) and `stars-globe-faint` (1920).
-    expect(captureSet()).toHaveLength(436);
+    // R186 (FR-WIDE-3, D-1099): + 4 each for `sky-live-globe` and `sky-pass-globe` (1280).
+    expect(captureSet()).toHaveLength(444);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
