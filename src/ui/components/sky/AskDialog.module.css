@@ -6,6 +6,9 @@
   inset: 0;
   z-index: var(--z-overlay);
   display: grid;
+  /* v2.14.3: one column no wider than the viewport less the gutter, so `100%` below is that width and a sentence
+     wider than a phone wraps instead of widening the column past the right edge. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: var(--space-3) calc(2 * var(--cell));
   background: color-mix(in srgb, var(--bg) var(--screen-overlay-alpha), transparent);
@@ -13,7 +16,7 @@
 
 .frame {
   box-sizing: border-box;
-  inline-size: max-content;
+  inline-size: fit-content;
   max-inline-size: min(100%, calc(64 * var(--cell)));
   display: grid;
   gap: var(--space-2);
