@@ -14,8 +14,9 @@ import { es } from '../../../i18n/es';
 import { PAGE_KEYS, SHORTCUTS } from '../../../lib/shortcuts';
 import { ShortcutsOverlay } from './ShortcutsOverlay';
 
-// The header row is not a shortcut, and the stars page's block (R115) is a table body of its own, asserted below.
-const rows = () => within(screen.getByTestId('shortcuts-overlay')).getAllByRole('row').slice(1).filter((row) => row.closest('[data-testid="shortcuts-page-keys"]') === null);
+// The header row is not a shortcut, nor are the groups' headings (R189's sky keys, R115's box keys), and the box keys
+// are a table body of their own, asserted below: a shortcut row is one that names its id.
+const rows = () => [...screen.getByTestId('shortcuts-overlay').querySelectorAll<HTMLTableRowElement>('tr[data-shortcut]')];
 
 describe('<ShortcutsOverlay> (FR-DESK-4)', () => {
   it('lists every registered shortcut, its key and what it does', () => {
@@ -33,7 +34,14 @@ describe('<ShortcutsOverlay> (FR-DESK-4)', () => {
     expect(within(block).getByRole('rowheader', { name: en.stars.keysHeading })).toBeTruthy();
     const listed = [...block.querySelectorAll<HTMLTableRowElement>('[data-page-key]')].map((row) => ({ id: row.dataset.pageKey, key: row.querySelector('kbd')?.textContent, does: row.cells[1]?.textContent }));
     expect(listed).toEqual(PAGE_KEYS.map((key) => ({ id: key.id, key: key.label, does: en.stars.keys[key.id] })));
-    expect(listed.map((row) => row.key).join(' ')).toBe('← → ↑ ↓');
+    expect(listed.map((row) => row.key).join(' ')).toBe('← → ↑ ↓ + − 0 Home');
+  });
+
+  it('R189 (FR-WIDE-9): prints the desk sky keys under their own heading', () => {
+    render(<ShortcutsOverlay onClose={vi.fn()} />);
+    const block = screen.getByTestId('shortcuts-sky-keys');
+    expect(within(block).getByRole('rowheader', { name: en.shortcuts.skyHeading })).toBeTruthy();
+    expect([...block.querySelectorAll('kbd')].map((kbd) => kbd.textContent)).toEqual(['g', 'w', 'd', ',', '.', 't', 'Space', 'a', 'f']);
   });
 
   it('has no row that is not a registered shortcut', () => {

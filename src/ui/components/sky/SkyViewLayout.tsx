@@ -3,6 +3,11 @@ import { createPortal } from 'react-dom';
 import { HIT_RADIUS_PX } from '../guide/skychart/window/starGlyphs';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { enterFullscreen, exitFullscreen, fullscreenElement, fullscreenSupported } from '../../../lib/fullscreen';
+import { installShortcuts, skyShortcuts, type ShortcutActions, type SkyKeyActions } from '../../../lib/shortcuts';
+import type { EpochMs } from '../../../model';
+import { TimeReadout } from '../live/TimeReadout';
+import { TextButton } from '../primitives/TextButton';
 import { SectionHeading } from '../primitives/SectionHeading';
 import styles from './SkyViewLayout.module.css';
 
@@ -112,6 +117,13 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
    * drawing slot, removed after their one use; a drag or a pinch leaves them armed, and the touch goes on to the sky.
    */
   onFirstTouch?: (() => void) | undefined;
+  /**
+   * R189 (FR-WIDE-9, D-1102): the page's sky actions, run on wide by this layout's one listener (`useShortcuts`) with
+   * `f` for its own full screen. Not given, the keys do nothing here (compact never runs them).
+   */
+  keys?: SkyKeyActions | undefined;
+  /** R189 (FR-WIDE-10): the instant the full screen's time readout (FR-TRAJ-4) shows over the box's top edge. */
+  clock?: { t: EpochMs; now: EpochMs; timeZone: string | null } | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -128,7 +140,7 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, keys, clock, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   // R165 (D-1000): compact is the full form, in both shapes; R186 (D-1098): wide is the rail on every page.
@@ -215,7 +227,86 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     return remove;
   }, [armed, shape]);
 
-  const given = (name: SkyViewSlotName): boolean => {
+  /*
+   * R189 (FR-WIDE-10, D-1103): the full sky. On wide the box — the drawing slot with its corners — goes in full screen
+   * through `lib/fullscreen.ts`, and `full` is what the browser says (`fullscreenchange`), never what was asked: a
+   * refused request changes nothing. Full, the slot is fixed over the viewport (the stylesheet, so a stubbed request
+   * shows the same box), the frame inside refits on its own `ResizeObserver` with no rail beside it, and nothing is
+   * remounted — the view, the camera, the zoom and the instant are the page's and stay. Where the API is missing the
+   * control is absent and `f` does nothing; leaving wide or the page leaves full screen.
+   */
+  const drawingRef = useRef<HTMLDivElement | null>(null);
+  const cornerRef = useRef<HTMLDivElement | null>(null);
+  const [full, setFull] = useState(false);
+  const canFull = shape === 'rail' && fullscreenSupported();
+  useEffect(() => {
+    const onChange = (): void => {
+      setFull(drawingRef.current !== null && fullscreenElement() === drawingRef.current);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+    };
+  }, []);
+  useEffect(() => {
+    const element = drawingRef.current;
+    return () => {
+      if (element !== null && fullscreenElement() === element) void exitFullscreen();
+    };
+  }, [shape]);
+  const toggleFull = useCallback((): boolean => {
+    const element = drawingRef.current;
+    if (!canFull || element === null) return false;
+    if (fullscreenElement() === element) void exitFullscreen();
+    else void enterFullscreen(element);
+    return true;
+  }, [canFull]);
+  // `Esc` leaves before any page listener reads it (the live page would leave, the pass detail close); a browser in
+  // real full screen takes the key itself and only `fullscreenchange` arrives. Installed once, read through a ref.
+  const fullRef = useRef(full);
+  useLayoutEffect(() => {
+    fullRef.current = full;
+  });
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || !fullRef.current) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void exitFullscreen();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, []);
+  // The control the reader pressed is replaced by the other one: focus follows it rather than dropping to the body.
+  const fullSeen = useRef(full);
+  useEffect(() => {
+    if (fullSeen.current === full) return;
+    fullSeen.current = full;
+    const active = document.activeElement;
+    if (active === null || active === document.body) cornerRef.current?.querySelector<HTMLElement>('button')?.focus();
+  }, [full]);
+  /*
+   * R189 (FR-WIDE-9, D-1102): the page's sky keys and `f`, one listener while the layout is the desk's. The shortcuts
+   * overlay makes the page inert (D-73's "overlay first"), and then no key here is the page's. The listener is the
+   * table's own (`installShortcuts`), installed once per shape and reading the page's latest actions through a ref.
+   */
+  const keysRef = useRef(keys);
+  useLayoutEffect(() => {
+    keysRef.current = keys;
+  });
+  useEffect(() => {
+    if (shape !== 'rail') return;
+    return installShortcuts(document, () => {
+      const page = keysRef.current;
+      const rows: ShortcutActions = page === undefined ? { full: toggleFull } : skyShortcuts(page, toggleFull, () => document.activeElement);
+      const inert = rootRef.current?.closest('[inert]') != null;
+      return Object.fromEntries(Object.entries(rows).map(([id, run]) => [id, () => !inert && run()]));
+    });
+  }, [shape, toggleFull]);
+
+  const given =(name: SkyViewSlotName): boolean => {
     const node = slots[name];
     return node !== undefined && node !== null && node !== false;
   };
@@ -236,19 +327,31 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   };
   /*
    * R186 (FR-WIDE-5, D-1098): the box's corners. The readout and the zoom are the chart's parts — a view portals them
-   * here (`useChartSlot('readout' | 'zoom')`) unless the page gives a readout of its own; full screen is R189's and
-   * empty until then; the hint is the page's. The readout and the hint carry `data-slot` as their rows did.
+   * here (`useChartSlot('readout' | 'zoom')`) unless the page gives a readout of its own; full screen is the layout's
+   * own (R189: `[ full screen ]`, and while full the time readout and `[ × ]`); the hint is the page's. The readout
+   * and the hint carry `data-slot` as their rows did.
    */
+  const fullscreenNode = (): ReactNode => {
+    if (!canFull) return null;
+    if (!full) return <TextButton label={t.skyView.fullscreen} onClick={toggleFull} data-testid="sky-fullscreen" />;
+    return (
+      <>
+        {clock !== undefined && <TimeReadout t={clock.t} now={clock.now} timeZone={clock.timeZone} />}
+        <TextButton label="×" aria-label={t.skyView.exitFullscreen} onClick={toggleFull} data-testid="sky-fullscreen-exit" />
+      </>
+    );
+  };
   const cornerNode = (name: SkyViewCorner): ReactNode => {
     if (name === 'readout') return given('readout') ? slots.readout : <SkyViewChartSlot name="readout" />;
     if (name === 'zoom') return <SkyViewChartSlot name="zoom" />;
+    if (name === 'fullscreen') return fullscreenNode();
     return given(name) ? slots[name] : null;
   };
   const corner = (name: SkyViewCorner): ReactNode => {
     const node = cornerNode(name);
     if (node === null) return null;
     return (
-      <div key={name} className={[styles.corner, styles[`corner-${name}`]].join(' ')} data-corner={name} {...(name === 'readout' || name === 'hint' ? { 'data-slot': name } : {})}>
+      <div key={name} ref={name === 'fullscreen' ? cornerRef : undefined} className={[styles.corner, styles[`corner-${name}`]].join(' ')} data-corner={name} {...(name === 'readout' || name === 'hint' ? { 'data-slot': name } : {})}>
         {node}
       </div>
     );
@@ -294,9 +397,9 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
 
   return (
     <SkyViewContext.Provider value={context}>
-      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
+      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(full ? { 'data-full': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
         {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners. */}
-        <div className={[styles.slot, styles.drawing].join(' ')} data-slot="drawing">
+        <div ref={drawingRef} className={[styles.slot, styles.drawing].join(' ')} data-slot="drawing">
           {slots.drawing}
           {CORNERS.map(corner)}
         </div>

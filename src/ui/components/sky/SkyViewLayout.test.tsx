@@ -8,7 +8,7 @@
  * slots through `useChartSlot`. What jsdom cannot see — the bounding boxes —
  * is `tests/e2e/sky-layout.spec.ts`.
  */
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../../tests/support/matchMedia';
 import { stubResizeObserver } from '../../../../tests/support/resizeObserver';
@@ -79,6 +79,41 @@ const slots = (): string[] => Array.from(screen.getByTestId('layout').querySelec
 const railSlots = (): string[] => Array.from(screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-rail] > [data-slot]')).map((el) => el.dataset['slot'] ?? '');
 const corners = (): string[] => Array.from(screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-slot="drawing"] > [data-corner]')).map((el) => el.dataset['corner'] ?? '');
 
+/**
+ * R189 (FR-WIDE-10, D-1103): the Fullscreen API as a headless browser would grant it — `requestFullscreen` takes the
+ * element, `exitFullscreen` gives it back, each with its `fullscreenchange`. `refuse` rejects the request instead.
+ */
+function stubFullscreen({ refuse = false } = {}) {
+  let element: Element | null = null;
+  const change = (next: Element | null): void => {
+    element = next;
+    document.dispatchEvent(new Event('fullscreenchange'));
+  };
+  Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, get: () => true });
+  Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => element });
+  Object.defineProperty(document, 'exitFullscreen', {
+    configurable: true,
+    value: () => {
+      change(null);
+      return Promise.resolve();
+    },
+  });
+  Object.defineProperty(Element.prototype, 'requestFullscreen', {
+    configurable: true,
+    value(this: Element) {
+      if (refuse) return Promise.reject(new TypeError('denied'));
+      change(this);
+      return Promise.resolve();
+    },
+  });
+  return {
+    restore: () => {
+      for (const name of ['fullscreenEnabled', 'fullscreenElement', 'exitFullscreen'] as const) Reflect.deleteProperty(document, name);
+      Reflect.deleteProperty(Element.prototype, 'requestFullscreen');
+    },
+  };
+}
+
 describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () => {
   it('FR-WIDE-1: renders the rail in SLOT_ORDER, each row marked for the rhythm (D-851), and nothing for an empty one', () => {
     media = stubMatchMedia(WIDE_PX);
@@ -104,7 +139,9 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
 
   it('FR-WIDE-5: on wide the box carries its corners — the readout, full screen, the hint, the zoom — in that order', () => {
     media = stubMatchMedia(WIDE_PX);
-    all('en', { fullscreen: <button type="button">full screen</button> });
+    // R189 (FR-WIDE-10): the full screen corner is the layout's own control, where the API is there.
+    const support = stubFullscreen();
+    all('en');
     expect(CORNERS).toEqual(['readout', 'fullscreen', 'hint', 'zoom']);
     expect(corners()).toEqual([...CORNERS]);
     const layout = screen.getByTestId('layout');
@@ -112,8 +149,9 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
     expect(layout.querySelector('[data-corner="zoom"] [data-placed="zoom"]')).toHaveTextContent('+ -');
     expect(layout.querySelector('[data-corner="hint"]')).toHaveTextContent('hint');
     expect(layout.querySelector('[data-corner="fullscreen"]')).toHaveTextContent('full screen');
-    // Without a page's own, the readout's corner is the chart's slot; full screen is R189's, empty here.
+    // Without a page's own, the readout's corner is the chart's slot; without the API, full screen is absent.
     cleanup();
+    support.restore();
     all('en', { readout: undefined });
     expect(corners()).toEqual(['readout', 'hint', 'zoom']);
     expect(screen.getByTestId('layout').querySelector('[data-corner="readout"] [data-placed="readout"]')).toHaveTextContent('Facing N');
@@ -329,5 +367,98 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
       media.restore();
       media = null;
     }
+  });
+});
+
+describe('<SkyViewLayout> keys and the full sky (R189: FR-WIDE-9, FR-WIDE-10; D-1102, D-1103)', () => {
+  let support: ReturnType<typeof stubFullscreen> | null = null;
+  afterEach(() => {
+    support?.restore();
+    support = null;
+  });
+  const keys = () => ({ setView: vi.fn(() => true), stepHour: vi.fn(() => true), toNow: vi.fn(() => true), togglePlay: vi.fn(() => true) });
+  const press = (key: string): KeyboardEvent => {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    act(() => {
+      document.body.dispatchEvent(event);
+    });
+    return event;
+  };
+
+  it('FR-WIDE-9: runs the page actions for g w d , . t Space on wide, and nothing on compact', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const actions = keys();
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} keys={actions} />);
+    for (const key of ['g', 'w', 'd', ',', '.', 't', ' ']) expect(press(key).defaultPrevented).toBe(true);
+    expect(actions.setView.mock.calls).toEqual([['globe'], ['window'], ['dome']]);
+    expect(actions.stepHour.mock.calls).toEqual([[-1], [1]]);
+    expect(actions.toNow).toHaveBeenCalledOnce();
+    expect(actions.togglePlay).toHaveBeenCalledOnce();
+    cleanup();
+    media.restore();
+    media = stubMatchMedia(COMPACT_PX);
+    const compact = keys();
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} keys={compact} />);
+    press('g');
+    expect(compact.setView).not.toHaveBeenCalled();
+  });
+
+  it('runs no key while the page is inert behind the shortcuts overlay', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const actions = keys();
+    render(
+      <div inert>
+        <SkyViewLayout data-testid="layout" drawing={<div>box</div>} keys={actions} />
+      </div>,
+    );
+    expect(press('g').defaultPrevented).toBe(false);
+    expect(actions.setView).not.toHaveBeenCalled();
+  });
+
+  it('FR-WIDE-10: f and the control put the box in full screen and back, with the readout and [ × ] over it', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    support = stubFullscreen();
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} clock={{ t: 0, now: 0, timeZone: 'UTC' }} />);
+    const layout = screen.getByTestId('layout');
+    const box = layout.querySelector('[data-slot="drawing"]');
+    expect(layout).not.toHaveAttribute('data-full');
+    expect(screen.queryByTestId('time-readout')).toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('sky-fullscreen'));
+      await Promise.resolve();
+    });
+    expect(document.fullscreenElement).toBe(box);
+    expect(layout).toHaveAttribute('data-full', '');
+    expect(screen.getByTestId('time-readout')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: en.skyView.exitFullscreen })).toHaveFocus();
+    press('f');
+    expect(layout).not.toHaveAttribute('data-full');
+    expect(screen.getByTestId('sky-fullscreen')).toHaveFocus();
+    press('f');
+    expect(layout).toHaveAttribute('data-full', '');
+    // `Esc` leaves, and no page listener after it reads the key.
+    const after = vi.fn();
+    document.addEventListener('keydown', after);
+    press('Escape');
+    document.removeEventListener('keydown', after);
+    expect(layout).not.toHaveAttribute('data-full');
+    expect(after).not.toHaveBeenCalled();
+  });
+
+  it('a refused request changes nothing; without the API the control is absent and f does nothing', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    support = stubFullscreen({ refuse: true });
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('sky-fullscreen'));
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('layout')).not.toHaveAttribute('data-full');
+    cleanup();
+    support.restore();
+    support = null;
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} />);
+    expect(screen.queryByTestId('sky-fullscreen')).toBeNull();
+    expect(press('f').defaultPrevented).toBe(false);
   });
 });

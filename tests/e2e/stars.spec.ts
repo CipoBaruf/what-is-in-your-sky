@@ -204,7 +204,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await page.keyboard.press('?');
     const overlay = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
     await expect(overlay.locator('[data-shortcut="stars"] kbd')).toHaveText('s');
-    await expect(overlay.locator('[data-page-key] kbd')).toHaveText(['← →', '↑ ↓']);
+    await expect(overlay.locator('[data-page-key] kbd')).toHaveText(['← →', '↑ ↓', '+ −', '0 Home']);
     await page.keyboard.press('Escape');
     await expect(overlay).toHaveCount(0);
     await page.keyboard.press('s');

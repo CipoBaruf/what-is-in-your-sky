@@ -4,7 +4,7 @@ import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
-import type { ShortcutActions } from '../lib/shortcuts';
+import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
@@ -279,7 +279,8 @@ export function App() {
   const setTheme = useAppStore((s) => s.setTheme);
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
-  const actions: ShortcutActions = {
+  // R189 (D-1102): the app's rows; the desk sky pages' rows are their layout's (`SkyViewLayout`'s `keys`).
+  const actions: Record<AppShortcutId, () => boolean> = {
     next: () => moveCursor(document, 1) !== null,
     previous: () => moveCursor(document, -1) !== null,
     open: () => {
@@ -313,6 +314,8 @@ export function App() {
     },
     live: () => {
       setHelpOpen(false);
+      // R189: on the live page itself (a desk runs these keys there now) it is the page already, and a held instant stays.
+      if (live.active) return helpOpen;
       openRoute('#live');
       return true;
     },
@@ -329,8 +332,6 @@ export function App() {
       setChartView(nextView('pass', mode, chartView));
       return true;
     },
-    // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.
-    follow: () => false,
     theme: () => {
       setTheme(theme === 'night' ? 'dark' : 'night');
       return true;
@@ -340,8 +341,9 @@ export function App() {
       return true;
     },
   };
-  // Not on the live page: it is a screen of its own with its own keys (R32, R33).
-  useShortcuts(actions, !live.active);
+  // Not on the compact live page: it is a screen of its own with its own keys (R32, R33). R189 (FR-WIDE-9): on wide the
+  // live page is a desk page like the other two, and `?`, `v`, `n` and the rest run there as they do on them.
+  useShortcuts(actions, !live.active || mode === 'wide');
   // Only the compact sheet covers the page; the wide panel opens beside the
   // list, which stays live (FR-DESK-3). The shortcuts overlay covers it at
   // every width, so nothing behind it is reachable either.

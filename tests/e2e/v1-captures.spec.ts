@@ -929,7 +929,8 @@ const REACH: Record<string, Reach> = {
     await expect(overlay).toBeVisible();
     // R115 (FR-DESK-4 as amended v2.4): `s` for the stars page and that page's two key rows, 8 → 11.
     // R127 (FR-DESK-4 as amended v2.5): `f`, the window turned to the pass, 11 → 12.
-    await expect(overlay.locator('kbd')).toHaveCount(12);
+    // R189 (FR-WIDE-9): the desk sky keys (g w d , . t Space a, `f` now full screen) and the box zoom and reset, 12 → 22.
+    await expect(overlay.locator('kbd')).toHaveCount(22);
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
@@ -1061,14 +1062,14 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R128 (FR-SKY-13, FR-DESK-4 as amended v2.5; US-41 AC5): the same page at 1280 with `f` pressed — the window
+   * R128 (FR-SKY-13, FR-DESK-4 as amended v2.5; US-41 AC5): the same page at 1280 with `a` pressed (R189: FR-WIDE-9 moved it from `f`) — the window
    * turned to the highlighted pass, which at `SHOWN` is the one three minutes in, and the key pressed in the rail.
    */
   async 'live-window-follow'(page, width, theme, locale) {
     await liveAt(page, width, theme, locale);
     const chart = page.getByTestId('sky-chart');
     await windowInTheBox(page, chart, locale, SHOWN);
-    await page.keyboard.press('f');
+    await page.keyboard.press('a');
     await page.clock.runFor(FRAME_MS);
     // The live page's set starts a pass already up at the instant it computed (`CHIP_SHOWN`'s note), so the
     // pass is known by its catalogue number here and not by `SHOWN_PASS`'s start.
@@ -1257,6 +1258,37 @@ const REACH: Record<string, Reach> = {
     const row = page.getByTestId('chart-legend').locator('button[data-pass-id]').first();
     await row.hover();
     await expect(row).toHaveAttribute('data-hovered', 'true');
+  },
+
+  /**
+   * R189 (FR-WIDE-10): `sky-live-globe` with `f` pressed. A headless browser may not grant the Fullscreen API, so it is
+   * stubbed before the page loads and the page's own full form (`data-full`, the box fixed over the viewport) is shot.
+   */
+  async 'sky-fullscreen'(page, width, theme, locale) {
+    await page.addInitScript(() => {
+      let element: Element | null = null;
+      const change = (next: Element | null): void => {
+        element = next;
+        document.dispatchEvent(new Event('fullscreenchange'));
+      };
+      Object.defineProperty(Document.prototype, 'fullscreenEnabled', { configurable: true, get: () => true });
+      Object.defineProperty(Document.prototype, 'fullscreenElement', { configurable: true, get: () => element });
+      Document.prototype.exitFullscreen = function exitFullscreen() {
+        change(null);
+        return Promise.resolve();
+      };
+      Element.prototype.requestFullscreen = function requestFullscreen(this: Element) {
+        change(this);
+        return Promise.resolve();
+      };
+    });
+    await liveAt(page, width, theme, locale, SHOWN, { chartView: undefined });
+    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
+    await blurFocus(page);
+    await page.keyboard.press('f');
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-full', '');
+    await page.clock.runFor(FRAME_MS);
+    await page.mouse.move(0, 0);
   },
 
   /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */

@@ -316,3 +316,34 @@
   height: 100%;
   min-height: 0;
 }
+
+/* --- R189 (FR-WIDE-10, D-1103): the full sky. The box (the drawing slot and its corners) over the whole viewport: what
+   the browser's full screen gives it, written here too so a stubbed request (the e2e spec) shows the same box. The
+   layout stops being a size container while full, since a size container is a containing block for a fixed
+   descendant; the frame inside refits from the slot's new size (`ChartFrame`'s observer), with no rail beside it. --- */
+.layout[data-shape='rail'][data-full] {
+  container-type: normal;
+}
+
+.layout[data-shape='rail'][data-full] > .drawing {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-screen);
+  height: auto;
+  background: var(--bg);
+}
+
+.drawing:fullscreen {
+  background: var(--bg);
+}
+
+/* While full the top-right corner is the time readout and `[ × ]`, on the overlay surface over the box's top edge. */
+.layout[data-full] .corner-fullscreen {
+  align-items: center;
+  padding: 0 var(--cell);
+  background: var(--sky-corner-surface);
+}
+
+.corner-fullscreen :global([data-testid='time-readout']) {
+  pointer-events: none;
+}

@@ -132,8 +132,8 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     render(<App />);
     await userEvent.keyboard('?');
     const overlay = screen.getByRole('dialog', { name: en.shortcuts.title });
-    // the ten shortcuts (R127: `f`) and the header row, then R115's block: its heading row and the stars page's two key rows
-    expect(within(overlay).getAllByRole('row')).toHaveLength(10 + 1 + 1 + 2);
+    // the header row and the nine app shortcuts; R189's sky block: its heading row and nine keys; the box block: its heading row and four
+    expect(within(overlay).getAllByRole('row')).toHaveLength(1 + 9 + 1 + 9 + 1 + 4);
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
 
     await userEvent.keyboard('{Escape}');
@@ -173,13 +173,23 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     expect(screen.queryByRole('dialog', { name: en.shortcuts.title })).toBeNull();
   });
 
-  it('is not installed on the live page, which has its own keys (R32)', async () => {
+  it('is not installed on the compact live page, which has its own keys (R32)', async () => {
+    media.restore();
+    media = stubMatchMedia(COMPACT_PX);
     withPasses();
     window.history.replaceState(null, '', '#live');
     render(<App />);
     await userEvent.keyboard('n');
     expect(appStore.getState().theme).toBe('dark');
     expect(screen.queryByRole('dialog', { name: en.shortcuts.title })).toBeNull();
+  });
+
+  it('R189 (FR-WIDE-9): runs on the wide live page, a desk page like the other two', async () => {
+    withPasses();
+    window.history.replaceState(null, '', '#live');
+    render(<App />);
+    await userEvent.keyboard('n');
+    expect(appStore.getState().theme).toBe('night');
   });
 
   /**

@@ -63,7 +63,7 @@ describe('the v1 capture set', () => {
      * at 844 like `sky-screen-sky`, and the `stars` page under it is an ordinary screen with all four widths.
      *
      * R128 (FR-SKY-9, D-829): `stars-passes-screen` is the same layer opened from the page with `[ passes ]` on,
-     * so it joins the exception. And the other way round, two desk screens: `live-window-follow` (`f` is a key,
+     * so it joins the exception. And the other way round, two desk screens: `live-window-follow` (`a` is a key since R189,
      * FR-SKY-13) and `stars-zoom` (the narrowest field), each at the one width FR-SKY-9 names for it, 1280.
      *
      * R153 (FR-GYRO-6, FR-GYRO-9): v2.9 retires the sky screen, and the paragraphs above about it are history; no
@@ -72,7 +72,8 @@ describe('the v1 capture set', () => {
     // R186 (FR-WIDE-3): the globe on the live page and the pass detail is a desk's alone.
     // R187 (FR-WIDE-8): and the clouds on the stripe.
     // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): so are the facts groups and the hover, which compact never loads.
-    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe', 'sky-clouds', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover']);
+    // R189 (FR-WIDE-10): and the full sky, which compact does not offer.
+    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe', 'sky-clouds', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover', 'sky-fullscreen']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
     const DESK_WIDE = new Set(['live-window']);
@@ -199,7 +200,8 @@ describe('the v1 capture set', () => {
     // R186 (FR-WIDE-3, D-1099): + 4 each for `sky-live-globe` and `sky-pass-globe` (1280).
     // R187 (FR-WIDE-8, D-1100): + 4 for `sky-clouds` (1280).
     // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): + 4 each for `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover` (1280).
-    expect(captureSet()).toHaveLength(464);
+    // R189 (FR-WIDE-10, D-1103): + 4 for `sky-fullscreen` (1280).
+    expect(captureSet()).toHaveLength(468);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

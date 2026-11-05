@@ -676,6 +676,8 @@
 | FR-WIDE-6 | `tests/e2e/globe.spec.ts` |
 | FR-WIDE-7 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/arcs.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx`, `tests/e2e/legend-hover.spec.ts` |
 | FR-WIDE-8 | `src/lib/cloudBand.test.ts`, `src/ui/components/sky/time/CloudBand.test.tsx` |
+| FR-WIDE-9 | `src/lib/shortcuts.test.ts`, `src/ui/App.shortcuts.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/keys.spec.ts` |
+| FR-WIDE-10 | `src/lib/fullscreen.test.ts`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/fullscreen.spec.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |

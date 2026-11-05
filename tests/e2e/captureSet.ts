@@ -217,6 +217,9 @@
  *
  * R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7; D-1101): four screens join at 1280, the facts groups and the hover —
  * `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover`. The set is 464 files.
+ *
+ * R189 (FR-WIDE-10; D-1103): `sky-fullscreen` joins at 1280, the live page's globe given the whole screen. The set is
+ * 468 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -427,6 +430,11 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'sky-hover',
     widths: [1280],
     what: "`sky-live-globe` with the pointer resting on the legend's first row (FR-WIDE-7, US-55 AC1, R188): the row at full ink and its arc emphasised as the highlight draws it, with the ticks and the arrow, the others dimmed; nothing pressed, nothing in the hash.",
+  },
+  {
+    name: 'sky-fullscreen',
+    widths: [1280],
+    what: "`sky-live-globe` with `f` pressed (FR-WIDE-10, US-56 AC2, R189): the box alone over the whole screen, the globe refitted with no rail beside it, the facing readout top-left, the time readout and `[ × ]` top-right, `[ + ] [ − ]` bottom-right; the Fullscreen API stubbed, so the page's own full form is what is shot.",
   },
   {
     name: 'stars-whole-following',
