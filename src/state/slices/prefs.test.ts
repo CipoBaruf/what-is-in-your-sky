@@ -80,7 +80,7 @@ describe('prefs slice', () => {
   it('reads the saved chart view and orientation at creation, writes each through, and the other write-throughs keep them (R13, US-6 AC5, FR-GUIDE-4)', () => {
     const storage = memoryStorage();
     const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState();
-    // D-876 (R136): nothing saved is no view; the page's `defaultChartView` decides (the dome on wide, FR-DOME-7).
+    // D-876 (R136): nothing saved is no view; the page's `viewFor` decides (the globe on wide, D-1095).
     expect(fresh.chartView).toBeUndefined();
     expect(fresh.chartOrientation).toBe('looking-up');
     // The saved view is the one the default is not, so this proves the read rather than agreeing with it by accident.

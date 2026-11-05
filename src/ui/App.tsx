@@ -1,4 +1,4 @@
-import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
@@ -217,12 +217,16 @@ export function App() {
    * close, so its card is a new element: once it is there it is scrolled into view and takes the focus, its folded
    * night unfolded first (`passCursor`: `focus()` on a hidden card does nothing).
    */
-  const [returnTo, setReturnTo] = useState<string | null>(null);
-  if (mode === 'wide' && selected !== null && returnTo !== selected.id) setReturnTo(selected.id);
+  const returnTo = useRef<string | null>(null);
   useEffect(() => {
-    if (selected !== null || returnTo === null) return;
-    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-pass-id="${CSS.escape(returnTo)}"]`);
-    setReturnTo(null);
+    if (selected !== null) {
+      if (mode === 'wide') returnTo.current = selected.id;
+      return;
+    }
+    const id = returnTo.current;
+    if (id === null) return;
+    returnTo.current = null;
+    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-pass-id="${CSS.escape(id)}"]`);
     if (!card) return;
     const night = card.closest<HTMLElement>('[data-night-group][hidden]');
     if (night) {
@@ -231,7 +235,7 @@ export function App() {
     }
     card.scrollIntoView({ block: 'center' });
     card.focus({ preventScroll: true });
-  }, [selected, returnTo]);
+  }, [selected, mode]);
   /*
    * R39 (F-34): `startApp` reads a link's observer once, before the first
    * render (D-135), which covers the arrival — a pasted URL, a reload. A

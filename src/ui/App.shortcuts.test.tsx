@@ -111,12 +111,14 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   it('toggles the chart view with v and the palette with n, both persisted through the store', async () => {
     withPasses();
     render(<App />);
-    // R136 (D-876): nothing saved, so a desk shows the dome (`defaultChartView`); `v` goes to the polar chart from it.
+    // R186 (FR-WIDE-2, D-1095): nothing saved, so a desk shows the globe (`viewFor`); `v` cycles Globe Window Dome.
     expect(appStore.getState().chartView).toBeUndefined();
     await userEvent.keyboard('v');
-    expect(appStore.getState().chartView).toBe('polar');
+    expect(appStore.getState().chartView).toBe('window');
     await userEvent.keyboard('v');
     expect(appStore.getState().chartView).toBe('dome');
+    await userEvent.keyboard('v');
+    expect(appStore.getState().chartView).toBe('globe');
 
     expect(appStore.getState().theme).toBe('dark');
     await userEvent.keyboard('n');
