@@ -177,6 +177,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Scope (D-1100):** `StripeOverview`, `TimeStripe`, `PlaybackControls` and `usePlayback` move from `components/live/` to `components/sky/time/` (imports updated, the `Live` chunk no longer their only home); `usePlayback` gains `shiftDays`; the three pages' `screens/sky/<page>/Time.tsx`; the pass detail's FR-FLOW-7 cells become buttons; the cloud band as one `<path>` per band from `lib/cloudBand.ts`, an empty hour left blank, the runs sentence in the stripe's description in both catalogs.
   - **Touches outside the lane:** `components/sky/time/**`, `screens/sky/*/Time.tsx`, the pass detail's times row, `src/i18n/**` (the cloud sentence, in the `live` section).
   - **Note (from R186):** remove the wide overlay branch, the fold and the overlay inventory (`useInventoryRows(... 'overlay')`) in `Live.tsx` per D-1133.
+  - **Note (from R186's review):** `LiveGroup` and `PassGroup` choose the `Facing` section (the `picker` slot) from `viewFor`'s view, not the view `SkyChart` draws; after following ends `SkyChart` holds the window (`heldView`) while `hintView` says `globe`, so the facing row loses its slot. Feed the drawn view (and the hint) from `SkyChart` on both pages.
   - **Deletes:** the stars page's clock row and its tests (FR-GLOBE-7's steps re-tested under the playback row).
   - **Captures:** the manifest gains `sky-clouds` (1280 × 800).
   - **Out of scope:** the keys `,` `.` `t` `Space` (R189); `playSpeed` read from the store (R190).
@@ -249,6 +250,7 @@ What every session reads, named in each task as "the phase set": the task's entr
   - **Deletes:** the tests that pin the stars page's view or the faint stars resetting at each open (FR-PHONE-7, FR-GLOBE-10 amended).
   - **Captures:** none added; files showing the privacy line move by its `[ × ]`.
   - **Out of scope:** the release (R191).
+  - **Note (from R186):** on the live page, crossing the 963/964 px breakpoint re-mounts the page (main kept one tree), so state not in the URL or the kept choices is lost; keep one tree across the breakpoint or carry that state, with a test that resizes across it.
   - **Done when:**
     - `keep.spec.ts` at 390 × 844 and 1280 × 800: make every choice, reload, find it; scrub, turn, pick a saved place, reload: now, the opening aim, the reader's place; an empty store opens on FR-KEEP-3's table; close the note on the home, reload, the stars page has none, the settings page has the sentence.
     - `Footer.test.tsx` and `LocationInput.test.tsx`: shown, closed by either, gone from both.
