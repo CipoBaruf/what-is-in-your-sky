@@ -55,7 +55,7 @@
 | FR-WIN-1..6 | `skychart/window/*`, `SkyChart.tsx` registration, `state/slices/prefs.ts` `chartView`, `ui/screens/Live.tsx` `windowMode` (D-188) |
 | FR-WIN-7 | `spike/window/`, `docs/window/FINDINGS.md` (§8.10) |
 | FR-TRAJ-1..3 | `lib/arcReveal.ts`, `physics/constants.ts`, `SkyChartProps.passes[].arc`, the three views (D-189) |
-| FR-TRAJ-4..5 | `components/sky/time/TimeStripe.tsx`, `TimeReadout.tsx`, the stepping control, `usePlayback.ts` (D-190) |
+| FR-TRAJ-4..5 | `components/live/TimeStripe.tsx`, `TimeReadout.tsx`, the stepping control, `usePlayback.ts` (D-190) |
 | FR-FIX-1..2 | one findings task per lane; `F-<n>` commit prefixes and test names (D-194) |
 | FR-CI-1..3 | `.github/workflows/ci.yml`, `captures.yml`, `tests/e2e/v1-captures.spec.ts` gate, `playwright.config.ts` workers, `e2e/liveHelpers.ts` `seedStoredRun` (D-195) |
 | FR-DESK-2 amended | `Header.tsx` wide row (D-184) |
@@ -87,7 +87,7 @@
 | FR-FOL-1 / FR-FOL-3 / FR-LIVE-7 / FR-LIVE-8 / FR-WIN-6 amended (v1.3) | `screens/Live.tsx` (the grid replaced by the layer while following), `FollowScreen.tsx` (D-321) |
 | FR-FSC-1/2 re-pointed, FR-FSC-6 rewritten (v1.3.1) | `components/screen/SkyScreen.tsx` + module, `components/screen/useSkyScreen.ts`, `skychart/SkyChart.tsx` (the three-option control and its notes), `screens/Live.tsx`, `screens/PassDetail.tsx`, `state/slices/prefs.ts` `skyScreen` (D-350, D-351) |
 | FR-WIN-5 amended, FR-FOL-1/2 withdrawn (v1.3.1) | `state/slices/prefs.ts` `savedChartView` narrowed and migrated, `skychart/SkyChart.tsx` (the gate removed), deleted `components/live/FollowPhone.tsx` + `useFollowPhone.ts` + `live.follow*` copy (D-350, D-352) |
-| FR-FSC-8 / FR-WIN-6, FR-FOL-3 amended (v1.3.1) | `screens/Live.tsx` (the `now` effect deleted, `now={shown}` to the screen), `components/sky/time/usePlayback.ts` unchanged (D-353) |
+| FR-FSC-8 / FR-WIN-6, FR-FOL-3 amended (v1.3.1) | `screens/Live.tsx` (the `now` effect deleted, `now={shown}` to the screen), `components/live/usePlayback.ts` unchanged (D-353) |
 | FR-FSC-9 (v1.3.1) | `components/screen/SkyScreen.module.css` (`100dvh`, `overscroll-behavior`), `screens/PassDetail.tsx` + module (the sheet held still, the scroll restored) (D-354) |
 | FR-COMP-5 / FR-LIVE-7 amended (v1.3.1) | `screens/Live.module.css` `--page-pad-x: 0` in the landscape block, `skychart/ChartFrame.module.css` (the rule it reads), `tests/e2e/live-landscape.spec.ts` (D-355); F-63 |
 | FR-FSC-7 re-pointed (v1.3.1) | `tests/e2e/sky-screen.spec.ts`, `tests/e2e/captureSet.ts`, `tests/e2e/v1-captures.spec.ts`, `tests/docs/captures.test.ts`, `docs/screenshots/sky-screen-*` (D-356) |
@@ -111,11 +111,11 @@
 | FR-SHP-1, FR-SHP-2 *(v1.4)* | `screens/Live.module.css` (the landscape block, mode-scoped), `tests/styles/liveShape.test.ts` (D-379); F-65 |
 | FR-SHP-3 *(v1.4)* | `lib/layout.ts` `LIVE_BOX_MIN_PX`, `foldRows`; `screens/Live.tsx`, `screens/Live.module.css` (D-381, D-389) |
 | FR-SHP-4, FR-SHP-5 *(v1.4)* | `tests/e2e/shapes.spec.ts`, `docs/screenshots/` (D-380) |
-| FR-SPAN-1, FR-SPAN-5 *(v1.4)* | `lib/timeStripe.ts` `chunkFor`, `STRIPE_CHUNK_H`; `components/sky/time/TimeStripe.tsx` (D-382) |
-| FR-SPAN-2 *(v1.4)* | `components/sky/time/StripeOverview.tsx` + `.module.css`, `lib/timeStripe.ts` (D-383) |
+| FR-SPAN-1, FR-SPAN-5 *(v1.4)* | `lib/timeStripe.ts` `chunkFor`, `STRIPE_CHUNK_H`; `components/live/TimeStripe.tsx` (D-382) |
+| FR-SPAN-2 *(v1.4)* | `components/live/StripeOverview.tsx` + `.module.css`, `lib/timeStripe.ts` (D-383) |
 | FR-SPAN-3, FR-SPAN-4 *(v1.4)* | `components/live/StepControls.tsx`, `screens/Live.tsx` (the `touch` guard removed), `i18n/{en,es}/live.ts`, `tests/styles/controlRows.test.ts` (D-384) |
 | FR-SPAN-6 *(v1.4)* | `lib/timeStripe.ts` `drawnSpan`, `CHUNK_MIN_WALL_S` (D-385) |
-| FR-SPAN-7 *(v1.4)* | `components/sky/time/TimeStripe.tsx` (the cadence on the chunk's width), `lib/timeStripe.ts` `keepLabels` |
+| FR-SPAN-7 *(v1.4)* | `components/live/TimeStripe.tsx` (the cadence on the chunk's width), `lib/timeStripe.ts` `keepLabels` |
 | FR-LEG-6 *(v1.4)* | `screens/Live.tsx` (`columns` deleted), `screens/Live.module.css`, `lib/layout.ts` (`LIVE_TWO_COLUMN_MIN_PX` deleted) (D-386) |
 | FR-LEG-7, FR-LEG-8, FR-LEG-9 *(v1.4)* | `screens/Live.tsx` (`[ list (n) ]`), `skychart/ChartFrame.tsx` + `.module.css` (the slot at two `--tap` rows), `skychart/Legend.tsx` (the empty line), `model/prefs.ts` and `state/slices/prefs.ts` (`liveLegendOpen`), `lib/legend.ts` (the count) (D-387, D-388) |
 | FR-FSC-4 rewritten, FR-FSC-11 *(v1.4.1)* | `skychart/window/SkyWindow.tsx` + module (the `portrait` veil deleted, the ground states unguarded, the advice line, `data-orientation` from the measured box), `i18n/{en,es}/window.ts` `turnAdvice` (`portrait` deleted), `components/screen/SkyScreen.tsx` (the `aria-labelledby` branch deleted) (D-427, D-428) |
@@ -211,11 +211,11 @@
 | FR-FLOW-15 *(v2.6)* | `components/sky/SkyViewLayout.tsx` (the landscape arrangement), `lib/layout.ts`, `tests/e2e/sky-layout.spec.ts` (D-877) |
 | FR-FLOW-16 *(v2.6.1)* | `tests/docs/captureIds.test.ts`, `tests/e2e/{r76,r84}-captures.spec.ts` (D-886) |
 | FR-FLOW-17 *(v2.6.1)* | `src/i18n/{en,es}/{stars,starsPage}.ts`, `components/common/LanguageToggle.tsx`, `skychart/Legend.tsx`, `screens/Live.tsx`, the comments FR-FLOW-17 names (D-887) |
-| FR-TONIGHT-1 *(v2.7)* | `lib/tonightJump.ts` (`openingJump`), `screens/Live.tsx` (the jump effect), `state/slices/ui.ts` (`stayOnNow`), `components/sky/time/usePlayback.ts` (the reader-wrote ref) (D-897, D-898) |
+| FR-TONIGHT-1 *(v2.7)* | `lib/tonightJump.ts` (`openingJump`), `screens/Live.tsx` (the jump effect), `state/slices/ui.ts` (`stayOnNow`), `components/live/usePlayback.ts` (the reader-wrote ref) (D-897, D-898) |
 | FR-TONIGHT-2 *(v2.7)* | `screens/Live.tsx` (the reduced-motion check) (D-898) |
 | FR-TONIGHT-3 *(v2.7)* | `components/live/TimeTrack.{tsx,module.css}`, `lib/layout.ts` (`TRACK_HEIGHT_PX`) (D-896, D-900) |
 | FR-TONIGHT-4 *(v2.7)* | `components/live/TimeTaps.{tsx,module.css}`, `lib/tonightJump.ts` (`tonightTarget`, `nextTarget`) (D-897, D-901) |
-| FR-TONIGHT-5 *(v2.7)* | `lib/playback.ts` (`autoSpeed`, `nightEnd`), `components/sky/time/usePlayback.ts` (`speed: 'auto'`), `physics/constants.ts` (D-896, D-899) |
+| FR-TONIGHT-5 *(v2.7)* | `lib/playback.ts` (`autoSpeed`, `nightEnd`), `components/live/usePlayback.ts` (`speed: 'auto'`), `physics/constants.ts` (D-896, D-899) |
 | FR-TONIGHT-6 *(v2.7)* | `screens/liveRows.ts`, `screens/Live.tsx`, `components/sky/SkyViewLayout.tsx` (`readoutIn`), the list panel's head (D-902, D-904, D-905) |
 | FR-TONIGHT-7 *(v2.7)* | `components/live/ShownTime.tsx`, `lib/shownTime.ts`, `lib/contextLine.ts`, `src/i18n/{en,es}/live.ts` (D-903) |
 | FR-TONIGHT-8 *(v2.7)* | `src/i18n/{en,es}/{live,track}.ts`, `npm run check:dead` |
@@ -292,7 +292,7 @@
 | FR-GLOBE-4 *(v2.12)* | `skychart/globe/GlobeRenderer.ts`, `skychart/window/starGlyphs.ts` (read only) (D-1038) |
 | FR-GLOBE-5 *(v2.12)* | `skychart/globe/projection.ts` (`localFrame`, `coordsIn`, `openView`), `screens/Stars.tsx` (the `Turn` row) (D-1036) |
 | FR-GLOBE-6 *(v2.12)* | `skychart/globe/SkyGlobe.tsx`, `skychart/globe/projection.ts` (`dragTurn`) (D-1036, D-1038) |
-| FR-GLOBE-7 *(v2.12)* | `screens/Stars.tsx` (the second `usePlayback`, the `Time` group), `components/sky/time/usePlayback.ts` (read only) (D-1039) |
+| FR-GLOBE-7 *(v2.12)* | `screens/Stars.tsx` (the second `usePlayback`, the `Time` group), `components/live/usePlayback.ts` (read only) (D-1039) |
 | FR-GLOBE-8 *(v2.12)* | `screens/Stars.tsx`, `lib/timeFormat.ts` (read only), `lib/shownTime.ts` (read only) (D-1039) |
 | FR-GLOBE-9 *(v2.12)* | `screens/Stars.tsx` (the `Place` group), `data/favourites.ts` (read only) (D-1040) |
 | FR-GLOBE-10 *(v2.12)* | `skychart/globe/GlobeRenderer.ts`, `data/stars/deepChunk.ts` (read only), `screens/Stars.tsx` (the toggle) (D-1038) |
