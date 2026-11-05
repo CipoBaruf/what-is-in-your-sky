@@ -21,7 +21,7 @@ export function markSkyHintSeen(): void {
 }
 
 /** An empty slot: the first window to mount fills it, and every later one takes its camera. */
-export function createChartHand(): ChartHand {
+function createChartHand(): ChartHand {
   let kept: HandCamera | null = null;
   const slot: HandSlot = {
     get: () => kept,
