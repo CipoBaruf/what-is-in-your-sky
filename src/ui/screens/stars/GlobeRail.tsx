@@ -6,7 +6,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import { BODIES_EVERY_MS } from '../../../lib/playback';
 import type { EpochMs, Favourite, Observer } from '../../../model';
-import { globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
+import { dayStars, globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
 import { useWallThrottle } from '../../components/live/useWallThrottle';
 import { SectionHeading } from '../../components/primitives/SectionHeading';
 import { ToggleGroup } from '../../components/primitives/ToggleGroup';
@@ -112,7 +112,8 @@ export function GlobeField({ place, instant, layers, faint, named, onName }: Glo
     return { up, total: catalog.size + (deep?.size ?? 0) };
   }, [sky, catalog, deep]);
   const objects = useMemo(() => {
-    const listed = upList(sky, catalog, layers.planets ? sky.planets : [], lang);
+    // V214-36 (D-1139): above −6° the globe draws the stars to `DAY_STARS_MAG`, and the list names only those.
+    const listed = upList(sky, catalog, layers.planets ? sky.planets : [], lang, dayStars(sky.sunAltDeg)?.maxMag);
     return layers.stars ? listed : listed.filter((object) => object.planet !== null);
   }, [sky, catalog, layers.planets, layers.stars, lang]);
   const planets = sky.planets.filter((planet) => planet.altDeg >= 0);

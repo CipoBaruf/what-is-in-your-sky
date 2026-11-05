@@ -7,7 +7,7 @@ import { degrees } from '../../../../../lib/format';
 import { starName } from '../../../../../lib/skyStars';
 import type { Observer } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
-import { DAY_STARS_ALPHA, GLOBE_DIM_OPACITY, GLOBE_GROUND_OPACITY, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
+import { DAY_STARS_ALPHA, DAY_STARS_MAG, GLOBE_DIM_OPACITY, GLOBE_GROUND_OPACITY, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { DOT_STEPS, GlobeRenderer, type GlobeState } from './GlobeRenderer';
 import { openView, project, type Vec3 } from './projection';
 import { altAz, globeSky, starVectors, surfaceAt } from './scene';
@@ -210,39 +210,51 @@ describe('a frame’s attributes (FR-GLOBE-2, FR-GLOBE-13)', () => {
     expect(disc.getAttribute('data-tint')).toBe('day');
   });
 
-  // v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139; was: the same stars by day as by night on the stars page, none on the live page).
-  it('by day, a Sun of +20°, draws the first two rungs and the figures at DAY_STARS_ALPHA, none fainter; the stars layer off draws none', () => {
+  // v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139; was: the same stars by day as by night on the stars page,
+  // none on the live page; then the first two rungs by day alone).
+  it('above −6°, at +20° and at −4°, draws the stars to DAY_STARS_MAG and their figures at DAY_STARS_ALPHA, none fainter; at −10° all at full strength; the layer off draws none', () => {
     const MORNING = Date.parse('2026-11-04T10:33:00Z');
+    const DUSK = Date.parse('2026-11-03T22:40:00Z');
     expect(globeSky(BUENOS_AIRES, MORNING).sunAltDeg).toBeCloseTo(20, 0);
-    const { r } = mount({ t: MORNING });
+    expect(globeSky(BUENOS_AIRES, DUSK).sunAltDeg).toBeGreaterThan(-6);
+    expect(globeSky(BUENOS_AIRES, DUSK).sunAltDeg).toBeLessThan(0);
+    expect(globeSky(BUENOS_AIRES, T).sunAltDeg).toBeLessThan(-10);
     const faded = ['[data-figure-lines]', '[data-dots]', '[data-stars]'];
-    for (const group of faded) expect(q(r, group).getAttribute('opacity'), group).toBe(String(DAY_STARS_ALPHA));
-    const shownMarks = (): number[] => [...r.svg.querySelectorAll('[data-star][visibility="visible"]')].map((node) => catalog.mag[Number(node.getAttribute('data-star'))] ?? 99);
-    const mags = shownMarks();
-    expect(mags.length).toBeGreaterThan(3);
-    expect(Math.max(...mags)).toBeLessThanOrEqual(1.5);
-    expect(dotLength(r)).toBe(0);
-    // A figure's line only between two drawn stars: none ends on an empty sky.
     const ends = catalog.figures.flatMap((figure) => Array.from({ length: Math.floor(figure.segments.length / 2) }, (_, k) => [figure.segments[2 * k] ?? 0, figure.segments[2 * k + 1] ?? 0]));
-    expect(ends).toHaveLength(r.lines.length);
-    r.lines.forEach((line, k) => {
-      const [a = 0, b = 0] = ends[k] ?? [];
-      if (line) expect(Math.max(catalog.mag[a] ?? 99, catalog.mag[b] ?? 99)).toBeLessThanOrEqual(1.5);
-    });
-    // No hit on a star the day does not draw.
-    r.hits.slice(0, catalog.size).forEach((hit, i) => {
-      if (hit) expect(catalog.mag[i] ?? 99).toBeLessThanOrEqual(1.5);
-    });
-    r.set({ layers: { stars: false, figures: true, planets: true, names: true } });
+    /** The catalogue stars drawn: the `*` marks and the dots are each a hit at their point (FR-GLOBE-11). */
+    const drawnMags = (r: GlobeRenderer): number[] => r.hits.slice(0, catalog.size).flatMap((hit, i) => (hit ? [catalog.mag[i] ?? 99] : []));
+    const { r } = mount({ t: MORNING });
+    for (const t of [MORNING, DUSK]) {
+      r.set({ t });
+      r.draw();
+      for (const group of faded) expect(q(r, group).getAttribute('opacity'), `${group} at ${String(t)}`).toBe(String(DAY_STARS_ALPHA));
+      const mags = drawnMags(r);
+      // A sky, not a dozen points: the marks and the dots past `STAR_DOT_MAG`, none past `DAY_STARS_MAG`.
+      expect(mags.length).toBeGreaterThan(40);
+      expect(Math.max(...mags)).toBeLessThanOrEqual(DAY_STARS_MAG);
+      expect(mags.some((mag) => mag > 2.5)).toBe(true);
+      expect(dotLength(r)).toBeGreaterThan(0);
+      // The figures between two drawn stars, and none ending on an empty sky.
+      expect(ends).toHaveLength(r.lines.length);
+      expect(r.lines.filter(Boolean).length).toBeGreaterThan(10);
+      r.lines.forEach((line, k) => {
+        const [a = 0, b = 0] = ends[k] ?? [];
+        if (line) expect(Math.max(catalog.mag[a] ?? 99, catalog.mag[b] ?? 99)).toBeLessThanOrEqual(DAY_STARS_MAG);
+      });
+    }
+    // The faint toggle adds nothing by day: the deep chunk is not drawn.
+    r.set({ t: MORNING, faint: true });
     r.draw();
-    expect(shownMarks()).toEqual([]);
+    expect(Math.max(...drawnMags(r))).toBeLessThanOrEqual(DAY_STARS_MAG);
+    r.set({ faint: false, layers: { stars: false, figures: true, planets: true, names: true } });
+    r.draw();
+    expect(drawnMags(r)).toEqual([]);
     expect(dotLength(r)).toBe(0);
-    // The night: no fade, every rung again.
+    // The night, −10° and below: no fade, every star again.
     r.set({ t: T, layers: { stars: true, figures: true, planets: true, names: true } });
     r.draw();
     for (const group of faded) expect(q(r, group).hasAttribute('opacity'), group).toBe(false);
-    expect(Math.max(...shownMarks())).toBeGreaterThan(1.5);
-    expect(dotLength(r)).toBeGreaterThan(0);
+    expect(Math.max(...drawnMags(r))).toBeGreaterThan(DAY_STARS_MAG);
   });
 
   it('draws the grid, the ecliptic, the Milky Way and the figures as paths, the figures only with the layer on', () => {

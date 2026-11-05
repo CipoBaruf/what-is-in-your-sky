@@ -166,6 +166,8 @@ export interface DotBucket {
   dirs: number[];
   /** How many numbers of `dirs` are the bright catalogue's (three per star); the rest are the deep chunk's. */
   bright: number;
+  /** D-1139: the bright catalogue members' magnitudes, one per star, for the day's cut (`dayStars`). */
+  mags: number[];
   above: SVGPathElement;
   below: SVGPathElement;
 }
@@ -402,7 +404,7 @@ export class GlobeRenderer {
         const attrs = { 'data-tone': tone, 'data-size': r, 'stroke-width': r * 2 };
         const below = el('path', { class: `${cls('dot')} ${DIM}`, 'data-side': 'below', opacity: GLOBE_DIM_OPACITY, ...attrs }, dots);
         const above = el('path', { class: cls('dot'), 'data-side': 'above', ...attrs }, dots);
-        this.buckets.push({ tone, r, dirs: [], bright: 0, above, below });
+        this.buckets.push({ tone, r, dirs: [], bright: 0, mags: [], above, below });
       }
     }
 
@@ -417,7 +419,9 @@ export class GlobeRenderer {
         const node = text(cls('mark'), mark.glyph, { 'data-star': i, 'data-glyph': mark.glyph, 'data-px': mark.px, 'data-tone': mark.tone, 'font-size': mark.px, dx, dy, visibility: 'hidden' }, stars);
         this.glyphs.push({ index: i, node, px: mark.px });
       } else {
-        this.bucketFor(mark.tone, mark.r).dirs.push(this.dirs[3 * i] ?? 0, this.dirs[3 * i + 1] ?? 0, this.dirs[3 * i + 2] ?? 0);
+        const bucket = this.bucketFor(mark.tone, mark.r);
+        bucket.dirs.push(this.dirs[3 * i] ?? 0, this.dirs[3 * i + 1] ?? 0, this.dirs[3 * i + 2] ?? 0);
+        bucket.mags.push(mag);
       }
     }
     // R185 (FR-NAME-2): the one label rule — a proper name to `NAMED_MAG`, a designation brighter than `BAYER_LABEL_MAG` (a dot too).
@@ -653,7 +657,7 @@ export class GlobeRenderer {
     this.disc.setAttribute('r', fmt(p.radius));
     this.disc.setAttribute('data-tint', surfaceAt(sky));
     this.ground.setAttribute('d', groundPath(p, sky.zenith));
-    // v2.14.1 (FR-STAR-13 as amended, D-1139): by day the first two rungs only, the stars and figures at `DAY_STARS_ALPHA`.
+    // v2.14.1 (FR-STAR-13 as amended, V214-36, D-1139): above −6° the stars to `DAY_STARS_MAG`, they and the figures at `DAY_STARS_ALPHA`.
     const day = dayStars(sky.sunAltDeg);
     const maxMag = day?.maxMag ?? Number.POSITIVE_INFINITY;
     const drawsStar = (i: number): boolean => s.layers.stars && this.near[i] === 1 && (this.catalog.mag[i] ?? 0) <= maxMag;
@@ -714,10 +718,11 @@ export class GlobeRenderer {
     for (const bucket of this.buckets) {
       let above = '';
       let below = '';
-      // The dots are every star fainter than `STAR_DOT_MAG`, so the day's cut, brighter than that, draws none of them.
-      if (s.layers.stars && maxMag > STAR_DOT_MAG) {
-        const limit = s.faint ? bucket.dirs.length : bucket.bright;
+      // By day (D-1139) the bright catalogue's dots to the day's magnitude, and none of the deep chunk's.
+      if (s.layers.stars) {
+        const limit = day === null && s.faint ? bucket.dirs.length : bucket.bright;
         for (let k = 0; k + 2 < limit; k += 3) {
+          if (day !== null && (bucket.mags[k / 3] ?? 99) > maxMag) continue;
           const x = bucket.dirs[k] ?? 0;
           const y = bucket.dirs[k + 1] ?? 0;
           const z = bucket.dirs[k + 2] ?? 0;

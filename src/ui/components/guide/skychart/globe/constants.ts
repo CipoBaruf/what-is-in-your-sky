@@ -25,10 +25,13 @@ export const GLOBE_KEY_STEP_DEG = 15;
 export const GLOBE_DIM_OPACITY = 0.4;
 
 /**
- * v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139): while the Sun is above 0° the globe draws its stars and figures
- * at this share of their night strength over the day surface, instead of hiding them.
+ * v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139): while the Sun is above −6° (day and twilight) the globe
+ * draws its stars and figures at this share of their night strength over the surface, instead of hiding them.
  */
 export const DAY_STARS_ALPHA = 0.35;
+
+/** V214-36 (D-1139): the faintest magnitude the globe draws while the Sun is above −6° — a sky, not a dozen points. */
+export const DAY_STARS_MAG = 3.5;
 
 /** FR-GLOBE-3: the ground side's shade in `--chart-ground`. */
 export const GLOBE_GROUND_OPACITY = 0.85;

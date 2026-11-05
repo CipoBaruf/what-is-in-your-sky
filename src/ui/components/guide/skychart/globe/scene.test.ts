@@ -7,7 +7,7 @@ import type { Observer } from '../../../../../model';
 import { FIELD_LIST_MAX, fieldObjects } from '../../../../screens/stars/field';
 import { handRotation } from '../window/camera';
 import { WINDOW_FOV } from '../window/projection';
-import { DAY_STARS_ALPHA } from './constants';
+import { DAY_STARS_ALPHA, DAY_STARS_MAG } from './constants';
 import { dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, project, projector, radec, type Vec3 } from './projection';
 import { altAz, dayStars, figureAnchor, globeSky, starVectors, surfaceAt, upCount, upList } from './scene';
 
@@ -185,22 +185,31 @@ describe('the surface (FR-GLOBE-13)', () => {
   });
 });
 
-/** v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139): the globe's stars by day; the drawing is `GlobeRenderer.test.ts`'s. */
+/** v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139): the globe's stars by day; the drawing is `GlobeRenderer.test.ts`'s. */
 describe('the day stars (FR-STAR-13 as amended)', () => {
-  it('are the first two rungs at DAY_STARS_ALPHA while the Sun is above 0°, at +20° as just past the horizon', () => {
-    const day = { maxMag: RUNG_MAX_MAG[1], alpha: DAY_STARS_ALPHA };
+  it('are the stars to DAY_STARS_MAG at DAY_STARS_ALPHA while the Sun is above −6°: day and twilight alike', () => {
+    const day = { maxMag: DAY_STARS_MAG, alpha: DAY_STARS_ALPHA };
     expect(DAY_STARS_ALPHA).toBe(0.35);
-    expect(dayStars(20)).toEqual(day);
-    expect(dayStars(0.1)).toEqual(day);
-    expect(dayStars(70)).toEqual(day);
-    // Over a Buenos Aires morning, the Sun +20° up: the surface's `day` step.
-    const sky = globeSky(BUENOS_AIRES, Date.parse('2026-11-04T10:33:00Z'));
-    expect(sky.sunAltDeg).toBeCloseTo(20, 0);
-    expect(dayStars(sky.sunAltDeg)).toEqual(day);
+    expect(DAY_STARS_MAG).toBe(3.5);
+    // Fainter than the window's twilight rungs (V214-36: about 13 stars was a dozen points, not a sky).
+    expect(DAY_STARS_MAG).toBeGreaterThan(RUNG_MAX_MAG[1] ?? 0);
+    for (const alt of [70, 20, 0.1, 0, -3, -5.9]) expect(dayStars(alt), String(alt)).toEqual(day);
+    // Over a Buenos Aires morning, the Sun +20° up: the surface's `day` step; at dusk, −3°: its `twilight`.
+    const morning = globeSky(BUENOS_AIRES, Date.parse('2026-11-04T10:33:00Z'));
+    expect(morning.sunAltDeg).toBeCloseTo(20, 0);
+    expect(dayStars(morning.sunAltDeg)).toEqual(day);
   });
 
-  it('are none at 0° and below: twilight and night draw as before', () => {
-    for (const alt of [0, -3, -6, -20, Number.NaN]) expect(dayStars(alt)).toBeNull();
+  it('are none at −6° and below: the globe draws as at night', () => {
+    for (const alt of [-6, -10, -20, Number.NaN]) expect(dayStars(alt)).toBeNull();
+  });
+
+  it('cut the Up from list to the stars drawn: none fainter than DAY_STARS_MAG by day, the night’s list at night', () => {
+    const noon = globeSky(BUENOS_AIRES, Date.parse('2026-11-04T15:00:00Z'));
+    const listed = upList(noon, catalog, [], 'en', dayStars(noon.sunAltDeg)?.maxMag);
+    expect(listed.length).toBeGreaterThan(0);
+    for (const object of listed) expect(object.mag).toBeLessThanOrEqual(DAY_STARS_MAG);
+    expect(upList(noon, catalog, [], 'en', 1)).toEqual(upList(noon, catalog, [], 'en').filter((object) => object.mag <= 1));
   });
 });
 

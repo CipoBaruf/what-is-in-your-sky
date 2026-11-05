@@ -1,12 +1,12 @@
 import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR } from 'astronomy-engine';
 import { compassPoint } from '../../../../../lib/compass';
 import { skyBodiesAt } from '../../../../../lib/skyBodies';
-import { drawnMagLimit, drawnRungs, PLANETS, starName, type StarNamesSource, type StarPositionsSource } from '../../../../../lib/skyStars';
+import { PLANETS, starName, type StarNamesSource, type StarPositionsSource } from '../../../../../lib/skyStars';
 import type { EpochMs, Locale, MoonState, Observer } from '../../../../../model';
 import { FIELD_LIST_MAX, type FieldObject } from '../../../../screens/stars/field';
 import type { Point } from '../window/starGlyphs';
 import { tintStep, type TintStep } from '../window/skySurface';
-import { DAY_STARS_ALPHA } from './constants';
+import { DAY_STARS_ALPHA, DAY_STARS_MAG } from './constants';
 import { add, dot, localFrame, scale, type Frame, type Vec3 } from './projection';
 
 /**
@@ -158,10 +158,11 @@ export function upCount(sky: GlobeSky, dirs: StarVectors): number {
  * star up; `planets` (the sky's, or none when the layer is off) are merged in
  * by their magnitude, a planet's index past the catalogue's length (D-750).
  */
-export function upList(sky: GlobeSky, catalog: StarPositionsSource & StarNamesSource & { mag: ArrayLike<number> }, planets: readonly GlobePlanet[], lang: Locale): FieldObject[] {
+export function upList(sky: GlobeSky, catalog: StarPositionsSource & StarNamesSource & { mag: ArrayLike<number> }, planets: readonly GlobePlanet[], lang: Locale, maxMag = Number.POSITIVE_INFINITY): FieldObject[] {
   const dirs = starVectors(catalog);
   const found: FieldObject[] = [];
-  for (let i = 0; i < catalog.size && found.length < FIELD_LIST_MAX; i += 1) {
+  // V214-36 (D-1139): by day the list is the drawn stars' (`dayStars`' `maxMag`); the catalogue is in magnitude order.
+  for (let i = 0; i < catalog.size && found.length < FIELD_LIST_MAX && (catalog.mag[i] ?? 99) <= maxMag; i += 1) {
     const { altDeg, azDeg } = altAz(sky, starAt(dirs, i));
     if (altDeg < 0) continue;
     found.push({ index: i, name: starName(catalog, i, lang), planet: null, mag: catalog.mag[i] ?? 99, altDeg, point: compassPoint(azDeg) });
@@ -224,13 +225,12 @@ export interface DayStars {
 }
 
 /**
- * v2.14.1 (FR-STAR-13 as amended, V214-30; D-1139): the globe's stars while the surface is `day` (the Sun above 0°)
- * — the first two rungs, `drawnRungs` at the Sun held at −1° (the twilight step's), at `DAY_STARS_ALPHA` — and
- * `null` otherwise, when the globe draws as it did (the window, the dome and the polar chart keep FR-STAR-13 as
- * written). With the stars layer off nothing is drawn, whatever this says.
+ * v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139): the globe's stars while the Sun is above −6° — the
+ * surface's `day` and `twilight` steps — the stars to `DAY_STARS_MAG` and the figures between them, at
+ * `DAY_STARS_ALPHA`; `null` at −6° and below, when the globe draws as at night (the window, the dome and the polar
+ * chart keep FR-STAR-13 as written). With the stars layer off nothing is drawn, whatever this says.
  */
 export function dayStars(sunAltDeg: number): DayStars | null {
-  if (tintStep(sunAltDeg) !== 'day') return null;
-  // The plan's `max(sunAlt, −1)` reads as the Sun held at −1° (a max would leave +20° at none): the twilight step's rungs.
-  return { maxMag: drawnMagLimit(drawnRungs(Math.min(sunAltDeg, -1))), alpha: DAY_STARS_ALPHA };
+  if (tintStep(sunAltDeg) === 'deep') return null;
+  return { maxMag: DAY_STARS_MAG, alpha: DAY_STARS_ALPHA };
 }
