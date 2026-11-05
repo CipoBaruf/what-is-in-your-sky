@@ -7,6 +7,7 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { globeAt, GLOBE_WORD, LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { seedThreePasses } from './threePasses';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -263,5 +264,49 @@ test.describe('the compact stars page', () => {
     await page.waitForTimeout(1_500);
     expect(asked).toEqual([]);
     await expect(page.getByTestId('globe-box')).toHaveCount(0);
+  });
+});
+
+/*
+ * R186 (FR-WIDE-3, FR-WIDE-6; US-52 AC3, AC6; D-1099): the live page's globe on a desk. The capture set's instant has
+ * one pass in FR-LIVE-2's set, on the far side of the pole-side opening view, so the three arcs are `threePasses.ts`'s
+ * stored run at the suite's instant over Neuquén.
+ */
+test.describe('the live page’s globe at 1280 × 800', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+  const drawnArcs = (page: Page): Promise<string[][]> =>
+    page.locator('[data-globe] [data-arc-series]').evaluateAll((paths) => paths.filter((path) => (path.getAttribute('d') ?? '') !== '').map((path) => [path.getAttribute('data-pass-ids') ?? '', path.getAttribute('data-color') ?? '']));
+
+  test('FR-WIDE-3: three arcs at the instant, each in its legend row’s colour', async ({ page }) => {
+    await seedThreePasses(page);
+    await page.goto('/#live');
+    await page.reload();
+    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe', { timeout: 30_000 });
+    await expect.poll(async () => (await drawnArcs(page)).length, { timeout: 30_000 }).toBe(3);
+    const legend = page.getByTestId('chart-legend');
+    for (const [ids, color] of await drawnArcs(page)) {
+      const swatch = legend.locator(`button[data-pass-id="${ids}"] [data-color]`);
+      await expect(swatch, ids).toHaveAttribute('data-color', color);
+    }
+  });
+
+  test('FR-WIDE-6: a desk with nothing saved asks for no SkyDome-*.js; Dome chosen asks for it', async ({ page }) => {
+    const asked: string[] = [];
+    page.on('request', (request) => {
+      if (/\/SkyDome-[^/]*\.(js|css)$/.test(request.url())) asked.push(request.url());
+    });
+    await seedThreePasses(page);
+    await page.goto('/#live');
+    await page.reload();
+    await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
+    // The stars page too, and past the idle the desk prefetches the globe on.
+    await page.goto('/#stars');
+    await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
+    await page.waitForTimeout(1_500);
+    expect(asked).toEqual([]);
+    await page.getByTestId('stars-view-row').getByRole('button', { name: 'Dome', exact: true }).click();
+    await expect(page.locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
+    expect(asked.length).toBeGreaterThan(0);
   });
 });

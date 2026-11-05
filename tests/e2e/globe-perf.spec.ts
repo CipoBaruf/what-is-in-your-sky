@@ -9,6 +9,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { openStarsPage, showGlobe } from './globeHelpers';
+import { seedThreePasses } from './threePasses';
 
 const THROTTLE = 4;
 const SECONDS = 5;
@@ -67,37 +68,9 @@ const stop = (page: Page): Promise<Sample> => page.evaluate(() => window.__globe
 /** The dot paths' total length: the faint stars are appended to them (FR-GLOBE-10), no node added. */
 const dotLength = (page: Page): Promise<number> => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-dots] path')].reduce((sum, path) => sum + (path.getAttribute('d')?.length ?? 0), 0));
 
-/**
- * R184 (FR-WIDE-11, D-1114): three passes over the page's instant, the second highlighted, put where `SkyGlobe`'s
- * harness reads them before the page loads — east to west through Neuquén's southern sky, so the opening view draws them,
- * with the ticks and the arrow. Built in the page from its own clock (the fixed suite night).
- */
-function installPasses(): void {
-  // Read on the globe's first render, after `openStarsPage`'s own init script has fixed the clock.
-  let made: unknown = null;
-  Object.defineProperty(window, '__globeHarness', {
-    get() {
-      if (made !== null) return made;
-      const now = Date.now();
-      const passes = [0, 1, 2].map((k) => {
-        const start = now - 60_000 * (k + 1);
-        const track = Array.from({ length: 37 }, (_, i) => ({ t: start + i * 10_000, azDeg: 110 + 140 * (i / 36) + k * 12, elDeg: 25 + 55 * Math.sin((Math.PI * i) / 36) - k * 8, rangeKm: 900 }));
-        return { id: `perf-${String(k)}`, name: `PERF ${String(k)}`, track, start: track[0], peak: track[18], end: track[36] };
-      });
-      made = { passes, highlightedPassId: 'perf-1' };
-      return made;
-    },
-  });
-}
-
-async function prepare(page: Page, faint: boolean, arcs = false): Promise<void> {
-  if (arcs) await page.addInitScript(installPasses);
+async function prepare(page: Page, faint: boolean): Promise<void> {
   await openStarsPage(page);
   await showGlobe(page);
-  if (arcs) {
-    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-arc-series]')].filter((path) => (path.getAttribute('d') ?? '') !== '').length)).toBe(3);
-    await expect(page.locator('[data-globe] [data-arc-ticks]')).not.toHaveAttribute('d', '');
-  }
   for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
   if (faint) {
     const before = await dotLength(page);
@@ -105,6 +78,30 @@ async function prepare(page: Page, faint: boolean, arcs = false): Promise<void> 
     await expect(page.getByRole('button', { name: 'faint' })).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => dotLength(page), { timeout: 30_000 }).toBeGreaterThan(before);
   }
+}
+
+/**
+ * R186 (FR-WIDE-11; D-1114 retired): the live page on a fresh desk — the globe it opens on, with `threePasses.ts`'s three
+ * passes up as its arcs, a highlighted one's ticks and arrow, and the planets; the layers the page's stars toggle gives.
+ */
+async function prepareLive(page: Page): Promise<void> {
+  await seedThreePasses(page);
+  await page.goto('/#live');
+  await page.reload();
+  await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe', { timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-arc-series]')].filter((path) => (path.getAttribute('d') ?? '') !== '').length), { timeout: 30_000 }).toBe(3);
+}
+
+/** The live page's ×3600: `[ scrub ]` shows the speeds (FR-WATCH-1), then `3600×` and play, for `SECONDS`. */
+async function liveLapse(page: Page): Promise<Sample> {
+  await page.getByTestId('live-scrub').click();
+  await page.getByRole('button', { name: '3600×' }).click();
+  await page.evaluate(installCounter);
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(SECONDS * 1000);
+  const sample = await stop(page);
+  await page.getByRole('button', { name: 'Pause' }).click();
+  return sample;
 }
 
 async function drag(page: Page): Promise<Sample> {
@@ -178,12 +175,12 @@ for (const viewport of DESKS) {
     });
   }
 
-  // R184 (FR-WIDE-11, D-1114): the same drag with three arcs, the highlighted one's ticks and arrow, and the planets' discs, the faint stars on.
-  test.describe(`at ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on`, () => {
+  // R186 (FR-WIDE-11, D-1114 retired): the live page's globe with its three passes' arcs, best of three drags and ×3600.
+  test.describe(`the live page at ${String(viewport.width)} × ${String(viewport.height)}, three passes`, () => {
     test.use({ viewport });
 
     test('a drag with the arcs on, best of three, draws at ≥ 30 updates/s under a 4x CPU throttle (FR-WIDE-11)', async ({ page }) => {
-      await prepare(page, true, true);
+      await prepareLive(page);
       const cdp = await page.context().newCDPSession(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
       const samples: Sample[] = [];
@@ -191,18 +188,18 @@ for (const viewport of DESKS) {
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       await cdp.detach();
       const best = samples.reduce((a, b) => (b.updatesPerSecond > a.updatesPerSecond ? b : a));
-      console.log(`[FR-WIDE-11] drag ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on, ${String(THROTTLE)}x CPU: best of ${String(DRAGS)} ${line(best)} (runs ${samples.map((s) => s.updatesPerSecond.toFixed(1)).join(', ')})`);
+      console.log(`[FR-WIDE-11] live page drag ${String(viewport.width)} × ${String(viewport.height)}, three passes, ${String(THROTTLE)}x CPU: best of ${String(DRAGS)} ${line(best)} (runs ${samples.map((s) => s.updatesPerSecond.toFixed(1)).join(', ')})`);
       expect(best.updatesPerSecond).toBeGreaterThanOrEqual(TARGET_PER_SECOND);
     });
 
     test('the ×3600 time-lapse with the arcs on draws at ≥ 30 updates/s under a 4x CPU throttle (FR-WIDE-11)', async ({ page }) => {
-      await prepare(page, true, true);
+      await prepareLive(page);
       const cdp = await page.context().newCDPSession(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
-      const sample = await lapse(page);
+      const sample = await liveLapse(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       await cdp.detach();
-      console.log(`[FR-WIDE-11] ×3600 ${String(viewport.width)} × ${String(viewport.height)}, three passes, faint on, ${String(THROTTLE)}x CPU: ${line(sample)}`);
+      console.log(`[FR-WIDE-11] live page ×3600 ${String(viewport.width)} × ${String(viewport.height)}, three passes, ${String(THROTTLE)}x CPU: ${line(sample)}`);
       expect(sample.updatesPerSecond).toBeGreaterThanOrEqual(TARGET_PER_SECOND);
     });
   });
