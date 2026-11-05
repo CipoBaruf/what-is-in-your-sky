@@ -142,3 +142,41 @@ test.describe('the follow question on wide (FR-PHONE-17)', () => {
     });
   }
 });
+
+/** v2.14.3: the dialog is centred and inside the screen on every phone, portrait and landscape, in both languages. */
+const PHONES = [
+  [320, 568],
+  [360, 780],
+  [375, 667],
+  [390, 844],
+  [412, 915],
+  [430, 932],
+  [667, 375],
+  [844, 390],
+] as const;
+test.describe('the follow question fits every phone (FR-PHONE-17)', () => {
+  test.use({ hasTouch: true });
+  for (const [width, height] of PHONES) {
+    for (const locale of ['en', 'es'] as const) {
+      test(`${String(width)} × ${String(height)}, ${locale}: centred, inside the screen, no sideways scroll`, async ({ page }) => {
+        await page.setViewportSize({ width, height });
+        await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)] });
+        await openPage(page, 'stars', locale);
+        const shown = question(page);
+        await expect(shown).toBeVisible({ timeout: 30_000 });
+        const box = (await shown.boundingBox()) ?? { x: -1, y: -1, width: 0, height: 0 };
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(width + 0.5);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height).toBeLessThanOrEqual(height + 0.5);
+        expect(Math.abs(box.x - (width - box.x - box.width)), 'as far from the left edge as from the right').toBeLessThanOrEqual(1);
+        for (const id of ['follow-ask-allow', 'follow-ask-not-now']) {
+          const b = (await page.getByTestId(id).boundingBox()) ?? { x: -1, y: 0, width: 0, height: 0 };
+          expect(b.x).toBeGreaterThanOrEqual(box.x);
+          expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 0.5);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      });
+    }
+  }
+});
