@@ -212,7 +212,7 @@ What every session reads, named in each task as "the phase set": the task's entr
 
 ### Wave 4
 
-- [ ] **R189 — The keys and the full sky: `g w d , . t Space a f` in one table, the `?` overlay from it, and the box in full screen**
+- [x] **R189 — The keys and the full sky: `g w d , . t Space a f` in one table, the `?` overlay from it, and the box in full screen** — the page object goes to its layout's `keys`, `a` stays the window's own listener and full screen the layout's (D-1126); the `f` presses were in `sky-window.spec.ts` and `v1-captures.spec.ts`.
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 500
