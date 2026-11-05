@@ -9,7 +9,7 @@ export const DOCS = ['SPEC', 'PLAN', 'TASKS'] as const;
 export type Doc = (typeof DOCS)[number];
 
 /** Every phase folder, in release order (FR-SDD-3). */
-export const PHASES = ['mvp', 'v1', 'v1.1', 'v1.2', 'v1.3', 'v1.3.2', 'v1.4', 'v2.0', 'v2.1', 'v2.2', 'v2.2.1', 'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v2.6.1', 'v2.7', 'v2.8', 'v2.9', 'v2.10', 'v2.11', 'v2.12', 'v2.13', 'v2.14', 'v2.14.1'] as const;
+export const PHASES = ['mvp', 'v1', 'v1.1', 'v1.2', 'v1.3', 'v1.3.2', 'v1.4', 'v2.0', 'v2.1', 'v2.2', 'v2.2.1', 'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v2.6.1', 'v2.7', 'v2.8', 'v2.9', 'v2.10', 'v2.11', 'v2.12', 'v2.13', 'v2.14', 'v2.14.1', 'v2.14.2'] as const;
 /** The phase TASKS.md holds open; its spec and plan sections already live in its folder. */
 export const OPEN_PHASE = 'v2.13';
 

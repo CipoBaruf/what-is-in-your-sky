@@ -8,12 +8,15 @@ The header's Status cell grew one paragraph per revision until it ran to tens of
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the spec is revised, the Status line it replaces goes to the top of this list.
 
-**Dates since the split:** 2026-11-04 (v2.14).
+**Dates since the split:** 2026-11-05 (v2.14.1); 2026-11-04 (v2.14).
 
 **Dates:** 2026-11-03 (v2.13); 2026-11-03 (v2.12); 2026-11-02 (v2.11); 2026-11-01 (v2.10); 2026-10-30 (v2.9); 2026-10-30 (v2.8); 2026-10-29 (v2.7); 2026-10-29 (v2.6.1); 2026-10-27 (v2.6, approved); 2026-10-25 (v2.5, approved: zoom, OQ-46, delivery; the Spanish names); 2026-10-24 (v2.5, the design review); 2026-10-19 (v2.5); 2026-10-23 (v2.4.1); 2026-10-19 (v2.4); 2026-10-19 (v2.3); 2026-09-28 (v2.2.2); 2026-09-28 (v2.2.1); 2026-09-25 (v2.2); 2026-09-21 (v2.1); 2026-09-19 (v2.0.3); 2026-09-18 (v2.0.2); 2026-09-14 (v2.0.1); 2026-09-09 (v2.0); 2026-09-08 (v1.4); 2026-09-08 (v1.3.3); 2026-09-08 (v1.3.2); 2026-09-07 (v1.2); 2026-09-06 (v1.1.2); 2026-09-06 (v1.1.1); 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4)
 
 ### Status, newest first
 
+- **Draft v2.14.1 — for review.**
+  Phase v2.14.1 "the desk, reviewed" (the owner's desk review of 2.14.0: the pass page's way back and pass list, the `[ satellites ]` link, a pass opening on its whole path at its rise, the stars page without the satellites' time, faint day stars on the globe, the live page's first-pass dialog, one-line field focus):
+  FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3, FR-WIDE-4 and FR-STAR-13 amended, FR-WIDE-13..14, Decision Log V214-25..V214-32, in `docs/sdd/phases/v2.14.1/spec.md`.
 - **Draft v2.14 — for review.**
   Phase v2.14 "one sky on a desk" (the three wide pages as one layout, the globe with the passes, the dome by choice, the facts, the names, the desk controls): §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57, G62–G66, Decision Log V214-1..V214-22 and roadmap §9 Phase 2w, in `docs/sdd/phases/v2.14/spec.md`.
   The owner's answers of 2026-11-04 are V214-1..V214-14.
@@ -170,12 +173,14 @@ The header's Status and Input cells grew one paragraph per revision until they r
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the plan is revised, the Status and Input lines it replaces go to the top of these lists.
 
-**Dates since the split:** 2026-11-04 (v0.22).
+**Dates since the split:** 2026-11-05 (v0.23); 2026-11-04 (v0.22).
 
 **Dates:** 2026-11-03 (v0.21); 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
 
 ### Status, newest first
 
+- **Draft v0.23 — for review.**
+  Plans SPEC v2.14.1 "the desk, reviewed": the decisions are §2.51 (D-1134..D-1141) and the delivery is §16.34 (one local branch, the owner's read before any push), in `docs/sdd/phases/v2.14.1/plan.md`.
 - **Draft v0.22 — for review.**
   Plans SPEC v2.14 "one sky on a desk": the decisions are §2.50 (D-1094..D-1108 this plan's, D-1109..D-1131 the blocks its tasks spend) and the delivery is §16.33 (P10 first, then R182–R191 in six waves, auto-merged; 2.14.0 tagged by the owner), in `docs/sdd/phases/v2.14/plan.md`.
 - **Draft v0.21 — for review.**
@@ -248,6 +253,7 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Input, newest first
 
+- `SPEC.md` v2.14.1: V214-25..V214-32 are fixed like the rows before them.
 - `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise.
   *(the v0.21 header line)*
 - `SPEC.md` v2.12: V212-1..V212-13 are fixed like the rows before them, and SPEC §5.17's proposal is adopted where §2.48 does not say otherwise.

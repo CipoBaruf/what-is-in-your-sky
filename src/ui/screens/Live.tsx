@@ -37,6 +37,7 @@ import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
 import { FirstPassDialog } from '../components/sky/FirstPassDialog';
+import { FollowAsk } from '../components/sky/FollowAsk';
 import { BackToLive, HiddenToggle, ScrubButton } from '../components/sky/time/PlaybackControls';
 import { TimeControl } from '../components/sky/time/TimeControl';
 import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
@@ -484,7 +485,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
    * takes the sky back (`onFollowEnd`). The controls are drawn only where the sensor is (`follow.sensor`, FR-WIN-4's
    * presence test, asked once at mount), so a page without one has no row for them at all.
    */
-  const follow = useFollow();
+  const follow = useFollow(compact);
   const following = follow.on;
   const sensor = follow.sensor;
   const followToggle = sensor ? <FollowToggle follow={follow} /> : null;
@@ -1100,7 +1101,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   if (compact) {
     const overlay = (
       <>
-        {opening !== null && (
+        {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question first; FR-FULL-10's card waits until it is answered (V214-43). */}
+        <FollowAsk follow={follow} />
+        {opening !== null && !follow.asking && (
           <div className={styles.cardArea}>
             <OpeningCard choice={opening} now={now} timeZone={observer.timeZone} onNext={onCardNext} onNow={onCardNow} />
           </div>

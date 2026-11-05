@@ -23,6 +23,11 @@
  * asks once and follows; a refusal there leaves it off with the line and clears the grant. The cases above, which
  * tap the toggle on a first visit, are an iPhone's first visit: the stub's request is there and nothing is saved.
  *
+ * v2.14.2 (FR-PHONE-17, FR-PHONE-1 and FR-PHONE-2 as amended; D-1143): on a phone a page asks before it follows. The
+ * cases here run with the question answered for the visit (`FOLLOW_ASKED_KEY` seeded), so they read the toggle and the
+ * window as before; following by default needs a saved allow, and the saved grant's one request is the question's
+ * `[ allow ]`, not the first touch. `follow-ask.spec.ts` owns the question itself.
+ *
  *   npx playwright test follow --project=chromium
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -31,6 +36,29 @@ import { FOLLOW_HORIZON_SHARE } from '../../src/ui/components/guide/skychart/win
 import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { aimedAt, orientationAsks, setReadings, stubOrientation } from './orientation';
+
+/** `useFollow.ts`'s `FOLLOW_ASKED_KEY`, written out: that module pulls in the store, which Node does not load. */
+const FOLLOW_ASKED_KEY = 'wiys:followAsked:v1';
+
+/** v2.14.2 (FR-PHONE-17): every case starts with the question answered this visit; `unasked` takes it back for one test. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((key) => {
+    sessionStorage.setItem(key, '1');
+  }, FOLLOW_ASKED_KEY);
+});
+async function unasked(page: Page): Promise<void> {
+  await page.addInitScript((key) => {
+    sessionStorage.removeItem(key);
+  }, FOLLOW_ASKED_KEY);
+}
+
+/** The question's `[ allow ]`, then FR-FULL-10's card, which waited for it on the live page (V214-43), answered `now`. */
+async function allowInQuestion(page: Page): Promise<void> {
+  await page.getByTestId('follow-ask-allow').click();
+  await expect(page.getByTestId('follow-ask')).toHaveCount(0);
+  const card = page.getByTestId('live-card');
+  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+}
 
 type Locale = 'en' | 'es';
 type Which = 'live' | 'stars' | 'detail';
@@ -354,10 +382,12 @@ for (const size of SIZES) {
       test.use({ viewport: { width: size.width, height: size.height }, hasTouch: true });
 
       for (const which of PAGES) {
-        /** FR-PHONE-1 (US-45 AC1): no request, no tap — the page follows from load, and a drag hands the sky to the finger. */
-        test(`${which}: with no request it follows from load with no tap, the saved view untouched, and a drag ends it (FR-PHONE-1, FR-GYRO-4)`, async ({ page }) => {
+        /** FR-PHONE-1 as amended v2.14.2 (US-45 AC1): no request and an allow saved, no tap — the page follows from load, and a drag hands the sky to the finger. */
+        test(`${which}: with no request and an allow saved it follows from load with no tap, the saved view untouched, and a drag ends it (FR-PHONE-1, FR-GYRO-4)`, async ({ page }) => {
           await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)], request: false });
-          const { root } = await openPlain(page, which, locale);
+          await unasked(page);
+          const { root } = await openPlain(page, which, locale, { followGranted: true });
+          await expect(page.getByTestId('follow-ask')).toHaveCount(0);
           const control = shownBy(root, which);
           await expect(control).toHaveAttribute('aria-pressed', 'true');
           const w = windowRoot(root);
@@ -367,7 +397,7 @@ for (const size of SIZES) {
             await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
             expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
           }
-          expect(await grantSaved(page)).toBeUndefined();
+          expect(await grantSaved(page)).toBe(true);
           await expect(page.getByTestId('window-readout')).toHaveCount(0);
           await expect(page.getByTestId('sky-corner-readout')).toHaveCount(0);
 
@@ -385,14 +415,15 @@ for (const size of SIZES) {
           await expect(w).toHaveAttribute('data-state', 'hand');
         });
 
-        /** FR-PHONE-2 (US-45 AC2): a saved grant — nothing asked at load, one request inside the first touch, following after. */
-        test(`${which}: with a saved grant it asks nothing at load, asks once inside the first touch on the sky, and follows (FR-PHONE-2)`, async ({ page }) => {
+        /** FR-PHONE-2 as amended v2.14.2 (FR-PHONE-17): a saved grant — the question at load, one request inside its `[ allow ]`, following after; a touch asks nothing. */
+        test(`${which}: with a saved grant it asks in the question, once inside [ allow ], and follows; a touch asks nothing (FR-PHONE-17, FR-PHONE-2)`, async ({ page }) => {
           await stubOrientation(page, { answer: 'granted', readings: [aimedAt(200, 40)] });
+          await unasked(page);
           const { root, sky } = await openPlain(page, which, locale, { followGranted: true });
           const control = shownBy(root, which);
           await expect(control).toHaveAttribute('aria-pressed', 'false');
           expect(await orientationAsks(page)).toBe(0);
-          await touchSky(page, which, sky);
+          await allowInQuestion(page);
           await expect(control).toHaveAttribute('aria-pressed', 'true');
           expect(await orientationAsks(page)).toBe(1);
           const w = windowRoot(root);
@@ -404,11 +435,12 @@ for (const size of SIZES) {
           expect(await grantSaved(page)).toBe(true);
         });
 
-        /** FR-PHONE-2, FR-GYRO-3: refused on the first touch — off, the one line, the grant cleared, the finger keeps the sky. */
-        test(`${which}: a refusal on the first touch leaves it off with the line and clears the saved grant (FR-PHONE-2, FR-GYRO-3)`, async ({ page }) => {
+        /** FR-PHONE-17, FR-GYRO-3: refused in the question — off, the one line, the grant cleared, the finger keeps the sky. */
+        test(`${which}: a refusal in the question leaves it off with the line and clears the saved grant (FR-PHONE-17, FR-GYRO-3)`, async ({ page }) => {
           await stubOrientation(page, { answer: 'denied', readings: [aimedAt(200, 40)] });
-          const { root, sky } = await openPlain(page, which, locale, { followGranted: true });
-          await touchSky(page, which, sky);
+          await unasked(page);
+          const { root } = await openPlain(page, which, locale, { followGranted: true });
+          await allowInQuestion(page);
           await expect.poll(() => grantSaved(page)).toBeUndefined();
           expect(await orientationAsks(page)).toBe(1);
           const control = shownBy(root, which);

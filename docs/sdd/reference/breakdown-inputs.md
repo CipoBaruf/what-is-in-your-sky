@@ -57,4 +57,6 @@
 | Scope (v2.13) | Spec Phase 2v "the workflow": **R172–R181** in the `## v2.13 tasks` block below, ten tasks in seven waves, the development process only; no `src/` change and no release. |
 | Inputs (v2.14) | the phase folder `docs/sdd/phases/v2.14/` (`spec.md` §2.21, §4.57, Phase 2w; `plan.md` §2.50, §8.21, §9.16, §16.33 treated as fixed; Decision Log V214-1..V214-24 and Decisions D-1094..D-1108); P10 (#285) merged first |
 | Scope (v2.14) | Spec Phase 2w "one sky on a desk": **R182–R191** in the `## v2.14 tasks` block of `TASKS.md`, ten tasks in six waves of three, two, two, one, one and one, lanes `data`, `physics`, `chart`, `window`, `ui`, `live` and `docs`, `Tier: hard` on R184 and R186 (one per wave) and `standard` on the rest, 500 turns, no fallback, `Gate: auto`, the review tier D-1065's; the tag `v2.14.0` and the deploy are the owner's |
+| Inputs (v2.14.2) | the phase folder `docs/sdd/phases/v2.14.2/` (`spec.md` Phase 2w.2; `plan.md` §2.52, §16.35 treated as fixed; Decision Log V214-39..V214-44 and Decisions D-1142..D-1144) |
+| Scope (v2.14.2) | Spec Phase 2w.2 "ask before following": **R192** in the `## v2.14.2 tasks` block, one task, built interactively with the docs on one branch. |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |

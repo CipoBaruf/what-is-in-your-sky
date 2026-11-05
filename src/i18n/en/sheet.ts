@@ -14,5 +14,11 @@ export const sheet = {
     name: 'Sky controls',
     /** R150 (FR-GYRO-8, D-948): the accessible name of the sheet head's last control, drawn `×`. */
     close: 'Close controls',
+    /** v2.14.2 (FR-PHONE-17, V214-44; D-1142): the question a phone page asks before it follows the phone. */
+    followAsk: {
+      question: 'Use your phone to look at the sky?',
+      allow: 'allow',
+      notNow: 'not now',
+    },
   },
 };

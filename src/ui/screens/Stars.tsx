@@ -44,6 +44,7 @@ import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyH
 import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useFollow } from '../components/sky/useFollow';
+import { FollowAsk } from '../components/sky/FollowAsk';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
@@ -459,7 +460,7 @@ function StarsSky({ observer }: { observer: Observer }) {
    * row and `[ follow ]` stands before `[ controls ]` in the bottom row, the same state both ways; on wide the toggle
    * is the rail's `action` slot.
    */
-  const follow = useFollow();
+  const follow = useFollow(compact);
   const following = follow.on;
   const sensor = follow.sensor;
   // R157 (FR-PHONE-6, D-967): the screen stays awake while following; released when it ends or the page hides.
@@ -689,6 +690,8 @@ function StarsSky({ observer }: { observer: Observer }) {
      */
     const overlay = (
       <>
+        {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question, a portal while asking. */}
+        <FollowAsk follow={follow} />
         <SkyHead line={<StarsHeadLine observer={observer} now={now} sunUp={sunUp} />} onBack={close} className={styles.head} />
         {hintLine !== null && !follow.refused && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>

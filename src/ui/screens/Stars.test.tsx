@@ -14,7 +14,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createRoot } from 'react-dom/client';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { en } from '../../i18n/en';
 import { es } from '../../i18n/es';
@@ -26,6 +26,7 @@ import { appStore } from '../../state';
 import { STARS_DEFAULT_TILT } from '../components/guide/skychart/window/camera';
 import { WINDOW_FOV_MAX_DEG } from '../components/guide/skychart/window/projection';
 import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
+import { FOLLOW_ASKED_KEY } from '../components/sky/useFollow';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
 import { starsHeadLine, StarsPage } from './Stars';
@@ -697,11 +698,17 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
       await Promise.resolve();
     });
   };
+  // v2.14.2 (FR-PHONE-17): the tests before the question's own run with it answered for the visit (`not now`).
+  beforeEach(() => {
+    window.sessionStorage.setItem(FOLLOW_ASKED_KEY, '1');
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     resetOrientationAccess();
+    appStore.getState().setFollowGranted(false);
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
   const windowRoot = (container: HTMLElement): Element => container.querySelector('[data-look-az][data-fov]') as Element;
   const touch = (element: Element, pointerId = 1): void => {
@@ -709,11 +716,12 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     fireEvent.pointerUp(element, { pointerId, pointerType: 'touch' });
   };
 
-  /** R159 (FR-PHONE-1; US-45 AC1; D-962): where nothing has to be asked the page opens following; a drag hands the sky to the finger. */
-  it('opens following where nothing is asked, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
+  /** R159 (FR-PHONE-1 as amended v2.14.2; US-45 AC1; D-962): with an allow saved and nothing to ask the page opens following; a drag hands the sky to the finger. */
+  it('with an allow saved, opens following where nothing is asked, and a drag ends it (FR-PHONE-1, FR-GYRO-4)', async () => {
     withPhone();
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
+    appStore.getState().setFollowGranted(true);
     const { container } = await opened();
     // D-986: from the first reading with a north.
     act(() => {
@@ -739,17 +747,21 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     expect(screen.getByTestId('stars-facing')).toBeInTheDocument();
   });
 
-  /** R159 (FR-PHONE-2; US-45 AC2; D-963, D-986): a saved grant arms the page; the first touch on the sky asks, once. */
-  it('with a saved grant asks nothing at load and once inside the first touch, then follows; a refusal clears the grant and shows the line', async () => {
+  /** v2.14.2 (FR-PHONE-17, FR-PHONE-2 as amended; D-1143): on iOS the question asks, inside [ allow ], once a visit; the first touch asks nothing. */
+  it('asks in the question at load and once inside [ allow ], then follows; next visit a refusal clears the grant and shows the line (FR-PHONE-17)', async () => {
     const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
     withPhone(requestPermission);
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     appStore.getState().setFollowGranted(true);
+    window.sessionStorage.clear();
     const { container, unmount } = await opened();
     expect(requestPermission).not.toHaveBeenCalled();
     expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('follow-ask')).toHaveTextContent(en.sheet.followAsk.question);
     touch(screen.getByTestId('stars-sky'));
+    expect(requestPermission).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('follow-ask-allow'));
     expect(requestPermission).toHaveBeenCalledTimes(1);
     await flush();
     expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
@@ -761,11 +773,13 @@ describe('[ follow the phone ] on the stars page (FR-GYRO-1, FR-GYRO-2, FR-GYRO-
     // Next visit, the grant withdrawn in the browser's settings: refused, the grant cleared, the finger keeps the sky.
     // R163 (D-987): with the sheet closed the line is the bottom row's, over the sky, and takes the hint's place.
     resetOrientationAccess();
+    window.sessionStorage.clear();
     requestPermission.mockResolvedValue('denied');
     page();
-    touch(screen.getByTestId('stars-sky'));
+    fireEvent.click(screen.getByTestId('follow-ask-allow'));
     await flush();
     expect(requestPermission).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('follow-ask')).toBeNull();
     expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByTestId('live-follow-refused')).toHaveAttribute('role', 'status');
     expect(screen.queryByTestId('sky-hint')).toBeNull();

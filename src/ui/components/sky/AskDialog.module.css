@@ -1,6 +1,6 @@
-/* v2.14.1 (FR-WIDE-13, D-1140): the first-pass dialog — the page dimmed under the raised surface at
-   `--screen-overlay-alpha`, and the question in a block with a hairline edge at the centre, as wide as its sentence
-   and no wider than the viewport less a gutter. Every length is a token or a count of cells (FR-DS-2). */
+/* v2.14.2 (FR-PHONE-17, FR-WIDE-13; D-1142, D-1140): a page's yes-or-no dialog — the page dimmed under the raised
+   surface at `--screen-overlay-alpha`, and the question in a block with a hairline edge at the centre, as wide as its
+   sentence and no wider than the viewport less a gutter. Every length is a token or a count of cells (FR-DS-2). */
 .overlay {
   position: fixed;
   inset: 0;

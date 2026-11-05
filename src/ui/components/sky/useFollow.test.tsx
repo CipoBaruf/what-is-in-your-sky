@@ -4,6 +4,7 @@
  * mount where nothing has to be asked; armed with a saved grant where a request exists; off otherwise and without the
  * sensor; a press asks exactly once inside the gesture, follows on a grant and saves it where a request exists;
  * a refusal leaves it off with `refused`, clears the saved grant and never writes one.
+ * v2.14.2 (FR-PHONE-17, FR-PHONE-1 and FR-PHONE-2 as amended; D-1143): on compact the page asks first, once a visit.
  */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,7 +12,7 @@ import { PREFS_KEY } from '../../../data/localPrefs';
 import { appStore } from '../../../state';
 import { northReading, nullReading, undoPhone, withPhone, type PhoneAnswer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
-import { FOLLOW_DEFAULT, useFollow } from './useFollow';
+import { FOLLOW_ASKED_KEY, FOLLOW_DEFAULT, useFollow } from './useFollow';
 
 const flush = async (): Promise<void> => {
   await act(async () => {
@@ -206,7 +207,7 @@ describe('useFollow (FR-PHONE-1, FR-PHONE-2; D-962)', () => {
     expect(result.current.firstTouch).toBeUndefined();
   });
 
-  it('turns off without asking, and a grant where no request exists saves nothing (Android needs no grant)', async () => {
+  it('turns off without asking, and a grant where no request exists is saved too (D-1143: an Android allow carries to the next visit)', async () => {
     withPhone();
     const { result } = renderHook(() => useFollow());
     northReading();
@@ -219,6 +220,121 @@ describe('useFollow (FR-PHONE-1, FR-PHONE-2; D-962)', () => {
     });
     await flush();
     expect(result.current.on).toBe(true);
-    expect(saved()).toBeUndefined();
+    expect(saved()).toBe(true);
+  });
+});
+
+describe('useFollow on compact: the question (FR-PHONE-17; D-1143)', () => {
+  beforeEach(() => {
+    resetOrientationAccess();
+    localStorage.clear();
+    sessionStorage.clear();
+    appStore.setState({ followGranted: false });
+  });
+  afterEach(() => {
+    undoPhone();
+    resetOrientationAccess();
+    localStorage.clear();
+    sessionStorage.clear();
+    appStore.setState({ followGranted: false });
+  });
+
+  it('where a request exists asks at mount, never armed; allow asks exactly once inside the press and follows on a grant', async () => {
+    const request = vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('granted');
+    withPhone(request);
+    appStore.getState().setFollowGranted(true);
+    const { result } = renderHook(() => useFollow(true));
+    expect(result.current).toMatchObject({ asking: true, on: false, armed: false });
+    expect(result.current.firstTouch).toBeUndefined();
+    expect(request).not.toHaveBeenCalled();
+    act(() => {
+      result.current.allow();
+    });
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(result.current.asking).toBe(false);
+    await flush();
+    expect(result.current.on).toBe(true);
+    expect(sessionStorage.getItem(FOLLOW_ASKED_KEY)).toBe('1');
+    expect(saved()).toBe(true);
+  });
+
+  it('a refusal in the question clears the grant and sets refused', async () => {
+    const request = vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('denied');
+    withPhone(request);
+    appStore.getState().setFollowGranted(true);
+    const { result } = renderHook(() => useFollow(true));
+    act(() => {
+      result.current.allow();
+    });
+    await flush();
+    expect(result.current).toMatchObject({ asking: false, on: false, refused: true });
+    expect(appStore.getState().followGranted).toBe(false);
+  });
+
+  it('not now asks nothing, leaves it off, and the next mount in the visit does not ask', () => {
+    const request = vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('granted');
+    withPhone(request);
+    const { result, unmount } = renderHook(() => useFollow(true));
+    act(() => {
+      result.current.notNow();
+    });
+    expect(result.current).toMatchObject({ asking: false, on: false, armed: false });
+    expect(request).not.toHaveBeenCalled();
+    unmount();
+    expect(renderHook(() => useFollow(true)).result.current).toMatchObject({ asking: false, on: false, armed: false });
+  });
+
+  it('where none exists asks at the first reading with a north, not before, and not after not now', () => {
+    withPhone();
+    const { result, unmount } = renderHook(() => useFollow(true));
+    expect(result.current.asking).toBe(false);
+    nullReading();
+    expect(result.current.asking).toBe(false);
+    northReading(90);
+    expect(result.current).toMatchObject({ asking: true, on: false });
+    act(() => {
+      result.current.notNow();
+    });
+    northReading(100);
+    expect(result.current).toMatchObject({ asking: false, on: false });
+    unmount();
+    const next = renderHook(() => useFollow(true));
+    northReading(90);
+    expect(next.result.current).toMatchObject({ asking: false, on: false });
+  });
+
+  it('where none exists allow follows at once; with the allow saved the next visit follows from the first reading, unasked', async () => {
+    withPhone();
+    const { result, unmount } = renderHook(() => useFollow(true));
+    northReading(90);
+    act(() => {
+      result.current.allow();
+    });
+    await flush();
+    expect(result.current).toMatchObject({ asking: false, on: true });
+    expect(saved()).toBe(true);
+    unmount();
+    sessionStorage.clear();
+    const next = renderHook(() => useFollow(true));
+    northReading(90);
+    expect(next.result.current).toMatchObject({ asking: false, on: true });
+  });
+
+  it('a storage that throws reads as unasked', () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    withPhone(() => Promise.resolve('granted'));
+    expect(renderHook(() => useFollow(true)).result.current.asking).toBe(true);
+    getItem.mockRestore();
+  });
+
+  it('is not shown on wide, and stops showing when the page crosses to wide', () => {
+    withPhone(() => Promise.resolve('granted'));
+    expect(renderHook(() => useFollow(false)).result.current.asking).toBe(false);
+    const { result, rerender } = renderHook(({ compact }) => useFollow(compact), { initialProps: { compact: true } });
+    expect(result.current.asking).toBe(true);
+    rerender({ compact: false });
+    expect(result.current.asking).toBe(false);
   });
 });

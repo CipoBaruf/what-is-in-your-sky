@@ -545,6 +545,7 @@
 | FR-PHONE-11 | `src/ui/components/guide/skychart/layers.test.ts` |
 | FR-PHONE-12 | `src/ui/screens/Home.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-PHONE-14 | `src/ui/components/guide/TimesRow.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
+| FR-PHONE-17 | `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow-ask.spec.ts`, `tests/e2e/follow.spec.ts` |
 | FR-PUB-1 | `tests/docs/public.test.ts` |
 | FR-PUB-2 | `tests/docs/public.test.ts` |
 | FR-PUB-3 | `tests/docs/public.test.ts` |

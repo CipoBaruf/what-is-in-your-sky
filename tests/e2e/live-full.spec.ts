@@ -28,6 +28,13 @@ import { FULL_OVERLAY_MAX_SHARE, SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_S
 import { closeSheet, domeDrawn, openSheet, seedStoredRun, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
 import { aimedAt, stubOrientation } from './orientation';
 
+/** v2.14.2 (FR-PHONE-17): the phone's follow question answered for the visit (`useFollow.ts`'s `FOLLOW_ASKED_KEY`), so these cases read the page under it; `follow-ask.spec.ts` owns the question. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('wiys:followAsked:v1', '1');
+  });
+});
+
 const SIZES = [
   [390, 844],
   [390, 667],
