@@ -24,19 +24,19 @@ The owner answers the spec's questions and tries each release on a phone and at 
 
 ## By the numbers
 
-Read from the repository on 2026-11-05, for the 2.14.0 release; each figure's command is in
+Read from the repository on 2026-11-10, after the 2.14.3 release; each figure's command is in
 [docs/HOW-THIS-WAS-BUILT.md](docs/HOW-THIS-WAS-BUILT.md#by-the-numbers).
 
 | Figure | Value | Read on |
 |---|---|---|
-| Time span | first commit 2026-09-02, 2.14.0 prepared 2026-11-05 | 2026-11-05 |
-| Tasks done | 201, one session each (R1–R191, H, P1–P9) | 2026-11-05 |
-| Pull requests merged | 270, and this release's | 2026-11-05 |
-| Phases | 24 phase folders, `mvp` to `v2.14` | 2026-11-05 |
-| Releases | 8 tags, `v1.1.0` to `v2.12.0`; the owner tags `v2.14.0` | 2026-11-05 |
-| Requirement ids | 463 `FR-` ids in the specs | 2026-11-05 |
-| Decisions | 1054 `D-` ids, 323 rows in the Decision Log | 2026-11-05 |
-| Tests | 3793 Vitest tests in 307 files, and 118 Playwright specs | 2026-11-05 |
+| Time span | first commit 2026-09-02, 2.14.3 released 2026-11-05 | 2026-11-10 |
+| Tasks done | 202, one session each (R1–R192, H, P1–P9) | 2026-11-10 |
+| Pull requests merged | 276 | 2026-11-10 |
+| Phases | 26 phase folders, `mvp` to `v2.14.2` | 2026-11-10 |
+| Releases | 11 tags, `v1.1.0` to `v2.14.3` | 2026-11-10 |
+| Requirement ids | 466 `FR-` ids in the specs | 2026-11-10 |
+| Decisions | 1065 `D-` ids, 343 rows in the Decision Log | 2026-11-10 |
+| Tests | 3848 Vitest tests in 310 files, and 122 Playwright specs | 2026-11-10 |
 
 ## How it was built
 
