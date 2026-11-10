@@ -210,8 +210,7 @@ The app itself is well under a megabyte; nothing in `docs/` reaches the bundle.
 
 ## By the numbers
 
-Read at `260a09d7`, R191's branch on 2026-11-05, the commit before this table: the 2.14.0 release, whose squash merge
-is the release commit. Each figure is the output of the command beside it at that commit; a later commit moves the
+Read at `04ff44a0` on 2026-11-10: `main` after the 2.14.3 release and its release record (#302). Each figure is the output of the command beside it at that commit; a later commit moves the
 lines and the counts, not the commands. `tests/docs/accuracy.test.ts` asserts the shape
 of this table — a command and a commit on every row — and does not recount the tree,
 because a test that did would make this page wrong the moment the next task merged
@@ -220,22 +219,22 @@ without the network can read.
 
 | Figure | Value | Command | Read at |
 |---|---|---|---|
-| Tasks merged | 201 (R1–R191, H, P1–P9), R191 with this release | `cat TASKS.md docs/sdd/phases/*/tasks.md \| grep -c '^- \[x\] \*\*'` | `260a09d7` |
-| Tasks open | 0, the v2.14 phase done | `grep -c '^- \[ \] \*\*' TASKS.md` | `260a09d7` |
-| Pull requests merged into `main` | 270 before this release's, the last `#296` | `git log --format=%s origin/main \| grep -cE '\(#[0-9]+\)$'` | `260a09d7` |
-| Commits on `main` | 368 before this release's squash merge (the branch's own fold into it), the first on 2026-09-02 | `git rev-list --count origin/main; git log --reverse --format=%as origin/main \| head -1` | `260a09d7` |
-| Release tags | 8, `v1.1.0` to `v2.12.0`; `v2.14.0` is the owner's | `git tag -l 'v*' \| wc -l` | `260a09d7` |
-| Phases | 24 folders, `mvp` to `v2.14` | `ls -d docs/sdd/phases/*/ \| wc -l` | `260a09d7` |
-| Requirement ids named in the specs | 463 | `cat SPEC.md docs/sdd/phases/*/spec.md \| grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' \| sort -u \| wc -l` | `260a09d7` |
-| Decision ids named in the specs, the plans and the Decision Log | 1054 | `cat SPEC.md PLAN.md docs/sdd/decisions.md docs/sdd/phases/*/spec.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+\b' \| sort -u \| wc -l` | `260a09d7` |
-| Highest decision id | `D-1133` | `cat PLAN.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+' \| sort -t- -k2 -n \| tail -1` | `260a09d7` |
-| Findings recorded (the phase specs) | 102 rows, the highest `F-103` | `cat docs/sdd/phases/*/spec.md \| grep -c '^\| \**F-[0-9]'` | `260a09d7` |
-| Decision Log rows (`docs/sdd/decisions.md`) | 323 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' docs/sdd/decisions.md` | `260a09d7` |
-| Lines in the three index files, and in the phase folders | 133, 163, 323; 20960 | `wc -l SPEC.md PLAN.md TASKS.md; cat docs/sdd/phases/*/*.md \| wc -l` | `260a09d7` |
-| The driver | 541 lines, plus 18 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `260a09d7` |
-| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `260a09d7` |
-| Test files | 306 Vitest files, 118 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `260a09d7` |
-| Tests | 3793 in 307 files, 9 of them skipped — the last two lines of its output | `npm test` | `260a09d7` |
-| Tracked files | 2170 | `git ls-files \| wc -l` | `260a09d7` |
-| Captures on `main` | 663 PNGs under `docs/screenshots/`, the per-task captures to v2.13; the `v1-*` set, 464 files, is on the `captures` branch | `git ls-files 'docs/screenshots/*.png' \| wc -l` | `260a09d7` |
-| Size of `docs/` | 152 MB, of which `docs/screenshots/` is 124 MB | `du -sm docs docs/screenshots` | `260a09d7` |
+| Tasks merged | 202 (R1–R192, H, P1–P9) | `cat TASKS.md docs/sdd/phases/*/tasks.md \| grep -c '^- \[x\] \*\*'` | `04ff44a0` |
+| Tasks open | 0, the v2.14.2 phase done | `grep -c '^- \[ \] \*\*' TASKS.md` | `04ff44a0` |
+| Pull requests merged into `main` | 276, the last `#302` | `git log --format=%s origin/main \| grep -cE '\(#[0-9]+\)$'` | `04ff44a0` |
+| Commits on `main` | 374, the first on 2026-09-02 | `git rev-list --count origin/main; git log --reverse --format=%as origin/main \| head -1` | `04ff44a0` |
+| Release tags | 11, `v1.1.0` to `v2.14.3`; the 2.14 series has no `v2.14.0` tag and starts at `v2.14.1` | `git tag -l 'v*' \| wc -l` | `04ff44a0` |
+| Phases | 26 folders, `mvp` to `v2.14.2` | `ls -d docs/sdd/phases/*/ \| wc -l` | `04ff44a0` |
+| Requirement ids named in the specs | 466 | `cat SPEC.md docs/sdd/phases/*/spec.md \| grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' \| sort -u \| wc -l` | `04ff44a0` |
+| Decision ids named in the specs, the plans and the Decision Log | 1065 | `cat SPEC.md PLAN.md docs/sdd/decisions.md docs/sdd/phases/*/spec.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+\b' \| sort -u \| wc -l` | `04ff44a0` |
+| Highest decision id | `D-1144` | `cat PLAN.md docs/sdd/phases/*/plan.md \| grep -oE '\bD-[0-9]+' \| sort -t- -k2 -n \| tail -1` | `04ff44a0` |
+| Findings recorded (the phase specs) | 102 rows, the highest `F-103` | `cat docs/sdd/phases/*/spec.md \| grep -c '^\| \**F-[0-9]'` | `04ff44a0` |
+| Decision Log rows (`docs/sdd/decisions.md`) | 343 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' docs/sdd/decisions.md` | `04ff44a0` |
+| Lines in the three index files, and in the phase folders | 140, 165, 58; 21486 | `wc -l SPEC.md PLAN.md TASKS.md; cat docs/sdd/phases/*/*.md \| wc -l` | `04ff44a0` |
+| The driver | 541 lines, plus 18 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `04ff44a0` |
+| First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `04ff44a0` |
+| Test files | 309 Vitest files, 122 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `04ff44a0` |
+| Tests | 3848 in 310 files, 9 of them skipped — the last two lines of its output, from CI’s run on this commit | `npm test` | `04ff44a0` |
+| Tracked files | 2189 | `git ls-files \| wc -l` | `04ff44a0` |
+| Captures on `main` | 663 PNGs under `docs/screenshots/`, the per-task captures to v2.13; the `v1-*` set, 464 files, is on the `captures` branch | `git ls-files 'docs/screenshots/*.png' \| wc -l` | `04ff44a0` |
+| Size of `docs/` | 97 MB, of which `docs/screenshots/` is 69 MB | `du -sm docs docs/screenshots` | `04ff44a0` |
