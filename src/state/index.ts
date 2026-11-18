@@ -8,6 +8,10 @@ import { startDeviceNaming } from './deviceName';
 import { documentVisibility, startEffects, type EffectDeps } from './effects';
 import { applyLink, followHash as followHashIn, openLink } from './openLink';
 import { setLiveNowClient } from './liveNow';
+import { WIDE_QUERY } from '../lib/layout';
+import { startMeasure } from './measure';
+import { startMeasureEffects } from './measureEffects';
+import type { MeasureEnv } from '../data/measure';
 import { appStore, type AppStore } from './store';
 import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
 
@@ -85,6 +89,8 @@ export interface StartAppOverrides {
   visibility?: EffectDeps['visibility'];
   /** The hash to boot on; `window.location.hash` unless a test names one. */
   hash?: string;
+  /** FR-MEAS-3 (D-1146): the sender's gates and beacon; the browser's unless a test names them. */
+  measureEnv?: MeasureEnv;
 }
 
 /**
@@ -127,6 +133,12 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
   // `hashchange` goes through the same function (`followHash`).
   const now = overrides.now ?? (() => Date.now());
   store.getState().restoreSavedObserver();
+  // FR-MEAS-1, D-1147: the load's context is fixed here, after the restore (first or return) and before a link is
+  // read, so an adopted link is counted as a place set and the restored place is not.
+  const loaded = store.getState();
+  const wide = typeof matchMedia === 'function' && matchMedia(WIDE_QUERY).matches;
+  const count = startMeasure({ returning: loaded.observer !== null, wide, lang: loaded.locale }, overrides.measureEnv);
+  const stopMeasure = startMeasureEffects(store, count);
   applyLink(store, openLink(overrides.hash ?? window.location.hash, prefs.read().observer ?? null, now()));
   const stop = startEffects({
     store,
@@ -142,6 +154,7 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
   // D-1025: a device location is named after the nearest town, on the device, once its coordinates are on screen.
   const stopNaming = startDeviceNaming(store);
   return () => {
+    stopMeasure();
     stopNaming();
     stop();
     setLiveNowClient(null);

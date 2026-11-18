@@ -55,6 +55,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/data/elementsLoader.ts` — exports: LoadedElements, mergeGroups, filterToCatalog, LoadElementsOptions, loadElements, ELEMENT_GROUPS — PLAN §7.1: `stations` and `visual` come through the elements cache (R11: IndexedDB, 2 h rule, single-flight, stale fallback — `elementsCach…
 - `src/data/favourites.ts` — exports: favouriteCellKey, mostRecentlyUsed, addFavourite, touchFavourite, removeFavourite — FR-OFF-7, US-17, D-85: the saved places as a list, held newest use first.
 - `src/data/localPrefs.ts` — exports: PREFS_KEY, LocalPrefs, createLocalPrefs, localPrefs — FR-LOC-5, US-8: the last observer lives in `localStorage` under `wiys:prefs:v1` (PLAN §5) and nowhere else.
+- `src/data/measure.ts` — exports: MEASURE_ORIGIN, MEASURE_PATH, MeasureEnv, DetailArg, Count, createMeasure — FR-MEAS-3 (D-1146): the sender.
 - `src/data/moon/index.ts` — exports: MOON_LORE, signAtLongitude, signByKey, fullMoonName, phaseLore, MOON_PHASES, ZODIAC_SIGNS, loreSchema, +8 — The Moon's tradition text (FR-MOON-4): one hand-reviewed file, both languages, every entry with its provenance.
 - `src/data/moon/schema.ts` — exports: ZODIAC_SIGNS, ZodiacSign, MOON_PHASES, MoonPhaseKey, SIGN_WIDTH_DEG, localizedSchema, provenanceSchema, zodiacSignSchema, +9 — FR-MOON-4 / FR-MOON-5: the Moon's tradition text is one hand-reviewed file, `lore.json`, in the style of the catalog (FR-SAT-5) — every ent…
 - `src/data/openMeteo/forecast.ts` — exports: HOURLY_VARIABLES, FORECAST_DAYS, OpenMeteoError, forecastUrl, FetchForecastOptions, parseForecastBody, fetchCloudForecast — FR-WX-1 / PLAN §7.3: one request per fetch, the exact URL from the plan — four hourly variables and, since v1, four days, so it counts as a…
@@ -148,6 +149,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/model/catalog.ts` — exports: NoradId, CatalogEntry
 - `src/model/elements.ts` — exports: OmmRecord, ElementGroup, CachedGroup, SatelliteRecord
 - `src/model/index.ts` — exports: NoradId, CatalogEntry, EpochMs, VisibilityThresholds, TimeWindow, OmmRecord, ElementGroup, CachedGroup, +49
+- `src/model/measure.ts` — exports: EVENTS, MeasureName, MeasureDetail, ID_PATTERN, MeasureContext, MeasureEvent, isMeasureEvent — FR-MEAS-1, FR-MEAS-2 (D-1145): the closed list of what a visit may count, read by the browser's sender and the route alike.
 - `src/model/moon.ts` — exports: MoonPhaseName, MoonState, MoonGlareThresholds, MoonGlare — The eight phase names of FR-MOON-1, in cycle order.
 - `src/model/observer.ts` — exports: Observer
 - `src/model/offline.ts` — exports: PassRun, Favourite, MAX_FAVOURITES, ReadinessGap, Readiness — What the app keeps so it still answers with no network (spec §4.11, FR-OFF-2/4, PLAN §5, D-78).
@@ -175,6 +177,8 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/hash.ts` — exports: clearLocationHash — R83 (D-538): `endVisit` clears the link from the URL.
 - `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +19
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
+- `src/state/measure.ts` — exports: count, randomId, browserEnv, LoadFacts, startMeasure — FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
+- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes` and `failure`.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
 - `src/state/passWindow.ts` — exports: NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_MS, searchWindow — The pass list window.
