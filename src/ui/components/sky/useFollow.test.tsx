@@ -12,7 +12,10 @@ import { PREFS_KEY } from '../../../data/localPrefs';
 import { appStore } from '../../../state';
 import { northReading, nullReading, undoPhone, withPhone, type PhoneAnswer } from '../../../../tests/support/phone';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
+import { count } from '../../../state/measure';
 import { FOLLOW_ASKED_KEY, FOLLOW_DEFAULT, useFollow } from './useFollow';
+
+vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
 const flush = async (): Promise<void> => {
   await act(async () => {
@@ -336,5 +339,58 @@ describe('useFollow on compact: the question (FR-PHONE-17; D-1143)', () => {
     expect(result.current.asking).toBe(true);
     rerender({ compact: false });
     expect(result.current.asking).toBe(false);
+  });
+});
+
+describe('useFollow counts the question’s answer (FR-MEAS-2: follow_answer)', () => {
+  beforeEach(() => {
+    resetOrientationAccess();
+    localStorage.clear();
+    sessionStorage.clear();
+    appStore.setState({ followGranted: false });
+    vi.mocked(count).mockClear();
+  });
+  afterEach(() => {
+    undoPhone();
+    resetOrientationAccess();
+    localStorage.clear();
+    sessionStorage.clear();
+    appStore.setState({ followGranted: false });
+  });
+
+  it.each([
+    ['granted', 'allow'],
+    ['denied', 'refused'],
+  ] as const)('allow answered %s by the phone is counted as %s once the answer is in, not at the press', async (answer, detail) => {
+    withPhone(vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue(answer));
+    const { result } = renderHook(() => useFollow(true));
+    expect(result.current.asking).toBe(true);
+    act(() => {
+      result.current.allow();
+    });
+    expect(count).not.toHaveBeenCalled();
+    await flush();
+    expect(count).toHaveBeenCalledExactlyOnceWith('follow_answer', detail);
+  });
+
+  it('not now is counted as not_now at the press', () => {
+    withPhone(vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('granted'));
+    const { result } = renderHook(() => useFollow(true));
+    expect(count).not.toHaveBeenCalled();
+    act(() => {
+      result.current.notNow();
+    });
+    expect(count).toHaveBeenCalledExactlyOnceWith('follow_answer', 'not_now');
+  });
+
+  it('a press of the toggle outside the question counts nothing, granted or refused', async () => {
+    withPhone(vi.fn<() => Promise<PhoneAnswer>>().mockResolvedValue('denied'));
+    const { result } = renderHook(() => useFollow());
+    act(() => {
+      result.current.turnOn();
+    });
+    await flush();
+    expect(result.current.refused).toBe(true);
+    expect(count).not.toHaveBeenCalled();
   });
 });

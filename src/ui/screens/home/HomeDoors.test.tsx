@@ -4,7 +4,7 @@
  * line held at its height until the `stars` chunk lands, and wide's one more
  * line each.
  */
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { doorPass, local } from '../../../../tests/support/doorFixtures';
@@ -15,7 +15,10 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { appStore } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
+import { count } from '../../../state/measure';
 import { HomeDoors } from './HomeDoors';
+
+vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
 /** The chunk's idle prefetch, held so each test decides when (and whether) the chunk "lands". */
 const chunk = vi.hoisted(() => ({ land: null as null | ((module: unknown) => void), asked: 0, loaded: undefined as unknown }));
@@ -150,5 +153,47 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
       expect(screen.getByTestId(id).className).toMatch(/control/);
       expect(screen.getByTestId(id).className).not.toMatch(/emphasis/);
     }
+  });
+});
+
+describe('HomeDoors counts the door chosen (FR-MEAS-2: door)', () => {
+  /** The link's own navigation is the browser's; held here so the hash stays where the next test expects it. */
+  const hold = (event: Event): void => {
+    event.preventDefault();
+  };
+  beforeEach(() => {
+    vi.mocked(count).mockClear();
+    document.addEventListener('click', hold);
+  });
+  afterEach(() => {
+    document.removeEventListener('click', hold);
+  });
+
+  it.each([
+    ['door-satellites', 'satellites'],
+    ['door-stars', 'stars'],
+    ['door-live', 'live'],
+  ] as const)('%s is counted as door:%s when it is clicked, and nothing is counted before', (testId, door) => {
+    media = stubMatchMedia(COMPACT_PX);
+    show();
+    expect(count).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId(testId));
+    expect(count).toHaveBeenCalledExactlyOnceWith('door', door);
+  });
+
+  it('the Satellites door with no pass to open is counted and still hands the click to the step', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [], hasDarkness: true } });
+    });
+    const onWhat = vi.fn();
+    render(
+      <I18nProvider locale="en">
+        <HomeDoors observer={observer} selectedPassId={null} onWhat={onWhat} />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByTestId('door-satellites'));
+    expect(count).toHaveBeenCalledExactlyOnceWith('door', 'satellites');
+    expect(onWhat).toHaveBeenCalledTimes(1);
   });
 });

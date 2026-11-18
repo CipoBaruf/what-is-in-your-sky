@@ -19,7 +19,10 @@ import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Place } from '../../../model';
+import { count } from '../../../state/measure';
 import { DEBOUNCE_MS, PlacePicker, type PlaceSearchFn } from './PlacePicker';
+
+vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
 const CIPOLLETTI: Place = { name: 'Cipolletti', admin1: 'Rio Negro', country: 'Argentina', lat: -38.93392, lon: -67.99032, elevationM: 267, timeZone: 'America/Argentina/Salta' };
 const ROSARIO_AR: Place = { name: 'Rosario', admin1: 'Santa Fe', country: 'Argentina', lat: -32.94682, lon: -60.63932, elevationM: 38, timeZone: 'America/Argentina/Cordoba' };
@@ -397,5 +400,51 @@ describe('<PlacePicker>', () => {
     await user.type(input, 'Rosario{Enter}');
     expect(await screen.findAllByRole('option')).toHaveLength(2);
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('<PlacePicker> counts (FR-MEAS-2: search_empty, failure:search; FR-MEAS-5)', () => {
+  /** A search that answers when the test says, so the count is asserted before and after the answer. */
+  function held() {
+    let settle: { resolve: (places: Place[]) => void; reject: (error: unknown) => void } = { resolve: () => undefined, reject: () => undefined };
+    const search = vi.fn<PlaceSearchFn>(() => new Promise<Place[]>((resolve, reject) => (settle = { resolve, reject })));
+    return { search, answer: () => settle };
+  }
+
+  it('an empty answer is counted once it answers, with nothing of the query', async () => {
+    vi.mocked(count).mockClear();
+    const user = userEvent.setup();
+    const { search, answer } = held();
+    const { input } = setup(search);
+    await user.type(input, 'Xyzzy{Enter}');
+    expect(search).toHaveBeenCalled();
+    expect(count).not.toHaveBeenCalled();
+    await act(async () => {
+      answer().resolve([]);
+      await Promise.resolve();
+    });
+    expect(count).toHaveBeenCalledExactlyOnceWith('search_empty');
+  });
+
+  it('a failed search is counted as failure:search when its line is shown; an answer with places counts nothing', async () => {
+    vi.mocked(count).mockClear();
+    const user = userEvent.setup();
+    const { search, answer } = held();
+    const { input } = setup(search);
+    await user.type(input, 'Cipolletti{Enter}');
+    await act(async () => {
+      answer().resolve([CIPOLLETTI]);
+      await Promise.resolve();
+    });
+    expect(count).not.toHaveBeenCalled();
+    await user.clear(input);
+    await user.type(input, 'Rosario{Enter}');
+    expect(count).not.toHaveBeenCalled();
+    await act(async () => {
+      answer().reject(new TypeError('Failed to fetch'));
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(count).toHaveBeenCalledExactlyOnceWith('failure', 'search');
   });
 });

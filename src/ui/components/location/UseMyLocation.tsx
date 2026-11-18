@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
+import type { MeasureDetail } from '../../../model/measure';
+import { count } from '../../../state/measure';
 import { TextButton } from '../primitives/TextButton';
 import { coordsLabel } from './CoordsInput';
 import styles from './UseMyLocation.module.css';
@@ -36,6 +38,9 @@ export function observerFromPosition(coords: Pick<GeolocationCoordinates, 'latit
   const { latitude: lat, longitude: lon } = coords;
   return { lat, lon, altM: Math.round(coords.altitude ?? 0), label: coordsLabel(lat, lon), source: 'device', timeZone: null, accuracyM: Math.round(coords.accuracy) };
 }
+
+/** FR-MEAS-2: `device_refused`'s detail by the error's code (1 denied, 2 unavailable, 3 and anything else timeout, as the text). */
+const REFUSAL: Record<number, MeasureDetail<'device_refused'>> = { 1: 'denied', 2: 'unavailable' };
 
 function positionErrorText(error: Pick<GeolocationPositionError, 'code'>, t: Messages): string {
   switch (error.code) {
@@ -93,6 +98,7 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
         if (!mounted.current) return;
         setLocating(false);
         setError(positionErrorText(positionError, t));
+        count('device_refused', REFUSAL[positionError.code] ?? 'timeout');
       },
       OPTIONS,
     );
