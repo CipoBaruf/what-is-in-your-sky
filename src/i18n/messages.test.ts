@@ -266,7 +266,6 @@ function render(t: Messages): string[] {
     t.readiness.stored('2026-09-11 21:14'),
     t.readiness.notReady(t.readiness.gaps.forecast),
     ...Object.values(t.readiness.gaps),
-    t.footer.privacy,
     ...Object.values(t.footer.short),
     ...linked.flatMap((text) => [text.before, text.link, text.after]),
   ];

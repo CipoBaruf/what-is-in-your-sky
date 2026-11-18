@@ -512,7 +512,7 @@ describe('prefs slice: the kept choices', () => {
     expect(state.globeZoom).toBe(1);
     expect(state.windowFov).toBe(60);
     expect(state.playSpeed).toBe(60);
-    expect(state.privacyNoteClosed).toBe(false);
+    expect('privacyNoteClosed' in state).toBe(false);
   });
 
   it('FR-KEEP-1: an untouched choice writes nothing to the store', () => {
@@ -537,8 +537,7 @@ describe('prefs slice: the kept choices', () => {
     s.setGlobeZoom(2);
     s.setWindowFov(30);
     s.setPlaySpeed(3600);
-    s.closePrivacyNote();
-    const kept = { starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars', globeZoom: 2, windowFov: 30, playSpeed: 3600, privacyNoteClosed: true };
+    const kept = { starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars', globeZoom: 2, windowFov: 30, playSpeed: 3600 };
     expect(stored(storage)).toEqual({ observer: neuquen, ...kept });
     expect(store.getState()).toMatchObject(kept);
     expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState()).toMatchObject(kept);

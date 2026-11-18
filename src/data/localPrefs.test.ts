@@ -265,7 +265,6 @@ describe('createLocalPrefs', () => {
       globeZoom: 2.5,
       windowFov: 35,
       playSpeed: 600,
-      privacyNoteClosed: true,
     } as const;
 
     it('FR-KEEP-1: round-trips each key beside the others, false values included, under the v1 key', () => {
@@ -273,7 +272,7 @@ describe('createLocalPrefs', () => {
       const prefs = createLocalPrefs(storage);
       prefs.write({ sort: 'best', ...chosen });
       expect(prefs.read()).toEqual({ sort: 'best', ...chosen });
-      expect(Object.keys(JSON.parse(storage.map.get(PREFS_KEY) ?? '{}') as object)).toContain('privacyNoteClosed');
+      expect(Object.keys(JSON.parse(storage.map.get(PREFS_KEY) ?? '{}') as object)).not.toContain('privacyNoteClosed');
       for (const [key, value] of Object.entries(chosen)) {
         prefs.write({ [key]: value });
         expect(prefs.read()).toEqual({ [key]: value });
@@ -284,6 +283,17 @@ describe('createLocalPrefs', () => {
       const storage = memoryStorage();
       storage.map.set(PREFS_KEY, JSON.stringify({ sort: 'best', chartView: 'dome' }));
       expect(createLocalPrefs(storage).read()).toEqual({ sort: 'best', chartView: 'dome' });
+    });
+
+    it('FR-KEEP-4: a stored privacyNoteClosed, whatever its value, is ignored on read and never written back (D-1150)', () => {
+      for (const value of [true, false, 'true']) {
+        const storage = memoryStorage();
+        storage.map.set(PREFS_KEY, JSON.stringify({ sort: 'best', privacyNoteClosed: value }));
+        const prefs = createLocalPrefs(storage);
+        expect(prefs.read()).toEqual({ sort: 'best' });
+        prefs.write({ theme: 'night' });
+        expect(Object.keys(JSON.parse(storage.map.get(PREFS_KEY) ?? '{}') as object)).not.toContain('privacyNoteClosed');
+      }
     });
 
     it('FR-KEEP-1: round-trips the globe as the saved view (FR-WIDE-2)', () => {
@@ -312,7 +322,6 @@ describe('createLocalPrefs', () => {
         globeZoom: -2,
         windowFov: 'wide',
         playSpeed: 120,
-        privacyNoteClosed: 'true',
       };
       const storage = memoryStorage();
       const prefs = createLocalPrefs(storage);

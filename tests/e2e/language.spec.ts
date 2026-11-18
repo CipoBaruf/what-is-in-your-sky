@@ -68,9 +68,9 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(page.getByRole('heading', { level: 2, name: '¿Desde dónde se va a mirar?' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Pasos' }).getByRole('listitem')).toHaveText(['[01] dónde', '02 cuándo', '03 qué']);
   await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
-  await expect(page.getByText('Guardada solo en este navegador.')).toBeVisible();
-  // R87 (D-548): the first step's footer is the one-row `line` form, in Spanish too; the privacy sentence on
-  // this screen is the group's own, asserted on the line above.
+  // D-1150: no privacy line under the place search.
+  await expect(page.locator('body')).not.toContainText('Guardada solo en este navegador');
+  // R87 (D-548): the first step's footer is the one-row `line` form, in Spanish too; no privacy sentence stands on this screen.
   await expect(page.getByRole('contentinfo')).toContainText('Datos: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
   // No English left anywhere on the empty screen.
   await expect(page.locator('body')).not.toContainText('Enter a place name');

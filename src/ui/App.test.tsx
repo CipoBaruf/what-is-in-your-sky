@@ -60,10 +60,10 @@ describe('<App> frame (R12)', () => {
     expect(within(screen.getByRole('main')).getByTestId('cold-open')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
     expect(screen.queryByTestId('location-summary')).toBeNull();
-    // R87 (FR-FIRST-1 as amended v2.1, D-548): the first-run steps' footer is the one-line form, without its privacy word.
+    // R87 (FR-FIRST-1 as amended v2.1, D-548): the first-run steps' footer is the one-line form, with no privacy word.
     expect(screen.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
-    expect(screen.getByRole('contentinfo')).not.toHaveTextContent(en.footer.short.privacy);
+    expect(screen.getByRole('contentinfo')).not.toHaveTextContent('No tracking');
     expect(await axe(first.container)).toHaveNoViolations();
 
     // R82 (FR-FIRST-4 as amended v2.0.2): on a phone's first visit the place moves the page on to the when step…

@@ -153,14 +153,18 @@ describe.each([
     expect(precedes(place, coords)).toBe(true);
     expect(precedes(coords, altitude)).toBe(true);
 
-    // Board 1B gives each look one note, as the group's foot, after the last field, hung off no control: on a
-    // phone "Saved in this browser only. No account, no tracking.", in the wide pane the precision note (US-1 AC4).
-    const foot = within(group).getByTestId('location-foot');
-    // R190 (FR-KEEP-4): the phone's line carries its `[ × ]`.
-    const note = mode === 'compact' ? `${t.home.savedFoot} ×` : t.location.precisionNote;
-    // R105 (D-720): the boxed foot is ruled off above by a presentational `Rule`, which is a divider and not a note.
-    expect([...foot.children].filter((child) => child.getAttribute('role') !== 'presentation').map((child) => child.textContent)).toEqual([note]);
+    // Board 1B gave each look one note as the group's foot. D-1150: the phone's boxed look has none now (the privacy
+    // line is gone, and with no saved place there is no clear action); the wide pane keeps the precision note (US-1 AC4).
     expect(group).toHaveAttribute('data-look', mode === 'compact' ? 'boxed' : 'plain');
+    if (mode === 'compact') {
+      expect(within(group).queryByTestId('location-foot')).toBeNull();
+      expect(group.lastElementChild).not.toHaveAttribute('data-testid', 'location-foot');
+      for (const text of ['Saved in this browser only', 'Guardada solo en este navegador']) expect(group).not.toHaveTextContent(text);
+      return;
+    }
+    const foot = within(group).getByTestId('location-foot');
+    // R105 (D-720): the boxed foot is ruled off above by a presentational `Rule`, which is a divider and not a note.
+    expect([...foot.children].filter((child) => child.getAttribute('role') !== 'presentation').map((child) => child.textContent)).toEqual([t.location.precisionNote]);
     expect(precedes(altitude, foot)).toBe(true);
     expect(group.lastElementChild).toBe(foot);
   });

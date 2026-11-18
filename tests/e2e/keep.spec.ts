@@ -1,8 +1,7 @@
 /**
  * R190 (FR-KEEP-1..4, US-57 AC1–AC4; D-1096, D-1097, D-1105, D-1108): the kept choices on the production build at
  * 390 × 844 and 1280 × 800 — every choice made, a reload and a new tab find it; a moment (the globe's instant, the
- * camera, the globe's place) is not kept; an empty store opens on FR-KEEP-3's table; either privacy `[ × ]` closes the
- * note for good, and the settings page still states it.
+ * camera, the globe's place) is not kept; an empty store opens on FR-KEEP-3's table; D-1150: no page carries a privacy note, in either language.
  */
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { globeAt, LONDON, openStarsPage, showGlobe } from './globeHelpers';
@@ -74,7 +73,7 @@ for (const viewport of VIEWPORTS) {
       }
       // D-1096: a value the reader has not chosen is not written.
       const prefs = await stored(page);
-      for (const key of ['chartView', 'starLayers', 'namesChoice', 'faintStars', 'globeTurn', 'globeZoom', 'windowFov', 'playSpeed', 'privacyNoteClosed']) expect(prefs[key], key).toBeUndefined();
+      for (const key of ['chartView', 'starLayers', 'namesChoice', 'faintStars', 'globeTurn', 'globeZoom', 'windowFov', 'playSpeed']) expect(prefs[key], key).toBeUndefined();
     });
 
     test('FR-KEEP-1: every choice is found after a reload and in a new tab', async ({ page, context }) => {
@@ -167,33 +166,38 @@ for (const viewport of VIEWPORTS) {
       await expect(windowRoot(page)).toHaveAttribute('data-look-az', opening ?? '', { timeout: 30_000 });
     });
 
-    test('FR-KEEP-4: closed on the home, the note is gone from the stars page after a reload, and the settings page still says it', async ({ page }) => {
-      await page.clock.setFixedTime(NINE_DAYS_ON);
-      for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-      await page.addInitScript(
-        ([key, value]: [string, string]) => {
-          if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-        },
-        [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
-      );
-      await page.goto('/');
-      const close = page.getByRole('button', { name: 'Close the privacy note' });
-      await expect(close.first()).toBeVisible({ timeout: 30_000 });
-      await close.first().click();
-      await expect(close).toHaveCount(0);
-      await expect(page.getByTestId('privacy-note')).toHaveCount(0);
-      expect(await stored(page)).toMatchObject({ privacyNoteClosed: true });
-      await page.reload();
-      await page.goto('/#stars');
-      await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
-      await openSheet(page);
-      await expect(page.getByTestId('app-footer')).toBeAttached();
-      await expect(page.getByTestId('privacy-note')).toHaveCount(0);
-      await expect(page.getByTestId('app-footer')).not.toContainText('No tracking');
-      await page.goto('/#settings');
-      // D-1129: the settings page’s footer keeps its privacy part plain — the sentence on a phone, the word in the desk’s row.
-      await expect(page.getByTestId('settings-privacy')).toHaveText(wide ? '·No tracking' : 'No analytics, no tracking: your location is saved in this browser only.', { timeout: 30_000 });
-      await expect(close).toHaveCount(0);
-    });
+    // D-1150 (FR-MEAS-7): no privacy note on any page, in either language; a stored `privacyNoteClosed` is ignored.
+    for (const [locale, words, close] of [
+      ['en', ['No tracking', 'No analytics', 'Saved in this browser only'], 'Close the privacy note'],
+      ['es', ['Sin rastreo', 'Sin analítica', 'Guardada solo en este navegador'], 'Cerrar la nota de privacidad'],
+    ] as const) {
+      test(`FR-MEAS-7: the home, the stars page and settings carry no privacy note in ${locale}, and a stored flag changes nothing`, async ({ page }) => {
+        await page.clock.setFixedTime(NINE_DAYS_ON);
+        for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
+        await page.addInitScript(
+          ([key, value]: [string, string]) => {
+            if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+          },
+          [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN, privacyNoteClosed: false })] as [string, string],
+        );
+        const expectNone = async () => {
+          await expect(page.getByTestId('privacy-note')).toHaveCount(0);
+          await expect(page.getByTestId('settings-privacy')).toHaveCount(0);
+          await expect(page.getByRole('button', { name: close })).toHaveCount(0);
+          for (const word of words) await expect(page.getByText(word)).toHaveCount(0);
+        };
+        await page.goto('/');
+        await expect(page.getByTestId('app-footer').first()).toBeAttached({ timeout: 30_000 });
+        await expectNone();
+        await page.goto('/#stars');
+        await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+        await openSheet(page);
+        await expect(page.getByTestId('app-footer')).toBeAttached();
+        await expectNone();
+        await page.goto('/#settings');
+        await expect(page.getByTestId('app-footer')).toBeAttached({ timeout: 30_000 });
+        await expectNone();
+      });
+    }
   });
 }

@@ -478,7 +478,7 @@
 | FR-KEEP-1 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/keep.spec.ts`, `tests/e2e/whole-sky.spec.ts`, `tests/e2e/window-zoom.spec.ts` |
 | FR-KEEP-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts`, `tests/e2e/keep.spec.ts` |
-| FR-KEEP-4 | `src/model/prefs.test.ts`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/location/LocationInput.test.tsx`, `src/ui/hooks/usePrivacyNote.test.ts`, `tests/e2e/keep.spec.ts` |
+| FR-KEEP-4 | `src/data/localPrefs.test.ts`, `src/ui/components/common/Footer.test.tsx` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-LEG-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
 | FR-LEG-3 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
@@ -512,6 +512,7 @@
 | FR-MARK-5 | `src/ui/components/mark/Mark.test.tsx`, `src/ui/screens/Live.test.tsx` |
 | FR-MARK-6 | `tests/build/mark-icons.test.ts`, `tests/build/mark-rasters.test.ts` |
 | FR-MARK-8 | `src/ui/components/mark/Mark.raster.test.ts`, `tests/build/mark-icons.test.ts` |
+| FR-MEAS-7 | `src/ui/components/location/LocationInput.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-MOON-1 | `src/data/moon/lore.test.ts` |
 | FR-MOON-2 | `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | FR-MOON-3 | `src/lib/moonPhrases.test.ts`, `src/physics/now.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/now/ConditionsTable.test.tsx` |
