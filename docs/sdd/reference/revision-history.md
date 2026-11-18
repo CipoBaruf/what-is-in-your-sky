@@ -8,12 +8,15 @@ The header's Status cell grew one paragraph per revision until it ran to tens of
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the spec is revised, the Status line it replaces goes to the top of this list.
 
-**Dates since the split:** 2026-11-05 (v2.14.2); 2026-11-05 (v2.14.1); 2026-11-04 (v2.14).
+**Dates since the split:** 2026-11-18 (v2.15); 2026-11-05 (v2.14.2); 2026-11-05 (v2.14.1); 2026-11-04 (v2.14).
 
 **Dates:** 2026-11-03 (v2.13); 2026-11-03 (v2.12); 2026-11-02 (v2.11); 2026-11-01 (v2.10); 2026-10-30 (v2.9); 2026-10-30 (v2.8); 2026-10-29 (v2.7); 2026-10-29 (v2.6.1); 2026-10-27 (v2.6, approved); 2026-10-25 (v2.5, approved: zoom, OQ-46, delivery; the Spanish names); 2026-10-24 (v2.5, the design review); 2026-10-19 (v2.5); 2026-10-23 (v2.4.1); 2026-10-19 (v2.4); 2026-10-19 (v2.3); 2026-09-28 (v2.2.2); 2026-09-28 (v2.2.1); 2026-09-25 (v2.2); 2026-09-21 (v2.1); 2026-09-19 (v2.0.3); 2026-09-18 (v2.0.2); 2026-09-14 (v2.0.1); 2026-09-09 (v2.0); 2026-09-08 (v1.4); 2026-09-08 (v1.3.3); 2026-09-08 (v1.3.2); 2026-09-07 (v1.2); 2026-09-06 (v1.1.2); 2026-09-06 (v1.1.1); 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4)
 
 ### Status, newest first
 
+- **Draft v2.15 — for review.**
+  Phase v2.15 "where they stop" (anonymous counts of the first run and of each page on the site's own route, a command that prints the funnel, the privacy note removed):
+  FR-MEAS-1..7, FR-X-3 amended, FR-KEEP-4 superseded, Decision Log V215-1..V215-7, in `docs/sdd/phases/v2.15/spec.md`.
 - **Draft v2.14.2 — for review.**
   Phase v2.14.2 "ask before following" (a phone page asks before it follows the phone, Android too, once per visit):
   FR-PHONE-17, FR-PHONE-1, FR-PHONE-2 and FR-WIN-4 amended on compact, Decision Log V214-39..V214-44, in `docs/sdd/phases/v2.14.2/spec.md`.
