@@ -515,6 +515,7 @@
 | FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts` |
 | FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts` |
 | FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts` |
+| FR-MEAS-4 | `tests/deploy/endpoint.test.ts` |
 | FR-MEAS-5 | `src/state/measureEffects.test.ts` |
 | FR-MEAS-7 | `src/ui/components/location/LocationInput.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-MOON-1 | `src/data/moon/lore.test.ts` |
