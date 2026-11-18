@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_FAINT_STARS, DEFAULT_FOLLOW_GRANTED, DEFAULT_GLOBE_TURN, DEFAULT_GLOBE_ZOOM, DEFAULT_PLAY_SPEED, DEFAULT_PRIVACY_NOTE_CLOSED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STAR_LAYERS, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_THEME, DEFAULT_WINDOW_FOV_DEG, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../../model';
+import { DEFAULT_FAINT_STARS, DEFAULT_FOLLOW_GRANTED, DEFAULT_GLOBE_TURN, DEFAULT_GLOBE_ZOOM, DEFAULT_PLAY_SPEED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STAR_LAYERS, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_THEME, DEFAULT_WINDOW_FOV_DEG, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -72,9 +72,9 @@ import type { AppState } from '../store';
  * D-945): the sky screen's `skyScreen` flag and its one-shot refocus went with
  * the screen; the follow state is each page's own (D-943).
  *
- * R182 (FR-KEEP-1, FR-KEEP-4; D-1096, D-1105): the choices kept on the device, one setter per key, each writing its
+ * R182 (FR-KEEP-1; D-1096): the choices kept on the device, one setter per key, each writing its
  * own key and nothing else, so a choice the reader never made is never written and a later change to its default
- * reaches them. No page reads them yet (R190); `usePrivacyNote` (`store.ts`) is the privacy flag's one selector.
+ * reaches them. No page reads them yet (R190).
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -186,9 +186,6 @@ export interface PrefsSlice {
   /** R182 (FR-KEEP-1, FR-KEEP-2): the rate `play` starts at; the pages still open at real time. */
   playSpeed: PlaySpeed;
   setPlaySpeed: (playSpeed: PlaySpeed) => void;
-  /** R182 (FR-KEEP-4): either `[ × ]` closed the privacy note, on every page and every later visit. */
-  privacyNoteClosed: boolean;
-  closePrivacyNote: () => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
@@ -196,8 +193,8 @@ export interface PrefsSlice {
 
 /** The stored prefs' shape, as `LocalPrefs` reads it. */
 type Prefs = ReturnType<LocalPrefs['read']>;
-/** R182 (FR-KEEP-1, FR-KEEP-4): the kept choices that are one stored key and one slice field of the same name. */
-type KeptChoice = 'starLayers' | 'namesChoice' | 'faintStars' | 'globeTurn' | 'globeZoom' | 'windowFov' | 'playSpeed' | 'privacyNoteClosed';
+/** R182 (FR-KEEP-1): the kept choices that are one stored key and one slice field of the same name. */
+type KeptChoice = 'starLayers' | 'namesChoice' | 'faintStars' | 'globeTurn' | 'globeZoom' | 'windowFov' | 'playSpeed';
 
 /**
  * The three stored fields as one answer, and back (D-272). Reading is where
@@ -361,10 +358,6 @@ export const createPrefsSlice =
       playSpeed: stored.playSpeed ?? DEFAULT_PLAY_SPEED,
       setPlaySpeed: (playSpeed) => {
         save('playSpeed', playSpeed);
-      },
-      privacyNoteClosed: stored.privacyNoteClosed ?? DEFAULT_PRIVACY_NOTE_CLOSED,
-      closePrivacyNote: () => {
-        save('privacyNoteClosed', true);
       },
       restoreSavedObserver: () => {
         const { observer } = deps.prefs.read();

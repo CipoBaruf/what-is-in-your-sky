@@ -174,7 +174,6 @@ export const ui: typeof EnUi = {
     panes: { where: 'Dónde', when: 'Cuándo', what: 'Qué' },
     coldHeading: '¿Desde dónde se va a mirar?',
     coldSentence: 'Un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que basta con la ciudad. Cualquiera de los tres sirve.',
-    savedFoot: 'Guardada solo en este navegador. Sin cuenta, sin rastreo.',
     ghost: {
       whenHeading: '¿Cuándo está lo bastante oscuro?',
       whenSentence: 'La banda oscura del lugar, con las nubes y la Luna de esta noche.',
@@ -520,14 +519,11 @@ export const ui: typeof EnUi = {
     celestrak: { before: 'Elementos orbitales de ', link: 'CelesTrak', after: '.' },
     openMeteo: { before: 'Datos meteorológicos de ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' },
     geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, y la ciudad que nombra la ubicación del dispositivo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
-    privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
-    closePrivacy: 'Cerrar la nota de privacidad',
     credit: { before: 'Hecho por ', link: 'Ezequiel Baruf', after: '.' },
     chart: { before: 'Carta del cielo: ', link: 'glyphcss', after: '.' },
     short: {
       sources: 'Datos:',
       licence: '(CC BY 4.0)',
-      privacy: 'Sin rastreo',
       chart: 'Carta:',
     },
   },

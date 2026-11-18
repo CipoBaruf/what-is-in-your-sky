@@ -54,8 +54,6 @@ export type PlaySpeed = (typeof PLAY_SPEEDS)[number];
 export const OPENING_SPEED: PlaySpeed = 1;
 /** D-1110: the rate `play` starts at with nothing saved — 2.13's `DEFAULT_SPEED`; `playSpeed` replaces it once chosen. */
 export const DEFAULT_PLAY_SPEED: PlaySpeed = 60;
-/** FR-KEEP-4: the privacy note shows until either `[ × ]` closes it. */
-export const DEFAULT_PRIVACY_NOTE_CLOSED = false;
 /**
  * FR-FAINT-3 / D-623 (R98): whether the pass list shows the passes fainter
  * than `FAINT_MAG` (FR-FAINT-1). Off until the count line's `[ show n faint ]`

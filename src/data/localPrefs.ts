@@ -44,7 +44,7 @@ import { z } from './zod';
  * `viewFor` picks the window on a phone and the globe on a desk (R186, D-1095).
  *
  * R182 (FR-KEEP-1, D-1096): the choices kept on the device — the stars page's layers, the names, the faint stars,
- * the globe's turn and zoom, the window's field, the playback rate and the privacy note — each an optional key
+ * the globe's turn and zoom, the window's field, and the playback rate — each an optional key
  * validated alone, so a bad value drops that key and nothing else; every valid value round-trips as written, since
  * a written key is a choice (a value never chosen is never written). The zoom and the field are clamped on read.
  * The key stays `v1`; nothing migrates.
@@ -110,8 +110,6 @@ interface Prefs {
   windowFov?: number;
   /** R182 (FR-KEEP-1): the rate `play` starts at. */
   playSpeed?: PlaySpeed;
-  /** R182 (FR-KEEP-4): either `[ × ]` closed the privacy note, for good. */
-  privacyNoteClosed?: boolean;
 }
 
 /** One saved place as it is written (FR-OFF-7); the whole observer, so selecting it offline needs no geocode. */
@@ -160,7 +158,6 @@ const storedPrefsSchema = z.object({
   globeZoom: z.number().finite().positive().optional().catch(undefined),
   windowFov: z.number().finite().positive().optional().catch(undefined),
   playSpeed: z.union(PLAY_SPEEDS.map((speed) => z.literal(speed))).optional().catch(undefined),
-  privacyNoteClosed: z.boolean().optional().catch(undefined),
 });
 
 const clamp = (value: number, [min, max]: readonly [number, number]): number => Math.min(max, Math.max(min, value));
@@ -179,7 +176,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, sunGlow, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil, starLayers, namesChoice, faintStars, globeTurn, globeZoom, windowFov, playSpeed, privacyNoteClosed } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, showFaint, starsLayer, sunGlow, skyHintSeen, followGranted, installHintDismissed, installHintDeclines, installHintSnoozedUntil, starLayers, namesChoice, faintStars, globeTurn, globeZoom, windowFov, playSpeed } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -216,7 +213,6 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (globeZoom !== undefined) prefs.globeZoom = clamp(globeZoom, GLOBE_ZOOM_RANGE);
         if (windowFov !== undefined) prefs.windowFov = clamp(windowFov, WINDOW_FOV_RANGE_DEG);
         if (playSpeed !== undefined) prefs.playSpeed = playSpeed;
-        if (privacyNoteClosed !== undefined) prefs.privacyNoteClosed = privacyNoteClosed;
         return prefs;
       } catch {
         return {};

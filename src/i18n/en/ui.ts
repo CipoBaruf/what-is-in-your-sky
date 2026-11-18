@@ -238,7 +238,6 @@ export const ui = {
     coldHeading: 'Where will you be looking from?',
     coldSentence: 'A pass looks the same from anywhere within a few kilometres, so city-level is enough. Pick any one.',
     /** FR-FIRST-1 (board 1B): the phone's cold open ends on this line, at the foot of the screen. */
-    savedFoot: 'Saved in this browser only. No account, no tracking.',
     /** FR-FIRST-1 (board 1B): the wide cold open's two dimmed panes — what When and What will hold. */
     ghost: {
       whenHeading: 'When is it dark enough?',
@@ -724,9 +723,6 @@ export const ui = {
     celestrak: { before: 'Orbital elements by ', link: 'CelesTrak', after: '.' } satisfies LinkedText,
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
     geonames: { before: "Place search by Open-Meteo geocoding, and the town named for your device's location, with data from ", link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
-    privacy: 'No analytics, no tracking: your location is saved in this browser only.',
-    /** R190 (FR-KEEP-4): the `[ × ]` beside either privacy line, which hides both for good. */
-    closePrivacy: 'Close the privacy note',
     credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
     /* R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): the library
        the sky is drawn with — the library alone, its name a link and not
@@ -734,12 +730,11 @@ export const ui = {
     chart: { before: 'Sky chart: ', link: 'glyphcss', after: '.' } satisfies LinkedText,
     /* R23 (D-120): the wide footer says the same in one row. The provider
        names carry the credit on their own, the licence is still named, and
-       the privacy note keeps its subject. R102: the library's name stands as
+       R102: the library's name stands as
        a link after `chart`, the way the sources stand after `sources`. */
     short: {
       sources: 'Data:',
       licence: '(CC BY 4.0)',
-      privacy: 'No tracking',
       chart: 'Chart:',
     },
   },
