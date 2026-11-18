@@ -2,7 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { applyLocale } from './i18n/useT';
 import { appStore, registerServiceWorker, startApp } from './state';
+import { count } from './state/measure';
 import { AppRoot } from './ui/App';
+import { openedRoute } from './ui/openedRoute';
 import { applyTheme } from './ui/styles/theme';
 import './ui/styles/tokens.css';
 import './ui/styles/global.css';
@@ -29,6 +31,8 @@ createRoot(root).render(
     <AppRoot />
   </StrictMode>,
 );
+// FR-MEAS-2 (D-1147): `open` once, after the first render is asked for and before any screen's own count; the send waits for the paint.
+count('open', openedRoute(window.location.hash));
 
 /*
  * R25 (FR-OFF-1, D-79): the app shell's service worker is registered after

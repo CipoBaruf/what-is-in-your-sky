@@ -7,6 +7,7 @@ import { isPassPageRoute, observerFromLink, resolvePassLink, STARS_HASH } from '
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
+import { count } from '../state/measure';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
 import { Footer } from './components/common/Footer';
@@ -377,6 +378,14 @@ export function App() {
   const liveShown = live.active && !liveUnreadable;
   // R190 (R186's note): the live page is mounted in a different shell either side of the wide breakpoint; its hand camera is the visit's.
   const liveHand = useVisitHand(liveShown);
+  // FR-MEAS-2 (D-1147): a page opening is counted from the route hooks, once per load each (the sender drops a repeat).
+  const passShown = selected !== null;
+  useEffect(() => {
+    if (passShown) count('pass_open');
+    if (liveShown) count('live_open');
+    if (stars.active) count('stars_open');
+    if (settings.active) count('settings_open');
+  }, [passShown, liveShown, stars.active, settings.active]);
   // The shortcuts overlay, over home and over the stars page alike.
   const overlay = helpOpen && (
     <ShortcutsOverlay

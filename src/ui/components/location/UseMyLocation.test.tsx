@@ -4,13 +4,16 @@
  * position becomes a `device` observer with the accuracy; denial shows the
  * message and leaves the inputs enabled; accuracy text only above 1 km.
  */
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
+import { count } from '../../../state/measure';
 import { accuracyText, observerFromPosition, UseMyLocation, type GeolocationEnv } from './UseMyLocation';
+
+vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
 type Success = (position: { coords: { latitude: number; longitude: number; altitude: number | null; accuracy: number } }) => void;
 type Failure = (error: { code: number; message: string }) => void;
@@ -109,5 +112,42 @@ describe('<UseMyLocation>', () => {
     await user.click(screen.getByRole('button', { name: es.location.useMyLocation }));
     expect(screen.getByRole('alert')).toHaveTextContent(es.location.permissionDenied);
     expect(screen.queryByText(en.location.permissionDenied)).toBeNull();
+  });
+});
+
+describe('<UseMyLocation> counts (FR-MEAS-2: device_refused)', () => {
+  it.each([
+    [1, 'denied'],
+    [2, 'unavailable'],
+    [3, 'timeout'],
+  ] as const)('an error of code %i is counted as %s when it answers, and a fix is not counted here', async (code, detail) => {
+    vi.mocked(count).mockClear();
+    const user = userEvent.setup();
+    let fail: Failure = () => undefined;
+    const env: GeolocationEnv = { geolocation: fakeGeolocation((_s, f) => (fail = f)), secure: true };
+    render(
+      <I18nProvider locale="en">
+        <UseMyLocation onObserver={vi.fn()} env={env} />
+      </I18nProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: en.location.useMyLocation }));
+    expect(count).not.toHaveBeenCalled();
+    act(() => {
+      fail({ code, message: 'no' });
+    });
+    expect(count).toHaveBeenCalledExactlyOnceWith('device_refused', detail);
+  });
+
+  it('a position counts nothing: the place set is the store\'s to count', async () => {
+    vi.mocked(count).mockClear();
+    const user = userEvent.setup();
+    const env: GeolocationEnv = { geolocation: fakeGeolocation((ok) => ok({ coords: { latitude: 1, longitude: 2, altitude: null, accuracy: 30 } })), secure: true };
+    render(
+      <I18nProvider locale="en">
+        <UseMyLocation onObserver={vi.fn()} env={env} />
+      </I18nProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: en.location.useMyLocation }));
+    expect(count).not.toHaveBeenCalled();
   });
 });

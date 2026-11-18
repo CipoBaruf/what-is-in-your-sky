@@ -15,6 +15,7 @@ import type { Span } from '../../lib/timeStripe';
 import { nextTarget, openingChoice, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
 import { selectOrbitHeight, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
+import { count } from '../../state/measure';
 import { sameLocation } from '../../state/slices/location';
 import { FailureLine } from '../components/common/FailureLine';
 import { Header } from '../components/common/Header';
@@ -232,6 +233,12 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
     const active = document.activeElement;
     if (active === null || active === document.body) document.querySelector<HTMLElement>('[data-testid="live-back"]')?.focus();
   }, [sky]);
+
+  // D-1152 (FR-MEAS-2): the live page's start failing is its own failure line, counted where the page shows it.
+  const failed = state === 'failed';
+  useEffect(() => {
+    if (failed) count('failure', 'live');
+  }, [failed]);
 
   if (state !== 'sky' || observer === null) {
     return (

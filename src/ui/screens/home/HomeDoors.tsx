@@ -5,7 +5,9 @@ import { isNoEvent, nextEvent } from '../../../lib/nextEvent';
 import { tonightCloud } from '../../../lib/nightClouds';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Observer } from '../../../model';
+import type { MeasureDetail } from '../../../model/measure';
 import { SEARCH_WINDOW_HOURS } from '../../../state';
+import { count } from '../../../state/measure';
 import { NEXT_EVENT_TICK_MS } from '../../components/passes/NextEventBlock';
 import { Card } from '../../components/primitives/Card';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
@@ -68,6 +70,14 @@ const whatBy =
     onWhat();
   };
 
+/** FR-MEAS-2 (D-1147): a door chosen is counted by its name, then the click does what it did. */
+const chosen =
+  (door: MeasureDetail<'door'>, then?: (event: MouseEvent<HTMLAnchorElement>) => void) =>
+  (event: MouseEvent<HTMLAnchorElement>): void => {
+    count('door', door);
+    then?.(event);
+  };
+
 function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: string; wide: boolean; testId: string; onClick?: (event: MouseEvent<HTMLAnchorElement>) => void }) {
   const lines = wide && door.wide !== undefined ? [...door.lines, door.wide] : door.lines;
   return (
@@ -105,9 +115,9 @@ export function HomeDoors({ observer, selectedPassId, className, onWhat }: HomeD
     // A labelled list of links and not a `nav`: the page's one navigation landmark is the header's (FR-A11Y-1).
     <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors" data-rhythm="section">
       <ul aria-label={t.doors.region} className={styles.list}>
-        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: onWhat ? whatBy(onWhat) : openWhat } : {})} />
-        <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" />
-        <DoorBox door={doors.live} href="#live" wide={wide} testId="door-live" />
+        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" onClick={chosen('satellites', passId === null ? (onWhat ? whatBy(onWhat) : openWhat) : undefined)} />
+        <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" onClick={chosen('stars')} />
+        <DoorBox door={doors.live} href="#live" wide={wide} testId="door-live" onClick={chosen('live')} />
       </ul>
     </div>
   );
