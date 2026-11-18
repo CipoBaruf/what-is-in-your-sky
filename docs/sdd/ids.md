@@ -1994,6 +1994,9 @@ FR-OPEN-7	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The 
 FR-OPEN-8	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-9	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-10	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
+FR-OPEN-12	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
+FR-OPEN-13	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
+FR-OPEN-14	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-11	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 D-1173	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1174	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
@@ -2006,6 +2009,9 @@ D-1180	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1181	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1182	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1183	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1209	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1210	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1211	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2373,6 +2379,9 @@ V216-8	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-9	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-10	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-11	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-12	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-13	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

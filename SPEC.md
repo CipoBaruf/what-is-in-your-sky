@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.16 — for review.** Phase v2.16 "an answer first" (a first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place): FR-OPEN-1..11, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, Decision Log V216-1..V216-11, in `docs/sdd/phases/v2.16/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Status | **Draft v2.16 — for review.** Phase v2.16 "an answer first" (a first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place): FR-OPEN-1..14, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, Decision Log V216-1..V216-14, in `docs/sdd/phases/v2.16/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
 | Date | 2026-11-18 (v2.16). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
@@ -69,7 +69,7 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 Right after v2.15; its data tasks alongside v2.15, its screen tasks after v2.15's R196 (V216-10).
 A first visit opens on an answer, not a question: tonight's next pass for the city of the browser's time zone, labelled as an example, with `[ Not there? Set your place ]` and the place question as the fallback.
-Goals G69–G70, §4.59, FR-OPEN-1..11, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61 and roadmap §9 Phase 2y are in [the phase spec](docs/sdd/phases/v2.16/spec.md); the decisions are V216-1..V216-11.
+Goals G69–G70, §4.59, FR-OPEN-1..14, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61 and roadmap §9 Phase 2y are in [the phase spec](docs/sdd/phases/v2.16/spec.md); the decisions are V216-1..V216-14.
 
 ### Previous phase — v2.15 ("where they stop", as decided 2026-11-18, V215-1)
 

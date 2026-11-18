@@ -49,6 +49,14 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1183 — The e2e suite runs in UTC unless a test names a zone.**
   (FR-OPEN-11.) `playwright.config.ts` sets `timezoneId: 'UTC'`, which is what CI's runners already are, so every existing first-run spec sees the fallback on the Mac as on CI; a spec of the example sets `test.use({ timezoneId: 'America/Argentina/Buenos_Aires' })` and seeds the elements fixture and a fixed clock.
 
+- **D-1209 — The look line is one catalog function.**
+  (FR-OPEN-12; V216-12.) `example.looks(minutes)` in both catalogs, `minutes` = `max(1, round(durationS / 60))` computed by the band from the pass, never by the catalog.
+- **D-1210 — The plain words are a prop, not a second component.**
+  (FR-OPEN-13; V216-13.) The next-event block, the one-line card and the Satellites door take `plain?: boolean`, set by `Home` while `observer === null`; under it the path line takes `elevationPhrase(elevationBand(peakDeg))` from `lib/phrases.ts` in place of the degrees, and the brightness phrase drops its magnitude.
+  `ElevationBand`'s thresholds are FR-GUIDE-2's as they are; nothing new is measured.
+- **D-1211 — The day test reads the stripe's band at now.**
+  (FR-OPEN-14; V216-14.) The band and the Where pane already hold tonight's bands for the stripe (`lib/tonightStripe.ts`); the line is drawn where the band holding `nowMs` is `day`, so the stripe and the line can never disagree.
+
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
 - **Pure.** `scripts/build-zones.test.ts` (a fixture of `zone1970.tab` and `backward` rows, a name from a town and one without), `src/data/zones/zoneCity.test.ts` (FR-OPEN-1's cases), `src/lib/exampleOutcome.test.ts` (each outcome, the wait's edge, a pass inside 72 h on a later night is `pass`).
@@ -77,7 +85,7 @@ Precondition for R198: the two tz files and their README are committed (D-1173).
 | 1 | R199 — The outcome: `src/lib/exampleOutcome.ts` and its test (D-1177's pure half) | `physics` | light | auto | — |
 | 2 | R200 — The example observer: the location slice, `transient()`, the latch effect, `startApp`'s start, `playwright.config.ts`'s zone (D-1175..D-1177, D-1183) | `data` | standard | auto | R198, R199, v2.15 R196 |
 | 2 | R201 — The events: `model/measure.ts`, `measureEffects`, `scripts/funnel.ts` and their tests (D-1182 less `Home`) | `physics` | light | auto | v2.15 R196 |
-| 3 | R202 — The first screen: `Home`, `ExampleBand`, `WhereReading`, the place screen, the steps deleted, the words, `where_shown`, `firstRun.spec.ts` (D-1178, D-1179, D-1181) | `ui` | hard | owner (captures) | R200, R201 |
+| 3 | R202 — The first screen: `Home`, `ExampleBand`, `WhereReading`, the place screen, the steps deleted, the words, `where_shown`, `firstRun.spec.ts` (D-1178, D-1179, D-1181, D-1209..D-1211) | `ui` | hard | owner (captures) | R200, R201 |
 | 4 | R203 — The pages and 2.16.0: `ExampleNotice`, the live page's branch, the captures, `package.json`, the release record (D-1180) | `ui` | standard | owner (captures) | R202 |
 
 Decision blocks: R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208.
