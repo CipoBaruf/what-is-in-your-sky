@@ -517,6 +517,7 @@
 | FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts` |
 | FR-MEAS-4 | `tests/deploy/endpoint.test.ts` |
 | FR-MEAS-5 | `src/state/measureEffects.test.ts` |
+| FR-MEAS-6 | `tests/deploy/funnel.test.ts` |
 | FR-MEAS-7 | `src/ui/components/location/LocationInput.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-MOON-1 | `src/data/moon/lore.test.ts` |
 | FR-MOON-2 | `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |

@@ -76,6 +76,13 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   The path match is exact: `/e/` and `/ex` go to the assets.
   A data point is `indexes: [id]` and `blob1`..`blob6` as name, detail (empty when absent), visit, layout, lang, id; there are no doubles.
 
+- **D-1170 — `funnel.test.ts` lives in `tests/deploy/`.** *(R197)*
+  The vitest `node` project includes only `src/**` and `tests/**`, so a test beside the script would never run.
+- **D-1171 — The funnel's `main` takes its environment, fetch and streams as arguments.** *(R197)*
+  The test covers the credential, flag and API-error paths with no network; `parseRows` is the one place the API's answer shape is known.
+- **D-1172 — The report's choices.** *(R197)*
+  A share over an empty `where_shown` prints `-`; every detail of `EVENTS` is listed, zeros included; the opens count every `open`, first visit or not; `--layout` and `--lang` filter the rows read, not the SQL.
+
 ### 9.17 v2.15 additions *(FR-MEAS)*
 
 - **Pure.** `src/model/measure.test.ts` (the guard, every name and detail, the rejects), `src/data/measure.test.ts` (once per pair, offline, no beacon, a throwing beacon, a foreign origin, `webdriver`, `forced`), `scripts/funnel.test.ts` (the fixture, the flags, the empty store, the missing credential).

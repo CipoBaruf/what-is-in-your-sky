@@ -32,7 +32,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.13 | R172 … R181 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.13/tasks.md) |
 | v2.14 | R182 … R191 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.14/tasks.md) |
 | v2.14.2 | R192 | 1 of 1 | [tasks.md](docs/sdd/phases/v2.14.2/tasks.md) |
-| v2.15 | R193 … R197 | 3 of 5 | this file |
+| v2.15 | R193 … R197 | 4 of 5 | this file |
 
 ## v2.15 tasks
 
@@ -101,7 +101,7 @@ Decision blocks (§16.2): R193 D-1152..D-1156, R194 D-1157..D-1159, R195 D-1160.
   - **Out of scope:** new names or details (the table is FR-MEAS-2's); the route.
   - **Done when:** `npm run check` and `npm test` green; `measure.spec.ts` passes at 390 × 844 and 1280 × 800 in both languages with the leak, storage and offline checks; `npm run bundle:budget` main row within 1 KB of 2.14.3's.
 
-- [ ] **R197 — The funnel prints, the documents say what is counted, 2.15.0**
+- [x] **R197 — The funnel prints, the documents say what is counted, 2.15.0**
   - **Lane:** docs
   - **Model:** sonnet
   - **Gate:** auto
