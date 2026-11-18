@@ -512,6 +512,10 @@
 | FR-MARK-5 | `src/ui/components/mark/Mark.test.tsx`, `src/ui/screens/Live.test.tsx` |
 | FR-MARK-6 | `tests/build/mark-icons.test.ts`, `tests/build/mark-rasters.test.ts` |
 | FR-MARK-8 | `src/ui/components/mark/Mark.raster.test.ts`, `tests/build/mark-icons.test.ts` |
+| FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts` |
+| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts` |
+| FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts` |
+| FR-MEAS-5 | `src/state/measureEffects.test.ts` |
 | FR-MOON-1 | `src/data/moon/lore.test.ts` |
 | FR-MOON-2 | `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | FR-MOON-3 | `src/lib/moonPhrases.test.ts`, `src/physics/now.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/now/ConditionsTable.test.tsx` |

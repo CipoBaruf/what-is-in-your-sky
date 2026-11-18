@@ -26,9 +26,9 @@ export type MeasureName = keyof typeof EVENTS;
 /** The details a name allows; `never` for a name that takes none. */
 export type MeasureDetail<N extends MeasureName> = (typeof EVENTS)[N][number];
 
-export const VISITS = ['first', 'return'] as const;
-export const LAYOUTS = ['compact', 'wide'] as const;
-export const LANGS = ['en', 'es'] as const;
+const VISITS = ['first', 'return'] as const;
+const LAYOUTS = ['compact', 'wide'] as const;
+const LANGS = ['en', 'es'] as const;
 /** A load's random id: 16 hex characters, made in memory and never stored (FR-MEAS-1). */
 export const ID_PATTERN = /^[0-9a-f]{16}$/;
 

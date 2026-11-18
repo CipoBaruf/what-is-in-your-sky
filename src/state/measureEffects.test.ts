@@ -35,7 +35,7 @@ const recorder = (): { count: Count; sent: Sent[] } => {
   return { count, sent };
 };
 
-describe('measureEffects (D-1147)', () => {
+describe('FR-MEAS-2: the state rows from measureEffects (D-1147)', () => {
   let store: AppStore;
   let sent: Sent[];
   let stop: () => void;
@@ -123,7 +123,7 @@ describe('measureEffects (D-1147)', () => {
   });
 });
 
-describe('startApp counts (FR-MEAS-1, D-1146)', () => {
+describe('FR-MEAS-1, FR-MEAS-5: what startApp counts (D-1146)', () => {
   let stop: () => void = () => undefined;
   afterEach(() => {
     stop();

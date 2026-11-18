@@ -31,7 +31,7 @@ export interface LocationSlice {
 }
 
 /** The two ways of setting a place that the observer's own `source` cannot tell apart from a typed one. */
-export type ObserverVia = 'favourite' | 'link';
+type ObserverVia = 'favourite' | 'link';
 
 export interface LocationDeps {
   now: () => EpochMs;
