@@ -38,6 +38,22 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (FR-MEAS-3.) `tests/build/measure-size.test.ts` bundles `src/state/measure.ts` with esbuild (Vite's own, minified) and asserts the gzip is at most 1 KB; `bundle:budget`'s main row is the regression check against 2.14.3.
   This reads FR-MEAS-3's "the module's row" as that test: the budget script counts chunks, and the module is not one.
 
+- **D-1152 — The slices count three failures; the screens count `search` and `live`.** *(R193)*
+  Only the elements, weather and passes slices hold a `Failure` in the store, so `measureEffects` sends `failure` with `elements`, `forecast` and `passes`.
+  The search failure lives in `PlacePicker`'s own state and the live failure in `Live.tsx`'s, so R196 sends `failure:search` and `failure:live` from those two.
+- **D-1153 — The sender checks the name and detail against `EVENTS`, not the whole guard.** *(R193)*
+  With `isMeasureEvent` inside it the module is 1102 B gzipped; without it, 896 B. The context is typed and fixed at load, and the full guard is the route's.
+  `startApp` reads the layout (`matchMedia(WIDE_QUERY)`) and passes it in, so the module does not pull in `lib/layout`.
+- **D-1154 — How a place was set rides on `setObserver(observer, via?)`.** *(R193)*
+  The store holds `observerVia: 'favourite' | 'link' | null`, never stored on the device; `selectFavourite` passes `favourite`, the adopted link and `keepVisit` pass `link`.
+  `place_set` is sent when the observer changes to a place `sameLocation` calls different; the place restored at load is not counted, nor is a link's visit until it is kept.
+- **D-1155 — The public origin is built from its host.** *(R193)*
+  `MEASURE_ORIGIN` is `https://` joined to `MEASURE_HOST`, so `headers.test.ts`'s scan of URL literals does not read a compared origin as a host `connect-src` must allow.
+- **D-1156 — A pair is used up when it is counted, sent or not.** *(R193)*
+  An event dropped offline is not sent later. The send waits for `requestAnimationFrame` then a zero timeout; with no frame nothing is sent and nothing throws.
+  `createMeasure(env, context)` takes the context as its second parameter; `env` is D-1146's five fields and an optional `defer`.
+  `no_passes` is sent whenever the list is done and empty, a stored run included; `visit` is `first` whenever nothing was restored, a load that adopts a link included.
+
 - **D-1157 — Nothing stands where the note stood.** *(R194)*
   `Footer` loses its `privacy` prop and keeps no empty slot.
   The boxed foot under the place search renders only with a saved place, for its clear action; with none the foot and its rule are absent, so the phone's where step ends at the coordinates card.

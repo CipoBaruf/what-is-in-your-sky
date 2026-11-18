@@ -32,7 +32,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.13 | R172 … R181 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.13/tasks.md) |
 | v2.14 | R182 … R191 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.14/tasks.md) |
 | v2.14.2 | R192 | 1 of 1 | [tasks.md](docs/sdd/phases/v2.14.2/tasks.md) |
-| v2.15 | R193 … R197 | 1 of 5 | this file |
+| v2.15 | R193 … R197 | 2 of 5 | this file |
 
 ## v2.15 tasks
 
@@ -41,7 +41,7 @@ Spec Phase 2x, "where they stop": the site counts where first visits stop on a r
 Delivery is PLAN §16.36: five tasks in three waves, each built by a sub-agent in its own worktree and merged into the phase branch on green checks.
 Decision blocks (§16.2): R193 D-1152..D-1156, R194 D-1157..D-1159, R195 D-1160..D-1164, R196 D-1165..D-1169, R197 D-1170..D-1172.
 
-- [ ] **R193 — A visit's facts are counted and sent**
+- [x] **R193 — A visit's facts are counted and sent**
   - **Lane:** data
   - **Model:** opus
   - **Gate:** auto
