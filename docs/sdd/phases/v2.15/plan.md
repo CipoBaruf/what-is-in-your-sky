@@ -38,6 +38,16 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (FR-MEAS-3.) `tests/build/measure-size.test.ts` bundles `src/state/measure.ts` with esbuild (Vite's own, minified) and asserts the gzip is at most 1 KB; `bundle:budget`'s main row is the regression check against 2.14.3.
   This reads FR-MEAS-3's "the module's row" as that test: the budget script counts chunks, and the module is not one.
 
+- **D-1157 — Nothing stands where the note stood.** *(R194)*
+  `Footer` loses its `privacy` prop and keeps no empty slot.
+  The boxed foot under the place search renders only with a saved place, for its clear action; with none the foot and its rule are absent, so the phone's where step ends at the coordinates card.
+- **D-1158 — A stored `privacyNoteClosed` is dropped by omission.** *(R194)*
+  The `localPrefs` schema no longer lists the key, so a read ignores it and the next write leaves it out; there is no migration.
+  The test that holds this is titled FR-KEEP-4, since FR-SDD-24 asks for a test naming that id.
+- **D-1159 — `FOOTER_ONE_LINE_MIN_PX` stays 1176 / 1195.** *(R194)*
+  Without the note the one-row footer fits from about 990 px in English and 1010 px in Spanish, but D-681 and `breakpoint.test.ts` hold the fold above the 1024 px capture width.
+  The literals are now conservative and break nothing; lowering them is the owner's call, and the comments in `App.module.css` and `lib/layout.ts` that name the note's `[ × ]` move with that call.
+
 ### 9.17 v2.15 additions *(FR-MEAS)*
 
 - **Pure.** `src/model/measure.test.ts` (the guard, every name and detail, the rejects), `src/data/measure.test.ts` (once per pair, offline, no beacon, a throwing beacon, a foreign origin, `webdriver`, `forced`), `scripts/funnel.test.ts` (the fixture, the flags, the empty store, the missing credential).

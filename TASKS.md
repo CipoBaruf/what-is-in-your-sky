@@ -32,7 +32,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.13 | R172 … R181 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.13/tasks.md) |
 | v2.14 | R182 … R191 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.14/tasks.md) |
 | v2.14.2 | R192 | 1 of 1 | [tasks.md](docs/sdd/phases/v2.14.2/tasks.md) |
-| v2.15 | R193 … R197 | 0 of 5 | this file |
+| v2.15 | R193 … R197 | 1 of 5 | this file |
 
 ## v2.15 tasks
 
@@ -56,7 +56,7 @@ Decision blocks (§16.2): R193 D-1152..D-1156, R194 D-1157..D-1159, R195 D-1160.
   - **Out of scope:** any `src/ui` call (R196); the route (R195).
   - **Done when:** `npm run check` green; `measure.test.ts` in `model/`, `data/` and `measureEffects.test.ts` cover FR-MEAS-1's and FR-MEAS-3's verification lines; the size test holds 1 KB.
 
-- [ ] **R194 — The privacy note is gone from every page**
+- [x] **R194 — The privacy note is gone from every page**
   - **Lane:** ui
   - **Model:** sonnet
   - **Gate:** owner
