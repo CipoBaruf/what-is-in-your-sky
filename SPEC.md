@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.14.2 — for review.** Phase v2.14.2 "ask before following" (a phone page asks before it follows the phone, Android too, once per visit): FR-PHONE-17, FR-PHONE-1, FR-PHONE-2 and FR-WIN-4 amended on compact, Decision Log V214-39..V214-44, in `docs/sdd/phases/v2.14.2/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
-| Date | 2026-11-05 (v2.14.2). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v2.15 — for review.** Phase v2.15 "where they stop" (anonymous counts of the first run and of each page on the site's own route, a command that prints the funnel, the privacy note removed): FR-MEAS-1..7, FR-X-3 amended, FR-KEEP-4 superseded, Decision Log V215-1..V215-7, in `docs/sdd/phases/v2.15/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Date | 2026-11-18 (v2.15). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -65,18 +65,15 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 ---
 
-### Current phase — v2.14.1 ("the desk, reviewed", as decided 2026-11-05, V214-25)
+### Current phase — v2.15 ("where they stop", as decided 2026-11-18, V215-1)
 
-After v2.14 is on `main` (2.14.0, not tagged).
-The owner's desk review of 2.14.0, fixed on one branch read locally before it is pushed: FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3, FR-WIDE-4 and FR-STAR-13 as amended and FR-WIDE-13..14 are in [the phase spec](docs/sdd/phases/v2.14.1/spec.md); the decisions are V214-25..V214-32.
+After v2.14.3 is on `main`.
+Readers say the app is hard to understand, so before the first run changes the site counts where first visits stop: one route of its own that receives anonymous counts, a command that prints the funnel, and the privacy note removed.
+Goals G67–G68, §4.58, FR-MEAS-1..7, FR-X-3 amended, US-58..US-59 and roadmap §9 Phase 2x are in [the phase spec](docs/sdd/phases/v2.15/spec.md); the decisions are V215-1..V215-7.
 
-### Previous phase — v2.14 ("one sky on a desk", as decided 2026-11-04, V214-1)
+### Previous phase — v2.14.2 ("ask before following", as decided 2026-11-05, V214-39)
 
-After v2.13 is on `main`.
-On a desk the satellites, the live sky and the stars become one layout with the globe as their whole sky, the dome by choice and one time control; the satellites, stars and planets the reader picks say what they are, the Spanish star names are reviewed, and the desk gains hover, clouds on the stripe, keys and a full-screen sky.
-On the phone and the desk every choice is kept for the next open and the privacy note is read once; otherwise the phone changes only by the star names.
-With the release the README, its images, the reading order and the repository's description and topics are brought up to date.
-Goals G62–G66, §4.57, FR-WIDE-1..12, FR-FACT-1..3, FR-NAME-1..3, FR-KEEP-1..4, FR-PUB-14..16, US-52..US-57 and roadmap §9 Phase 2w are in [the phase spec](docs/sdd/phases/v2.14/spec.md); the decisions are V214-1..V214-22.
+On a phone the live page, the stars page and the pass detail ask before they follow the phone: FR-PHONE-17 and FR-PHONE-1, FR-PHONE-2 and FR-WIN-4 as amended are in [the phase spec](docs/sdd/phases/v2.14.2/spec.md); the decisions are V214-39..V214-44.
 
 ### Phase 3 — Later
 - Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.
@@ -125,6 +122,7 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.14 | [spec](docs/sdd/phases/v2.14/spec.md) | [plan](docs/sdd/phases/v2.14/plan.md) | [tasks](docs/sdd/phases/v2.14/tasks.md) |
 | v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
 | v2.14.2 | [spec](docs/sdd/phases/v2.14.2/spec.md) | [plan](docs/sdd/phases/v2.14.2/plan.md) | [TASKS.md](TASKS.md) |
+| v2.15 | [spec](docs/sdd/phases/v2.15/spec.md) | — | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),

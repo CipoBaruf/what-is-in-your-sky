@@ -1936,6 +1936,17 @@ FR-PHONE-17	docs/sdd/phases/v2.14.2/spec.md#the-question	The question
 D-1142	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
 D-1143	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
 D-1144	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
+G67	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
+G68	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
+US-58	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
+US-59	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
+FR-MEAS-1	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-2	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-3	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-4	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-5	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-6	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+FR-MEAS-7	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2283,6 +2294,13 @@ V214-41	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-42	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-43	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V214-44	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-2	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-5	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-6	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V215-7	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp
@@ -2522,6 +2540,8 @@ PLAN §2.51	docs/sdd/phases/v2.14.1/plan.md#251-v2141-decisions-2026-11-05
 PLAN §16.34	docs/sdd/phases/v2.14.1/plan.md#1634-v2141-delivery
 PLAN §2.52	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05
 PLAN §16.35	docs/sdd/phases/v2.14.2/plan.md#1635-v2142-delivery
+SPEC §2.22	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop
+SPEC §4.58	docs/sdd/phases/v2.15/spec.md#458-measurement-v215
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies
