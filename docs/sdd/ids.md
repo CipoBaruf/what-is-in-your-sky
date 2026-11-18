@@ -1995,6 +1995,17 @@ FR-OPEN-8	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The 
 FR-OPEN-9	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-10	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-11	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
+D-1173	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1174	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1175	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1176	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1177	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1178	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1179	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1180	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1181	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1182	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1183	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2609,6 +2620,10 @@ PLAN §11.9	docs/sdd/phases/v2.15/plan.md#119-v215-build-and-deploy-fr-meas-4
 PLAN §16.36	docs/sdd/phases/v2.15/plan.md#1636-v215-delivery
 SPEC §2.23	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first
 SPEC §4.59	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216
+PLAN §2.54	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18
+PLAN §9.18	docs/sdd/phases/v2.16/plan.md#918-v216-additions-fr-open
+PLAN §11.10	docs/sdd/phases/v2.16/plan.md#1110-v216-build-fr-open-1
+PLAN §16.37	docs/sdd/phases/v2.16/plan.md#1637-v216-delivery
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies

@@ -125,7 +125,7 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
 | v2.14.2 | [spec](docs/sdd/phases/v2.14.2/spec.md) | [plan](docs/sdd/phases/v2.14.2/plan.md) | [tasks](docs/sdd/phases/v2.14.2/tasks.md) |
 | v2.15 | [spec](docs/sdd/phases/v2.15/spec.md) | [plan](docs/sdd/phases/v2.15/plan.md) | [TASKS.md](TASKS.md) |
-| v2.16 | [spec](docs/sdd/phases/v2.16/spec.md) | — | — |
+| v2.16 | [spec](docs/sdd/phases/v2.16/spec.md) | [plan](docs/sdd/phases/v2.16/plan.md) | — |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),

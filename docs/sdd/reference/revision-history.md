@@ -179,12 +179,14 @@ The header's Status and Input cells grew one paragraph per revision until they r
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the plan is revised, the Status and Input lines it replaces go to the top of these lists.
 
-**Dates since the split:** 2026-11-05 (v0.23); 2026-11-04 (v0.22).
+**Dates since the split:** 2026-11-18 (v0.25); 2026-11-05 (v0.23); 2026-11-04 (v0.22).
 
 **Dates:** 2026-11-03 (v0.21); 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
 
 ### Status, newest first
 
+- **Draft v0.25 — for review.**
+  Plans SPEC v2.15 "where they stop": the decisions are §2.53 (D-1145..D-1151), the tests §9.17, the deploy §11.9 and the delivery §16.36 (five tasks, R193..R197, three waves), in `docs/sdd/phases/v2.15/plan.md`.
 - **Draft v0.24 — for review.**
   Plans SPEC v2.14.2 "ask before following": the decisions are §2.52 (D-1142..D-1144) and the delivery is §16.35 (one task, R192, one pull request), in `docs/sdd/phases/v2.14.2/plan.md`.
 - **Draft v0.23 — for review.**
@@ -261,6 +263,7 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Input, newest first
 
+- `SPEC.md` v2.15: V215-1..V215-7 are fixed like the rows before them.
 - `SPEC.md` v2.14.2: V214-39..V214-44 are fixed like the rows before them.
 - `SPEC.md` v2.14.1: V214-25..V214-32 are fixed like the rows before them.
 - `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise.
