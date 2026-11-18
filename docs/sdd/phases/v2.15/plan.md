@@ -64,6 +64,18 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Without the note the one-row footer fits from about 990 px in English and 1010 px in Spanish, but D-681 and `breakpoint.test.ts` hold the fold above the 1024 px capture width.
   The literals are now conservative and break nothing; lowering them is the owner's call, and the comments in `App.module.css` and `lib/layout.ts` that name the note's `[ × ]` move with that call.
 
+- **D-1160 — `EVENT_MAX_BYTES` lives in `edge/collect.ts`.** *(R195)*
+  Only the route uses it. The body is read from the stream and dropped once it passes the limit; the rest is not read.
+- **D-1161 — The content type is not checked.** *(R195)*
+  The beacon sends `text/plain;charset=UTF-8`, so `isMeasureEvent` on the parsed body is the only test.
+- **D-1162 — `204` even when the body cannot be read or the store throws.** *(R195)*
+  The answer must not say whether an event was kept, and with logs off there is nowhere to report the error.
+- **D-1163 — `405` carries `Allow: POST` and no body.** *(R195)*
+- **D-1164 — `edge/` has its own tsconfig, lint block and knip entry.** *(R195)*
+  `tsconfig.edge.json` uses the `WebWorker` lib and no `types`; the lint block lets `edge/` import only `src/model` from `src`; knip names `edge/index.ts` as an entry, since `wrangler` is not a dependency.
+  The path match is exact: `/e/` and `/ex` go to the assets.
+  A data point is `indexes: [id]` and `blob1`..`blob6` as name, detail (empty when absent), visit, layout, lang, id; there are no doubles.
+
 ### 9.17 v2.15 additions *(FR-MEAS)*
 
 - **Pure.** `src/model/measure.test.ts` (the guard, every name and detail, the rejects), `src/data/measure.test.ts` (once per pair, offline, no beacon, a throwing beacon, a foreign origin, `webdriver`, `forced`), `scripts/funnel.test.ts` (the fixture, the flags, the empty store, the missing credential).

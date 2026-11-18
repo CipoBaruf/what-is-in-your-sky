@@ -32,7 +32,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 | v2.13 | R172 … R181 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.13/tasks.md) |
 | v2.14 | R182 … R191 | 10 of 10 | [tasks.md](docs/sdd/phases/v2.14/tasks.md) |
 | v2.14.2 | R192 | 1 of 1 | [tasks.md](docs/sdd/phases/v2.14.2/tasks.md) |
-| v2.15 | R193 … R197 | 2 of 5 | this file |
+| v2.15 | R193 … R197 | 3 of 5 | this file |
 
 ## v2.15 tasks
 
@@ -71,7 +71,7 @@ Decision blocks (§16.2): R193 D-1152..D-1156, R194 D-1157..D-1159, R195 D-1160.
   - **Out of scope:** the README and `docs/DEPLOY.md` (R197); `wrangler.jsonc`'s comment (R195).
   - **Done when:** `npm run check` green; the three component tests and `keep.spec.ts` assert no privacy text in either language; `messages.test.ts`'s snapshot has lost the four keys; `controlRows.test.ts` green.
 
-- [ ] **R195 — The site receives a count at `/e`**
+- [x] **R195 — The site receives a count at `/e`**
   - **Lane:** docs
   - **Model:** opus
   - **Gate:** auto

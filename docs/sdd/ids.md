@@ -1967,6 +1967,11 @@ D-1156	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 de
 D-1157	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 D-1158	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 D-1159	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1160	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1161	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1162	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1163	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1164	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
