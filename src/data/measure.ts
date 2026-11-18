@@ -5,8 +5,10 @@
  */
 import { EVENTS, type MeasureContext, type MeasureDetail, type MeasureName } from '../model/measure';
 
-/** FR-ADDR-2: the public address; anywhere else nothing is sent unless a test forces it. */
-export const MEASURE_ORIGIN = 'https://inyoursky.app';
+/** FR-ADDR-2: the public address's host, as `wrangler.jsonc`'s route names it. */
+const MEASURE_HOST = 'inyoursky.app';
+/** The origin the page must be on to send; compared, never connected to (the beacon goes to `/e`, `connect-src 'self'`). */
+export const MEASURE_ORIGIN = `https://${MEASURE_HOST}`;
 /** FR-MEAS-3: the route on the page's own origin. */
 export const MEASURE_PATH = '/e';
 

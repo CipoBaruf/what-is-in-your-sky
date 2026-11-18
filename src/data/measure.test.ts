@@ -69,7 +69,7 @@ describe('FR-MEAS-3: sending', () => {
   });
 
   it('a foreign origin sends nothing: a preview, a local build, the test server', () => {
-    for (const origin of ['https://r193-in-your-sky.ezequiel-baruf.workers.dev', 'http://localhost:4173', 'http://inyoursky.app', 'https://inyoursky.app.evil.example']) {
+    for (const origin of ['https://r193-preview.example.dev', 'http://localhost:4173', 'http://inyoursky.app', 'https://inyoursky.app.evil.example']) {
       const env = envWith({ origin });
       createMeasure(env, context)('open', 'home');
       expect(env.beacon, origin).not.toHaveBeenCalled();
