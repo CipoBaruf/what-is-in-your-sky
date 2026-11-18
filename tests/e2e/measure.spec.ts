@@ -76,7 +76,7 @@ for (const language of [
     test.describe('at 390 × 844', () => {
       test.use({ viewport: { width: 390, height: 844 } });
 
-      test('US-58 AC3: the first run sends its six facts once each, in order, under one id', async ({ page }) => {
+      test('FR-MEAS-1, FR-MEAS-2, US-58 AC3: the first run sends its six facts once each, in order, under one id', async ({ page }) => {
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
@@ -184,7 +184,7 @@ for (const viewport of [
   test.describe(`at ${String(viewport.width)} × ${String(viewport.height)}`, () => {
     test.use({ viewport, locale: 'en-GB' });
 
-    test('US-59 AC1, AC2: nothing typed, named or placed leaves with a count, and the count keeps nothing on the device', async ({ page, context, browser }) => {
+    test('FR-MEAS-5, US-59 AC1, AC2: nothing typed, named or placed leaves with a count, and the count keeps nothing on the device', async ({ page, context, browser }) => {
       const bodies = await recordBeacons(page);
       const on = await fullVisit(page, context);
       await expect.poll(() => pairs(bodies).filter((pair) => pair.startsWith('place_set:')).sort()).toEqual(['place_set:coords', 'place_set:device', 'place_set:search']);
@@ -213,7 +213,7 @@ for (const viewport of [
 test.describe('offline', () => {
   test.use({ viewport: { width: 390, height: 844 }, locale: 'en-GB' });
 
-  test('US-59 AC3: nothing counted offline is sent when the connection returns', async ({ page, context }) => {
+  test('FR-MEAS-3, US-59 AC3: nothing counted offline is sent when the connection returns', async ({ page, context }) => {
     const bodies = await recordBeacons(page);
     await serve(page);
     await page.goto('/');
