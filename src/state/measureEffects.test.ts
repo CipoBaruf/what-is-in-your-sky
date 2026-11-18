@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLocalPrefs } from '../data/localPrefs';
 import type { Count, MeasureEnv } from '../data/measure';
+import { WIDE_QUERY } from '../lib/layout';
 import { passLinkHash } from '../lib/shareLinks';
 import type { Observer, Pass, WeatherSnapshot } from '../model';
 import { isMeasureEvent } from '../model/measure';
@@ -126,6 +127,7 @@ describe('startApp counts (FR-MEAS-1, D-1146)', () => {
   let stop: () => void = () => undefined;
   afterEach(() => {
     stop();
+    vi.unstubAllGlobals();
   });
 
   const boot = (stored: object | null, hash: string, over: Partial<MeasureEnv> = {}) => {
@@ -161,16 +163,19 @@ describe('startApp counts (FR-MEAS-1, D-1146)', () => {
     expect(JSON.stringify(event)).not.toMatch(/48\.86|2\.35|Paris/);
   });
 
-  it('a return visit is return in its language, and the restored place is not a place set', () => {
+  it('a return visit is return, wide and in its language, fixed at load; the restored place is not a place set', () => {
+    let wide = true;
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === WIDE_QUERY && wide }));
     const { bodies, store, map } = boot({ observer: typed, locale: 'es' }, '');
+    wide = false; // the window narrows after load
     const before = map.get('wiys:prefs:v1');
     expect(bodies()).toEqual([]);
     store.getState().setObserver(coords);
-    expect(bodies()).toEqual([expect.objectContaining({ name: 'place_set', detail: 'coords', visit: 'return', lang: 'es' })]);
+    expect(bodies()).toEqual([expect.objectContaining({ name: 'place_set', detail: 'coords', visit: 'return', layout: 'wide', lang: 'es' })]);
     // The context is fixed at load: a language switched later does not change it, and nothing of the count is stored.
     store.getState().setLocale('en');
     store.getState().setObserver(device);
-    expect(bodies()[1]).toMatchObject({ visit: 'return', lang: 'es' });
+    expect(bodies()[1]).toMatchObject({ visit: 'return', layout: 'wide', lang: 'es', id: bodies()[0]?.['id'] });
     expect(map.get('wiys:prefs:v1')).not.toBe(before); // the place and locale were written, as ever
     expect([...map.keys()]).toEqual(['wiys:prefs:v1']);
     expect(map.get('wiys:prefs:v1')).not.toMatch(/[0-9a-f]{16}/);

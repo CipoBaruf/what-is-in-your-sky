@@ -8,6 +8,7 @@ import { startDeviceNaming } from './deviceName';
 import { documentVisibility, startEffects, type EffectDeps } from './effects';
 import { applyLink, followHash as followHashIn, openLink } from './openLink';
 import { setLiveNowClient } from './liveNow';
+import { WIDE_QUERY } from '../lib/layout';
 import { startMeasure } from './measure';
 import { startMeasureEffects } from './measureEffects';
 import type { MeasureEnv } from '../data/measure';
@@ -135,7 +136,8 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
   // FR-MEAS-1, D-1147: the load's context is fixed here, after the restore (first or return) and before a link is
   // read, so an adopted link is counted as a place set and the restored place is not.
   const loaded = store.getState();
-  const count = startMeasure({ returning: loaded.observer !== null, lang: loaded.locale }, overrides.measureEnv);
+  const wide = typeof matchMedia === 'function' && matchMedia(WIDE_QUERY).matches;
+  const count = startMeasure({ returning: loaded.observer !== null, wide, lang: loaded.locale }, overrides.measureEnv);
   const stopMeasure = startMeasureEffects(store, count);
   applyLink(store, openLink(overrides.hash ?? window.location.hash, prefs.read().observer ?? null, now()));
   const stop = startEffects({

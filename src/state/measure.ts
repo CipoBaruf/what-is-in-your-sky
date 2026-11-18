@@ -1,10 +1,9 @@
 /**
  * FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
- * It imports neither the store nor React, so it stays inside `MEASURE_MAX_KB` (D-1151). It cannot read a place: the
- * context is four values fixed at load, and `id` lives in this module's memory only — never a cookie or any storage.
+ * It imports neither the store, React nor `lib/layout`, so it stays inside `MEASURE_MAX_KB` (D-1151). It cannot read a
+ * place: the context is four values fixed at load, and `id` lives in this module's memory only, never in any storage.
  */
 import { createMeasure, type Count, type DetailArg, type MeasureEnv } from '../data/measure';
-import { WIDE_QUERY } from '../lib/layout';
 import type { MeasureContext, MeasureName } from '../model/measure';
 
 let sender: Count = () => undefined;
@@ -39,15 +38,15 @@ export function browserEnv(): MeasureEnv {
   };
 }
 
-/** What `startApp` knows at load: whether an observer was there, and the resolved language. */
+/** What `startApp` knows at load: whether an observer was there, whether the wide query matched, the resolved language. */
 export interface LoadFacts {
   returning: boolean;
+  wide: boolean;
   lang: MeasureContext['lang'];
 }
 
 /** Builds this load's sender; `startApp` calls it once, after the saved place is restored and before a link is read. */
 export function startMeasure(facts: LoadFacts, env: MeasureEnv = browserEnv()): Count {
-  const wide = typeof matchMedia === 'function' && matchMedia(WIDE_QUERY).matches;
-  sender = createMeasure(env, { visit: facts.returning ? 'return' : 'first', layout: wide ? 'wide' : 'compact', lang: facts.lang, id: randomId() });
+  sender = createMeasure(env, { visit: facts.returning ? 'return' : 'first', layout: facts.wide ? 'wide' : 'compact', lang: facts.lang, id: randomId() });
   return count;
 }

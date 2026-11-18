@@ -3,7 +3,7 @@
  * set of the pairs already counted in this load, in memory. It cannot know whether the beacon arrived: a failed send is
  * silent by design (FR-MEAS-3), and an event dropped offline is never queued or retried.
  */
-import { isMeasureEvent, type MeasureContext, type MeasureDetail, type MeasureName } from '../model/measure';
+import { EVENTS, type MeasureContext, type MeasureDetail, type MeasureName } from '../model/measure';
 
 /** FR-ADDR-2: the public address; anywhere else nothing is sent unless a test forces it. */
 export const MEASURE_ORIGIN = 'https://inyoursky.app';
@@ -34,10 +34,11 @@ export function createMeasure(env: MeasureEnv, context: MeasureContext): Count {
   const defer = env.defer ?? ((run: () => void) => run());
   return (name: MeasureName, detail?: string) => {
     const pair = `${name}:${detail ?? ''}`;
-    if (!allowed || sent.has(pair)) return;
+    // FR-MEAS-1: a name or detail outside the table never leaves, even past the type; the context is typed at load.
+    const details: readonly string[] | undefined = Object.hasOwn(EVENTS, name) ? EVENTS[name] : undefined;
+    if (!allowed || sent.has(pair) || !details || (detail !== undefined && !details.includes(detail))) return;
     sent.add(pair); // V215-7: once per pair per load, sent or dropped
     const event = detail === undefined ? { name, ...context } : { name, detail, ...context };
-    if (!isMeasureEvent(event)) return;
     defer(() => {
       try {
         if (env.beacon && env.online()) env.beacon(MEASURE_PATH, JSON.stringify(event));

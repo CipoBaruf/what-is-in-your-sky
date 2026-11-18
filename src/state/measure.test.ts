@@ -1,7 +1,6 @@
 /** R193 (FR-MEAS-1, FR-MEAS-3, D-1146): the load's context, its id, the browser's gates and the paint deferral. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MeasureEnv } from '../data/measure';
-import { WIDE_QUERY } from '../lib/layout';
 import { ID_PATTERN } from '../model/measure';
 import { browserEnv, count, randomId, startMeasure } from './measure';
 
@@ -23,31 +22,28 @@ afterEach(() => {
 
 describe('FR-MEAS-1: the context is fixed at load', () => {
   it('visit, layout and lang come from the load and do not change within it', () => {
-    let wide = true;
-    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === WIDE_QUERY && wide }));
     const env = recording();
-    startMeasure({ returning: true, lang: 'es' }, env);
+    startMeasure({ returning: true, wide: true, lang: 'es' }, env);
     count('open', 'home');
-    wide = false; // the window narrowed after load
     count('where_shown');
     const [first, second] = env.bodies();
     expect(first).toMatchObject({ visit: 'return', layout: 'wide', lang: 'es' });
     expect(second).toMatchObject({ visit: 'return', layout: 'wide', lang: 'es', id: first?.['id'] });
   });
 
-  it('a first visit on a narrow screen is first and compact; with no matchMedia it is compact', () => {
+  it('a first visit on a narrow screen is first and compact', () => {
     const env = recording();
-    startMeasure({ returning: false, lang: 'en' }, env);
+    startMeasure({ returning: false, wide: false, lang: 'en' }, env);
     count('open', 'home');
     expect(env.bodies()[0]).toMatchObject({ visit: 'first', layout: 'compact', lang: 'en' });
   });
 
   it('two loads make two ids, each 16 hex characters', () => {
     const one = recording();
-    startMeasure({ returning: false, lang: 'en' }, one);
+    startMeasure({ returning: false, wide: false, lang: 'en' }, one);
     count('open', 'home');
     const two = recording();
-    startMeasure({ returning: false, lang: 'en' }, two);
+    startMeasure({ returning: false, wide: false, lang: 'en' }, two);
     count('open', 'home');
     const ids = [one.bodies()[0]?.['id'], two.bodies()[0]?.['id']];
     for (const id of ids) expect(id).toMatch(ID_PATTERN);
