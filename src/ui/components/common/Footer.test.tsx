@@ -60,10 +60,10 @@ describe('<Footer>', () => {
     expect(footer).toHaveTextContent('Sky chart: glyphcss.');
     expectCredits();
     const lines = Array.from(footer.querySelectorAll('p')).map((p) => p.textContent);
-    expect(lines).toHaveLength(6);
-    expect(lines[5]).toBe('Sky chart: glyphcss.');
+    expect(lines).toHaveLength(5);
+    expect(lines[4]).toBe('Sky chart: glyphcss.');
     // One link in the sentence: the library's name, and no author's.
-    const chart = footer.querySelectorAll('p')[5];
+    const chart = footer.querySelectorAll('p')[4];
     expect(Array.from(chart?.querySelectorAll('a') ?? []).map((a) => a.textContent)).toEqual(['glyphcss']);
   });
 
