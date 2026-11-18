@@ -116,6 +116,20 @@ export default defineConfig([
     },
   },
   {
+    // R195 (D-1148): the Worker script in `edge/` runs on Cloudflare, not in the page. It may read the closed list
+    // in `src/model` and nothing else of the app, and it sees Worker globals, not the DOM or Node.
+    files: ['edge/**'],
+    ignores: TESTS,
+    extends: [importX.recommended, importX.typescript],
+    languageOptions: { globals: { ...globals.serviceworker } },
+    settings: { 'import-x/resolver-next': [createNodeResolver({ extensions: ['.ts', '.tsx', '.js', '.json'] })] },
+    rules: {
+      'import-x/no-unresolved': 'off', // the TypeScript compiler already checks this
+      'import-x/no-restricted-paths': ['error', { basePath: import.meta.dirname, zones: [zone('edge', 'src', ['./model'])] }],
+      '@typescript-eslint/no-restricted-imports': restrictedImports({ patterns: [NO_REACT] }),
+    },
+  },
+  {
     // Directories that must not import React at all (PLAN §3).
     files: ['src/physics/**', 'src/worker/**', 'src/data/**', 'src/lib/**', 'src/model/**'],
     ignores: TESTS,
