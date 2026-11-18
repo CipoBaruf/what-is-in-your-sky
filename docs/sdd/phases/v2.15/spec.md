@@ -71,10 +71,10 @@ It is the first time the site receives anything: one route that takes counts, on
 - **FR-MEAS-4** *(V215-2, V215-6)* **The route that receives.**
   `/e` accepts a `POST` whose body is one event of at most `EVENT_MAX_BYTES` (512); a body that is larger, is not an event of FR-MEAS-1 or names a pair outside FR-MEAS-2 is dropped.
   It answers `204` with no body and no `Set-Cookie` whether the event was kept or dropped, and any other method on `/e` is refused with `405`.
-  A kept event is stored as its six fields and the time it arrived; the address it came from, its user agent, its referrer and every other header are not stored and not logged.
+  A kept event is stored as its six fields, stamped by the store with the time it arrived; the address it came from, its user agent, its referrer and every other header are not stored and not logged.
   The store is the site's own account (Workers Analytics Engine, V215-2), kept for as long as the store keeps it and no longer; nothing is sent on to anyone.
   Every other path is served as it is on 2.14.3: the same files, the same headers, the same `404`.
-  *Verification:* `tests/deploy/endpoint.test.ts` against the route's handler — a valid event is written once with exactly seven values; an oversize body, a malformed body, an unknown name and an unknown detail write nothing; every case answers `204` with no body and no cookie; `GET` answers `405`; no write contains a header's value.
+  *Verification:* `tests/deploy/endpoint.test.ts` against the route's handler — a valid event is written once as its six fields, the arrival time being the store's own; an oversize body, a malformed body, an unknown name and an unknown detail write nothing; every case answers `204` with no body and no cookie; `GET` answers `405`; no write contains a header's value.
   `tests/deploy/headers.test.ts` unchanged and green: the CSP gains no host.
 
 - **FR-MEAS-5** *(V215-6)* **Never sent, never stored.**

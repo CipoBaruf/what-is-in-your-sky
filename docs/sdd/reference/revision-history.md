@@ -182,6 +182,8 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Status, newest first
 
+- **Draft v0.24 — for review.**
+  Plans SPEC v2.14.2 "ask before following": the decisions are §2.52 (D-1142..D-1144) and the delivery is §16.35 (one task, R192, one pull request), in `docs/sdd/phases/v2.14.2/plan.md`.
 - **Draft v0.23 — for review.**
   Plans SPEC v2.14.1 "the desk, reviewed": the decisions are §2.51 (D-1134..D-1141) and the delivery is §16.34 (one local branch, the owner's read before any push), in `docs/sdd/phases/v2.14.1/plan.md`.
 - **Draft v0.22 — for review.**
@@ -256,6 +258,7 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Input, newest first
 
+- `SPEC.md` v2.14.2: V214-39..V214-44 are fixed like the rows before them.
 - `SPEC.md` v2.14.1: V214-25..V214-32 are fixed like the rows before them.
 - `SPEC.md` v2.13: V213-1..V213-11 are fixed like the rows before them; `docs/proposals/agent-agnostic-sdd.md` is intent only where SPEC §4.56 does not say otherwise.
   *(the v0.21 header line)*

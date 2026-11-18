@@ -1947,6 +1947,13 @@ FR-MEAS-4	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(
 FR-MEAS-5	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
 FR-MEAS-6	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
 FR-MEAS-7	docs/sdd/phases/v2.15/spec.md#458-measurement-v215	4.58 Measurement *(v2.15)*
+D-1145	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1146	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1147	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1148	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1149	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1150	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+D-1151	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2542,6 +2549,10 @@ PLAN §2.52	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05
 PLAN §16.35	docs/sdd/phases/v2.14.2/plan.md#1635-v2142-delivery
 SPEC §2.22	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop
 SPEC §4.58	docs/sdd/phases/v2.15/spec.md#458-measurement-v215
+PLAN §2.53	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18
+PLAN §9.17	docs/sdd/phases/v2.15/plan.md#917-v215-additions-fr-meas
+PLAN §11.9	docs/sdd/phases/v2.15/plan.md#119-v215-build-and-deploy-fr-meas-4
+PLAN §16.36	docs/sdd/phases/v2.15/plan.md#1636-v215-delivery
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies
