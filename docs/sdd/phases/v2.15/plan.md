@@ -83,6 +83,18 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1172 — The report's choices.** *(R197)*
   A share over an empty `where_shown` prints `-`; every detail of `EVENTS` is listed, zeros included; the opens count every `open`, first visit or not; `--layout` and `--lang` filter the rows read, not the SQL.
 
+- **D-1165 — `open`'s detail is read from the hash at load.** *(R196)*
+  `ui/openedRoute.ts` maps the hash to the route; at the first render a `#pass` link has no resolved pass yet, so `App`'s route would say `home`. A `#live?…` that does not parse is `home`, as `App` draws it.
+- **D-1166 — `follow_answer` sends one outcome per question.** *(R196)*
+  `not_now` at the press; after `[ allow ]`, `allow` when the phone grants and `refused` when it refuses or throws. The plain toggle sends nothing.
+- **D-1167 — On wide, `when_shown` and `what_shown` are sent once the home's panes hold an observer.** *(R196)*
+  On compact only the first-run steps send the three `_shown` names; the stacked later visit sends none. A wide pass page does not mount the home, so a cold open to a pass link sends neither.
+- **D-1168 — `pass_open` means a pass is open.** *(R196)*
+  The bare `#pass` page with nothing selected is not a pass detail.
+- **D-1169 — `place_set` stays the store's; no screen sends it.** *(R196)*
+  D-1154 and the observer's `source` already carry `search`, `coords` and `device`; a screen-side call would count twice.
+  `sky_screen_open` has no call: FR-GYRO-6 retired the sky screen in v2.9, so FR-MEAS-2's row has nothing to count until the owner amends the table.
+
 ### 9.17 v2.15 additions *(FR-MEAS)*
 
 - **Pure.** `src/model/measure.test.ts` (the guard, every name and detail, the rejects), `src/data/measure.test.ts` (once per pair, offline, no beacon, a throwing beacon, a foreign origin, `webdriver`, `forced`), `scripts/funnel.test.ts` (the fixture, the flags, the empty store, the missing credential).
