@@ -316,7 +316,7 @@ export const createPrefsSlice =
         // Both write-throughs re-read the stored object and replace one field of it, so the use stamped
         // here and the observer set below survive each other under the one key (D-139).
         saveFavourites(withFavouriteUsed(get().favourites, cellKey, deps.now()));
-        get().setObserver(found.observer);
+        get().setObserver(found.observer, 'favourite');
         return true;
       },
       removeFavourite: (cellKey) => {

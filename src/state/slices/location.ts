@@ -19,7 +19,9 @@ export interface LocationSlice {
   /** The place a link opened over the saved one, for this session only (D-538). */
   visiting: Observer | null;
   nowMs: EpochMs;
-  setObserver: (observer: Observer | null) => void;
+  /** FR-MEAS-2 (D-1147): how `observer` was last set when its source does not say — a favourite picked, a link adopted; never stored. */
+  observerVia: ObserverVia | null;
+  setObserver: (observer: Observer | null, via?: ObserverVia) => void;
   /** Looks from a link's place without storing it. */
   visit: (observer: Observer) => void;
   /** Stores the visited place as the observer; the sky on screen does not change. */
@@ -27,6 +29,9 @@ export interface LocationSlice {
   /** Back to the saved place: clears the hash and recomputes. */
   endVisit: () => void;
 }
+
+/** The two ways of setting a place that the observer's own `source` cannot tell apart from a typed one. */
+export type ObserverVia = 'favourite' | 'link';
 
 export interface LocationDeps {
   now: () => EpochMs;
@@ -57,8 +62,9 @@ export const createLocationSlice =
     observer: null,
     visiting: null,
     nowMs: 0,
-    setObserver: (observer) => {
-      set({ observer, visiting: null, nowMs: deps.now() });
+    observerVia: null,
+    setObserver: (observer, via) => {
+      set({ observer, visiting: null, nowMs: deps.now(), observerVia: via ?? null });
     },
     visit: (observer) => {
       set({ visiting: observer, nowMs: deps.now() });
@@ -67,7 +73,7 @@ export const createLocationSlice =
       const { visiting } = get();
       if (visiting === null) return;
       // The same object moves across, so the active observer is unchanged and nothing is recomputed.
-      set({ observer: visiting, visiting: null });
+      set({ observer: visiting, visiting: null, observerVia: 'link' });
     },
     endVisit: () => {
       if (get().visiting === null) return;
