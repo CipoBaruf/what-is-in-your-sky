@@ -5,7 +5,11 @@ G3	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G4	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G5	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G6	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
-R192	TASKS.md#v2142-tasks	v2.14.2 tasks
+R193	TASKS.md#v215-tasks	v2.15 tasks
+R194	TASKS.md#v215-tasks	v2.15 tasks
+R195	TASKS.md#v215-tasks	v2.15 tasks
+R196	TASKS.md#v215-tasks	v2.15 tasks
+R197	TASKS.md#v215-tasks	v2.15 tasks
 US-1	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-2	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-3	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
@@ -1936,6 +1940,7 @@ FR-PHONE-17	docs/sdd/phases/v2.14.2/spec.md#the-question	The question
 D-1142	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
 D-1143	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
 D-1144	docs/sdd/phases/v2.14.2/plan.md#252-v2142-decisions-2026-11-05	2.52 v2.14.2 decisions (2026-11-05)
+R192	docs/sdd/phases/v2.14.2/tasks.md#v2142-tasks	v2.14.2 tasks
 G67	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
 G68	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
 US-58	docs/sdd/phases/v2.15/spec.md#222-goals-v215-where-they-stop	2.22 Goals (v2.15, "where they stop")
