@@ -168,8 +168,8 @@ for (const viewport of VIEWPORTS) {
 
     // D-1150 (FR-MEAS-7): no privacy note on any page, in either language; a stored `privacyNoteClosed` is ignored.
     for (const [locale, words, close] of [
-      ['en', ['No tracking', 'No analytics', 'Saved in this browser only'], 'Close the privacy note'],
-      ['es', ['Sin rastreo', 'Sin analítica', 'Guardada solo en este navegador'], 'Cerrar la nota de privacidad'],
+      ['en', ['No tracking', 'No analytics', 'No account, no tracking'], 'Close the privacy note'],
+      ['es', ['Sin rastreo', 'Sin analítica', 'Sin cuenta, sin rastreo'], 'Cerrar la nota de privacidad'],
     ] as const) {
       test(`FR-MEAS-7: the home, the stars page and settings carry no privacy note in ${locale}, and a stored flag changes nothing`, async ({ page }) => {
         await page.clock.setFixedTime(NINE_DAYS_ON);
@@ -195,7 +195,7 @@ for (const viewport of VIEWPORTS) {
         await expect(page.getByTestId('app-footer')).toBeAttached();
         await expectNone();
         await page.goto('/#settings');
-        await expect(page.getByTestId('app-footer')).toBeAttached({ timeout: 30_000 });
+        await expect(page.getByTestId('app-footer').last()).toBeAttached({ timeout: 30_000 });
         await expectNone();
       });
     }
