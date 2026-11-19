@@ -57,6 +57,11 @@ for (const lang of ['en', 'es'] as const) {
           expect(box?.y ?? 0, way).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0) - 1);
           // The page opened for the example, not its "needs a place".
           for (const id of ['live-set-place', 'stars-set-place']) await expect(page.getByTestId(id), way).toHaveCount(0);
+          // D-1205: the wide stars page's globe lists no place under the example (nothing saved, so no Place group).
+          if (wide && way === 'door-stars') {
+            await expect(page.getByTestId('globe-turn-row')).toBeVisible({ timeout: 30_000 });
+            await expect(page.getByTestId('globe-place')).toHaveCount(0);
+          }
 
           // The control: the home, the question open over the example, `[ back ]` to it.
           await line.getByRole('button', { name: w.control }).click();

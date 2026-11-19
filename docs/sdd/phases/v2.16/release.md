@@ -60,7 +60,7 @@ The phase was built by sub-agents outside the driver, so `sdd-run/usage.jsonl` h
 
 - [ ] `main` is 195.2 KB against its 185 budget and ceiling, as on 2.15.0 (194.8): raise the ceiling to the measure, or leave the row warning.
 - [ ] The captures of §30.1, compared: the R202 and R203 review folders and `captures.yml`'s diff.
-- [ ] The wide stars page's place group lists the example's city as `[x] Buenos Aires` (the globe's own and saved places read the active observer). FR-OPEN-2 keeps the example out of the fields and the saved places; keep it in the globe's group as the place shown, or leave it out.
+- [x] The wide stars page's `Place` group under the example. Decided 2026-11-19: left out. The group reads the reader's own place, so under the example it lists none and, with nothing saved, is not drawn; the page line names the city (D-1205).
 - [ ] The required checks on `main`: `static`, `unit (shard 1)` and `unit (shard 2)` (D-1223), with `gh api` branch protection.
 
 ### 30.5 The run on a device

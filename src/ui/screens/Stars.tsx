@@ -48,7 +48,7 @@ import { useFollow } from '../components/sky/useFollow';
 import { FollowAsk } from '../components/sky/FollowAsk';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
-import { usePageObserver } from '../hooks/useOwnObserver';
+import { useOwnObserver, usePageObserver } from '../hooks/useOwnObserver';
 import { darkWindowText } from '../components/now/ConditionsTable';
 import { close } from '../navigation';
 import { nextView, viewFor, WIDE_VIEWS } from './chartViewDefault';
@@ -315,6 +315,7 @@ function StarsSky({ observer }: { observer: Observer }) {
    * observer.
    */
   const favourites = useAppStore((s) => s.favourites);
+  const ownObserver = useOwnObserver();
   const places = useMemo(() => {
     const own = favouriteCellKey(observer);
     return mostRecentlyUsed(favourites).filter((place) => place.cellKey !== own);
@@ -757,7 +758,8 @@ function StarsSky({ observer }: { observer: Observer }) {
       </section>
     ) : null;
   const followToggle = sensor ? <FollowToggle follow={follow} className={styles.follow} /> : null;
-  const globeChoices = globeShown ? { turn, onTurn: setTurn, observer, places, choice: shownChoice, onChoice: setPlaceChoice } : undefined;
+  // R203 (FR-OPEN-7, D-1205): the Place group lists the reader's own place, never the example (the page line names it).
+  const globeChoices = globeShown ? { turn, onTurn: setTurn, observer: ownObserver, places, choice: shownChoice, onChoice: setPlaceChoice } : undefined;
   return (
     <div className={styles.page} data-layout={mode}>
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page">

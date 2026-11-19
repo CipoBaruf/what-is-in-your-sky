@@ -49,11 +49,16 @@ export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn:
   );
 }
 
-/** FR-GLOBE-9: the observer, then the saved places by `mostRecentlyUsed`, one press each; the observer's own saved entry is not listed twice. */
-export function GlobePlaces({ observer, places, choice, onChoice }: { observer: Observer; places: readonly Favourite[]; choice: PlaceChoice; onChoice: (choice: PlaceChoice) => void }) {
+/**
+ * FR-GLOBE-9: the observer, then the saved places by `mostRecentlyUsed`, one press each; the observer's own saved entry is not listed twice.
+ * R203 (FR-OPEN-2, FR-OPEN-7; D-1205): under the example `observer` is `null` — the example is no place of the reader's — and
+ * with nothing saved the group, heading and all, is not drawn, as `StarsGroup` draws nothing empty.
+ */
+export function GlobePlaces({ observer, places, choice, onChoice }: { observer: Observer | null; places: readonly Favourite[]; choice: PlaceChoice; onChoice: (choice: PlaceChoice) => void }) {
   const t = useT();
   const headingId = useId();
-  const options = [{ value: OBSERVER_VALUE, label: observer.label }, ...places.map((place) => ({ value: place.cellKey, label: place.observer.label }))];
+  const options = [...(observer === null ? [] : [{ value: OBSERVER_VALUE, label: observer.label }]), ...places.map((place) => ({ value: place.cellKey, label: place.observer.label }))];
+  if (options.length === 0) return null;
   return (
     <section aria-labelledby={headingId} className={styles.block} data-testid="globe-place">
       <SectionHeading id={headingId}>{t.globe.placeHeading}</SectionHeading>

@@ -151,6 +151,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   `ExampleNotice` draws while `usePageObserver()` is the example; it lives in `PageNotices` (`example`, default on; the home passes `false`, its band says the same), so the wide live and pass pages and the phone's live sky (its `fullTop`) carry it with no edit of theirs. The stars page had no strip:
   `App` gives it one with the line alone on wide (`visit={false}`, so a returning visit draws nothing new there, FR-OPEN-9).
   The settings page is not one of FR-OPEN-7's four, so it carries no line; its location section and its header's place read `useOwnObserver`.
+  The wide stars page's globe `Place` group reads `useOwnObserver` too (the owner's call, 2026-11-19): under the example it lists no place, and with nothing saved `GlobePlaces` draws nothing, heading and all, as `StarsGroup` draws nothing empty; the page line names the city.
 - **D-1206 — On a phone the pass and stars pages draw the line under their head.** *(R203)*
   (FR-OPEN-7, D-1013.) Both are the full form, whose box covers the shell's strip, so `PassDetail` and `StarsPage` draw `ExampleNotice` in their overlay, `--fg-dim`, across the box less `--space-3` each side.
   On the stars page it stands a `--space-1` under the head's target row; on the pass page the corner readout's two `--small` lines already stand there (56–96 px at 390), so the line stands a `--space-1` under them (`3 × --space-1 + --target + 2 × --small-row`, 102 px).
