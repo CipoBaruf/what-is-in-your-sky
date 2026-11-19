@@ -165,7 +165,7 @@ export const ui: typeof EnUi = {
     clearSaved: 'Borrar la ubicación guardada',
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros.',
     summaryChange: 'cambiar',
-    useMyLocationNote: 'Lo más rápido. El navegador pregunta antes; no se envía nada a ningún lado.',
+    useMyLocationNote: 'Lo más rápido. El navegador pregunta antes.',
   },
 
   home: {

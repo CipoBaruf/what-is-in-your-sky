@@ -223,7 +223,7 @@ export const ui = {
     /** FR-FIRST-11 (R81): the Where reading's `[ change ]`, which opens the input group in place. */
     summaryChange: 'change',
     /** FR-FIRST-2 (R76): the one line under the primary action's label. */
-    useMyLocationNote: 'Fastest. Your browser asks first; nothing is sent anywhere.',
+    useMyLocationNote: 'Fastest. Your browser asks first.',
   },
 
   /**

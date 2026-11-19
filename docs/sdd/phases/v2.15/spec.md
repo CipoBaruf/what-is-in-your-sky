@@ -106,6 +106,10 @@ It is the first time the site receives anything: one route that takes counts, on
   *Verification:* `tests/deploy/headers.test.ts` as before; FR-MEAS-5's.
 - **§2.2 non-goal "Any first-party backend"** *(amended v2.15, V215-2)*
   The site has one route of its own, `/e`, which only receives counts; the app's data still comes from the browser's own requests, and the caching proxy stays in Phase 3.
+- **FR-FIRST-2** *(amended v2.15, V215-8; before: the primary action's note read "Fastest. Your browser asks first; nothing is sent anywhere.")*
+  The note under `[ Use my location ]` is `Fastest. Your browser asks first.` / `Lo más rápido. El navegador pregunta antes.`: a `place_set` count is sent when the button sets the place (FR-MEAS-2), so the note no longer says that nothing is sent.
+  The rest of FR-FIRST-2 stands.
+  *Verification:* `Home.test.tsx` as before, reading the note from the catalogue; `messages.test.ts` — neither language's note holds "sent" or "envía".
 - **FR-KEEP-4** *(superseded v2.15, V215-5)* by FR-MEAS-7.
 - **US-57 AC4** *(superseded v2.15, V215-5)*: there is no note to close.
 

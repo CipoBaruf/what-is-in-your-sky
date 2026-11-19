@@ -23,7 +23,7 @@ It is the first release with a Worker script, so §29.4's preview checks come be
 ### 29.3 What the owner decides
 
 - [ ] `sky_screen_open` has no call: the sky screen was retired in v2.9 (FR-GYRO-6). Remove the row from FR-MEAS-2's table and from `EVENTS`, or point it at another moment.
-- [ ] `[ Use my location ]` still reads "nothing is sent anywhere"; a `place_set` count with `device` is now sent, never the location. Reword or leave.
+- [x] `[ Use my location ]` read "nothing is sent anywhere"; a `place_set` count with `device` is now sent, never the location. Decided 2026-11-19 (V215-8): the clause is cut, the note is "Fastest. Your browser asks first." in both languages.
 - [ ] `FOOTER_ONE_LINE_MIN_PX` stays 1176 / 1195 although the row now fits from about 1010 px (D-1159). Lower or leave.
 - [ ] The captures that move, reviewed (`captures.yml` against 2.14.3).
 

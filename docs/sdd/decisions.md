@@ -357,5 +357,6 @@
 | 2026-11-18 | V215-5 | **The privacy note is removed and none replaces it; the README carries the fact.** Asked whether the reworded note should show once more to readers who had closed it, the owner removed the note instead, from the home, the footer and the settings page. This supersedes V214-17. | FR-MEAS-7; FR-KEEP-4 and US-57 AC4 superseded. |
 | 2026-11-18 | V215-6 | **An event is a name from a closed list, first or return, the layout, the language and an id that lives for one page load.** Never a coordinate, a place's name, typed text, a cookie or a stored id; the route stores no address and no header. | FR-MEAS-1, FR-MEAS-4, FR-MEAS-5. |
 | 2026-11-18 | V215-7 | **Each event counts once per page load, on the public address only.** The agent's defaults, put to the owner with the draft: a funnel needs reach, not repetition, and previews and tests must not pollute the numbers. | FR-MEAS-2, FR-MEAS-3. |
+| 2026-11-19 | V215-8 | **`[ Use my location ]` no longer says "nothing is sent anywhere".** A `place_set` count with `device` is now sent when the button sets the place, never the location, so the clause is false. The owner's call on the release record's open item: the clause is cut and nothing replaces it. `Fastest. Your browser asks first.` / `Lo más rápido. El navegador pregunta antes.` | FR-FIRST-2 amended. |
 
 ---

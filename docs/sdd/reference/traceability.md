@@ -395,7 +395,7 @@
 | FR-FAINT-2 | `src/ui/components/passes/PassList.faint.test.tsx` |
 | FR-FAINT-3 | `src/data/localPrefs.test.ts`, `tests/e2e/faint.spec.ts` |
 | FR-FIRST-1 | `src/ui/components/location/WherePlace.test.tsx`, `src/ui/screens/Home.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts` |
-| FR-FIRST-2 | `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts` |
+| FR-FIRST-2 | `src/i18n/messages.test.ts`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts` |
 | FR-FIRST-3 | `src/lib/nextEvent.test.ts`, `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts` |
 | FR-FIRST-4 | `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-FIRST-5 | `tests/e2e/desktop.spec.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |

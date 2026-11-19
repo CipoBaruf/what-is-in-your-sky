@@ -443,3 +443,11 @@ describe('the three readouts (FR-FLOW-5)', () => {
     expect(es.chart.readout({ point: 'S', azimuth: '180°', tilt: '45°' })).toBe('Hacia el S (180°) · inclinación 45°');
   });
 });
+
+describe("the primary action's note promises nothing about sending (FR-FIRST-2 as amended, V215-8)", () => {
+  it.each(LOCALES)('%s: says the browser asks, and no more', (locale) => {
+    const note = CATALOGS[locale].location.useMyLocationNote;
+    expect(note).not.toMatch(/sent|env[ií]a/i);
+    expect(note.split('.').filter((part) => part.trim() !== '')).toHaveLength(2);
+  });
+});
