@@ -2,10 +2,12 @@
  * R76 (FR-FIRST-2, FR-FIRST-3, FR-FIRST-5, US-26, D-443, D-444): the home page
  * as three readings, where only a browser can answer.
  *
- * The first run on a phone: the cold open's one primary action, answered by a
- * stubbed `geolocation`, moves the page through R82's three steps without a
- * navigation — the same document, the same URL, no `#settings` — and a reload
- * is the stacked page with the countdown. Then the three
+ * The first run on a phone with no example (the suite's zone is UTC, D-1183):
+ * the place question's one primary action, answered by a stubbed `geolocation`,
+ * lands on the stacked page without a navigation and with no step between
+ * (R202, FR-OPEN-5) — the same document, the same URL, no `#settings` — and a
+ * reload is the stacked page with the countdown. The example's own first run is
+ * `firstRun.spec.ts`. Then the three
  * readings at the three widths that decide their layout: 964 and 1024 px are
  * FR-DESK-2's two columns with Where above When, 1280 px is three equal panes.
  * And at 1280 × 800 an open pass takes the first two panes' width, with the list
@@ -31,32 +33,34 @@ async function cellPx(page: Page): Promise<number> {
 const NEXT_LABEL = /^(Next \d\d:\d\d( \S+)? · in|Up now · (peaks|sets|into shadow|fades) in) (\d+:)?\d\d?:\d\d$/;
 
 /**
- * R82 (FR-FIRST-4 as amended v2.0.2, D-513, D-514): the first visit on a phone
- * is three steps, and a reload is the stacked page — one page load and one
- * reload. The steps are the page's own state: the same document and the same
- * URL throughout, never `#settings`.
+ * R202 (FR-FIRST-4 as amended v2.16, FR-OPEN-5, FR-OPEN-6): the first visit on a phone with no example is the
+ * place question, and a place lands on the stacked page — one page load and one reload. The same document and the
+ * same URL throughout, never `#settings`.
  */
 test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('walks where → when → what with no navigation, and a reload opens on the stacked page', async ({ page, context }) => {
+  test('the question, then the stacked page with no step and no navigation, and a reload opens on the stacked page', async ({ page, context }) => {
     await context.grantPermissions(['geolocation']);
     await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 300 });
     await page.clock.setFixedTime(NINE_DAYS_ON);
     await stubNetwork(page);
     await page.goto('/');
 
-    const steps = page.getByRole('list', { name: 'Steps' }).getByRole('listitem');
     const cold = page.getByTestId('cold-open');
     await expect(cold).toBeVisible();
-    // The dashes between the steps are the stylesheet's; the three items are the text.
-    await expect(steps).toHaveText(['[01] where', '02 when', '03 what']);
+    // FR-OPEN-6: the fallback is the question under the tagline — no step line, no `[ back ]`.
+    await expect(cold.getByTestId('home-tagline')).toHaveText('Which satellites you can see tonight, when, and where to look.');
+    await expect(page.getByTestId('step-line')).toHaveCount(0);
+    await expect(page.getByTestId('place-back')).toHaveCount(0);
     const primary = cold.getByRole('button', { name: 'Use my location' });
     await expect(primary).toBeVisible();
     // The one primary action is the first control of the group: the place field and the coordinates come after it.
     const place = cold.getByRole('combobox', { name: 'Place name' });
     const [primaryBox, placeBox] = await Promise.all([primary.boundingBox(), place.boundingBox()]);
     expect(placeBox?.y ?? 0).toBeGreaterThan(primaryBox?.y ?? Infinity);
+    // One screen tall, the footer counted (FR-FIRST-1 as amended v2.1).
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844);
 
     // A page-lifetime mark: a navigation, even a same-origin one, would take it away.
     const url = page.url();
@@ -65,45 +69,15 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     });
     await primary.click();
 
-    // when: the step line with where finished, the question, the night's box and the sky's, and the control at the foot.
-    const when = page.getByTestId('step-when');
-    await expect(when).toBeVisible();
+    // FR-OPEN-5: the place lands on the stacked page — the doors, then Where, When and What — with no when or what step.
     await expect(cold).toHaveCount(0);
-    await expect(steps).toHaveText(['01 where ✓', '[02] when', '03 what']);
-    await expect(when.getByRole('heading', { level: 2, name: 'When is it dark enough?' })).toBeFocused();
+    await expect(page.getByTestId('home-doors').getByRole('link')).toHaveText([/^Satellites/, /^Stars/, /^Live sky/]);
     // D-1025: the device fix is named after the nearest town, on the device, once the coordinates are set.
-    await expect(when.getByText('Cipolletti, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
-    await expect(when.getByTestId('when-passes')).toHaveText(/^\d+ tonight, \d+ in 72 h$/, { timeout: 60_000 });
-    await expect(when.getByTestId('tonight-stripe')).toBeVisible();
-    await expect(when.locator('[data-row="until"] dt')).toHaveText('Until');
-    await expect(when.getByTestId('moon-note')).toHaveText(/^A bright moon washes out the faint ones\. Tonight it will( not)?\.$/);
-    // One screen tall: the control stands at the foot of the step, which is the 844 px screen less the footer's
-    // one row (R87, D-548 — the step shares its screen with the footer), so it is measured against the step's main.
-    const next = when.getByRole('button', { name: 'Choose what to see' });
-    const nextBox = await next.boundingBox();
-    const stepBox = await page.locator('main[data-step]').boundingBox();
-    const stepFoot = (stepBox?.y ?? 0) + (stepBox?.height ?? 0);
-    expect(stepFoot).toBeLessThanOrEqual(844);
-    expect((nextBox?.y ?? 0) + (nextBox?.height ?? 0)).toBeGreaterThan(stepFoot - 60);
-    expect((nextBox?.y ?? Infinity) + (nextBox?.height ?? 0)).toBeLessThanOrEqual(stepFoot);
-    await next.click();
-
-    // what (v2.12, FR-FIRST-4 as amended, D-1021): the choice — the question, the home's three doors, the foot line with `[ edit ]`.
-    const what = page.getByTestId('step-what');
-    await expect(what).toBeVisible();
-    await expect(steps).toHaveText(['01 where ✓', '02 when ✓', '[03] what']);
-    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText('What do you want to see?');
-    await expect(what.getByTestId('home-doors').getByRole('link')).toHaveText([/^Satellites/, /^Stars/, /^Live sky/]);
-    const foot = what.getByTestId('what-foot');
-    await expect(foot).toContainText(/^Cipolletti · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
-
-    // [ edit ] returns to where with the group open; the finished steps are the way back to when.
-    await foot.getByRole('button', { name: 'edit' }).click();
-    await expect(cold).toBeVisible();
-    await expect(page.getByTestId('location-group')).toBeVisible();
-    await expect(steps).toHaveText(['[01] where', '02 when ✓', '03 what ✓']);
-    await page.getByTestId('step-back-when').click();
-    await expect(when).toBeVisible();
+    await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+    await expect(page.getByTestId('reading-when').getByTestId('tonight-stripe')).toBeVisible();
+    await expect(page.getByTestId('list-column')).toBeVisible();
+    await expect(page.getByTestId('home-tagline')).toHaveCount(0);
+    await expect(page.getByTestId('example-band')).toHaveCount(0);
 
     expect(page.url()).toBe(url);
     expect(await page.evaluate(() => (window as unknown as { __coldOpen?: boolean }).__coldOpen)).toBe(true);
@@ -117,8 +91,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
     await expect(label).toHaveText(NEXT_LABEL, { timeout: 60_000 });
     await expect(block.getByTestId('door-satellites-line').nth(1)).toHaveText(/^.+ · [NESW]{1,3} \d+° → [NESW]{1,3}$/);
     await expect(page.getByTestId('next-event')).toHaveCount(0);
-    await expect(page.getByTestId('step-line')).toHaveCount(0);
-    await expect(page.getByTestId('step-when')).toHaveCount(0);
+    await expect(page.getByTestId('cold-open')).toHaveCount(0);
     // FR-FIRST-11: the nearest town alone (D-1025, D-1029); the coordinates open the sentence by the source with the accuracy the device gave.
     await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
     // R130 (FR-FLOW-2): the sentence is at the top of the group the folded Where's `[ change ]` opens, above the inputs (D-1024).

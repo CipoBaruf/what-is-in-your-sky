@@ -101,7 +101,7 @@ test.describe('FR-HOME-1: the header holds', () => {
         const height = (await box(header)).height;
         expect([HEADER_WITHOUT_TAGLINE, HEADER_WITH_TAGLINE]).toContain(Math.round(height));
         // The tagline is the difference between the two values, and the only thing that may go.
-        const tagline = header.getByText(locale === 'es' ? /^Pases de satélites/ : /^Naked-eye satellite/);
+        const tagline = header.getByText(locale === 'es' ? /^Qué satélites se ven/ : /^Which satellites you can see/);
         if (Math.round(height) === HEADER_WITH_TAGLINE) await expect(tagline).toBeVisible();
         else await expect(tagline).toBeHidden();
         // The title row (R129, FR-FLOW-3): the mark, the title, the page links and `[ settings ]`, on one line.
