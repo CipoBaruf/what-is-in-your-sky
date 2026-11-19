@@ -32,12 +32,9 @@ function failures(state: AppState, previous: AppState, count: Count): void {
 
 /**
  * FR-OPEN-10, D-1182: `example_shown` when the latch (R200's `exampleOutcome`, D-1177) takes its first value that is not
- * `pending`. R200's field is read through a cast until it lands on the slice; a missing field is `pending`.
+ * `pending`.
  */
-const latched = (state: AppState): Exclude<ExampleOutcome, 'pending'> | null => {
-  const outcome = (state as { exampleOutcome?: ExampleOutcome }).exampleOutcome;
-  return outcome === undefined || outcome === 'pending' ? null : outcome;
-};
+const latched = ({ exampleOutcome }: AppState): Exclude<ExampleOutcome, 'pending'> | null => (exampleOutcome === 'pending' ? null : exampleOutcome);
 
 /** Wired by `startApp` after the saved place is restored, so a restore is not a place set; returns the unsubscribe. */
 export function startMeasureEffects(store: AppStore, count: Count): () => void {

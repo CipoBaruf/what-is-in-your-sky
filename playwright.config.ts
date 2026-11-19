@@ -91,6 +91,9 @@ export default defineConfig({
   ...(process.env['CI'] ? { workers: '100%' as const } : {}),
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // D-1183 (FR-OPEN-11): UTC, as CI's runners are, so a first visit sees no zone city on every machine; a spec of the
+    // example names its own zone with `test.use({ timezoneId })`.
+    timezoneId: 'UTC',
     trace: 'on-first-retry',
     // An action has no timeout of its own by default, so a click on an element that never becomes
     // actionable burns the whole 90 s test timeout, three times over with CI's retries — which reads
