@@ -77,7 +77,8 @@ The phase was built by sub-agents outside the driver, so `sdd-run/usage.jsonl` h
 - [ ] §30.4 decided and §30.1's `captures.yml` runs recorded.
 - [ ] `npm run check:dead` clean on the release commit, and the bundle table is §30.2's.
 - [ ] §30.5's run written down.
-- [ ] The phase's full CI run on its pull request answers within 8 minutes with a shard spread under 60 s (FR-CI-4, FR-CI-5, D-1223): its wall time and spread written here and in D-1223.
+- [x] The phase's full CI run on its pull request answers within 8 minutes (FR-CI-4, D-1223): #306's runs took 7 min 45 s and 7 min 20 s, 792 e2e passed, none flaky.
+- [ ] FR-CI-5's shard spread under 60 s is **not met**: about 100 s, then about 150 s after the table's refresh, the same specs varying by a minute between runs. Decided 2026-11-19: merged as it is, the spread left to a later phase (a looser limit, more shards or split specs).
 - [ ] The release commit is the squash merge of the phase's pull request, its SHA written here.
 - [ ] Tag it: `git tag -a v2.16.0 <sha> -m "v2.16.0: an answer first" && git push origin v2.16.0`.
 - [ ] Deploy the same SHA: `git push origin <sha>:release` (D-739, `docs/DEPLOY.md`), and run `docs/RELEASE.md` §2 and §5 against the live site.
