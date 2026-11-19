@@ -1,0 +1,550 @@
+# tzdata 2026f, from https://data.iana.org/time-zones/tzdata-latest.tar.gz (downloaded 2026-11-18). Zone, Δlat, Δlon in 0.01° from the row before[, name]; "=Alias<TAB>Zone".
+Africa/Abidjan	532	-403
+Africa/Accra	23	381
+Africa/Addis_Ababa	348	3892
+Africa/Algiers	2775	-3565
+Africa/Asmara	-2145	3583
+Africa/Bamako	-268	-4688
+Africa/Bangui	-828	2658
+Africa/Banjul	910	-3523
+Africa/Bissau	-162	107
+Africa/Blantyre	-2763	5058
+Africa/Brazzaville	1151	-1972
+Africa/Bujumbura	89	1409
+Africa/Cairo	3343	188
+Africa/Casablanca	360	-3883
+Africa/Ceuta	223	226
+Africa/Conakry	-2636	-840
+Africa/Dakar	515	-371
+Africa/Dar_es_Salaam	-2147	5671
+Africa/Djibouti	1840	387
+Africa/Douala	-755	-3345
+Africa/El_Aaiun	2310	-2290
+Africa/Freetown	-1865	-5
+Africa/Gaborone	-3315	3917
+Africa/Harare	682	513
+Africa/Johannesburg	-842	-305
+Africa/Juba	3110	362
+Africa/Kampala	-453	80
+Africa/Khartoum	1528	11
+Africa/Kigali	-1755	-246
+Africa/Kinshasa	-235	-1477
+Africa/Lagos	1075	-1190
+Africa/Libreville	-607	605
+Africa/Lome	575	-823	Lomé
+Africa/Luanda	-1493	1201
+Africa/Lubumbashi	-287	1424
+Africa/Lusaka	-375	81
+Africa/Malabo	1917	-1950
+Africa/Maputo	-2972	2380
+Africa/Maseru	-350	-508
+Africa/Mbabane	317	360
+Africa/Mogadishu	2837	1427
+Africa/Monrovia	423	-5615
+Africa/Nairobi	-758	4760
+Africa/Ndjamena	1340	-2177	N'Djamena
+Africa/Niamey	140	-1293
+Africa/Nouakchott	458	-1807
+Africa/Ouagadougou	-573	1443
+Africa/Porto-Novo	-589	414
+Africa/Sao_Tome	-615	411	São Tomé
+Africa/Tripoli	3257	645
+Africa/Tunis	390	-300
+Africa/Windhoek	-5937	692
+America/Adak	7445	-19376
+America/Anchorage	934	2676
+America/Anguilla	-4302	8683
+America/Antigua	-115	127
+America/Araguaina	-2425	1360	Araguaína
+America/Argentina/Buenos_Aires	-2740	-1025
+America/Argentina/Catamarca	613	-733
+America/Argentina/Cordoba	-293	160	Córdoba
+America/Argentina/Jujuy	722	-112
+America/Argentina/La_Rioja	-525	-155
+America/Argentina/Mendoza	-345	-197
+America/Argentina/Rio_Gallegos	-1875	-40	Río Gallegos
+America/Argentina/Salta	2685	380
+America/Argentina/San_Juan	-675	-310
+America/Argentina/San_Luis	-179	217
+America/Argentina/Tucuman	650	113
+America/Argentina/Ushuaia	-2798	-308
+America/Aruba	6730	-167
+America/Asuncion	-3777	1230	Asunción
+America/Atikokan	7403	-3395
+America/Bahia	-6174	5310
+America/Bahia_Banderas	3378	-6673
+America/Barbados	-770	4563
+America/Belem	-1455	1114	Belém
+America/Belize	1895	-3972
+America/Blanc-Sablon	3392	3108
+America/Boa_Vista	-4860	-355
+America/Bogota	178	-1341	Bogotá
+America/Boise	3901	-4212
+America/Cambridge_Bay	2550	1115
+America/Campo_Grande	-8956	5043
+America/Cancun	4153	-3215	Cancún
+America/Caracas	-1058	1984
+America/Cayenne	-557	1460
+America/Cayman	1437	-2905
+America/Chicago	2255	-627
+America/Chihuahua	-1322	-1843
+America/Ciudad_Juarez	310	-40	Ciudad Juárez
+America/Costa_Rica	-2180	2240
+America/Coyhaique	-5550	1201
+America/Creston	9467	-4445
+America/Cuiaba	-6468	6044	Cuiabá
+America/Curacao	2776	-1292
+America/Danmarkshavn	6459	5033
+America/Dawson	-1270	-12075
+America/Dawson_Creek	-830	1919
+America/Denver	-1603	1525
+America/Detroit	259	2193
+America/Dominica	-2703	2165
+America/Edmonton	3825	-5207
+America/Eirunepe	-6022	4360	Eirunepé
+America/El_Salvador	2037	-1933
+America/Fort_Nelson	4510	-3350
+America/Fortaleza	-6252	8420
+America/Glace_Bay	4992	-2145
+America/Goose_Bay	713	-47
+America/Grand_Turk	-3186	-1071
+America/Grenada	-942	938
+America/Guadeloupe	418	22
+America/Guatemala	-160	-2899
+America/Guayaquil	-1680	1069
+America/Guyana	897	2166
+America/Halifax	3785	-543
+America/Havana	-2152	-1877
+America/Hermosillo	594	-2860
+America/Indiana/Indianapolis	1070	2481
+America/Indiana/Knox	153	-47
+America/Indiana/Marengo	-292	29
+America/Indiana/Petersburg	11	-94
+America/Indiana/Tell_City	-54	52
+America/Indiana/Vevay	80	169
+America/Indiana/Vincennes	-7	-246
+America/Indiana/Winamac	237	93
+America/Inuvik	2730	-4712
+America/Iqaluit	-462	6525
+America/Jamaica	-4576	-832
+America/Juneau	4033	-5763
+America/Kentucky/Louisville	-2005	4866
+America/Kentucky/Monticello	-142	91
+America/Kralendijk	-2468	1657
+America/La_Paz	-2865	13
+America/Lima	445	-890
+America/Los_Angeles	4610	-4119
+America/Lower_Princes	-1600	5519
+America/Maceio	-2772	2733	Maceió
+America/Managua	2182	-5056
+America/Manaus	-1528	2626
+America/Marigot	2120	-306
+America/Martinique	-347	200
+America/Matamoros	1123	-3642
+America/Mazatlan	-261	-892	Mazatlán
+America/Menominee	2189	1881
+America/Merida	-2414	-201	Mérida
+America/Metlakatla	3416	-4196
+America/Mexico_City	-3573	3243
+America/Miquelon	2765	4282
+America/Moncton	-95	-845
+America/Monterrey	-2043	-3554
+America/Montevideo	-6058	4411
+America/Montserrat	5163	-601
+America/Nassau	836	-1513
+America/New_York	1563	334
+America/Nome	2379	-9140
+America/Noronha	-6835	13299
+America/North_Dakota/Beulah	5111	-6936
+America/North_Dakota/Center	-14	48
+America/North_Dakota/New_Salem	-27	-11
+America/Nuuk	1733	4968
+America/Ojinaga	-3461	-5269
+America/Panama	-2060	2489
+America/Paramaribo	-314	2436
+America/Phoenix	2762	-5690
+America/Port-au-Prince	-1492	3974
+America/Port_of_Spain	-788	1081
+America/Porto_Velho	-1942	-238
+America/Puerto_Rico	2724	-221
+America/Punta_Arenas	-7162	-481
+America/Rankin_Inlet	11597	-2116
+America/Recife	-7087	5718
+America/Regina	5845	-6975
+America/Resolute	2430	982
+America/Rio_Branco	-8467	2703
+America/Santarem	754	1293	Santarém
+America/Santiago	-3102	-1580
+America/Santo_Domingo	5192	77
+America/Sao_Paulo	-4200	2328	São Paulo
+America/Scoresbysund	9401	2465
+America/Sitka	-1330	-11333
+America/St_Barthelemy	-3930	7245
+America/St_Johns	2969	1013	St. John's
+America/St_Kitts	-3027	-1000
+America/St_Lucia	-328	172
+America/St_Thomas	433	-393
+America/St_Vincent	-520	370
+America/Swift_Current	3713	-4660
+America/Tegucigalpa	-3618	2061
+America/Thule	6247	1844
+America/Tijuana	-4404	-4824
+America/Toronto	1112	3764
+America/Tortola	-2520	1476
+America/Vancouver	3082	-5850
+America/Whitehorse	1145	-1193
+America/Winnipeg	-1084	3790
+America/Yakutat	967	-4258
+Antarctica/Casey	-12583	25025
+Antarctica/Davis	-230	-3255
+Antarctica/DumontDUrville	191	6205
+Antarctica/Macquarie	1217	1893
+Antarctica/Mawson	-1310	-9607
+Antarctica/McMurdo	-1023	10372
+Antarctica/Palmer	1303	-23070
+Antarctica/Rothera	-277	-403
+Antarctica/Syowa	-144	10772
+Antarctica/Troll	-300	-3706
+Antarctica/Vostok	-639	10437
+Arctic/Longyearbyen	15640	-9090
+Asia/Aden	-6525	2920
+Asia/Almaty	3050	3175
+Asia/Amman	-1130	-4102
+Asia/Anadyr	3280	14155
+Asia/Aqtau	-2023	-12721
+Asia/Aqtobe	576	690
+Asia/Ashgabat	-1233	121
+Asia/Atyrau	917	-645
+Asia/Baghdad	-1377	-751
+Asia/Bahrain	-697	616
+Asia/Baku	1400	-73
+Asia/Bangkok	-2663	5067
+Asia/Barnaul	3962	-1677
+Asia/Beirut	-1949	-4825
+Asia/Bishkek	902	3910
+Asia/Brunei	-3797	4032
+Asia/Chita	4712	-145
+Asia/Colombo	-4512	-3362
+Asia/Damascus	2657	-4355
+Asia/Dhaka	-978	5412
+Asia/Dili	-3227	3516
+Asia/Dubai	3385	-7028
+Asia/Dushanbe	1328	1350
+Asia/Famagusta	-346	-3485
+Asia/Gaza	-362	52
+Asia/Hebron	3	63
+Asia/Ho_Chi_Minh	-2078	7157
+Asia/Hong_Kong	1153	748
+Asia/Hovd	2574	-2250
+Asia/Irkutsk	425	1268
+Asia/Jakarta	-5844	247
+Asia/Jayapura	364	3390
+Asia/Jerusalem	3431	-10548
+Asia/Kabul	274	3398
+Asia/Kamchatka	1850	8945
+Asia/Karachi	-2815	-9160
+Asia/Kathmandu	285	1827
+Asia/Khandyga	3494	5023
+Asia/Kolkata	-4013	-4718
+Asia/Krasnoyarsk	3349	446
+Asia/Kuala_Lumpur	-5285	887
+Asia/Kuching	-162	863
+Asia/Kuwait	2778	-6235
+Asia/Macau	-713	6556
+Asia/Magadan	3737	3726
+Asia/Makassar	-6469	-3140
+Asia/Manila	1971	157
+Asia/Muscat	901	-6239
+Asia/Nicosia	1157	-2521
+Asia/Novokuznetsk	1858	5375
+Asia/Novosibirsk	128	-420
+Asia/Omsk	-3	-952
+Asia/Oral	-378	-2205
+Asia/Phnom_Penh	-3967	5357
+Asia/Pontianak	-1158	441
+Asia/Pyongyang	3905	1642
+Asia/Qatar	-1374	-7422
+Asia/Qostanay	2792	1209
+Asia/Qyzylorda	-840	185
+Asia/Riyadh	-2017	-1875
+Asia/Sakhalin	2234	9598
+Asia/Samarkand	-730	-7590
+Asia/Seoul	-212	6017
+Asia/Shanghai	-632	-550
+Asia/Singapore	-2995	-1762
+Asia/Srednekolymsk	6619	4987
+Asia/Taipei	-4242	-3222
+Asia/Tashkent	1628	-5220
+Asia/Tbilisi	39	-2448
+Asia/Tehran	-605	661
+Asia/Thimphu	-820	3822
+Asia/Tokyo	818	5009
+Asia/Tomsk	2085	-5477
+Asia/Ulaanbaatar	-858	2191
+Asia/Urumqi	-412	-1930	Ürümqi
+Asia/Ust-Nera	2076	5565
+Asia/Vientiane	-4659	-4063
+Asia/Vladivostok	2520	2933
+Asia/Yakutsk	1883	-226
+Asia/Yangon	-4522	-3350
+Asia/Yekaterinburg	4007	-3557
+Asia/Yerevan	-1667	-1610
+Atlantic/Azores	-245	-7017
+Atlantic/Bermuda	-545	-3910
+Atlantic/Canary	-418	4937
+Atlantic/Cape_Verde	-1318	-812
+Atlantic/Faroe	4710	1675
+Atlantic/Madeira	-2939	-1013
+Atlantic/Reykjavik	3152	-495	Reykjavík
+Atlantic/South_Georgia	-11842	-1468
+Atlantic/St_Helena	3835	3083
+Atlantic/Stanley	-3578	-5215
+Australia/Adelaide	1678	19643
+Australia/Brisbane	745	1445
+Australia/Broken_Hill	-448	-1158
+Australia/Darwin	1948	-1062
+Australia/Eucla	-1925	-196
+Australia/Hobart	-1116	1845
+Australia/Lindeman	2261	168
+Australia/Lord_Howe	-1128	1008
+Australia/Melbourne	-627	-1411
+Australia/Perth	587	-2912
+Australia/Sydney	-192	3537
+Europe/Amsterdam	8624	-14632
+Europe/Andorra	-987	-338
+Europe/Astrakhan	385	4653
+Europe/Athens	-838	-2433
+Europe/Belgrade	686	-322
+Europe/Berlin	767	-713
+Europe/Bratislava	-435	375
+Europe/Brussels	268	-1279
+Europe/Bucharest	-640	2177
+Europe/Budapest	307	-702
+Europe/Busingen	20	-1040
+Europe/Chisinau	-70	2015
+Europe/Copenhagen	867	-1625
+Europe/Dublin	-234	-1883
+Europe/Gibraltar	-1720	90
+Europe/Guernsey	1332	281
+Europe/Helsinki	1072	2751
+Europe/Isle_of_Man	-602	-2944
+Europe/Istanbul	-1313	3344
+Europe/Jersey	816	-3108
+Europe/Kaliningrad	554	2261
+Europe/Kirov	388	2915
+Europe/Kyiv	-817	-1913
+Europe/Lisbon	-1171	-3965
+Europe/Ljubljana	733	2365
+Europe/London	546	-1465
+Europe/Luxembourg	-191	628
+Europe/Madrid	-920	-983
+Europe/Malta	-450	1820
+Europe/Mariehamn	2420	543
+Europe/Minsk	-620	762
+Europe/Monaco	-1020	-2019
+Europe/Moscow	1206	3024
+Europe/Oslo	416	-2687
+Europe/Paris	-1105	-842
+Europe/Podgorica	-644	1694
+Europe/Prague	765	-484
+Europe/Riga	687	967
+Europe/Rome	-1505	-1162
+Europe/Samara	1130	3767
+Europe/San_Marino	-928	-3768
+Europe/Sarajevo	-5	595
+Europe/Saratov	770	2761
+Europe/Simferopol	-662	-1193
+Europe/Skopje	-297	-1267
+Europe/Sofia	70	189
+Europe/Stockholm	1665	-527
+Europe/Tallinn	9	670
+Europe/Tirane	-1809	-492
+Europe/Ulyanovsk	1300	2857
+Europe/Vaduz	-718	-3888
+Europe/Vatican	-525	293
+Europe/Vienna	632	388
+Europe/Vilnius	646	899
+Europe/Volgograd	-595	1910
+Europe/Warsaw	352	-2342
+Europe/Zagreb	-645	-503
+Europe/Zurich	158	-744	Zürich
+Indian/Antananarivo	-6630	3899
+Indian/Chagos	1159	2490
+Indian/Christmas	-309	3330
+Indian/Cocos	-175	-880
+Indian/Comoro	49	-5365
+Indian/Kerguelen	-3767	2695
+Indian/Mahe	4468	-1475
+Indian/Maldives	884	1803
+Indian/Mauritius	-2434	-1600
+Indian/Mayotte	739	-1227
+Indian/Reunion	-809	1024
+Pacific/Apia	704	-22720
+Pacific/Auckland	-2304	34650
+Pacific/Bougainville	3065	-1920
+Pacific/Chatham	-3773	-33212
+Pacific/Chuuk	5137	32833
+Pacific/Easter	-3457	-26121
+Pacific/Efate	948	27785
+Pacific/Fakaofo	830	-33965
+Pacific/Fiji	-876	34965
+Pacific/Funafuti	961	80
+Pacific/Galapagos	762	-26882
+Pacific/Gambier	-2223	-4535
+Pacific/Guadalcanal	1360	29515
+Pacific/Guam	2300	-1545
+Pacific/Honolulu	784	-30261
+Pacific/Kanton	-2409	-1386
+Pacific/Kiritimati	465	1439
+Pacific/Kosrae	345	32031
+Pacific/Kwajalein	376	435
+Pacific/Majuro	-193	387
+Pacific/Marquesas	-1615	-31070
+Pacific/Midway	3722	-3787
+Pacific/Nauru	-2874	34429
+Pacific/Niue	-1850	-33684
+Pacific/Norfolk	-1003	33789
+Pacific/Noumea	678	-152	Nouméa
+Pacific/Pago_Pago	800	-33715
+Pacific/Palau	2160	30518
+Pacific/Pitcairn	-3240	-26456
+Pacific/Pohnpei	3204	28830
+Pacific/Port_Moresby	-1647	-1105
+Pacific/Rarotonga	-1173	-30694
+Pacific/Saipan	3643	30552
+Pacific/Tahiti	-3273	-29532
+Pacific/Tarawa	1895	32257
+Pacific/Tongatapu	-2255	-34820
+Pacific/Wake	4041	34182
+Pacific/Wallis	-3258	-34279
+=Africa/Asmera	Africa/Nairobi
+=Africa/Timbuktu	Africa/Abidjan
+=America/Argentina/ComodRivadavia	America/Argentina/Catamarca
+=America/Atka	America/Adak
+=America/Buenos_Aires	America/Argentina/Buenos_Aires
+=America/Catamarca	America/Argentina/Catamarca
+=America/Coral_Harbour	America/Panama
+=America/Cordoba	America/Argentina/Cordoba
+=America/Ensenada	America/Tijuana
+=America/Fort_Wayne	America/Indiana/Indianapolis
+=America/Godthab	America/Nuuk
+=America/Indianapolis	America/Indiana/Indianapolis
+=America/Jujuy	America/Argentina/Jujuy
+=America/Knox_IN	America/Indiana/Knox
+=America/Louisville	America/Kentucky/Louisville
+=America/Mendoza	America/Argentina/Mendoza
+=America/Montreal	America/Toronto
+=America/Nipigon	America/Toronto
+=America/Pangnirtung	America/Iqaluit
+=America/Porto_Acre	America/Rio_Branco
+=America/Rainy_River	America/Winnipeg
+=America/Rosario	America/Argentina/Cordoba
+=America/Santa_Isabel	America/Tijuana
+=America/Shiprock	America/Denver
+=America/Thunder_Bay	America/Toronto
+=America/Virgin	America/Puerto_Rico
+=America/Yellowknife	America/Edmonton
+=Antarctica/South_Pole	Pacific/Auckland
+=Asia/Ashkhabad	Asia/Ashgabat
+=Asia/Calcutta	Asia/Kolkata
+=Asia/Choibalsan	Asia/Ulaanbaatar
+=Asia/Chongqing	Asia/Shanghai
+=Asia/Chungking	Asia/Shanghai
+=Asia/Dacca	Asia/Dhaka
+=Asia/Harbin	Asia/Shanghai
+=Asia/Istanbul	Europe/Istanbul
+=Asia/Kashgar	Asia/Urumqi
+=Asia/Katmandu	Asia/Kathmandu
+=Asia/Macao	Asia/Macau
+=Asia/Rangoon	Asia/Yangon
+=Asia/Saigon	Asia/Ho_Chi_Minh
+=Asia/Tel_Aviv	Asia/Jerusalem
+=Asia/Thimbu	Asia/Thimphu
+=Asia/Ujung_Pandang	Asia/Makassar
+=Asia/Ulan_Bator	Asia/Ulaanbaatar
+=Atlantic/Faeroe	Atlantic/Faroe
+=Atlantic/Jan_Mayen	Europe/Berlin
+=Australia/ACT	Australia/Sydney
+=Australia/Canberra	Australia/Sydney
+=Australia/Currie	Australia/Hobart
+=Australia/LHI	Australia/Lord_Howe
+=Australia/NSW	Australia/Sydney
+=Australia/North	Australia/Darwin
+=Australia/Queensland	Australia/Brisbane
+=Australia/South	Australia/Adelaide
+=Australia/Tasmania	Australia/Hobart
+=Australia/Victoria	Australia/Melbourne
+=Australia/West	Australia/Perth
+=Australia/Yancowinna	Australia/Broken_Hill
+=Brazil/Acre	America/Rio_Branco
+=Brazil/DeNoronha	America/Noronha
+=Brazil/East	America/Sao_Paulo
+=Brazil/West	America/Manaus
+=CET	Europe/Brussels
+=Canada/Atlantic	America/Halifax
+=Canada/Central	America/Winnipeg
+=Canada/Eastern	America/Toronto
+=Canada/Mountain	America/Edmonton
+=Canada/Newfoundland	America/St_Johns
+=Canada/Pacific	America/Vancouver
+=Canada/Saskatchewan	America/Regina
+=Canada/Yukon	America/Whitehorse
+=Chile/Continental	America/Santiago
+=Chile/EasterIsland	Pacific/Easter
+=Cuba	America/Havana
+=EET	Europe/Athens
+=EST	America/Panama
+=Egypt	Africa/Cairo
+=Eire	Europe/Dublin
+=Europe/Belfast	Europe/London
+=Europe/Kiev	Europe/Kyiv
+=Europe/Nicosia	Asia/Nicosia
+=Europe/Tiraspol	Europe/Chisinau
+=Europe/Uzhgorod	Europe/Kyiv
+=Europe/Zaporozhye	Europe/Kyiv
+=GB	Europe/London
+=GB-Eire	Europe/London
+=HST	Pacific/Honolulu
+=Hongkong	Asia/Hong_Kong
+=Iceland	Africa/Abidjan
+=Iran	Asia/Tehran
+=Israel	Asia/Jerusalem
+=Jamaica	America/Jamaica
+=Japan	Asia/Tokyo
+=Kwajalein	Pacific/Kwajalein
+=Libya	Africa/Tripoli
+=MET	Europe/Brussels
+=MST	America/Phoenix
+=Mexico/BajaNorte	America/Tijuana
+=Mexico/BajaSur	America/Mazatlan
+=Mexico/General	America/Mexico_City
+=NZ	Pacific/Auckland
+=NZ-CHAT	Pacific/Chatham
+=Navajo	America/Denver
+=PRC	Asia/Shanghai
+=Pacific/Enderbury	Pacific/Kanton
+=Pacific/Johnston	Pacific/Honolulu
+=Pacific/Ponape	Pacific/Guadalcanal
+=Pacific/Samoa	Pacific/Pago_Pago
+=Pacific/Truk	Pacific/Port_Moresby
+=Pacific/Yap	Pacific/Port_Moresby
+=Poland	Europe/Warsaw
+=Portugal	Europe/Lisbon
+=ROC	Asia/Taipei
+=ROK	Asia/Seoul
+=Singapore	Asia/Singapore
+=Turkey	Europe/Istanbul
+=US/Alaska	America/Anchorage
+=US/Aleutian	America/Adak
+=US/Arizona	America/Phoenix
+=US/Central	America/Chicago
+=US/East-Indiana	America/Indiana/Indianapolis
+=US/Eastern	America/New_York
+=US/Hawaii	Pacific/Honolulu
+=US/Indiana-Starke	America/Indiana/Knox
+=US/Michigan	America/Detroit
+=US/Mountain	America/Denver
+=US/Pacific	America/Los_Angeles
+=US/Samoa	Pacific/Pago_Pago
+=W-SU	Europe/Moscow
+=WET	Europe/Lisbon

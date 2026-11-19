@@ -55,6 +55,17 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   `scripts/funnel.ts`'s rows follow FR-MEAS-6 as amended; the share's base is first-visit `open` with `home`.
 - **D-1183 — The e2e suite runs in UTC unless a test names a zone.**
   (FR-OPEN-11.) `playwright.config.ts` sets `timezoneId: 'UTC'`, which is what CI's runners already are, so every existing first-run spec sees the fallback on the Mac as on CI; a spec of the example sets `test.use({ timezoneId: 'America/Argentina/Buenos_Aires' })` and seeds the elements fixture and a fixed clock.
+- **D-1184 — The table's Δ runs from the row before, under one source line.** *(R198)*
+  (D-1173.) As in `places.txt`, `Δlat` and `Δlon` are the difference in 0.01° from the row before, from 0, 0 at the first row, rows sorted by zone; the file opens with one `#` line naming the tzdata release (the README's first line) and the format, which `parseZones` skips.
+  2026f gives 418 rows and 131 aliases, 15.3 KB raw, 6.6 KB gzipped.
+- **D-1185 — Names fold by NFD, no marks, lower case, letters and digits only.** *(R198)*
+  (FR-OPEN-1, V216-18.) `foldName` in `scripts/build-zones.ts` is the "accents, case and punctuation ignored" of the rule, so `St_Johns` matches `St. John's` and `Urumqi` matches `Ürümqi`; 23 of the 418 zones take a town's spelling, and no district names a zone.
+- **D-1186 — The zone row is a phase row, measured with a temporary import.** *(R198)*
+  (D-1174.) The row is `zones` in `PHASE_BUDGETS`, matching `zones-*.js`, at `ZONE_TABLE_MAX_KB` (9); 6.6 KB (6,760 bytes) on a build with `loadZoneCity()` imported for the measure only, the main row unchanged.
+  Until R200 imports `loadZoneCity` no chunk matches and `bundle:budget` warns the row missing — the accepted caveat; the release task moves it into `BUDGETS` with its measure.
+- **D-1187 — The build's test sits in `tests/data/`.** *(R198)*
+  (D-1173.) Vitest's `node` project includes `src/**` and `tests/**`, not `scripts/**`, so `scripts/build-zones.test.ts` would never run; the test is `tests/data/build-zones.test.ts` (the data lane), its fixture inline, with a district at Paris's coordinates that must not win.
+  "A rerun leaves `zones.txt` unchanged" is a test there: the vendored files build the committed table byte for byte.
 
 - **D-1188 — The wait is closed at its end, and a late run is slow.**
   (FR-OPEN-4, FR-OPEN-6.) `exampleOutcome` answers `slow` from `nowMs - startedMs >= EXAMPLE_WAIT_MS`, so the timer R200 arms at exactly `EXAMPLE_WAIT_MS` latches `slow` rather than finding `pending` again; one ms earlier it is `pending`.
