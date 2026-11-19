@@ -14,6 +14,8 @@ import { startMeasureEffects } from './measureEffects';
 import type { MeasureEnv } from '../data/measure';
 import { appStore, type AppStore } from './store';
 import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
+import { loadZoneCity, type ZoneCity } from '../data/zones/zoneCity';
+import { activeObserver } from './slices/location';
 
 export { appStore, useActiveObserver, useAppStore, type AppState } from './store';
 export type { OpenLinkResult } from './openLink';
@@ -91,6 +93,44 @@ export interface StartAppOverrides {
   hash?: string;
   /** FR-MEAS-3 (D-1146): the sender's gates and beacon; the browser's unless a test names them. */
   measureEnv?: MeasureEnv;
+  /** FR-OPEN-1: the browser's zone looked up in the table (D-1176); a test names the city. */
+  loadZoneCity?: () => Promise<ZoneCity | null>;
+  /** Runs its argument once the first frame has painted; a test runs it at once. */
+  afterPaint?: (run: () => void) => void;
+}
+
+/** A frame, then a task: the first render has been committed and painted before the zone table is asked for. */
+const afterFirstPaint = (run: () => void): void => {
+  if (typeof requestAnimationFrame !== 'function') setTimeout(run, 0);
+  else requestAnimationFrame(() => setTimeout(run, 0));
+};
+
+/**
+ * R200 (FR-OPEN-2, D-1176): a first visit — nothing stored, no link's place — looks from the zone city after the first
+ * paint; no city latches `no_city` without an example. A place set while the table loads wins. Returns the cancel.
+ */
+function startExample(store: AppStore, overrides: StartAppOverrides, now: () => number): () => void {
+  let cancelled = false;
+  const nothingSet = (): boolean => !cancelled && activeObserver(store.getState()) === null;
+  if (!nothingSet()) return () => undefined;
+  (overrides.afterPaint ?? afterFirstPaint)(() => {
+    if (!nothingSet()) return;
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    (overrides.loadZoneCity ?? loadZoneCity)().then(
+      (city) => {
+        if (!nothingSet()) return;
+        if (city === null) store.getState().latchExampleOutcome('no_city');
+        else store.getState().setExample({ lat: city.lat, lon: city.lon, altM: 0, label: city.name, source: 'example', timeZone: zone }, now());
+      },
+      // The table is part of the build; a chunk that fails to load leaves the reader with the question, as no city does.
+      () => {
+        if (nothingSet()) store.getState().latchExampleOutcome('no_city');
+      },
+    );
+  });
+  return () => {
+    cancelled = true;
+  };
 }
 
 /**
@@ -153,7 +193,9 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
   });
   // D-1025: a device location is named after the nearest town, on the device, once its coordinates are on screen.
   const stopNaming = startDeviceNaming(store);
+  const stopExample = startExample(store, overrides, now);
   return () => {
+    stopExample();
     stopMeasure();
     stopNaming();
     stop();

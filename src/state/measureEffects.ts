@@ -9,12 +9,13 @@ import type { Observer } from '../model';
 import type { AppState, AppStore } from './store';
 import { sameLocation } from './slices/location';
 
-const SOURCE_DETAIL = { geocode: 'search', coords: 'coords', device: 'device' } as const satisfies Record<Observer['source'], string>;
+const SOURCE_DETAIL = { geocode: 'search', coords: 'coords', device: 'device' } as const satisfies Record<Exclude<Observer['source'], 'example'>, string>;
 
 function placeSet(state: AppState, previous: AppState, count: Count): void {
   const observer = state.observer;
   // A zone filled in or a device fix named after its town replaces the object, not the place (`sameLocation`).
-  if (observer === null || sameLocation(previous.observer, observer)) return;
+  // The example is never `observer` (D-1175); the guard only narrows the source.
+  if (observer === null || observer.source === 'example' || sameLocation(previous.observer, observer)) return;
   count('place_set', state.observerVia ?? SOURCE_DETAIL[observer.source]);
 }
 

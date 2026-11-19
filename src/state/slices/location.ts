@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand/vanilla';
 import type { EpochMs, Observer } from '../../model';
+import type { ExampleOutcome } from '../../lib/exampleOutcome';
 
 /**
  * The observer and the instant it was (last) set. `nowMs` is read from the
@@ -13,6 +14,11 @@ import type { EpochMs, Observer } from '../../model';
  * `setObserver` is the reader choosing a place, so it ends any visit;
  * `keepVisit` makes the visited place the saved one (FR-LOC-5); `endVisit`
  * drops it, clears the link from the hash and recomputes for the saved place.
+ *
+ * R200 (FR-OPEN-2, D-1175): `example` is a third slot under both, the zone
+ * city's observer on a first visit. It is never written either, and any place
+ * set (`setObserver`) drops it. `exampleOutcome` is what that first run came
+ * to, latched once per load by the effects (D-1177) and never cleared.
  */
 export interface LocationSlice {
   observer: Observer | null;
@@ -28,6 +34,16 @@ export interface LocationSlice {
   keepVisit: () => void;
   /** Back to the saved place: clears the hash and recomputes. */
   endVisit: () => void;
+  /** The zone city's observer on a first visit, for this load only (D-1175). */
+  example: Observer | null;
+  /** When the example began, from the injected clock (D-1176); the wait is measured from here. */
+  exampleStartedMs: EpochMs | null;
+  /** The first answer of `exampleOutcome` that is not `pending`; `pending` until there is one (D-1177). */
+  exampleOutcome: ExampleOutcome;
+  /** Looks from the zone city while nothing is set; ignored once a place is set. */
+  setExample: (example: Observer, startedMs: EpochMs) => void;
+  /** Stores the outcome once; a later call changes nothing (FR-OPEN-6's late run). */
+  latchExampleOutcome: (outcome: Exclude<ExampleOutcome, 'pending'>) => void;
 }
 
 /** The two ways of setting a place that the observer's own `source` cannot tell apart from a typed one. */
@@ -39,9 +55,9 @@ export interface LocationDeps {
   clearHash?: () => void;
 }
 
-/** The observer this tab is looking from: the visited place while there is one, the saved one otherwise (D-538). */
-export function activeObserver(state: Pick<LocationSlice, 'observer' | 'visiting'>): Observer | null {
-  return state.visiting ?? state.observer;
+/** The observer this tab is looking from: the visited place, else the saved one (D-538), else the example (D-1175). */
+export function activeObserver(state: Pick<LocationSlice, 'observer' | 'visiting' | 'example'>): Observer | null {
+  return state.visiting ?? state.observer ?? state.example;
 }
 
 /**
@@ -63,8 +79,11 @@ export const createLocationSlice =
     visiting: null,
     nowMs: 0,
     observerVia: null,
+    example: null,
+    exampleStartedMs: null,
+    exampleOutcome: 'pending',
     setObserver: (observer, via) => {
-      set({ observer, visiting: null, nowMs: deps.now(), observerVia: via ?? null });
+      set({ observer, visiting: null, example: null, nowMs: deps.now(), observerVia: via ?? null });
     },
     visit: (observer) => {
       set({ visiting: observer, nowMs: deps.now() });
@@ -79,5 +98,13 @@ export const createLocationSlice =
       if (get().visiting === null) return;
       set({ visiting: null, nowMs: deps.now() });
       deps.clearHash?.();
+    },
+    setExample: (example, startedMs) => {
+      const { observer, visiting } = get();
+      if (observer !== null || visiting !== null) return;
+      set({ example, exampleStartedMs: startedMs, nowMs: startedMs });
+    },
+    latchExampleOutcome: (outcome) => {
+      if (get().exampleOutcome === 'pending') set({ exampleOutcome: outcome });
     },
   });

@@ -1,4 +1,5 @@
-type ObserverSource = 'geocode' | 'coords' | 'device';
+/** `example`: the zone city's observer on a first visit, never stored (FR-OPEN-2, D-1175). */
+type ObserverSource = 'geocode' | 'coords' | 'device' | 'example';
 
 export interface Observer {
   lat: number;
