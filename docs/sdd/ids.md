@@ -2022,6 +2022,8 @@ D-1180	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1181	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1182	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1183	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1188	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1189	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1209	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1210	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1211	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)

@@ -56,6 +56,15 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1183 — The e2e suite runs in UTC unless a test names a zone.**
   (FR-OPEN-11.) `playwright.config.ts` sets `timezoneId: 'UTC'`, which is what CI's runners already are, so every existing first-run spec sees the fallback on the Mac as on CI; a spec of the example sets `test.use({ timezoneId: 'America/Argentina/Buenos_Aires' })` and seeds the elements fixture and a fixed clock.
 
+- **D-1188 — The wait is closed at its end, and a late run is slow.**
+  (FR-OPEN-4, FR-OPEN-6.) `exampleOutcome` answers `slow` from `nowMs - startedMs >= EXAMPLE_WAIT_MS`, so the timer R200 arms at exactly `EXAMPLE_WAIT_MS` latches `slow` rather than finding `pending` again; one ms earlier it is `pending`.
+  A run that finishes at or after the wait is `slow` too, not `pass` or `none` (FR-OPEN-6: not ready inside the wait). A `Failure`, and no city, outrank the clock.
+
+- **D-1189 — The inputs are the slice's values, and `none` is `nextEvent`'s.**
+  (FR-OPEN-6, FR-FIRST-3.) `city` is an object or null, `elements` a `Failure` or null (null while loading or loaded), `passes` the finished run's `Pass[]`, a `Failure`, or null until finished; the function reads no store and no clock.
+  `src/lib` may not import `src/state` (PLAN §3), so the failure inputs are typed by `FailureLike` (`{ kind, detail }`), which `state/failure`'s `Failure` satisfies.
+  `none` is `isNoEvent(nextEvent(passes, nowMs))`, so a pass already over at `nowMs` does not count and a pass on a later night inside the 72 h does.
+
 - **D-1209 — The look line is one catalog function.**
   (FR-OPEN-12; V216-12.) `example.looks(minutes)` in both catalogs, `minutes` = `max(1, round(durationS / 60))` computed by the band from the pass, never by the catalog.
 - **D-1210 — The plain words are a prop, not a second component.**
