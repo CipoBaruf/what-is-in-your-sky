@@ -398,13 +398,13 @@
 | FR-FAINT-2 | `src/ui/components/passes/PassList.faint.test.tsx` |
 | FR-FAINT-3 | `src/data/localPrefs.test.ts`, `tests/e2e/faint.spec.ts` |
 | FR-FIRST-1 | `src/ui/components/location/WherePlace.test.tsx`, `src/ui/screens/Home.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts` |
-| FR-FIRST-2 | `src/i18n/messages.test.ts`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts` |
-| FR-FIRST-3 | `src/lib/nextEvent.test.ts`, `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts` |
-| FR-FIRST-4 | `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts`, `tests/styles/controlRows.test.ts` |
+| FR-FIRST-2 | `src/i18n/messages.test.ts`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts` |
+| FR-FIRST-3 | `src/lib/nextEvent.test.ts`, `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts` |
+| FR-FIRST-4 | `src/ui/screens/Home.first.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts` |
 | FR-FIRST-5 | `tests/e2e/desktop.spec.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-FIRST-8 | `src/lib/tonightStripe.test.ts`, `src/ui/components/now/TonightStripe.test.tsx` |
 | FR-FIRST-9 | `src/ui/components/now/ConditionsTable.test.tsx` |
-| FR-FIRST-10 | `src/ui/components/passes/PassCard.test.tsx`, `src/ui/components/passes/PassList.test.tsx`, `tests/e2e/first-run-controls.spec.ts` |
+| FR-FIRST-10 | `src/ui/components/passes/PassCard.test.tsx`, `src/ui/components/passes/PassList.test.tsx` |
 | FR-FIRST-11 | `src/ui/components/location/Favourites.test.tsx`, `src/ui/components/location/WherePlace.test.tsx` |
 | FR-FIX-2 | `tests/docs/ci.test.ts` |
 | FR-FLAG-1 | `tests/build/flags.test.ts` |
@@ -453,7 +453,7 @@
 | FR-GLOBE-16 | `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/globe.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-GUIDE-1 | `src/lib/phrases.test.ts`, `src/ui/components/guide/GuideText.test.tsx` |
 | FR-GUIDE-2b | `src/lib/skyGeometry.test.ts` |
-| FR-GUIDE-3 | `src/lib/phrases.test.ts`, `src/ui/components/passes/PassCard.test.tsx` |
+| FR-GUIDE-3 | `src/lib/phrases.test.ts` |
 | FR-GUIDE-4 | `src/data/localPrefs.test.ts`, `src/lib/skyGeometry.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/dome/camera.test.ts` |
 | FR-GUIDE-6 | `tests/e2e/dome-perf.spec.ts` |
 | FR-GYRO-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
@@ -515,8 +515,8 @@
 | FR-MARK-5 | `src/ui/components/mark/Mark.test.tsx`, `src/ui/screens/Live.test.tsx` |
 | FR-MARK-6 | `tests/build/mark-icons.test.ts`, `tests/build/mark-rasters.test.ts` |
 | FR-MARK-8 | `src/ui/components/mark/Mark.raster.test.ts`, `tests/build/mark-icons.test.ts` |
-| FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts`, `tests/e2e/measure.spec.ts` |
-| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts`, `src/ui/App.measure.test.tsx`, `src/ui/components/location/LocationInput.measure.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/openedRoute.test.ts`, `src/ui/screens/Home.measure.test.tsx`, `src/ui/screens/Live.measure.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx`, `tests/e2e/measure.spec.ts` |
+| FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts` |
+| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts`, `src/ui/App.measure.test.tsx`, `src/ui/components/location/LocationInput.measure.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/openedRoute.test.ts`, `src/ui/screens/Live.measure.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx` |
 | FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts`, `tests/e2e/measure.spec.ts` |
 | FR-MEAS-4 | `tests/deploy/endpoint.test.ts` |
 | FR-MEAS-5 | `src/state/measureEffects.test.ts`, `src/ui/components/location/PlacePicker.test.tsx`, `tests/e2e/measure.spec.ts` |
@@ -530,7 +530,6 @@
 | FR-NAME-1 | `tests/data/starCatalog.test.ts` |
 | FR-NAME-2 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.labels.test.tsx`, `src/ui/components/guide/skychart/window/starLabels.test.ts`, `tests/data/starCatalog.test.ts` |
 | FR-NAME-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.wide.test.tsx`, `tests/styles/tokens.test.ts` |
-| FR-NIGHT-1 | `src/ui/screens/home/tonight.test.ts` |
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
 | FR-NIGHT-4 | `src/state/effects.test.ts` |
@@ -543,11 +542,18 @@
 | FR-OFF-7 | `src/data/localPrefs.test.ts`, `src/state/effects.test.ts`, `src/ui/components/location/Favourites.test.tsx` |
 | FR-OFF-8 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts`, `tests/e2e/offline.spec.ts` |
 | FR-OPEN-1 | `src/data/zones/zoneCity.test.ts`, `tests/data/build-zones.test.ts` |
-| FR-OPEN-2 | `src/state/effects.test.ts`, `src/state/slices/location.test.ts` |
-| FR-OPEN-4 | `src/lib/exampleOutcome.test.ts` |
-| FR-OPEN-6 | `src/lib/exampleOutcome.test.ts`, `src/state/effects.test.ts`, `src/state/slices/location.test.ts` |
-| FR-OPEN-9 | `src/state/effects.test.ts` |
-| FR-OPEN-10 | `src/state/measureEffects.test.ts` |
+| FR-OPEN-2 | `src/state/effects.test.ts`, `src/state/slices/location.test.ts`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-3 | `src/ui/screens/Home.first.test.tsx`, `src/ui/screens/home/ExampleBand.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-4 | `src/lib/exampleOutcome.test.ts`, `src/ui/screens/Home.first.test.tsx`, `src/ui/screens/home/ExampleBand.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-5 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-6 | `src/lib/exampleOutcome.test.ts`, `src/state/effects.test.ts`, `src/state/slices/location.test.ts`, `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-8 | `tests/styles/controlRows.test.ts` |
+| FR-OPEN-9 | `src/state/effects.test.ts`, `src/ui/screens/Home.first.test.tsx` |
+| FR-OPEN-10 | `src/state/measureEffects.test.ts`, `src/ui/screens/Home.measure.test.tsx`, `tests/e2e/measure.spec.ts` |
+| FR-OPEN-11 | `tests/e2e/v1-captures.spec.ts` |
+| FR-OPEN-12 | `src/ui/screens/home/ExampleBand.test.tsx` |
+| FR-OPEN-13 | `src/ui/components/passes/PassCard.test.tsx`, `src/ui/screens/home/ExampleBand.test.tsx`, `src/ui/screens/home/doorLines.test.ts`, `tests/styles/controlRows.test.ts` |
+| FR-OPEN-14 | `src/ui/screens/home/ExampleBand.test.tsx`, `tests/e2e/firstRun.spec.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-3 | `src/lib/layout.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/live-full.spec.ts`, `tests/styles/sheetRows.test.ts` |
@@ -718,14 +724,14 @@
 | FR-X-5 | `src/ui/components/common/Banner.test.tsx`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `tests/e2e/settings.spec.ts` |
 | US-1 | `src/ui/components/location/LocationInput.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx` |
 | US-2 | `src/ui/components/location/CoordsInput.test.tsx` |
-| US-3 | `src/ui/components/location/LocationInput.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/location.spec.ts` |
+| US-3 | `src/ui/components/location/LocationInput.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/location.spec.ts` |
 | US-4 | `src/state/effects.test.ts` |
 | US-5 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/SortToggle.test.tsx`, `tests/e2e/identity.spec.ts` |
 | US-6 | `src/data/localPrefs.test.ts`, `src/lib/phrases.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | US-7 | `src/lib/cloudVerdict.test.ts`, `src/state/effects.test.ts`, `src/ui/components/now/ConditionsTable.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx`, `tests/e2e/weather.spec.ts` |
 | US-8 | `src/state/slices/prefs.test.ts`, `src/ui/components/location/CoordsInput.test.tsx`, `src/ui/components/location/LocationInput.test.tsx` |
 | US-14 | `tests/e2e/shortcuts.spec.ts` |
-| US-16 | `src/ui/components/passes/passCursor.test.ts`, `src/ui/screens/home/tonight.test.ts` |
+| US-16 | `src/ui/components/passes/passCursor.test.ts` |
 | US-17 | `src/state/effects.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/location/Favourites.test.tsx` |
 | US-18 | `src/lib/moonPhrases.test.ts`, `src/ui/components/moon/MoonAtPeak.test.tsx` |
 | US-20 | `src/ui/App.settings.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts` |
@@ -746,5 +752,6 @@
 | US-44 | `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | US-51 | `tests/docs/accuracy.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/ids.test.ts` |
 | US-54 | `tests/e2e/stars.spec.ts` |
-| US-58 | `tests/e2e/measure.spec.ts` |
 | US-59 | `tests/e2e/measure.spec.ts` |
+| US-60 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| US-61 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/measure.spec.ts` |

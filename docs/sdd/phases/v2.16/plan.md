@@ -110,6 +110,41 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Removing the names from `EVENTS` breaks `Home.tsx`'s typecheck (`SHOWN`, and the wide pane count), so R201 deletes those two calls and `SHOWN` (a few lines) and rewrites `Home.measure.test.tsx` to expect `where_shown` only, where the task text left `Home` to R202.
   `where_shown` stays sent as 2.15.0 sent it (no detail, on the where step and the wide cold open); R202 moves it to the place group with its `example` or `fallback` detail, and rewrites `measure.spec.ts`, which still names the removed events and runs only in CI e2e.
 
+- **D-1198 — `usePlaceOpen` is its own module and answers more than three things.** *(R202)*
+  (D-1178, D-467; FR-OPEN-5, FR-OPEN-6.) `src/ui/screens/home/usePlaceOpen.ts`, held by `App` as `useSteps` was, returns `open`, `openPlace` and `back`, and with them `showing` (the example is drawn), `fallback`, `asking` (the question is the phone's one screen, which gives the footer its line form), `pending`, and `held` with `settle`:
+  a pair typed on the phone's question is the observer at its first valid keystroke, so the screen is held until the field is left, `Enter` or `[ continue ]`, as the where step held it.
+  The first-visit test is "no saved and no visited place", read through `src/ui/hooks/useOwnObserver.ts`, because `activeObserver` now answers the example.
+  Before the zone's city is known nothing is latched and there is no example: the page holds the example's shape (the band with no words, the action live) rather than flash the question, unless this load has already had a place — a reader who cleared theirs gets the question at once. A zone with no city therefore shows that shape for the frame and the task D-1192 waits.
+  `[ back ]` hands the focus to the action it came from; leaving the home for another page closes the question.
+- **D-1199 — The example never passes for a place.** *(R202)*
+  (FR-OPEN-2, FR-OPEN-4, FR-OPEN-6, D-1179.) The input group's fields, the saved places and `[ Save this place ]` read `useOwnObserver`, so the example's coordinates are in no field and cannot be saved; "its saved places read none" is the saved-places line not drawn while there is none to list.
+  The wide example pane keeps the elements line and drops the readiness line, which is about a stored run.
+  Under a fallback outcome the example may still be the store's active observer (the latch does not drop it); `Home` draws no reading for it, and `App`'s `data-home` is `cold`. `WhereReading` takes `ask` (the question as a screen: `[ back ]`, the tagline, the held pair) beside D-1179's `example`.
+- **D-1200 — The plain words, line by line.** *(R202)*
+  (FR-OPEN-12, FR-OPEN-13; D-1209, D-1210.) The elevation phrases are the catalogs' (`ui.ts`), not `lib/phrases.ts`'s: `nextEvent.path(path, plain)` writes the peak as its phrase with no compass point (`NW low → almost overhead → SE`) and a start or end above the threshold as the band's short word;
+  `nextEvent.height(band)` hands that short word to the card (`6 min · peak high N · like a bright star`) and to the Satellites door.
+  The door's line drops the peak's compass point under `plain` (`Tiangong · almost overhead → ENE`): a word and a point leave a name fewer than its cells in 34, and `fitName` would cut `ISS (Zarya)`.
+  The look line's minutes are `passMinutes(pass)` in `NextEventBlock`, the component that holds the pass (D-1209 said the band; the band never sees the pass). `PassCard`'s `detail: 'phrase'` is replaced by `plain`.
+  The compass abbreviations stay as the app writes them in both languages (`NW`), where FR-OPEN-13's Spanish example reads `NO`.
+- **D-1201 — Where the example's lines stand, and the fold as measured.** *(R202)*
+  (FR-OPEN-3, FR-OPEN-4, FR-OPEN-14; D-1179, D-1211.) Compact: the tagline and the band, 0.75 rem apart, over the stacked page; the Where reading under the doors is the label and a bracketed `[ Not there? Set your place ]`. The day line stands in the band between the card and the stripe; on wide in the Where pane under the label.
+  On wide the next event returns to the When pane only under the example (FR-OPEN-4, FR-OPEN-12), as its last block with no live link; a set place keeps FR-FIRST-3 as amended v2.6.
+  Waiting, the card's place is six `--small` rows, the pane title's row and the card's padding (172 px at 390 px, the fixture's card), the stripe's three 18 px rows, and on wide the next event's block.
+  Measured in Google Chrome on the plain build, the fixture clock, zone `America/Argentina/Buenos_Aires`, both languages alike: at 390 × 844 the header ends at 48 px, the tagline 72–120, the band 132–508, the action 447–495; at 360 × 640 the band 132–528 and the action 467–515.
+  The label (42 characters and the city) and the look line wrap inside the band; `controlRows.test.ts` holds each to two lines at 390 px and three at 360.
+- **D-1202 — `where_shown` is the place group shown on a first visit.** *(R202)*
+  (FR-OPEN-10, D-1182.) `Home` counts it when the question is on screen: `example` when the action or a `[ set a place ]` request opens it over the example, `fallback` when the page is the question. A wait that runs out with the group already open counts `fallback` as well; each pair once per load (V215-7). A visit with a place counts nothing here.
+  `measure.spec.ts`'s offline case starts from the example, whose page has loaded every chunk the stacked page needs before the connection goes (the service worker is blocked there).
+- **D-1203 — The first visit in the capture set: 32 files, nine names.** *(R202)*
+  (FR-OPEN-11, FR-FIRST-7 as amended.) `first-example` (390, 1024, 1280; both themes), `first-wait`, `first-place` and `first-noon` (390, dark), and at 360 × 640 the `-short` screens `first-example-short` (both themes), `first-wait-short`, `first-place-short` and `location-short` (dark), D-993's way of naming a second height.
+  The fallback is the existing `location` screen (the set runs in UTC), which gains 1024. "The light theme" is the app's second theme, `night`.
+  The example's captures run in a describe with `timezoneId: 'America/Argentina/Buenos_Aires'` at the set's instant and at noon seven hours on; the showcase night's forecast answers for the zone city so no file reads "Weather unknown"; the paused clock is ticked until the example lands and then pinned (F-48).
+  `r76-captures.spec.ts` and `r84-captures.spec.ts` lose their when and what step cases; the committed `r82-*` and `r84-what-*` images stay as history. The owner's review copies, shot on the Mac, are `docs/screenshots/v2.16-r202/`.
+- **D-1204 — The tagline never folds; the main chunk is 134 bytes under 2.15.0.** *(R202)*
+  (D-1181, D-1194.) The new words make the wide header's line 70 cells in English and 68 in Spanish, so `HEADER_FOLD_PX` is 675 and 656, both under the wide breakpoint: the tagline shows at every wide width, which moves every home capture at 964–1049 px in Spanish.
+  With the steps, `lib/moonNote.ts`, `splitTonight`, their catalog keys and `Steps.module.css` gone, `main` is 195.0 KB gzipped (199,711 bytes) against 199,845 on 2.15.0 and 200,794 after R200.
+  `tests/e2e/promo-record.spec.ts` still walks the removed steps; it is off every CI path and is left for the next recording.
+
 - **D-1209 — The look line is one catalog function.**
   (FR-OPEN-12; V216-12.) `example.looks(minutes)` in both catalogs, `minutes` = `max(1, round(durationS / 60))` computed by the band from the pass, never by the catalog.
 - **D-1210 — The plain words are a prop, not a second component.**
