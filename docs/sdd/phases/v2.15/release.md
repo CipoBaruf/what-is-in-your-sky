@@ -31,6 +31,7 @@ It is the first release with a Worker script, so §29.4's preview checks come be
 
 `docs/DEPLOY.md`, *First preview deploy*, has the commands. None of these could be checked while building.
 
+- [x] Analytics Engine is enabled on the account (once; without it the upload fails with code 10089, `docs/DEPLOY.md`, *The counts*).
 - [x] The deploy accepts `run_worker_first: ["/e"]`, the `EVENTS` binding and the TypeScript `main`.
 - [x] An unknown path still answers the 404 page.
 - [x] `POST /e` answers `204` and `GET /e` answers `405`.
