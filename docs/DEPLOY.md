@@ -119,6 +119,14 @@ names and details is `EVENTS` in `src/model/measure.ts`.
   `blob1`..`blob6` as name, detail (empty when none), visit, layout, language and id; no
   numbers. Three months are kept; the free allowance is about 100 000 points a day.
 - **No new dependency.** Wrangler bundles `edge/index.ts` with the assets at deploy.
+- **Once, in the dashboard, before the first upload.** Workers Analytics Engine has to be
+  enabled on the account: *Workers & Pages → Analytics Engine*, then enable it (the address is
+  `dash.cloudflare.com/<account id>/workers/analytics-engine`). The dataset itself needs no
+  step; it is created by the first write. Until it is enabled every build of a branch with
+  the `EVENTS` binding fails at the upload, after a clean bundle, with `You need to enable
+  Analytics Engine. Head to the Cloudflare Dashboard to enable: … [code: 10089]`; no
+  change to `wrangler.jsonc` fixes it. After enabling, push a commit: *Retry build* in the
+  dashboard does not update the GitHub check.
 
 ### First preview deploy: three things to check, before the tag
 
