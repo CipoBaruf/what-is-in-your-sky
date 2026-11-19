@@ -1982,6 +1982,7 @@ D-1168	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 de
 D-1169	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 G69	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 G70	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
+G71	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 US-60	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 US-61	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 FR-OPEN-1	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
@@ -1998,6 +1999,9 @@ FR-OPEN-12	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The
 FR-OPEN-13	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-14	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
 FR-OPEN-11	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216	4.59 The example first run *(v2.16)*
+FR-CI-4	docs/sdd/phases/v2.16/spec.md#460-ci-time-again-v216	4.60 CI time, again *(v2.16)*
+FR-CI-5	docs/sdd/phases/v2.16/spec.md#460-ci-time-again-v216	4.60 CI time, again *(v2.16)*
+FR-CI-6	docs/sdd/phases/v2.16/spec.md#460-ci-time-again-v216	4.60 CI time, again *(v2.16)*
 D-1173	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1174	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1175	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
@@ -2013,6 +2017,10 @@ D-1183	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1209	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1210	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1211	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1213	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1214	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1215	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1216	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2385,6 +2393,7 @@ V216-13	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-17	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp
@@ -2632,6 +2641,7 @@ PLAN §11.9	docs/sdd/phases/v2.15/plan.md#119-v215-build-and-deploy-fr-meas-4
 PLAN §16.36	docs/sdd/phases/v2.15/plan.md#1636-v215-delivery
 SPEC §2.23	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first
 SPEC §4.59	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216
+SPEC §4.60	docs/sdd/phases/v2.16/spec.md#460-ci-time-again-v216
 PLAN §2.54	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18
 PLAN §9.18	docs/sdd/phases/v2.16/plan.md#918-v216-additions-fr-open
 PLAN §11.10	docs/sdd/phases/v2.16/plan.md#1110-v216-build-fr-open-1

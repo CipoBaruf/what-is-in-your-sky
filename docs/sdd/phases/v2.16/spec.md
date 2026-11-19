@@ -8,6 +8,8 @@ Phase file of SPEC.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   A first visit sees a real result — a satellite, a time, a direction — before it is asked anything.
 - **G70. Never pass an example off as a forecast.**
   The result is for a city guessed from the browser's time zone, which can be hundreds of kilometres off, and every screen that shows it says so.
+- **G71. A change is checked in minutes, and the captures run again.**
+  A pull request's CI answers within 8 minutes, and the capture set, red on every push to `main` since 2026-11-05, is green before this phase's own captures are taken.
 
 **US-60 — An answer before a question** *(v2.16)*
 As a new visitor, I open the app and see when and where to look tonight for a city near me, so I understand what it does before I set anything.
@@ -120,8 +122,30 @@ The place question stays, as the action's destination and as the fallback whenev
   The captures fix the clock, the time zone (`America/Argentina/Buenos_Aires`) and the elements fixture, so the example's pass is the same on every run.
   There is no design board for this phase; the captures are the reference the owner reviews.
 
+### 4.60 CI time, again *(v2.16)*
+
+A full run takes 9.4 min against FR-CI-1's 10, because shard 1 runs the typecheck, the lint and the unit suite (3.3 min) before its share of e2e, and the e2e shards, cut by test count, run from 4 to 7.5 min.
+The capture set has failed on every push to `main` since 2026-11-05: v2.14's two questions (the wide live page's first-pass dialog and the phone's follow question) cover the page, and 80 of 464 captures time out three times each in a 52 min job.
+
+- **FR-CI-4** *(V216-17)* **The checks that need no build run beside it.**
+  Typecheck, lint and the unit suite run in a job of their own that does not wait for `build`, the unit suite split into `CI_UNIT_SHARDS` (2) parallel jobs; the e2e shards run e2e only.
+  FR-CI-1's selection holds: a pull request runs the unit tests and specs its change reaches.
+  *Verification:* the workflow's job graph (a test reads `ci.yml`); the job summary's stage times on the phase's own pull request.
+
+- **FR-CI-5** *(V216-17)* **The e2e shards are cut by time.**
+  The e2e specs are split across the `CI_SHARDS` shards by their recorded durations, longest first into the shard with the least, from a committed table of seconds per spec that a script refreshes from a run's JSON report; a spec missing from the table counts as the table's median.
+  On a full run no shard's e2e stage is more than `CI_SHARD_SPREAD_S` (60 s) longer than the shortest's, rationale: today's spread is 3.5 min, and a minute absorbs a runner's variance.
+  *Verification:* a unit test of the split (a table, a missing spec, more shards than specs); the phase's full run shows the spread in the job summary.
+
+- **FR-CI-6** *(V216-17)* **The capture set answers the questions and runs on four runners.**
+  Every capture route answers the follow question and the first-pass dialog the way a returning reader does before it acts, so no capture waits on an overlay.
+  The set is shot on `CAPTURE_SHARDS` (4) parallel jobs, and one job after them gathers the files, checks the set complete (FR-CI-2) and commits to the captures branch, within `CAPTURES_BUDGET_MIN` (20).
+  *Verification:* the set's run on the phase's first push to `main` is green with no retry, inside the budget.
+
 #### Amended
 
+- **FR-CI-1** *(amended v2.16, V216-17; before: `CI_PR_BUDGET_MIN` 10 and the whole-program checks on shard 1)*: `CI_PR_BUDGET_MIN` is 8; the typecheck, lint and unit stages are FR-CI-4's job, not shard 1's.
+- **FR-CI-2** *(amended v2.16, V216-17; before: one job shoots the set)*: the set runs as FR-CI-6 says.
 - **FR-MEAS-2** *(amended v2.16, V216-7; before: `where_shown` with no detail, and `when_shown` and `what_shown` sent by the first run's steps)*
   Added: `example_shown`, sent once when the band or the Where pane shows its answer or the fallback is chosen, with `detail` `pass` (an answer), `none` (no visible pass in 72 h), `no_city`, `failed` (the elements, the worker or the run) or `slow` (`EXAMPLE_WAIT_MS` passed).
   `where_shown` gains `detail`: `example` when FR-OPEN-5 opens from the action, `fallback` when FR-OPEN-6 shows the question.
@@ -135,7 +159,7 @@ The place question stays, as the action's destination and as the fallback whenev
 
 #### Definition of done
 
-- FR-OPEN-1..14, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 as amended met, each by its verification line; US-60 and US-61 by their criteria.
+- FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 as amended met, each by its verification line; US-60 and US-61 by their criteria.
 - `npm test` green; `npm run bundle:budget` no row over 2.15.0's by more than 1 KB without a named reason in the release record, the zone table in its own row.
 - `npm run funnel` on the first production day prints the amended rows.
 - `package.json` reads 2.16.0; the release record lists the captures that move (FR-OPEN-9, FR-OPEN-11).
@@ -143,6 +167,6 @@ The place question stays, as the action's destination and as the fallback whenev
 
 ### Phase 2y — v2.16 ("an answer first", as decided 2026-11-18, V216-1)
 
-Built right after v2.15, which shipped as 2.15.0 on 2026-11-19, so no task waits on it (V216-16).
+Built right after v2.15, which shipped as 2.15.0 on 2026-11-19, so no task waits on it (V216-16); the CI work goes in the first waves, before the screens (V216-17).
 A first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place, and the place question as the fallback.
-Goals G69–G70, §4.59, FR-OPEN-1..14, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-16.
+Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-17.
