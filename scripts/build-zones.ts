@@ -1,5 +1,5 @@
 /**
- * FR-OPEN-1 (PLAN D-1173, D-1184): `src/data/zones/zones.txt`, the city each
+ * FR-OPEN-1 (PLAN D-1173, D-1184, V216-18): `src/data/zones/zones.txt`, the city each
  * time zone names, from the vendored tzdata in `scripts/data/tz/` and the towns
  * of `places.txt`. Run by hand (`npm run build:zones`) when either changes;
  * the output is committed, so a build never reads the tz files.
@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
-import { nearestPlace, parsePlaces, type Places } from '../src/data/places/nearestPlace';
+import { greatCircleKm, parsePlaces, type Places } from '../src/data/places/nearestPlace';
 
 /** A town farther than this from a zone's coordinates does not name it (FR-OPEN-1). */
 export const ZONE_NAME_MATCH_KM = 50;
@@ -37,6 +37,41 @@ function readTab(text: string, into: Map<string, string>): void {
 /** The display name the lookup falls back to: the zone's last part with `_` as a space. */
 export const zoneLastPart = (zone: string): string => (zone.split('/').pop() ?? zone).replace(/_/g, ' ');
 
+/** A name with accents, case and punctuation ignored: `São Paulo` and `Sao_Paulo` fold alike (V216-18). */
+export const foldName = (name: string): string =>
+  name
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
+
+/** The towns of `places` by folded name. */
+function townsByName(places: Places): Map<string, number[]> {
+  const index = new Map<string, number[]>();
+  for (let i = 0; i < places.size; i++) {
+    const key = foldName(places.names[i] ?? '');
+    const list = index.get(key) ?? [];
+    list.push(i);
+    index.set(key, list);
+  }
+  return index;
+}
+
+/** The zone's display name: the spelling of the nearest town within `ZONE_NAME_MATCH_KM` whose name folds to the last part's, else the last part (V216-18). */
+function displayName(zone: string, lat: number, lon: number, places: Places, index: Map<string, number[]>): string {
+  const last = zoneLastPart(zone);
+  let best = last;
+  let bestKm = ZONE_NAME_MATCH_KM;
+  for (const i of index.get(foldName(last)) ?? []) {
+    const km = greatCircleKm(lat, lon, (places.lat[i] ?? 0) / 100, (places.lon[i] ?? 0) / 100);
+    if (km <= bestKm) {
+      bestKm = km;
+      best = places.names[i] ?? last;
+    }
+  }
+  return best;
+}
+
 const byCode = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 export interface TzFiles {
@@ -52,12 +87,13 @@ export function buildZones(tz: TzFiles, places: Places): string {
   readTab(tz.zoneTab, coords); // zone.tab first: a merged zone keeps its own city (V216-15).
   readTab(tz.zone1970Tab, coords);
   const lines = [`# ${tz.release} Zone, Δlat, Δlon in 0.01° from the row before[, name]; "=Alias<TAB>Zone".`];
+  const index = townsByName(places);
   let lat = 0;
   let lon = 0;
   for (const zone of [...coords.keys()].sort(byCode)) {
     const at = hundredths(coords.get(zone) ?? '');
-    const town = nearestPlace(places, at.lat / 100, at.lon / 100, ZONE_NAME_MATCH_KM);
-    const name = town && town.name !== zoneLastPart(zone) ? `\t${town.name}` : '';
+    const shown = displayName(zone, at.lat / 100, at.lon / 100, places, index);
+    const name = shown === zoneLastPart(zone) ? '' : `\t${shown}`;
     lines.push(`${zone}\t${String(at.lat - lat)}\t${String(at.lon - lon)}${name}`);
     lat = at.lat;
     lon = at.lon;
