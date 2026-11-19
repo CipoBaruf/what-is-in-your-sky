@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["scripts/*.ts", "scripts/captures/*.ts", "spike/**/main.tsx", "dev/primitives.tsx"],
+  "entry": ["scripts/*.ts", "scripts/captures/*.ts", "spike/**/main.tsx", "dev/primitives.tsx", "edge/index.ts"],
   "ignore": ["spike/**"],
   "ignoreBinaries": ["ffmpeg"]
 }

@@ -25,9 +25,9 @@ git fetch origin && git push origin <release-sha>:release   # the SHA the tag po
 ```
 
 `wrangler.jsonc` at the root holds the whole
-configuration (assets-only Worker, `dist/` as the assets directory, no Worker script, and
-the `routes` entry that binds the public address — see *Domain* below), so the build
-never has to guess.
+configuration (`dist/` as the assets directory, one Worker script, `edge/index.ts`, that
+answers only `/e`, the `EVENTS` dataset binding, and the `routes` entry that binds the
+public address — see *Domain* and *The counts* below), so the build never has to guess.
 
 ## How the project was created, once, in the dashboard
 
@@ -99,8 +99,66 @@ curl -sI $SITE/assets/$(curl -s $SITE/ | grep -oE 'assets/[^"]+\.js' | head -1 |
 ```
 
 The app makes requests only to its own origin and to the hosts named in `connect-src`
-(CelesTrak and Open-Meteo). There is no analytics or tracking (spec FR-X-3); Workers
-observability is off in `wrangler.jsonc`.
+(CelesTrak and Open-Meteo). There is no third-party analytics, no cookie and no stored
+identifier (spec FR-X-3 as amended); Workers observability is off in `wrangler.jsonc`, so
+no request log keeps an address or a header. What the site does count is in the next section.
+
+## The counts
+
+The site counts which screens and steps a visit reaches (FR-MEAS-1..5, FR-X-3): an event name,
+first or return visit, layout (`compact` or `wide`), language (`en` or `es`) and a random id
+made for that one page load. Never a location, a place name or typed text. The closed list of
+names and details is `EVENTS` in `src/model/measure.ts`.
+
+- **The route.** The Worker script `edge/index.ts` takes `POST /e` and passes it to
+  `edge/collect.ts`, which answers `204` with no body whether the event is kept or not.
+  Every other request goes to the assets (`ASSETS` binding). `run_worker_first` is
+  `["/e"]`, so no asset request runs the script.
+- **The store.** The `EVENTS` binding is a Workers Analytics Engine dataset named
+  `inyoursky_events` (`analytics_engine_datasets` in `wrangler.jsonc`). Each point has
+  `blob1`..`blob6` as name, detail (empty when none), visit, layout, language and id; no
+  numbers. Three months are kept; the free allowance is about 100 000 points a day.
+- **No new dependency.** Wrangler bundles `edge/index.ts` with the assets at deploy.
+- **Once, in the dashboard, before the first upload.** Workers Analytics Engine has to be
+  enabled on the account: *Workers & Pages → Analytics Engine*, then enable it (the address is
+  `dash.cloudflare.com/<account id>/workers/analytics-engine`). The dataset itself needs no
+  step; it is created by the first write. Until it is enabled every build of a branch with
+  the `EVENTS` binding fails at the upload, after a clean bundle, with `You need to enable
+  Analytics Engine. Head to the Cloudflare Dashboard to enable: … [code: 10089]`; no
+  change to `wrangler.jsonc` fixes it. After enabling, push a commit: *Retry build* in the
+  dashboard does not update the GitHub check.
+
+### First preview deploy: three things to check, before the tag
+
+Two facts could not be read from Cloudflare's documentation when this was planned (PLAN
+§11.9), and the third is the route itself. Push a branch, open its preview URL and check:
+
+1. `run_worker_first: ["/e"]` is accepted: the build deploys with no config error.
+2. Unknown paths still get the 404 page, not the Worker's answer and not `index.html`:
+   `curl -s -o /dev/null -w '%{http_code}\n' <preview>/no-such-path` prints `404`.
+3. `POST /e` answers `204`:
+   `curl -s -o /dev/null -w '%{http_code}\n' -X POST -d '{}' <preview>/e` prints `204`
+   (an invalid body is dropped, still `204`). A `GET` of `/e` answers `405`.
+
+### Reading the funnel
+
+`npm run funnel` prints the last `FUNNEL_DAYS` days (default 14; `--days <n>` overrides),
+and `--layout compact|wide` and `--lang en|es` narrow every row. It reads the dataset
+through the Analytics Engine SQL API, so it needs two values in the environment and in no file:
+
+1. Make an API token at *My Profile → API Tokens → Create Token → Create Custom Token*,
+   account-level, permission *Account → Account Analytics → Read*, and nothing else.
+2. Find the account id on the account's *Workers & Pages* overview.
+3. Set both, in the shell that runs the command:
+
+```
+export CF_ACCOUNT_ID=<account id>
+export CF_API_TOKEN=<the token>
+npm run funnel -- --days 7 --layout compact
+```
+
+Without either variable the command stops and names it. The token is never in the
+repository, in the Worker or in a build setting.
 
 ## Repository metadata
 

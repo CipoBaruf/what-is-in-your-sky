@@ -90,7 +90,7 @@ export function applyLink(store: AppStore, result: OpenLinkResult | null): void 
   const linked = observerFromLink(result.link);
   if (result.kind === 'visit') state.visit(linked);
   // `adopt`: nothing is saved, so the link's place is stored like any other (FR-LOC-5).
-  else state.setObserver(linked);
+  else state.setObserver(linked, 'link');
 }
 
 /** The running tab's path (F-93): a hash that changed under the page is read like one the tab booted on. */

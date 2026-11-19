@@ -2,7 +2,7 @@
  * D-1023 (FR-X-2 as amended 2026-11-02, the owner's call): the footer is the same on every page. On a desk (1280 × 800)
  * the home, the pass detail, settings, live and stars all end in D-120's one row (the live page's under the fold of its
  * one-viewport sky); on a phone (390 × 844) the home and
- * settings end in the full credits, and live, stars and the pass detail carry the one row, its privacy word kept, as
+ * settings end in the full credits, and live, stars and the pass detail carry the one row as
  * the last group of the controls sheet's body. Every form stands a group gap (`--space-3`) under what is above it.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -10,8 +10,8 @@ import { openFlowPage, PHONE, type FlowPage, type Locale } from './flowPages';
 
 const DESK = { width: 1280, height: 800 };
 const PAGES: readonly FlowPage[] = ['home', 'detail', 'settings', 'live', 'stars'];
-const PRIVACY_WORD = { en: 'No tracking', es: 'Sin rastreo' } as const;
-const PRIVACY_SENTENCE = { en: 'No analytics, no tracking', es: 'Sin analítica ni rastreo' } as const;
+/** D-1150 (FR-MEAS-7): no privacy sentence or word stands in any footer. */
+const PRIVACY = { en: /No tracking|No analytics/, es: /Sin rastreo|Sin analítica/ } as const;
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
 /** `--space-3` in px, read from the page's own tokens. */
@@ -61,13 +61,13 @@ for (const locale of ['en', 'es'] as const) {
   test.describe(`the footer on a desk, 1280 × 800, ${locale} (D-1023)`, () => {
     test.use({ viewport: DESK });
     for (const which of PAGES) {
-      test(`${which} ends in the one row, privacy word kept, a group gap under the page`, async ({ page }) => {
+      test(`${which} ends in the one row, no privacy word, a group gap under the page`, async ({ page }) => {
         await open(page, which, locale);
         const footer = page.getByRole('contentinfo');
         await expect(footer).toHaveCount(1);
         await expect(footer).toHaveAttribute('data-form', 'short');
         await expect(footer).toBeInViewport({ ratio: 1 });
-        await expect(footer).toContainText(PRIVACY_WORD[locale]);
+        await expect(footer).not.toContainText(PRIVACY[locale]);
         await expect(footer.getByRole('link', { name: 'glyphcss' })).toBeVisible();
         await expect(page.getByTestId('app-footer')).toHaveCount(1);
         const s3 = await space3(page);
@@ -92,7 +92,7 @@ for (const locale of ['en', 'es'] as const) {
         await expect(footer).toHaveAttribute('data-form', 'full');
         await footer.scrollIntoViewIfNeeded();
         await expect(footer).toBeVisible();
-        await expect(footer).toContainText(PRIVACY_SENTENCE[locale]);
+        await expect(footer).not.toContainText(PRIVACY[locale]);
         await expect(footer.getByRole('link', { name: 'glyphcss' })).toBeVisible();
         const s3 = await space3(page);
         const { gap, own } = await gapAbove(footer);
@@ -102,7 +102,7 @@ for (const locale of ['en', 'es'] as const) {
     }
 
     for (const which of ['live', 'stars', 'detail'] as const) {
-      test(`${which} ends its controls sheet in the one row, privacy word kept, a group gap under the last section`, async ({ page }) => {
+      test(`${which} ends its controls sheet in the one row, no privacy word, a group gap under the last section`, async ({ page }) => {
         await open(page, which, locale);
         const sheet = page.getByTestId('live-sheet');
         await expect(sheet).toHaveAttribute('data-open', 'true');
@@ -113,7 +113,7 @@ for (const locale of ['en', 'es'] as const) {
         await expect(row).toHaveAttribute('data-form', 'short');
         await row.scrollIntoViewIfNeeded();
         await expect(row).toBeVisible();
-        await expect(row).toContainText(PRIVACY_WORD[locale]);
+        await expect(row).not.toContainText(PRIVACY[locale]);
         await expect(row.getByRole('link', { name: 'glyphcss' })).toBeVisible();
         const s3 = await space3(page);
         expect((await gapAbove(row)).gap).toBeGreaterThanOrEqual(s3 - 1);

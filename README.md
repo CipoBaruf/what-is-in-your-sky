@@ -7,9 +7,9 @@ A pass opens with a countdown and its path over the stars it crosses. The stars 
 the stars, the constellations and the planets for any hour, turned by hand or
 held up to the sky. At a desk the satellites, the live sky and the stars share one celestial
 globe, with each pass's arc and a satellite's facts beside it. It runs in the browser, with
-no backend and no account, works offline, and speaks English and Spanish.
+no account and no server of its own beyond one counting route, works offline, and speaks English and Spanish.
 
-**Live:** <https://inyoursky.app> (2.14.3)
+**Live:** <https://inyoursky.app> (2.15.0)
 
 ![Two screens: a phone on the live sky, the window following the pass that is up among the stars; and a desk on a pass, the celestial globe drawing the pass's arc among the stars and the planets, with its rise, peak and set times and the satellite's facts in the rail beside it](docs/readme/hero.png)
 
@@ -78,8 +78,8 @@ The long version, with one task followed end to end, is
 
 ## Stack
 
-- React 19, TypeScript and Vite; state in Zustand, data validated with Zod. No backend: the
-  browser talks to CelesTrak and Open-Meteo directly.
+- React 19, TypeScript and Vite; state in Zustand, data validated with Zod. No app backend: the
+  browser talks to CelesTrak and Open-Meteo directly, and one small Worker route (`edge/`) receives the anonymous counts.
 - The physics runs in a Web Worker: SGP4 propagation with satellite.js, the Sun, the Moon and
   the planets with astronomy-engine. Time is always a parameter, never the wall clock, so the
   predictions are tested against fixed, dated fixtures. The compass is corrected for magnetic
@@ -145,8 +145,11 @@ production, and every other branch, `main` included, gets its own preview URL.
 the strict Content-Security-Policy, `Referrer-Policy` and `Permissions-Policy` from PLAN
 §11 — `npm run preview` serves the same file the same way and the Playwright suite runs
 the app under it, so a CSP violation fails CI before it reaches the site. The app connects
-to its own origin and to CelesTrak and Open-Meteo, and to nothing else; there is no
-analytics or tracking (spec FR-X-3).
+to its own origin and to CelesTrak and Open-Meteo, and to nothing else. There is no
+third-party analytics, no cookie and no stored identifier (spec FR-X-3): the site counts
+which screens and steps are reached, as an event name, first or return visit, layout,
+language and a random id made for each page load, and never a location, a place name
+or typed text; they sit in its own Cloudflare Analytics Engine dataset. `npm run funnel` prints them.
 
 The dashboard steps, the worker-rename procedure and the header checks are in
 [docs/DEPLOY.md](docs/DEPLOY.md); [docs/RELEASE.md](docs/RELEASE.md) is the release

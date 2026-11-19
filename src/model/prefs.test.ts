@@ -10,7 +10,6 @@ import {
   DEFAULT_GLOBE_ZOOM,
   DEFAULT_NAMES,
   DEFAULT_PLAY_SPEED,
-  DEFAULT_PRIVACY_NOTE_CLOSED,
   DEFAULT_STAR_LAYERS,
   DEFAULT_STARS_LAYER,
   DEFAULT_SUN_GLOW,
@@ -53,10 +52,9 @@ describe('FR-KEEP-3: the first visit defaults', () => {
     expect(DEFAULT_PLAY_SPEED).toBe(DEFAULT_SPEED);
   });
 
-  it('FR-KEEP-3: sun glow off, theme dark; FR-KEEP-4: the privacy note shown', () => {
+  it('FR-KEEP-3: sun glow off, theme dark', () => {
     expect(DEFAULT_SUN_GLOW).toBe(false);
     expect(DEFAULT_THEME).toBe('dark');
-    expect(DEFAULT_PRIVACY_NOTE_CLOSED).toBe(false);
   });
 
   it("D-1096: the ranges and the speeds restated here equal the chart's and the playback's", () => {

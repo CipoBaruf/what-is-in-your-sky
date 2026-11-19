@@ -3,14 +3,12 @@
  * (accuracy 2 000 m shown, 300 m hidden), the clear action, the precision
  * note, pre-filling from a restored observer, Tab order and `jest-axe`.
  */
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { en } from '../../../i18n/en';
+import { describe, expect, it, vi } from 'vitest';
+import { I18nProvider } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
-import { appStore } from '../../../state';
-import { Footer } from '../common/Footer';
 import { LocationInput } from './LocationInput';
 import type { PlaceSearchFn } from './PlacePicker';
 import type { GeolocationEnv } from './UseMyLocation';
@@ -146,42 +144,24 @@ describe('<LocationInput>', () => {
   });
 });
 
-// R190 (FR-KEEP-4, D-1105): the line under the place search and the footer's sentence close together, for good.
-describe('the privacy note (FR-KEEP-4)', () => {
-  afterEach(() => {
-    act(() => {
-      appStore.setState({ privacyNoteClosed: false });
-    });
-    localStorage.clear();
-  });
+// D-1150 (FR-MEAS-7, FR-KEEP-4): no privacy line under the place search, in either language, whatever is stored.
+describe('the privacy note is gone (FR-MEAS-7)', () => {
+  const NOTES = ['Saved in this browser only', 'No account, no tracking', 'Guardada solo en este navegador', 'Sin cuenta, sin rastreo'];
 
-  const both = () =>
-    render(
-      <>
+  it.each(['en', 'es'] as const)('FR-MEAS-7: the boxed foot has no privacy line and no [ × ], in %s', (locale) => {
+    const { container } = render(
+      <I18nProvider locale={locale}>
         <LocationInput observer={null} onObserver={vi.fn()} onClear={vi.fn()} search={search} geolocation={geo} variant="group" look="boxed" />
-        <Footer />
-      </>,
+      </I18nProvider>,
     );
-
-  it.each(['the place search', 'the footer'] as const)('FR-KEEP-4: is shown under the place search and in the footer, and closed by %s’s [ × ] is gone from both', async (by) => {
-    both();
-    expect(screen.getByTestId('location-foot')).toHaveTextContent(en.home.savedFoot);
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(en.footer.privacy);
-    const closes = screen.getAllByRole('button', { name: en.footer.closePrivacy });
-    expect(closes).toHaveLength(2);
-    const [inGroup, inFooter] = closes;
-    await userEvent.click((by === 'the place search' ? inGroup : inFooter) as HTMLElement);
-    expect(screen.queryByText(en.home.savedFoot)).toBeNull();
+    for (const text of NOTES) expect(container).not.toHaveTextContent(text);
+    expect(screen.queryByTestId('privacy-note')).toBeNull();
+    expect(screen.queryByTestId('privacy-close')).toBeNull();
+    // With nothing to clear the boxed foot is gone, not an empty row.
     expect(screen.queryByTestId('location-foot')).toBeNull();
-    expect(screen.getByRole('contentinfo')).not.toHaveTextContent(en.footer.privacy);
-    expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
-    expect(appStore.getState().privacyNoteClosed).toBe(true);
   });
 
-  it('FR-KEEP-4: closed, the boxed foot keeps the clear action alone', () => {
-    act(() => {
-      appStore.setState({ privacyNoteClosed: true });
-    });
+  it('FR-MEAS-7: with a saved place the boxed foot keeps the clear action alone, with no gap before it', () => {
     render(<LocationInput observer={coords} onObserver={vi.fn()} onClear={vi.fn()} search={search} geolocation={geo} variant="group" look="boxed" />);
     expect(screen.getByTestId('location-foot')).toHaveTextContent(/^Clear saved location$/);
   });

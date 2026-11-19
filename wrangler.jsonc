@@ -1,16 +1,24 @@
 // Cloudflare Workers static assets (PLAN D-12 as amended in §2.5). Workers Builds
 // runs `npm run build` then `npx wrangler deploy` with this file; without it every
 // build re-runs wrangler's autoconfig, which rewrites vite.config.ts in the build
-// sandbox. There is no Worker script: `dist/` is served as-is and `public/_headers`
-// (copied into `dist/` by Vite) supplies the PLAN §11 headers.
+// sandbox. `dist/` is served as-is and `public/_headers` (copied into `dist/` by
+// Vite) supplies the PLAN §11 headers. D-1148 (FR-MEAS-4): one Worker script,
+// `edge/index.ts`, receives the counts at `/e`; `run_worker_first` names only that
+// path, so every asset request is served without running it.
 {
   "name": "in-your-sky",
   "compatibility_date": "2026-08-31",
+  "main": "edge/index.ts",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/e"],
     // Hash routing (D-13): unknown paths are real 404s, not index.html.
     "not_found_handling": "404-page"
   },
+  // FR-MEAS-4 (D-1148): kept events, as FR-MEAS-1's six fields, in the site's own
+  // Workers Analytics Engine dataset; read only by `npm run funnel` (FR-MEAS-6).
+  "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "inyoursky_events" }],
   // D-658 (FR-ADDR-2): the public address is a custom domain bound by `wrangler
   // deploy`, which creates the DNS record and the certificate in the zone the
   // account holds; nothing is set in the dashboard. `workers_dev` stays so the
@@ -19,6 +27,8 @@
   "routes": [{ "pattern": "inyoursky.app", "custom_domain": true }],
   "workers_dev": true,
   "preview_urls": true,
-  // FR-X-3: no analytics; an assets-only Worker has nothing to log anyway.
+  // FR-X-3 as amended, FR-MEAS-4: no third-party analytics, and no request logs,
+  // so no address, user agent or other header is kept; the only count is the one
+  // `edge/` writes to the dataset above.
   "observability": { "enabled": false }
 }

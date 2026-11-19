@@ -22,6 +22,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/ci-digest.ts` — exports: FAILURE_DIGEST_MAX_KB, Tool, Failure, ToolResult, stripAnsi, relativePath, firstAssertion, ownFrames, +9 — PLAN D-1067 (FR-SDD-16): the failure digest, and the report readers `npm run check` shares (D-1066).
 - `scripts/contrast.ts` — exports: TOKENS_PATH, TEXT_TOKENS, GROUND_TOKENS, CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, CHART_RESERVED_TOKENS, +18 — R12 (FR-X-5), extended by R20 (FR-THEME-1..3, D-84): WCAG 2.1 contrast ratios of the tokens in `src/ui/styles/tokens.css`, computed for **b…
 - `scripts/design-guide.ts` — exports: GUIDE_PATH, MANIFEST_PATH, PRIMITIVES_DIR, DEV_PAGE_URL, readNotes, renderGuide — R108 (FR-DS-6, FR-DS-9; D-707, D-729): `docs/DESIGN.md`, generated.
+- `scripts/funnel.ts` — exports: DATASET, DEFAULT_DAYS, FunnelRow, FunnelOptions, funnelReport, funnelQuery, parseRows, Io, +2 — FR-MEAS-6 (D-1149): the funnel, printed from the site's own Analytics Engine dataset.
 - `scripts/mockup-capture.ts` — exports: none — FR-DESK-5 and FR-COMP-6: regenerate the mockups' captures, one per theme, from the pages under `docs/mockups/`.
 - `scripts/prune-merged-branches.ts` — exports: PROTECTED_BRANCHES, PROTECTED, parseBranches, deletable, PullRequestFact, PruneFacts, PrunePlan, planPrune, +4 — FR-PUB-13 (D-377): the branches on `origin` whose pull request is merged, listed — and deleted only when asked in so many words.
 - `scripts/readme-hero.ts` — exports: HERO, PREVIEW, Source, SOURCES, brailleFontFace, Layout, HERO_LAYOUT, Placed, +3 — FR-PUB-2, FR-PUB-11 (D-370): the README's one image and the repository's social preview, composed from captures of the set kept beside them…
@@ -55,6 +56,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/data/elementsLoader.ts` — exports: LoadedElements, mergeGroups, filterToCatalog, LoadElementsOptions, loadElements, ELEMENT_GROUPS — PLAN §7.1: `stations` and `visual` come through the elements cache (R11: IndexedDB, 2 h rule, single-flight, stale fallback — `elementsCach…
 - `src/data/favourites.ts` — exports: favouriteCellKey, mostRecentlyUsed, addFavourite, touchFavourite, removeFavourite — FR-OFF-7, US-17, D-85: the saved places as a list, held newest use first.
 - `src/data/localPrefs.ts` — exports: PREFS_KEY, LocalPrefs, createLocalPrefs, localPrefs — FR-LOC-5, US-8: the last observer lives in `localStorage` under `wiys:prefs:v1` (PLAN §5) and nowhere else.
+- `src/data/measure.ts` — exports: MEASURE_ORIGIN, MEASURE_PATH, MeasureEnv, DetailArg, Count, createMeasure — FR-MEAS-3 (D-1146): the sender.
 - `src/data/moon/index.ts` — exports: MOON_LORE, signAtLongitude, signByKey, fullMoonName, phaseLore, MOON_PHASES, ZODIAC_SIGNS, loreSchema, +8 — The Moon's tradition text (FR-MOON-4): one hand-reviewed file, both languages, every entry with its provenance.
 - `src/data/moon/schema.ts` — exports: ZODIAC_SIGNS, ZodiacSign, MOON_PHASES, MoonPhaseKey, SIGN_WIDTH_DEG, localizedSchema, provenanceSchema, zodiacSignSchema, +9 — FR-MOON-4 / FR-MOON-5: the Moon's tradition text is one hand-reviewed file, `lore.json`, in the style of the catalog (FR-SAT-5) — every ent…
 - `src/data/openMeteo/forecast.ts` — exports: HOURLY_VARIABLES, FORECAST_DAYS, OpenMeteoError, forecastUrl, FetchForecastOptions, parseForecastBody, fetchCloudForecast — FR-WX-1 / PLAN §7.3: one request per fetch, the exact URL from the plan — four hourly variables and, since v1, four days, so it counts as a…
@@ -147,13 +149,14 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/main.tsx` — exports: none — D-70 (R17, R20): the language and the theme are applied before the first render, not by an inline script — `script-src 'self'` (PLAN §11) f…
 - `src/model/catalog.ts` — exports: NoradId, CatalogEntry
 - `src/model/elements.ts` — exports: OmmRecord, ElementGroup, CachedGroup, SatelliteRecord
-- `src/model/index.ts` — exports: NoradId, CatalogEntry, EpochMs, VisibilityThresholds, TimeWindow, OmmRecord, ElementGroup, CachedGroup, +50
+- `src/model/index.ts` — exports: NoradId, CatalogEntry, EpochMs, VisibilityThresholds, TimeWindow, OmmRecord, ElementGroup, CachedGroup, +49
+- `src/model/measure.ts` — exports: EVENTS, MeasureName, MeasureDetail, ID_PATTERN, MeasureContext, MeasureEvent, isMeasureEvent — FR-MEAS-1, FR-MEAS-2 (D-1145): the closed list of what a visit may count, read by the browser's sender and the route alike.
 - `src/model/moon.ts` — exports: MoonPhaseName, MoonState, MoonGlareThresholds, MoonGlare — The eight phase names of FR-MOON-1, in cycle order.
 - `src/model/observer.ts` — exports: Observer
 - `src/model/offline.ts` — exports: PassRun, Favourite, MAX_FAVOURITES, ReadinessGap, Readiness — What the app keeps so it still answers with no network (spec §4.11, FR-OFF-2/4, PLAN §5, D-78).
 - `src/model/pass.ts` — exports: PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState
 - `src/model/place.ts` — exports: Place — One geocoding result (PLAN §7.2).
-- `src/model/prefs.ts` — exports: PassSort, ChartView, CHART_VIEWS, DEFAULT_CHART_VIEW, StarLayers, DEFAULT_STAR_LAYERS, DEFAULT_NAMES, DEFAULT_FAINT_STARS, +21
+- `src/model/prefs.ts` — exports: PassSort, ChartView, CHART_VIEWS, DEFAULT_CHART_VIEW, StarLayers, DEFAULT_STAR_LAYERS, DEFAULT_NAMES, DEFAULT_FAINT_STARS, +20
 - `src/model/thresholds.ts` — exports: EpochMs, VisibilityThresholds, TimeWindow
 - `src/model/weather.ts` — exports: HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict, TonightCloud
 - `src/physics/constants.ts` — exports: EARTH_RADIUS_KM, COARSE_STEP_MS, DENSE_STEP_MS, BISECTION_TOLERANCE_MS, TRACK_EVERY_N_SAMPLES, DEFAULT_THRESHOLDS, MOON_PHASE_BAND_HALF_WIDTH_DEG, ARC_LOOKAHEAD_MS, +6 — Centralised thresholds (FR-VIS-6).
@@ -173,8 +176,10 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/effects.ts` — exports: LoadedElements, VisibilitySource, EffectDeps, NOW_TICK_MS, ELEMENTS_RECHECK_MS, documentVisibility, ALWAYS_VISIBLE, startEffects — PLAN §4 `state/effects.ts`: observer change → load elements if needed → hand them to the worker once → `computePasses`.
 - `src/state/failure.ts` — exports: FailureKind, Failure, isFailure, toFailure — R86 (FR-FAIL-2, D-540): a failure is stored as a kind, never as a sentence.
 - `src/state/hash.ts` — exports: clearLocationHash — R83 (D-538): `endVisit` clears the link from the URL.
-- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +20
+- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +19
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
+- `src/state/measure.ts` — exports: count, randomId, browserEnv, LoadFacts, startMeasure — FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
+- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes` and `failure`.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
 - `src/state/passWindow.ts` — exports: NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_MS, searchWindow — The pass list window.
@@ -188,7 +193,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/slices/retry.ts` — exports: RetrySlice, IDLE_RETRY, createRetrySlice — R86 (FR-FAIL-1, D-541): one retry action per thing that can fail, callable from wherever its failure is shown.
 - `src/state/slices/ui.ts` — exports: UiSlice, createUiSlice — R83 (D-539): what the last link did — own place, visit, adopted, unreadable or unknown, with the moment's note — kept for the session so th…
 - `src/state/slices/weather.ts` — exports: WeatherSliceState, WeatherSlice, createWeatherSlice — The cloud forecast for the current observer (FR-WX-1/3/5) and the observer it belongs to, so a card never wears another location's verdict.
-- `src/state/store.ts` — exports: AppState, AppStore, AppStoreDeps, createAppStore, appStore, useAppStore, useActiveObserver, usePrivacyNote — One vanilla Zustand store composed of slices (D-4).
+- `src/state/store.ts` — exports: AppState, AppStore, AppStoreDeps, createAppStore, appStore, useAppStore, useActiveObserver — One vanilla Zustand store composed of slices (D-4).
 - `src/state/workerClient.ts` — exports: WorkerLikeEvents, WorkerLike, JOB_STALL_S, PassesJobHandlers, WorkerClient, sequentialIds, createWorkerClient, createAppWorker — Owns the worker and the request/response correlation of PLAN §6.2.
 - `src/ui/App.tsx` — exports: App, AppRoot — R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the first time `#live` is opened, so the home page pays nothing for…
 - `src/ui/RootBoundary.tsx` — exports: RootBoundaryProps, RootBoundary — R91 (FR-FAIL-5, D-544, F-88): a render error is a page, never a blank one.
@@ -351,6 +356,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/hooks/useOpenerFocus.ts` — exports: useOpenerFocus — R50 (F-43): what opens over the page — the compact guide sheet, the shortcuts overlay — moves focus to its own heading and gives it back to…
 - `src/ui/hooks/useShortcuts.ts` — exports: useShortcuts — R35 (FR-DESK-4, D-73): mounts the one `keydown` listener for as long as the screen that owns the shortcuts is up.
 - `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, replace, close, home, clearRoute, +3 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
+- `src/ui/openedRoute.ts` — exports: openedRoute — FR-MEAS-2 (D-1147): the route a load opened on, as `open`'s detail — read from the hash the way `App`'s route hooks read it, so a `#live?…`…
 - `src/ui/screens/Home.tsx` — exports: WhereReadingProps, WhereReading, HomeProps, useSteps, Home, StepLine, Step — R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings — **where**, **when**, **what**.
 - `src/ui/screens/Live.tsx` — exports: LivePageProps, TICK_MS, resetFirstPassAsked, visibleCount, LivePage, LiveState, liveState, LIVE_ROUTE_HASH — R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9): the live page at `#live`.
 - `src/ui/screens/LiveRoute.ts` — exports: LiveRoute, useLiveRoute — R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route, read from the hash the way the pass selection is (D-13: no router, the hash is the source of…

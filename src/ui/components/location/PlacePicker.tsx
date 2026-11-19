@@ -4,6 +4,7 @@ import { useT } from '../../../i18n/useT';
 import { observerFromPlace, placeRegion } from '../../../lib/place';
 import type { Observer, Place } from '../../../model';
 import { toFailure, type Failure } from '../../../state';
+import { count } from '../../../state/measure';
 import { useOnline } from '../../hooks/useOnline';
 import { FailureLine } from '../common/FailureLine';
 import { Field } from '../primitives/Field';
@@ -119,11 +120,14 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       (places) => {
         if (mine !== seq.current) return;
         setList({ kind: 'results', query: trimmed, places });
+        // FR-MEAS-2: the empty answer is counted, never what was asked.
+        if (places.length === 0) count('search_empty');
       },
       (error: unknown) => {
         if (mine !== seq.current || ac.signal.aborted) return;
         // R86 (D-540, D-541): stored as a kind, with the query kept for a retry.
         setList({ kind: 'error', query: trimmed, failure: toFailure(error) });
+        count('failure', 'search'); // D-1152: the search failure is this picker's state, so it is counted here
       },
     );
   };

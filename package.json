@@ -1,6 +1,6 @@
 {
   "name": "what-is-in-your-sky-right-now",
-  "version": "2.14.3",
+  "version": "2.15.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -30,6 +30,7 @@
     "build:stars": "tsx scripts/build-stars.ts",
     "validate:iss": "tsx scripts/validate-iss.ts",
     "check:catalog": "tsx scripts/check-catalog.ts",
+    "funnel": "tsx scripts/funnel.ts",
     "check:dead": "knip",
     "check:sdd": "tsx scripts/check-sdd.ts",
     "sdd": "tsx scripts/sdd-run.ts",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStore, useAppStore } from '../../../state';
+import { count } from '../../../state/measure';
 import { orientationAnswer, requestOrientationAccess } from '../guide/skychart/window/orientationAccess';
 import { deviceHeading, orientationApiPresent, orientationEventName, permissionRequest } from '../live/compassHeading';
 
@@ -129,7 +130,8 @@ export function useFollow(compact = false): Follow {
   // Every press or drag that ends following moves this on, so an answer to an earlier press does not overrule it.
   const said = useRef(0);
 
-  const turnOn = useCallback(() => {
+  // FR-MEAS-2 (D-1147): `question` is FR-PHONE-17's `[ allow ]`, whose outcome is counted: `allow` granted, `refused` not.
+  const request = useCallback((question: boolean) => {
     // FR-GYRO-3: the refusal's line goes on the next press, whatever that press does.
     setRefused(false);
     setArmed(false);
@@ -138,6 +140,7 @@ export function useFollow(compact = false): Follow {
     const press = (said.current += 1);
     // Inside the gesture, before any await: the request is the press's (D-175).
     void requestOrientationAccess().then((answer) => {
+      if (question) count('follow_answer', answer === 'granted' ? 'allow' : 'refused');
       if (answer === 'granted') {
         if (said.current === press) setOn(true);
         if (!appStore.getState().followGranted) setFollowGranted(true);
@@ -147,6 +150,9 @@ export function useFollow(compact = false): Follow {
       if (appStore.getState().followGranted) setFollowGranted(false);
     });
   }, [setFollowGranted]);
+  const turnOn = useCallback(() => {
+    request(false);
+  }, [request]);
   const turnOff = useCallback(() => {
     said.current += 1;
     setWaiting(false);
@@ -156,10 +162,11 @@ export function useFollow(compact = false): Follow {
   }, []);
   const allow = useCallback(() => {
     markAsked();
-    turnOn();
-  }, [turnOn]);
+    request(true);
+  }, [request]);
   const notNow = useCallback(() => {
     markAsked();
+    count('follow_answer', 'not_now');
     said.current += 1;
     setAsking(false);
     setWaiting(false);

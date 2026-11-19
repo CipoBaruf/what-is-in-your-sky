@@ -4,8 +4,8 @@
  * both languages: at 390 × 844 the header, the where step and the footer fit
  * the viewport with no scroll, and at 360 × 640 at most the footer is below the
  * fold (D-574 tightens the step's spacing under 700 px to get there). The
- * footer is the one-line form, with every credit and no privacy sentence,
- * because `home.savedFoot` says it four lines higher. Before R87 the step was
+ * footer is the one-line form, with every credit and no privacy sentence
+ * (D-1150: none stands on any page). Before R87 the step was
  * about 1180 px tall in an 844 px viewport.
  */
 import { expect, test } from '@playwright/test';

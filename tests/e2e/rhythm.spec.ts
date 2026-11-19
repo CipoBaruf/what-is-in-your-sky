@@ -122,7 +122,7 @@ for (const locale of LOCALES) {
 /**
  * R166 (FR-CLEAN-15, V211-10): the settings page breathes on a desk. At 1280 × 800 in both languages the three
  * sections stand `--space-5` apart, each heading's rule `--space-2` above its first row, the rows inside a section
- * `--space-3` apart, and the privacy line at least `--space-5` under the last section once the page is read to its
+ * `--space-3` apart, and the footer's rule at least `--space-5` under the last section once the page is read to its
  * end. The phone's case above is unchanged (FR-SET-2's fit).
  */
 for (const locale of LOCALES) {

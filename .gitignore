@@ -10,6 +10,7 @@ bundle-stats/
 logs/
 .sdd-cache/
 sdd-run/
+.claude/worktrees/
 
 # R49 (F-16, F-20): the two shapes of scratch file that have been left behind in
 # a working tree once each — a debug script beside the source, and a second

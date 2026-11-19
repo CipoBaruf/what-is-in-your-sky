@@ -395,7 +395,7 @@
 | FR-FAINT-2 | `src/ui/components/passes/PassList.faint.test.tsx` |
 | FR-FAINT-3 | `src/data/localPrefs.test.ts`, `tests/e2e/faint.spec.ts` |
 | FR-FIRST-1 | `src/ui/components/location/WherePlace.test.tsx`, `src/ui/screens/Home.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts` |
-| FR-FIRST-2 | `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts` |
+| FR-FIRST-2 | `src/i18n/messages.test.ts`, `src/ui/components/location/WherePlace.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts` |
 | FR-FIRST-3 | `src/lib/nextEvent.test.ts`, `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/screens/Home.test.tsx`, `tests/e2e/first-run-controls.spec.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts` |
 | FR-FIRST-4 | `src/ui/screens/Home.test.tsx`, `tests/e2e/home.spec.ts`, `tests/e2e/r76-captures.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-FIRST-5 | `tests/e2e/desktop.spec.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |
@@ -478,7 +478,7 @@
 | FR-KEEP-1 | `src/data/localPrefs.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/keep.spec.ts`, `tests/e2e/whole-sky.spec.ts`, `tests/e2e/window-zoom.spec.ts` |
 | FR-KEEP-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts`, `tests/e2e/keep.spec.ts` |
-| FR-KEEP-4 | `src/model/prefs.test.ts`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/location/LocationInput.test.tsx`, `src/ui/hooks/usePrivacyNote.test.ts`, `tests/e2e/keep.spec.ts` |
+| FR-KEEP-4 | `src/data/localPrefs.test.ts`, `src/ui/components/common/Footer.test.tsx` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-LEG-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
 | FR-LEG-3 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
@@ -512,6 +512,13 @@
 | FR-MARK-5 | `src/ui/components/mark/Mark.test.tsx`, `src/ui/screens/Live.test.tsx` |
 | FR-MARK-6 | `tests/build/mark-icons.test.ts`, `tests/build/mark-rasters.test.ts` |
 | FR-MARK-8 | `src/ui/components/mark/Mark.raster.test.ts`, `tests/build/mark-icons.test.ts` |
+| FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts`, `tests/e2e/measure.spec.ts` |
+| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts`, `src/ui/App.measure.test.tsx`, `src/ui/components/location/LocationInput.measure.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/openedRoute.test.ts`, `src/ui/screens/Home.measure.test.tsx`, `src/ui/screens/Live.measure.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx`, `tests/e2e/measure.spec.ts` |
+| FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts`, `tests/e2e/measure.spec.ts` |
+| FR-MEAS-4 | `tests/deploy/endpoint.test.ts` |
+| FR-MEAS-5 | `src/state/measureEffects.test.ts`, `src/ui/components/location/PlacePicker.test.tsx`, `tests/e2e/measure.spec.ts` |
+| FR-MEAS-6 | `tests/deploy/funnel.test.ts` |
+| FR-MEAS-7 | `src/ui/components/location/LocationInput.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-MOON-1 | `src/data/moon/lore.test.ts` |
 | FR-MOON-2 | `src/lib/moonPhrases.test.ts`, `src/physics/moon.test.ts`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | FR-MOON-3 | `src/lib/moonPhrases.test.ts`, `src/physics/now.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/now/ConditionsTable.test.tsx` |
@@ -730,3 +737,5 @@
 | US-44 | `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx` |
 | US-51 | `tests/docs/accuracy.test.ts`, `tests/sdd/check-sdd.test.ts`, `tests/sdd/ids.test.ts` |
 | US-54 | `tests/e2e/stars.spec.ts` |
+| US-58 | `tests/e2e/measure.spec.ts` |
+| US-59 | `tests/e2e/measure.spec.ts` |

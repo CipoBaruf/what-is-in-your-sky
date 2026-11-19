@@ -1,9 +1,7 @@
-/** TASKS R12 (FR-X-2): the footer carries the three attribution sentences, each source linked, and the privacy note. R17: in whichever language is active, with the provider names untranslated (FR-I18N-6). R23 (D-120): and the author's credit, in both of the two forms the layout picks between. R102 (FR-SHOW-8, D-657; V22-15): and the chart's credit — glyphcss, one link, the library alone — in all three forms and both languages. */
-import { act, cleanup, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+/** TASKS R12 (FR-X-2): the footer carries the three attribution sentences, each source linked, and no privacy note (D-1150). R17: in whichever language is active, with the provider names untranslated (FR-I18N-6). R23 (D-120): and the author's credit, in both of the two forms the layout picks between. R102 (FR-SHOW-8, D-657; V22-15): and the chart's credit — glyphcss, one link, the library alone — in all three forms and both languages. */
+import { act, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
-import { appStore } from '../../../state';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import type { LinkedText } from '../../../i18n/messages';
@@ -34,12 +32,17 @@ function expectCredits(): void {
   expect(footer.querySelectorAll('a')).toHaveLength(Object.keys(CREDITS).length);
 }
 
+/** D-1150: neither language's privacy sentence or word, nor a control for one, is in `footer`. */
+function expectNoPrivacyNote(footer: HTMLElement): void {
+  for (const text of ['No analytics', 'No tracking', 'Sin analítica', 'Sin rastreo', 'privacy', 'privacidad', '×']) expect(footer).not.toHaveTextContent(text);
+}
+
 describe('<Footer>', () => {
-  it('contains the CelesTrak, Open-Meteo and GeoNames attributions with links, and the privacy note', async () => {
+  it('contains the CelesTrak, Open-Meteo and GeoNames attributions with links, and no privacy note (D-1150)', async () => {
     const { container } = render(<Footer />);
     const footer = screen.getByRole('contentinfo');
     for (const text of [en.footer.celestrak, en.footer.openMeteo, en.footer.geonames]) expect(footer).toHaveTextContent(sentence(text));
-    expect(footer).toHaveTextContent(en.footer.privacy);
+    expectNoPrivacyNote(footer);
     expect(screen.getByRole('link', { name: 'CelesTrak' })).toHaveAttribute('href', 'https://celestrak.org/');
     expect(screen.getByRole('link', { name: 'Open-Meteo.com' })).toHaveAttribute('href', 'https://open-meteo.com/');
     expect(screen.getByRole('link', { name: 'GeoNames' })).toHaveAttribute('href', 'https://www.geonames.org/');
@@ -57,10 +60,10 @@ describe('<Footer>', () => {
     expect(footer).toHaveTextContent('Sky chart: glyphcss.');
     expectCredits();
     const lines = Array.from(footer.querySelectorAll('p')).map((p) => p.textContent);
-    expect(lines).toHaveLength(6);
-    expect(lines[5]).toBe('Sky chart: glyphcss.');
+    expect(lines).toHaveLength(5);
+    expect(lines[4]).toBe('Sky chart: glyphcss.');
     // One link in the sentence: the library's name, and no author's.
-    const chart = footer.querySelectorAll('p')[5];
+    const chart = footer.querySelectorAll('p')[4];
     expect(Array.from(chart?.querySelectorAll('a') ?? []).map((a) => a.textContent)).toEqual(['glyphcss']);
   });
 
@@ -72,8 +75,7 @@ describe('<Footer>', () => {
     );
     const footer = screen.getByRole('contentinfo');
     for (const text of [es.footer.celestrak, es.footer.openMeteo, es.footer.geonames, es.footer.chart]) expect(footer).toHaveTextContent(sentence(text));
-    expect(footer).toHaveTextContent(es.footer.privacy);
-    expect(footer).not.toHaveTextContent(en.footer.privacy);
+    expectNoPrivacyNote(footer);
     expect(footer).toHaveTextContent('Carta del cielo: glyphcss.');
     expect(footer).not.toHaveTextContent('Sky chart');
     expectCredits();
@@ -89,11 +91,10 @@ describe('<Footer>', () => {
     expectCredits();
     // The licence the geocoding data is used under is still named.
     expect(footer).toHaveTextContent('CC BY 4.0');
-    expect(footer).toHaveTextContent(en.footer.short.privacy);
     // R102 (D-657): the library's name stands as a link after `Chart:`, the last item of the row.
     expect(footer).toHaveTextContent(/Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
     // The four long sentences are gone, not merely hidden.
-    expect(footer).not.toHaveTextContent(en.footer.privacy);
+    expectNoPrivacyNote(footer);
     expect(footer).not.toHaveTextContent('Sky chart');
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -109,19 +110,18 @@ describe('<Footer>', () => {
     expect(footer).toHaveAttribute('data-form', 'short');
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     expectCredits();
-    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*×\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
+    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
     expect(footer).not.toHaveTextContent('Chart:');
   });
 
-  // R87 (D-548): the phone's first-run steps take the row without its privacy word; R102: the chart's credit rides on it too.
-  it('is the row without its privacy word in the line form, at a compact width, with all four credits', async () => {
+  // R87 (D-548): the phone's first-run steps take the one-line form; R102: the chart's credit rides on it too.
+  it('is the one row in the line form, at a compact width, with all four credits', async () => {
     media = stubMatchMedia(390);
     const { container } = render(<Footer form="line" />);
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveAttribute('data-form', 'line');
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     expectCredits();
-    expect(footer).not.toHaveTextContent(en.footer.short.privacy);
     expect(footer).toHaveTextContent(/^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -137,7 +137,7 @@ describe('<Footer>', () => {
     expect(footer).toHaveAttribute('data-form', 'line');
     expectCredits();
     expect(footer).toHaveTextContent(/^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
-    expect(footer).not.toHaveTextContent('Sin rastreo');
+    expectNoPrivacyNote(footer);
   });
 
   it('goes back to the four sentences when the viewport narrows again', () => {
@@ -148,15 +148,15 @@ describe('<Footer>', () => {
       media?.setWidth(390);
     });
     expect(screen.getByRole('contentinfo')).toHaveAttribute('data-form', 'full');
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(en.footer.privacy);
+    expectNoPrivacyNote(screen.getByRole('contentinfo'));
   });
 
-  // D-1023 (FR-X-2 as amended 2026-11-02): the controls sheet's foot on the phone's sky pages — D-120's row, its privacy
-  // word kept, at a compact width; a `div`, so the page has no second `contentinfo`; one of the sheet's groups.
+  // D-1023 (FR-X-2 as amended 2026-11-02): the controls sheet's foot on the phone's sky pages — D-120's row
+  // at a compact width; a `div`, so the page has no second `contentinfo`; one of the sheet's groups.
   it.each([
-    ['en', /^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*No tracking\s*×\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/],
-    ['es', /^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*×\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/],
-  ] as const)('is the one row with its privacy word in the short form, at a compact width, in %s', async (locale, text) => {
+    ['en', /^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/],
+    ['es', /^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/],
+  ] as const)('is the one row in the short form, at a compact width, in %s', async (locale, text) => {
     media = stubMatchMedia(390);
     const { container } = render(
       <I18nProvider locale={locale}>
@@ -175,50 +175,21 @@ describe('<Footer>', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  // R190 (FR-KEEP-4, D-1105): `[ × ]` beside the sentence and the word; either closes both, and the row closes up.
-  describe('the privacy note (FR-KEEP-4)', () => {
-    afterEach(() => {
-      act(() => {
-        appStore.setState({ privacyNoteClosed: false });
-      });
-      localStorage.clear();
-    });
-
-    it('FR-KEEP-4: is shown with its [ × ] in the full form, and closed is gone from it and from every later footer', async () => {
-      render(<Footer />);
-      const footer = screen.getByRole('contentinfo');
-      expect(footer).toHaveTextContent(en.footer.privacy);
-      await userEvent.click(screen.getByRole('button', { name: en.footer.closePrivacy }));
-      expect(footer).not.toHaveTextContent(en.footer.privacy);
-      expect(footer.querySelectorAll('p')).toHaveLength(5);
-      expect(appStore.getState().privacyNoteClosed).toBe(true);
-      cleanup();
-      media = stubMatchMedia(1280);
-      render(<Footer />);
-      // The one row closes up: no privacy word and no separator left for it.
-      expect(screen.getByRole('contentinfo')).toHaveTextContent(/^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
-      expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
-    });
-
-    it('FR-KEEP-4: the short form’s [ × ] closes it, named in Spanish too', async () => {
-      media = stubMatchMedia(390);
-      render(
-        <I18nProvider locale="es">
-          <Footer form="short" />
+  // D-1150 (FR-MEAS-7, FR-KEEP-4): no privacy sentence, word or [ × ] in any form or language; a stored flag is ignored.
+  it.each(['en', 'es'] as const)('FR-KEEP-4: has no privacy part in the full, short and line forms, in %s', (locale) => {
+    for (const form of ['full', 'short', 'line'] as const) {
+      media = stubMatchMedia(form === 'full' ? 390 : 1280);
+      const { unmount } = render(
+        <I18nProvider locale={locale}>
+          <Footer form={form} />
         </I18nProvider>,
       );
-      await userEvent.click(screen.getByRole('button', { name: es.footer.closePrivacy }));
-      expect(screen.getByTestId('app-footer')).not.toHaveTextContent('Sin rastreo');
-    });
-
-    it('FR-KEEP-4: the settings page’s footer keeps its privacy part plain, with no [ × ], even once closed', () => {
-      act(() => {
-        appStore.getState().closePrivacyNote();
-      });
-      render(<Footer privacy="plain" />);
-      expect(screen.getByTestId('settings-privacy')).toHaveTextContent(en.footer.privacy);
-      expect(screen.queryByRole('button', { name: en.footer.closePrivacy })).toBeNull();
-    });
+      expectNoPrivacyNote(screen.getByTestId('app-footer'));
+      expect(screen.queryByTestId('privacy-note')).toBeNull();
+      expect(screen.queryByTestId('settings-privacy')).toBeNull();
+      expect(screen.queryByRole('button')).toBeNull();
+      unmount();
+    }
   });
 
   it('is inert while the detail sheet is up', () => {

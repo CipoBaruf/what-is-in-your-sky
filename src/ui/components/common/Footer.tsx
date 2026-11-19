@@ -1,9 +1,7 @@
 import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
-import { usePrivacyNote } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { Rule } from '../primitives/Rule';
-import { TextButton } from '../primitives/TextButton';
 import styles from './Footer.module.css';
 
 /**
@@ -33,14 +31,14 @@ import styles from './Footer.module.css';
  * the one-row forms the library's name stands as a link after `Chart:`, the
  * way the sources stand after `Data:`. It is the last item in each form: the
  * sources and the page's own lines keep their order, and the one-row forms
- * stay one row with the privacy word as their only difference (D-548).
+ * stay one row (D-548).
  *
  * D-1023 (FR-X-2 as amended 2026-11-02): the footer is the same on every page.
  * On a desk every route — home, the pass detail, settings, live, stars — ends
  * in D-120's one row. On a phone the home and settings end in the full credits,
  * and the three pages that are all sky (live, stars, the pass detail) carry the
- * one row at the end of their controls sheet: `short`, the row with its privacy
- * word at every width.
+ * one row at the end of their controls sheet: `short`, at every width. D-1150: no
+ * privacy sentence or word stands in any form.
  */
 const ATTRIBUTION_URLS = {
   celestrak: 'https://celestrak.org/',
@@ -57,32 +55,14 @@ export interface FooterProps {
   inert?: boolean;
   /**
    * R87 (FR-FIRST-1 as amended v2.1, D-548, F-74): `full` is the layout's own
-   * footer — the four sentences on a phone, D-120's one row on a desk. `line`
-   * is that row without its privacy word, at every width: the phone's
-   * first-run steps pass it, so the step and its footer are one screen and the
-   * promise is not said twice (`home.savedFoot` says it four lines higher).
-   * D-1023: `short` is D-120's row, privacy word included, at every width — the
+   * footer — the three sentences, the author and the chart on a phone, D-120's one row on a desk. `line`
+   * is that row at every width: the phone's first-run steps pass it, so the step and its footer are one screen.
+   * D-1023: `short` is D-120's row at every width — the
    * controls sheet's foot on the phone's sky pages (`ControlsSheet`).
    */
   form?: 'full' | 'line' | 'short';
   /** Placement only (D-704): the controls sheet fits the row to its body. */
   className?: string | undefined;
-  /**
-   * R190 (FR-KEEP-4, D-1105, D-1129): `note` is the privacy part with its `[ × ]`, gone once either is pressed; `plain`,
-   * the settings page’s, is the same part always shown and with no control, so the fact stays one tap away.
-   */
-  privacy?: 'note' | 'plain';
-}
-
-/** R190 (FR-KEEP-4): the `[ × ]` that closes the privacy note here and under the place search, for good. */
-function ClosePrivacy({ onClose }: { onClose: () => void }) {
-  const t = useT();
-  return (
-    <>
-      {' '}
-      <TextButton inline className={styles.close} label="×" aria-label={t.footer.closePrivacy} onClick={onClose} data-testid="privacy-close" />
-    </>
-  );
 }
 
 function Linked({ text, href }: { text: LinkedText; href: string }) {
@@ -103,13 +83,8 @@ function Attribution({ text, href }: { text: LinkedText; href: string }) {
   );
 }
 
-export function Footer({ inert = false, form = 'full', className, privacy = 'note' }: FooterProps) {
+export function Footer({ inert = false, form = 'full', className }: FooterProps) {
   const t = useT();
-  // R190 (FR-KEEP-4): once either `[ × ]` is pressed the privacy part is gone, its separator with it, so the row closes up.
-  const note = usePrivacyNote();
-  const plain = privacy === 'plain';
-  const privacyShown = plain || note.shown;
-  const privacyId = plain ? 'settings-privacy' : 'privacy-note';
   const wide = useLayoutMode() === 'wide';
   const line = form === 'line';
   const footerClass = className ? `${styles.footer} ${className}` : styles.footer;
@@ -130,13 +105,6 @@ export function Footer({ inert = false, form = 'full', className, privacy = 'not
           <a href={ATTRIBUTION_URLS.openMeteo}>Open-Meteo.com</a>
           {', '}
           <a href={ATTRIBUTION_URLS.geonames}>GeoNames</a> {t.footer.short.licence}
-          {!line && privacyShown && (
-            <span data-testid={privacyId}>
-              <span className={styles.dot}>·</span>
-              {t.footer.short.privacy}
-              {!plain && <ClosePrivacy onClose={note.close} />}
-            </span>
-          )}
           <span className={styles.dot}>·</span>
           <Linked text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
           <span className={styles.dot}>·</span>
@@ -152,12 +120,6 @@ export function Footer({ inert = false, form = 'full', className, privacy = 'not
       <Attribution text={t.footer.celestrak} href={ATTRIBUTION_URLS.celestrak} />
       <Attribution text={t.footer.openMeteo} href={ATTRIBUTION_URLS.openMeteo} />
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />
-      {privacyShown && (
-        <p className={styles.line} data-testid={privacyId}>
-          {t.footer.privacy}
-          {!plain && <ClosePrivacy onClose={note.close} />}
-        </p>
-      )}
       <Attribution text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
       <Attribution text={t.footer.chart} href={ATTRIBUTION_URLS.glyphcss} />
     </footer>
