@@ -101,7 +101,9 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
     const countdown = formatClockDuration((result.at - now) / 1000);
     const head = kind === 'rise' ? words.satellites.next({ time: clock(result.at, true), countdown }) : words.satellites.up({ kind, reason: pass.endReason, countdown });
     const path = passPath(pass);
-    const pathLine = fitName(pass.name, (name) => words.satellites.path({ name, peakPoint: path.peak.point, peak: input.plain === true ? t.nextEvent.height(elevationBand(path.peak.altitude)) : `${String(path.peak.altitude)}°`, endPoint: path.end.point }));
+    // FR-OPEN-13 (D-1210): under the example the peak is its height in words, alone — a word and a point would not leave the name its cells.
+    const peak = input.plain === true ? { peakPoint: null, peak: t.nextEvent.height(elevationBand(path.peak.altitude)) } : { peakPoint: path.peak.point, peak: `${String(path.peak.altitude)}°` };
+    const pathLine = fitName(pass.name, (name) => words.satellites.path({ name, ...peak, endPoint: path.end.point }));
     const wide = sky === null ? null : (sky.landmark?.line ?? undefined);
     satellites = { title: words.satellites.title, lines: [head, pathLine], passId: pass.id, ...(wide === undefined ? {} : { wide }) };
   }

@@ -3,9 +3,9 @@
 .band {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
-  padding: 0.75rem var(--cell);
-  border: 1px solid var(--accent);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--cell);
+  border: var(--hairline) solid var(--accent);
 }
 
 .label,
@@ -19,12 +19,12 @@
 
 /* FR-OPEN-4: until the run is ready the card and the stripe hold their height and show nothing (D-1179), so the
    action stands where it will. The card is its box (two 12 px paddings and the rule), a label line, the time on the
-   pane's row, the path, the brightness and two lines of what it looks like; the stripe three lines of 18 px. */
+   pane's row, two lines of path, the brightness and two lines of what it looks like; the stripe three lines of 18 px. */
 .cardHold {
   box-sizing: border-box;
-  min-height: calc(1.5rem + 2px + 5 * var(--small-row) + var(--text-pane-row));
+  min-height: calc(2 * var(--space-2) + 2 * var(--hairline) + 6 * var(--small-row) + var(--text-pane-row));
 }
 
 .stripeHold {
-  min-height: 3.375rem;
+  min-height: calc(3 * var(--text-stripe-row));
 }

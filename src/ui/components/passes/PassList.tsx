@@ -90,7 +90,7 @@ function statusText(observer: Observer | null, elements: ElementsState, passes: 
  * evening, and the headings say so. From noon on, the coming night is the
  * one under way.
  */
-export function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey {
+function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey {
   const { key, beforeNoon } = nightAt(now, timeZone);
   if (!beforeNoon) return key;
   const live = groups.find((group) => group.key === key)?.passes.some((pass) => pass.end.t > now) ?? false;

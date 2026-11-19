@@ -53,7 +53,6 @@ import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { ToggleGroup } from '../../src/ui/components/primitives/ToggleGroup';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from '../../src/ui/components/common/installOffer';
 import { SettingsPage } from '../../src/ui/screens/Settings';
-import { StepLine } from '../../src/ui/screens/Home';
 import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { LivePage } from '../../src/ui/screens/Live';
@@ -250,28 +249,6 @@ const rows = (t: Messages): readonly Row[] => [
       budget: SMALL_BUDGET,
     }),
   ),
-  // R76 (FR-FIRST-1, board 1B): `[01] where ── 02 when ── 03 what`, the rules the stylesheet's. The line is set at
-  // `--small` (14 px), so a character is 14/16 of a cell and 36 cells hold 41 of them: the budget is written in
-  // the row's own characters, and the 390 px width it stands for is unchanged.
-  {
-    name: 'the step line (FR-FIRST-1)',
-    element: createElement(StepLine, { current: 'where' }),
-    find: () => screen.getByTestId('step-line'),
-    budget: Math.floor((BUDGET * 16) / 14),
-  },
-  // R82 (FR-FIRST-4 as amended v2.0.2): on the what step two steps are finished, `01 where ✓ ── 02 when ✓ ── [03] what`,
-  // each a control back to its step — the line at its longest. A finished item holds its control, and `cells.ts`
-  // counts a rule only on a leaf, so the line is its items' text and the stylesheet's ` ── ` between each pair.
-  {
-    name: 'the step line with two steps finished (FR-FIRST-4)',
-    element: createElement(StepLine, { current: 'what', reached: 'what', onGo: noop }),
-    find: () => screen.getByTestId('step-line'),
-    measure: (line) => {
-      const items = [...line.children].map((item) => item.textContent);
-      return items.join(' ── ').length;
-    },
-    budget: SMALL_BUDGET,
-  },
   // R76 (FR-FIRST-2): the primary action's label line; the button is the whole box now, and the note in it is a sentence and wraps.
   {
     name: 'the primary action (FR-FIRST-2)',
@@ -691,49 +668,66 @@ describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () 
 });
 
 /**
- * R82 (FR-FIRST-4 as amended v2.0.2, FR-COMP-4): the phone's when and what
- * steps. Their rows are a label at the left and a value at the right with at
- * least a cell between (`Steps.module.css` `.row`), so a row is the two and a
- * cell; they are counted here at their longest — the longest phase at 100 %,
- * the longest cloud word, two-digit counts, a clock that has to say UTC —
- * rather than at whatever the fixture's night happens to hold. The bracketed
- * controls draw `[ ` and ` ]` round their text. The more controls and the foot
- * line break between their pieces where a phone cannot hold them all (as the
- * count and sort line does), so each piece is a row, and `[ edit ]` stands on
- * the foot's last line with the cloud word; the foot is set at `--small`.
+ * R202 (FR-OPEN-8, FR-OPEN-12, FR-COMP-4): the example first run's new rows at 360 and 390 px in both languages.
+ * The controls — `[ Not there? Set your place ]` in the band, a cell of padding each side, and `[ back ]` — are one
+ * row each and never wrap. The sentences wrap as sentences do, so each is held to the lines the fold rule
+ * (FR-OPEN-3) was measured with: the tagline at body size, two lines; the label, the wait and the look line at
+ * `--small` inside the band (and, for the look line, the card's 12 px each side), at most two lines at 390 px and
+ * three at 360. The faint control's row stays counted here, where the steps' rows were.
  */
-describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 36 cells', (locale: Locale) => {
+describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %s at 360 and 390 px', (locale: Locale) => {
   const t = CATALOGS[locale];
-  const row = (label: string, value: string): number => label.length + 1 + value.length;
   const control = (text: string): number => `[ ${text} ]`.length;
-  const clock = '05:31 UTC';
-  const phases = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent'] as const;
-  const clouds = ['clear', 'partly', 'obscured', 'unknown'] as const;
+  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  /** The band's rule and its cell of padding each side. */
+  const BAND_CELLS = 2;
+  /** The card's 12 px each side, in cells of the widest font, rounded up. */
+  const CARD_CELLS = Math.ceil(24 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
+  const small = (cells: number): number => Math.floor((cells * 16) / 14);
+  /** The lines `text` takes in `width` characters, broken at spaces as the browser breaks it. */
+  const lines = (text: string, width: number): number => {
+    let count = 1;
+    let used = 0;
+    for (const word of text.split(' ')) {
+      expect(word.length, word).toBeLessThanOrEqual(width);
+      if (used > 0 && used + 1 + word.length > width) {
+        count += 1;
+        used = word.length;
+      } else used += (used > 0 ? 1 : 0) + word.length;
+    }
+    return count;
+  };
+  const CITY = 'Ciudad de México';
 
   it.each([
-    ['Dark from', () => row(t.home.whenStep.darkFrom, clock)],
-    ['Until', () => row(t.home.whenStep.until, clock)],
-    ['Passes in it', () => row(t.home.whenStep.passesIn, t.home.whenStep.passesValue({ tonight: 99, total: 99, hours: 72 }))],
-    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])), row(t.home.whenStep.clouds, t.weather.tonight({ kind: 'variable' })))],
-    // D-1028: a night whose cloud changes is two rows, `Until 23:00` and `From 23:00`, each with any state's word.
-    ['Until 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsUntil('23:00'), t.weather.state[cloud])))],
-    ['From 23:00', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.cloudsFrom('23:00'), t.weather.state[cloud])))],
-    ['Moon', () => Math.max(...phases.map((phase) => row(t.home.whenStep.moon, t.home.whenStep.moonValue({ phase, illumination: '100' }))))],
-    ['[ Choose what to see ]', () => control(t.home.whenStep.next)],
+    ['[ Not there? Set your place ] in the band', () => control(t.example.setPlace) + BAND_CELLS],
+    ['[ back ]', () => control(t.example.back)],
+    ['[ set your place ] on the page line', () => control(t.example.pageLine)],
     // R97 (FR-FAINT-2): the faint control, in its longer state.
     ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
-  ] as const)('the %s row', (_name, cells) => {
+  ] as const)('the %s row, in 36 cells and inside 360 px', (_name, cells) => {
     expect(cells()).toBeLessThanOrEqual(BUDGET);
+    expect(cells()).toBeLessThanOrEqual(rowCellsAt(360));
   });
 
-  it('the foot line, piece by piece at --small, with [ edit ] on its last line', () => {
-    for (const cloud of TONIGHT_CLOUDS) {
-      const pieces = t.home.whatStep.foot({ place: '−38.93, −67.99', dark: { from: '20:14', to: clock }, cloud });
-      const last = pieces[pieces.length - 1] ?? '';
-      for (const piece of pieces.slice(0, -1)) expect(`${piece} ·`.length, piece).toBeLessThanOrEqual(SMALL_BUDGET);
-      expect(last.length + 1 + control(t.home.whatStep.edit), last).toBeLessThanOrEqual(SMALL_BUDGET);
-    }
-    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: { kind: 'steady', state: 'unknown' } })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
+  it.each([
+    ['the tagline, at body size', () => t.app.tagline, (row: number) => row, 2, 2],
+    ['the label, in the band', () => t.example.label(CITY), (row: number) => small(row - BAND_CELLS), 2, 2],
+    ['the wait, in the band', () => t.example.finding(CITY), (row: number) => small(row - BAND_CELLS), 2, 2],
+    ['the day line, in the band', () => t.example.afterDusk, (row: number) => small(row - BAND_CELLS), 2, 2],
+    ['the look line, in the card', () => t.example.looks(11), (row: number) => small(row - BAND_CELLS - CARD_CELLS), 2, 3],
+  ] as const)('%s: its lines at 390 and 360 px', (_name, text, width, at390, at360) => {
+    expect(lines(text(), width(rowCellsAt(390))), 'at 390 px').toBeLessThanOrEqual(at390);
+    expect(lines(text(), width(rowCellsAt(360))), 'at 360 px').toBeLessThanOrEqual(at360);
+  });
+
+  it('FR-OPEN-13: the path in words, at its longest, is two lines in the card at 360 px', () => {
+    const path = t.nextEvent.withDuration({ path: t.nextEvent.path({ start: { point: 'NNW', altitude: 30 }, peak: { point: 'N', altitude: 60 }, end: { point: 'SSE', altitude: 30 } }, true), minutes: 11 });
+    expect(path).not.toMatch(/°/);
+    expect(lines(path, small(rowCellsAt(360) - BAND_CELLS - CARD_CELLS))).toBeLessThanOrEqual(3);
+    const usual = t.nextEvent.withDuration({ path: t.nextEvent.path({ start: { point: 'NW', altitude: 'low' }, peak: { point: 'N', altitude: 80 }, end: { point: 'SE', altitude: null } }, true), minutes: 6 });
+    expect(usual).toBe(locale === 'es' ? 'NW bajo → casi en el cenit → SE · 6 min' : 'NW low → almost overhead → SE · 6 min');
+    expect(lines(usual, small(rowCellsAt(360) - BAND_CELLS - CARD_CELLS))).toBeLessThanOrEqual(2);
   });
 });
 
@@ -948,7 +942,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
 
   it('hides the tagline under the width its one line needs: the indent and its words', () => {
     const cells = 2 * SHELL_PADDING_CELLS + markCells + 1 + t.app.tagline.length;
-    expect(cells).toBe(locale === 'es' ? 109 : 88);
+    expect(cells).toBe(locale === 'es' ? 68 : 70);
     expect(foldLiteral(locale)).toBe(thresholdPx(cells));
   });
 });

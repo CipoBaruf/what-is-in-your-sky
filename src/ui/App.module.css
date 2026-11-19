@@ -146,7 +146,7 @@
 .first {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
+  gap: var(--space-2);
 }
 
 /* FR-OPEN-5: `[ back ]`, above the question on the phone and under the group in the wide pane; the control's own
@@ -161,7 +161,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: start;
-  gap: 0.75rem;
+  gap: var(--space-2);
 }
 
 .exampleLine {
@@ -174,7 +174,7 @@
 /* FR-OPEN-4: until the example's run is ready the wide When pane's next event holds its height and shows nothing:
    its rule and gap, the label, the time on the title's row, the path and two lines of what a pass looks like. */
 .nextHold {
-  min-height: calc(var(--space-2) + 1px + 3 * var(--small-row) + var(--text-title-row) + var(--row));
+  min-height: calc(var(--space-2) + var(--hairline) + 3 * var(--small-row) + var(--text-title-row) + var(--row));
 }
 
 /* R76 (FR-FIRST-1, board 1B): the wide cold open's dimmed When and What — a

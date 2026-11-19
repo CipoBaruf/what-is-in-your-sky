@@ -47,7 +47,7 @@ export interface WherePlaceProps {
  * is a named device fix's (D-1025, D-1029: "Cipolletti, Argentina" → "Cipolletti"). Typed coordinates, and a
  * device fix still labelled with its coordinates, have none.
  */
-export function placeName(observer: Observer): string | null {
+function placeName(observer: Observer): string | null {
   if (observer.source === 'coords') return null;
   if (observer.source === 'device' && observer.label === coordsLabel(observer.lat, observer.lon)) return null;
   return observer.label.split(',')[0]?.trim() || observer.label;

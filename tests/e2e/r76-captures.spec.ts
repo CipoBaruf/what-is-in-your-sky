@@ -17,22 +17,16 @@
  * 1280 px panes in the browser against the numbers FR-FIRST-3..11 give
  * (D-504's method).
  *
- * R82 (FR-FIRST-7, D-514): the phone's first visit — the when and the what
- * steps at 390 × 844, each in both themes and both languages, filed as
- * `r82-*`, and one test measures the two steps in the browser against the
- * numbers FR-FIRST-4 gives. The place comes from the device button, as a first
- * visit's does, and the finished run for it is in IndexedDB before it is set,
- * so the steps show the same passes every time.
+ * R202 (FR-FIRST-4 and FR-FIRST-7 as amended v2.16): the phone's when and what steps are gone, and their `r82-*`
+ * captures and measurements with them; the first visit's captures are FR-OPEN-11's, in `v1-captures.spec.ts`.
  *
  * Evidence for the PR, not a test. Off the pull-request path (FR-CI-1's
  * budget), like every other capture spec. The theme and the language are
  * seeded in `wiys:prefs:v1` and never clicked (D-70).
  */
-import { readFileSync } from 'node:fs';
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
 import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
-import { NEUQUEN, STORED_RUN_FILE } from './observers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
@@ -203,189 +197,4 @@ test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ pag
   expect(where.width).toBeGreaterThan(0);
   expect(where.height).toBeGreaterThan(0);
   expect(where.x + where.width).toBeLessThanOrEqual(1280 + 1);
-});
-
-const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as unknown;
-const USE_MY_LOCATION: Record<Locale, string> = { en: 'Use my location', es: 'Usar mi ubicación' };
-
-/**
- * R82: a first visit on a phone, moved on to the when step by the device
- * button. The stored run for the place is written before the place is set (no
- * observer yet, so the app has nothing to read it for), and the capture waits
- * for the step's count to stop changing: the recompute that follows finds the
- * same passes (`scripts/build-stored-run.ts`), and the Moon's sentence.
- */
-async function firstVisit(page: Page, context: BrowserContext, theme: Theme, locale: Locale): Promise<void> {
-  await context.grantPermissions(['geolocation']);
-  await context.setGeolocation({ latitude: NEUQUEN.lat, longitude: NEUQUEN.lon, accuracy: 300 });
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  await stubNetwork(page);
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    ['wiys:prefs:v1', JSON.stringify({ locale, theme })] as [string, string],
-  );
-  await page.goto('/');
-  await page.evaluate(async (run: unknown) => {
-    await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('wiys', 2);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains('elementGroups')) db.createObjectStore('elementGroups', { keyPath: 'group' });
-        if (!db.objectStoreNames.contains('passRuns')) db.createObjectStore('passRuns', { keyPath: 'cellKey' });
-      };
-      request.onerror = () => {
-        reject(new Error('could not open the wiys database'));
-      };
-      request.onsuccess = () => {
-        const db = request.result;
-        const tx = db.transaction('passRuns', 'readwrite');
-        tx.objectStore('passRuns').put(run);
-        tx.oncomplete = () => {
-          db.close();
-          resolve();
-        };
-        tx.onerror = () => {
-          reject(new Error('could not store the run'));
-        };
-      };
-    });
-  }, STORED_RUN);
-  await expect(page.getByTestId('cold-open')).toBeVisible();
-  await page.getByRole('button', { name: USE_MY_LOCATION[locale] }).click();
-  const when = page.getByTestId('step-when');
-  await expect(when).toBeVisible();
-  await expect(when.getByTestId('tonight-stripe')).toBeVisible({ timeout: 30_000 });
-  await expect(when.getByTestId('moon-note')).toBeVisible({ timeout: 30_000 });
-  let last = '';
-  await expect
-    .poll(
-      async () => {
-        const text = (await when.getByTestId('when-passes').textContent()) ?? '';
-        const steady = text === last && /^\d/.test(text);
-        last = text;
-        return steady;
-      },
-      { timeout: 90_000, intervals: [2_000] },
-    )
-    .toBe(true);
-  await page.mouse.move(0, 0);
-  await settle(page);
-}
-
-for (const theme of THEMES) {
-  for (const locale of LOCALES) {
-    test(`the phone's when and what steps at 390, ${theme}, ${locale}`, async ({ page, context }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await firstVisit(page, context, theme, locale);
-      await page.screenshot({ path: `${CAPTURE_DIR}/r82-when-390-${theme}-${locale}.png`, fullPage: true });
-      await page.getByTestId('see-what').click();
-      await expect(page.getByTestId('step-what')).toBeVisible();
-      await page.mouse.move(0, 0);
-      await settle(page);
-      await page.screenshot({ path: `${CAPTURE_DIR}/r82-what-390-${theme}-${locale}.png`, fullPage: true });
-    });
-  }
-}
-
-/**
- * R82 (FR-FIRST-7, D-504's method): the when and what steps at 390 × 844, each
- * element's size, spacing, type and colour read from the browser and held to
- * the numbers FR-FIRST-4 gives — a heading at 22 px on 28 and its sentence at
- * `--small` half a rem under it, 1.2 rem between blocks, boxes ruled in
- * `--rule` 12 px by a cell inside, `[ Choose what to see ]` in the accent's
- * border at the foot of the screen, the first card ruled in the accent and the
- * foot line ruled off in `--rule` at `--small`.
- */
-test("the phone's steps at 390 measured against FR-FIRST-4", async ({ page, context }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await firstVisit(page, context, 'dark', 'en');
-
-  const token = (name: string): Promise<string> =>
-    page.evaluate((value) => {
-      const probe = document.createElement('span');
-      probe.style.color = `var(${value})`;
-      document.body.append(probe);
-      const colour = getComputedStyle(probe).color;
-      probe.remove();
-      return colour;
-    }, name);
-  const [fg, dim, accent, rule] = await Promise.all(['--fg', '--fg-dim', '--accent', '--rule'].map(token));
-  const style = (testId: string, pick: string) =>
-    page
-      .getByTestId(testId)
-      .first()
-      .evaluate((el, selector) => {
-        const target = selector === '' ? el : el.querySelector(selector);
-        if (!(target instanceof HTMLElement)) throw new Error(`nothing at ${selector}`);
-        const css = getComputedStyle(target);
-        const box = target.getBoundingClientRect();
-        return { size: css.fontSize, line: css.lineHeight, colour: css.color, border: css.borderTopColor, borderWidth: css.borderTopWidth, paddingLeft: css.paddingLeft, paddingTop: css.paddingTop, bottom: box.bottom, height: box.height };
-      }, pick);
-  /** The gaps between a step's drawn blocks, top to bottom. */
-  const gaps = (testId: string) =>
-    page.getByTestId(testId).evaluate((el) => {
-      const blocks = Array.from(el.children)
-        .filter((child) => child.getBoundingClientRect().height > 0)
-        .map((child) => child.getBoundingClientRect());
-      return blocks.slice(1).map((box, i) => Math.round(box.top - (blocks[i]?.bottom ?? 0)));
-    });
-
-  // The when step: the step line, the heading, the sentence, the two boxes 1.2 rem (19 px) apart, the sentence half a rem under the heading.
-  const whenGaps = await gaps('step-when');
-  expect(whenGaps.slice(0, 4)).toEqual([19, 8, 19, 19]);
-  expect(whenGaps[4] ?? 0).toBeGreaterThanOrEqual(19);
-  const line = await style('step-line', '');
-  expect([line.size, line.colour]).toEqual(['14px', dim]);
-  expect((await style('step-line', '[aria-current="step"]')).colour).toBe(accent);
-  const heading = await style('step-when', 'h2');
-  expect([heading.size, heading.line, heading.colour]).toEqual(['22px', '28px', fg]);
-  const sentence = await style('step-when', 'h2 + p');
-  expect([sentence.size, sentence.line, sentence.colour]).toEqual(['14px', '20px', dim]);
-  for (const box of ['when-night', 'when-sky']) {
-    const ruled = await style(box, '');
-    expect([ruled.border, ruled.borderWidth, ruled.paddingTop], box).toEqual([rule, '1px', '12px']);
-    // A cell at the sides: the board's 9.6 px, as this browser resolves the monospace advance.
-    expect(Math.abs(parseFloat(ruled.paddingLeft) - 9.6), box).toBeLessThan(0.1);
-  }
-  expect((await style('when-night', 'dt')).colour).toBe(dim);
-  expect((await style('when-passes', '')).colour).toBe(accent);
-  const note = await style('moon-note', '');
-  expect([note.size, note.colour]).toEqual(['14px', dim]);
-  const next = await style('see-what', '');
-  expect([next.border, next.colour]).toEqual([accent, accent]);
-  expect(next.height).toBeGreaterThanOrEqual(56);
-  // At the foot of the screen: the shell's bottom row under it and nothing else. R139: that row is FR-FIRST-1's line
-  // form, three lines at 390 px since R102 put `Chart: glyphcss` in it, so the button stands on the footer and the
-  // footer on the screen's foot, rather than within a fixed 30 px of it.
-  const shell = await page.locator('footer[data-form="line"]').boundingBox();
-  if (!shell) throw new Error('no first-run footer');
-  expect(Math.abs(shell.y - next.bottom)).toBeLessThanOrEqual(1);
-  expect(Math.abs(shell.y + shell.height - 844)).toBeLessThanOrEqual(1);
-
-  await page.getByTestId('see-what').click();
-  await expect(page.getByTestId('step-what')).toBeVisible();
-  const whatGaps = await gaps('step-what');
-  // The step line, the question and the doors 19 px apart; the foot stands at the screen's foot.
-  expect(whatGaps.slice(0, 2)).toEqual([19, 19]);
-  const whatHeading = await style('step-what', 'h2');
-  expect([whatHeading.size, whatHeading.line]).toEqual(['22px', '28px']);
-  // v2.12 (FR-FIRST-4 as amended, D-1021): the step is the choice, the home's three doors under the question.
-  for (const door of ['door-satellites', 'door-stars', 'door-live']) await expect(page.getByTestId('step-what').getByTestId(door)).toBeVisible();
-  // The foot: ruled off in --rule, 12 px above its text, at --small in --fg-dim, at the bottom of the screen.
-  // R139: since R105 (D-720) the rule is the foot's own `Rule` and the 12 px its margin under, not a border and padding.
-  const foot = await style('what-foot', '');
-  expect([foot.size, foot.colour]).toEqual(['14px', dim]);
-  const footRule = await style('what-foot', 'hr');
-  expect([footRule.border, footRule.borderWidth]).toEqual([rule, '1px']);
-  const footText = await style('what-foot', 'hr + p');
-  expect(Math.round(footText.bottom - footText.height - footRule.bottom)).toBe(12);
-  // R139: at the step's bottom, on the shell's line-form footer (three lines at 390 px since R102) and the page's end —
-  // the step is longer than the screen with the stored run's cards, so a fixed distance from 844 px no longer holds.
-  const whatShell = await page.locator('footer[data-form="line"]').boundingBox();
-  if (!whatShell) throw new Error('no first-run footer');
-  expect(Math.abs(whatShell.y - foot.bottom)).toBeLessThanOrEqual(1);
-  const pageEnd = await page.evaluate(() => document.documentElement.scrollHeight);
-  expect(Math.abs(whatShell.y + whatShell.height - Math.max(844, pageEnd))).toBeLessThanOrEqual(1);
 });

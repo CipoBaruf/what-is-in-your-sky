@@ -53,9 +53,13 @@ describe('<PassCard> (FR-FIRST-10)', () => {
     expect(screen.getByTestId('card-first-line')).toHaveTextContent(/^06:48\s*ISS/);
   });
 
-  it('on the phone’s third step, the brightness phrase in place of the magnitude (FR-GUIDE-3)', () => {
-    render(<PassCard pass={samplePass} timeZone={null} detail="phrase" />);
-    expect(screen.getByTestId('card-detail')).toHaveTextContent('1 min · peak 10° NE · like a bright star');
+  it('FR-OPEN-13: under the example the height is a word and the brightness its phrase — no degree, no mag; a set place keeps the figures', () => {
+    const { unmount } = render(<PassCard pass={samplePass} timeZone={null} plain />);
+    expect(screen.getByTestId('card-detail')).toHaveTextContent('1 min · peak low NE · like a bright star');
+    expect(screen.getByTestId('card-detail').textContent).not.toMatch(/°|mag/);
+    unmount();
+    render(<PassCard pass={samplePass} timeZone={null} />);
+    expect(screen.getByTestId('card-detail')).toHaveTextContent('1 min · peak 10° NE · mag +0.5');
   });
 
   it('is Spanish under a Spanish provider', () => {
@@ -79,10 +83,10 @@ describe('<PassCard> (FR-FIRST-10)', () => {
     unmount();
     render(
       <I18nProvider locale="es">
-        <PassCard pass={pass} timeZone={null} dense detail="phrase" />
+        <PassCard pass={pass} timeZone={null} dense plain />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('card-detail')).toHaveTextContent(/^máx\. 32° ESE · \S/);
+    expect(screen.getByTestId('card-detail')).toHaveTextContent(/^máx\. a media altura ESE · \S/);
     expect(screen.getByTestId('card-first-line')).not.toHaveTextContent('min');
   });
 

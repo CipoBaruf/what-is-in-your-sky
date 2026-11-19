@@ -50,6 +50,10 @@ describe('<App> frame (R12)', () => {
    * the full title and the tagline, is `App.wide.test.tsx`.
    */
   it('has the compact header, the cold open, the titled regions once there is a place, and the footer, with no axe violations while empty', async () => {
+    // FR-OPEN-6: with no city for the zone the first visit is the place question.
+    act(() => {
+      appStore.setState({ exampleOutcome: 'no_city' });
+    });
     const first = render(<App />);
     const banner = screen.getByRole('banner');
     expect(within(banner).getByRole('heading', { level: 1, name: en.app.shortTitle })).toBeInTheDocument();
@@ -60,24 +64,25 @@ describe('<App> frame (R12)', () => {
     expect(within(screen.getByRole('main')).getByTestId('cold-open')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
     expect(screen.queryByTestId('location-summary')).toBeNull();
-    // R87 (FR-FIRST-1 as amended v2.1, D-548): the first-run steps' footer is the one-line form, with no privacy word.
+    // R87 (FR-FIRST-1 as amended v2.1, D-548): the question's footer is the one-line form, with no privacy word.
     expect(screen.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
     expect(screen.getByRole('contentinfo')).not.toHaveTextContent('No tracking');
     expect(await axe(first.container)).toHaveNoViolations();
 
-    // R82 (FR-FIRST-4 as amended v2.0.2): on a phone's first visit the place moves the page on to the when step…
+    // R202 (FR-OPEN-5, FR-FIRST-4 as amended v2.16): a place lands on the three readings stacked, with no step between…
     act(() => {
       appStore.setState({ observer });
     });
     expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
+    expect(screen.getByRole('contentinfo')).not.toHaveAttribute('data-form', 'line');
     expect(await axe(first.container)).toHaveNoViolations();
 
-    // …and the next visit, with the place saved, opens on the three readings stacked.
+    // …and so does the next visit, with the place saved.
     first.unmount();
     const { container } = render(<App />);
-    expect(screen.queryByTestId('step-when')).toBeNull();
+    expect(screen.queryByTestId('cold-open')).toBeNull();
     expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
     // Every later visit keeps the full compact footer.
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');

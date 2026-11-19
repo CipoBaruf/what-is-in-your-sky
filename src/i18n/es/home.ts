@@ -20,7 +20,7 @@ export const home: typeof EnHome = {
       title: 'Satélites',
       next: (p) => `Próximo ${p.time} · en ${p.countdown}`,
       up: (p) => `Arriba · ${p.kind === 'peak' ? 'culmina' : { horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' }[p.reason]} en ${p.countdown}`,
-      path: (p) => `${p.name} · ${p.peakPoint} ${p.peak} → ${p.endPoint}`,
+      path: (p) => `${p.name} · ${p.peakPoint === null ? '' : `${p.peakPoint} `}${p.peak} → ${p.endPoint}`,
       none: (hours) => `Ningún pase visible en ${String(hours)} h`,
       pending: 'Buscando el próximo pase…',
     },

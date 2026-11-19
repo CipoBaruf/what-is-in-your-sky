@@ -8,12 +8,9 @@ import { useTonight } from '../../components/now/useTonight';
 import { nightWindow } from './tonight';
 
 /**
- * R82 (FR-FIRST-4 as amended v2.0.2): tonight as the phone's when and what
- * steps state it — the bands the stripe draws (`useTonight`, the stacked
- * page's own), tonight's dark band, the stretch of night the cloud word and the
- * Moon's sentence are about, and the cloud for it: the forecast hour by hour
- * across that stretch (`nightClouds`, D-1028), so the when step's
- * `Clouds tonight`, the what step's foot line and the Stars door say the same.
+ * R82 (FR-FIRST-4 as amended v2.0.2), kept by R202 for the home's doors: tonight — the bands the stripe draws
+ * (`useTonight`, the stacked page's own), tonight's dark band, the stretch of night the cloud word is about, and
+ * the cloud for it: the forecast hour by hour across that stretch (`nightClouds`, D-1028).
  */
 export interface Night {
   bands: readonly SkyBand[];

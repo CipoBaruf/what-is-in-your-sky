@@ -1,11 +1,13 @@
 /**
  * R76 (FR-FIRST-1, FR-FIRST-2, FR-FIRST-3, US-26 AC1/AC2, board 1B): the cold
- * open's inventory and nothing else — on a phone the step line, the question,
+ * open's inventory and nothing else — on a phone the tagline (FR-OPEN-6), the question,
  * its sentence and the group; on a desk the Where pane and the two dimmed
  * panes beside it; the input group's three controls in FR-FIRST-2's order with
  * the primary action's name and note and the look's foot note after the last
  * field, in both layouts and both languages; and, once there is a place, the
  * next-event block ahead of the list.
+ *
+ * R202: the first visit's own cases — the example, the question it opens and the fallback — are `Home.first.test.tsx`.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -17,11 +19,10 @@ import { en } from '../../i18n/en';
 import { es } from '../../i18n/es';
 import { I18nProvider } from '../../i18n/useT';
 import type { Locale, Observer } from '../../model';
-import { appStore, useActiveObserver, type ElementsState } from '../../state';
+import { appStore, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
-import { Home, useSteps, WhereReading, type HomeProps } from './Home';
-import { requestPlace } from './home/placeRequest';
+import { WhereReading } from './Home';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -35,6 +36,14 @@ const CATALOG = { en, es } as const;
 const precedes = (a: Element, b: Element): boolean => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 let media: MatchMediaStub;
+
+// FR-OPEN-6: with no city the first visit is the place question — the cold open these cases are about. The cases of
+// the example set their own outcome.
+beforeEach(() => {
+  act(() => {
+    appStore.setState({ exampleOutcome: 'no_city' });
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -72,21 +81,21 @@ describe('the cold open on compact (FR-FIRST-1)', () => {
     expect(main.children).toHaveLength(1);
     const cold = within(main).getByTestId('cold-open');
     expect([...(main.firstElementChild?.children ?? [])]).toEqual([cold]);
-    // Board 1B: no mark and no tagline in the cold open (the header keeps its own mark).
+    // Board 1B: no mark in the cold open (the header keeps its own mark). FR-OPEN-6: the tagline above the heading,
+    // no step line and no `[ back ]`.
     expect(within(cold).queryByTestId('mark')).toBeNull();
-    expect(cold).not.toHaveTextContent(en.app.tagline);
-
-    const steps = within(cold).getByRole('list', { name: en.home.stepsLabel });
-    expect(within(steps).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['[01] where', '02 when', '03 what']);
-    expect(within(steps).getAllByRole('listitem')[0]).toHaveAttribute('aria-current', 'step');
+    const tagline = within(cold).getByTestId('home-tagline');
+    expect(tagline).toHaveTextContent(en.app.tagline);
+    expect(screen.queryByTestId('step-line')).toBeNull();
+    expect(screen.queryByTestId('place-back')).toBeNull();
     const heading = within(cold).getByRole('heading', { level: 2, name: en.home.coldHeading });
     const sentence = within(cold).getByText(en.home.coldSentence);
     const group = within(cold).getByTestId('location-group');
     expect(group).toHaveAccessibleName(en.home.coldHeading);
 
-    // In this order: step line, heading, sentence, group — and the cold open holds nothing else.
+    // In this order: tagline, heading, sentence, group — and the cold open holds nothing else.
     expect(group.parentElement?.children).toHaveLength(1);
-    expect([...cold.children]).toEqual([steps, heading, sentence, group.parentElement as Element]);
+    expect([...cold.children]).toEqual([tagline, heading, sentence, group.parentElement as Element]);
     expectNothingAboutAPlace();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -185,8 +194,8 @@ describe.each([
  * with the group left open under the location line; a place that arrives any
  * other way folds the group away.
  *
- * R82 (D-513): on a phone the first visit's where step holds the page until
- * the field is left (below); this is the desk's page, which has no steps, and
+ * R202 (D-1178): on a phone the first visit's question holds the page until
+ * the field is left (below); this is the desk's page, which has no such screen, and
  * a phone's stacked page reached from `[ change ]` is the same component.
  */
 describe('the group across the cold open and the readings', () => {
@@ -311,240 +320,3 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
  * is three steps — where, when, what — one screen each, under the step line
  * with a ✓ on a finished step; every later visit is the stacked page.
  */
-describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
-  const found = { coords: { latitude: -38.93, longitude: -67.99, altitude: null, accuracy: 30 }, timestamp: 0 };
-  const deviceFinds: typeof device = {
-    geolocation: {
-      getCurrentPosition: (ok: PositionCallback) => {
-        ok(found as unknown as GeolocationPosition);
-      },
-    } as unknown as Geolocation,
-    secure: true,
-  };
-  const onOpenPass = vi.fn();
-  // R87: `App` holds the steps (D-548); here a host holds them the same way.
-  function Stepped(props: Partial<HomeProps>) {
-    const steps = useSteps(useActiveObserver());
-    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
-  }
-  const home = (props: Partial<HomeProps> = {}) => <Stepped {...props} />;
-  /** R87: the same host with a route of its own, as `App` has — the live and settings routes draw instead of `Home`. */
-  function Routed({ offHome = false, ...props }: { offHome?: boolean } & Partial<HomeProps>) {
-    const steps = useSteps(useActiveObserver(), offHome);
-    if (offHome) return <p>another route</p>;
-    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
-  }
-  const items = () => within(screen.getByTestId('step-line')).getAllByRole('listitem');
-  const withTheRun = () => {
-    act(() => {
-      const current = appStore.getState().observer;
-      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: current, passes: [pass], hasDarkness: true } });
-    });
-  };
-
-  beforeEach(() => {
-    vi.spyOn(Date, 'now').mockReturnValue(pass.start.t - 12 * 60_000);
-    media = stubMatchMedia(COMPACT_PX);
-  });
-
-  it('a place set on another route comes back to the stacked page, not to a step — failing on the first cut of R87', () => {
-    const { rerender } = render(<Routed />);
-    expect(screen.getByTestId('cold-open')).toHaveAttribute('data-step', 'where');
-
-    // The settings page draws instead of the home, and the place is set there.
-    rerender(<Routed offHome />);
-    act(() => {
-      appStore.setState({ observer });
-    });
-    withTheRun();
-
-    // Back on the home route: the steps are what a fresh mount makes of a place that is already set.
-    rerender(<Routed />);
-    expect(screen.queryByTestId('step-line')).toBeNull();
-    expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(screen.getByTestId('location-summary')).toBeInTheDocument();
-  });
-
-  it('walks where → when → what with no navigation, and [ edit ] returns to where with the group open', () => {
-    const hash = window.location.hash;
-    render(home());
-    // where: the cold open, under the step line with nothing finished.
-    const where = screen.getByTestId('cold-open');
-    expect(where).toHaveAttribute('data-step', 'where');
-    expect(items().map((item) => item.textContent)).toEqual(['[01] where', '02 when', '03 what']);
-    expect(within(screen.getByTestId('step-line')).queryByRole('button')).toBeNull();
-
-    // The device button moves where to when.
-    fireEvent.click(within(where).getByRole('button', { name: en.location.useMyLocation }));
-    expect(appStore.getState().observer).not.toBeNull();
-    withTheRun();
-    const when = screen.getByTestId('step-when');
-    expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(items().map((item) => item.textContent)).toEqual(['01 where ✓', '[02] when', '03 what']);
-    expect(items()[1]).toHaveAttribute('aria-current', 'step');
-    // Its inventory, in order: the step line, the heading and its sentence, the night's box, the sky's box, the control.
-    const heading = within(when).getByRole('heading', { level: 2, name: en.home.whenStep.heading });
-    expect(heading).toHaveFocus();
-    const sentence = within(when).getByText(en.home.whenStep.sentence('−38.93, −67.99'));
-    const night = within(when).getByTestId('when-night');
-    const sky = within(when).getByTestId('when-sky');
-    const next = within(when).getByRole('button', { name: en.home.whenStep.next });
-    expect([...when.children]).toEqual([screen.getByTestId('step-line'), heading, sentence, night, sky, next]);
-    expect(within(night).getByText(en.home.whenStep.passesIn)).toBeInTheDocument();
-    expect(within(night).getByTestId('when-passes')).toHaveTextContent('1 tonight, 1 in 72 h');
-    expect(within(sky).getByText(en.home.whenStep.clouds)).toBeInTheDocument();
-
-    // [ Choose what to see ] moves on to what.
-    fireEvent.click(next);
-    const what = screen.getByTestId('step-what');
-    expect(items().map((item) => item.textContent)).toEqual(['01 where ✓', '02 when ✓', '[03] what']);
-    // v2.12 (FR-FIRST-4 as amended, D-1021): the step is the choice — the question, the home's three doors, the foot.
-    const title = within(what).getByRole('heading', { level: 2, name: en.home.whatStep.title });
-    expect(title).toHaveFocus();
-    const doors = within(what).getByTestId('home-doors');
-    const foot = within(what).getByTestId('what-foot');
-    expect([...what.children]).toEqual([screen.getByTestId('step-line'), title, doors, foot]);
-    expect(within(doors).getAllByRole('link').map((link) => link.getAttribute('data-testid'))).toEqual(['door-satellites', 'door-stars', 'door-live']);
-    // Satellites opens the next pass; Stars and Live sky their pages.
-    expect(within(doors).getByTestId('door-satellites')).toHaveAttribute('href', `#pass=${pass.id}`);
-    expect(within(doors).getByTestId('door-stars')).toHaveAttribute('href', '#stars');
-    expect(within(doors).getByTestId('door-live')).toHaveAttribute('href', '#live');
-    expect(foot).toHaveTextContent(/^−38\.93, −67\.99 · .+edit$/);
-    expect(foot.lastElementChild).toBe(within(foot).getByRole('button', { name: en.home.whatStep.edit }));
-
-    // [ edit ] returns to where, with the group open and the place kept; the finished steps are the way back.
-    fireEvent.click(within(foot).getByRole('button', { name: en.home.whatStep.edit }));
-    const again = screen.getByTestId('cold-open');
-    expect(again).toHaveAttribute('data-step', 'where');
-    expect(within(again).getByTestId('location-group')).toBeVisible();
-    expect(within(again).getByRole('heading', { level: 2, name: en.home.coldHeading })).toHaveFocus();
-    expect(items().map((item) => item.textContent)).toEqual(['[01] where', '02 when ✓', '03 what ✓']);
-    expect(appStore.getState().observer).not.toBeNull();
-    fireEvent.click(screen.getByTestId('step-back-when'));
-    expect(screen.getByTestId('step-when')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('step-back-where'));
-    expect(screen.getByTestId('cold-open')).toBeInTheDocument();
-
-    // The step is the page's own state: not in the hash.
-    expect(window.location.hash).toBe(hash);
-  });
-
-  it('holds the where step while a coordinate pair is typed, and moves on only when the field is left (D-467)', () => {
-    render(home());
-    const field = screen.getByLabelText(en.location.coordsLabel);
-    field.focus();
-    fireEvent.change(field, { target: { value: '-38.93, -67' } });
-    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
-    // The pair is the observer at its first valid keystroke, and the page has not moved from under the reader.
-    expect(appStore.getState().observer).toMatchObject({ lat: -38.93, lon: -67.99, source: 'coords' });
-    expect(screen.getByTestId('cold-open')).toHaveAttribute('data-step', 'where');
-    expect(screen.getByLabelText(en.location.coordsLabel)).toBe(field);
-    expect(field).toHaveFocus();
-    fireEvent.change(field, { target: { value: '-38.93, -67.9' } });
-    expect(field).toHaveFocus();
-    expect(screen.queryByTestId('step-when')).toBeNull();
-
-    // Leaving the field is what moves it.
-    act(() => {
-      field.blur();
-    });
-    expect(screen.getByTestId('step-when')).toBeInTheDocument();
-  });
-
-  it('moves on from a typed pair on Enter', () => {
-    render(home());
-    const field = screen.getByLabelText(en.location.coordsLabel);
-    field.focus();
-    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
-    expect(screen.queryByTestId('step-when')).toBeNull();
-    fireEvent.keyDown(field, { key: 'Enter' });
-    expect(screen.getByTestId('step-when')).toBeInTheDocument();
-  });
-
-  // R84 (FR-FIRST-2 as amended v2.1, US-26 AC7, F-86): the way forward is on the screen.
-  it('offers [ continue ] exactly while a typed pair is held, and it moves the step on', () => {
-    render(home());
-    const continueButton = () => screen.queryByRole('button', { name: en.location.continue });
-    expect(continueButton()).toBeNull();
-    const field = screen.getByLabelText(en.location.coordsLabel);
-    field.focus();
-    fireEvent.change(field, { target: { value: '-38.93, -' } });
-    expect(continueButton()).toBeNull();
-    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
-    expect(continueButton()).toBeInTheDocument();
-    // Under the coordinate fields, inside the group.
-    expect(within(screen.getByTestId('location-alternatives')).getByTestId('step-continue')).toBe(continueButton());
-    // An invalid pair drops the observer, and the control with it.
-    fireEvent.change(field, { target: { value: '-38.93, -6x' } });
-    expect(continueButton()).toBeNull();
-    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
-    const button = continueButton();
-    expect(button).not.toBeNull();
-    // Moving the focus onto it does not move the page on; pressing it does.
-    act(() => {
-      button?.focus();
-    });
-    expect(screen.queryByTestId('step-when')).toBeNull();
-    fireEvent.click(button as HTMLElement);
-    expect(screen.getByTestId('step-when')).toBeInTheDocument();
-  });
-
-  /*
-   * R87 (FR-FIRST-1 as amended v2.1): the receiving side of the live page's `[ set a place ]` (R89 draws it).
-   * The request opens the where step with the focus in the input group — not on the heading, where an arrival
-   * by the step line puts it — and is spent once read, so the next visit home is an ordinary one.
-   */
-  it('lands [ set a place ] on the where step with the focus in the group, once', () => {
-    window.location.hash = '#live';
-    act(() => {
-      requestPlace();
-    });
-    expect(window.location.hash).toBe('');
-    const first = render(home());
-    const group = screen.getByTestId('cold-open');
-    expect(group).toHaveAttribute('data-step', 'where');
-    expect(document.activeElement).toBe(within(group).getByRole('button', { name: en.location.useMyLocation }));
-    first.unmount();
-
-    render(home());
-    expect(document.activeElement).toBe(document.body);
-  });
-
-  it('opens on the stacked page, and never a step, with a place at mount', () => {
-    act(() => {
-      appStore.setState({ observer });
-    });
-    withTheRun();
-    render(home());
-    expect(screen.getByTestId('reading-where')).toBeInTheDocument();
-    expect(screen.getByTestId('reading-when')).toBeInTheDocument();
-    expect(screen.getByTestId('list-column')).toBeInTheDocument();
-    for (const id of ['step-line', 'step-when', 'step-what', 'cold-open']) expect(screen.queryByTestId(id)).toBeNull();
-    // A new place from the group under `[ change ]` does not start the steps either.
-    act(() => {
-      appStore.setState({ observer: { ...observer, lat: -38.9, label: '−38.90, −67.99' } });
-    });
-    expect(screen.queryByTestId('step-when')).toBeNull();
-  });
-
-  it('leaves the steps for the stacked page when the Satellites door has no pass to open, and opens the What reading (D-1021)', () => {
-    const span = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
-    render(home());
-    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
-    act(() => {
-      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [], hasDarkness: true, window: span } });
-    });
-    fireEvent.click(screen.getByTestId('see-what'));
-    const door = within(screen.getByTestId('step-what')).getByTestId('door-satellites');
-    expect(door).toHaveAttribute('href', '#what');
-    // A new-tab gesture is still the browser's.
-    expect(fireEvent.click(door, { metaKey: true })).toBe(true);
-    expect(screen.getByTestId('step-what')).toBeInTheDocument();
-    const hash = window.location.hash;
-    expect(fireEvent.click(door)).toBe(false);
-    expect(screen.queryByTestId('step-what')).toBeNull();
-    expect(screen.queryByTestId('step-line')).toBeNull();
-    expect(screen.getByTestId('list-column')).toBeInTheDocument();
-    expect(window.location.hash).toBe(hash);
-  });
-});
