@@ -73,7 +73,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** the latch effect and the timer (R200); the events (R201).
   - **Done when:** `npm run check` green; the test covers each outcome, the wait's edge (one ms either side), a run with a pass only on a later night inside 72 h is `pass`, and a `Failure` from either input is `failed`.
 
-- [x] **R204 — The capture set is green on four runners** *(the first green `captures.yml` run on the phase branch is pending: D-1219)*
+- [x] **R204 — The capture set is green on four runners** *(the first `captures.yml` run on the phase branch is green: D-1219)*
   - **Lane:** ui
   - **Tier:** standard
   - **Gate:** auto

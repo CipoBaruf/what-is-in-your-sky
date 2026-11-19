@@ -106,7 +106,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (D-1213.) `useFollow.ts` imports the store, which a Playwright spec cannot load, so `captureSeeds.ts` spells `FOLLOW_ASKED_KEY` out as `follow.spec.ts` does, and `tests/docs/ci-graph.test.ts` reads both files and fails when they differ.
   Verified locally on R204's branch: the whole set (464 tests) once with `--retries=0` on the installed Chrome (no Playwright browser on the machine), 463 green.
   The 80 captures that had failed on `main` (20 screen-widths) all passed first time, and the one red, `guide` at 1280 (night, en), touches neither question, timed out on the dome's glyph wait under five workers and passed 12 of 12 on a rerun.
-  The first `captures.yml` run on the phase branch: pending (the orchestrator dispatches it; its link goes here).
+  The first `captures.yml` run on the phase branch, [44584069653](https://github.com/CipoBaruf/what-is-in-your-sky/actions/runs/44584069653) on `3c683623`: green, 464 passed with none flaky (116 a shard, 3.6 to 6.2 min), 8 min 54 s from `pick` to `gather`.
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
