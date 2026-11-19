@@ -1,6 +1,6 @@
 import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
-import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
+import { elevationBand, type BrightnessBand, type ElevationBand, type GuideParams } from '../../lib/phrases';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort } from '../../model';
 import type { PathEnd } from '../../lib/passPath';
 import type { ui as EnUi } from '../en/ui';
@@ -89,7 +89,7 @@ const moonPhase = {
 export const ui: typeof EnUi = {
   app: {
     title: 'Qué hay en el cielo ahora mismo',
-    tagline: 'Pases de satélites visibles a simple vista para la próxima noche: cuáles, cuándo y hacia dónde mirar.',
+    tagline: 'Qué satélites se ven esta noche, cuándo y hacia dónde mirar.',
     language: 'Idioma',
     theme: 'Tema',
     // R156: «Noche», the spec's word. v2.12 (D-1020): Auto withdrawn, so the row is `Tema [x] Oscuro [ ] Noche`.
@@ -169,8 +169,6 @@ export const ui: typeof EnUi = {
   },
 
   home: {
-    steps: { where: 'dónde', when: 'cuándo', what: 'qué' },
-    stepsLabel: 'Pasos',
     panes: { where: 'Dónde', when: 'Cuándo', what: 'Qué' },
     coldHeading: '¿Desde dónde se va a mirar?',
     coldSentence: 'Un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que basta con la ciudad. Cualquiera de los tres sirve.',
@@ -197,41 +195,6 @@ export const ui: typeof EnUi = {
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
     moonRow: (p) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     upNow: (p) => `${p.name}${p.left === null ? '' : ` · quedan ${p.left}`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    whenStep: {
-      heading: '¿Cuándo está lo bastante oscuro?',
-      sentence: (place) => `${place}, esta noche. Los satélites solo se ven iluminados en la banda oscura entre el anochecer y el amanecer.`,
-      nightLabel: 'La banda oscura de esta noche',
-      skyLabel: 'El cielo de esta noche',
-      darkFrom: 'Oscuro desde',
-      until: 'Hasta',
-      /* "Pases en ella" and "5 esta noche, 7 en 72 h" are 37 cells, one past FR-COMP-4's 36. */
-      passesIn: 'Pasan',
-      passesValue: (p) => `${String(p.tonight)} esta noche, ${String(p.total)} en ${String(p.hours)} h`,
-      /* "Nubes esta noche" and "Probablemente cubierto" are 39 cells. */
-      clouds: 'Nubes',
-      cloudsMoment: 'en la banda oscura',
-      /* D-1028: "Nubes hasta las 02:00" y "Probablemente cubierto" son 43 celdas; "Hasta 02:00" deja 34. */
-      cloudsUntil: (at) => `Hasta ${at}`,
-      cloudsFrom: (at) => `Desde ${at}`,
-      cloudsMomentUntil: (at) => `hasta las ${at}`,
-      cloudsMomentFrom: (at) => `desde las ${at}`,
-      moon: 'Luna',
-      /* "gibosa menguante, 99 % iluminada" and its label are 38 cells. */
-      moonValue: (p) => `${moonPhase[p.phase]}, ${p.illumination} % de luz`,
-      moonNote: (note) => `Una luna brillante apaga los más tenues. ${note === 'bright' ? 'Esta noche lo hará.' : 'Esta noche no lo hará.'}`,
-      next: 'Elegir qué ver',
-    },
-    whatStep: {
-      title: '¿Qué querés ver?',
-      foot: (p) => [
-        p.place,
-        ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]),
-        ...(p.cloud.kind === 'change'
-          ? [`${cloudState[p.cloud.before].toLowerCase()} hasta las ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} después`]
-          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
-      ],
-      edit: 'editar',
-    },
   },
 
   nextEvent: {
@@ -246,13 +209,15 @@ export const ui: typeof EnUi = {
           return `Visible ahora · ${{ horizon: 'se pone', shadow: 'entra en la sombra', twilight: 'se desvanece' }[p.reason]} en ${p.countdown}`;
       }
     },
-    path: (p) => {
-      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'bajo' : `${String(e.altitude)}°`}`);
-      return `${end(p.start)} → ${String(p.peak.altitude)}° ${p.peak.point} → ${end(p.end)}`;
+    path: (p, plain = false) => {
+      const height = (deg: number): string => (plain ? elevationWord[elevationBand(deg)] : `${String(deg)}°`);
+      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'bajo' : height(e.altitude)}`);
+      return `${end(p.start)} → ${plain ? elevationPhrase[elevationBand(p.peak.altitude)] : `${String(p.peak.altitude)}° ${p.peak.point}`} → ${end(p.end)}`;
     },
+    height: (band) => elevationWord[band],
     named: (p) => `${p.name} · ${p.path}`,
     withDuration: (p) => `${p.path} · ${String(p.minutes)} min`,
-    brightness: (p) => `${capitalise(brightness[p.band])} (${p.magnitude})`,
+    brightness: (p) => `${capitalise(brightness[p.band])}${p.magnitude === null ? '' : ` (${p.magnitude})`}`,
     openLive: 'Abrir el cielo en vivo',
     pending: 'Buscando el próximo pase…',
     none: (p) =>

@@ -140,11 +140,13 @@ export interface PassListProps {
    * count line over those 24 h.
    */
   onlyTonight?: boolean;
+  /** R202 (FR-OPEN-13, D-1210): the example's cards, in words. */
+  plain?: boolean;
 }
 
 const SPAN_HOURS = LIVE_WINDOW_MS / 3_600_000;
 
-export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = false }: PassListProps) {
+export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = false, plain = false }: PassListProps) {
   const t = useT();
   const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
@@ -231,6 +233,7 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
               headingLevel={headingLevel}
               faint={faint.has(pass.id)}
               dense={onlyTonight}
+              plain={plain}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />

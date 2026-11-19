@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+
 import { nightClouds, type NightClouds } from '../../../lib/nightClouds';
-import { moonNote, moonSampleTimes, type MoonNote } from '../../../lib/moonNote';
-import type { SkyBodies } from '../../../lib/skyBodies';
 import type { SkyBand, Span } from '../../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
 import type { EpochMs, Observer, WeatherSnapshot } from '../../../model';
@@ -47,43 +45,4 @@ export function useNight(observer: Observer): Night {
     snapshot,
     clouds: nightClouds(snapshot, window, tonight.now),
   };
-}
-
-type BodiesAt = (t: EpochMs, observer: Observer) => SkyBodies;
-
-let pending: Promise<BodiesAt> | null = null;
-
-/** The astronomy chunk the stripe's bands already load (D-148), reached the same way. */
-function loadBodies(): Promise<BodiesAt> {
-  pending ??= import('../../../lib/skyBodies').then((module) => module.skyBodiesAt);
-  return pending;
-}
-
-/**
- * D-513: which Moon sentence the when step reads — the Moon sampled across
- * `window` a quarter hour apart (`lib/moonNote`). Null until the chunk lands
- * or while there is no window: the sentence is left out rather than guessed.
- */
-export function useMoonNote(observer: Observer, window: Span | null): MoonNote | null {
-  const [evaluate, setEvaluate] = useState<BodiesAt | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void loadBodies().then(
-      (loaded) => {
-        if (!cancelled) setEvaluate(() => loaded);
-      },
-      () => {
-        // A chunk that will not load leaves the sentence out, which the box can do without.
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const start = window?.start ?? null;
-  const end = window?.end ?? null;
-  return useMemo(() => {
-    if (!evaluate || start === null || end === null) return null;
-    return moonNote(moonSampleTimes({ start, end }).map((t) => evaluate(t, observer).moon));
-  }, [evaluate, observer, start, end]);
 }

@@ -3,6 +3,7 @@ import type { CompassPoint } from '../../../lib/compass';
 import { formatClockDuration } from '../../../lib/format';
 import { isNoEvent, type NextEvent, type NoEvent } from '../../../lib/nextEvent';
 import { passPath } from '../../../lib/passPath';
+import { elevationBand } from '../../../lib/phrases';
 import type { MoonNow } from '../../../lib/skyStars';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { SkyBand } from '../../../lib/timeStripe';
@@ -57,6 +58,8 @@ export interface DoorInput {
   cloud: TonightCloud;
   /** `null` until the `stars` chunk has loaded. */
   sky: DoorSky | null;
+  /** R202 (FR-OPEN-13, D-1210): the example's door — the peak's height as a word, no degree. */
+  plain?: boolean;
 }
 
 type DoorLine = string | null;
@@ -98,7 +101,7 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
     const countdown = formatClockDuration((result.at - now) / 1000);
     const head = kind === 'rise' ? words.satellites.next({ time: clock(result.at, true), countdown }) : words.satellites.up({ kind, reason: pass.endReason, countdown });
     const path = passPath(pass);
-    const pathLine = fitName(pass.name, (name) => words.satellites.path({ name, peakPoint: path.peak.point, peakDeg: path.peak.altitude, endPoint: path.end.point }));
+    const pathLine = fitName(pass.name, (name) => words.satellites.path({ name, peakPoint: path.peak.point, peak: input.plain === true ? t.nextEvent.height(elevationBand(path.peak.altitude)) : `${String(path.peak.altitude)}°`, endPoint: path.end.point }));
     const wide = sky === null ? null : (sky.landmark?.line ?? undefined);
     satellites = { title: words.satellites.title, lines: [head, pathLine], passId: pass.id, ...(wide === undefined ? {} : { wide }) };
   }

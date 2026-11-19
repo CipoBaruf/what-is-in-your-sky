@@ -1,8 +1,7 @@
 import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
-import type { MoonNote } from '../../lib/moonNote';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../../lib/moonPhrases';
-import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
+import { elevationBand, type BrightnessBand, type ElevationBand, type GuideParams } from '../../lib/phrases';
 import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
@@ -102,7 +101,8 @@ export const ui = {
   app: {
     /** FR-I18N-5: also the document title. */
     title: 'What is in your sky right now',
-    tagline: 'Naked-eye satellite passes for the coming night: which, when, and where to look.',
+    /** FR-OPEN-8 (D-1181): the header's line on wide and the first visit's on compact. */
+    tagline: 'Which satellites you can see tonight, when, and where to look.',
     language: 'Language',
     /** FR-THEME-1: the palette switch. Unlike the languages, both names are translated — whoever reads this can read the page. */
     theme: 'Theme',
@@ -232,8 +232,6 @@ export const ui = {
    * headings, which is how the two are written in the spec.
    */
   home: {
-    steps: { where: 'where', when: 'when', what: 'what' },
-    stepsLabel: 'Steps',
     panes: { where: 'Where', when: 'When', what: 'What' },
     coldHeading: 'Where will you be looking from?',
     coldSentence: 'A pass looks the same from anywhere within a few kilometres, so city-level is enough. Pick any one.',
@@ -271,53 +269,6 @@ export const ui = {
     moonRow: (p: { phase: MoonPhaseName; illumination: string; point: CompassPoint | null }) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     /** FR-FIRST-9 (US-4 AC3 as amended v2.0.2): the first satellite up, its time left, and how many more. */
     upNow: (p: { name: string; left: string | null; more: number }) => `${p.name}${p.left === null ? '' : ` · ${p.left} left`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
-    /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **when** step. */
-    whenStep: {
-      heading: 'When is it dark enough?',
-      sentence: (place: string) => `${place}, tonight. Satellites are only lit in the dark band between dusk and dawn.`,
-      nightLabel: 'Tonight’s dark band',
-      skyLabel: 'Tonight’s sky',
-      darkFrom: 'Dark from',
-      until: 'Until',
-      passesIn: 'Passes in it',
-      passesValue: (p: { tonight: number; total: number; hours: number }) => `${String(p.tonight)} tonight, ${String(p.total)} in ${String(p.hours)} h`,
-      clouds: 'Clouds tonight',
-      /** The cloud word's tooltip: what it is judged over (D-1028: the dark band's hours). */
-      cloudsMoment: 'across the dark band',
-      /**
-       * D-1028: a night whose cloud changes once is two rows, `Until 02:00` · `Likely obscured` and `From 02:00` · `Clear`;
-       * "Clouds until 02:00" and "Likely obscured" would be 34 cells, but the Spanish pair would not fit, and the two
-       * languages keep one shape. Never with a UTC clock: with no zone there is no forecast (D-859).
-       */
-      cloudsUntil: (at: string) => `Until ${at}`,
-      cloudsFrom: (at: string) => `From ${at}`,
-      cloudsMomentUntil: (at: string) => `until ${at}`,
-      cloudsMomentFrom: (at: string) => `from ${at}`,
-      moon: 'Moon',
-      moonValue: (p: { phase: MoonPhaseName; illumination: string }) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
-      /** D-513: by whether the Moon is up and at least `MOON_BRIGHT_PCT` lit inside the dark window (`lib/moonNote`). */
-      moonNote: (note: MoonNote) => `A bright moon washes out the faint ones. ${note === 'bright' ? 'Tonight it will.' : 'Tonight it will not.'}`,
-      /** v2.12 (FR-FIRST-4 as amended, D-1021): the when step's action leads to the choice of what to see. */
-      next: 'Choose what to see',
-    },
-    /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **what** step. */
-    whatStep: {
-      /** v2.12 (FR-FIRST-4 as amended, D-1021): the third step asks, and the home's three doors answer. */
-      title: 'What do you want to see?',
-      /**
-       * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
-       * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).
-       */
-      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: TonightCloud }): string[] => [
-        p.place,
-        ...(p.dark === null ? [] : [p.dark === 'none' ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`]),
-        // D-1028: a change is two pieces, `likely obscured until 02:00 · clear after`, so the line breaks between them.
-        ...(p.cloud.kind === 'change'
-          ? [`${cloudState[p.cloud.before].toLowerCase()} until ${p.cloud.at}`, `${cloudState[p.cloud.after].toLowerCase()} after`]
-          : [p.cloud.kind === 'variable' ? 'variable' : cloudState[p.cloud.state].toLowerCase()]),
-      ],
-      edit: 'edit',
-    },
   },
 
   /**
@@ -344,16 +295,20 @@ export const ui = {
       }
     },
     /** D-507: `NW low → 68° N → SE` — the start, the peak (altitude then point) and the end. */
-    path: (p: PassPath) => {
-      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'low' : `${String(e.altitude)}°`}`);
-      return `${end(p.start)} → ${String(p.peak.altitude)}° ${p.peak.point} → ${end(p.end)}`;
+    path: (p: PassPath, plain = false) => {
+      const height = (deg: number): string => (plain ? elevationWord[elevationBand(deg)] : `${String(deg)}°`);
+      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'low' : height(e.altitude)}`);
+      // FR-OPEN-13 (D-1210): under `plain` the peak is its elevation phrase, `NW low → almost overhead → SE`.
+      return `${end(p.start)} → ${plain ? elevationPhrase[elevationBand(p.peak.altitude)] : `${String(p.peak.altitude)}° ${p.peak.point}`} → ${end(p.end)}`;
     },
+    /** FR-OPEN-13 (D-1210): a height as a word, where the example's card and door write no degrees. */
+    height: (band: ElevationBand) => elevationWord[band],
     /** The block's path line: `ISS · NW low → 68° N → SE`. */
     named: (p: { name: string; path: string }) => `${p.name} · ${p.path}`,
     /** The first card's path line: `NW low → 68° N → SE · 6 min`. */
     withDuration: (p: { path: string; minutes: number }) => `${p.path} · ${String(p.minutes)} min`,
-    /** The first card's brightness, FR-GUIDE-3's phrase with the magnitude: `Brighter than Venus (−3.4)`. */
-    brightness: (p: { band: BrightnessBand; magnitude: string }) => `${capitalise(brightness[p.band])} (${p.magnitude})`,
+    /** The first card's brightness, FR-GUIDE-3's phrase with the magnitude: `Brighter than Venus (−3.4)`; the phrase alone with none (FR-OPEN-13). */
+    brightness: (p: { band: BrightnessBand; magnitude: string | null }) => `${capitalise(brightness[p.band])}${p.magnitude === null ? '' : ` (${p.magnitude})`}`,
     /** FR-LIVE-1: the block's way to the live page, which the Now panel's link was. */
     openLive: 'Open the live sky',
     pending: 'Looking for the next pass…',

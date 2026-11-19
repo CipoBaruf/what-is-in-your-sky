@@ -44,6 +44,8 @@ export interface HomeDoorsProps {
    * for the stacked page, then open the reading there). Absent, the reading is opened in place.
    */
   onWhat?: () => void;
+  /** R202 (FR-OPEN-13, D-1210): the example's doors, the Satellites door's height in words. */
+  plain?: boolean;
 }
 
 /** A plain click opens the What reading in place; a new-tab or new-window gesture is the browser's, with the href. */
@@ -95,7 +97,7 @@ function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: stri
   );
 }
 
-export function HomeDoors({ observer, selectedPassId, className, onWhat }: HomeDoorsProps) {
+export function HomeDoors({ observer, selectedPassId, className, onWhat, plain = false }: HomeDoorsProps) {
   const t = useT();
   const locale = useLocale();
   const wide = useLayoutMode() === 'wide';
@@ -107,7 +109,7 @@ export function HomeDoors({ observer, selectedPassId, className, onWhat }: HomeD
   const event = nextEvent(passes, now, { elementCount, hasDarkness });
   const sky = useDoorSky(observer, now, isNoEvent(event) ? null : event.pass);
   const doors = doorLines(
-    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, starsFrom: night.starsFrom, cloud: tonightCloud(night.clouds, (at) => formatShortClock(at, observer.timeZone, locale)), sky },
+    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, starsFrom: night.starsFrom, cloud: tonightCloud(night.clouds, (at) => formatShortClock(at, observer.timeZone, locale)), sky, plain },
     t,
   );
   const { passId } = doors.satellites;

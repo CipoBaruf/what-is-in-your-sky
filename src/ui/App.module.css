@@ -135,42 +135,46 @@
   color: var(--fg-dim);
 }
 
-/* `[01] where ── 02 when ── 03 what`: the current step bracketed and in the
-   accent, the others dim, the rules between them in `--rule` — they are the
-   list's punctuation, so the steps are read as three items and not as a
-   sentence (board 1B). */
-.steps {
-  display: flex;
-  flex-wrap: wrap;
+/* R202 (FR-OPEN-3, FR-OPEN-6): the tagline at body size in `--fg` — over the example band on the phone's first
+   visit, and above the question on its fallback. The wide header carries it instead (`Header.module.css`). */
+.tagline {
   margin: 0;
-  padding: 0;
-  list-style: none;
+  color: var(--fg);
+}
+
+/* FR-OPEN-3: the tagline and the band, 0.75 rem apart, are the first visit's head over the stacked page. */
+.first {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+/* FR-OPEN-5: `[ back ]`, above the question on the phone and under the group in the wide pane; the control's own
+   48 px box is its height. */
+.back {
+  margin: 0;
+}
+
+/* D-1179: the example's lines in the Where reading — the label, the wait and the day line at `--small` in
+   `--fg-dim`, then the action. */
+.exampleWhere {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 0.75rem;
+}
+
+.exampleLine {
+  margin: 0;
   font-size: var(--small);
   line-height: var(--small-row);
   color: var(--fg-dim);
 }
 
-.stepItem + .stepItem::before {
-  content: ' ── ';
-  white-space: pre;
-  color: var(--rule);
-}
-
-.stepItem[aria-current='step'] {
-  color: var(--accent);
-}
-
-/* R82 (FR-FIRST-4 as amended v2.0.2): a finished step, `01 where ✓`, is a
-   control back to it, drawn as the line's own dim text; `inline-control`
-   (global.css) gives it the 48 px box. */
-.stepBack {
-  padding-inline: 0;
-  min-height: 0;
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  cursor: pointer;
+/* FR-OPEN-4: until the example's run is ready the wide When pane's next event holds its height and shows nothing:
+   its rule and gap, the label, the time on the title's row, the path and two lines of what a pass looks like. */
+.nextHold {
+  min-height: calc(var(--space-2) + 1px + 3 * var(--small-row) + var(--text-title-row) + var(--row));
 }
 
 /* R76 (FR-FIRST-1, board 1B): the wide cold open's dimmed When and What — a
