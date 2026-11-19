@@ -58,7 +58,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** calling the lookup at start (R200); any screen.
   - **Done when:** `npm run check` green; `zoneCity.test.ts` covers FR-OPEN-1's verification cases (`Europe/Stockholm` → Stockholm, `Asia/Calcutta`, `Etc/UTC`, `UTC`, unknown, empty, a name from a town and one without); rerunning `npm run build:zones` leaves `zones.txt` unchanged; `npm run bundle:budget` prints the zone row at or under 9 KB and the main row unchanged.
 
-- [ ] **R199 — The example's outcome is one pure function**
+- [x] **R199 — The example's outcome is one pure function**
   - **Lane:** physics
   - **Tier:** light
   - **Gate:** auto
