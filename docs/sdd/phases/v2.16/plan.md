@@ -62,6 +62,19 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   `ElevationBand`'s thresholds are FR-GUIDE-2's as they are; nothing new is measured.
 - **D-1211 — The day test reads the stripe's band at now.**
   (FR-OPEN-14; V216-14.) The band and the Where pane already hold tonight's bands for the stripe (`lib/tonightStripe.ts`); the line is drawn where the band holding `nowMs` is `day`, so the stripe and the line can never disagree.
+- **D-1213 — The capture routes answer the two questions.**
+  (FR-CI-6; V216-17.) `tests/e2e/captureSeeds.ts`'s seed writes `FOLLOW_ASKED_KEY` (`useFollow.ts`), so the phone's follow question never opens; a route that opens the wide live page with nothing up answers the first-pass dialog with `[ stay here ]` (its `Esc`) before its first click, through one helper in `captureSeeds.ts`.
+  A capture *of* either question seeds nothing and shoots it as it is.
+- **D-1214 — The capture set shoots on four runners and commits once.**
+  (FR-CI-6, FR-CI-2.) `captures.yml`'s `captures` job becomes a `shoot` matrix of `CAPTURE_SHARDS` (4) running `playwright test v1-captures --shard=<n>/4`, each uploading its files, and a `gather` job that downloads them over the restored set, runs the completeness check, the diff and the commit, as the one job does now.
+  The design captures run in `gather`; `timeout-minutes` is `CAPTURES_BUDGET_MIN` (20) per job.
+- **D-1215 — One static job, two unit shards, e2e only on the shards.**
+  (FR-CI-4, FR-CI-1.) `ci.yml` gains `static` (typecheck, lint; needs `changes` only) and `unit` (matrix of `CI_UNIT_SHARDS`, `vitest --shard=<n>/2`, or `vitest related` on one shard when the selection is partial); the `ci` shards drop their shard-1 stages.
+  Each new job writes its report to `reports/` for `digest` as shard 1 did (D-1067); `CI_PR_BUDGET_MIN` becomes 8 and every job's `timeout-minutes` follows it.
+- **D-1216 — The shards are cut from a committed duration table.**
+  (FR-CI-5.) `tests/e2e/durations.json` maps each spec to its seconds on a full run; `scripts/e2e-shards.ts` (pure `splitSpecs(specs, table, n)`, longest first into the lightest shard, the median for a missing spec) prints shard `<n>`'s spec list, which the shard passes to `playwright test` in place of `--shard`.
+  `npm run e2e:durations <report.json>` rewrites the table from a run's JSON report; R205 seeds it from the phase's first full run, and a later task refreshes it when the spread passes `CI_SHARD_SPREAD_S`.
+  The env flag that keeps skipped capture tests out of the count (`playwright.config.ts`) stays for local `--shard`.
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
@@ -69,6 +82,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **State.** `location.test.ts`: `activeObserver`'s order, `setObserver` clearing the example, the example never in the write-through; `effects.test.ts`: no `saveRun` and `persist: false` under the example; the latch never moves; `measureEffects.test.ts`: `example_shown` once per outcome.
 - **Components.** `ExampleBand.test.tsx` (blocks, the card as a control, the waiting state), `ExampleNotice.test.tsx`, `Home.test.tsx` re-pointed from the steps to the band and the place screen; `messages.test.ts` and `controlRows.test.ts` for the new keys; `breakpoint.test.ts`'s `HEADER_FOLD_PX` row.
 - **End to end.** `firstRun.spec.ts`: US-60 and US-61 at 390 × 844, 360 × 640, 1024 × 768 and 1280 × 800 in both languages; each fallback cause; the late run; storage and hosts after the example (FR-OPEN-2). `measure.spec.ts`: US-61 AC4's walk, the fallback walk, the wide walk, the zone city in the forbidden strings.
+- **CI.** `scripts/e2e-shards.test.ts` (FR-CI-5's cases); `tests/docs/ci-graph.test.ts` reads `ci.yml` and `captures.yml`: `static` and `unit` need no `build`, the shards run no typecheck, lint or unit stage, the budgets and shard counts are the constants (FR-CI-4, FR-CI-6).
 - **Captures.** FR-OPEN-11's set; every page's header moves with the tagline (FR-OPEN-9), a named move; the first-run step captures leave the set.
 
 ### 11.10 v2.16 build *(FR-OPEN-1)*
@@ -79,21 +93,25 @@ No npm dependency is added and no host is added to the CSP.
 
 ### 16.37 v2.16 delivery
 
-Six tasks in four waves, each built by a sub-agent in its own worktree and merged into the phase branch when its checks are green; one pull request for the phase when the owner asks for it.
+Eight tasks in four waves, each built by a sub-agent in its own worktree and merged into the phase branch when its checks are green; one pull request for the phase when the owner asks for it.
 v2.15 shipped as 2.15.0 before the breakdown, so no task waits on it (V216-16); the phase branch is rebased onto `main` and each wave starts from the branch with the wave before it merged.
 The driver runs one task per lane at a time, so R199 and R201, both `physics`, sit in different waves.
+The CI tasks are `ui` (§16.1 gives it `.github/workflows/**` and `tests/e2e/v1-captures.spec.ts`), which waves 1 and 2 leave free, so they cost no wave of their own and are merged before R202 takes the first captures (V216-17); this phase adds `tests/e2e/captureSeeds.ts`, `tests/e2e/durations.json`, `scripts/e2e-shards.ts` and `tests/docs/ci-graph.test.ts` to `ui`.
 The Lane column is §16.1's; this phase adds `scripts/build-zones.ts` and `scripts/data/tz/**` to `data`, `src/lib/exampleOutcome.ts` to `physics`, and gives `physics` R201's `scripts/funnel.ts` edit because the change starts in `src/model/measure.ts`.
 Precondition for R198: the three tz files and their README are committed (D-1173), as they are.
 
 | Wave | Task | Lane | Tier | Gate | Depends on |
 |---|---|---|---|---|---|
 | 1 | R198 — The zone table: `scripts/build-zones.ts`, `src/data/zones/**`, the budget row (D-1173, D-1174) | `data` | standard | auto | — |
+| 1 | R204 — The capture set green on four runners: `captureSeeds.ts`, `v1-captures.spec.ts`, `captures.yml` (D-1213, D-1214) | `ui` | standard | auto | — |
 | 1 | R199 — The outcome: `src/lib/exampleOutcome.ts` and its test (D-1177's pure half) | `physics` | light | auto | — |
 | 2 | R200 — The example observer: the location slice, `transient()`, the latch effect, `startApp`'s start, `playwright.config.ts`'s zone, the wait's measurement (D-1175..D-1177, D-1183, D-1212) | `data` | standard | auto | R198, R199 |
 | 2 | R201 — The events: `model/measure.ts`, `measureEffects`, `scripts/funnel.ts` and their tests (D-1182 less `Home`) | `physics` | light | auto | R199 (lane) |
-| 3 | R202 — The first screen: `Home`, `ExampleBand`, `WhereReading`, the place screen, the steps deleted, the words, `where_shown`, `firstRun.spec.ts` (D-1178, D-1179, D-1181, D-1209..D-1211) | `ui` | hard | owner (captures) | R200, R201 |
+| 2 | R205 — CI by time: `ci.yml`'s `static` and `unit` jobs, `scripts/e2e-shards.ts`, the duration table, `CI_PR_BUDGET_MIN` 8 (D-1215, D-1216) | `ui` | standard | auto | R204 (lane) |
+| 3 | R202 — The first screen: `Home`, `ExampleBand`, `WhereReading`, the place screen, the steps deleted, the words, `where_shown`, `firstRun.spec.ts` (D-1178, D-1179, D-1181, D-1209..D-1211) | `ui` | hard | owner (captures) | R200, R201, R205 |
 | 4 | R203 — The pages and 2.16.0: `ExampleNotice`, the live page's branch, the captures, `package.json`, the release record (D-1180) | `ui` | standard | owner (captures) | R202 |
 
-Decision blocks: R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208.
+Decision blocks: R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208, R204 D-1217..D-1219, R205 D-1220..D-1223.
 Budget: the main chunk grows by at most 1 KB gzipped against 2.15.0; the zone table is a new chunk of at most 9 KB; the home chunk may shrink by the deleted steps.
+R204 and R205 are `standard`: workflow and test-harness edits checked by the phase's own runs, and R204's first green capture run on `main` is its proof.
 R202 is `hard` because it rewrites the home's first-visit branch across two layouts and two languages against a fold rule; the rest are a table, a slice and a list.
