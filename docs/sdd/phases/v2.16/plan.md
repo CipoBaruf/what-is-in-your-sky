@@ -206,7 +206,8 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   A shard the cut leaves empty exits before Playwright, which given no file would run them all. A partial unit selection runs on `unit`'s shard 1 and the other passes; `unit` skips with none, as `build` does.
   Every e2e shard now fails at `inputs` on a failed `build` (shard 1 no longer runs checks without `dist/`), so the old `build result` step is gone; the 5-minute jobs keep their 5.
 - **D-1223 — The run that proves it is the task's own, after the push.** *(R205)*
-  (FR-CI-4, FR-CI-5.) The task's own full CI run, its wall time against 8 minutes and its shard spread against 60 s: pending (the orchestrator pushes the branch with `full-ci`; the numbers go here).
+  (FR-CI-4, FR-CI-5.) The phase PR's first run, [44621824233](https://github.com/CipoBaruf/what-is-in-your-sky/actions/runs/44621824233) (#306, full selection, 792 e2e passed, none flaky): 7 min 45 s wall, inside 8.
+  Its e2e stages ran 3.6 to 5.3 min, a spread of about 100 s against 60, so the table was refreshed from that run's six `e2e-report-shard-<n>` reports (`npm run e2e:durations`, 76 specs); the next run's spread goes in the release record.
   The new checks are `static` and `unit (shard 1)`, `unit (shard 2)`; making them required on `main` is the owner's (`gh api` branch protection).
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
