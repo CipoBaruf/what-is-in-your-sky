@@ -148,7 +148,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** the other pages' line and the live page's branch (R203); the release record.
   - **Done when:** `npm run check` and `npm test` green; `ExampleBand.test.tsx` and `Home.test.tsx` cover FR-OPEN-3..6 and 12..14's component lines; `firstRun.spec.ts` covers US-60 and US-61 at the four sizes in both languages, each fallback cause and the late run; `measure.spec.ts` passes US-61 AC4's, the fallback and the wide walk with the city and coordinates in the forbidden strings; `messages.test.ts` and `controlRows.test.ts` hold the new keys at 360 and 390 px; the owner has compared the captures.
 
-- [ ] **R203 — Every page works with the example; 2.16.0**
+- [x] **R203 — Every page works with the example; 2.16.0** — done; the pages read `usePageObserver` (the store keeps the example after a fallback), the phone's pass and stars pages draw the line under their head, settings shows no place and no line, and the full capture set was compared on seven screens only (D-1205..D-1208).
   - **Lane:** ui
   - **Tier:** standard
   - **Gate:** owner
