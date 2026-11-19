@@ -40,6 +40,6 @@ It is the first release with a Worker script, so §29.4's preview checks come be
 
 - [x] `package.json` is `2.15.0`.
 - [ ] §29.3 decided and §29.4 checked.
-- [ ] Tag the squash merge of this release's pull request: `git tag -a v2.15.0 <sha> -m "v2.15.0: where they stop" && git push origin v2.15.0`.
-- [ ] Deploy it: `git push origin <sha>:release` (D-739; `docs/DEPLOY.md`).
+- [x] Tag the squash merge of this release's pull request: `git tag -a v2.15.0 <sha> -m "v2.15.0: where they stop" && git push origin v2.15.0`. Done 2026-11-19: `v2.15.0` on `89bf0a88` (#304).
+- [x] Deploy it: `git push origin <sha>:release` (D-739; `docs/DEPLOY.md`). Done 2026-11-19: `release` fast-forwarded `cd6ccb82..89bf0a88`, the production build green; on `inyoursky.app` an unknown path answers 404, `POST /e` 204, `GET /e` 405.
 - [ ] Make the API token (`docs/DEPLOY.md`, *Reading the funnel*) and run `npm run funnel` after the first day: it prints rows. The query and the answer's shape were not checked against the real API; `parseRows` in `scripts/funnel.ts` is where to fix a difference.
