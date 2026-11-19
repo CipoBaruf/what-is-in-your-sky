@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v0.26 — for review.** Plans SPEC v2.16 "an answer first": the decisions are §2.54 (D-1173..D-1183, D-1209..D-1211), the tests §9.18, the build §11.10 and the delivery §16.37 (six tasks, R198..R203, four waves, the first alongside v2.15), in `docs/sdd/phases/v2.16/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Status | **Draft v0.27 — for review.** Plans SPEC v2.16 "an answer first": the decisions are §2.54 (D-1173..D-1183, D-1209..D-1212), the tests §9.18, the build §11.10 and the delivery §16.37 (six tasks, R198..R203, four waves, none waiting on v2.15), in `docs/sdd/phases/v2.16/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
 | Date | 2026-11-18 (v0.26). Earlier dates are in the [revision history](#revision-history). |
-| Input | `SPEC.md` v2.16: V216-1..V216-14 are fixed like the rows before them. Earlier inputs are in the [revision history](#revision-history). |
+| Input | `SPEC.md` v2.16: V216-1..V216-16 are fixed like the rows before them. Earlier inputs are in the [revision history](#revision-history). |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the tasks of every phase from v1 on are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---

@@ -5,14 +5,15 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 ### 2.54 v2.16 decisions (2026-11-18)
 
 - **D-1173 — The zones are vendored tzdata, built into a text table.**
-  (FR-OPEN-1; V216-2.) `scripts/data/tz/zone1970.tab` and `scripts/data/tz/backward` are copied unchanged from one tzdata release (public domain), its version on the first line of `scripts/data/tz/README.md`; they are committed before R198 starts, because task sessions have no network.
-  `scripts/build-zones.ts` (`npm run build:zones`) writes `src/data/zones/zones.txt`: a line `Zone\tName\tΔlat\tΔlon` per canonical zone (0.01° as in `places.txt`) and a line `=Alias\tZone` per `backward` link whose target is in the table.
-  `Name` is the nearest town of `src/data/places/places.txt` within `ZONE_NAME_MATCH_KM` (50), by `greatCircleKm`; otherwise the zone's last part with `_` as a space.
+  (FR-OPEN-1; V216-2, V216-15.) `scripts/data/tz/zone.tab`, `zone1970.tab` and `backward` are copied unchanged from one tzdata release (public domain), its version on the first line of `scripts/data/tz/README.md`; all three are committed (2026f), because task sessions have no network.
+  `scripts/build-zones.ts` (`npm run build:zones`) writes `src/data/zones/zones.txt`: a line `Zone\tΔlat\tΔlon[\tName]` per zone `zone.tab` or `zone1970.tab` lists (0.01° as in `places.txt`, sorted by zone, `zone.tab`'s coordinates first where both list it), and a line `=Alias\tZone` per `backward` link whose alias is not a row and whose target is.
+  So `Europe/Stockholm` is its own row at Stockholm, though `backward` links it to `Europe/Berlin`; `Asia/Calcutta` is an alias of `Asia/Kolkata`.
+  `Name` is written only where it differs from the zone's last part with `_` as a space; it is the nearest town of `src/data/places/places.txt` within `ZONE_NAME_MATCH_KM` (50), by `greatCircleKm`; otherwise the zone's last part with `_` as a space.
   The output is committed, like `places.txt`, so a build never reads the tz files.
 - **D-1174 — The lookup is pure, the table is its own chunk.**
   (FR-OPEN-1.) `src/data/zones/zoneCity.ts` exports `parseZones(text)`, `zoneCity(zone, zones)` → `{ name, lat, lon } | null` and `loadZoneCity()`, which imports `zones.txt?raw` dynamically, as `nearestTown.ts` imports the places.
   `null` for a missing or empty zone, `UTC`, anything under `Etc/` and an unknown name; an alias resolves once, never in a chain.
-  `bundle:budget` gains the chunk's row at `ZONE_TABLE_MAX_KB` (6 KB gzipped).
+  `bundle:budget` gains the chunk's row at `ZONE_TABLE_MAX_KB` (9 KB gzipped; a draft of the two files' 418 + 146 rows measured 7.0 KB before names, V216-15).
 - **D-1175 — The example is a third observer slot, never written.**
   (FR-OPEN-2; V216-6.) `ObserverSource` gains `'example'`; the location slice gains `example: Observer | null` and `setExample`; `activeObserver` becomes `visiting ?? observer ?? example`, so every page that reads it works for the example with no change of its own (FR-OPEN-7).
   `setObserver` clears `example`; the store's write-through still watches `observer` only (D-538), so nothing writes the example.
@@ -21,6 +22,11 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1176 — The example starts after the first paint, only on a first visit.**
   (FR-OPEN-2, FR-OPEN-9.) `startApp`, with no stored observer and no link being visited, awaits `loadZoneCity()` after the first render and calls `setExample` with the city, altitude 0, `timeZone` the zone itself, and `exampleStartedMs` from the injected clock.
   A load with a stored observer never imports the table.
+- **D-1212 — The wait is checked against a throttled cold visit.**
+  (FR-OPEN-4; V216-15.) R200 adds `tests/e2e/exampleWait.spec.ts`, run only under `EXAMPLE_WAIT=1` like `DOME_PERF`: 390 × 844, empty storage and cache, CDP network at Slow 4G (400 ms latency, 400 kbit/s down) and CPU at 4×, with the elements and forecast served from the fixtures through the throttled route.
+  It times the first paint to the latch, best of three (as D-817), and R200 writes the figure in its decisions block.
+  `EXAMPLE_WAIT_MS` stays 10 000 unless the figure is under 3 s, when it becomes three times the figure rounded up to the second; over 10 s, R200 stops and asks.
+  The release record repeats the reading on the owner's phone.
 - **D-1177 — The outcome is one pure function, latched once.**
   (FR-OPEN-4, FR-OPEN-6.) `src/lib/exampleOutcome.ts` exports `EXAMPLE_WAIT_MS` (10 000) and `exampleOutcome({ city, elements, passes, startedMs, nowMs })` → `'pending' | 'pass' | 'none' | 'no_city' | 'failed' | 'slow'`: `failed` from an elements or passes `Failure`, `none` where the finished run has no visible pass (FR-FIRST-3's next-event module returns none), `slow` past the wait.
   A state effect evaluates it on each change and on one timer at `EXAMPLE_WAIT_MS`, and stores the first value that is not `pending` in the slice's `exampleOutcome`; it is never recomputed in that load (FR-OPEN-6's late run).
@@ -59,7 +65,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
-- **Pure.** `scripts/build-zones.test.ts` (a fixture of `zone1970.tab` and `backward` rows, a name from a town and one without), `src/data/zones/zoneCity.test.ts` (FR-OPEN-1's cases), `src/lib/exampleOutcome.test.ts` (each outcome, the wait's edge, a pass inside 72 h on a later night is `pass`).
+- **Pure.** `scripts/build-zones.test.ts` (a fixture of `zone.tab`, `zone1970.tab` and `backward` rows: a merged zone kept at its own city, an alias kept and an alias dropped because it is a row, a name from a town and one without), `src/data/zones/zoneCity.test.ts` (FR-OPEN-1's cases), `src/lib/exampleOutcome.test.ts` (each outcome, the wait's edge, a pass inside 72 h on a later night is `pass`).
 - **State.** `location.test.ts`: `activeObserver`'s order, `setObserver` clearing the example, the example never in the write-through; `effects.test.ts`: no `saveRun` and `persist: false` under the example; the latch never moves; `measureEffects.test.ts`: `example_shown` once per outcome.
 - **Components.** `ExampleBand.test.tsx` (blocks, the card as a control, the waiting state), `ExampleNotice.test.tsx`, `Home.test.tsx` re-pointed from the steps to the band and the place screen; `messages.test.ts` and `controlRows.test.ts` for the new keys; `breakpoint.test.ts`'s `HEADER_FOLD_PX` row.
 - **End to end.** `firstRun.spec.ts`: US-60 and US-61 at 390 × 844, 360 × 640, 1024 × 768 and 1280 × 800 in both languages; each fallback cause; the late run; storage and hosts after the example (FR-OPEN-2). `measure.spec.ts`: US-61 AC4's walk, the fallback walk, the wide walk, the zone city in the forbidden strings.
@@ -68,26 +74,26 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 ### 11.10 v2.16 build *(FR-OPEN-1)*
 
 `npm run build:zones` regenerates `src/data/zones/zones.txt` from the vendored tz files and `places.txt`; it is run by hand when either changes, like `build:places`, and the output is committed.
-The tz files are public domain (tzdata's own notice), about 25 KB in the repository and none of it shipped: the shipped table is at most 6 KB gzipped in its own chunk, loaded only on a first visit.
+The tz files are public domain (tzdata's own notice), about 45 KB in the repository and none of it shipped: the shipped table is at most 9 KB gzipped in its own chunk, loaded only on a first visit.
 No npm dependency is added and no host is added to the CSP.
 
 ### 16.37 v2.16 delivery
 
 Six tasks in four waves, each built by a sub-agent in its own worktree and merged into the phase branch when its checks are green; one pull request for the phase when the owner asks for it.
-Wave 1 runs alongside v2.15: it adds files of its own and touches none of v2.15's (V216-10).
-Wave 2 starts once v2.15's R196 has merged, from the merged branch.
+v2.15 shipped as 2.15.0 before the breakdown, so no task waits on it (V216-16); the phase branch is rebased onto `main` and each wave starts from the branch with the wave before it merged.
+The driver runs one task per lane at a time, so R199 and R201, both `physics`, sit in different waves.
 The Lane column is §16.1's; this phase adds `scripts/build-zones.ts` and `scripts/data/tz/**` to `data`, `src/lib/exampleOutcome.ts` to `physics`, and gives `physics` R201's `scripts/funnel.ts` edit because the change starts in `src/model/measure.ts`.
-Precondition for R198: the two tz files and their README are committed (D-1173).
+Precondition for R198: the three tz files and their README are committed (D-1173), as they are.
 
 | Wave | Task | Lane | Tier | Gate | Depends on |
 |---|---|---|---|---|---|
-| 1 | R198 — The zone table: `scripts/build-zones.ts`, `src/data/zones/**`, the budget row (D-1173, D-1174) | `data` | standard | auto | the tz files |
+| 1 | R198 — The zone table: `scripts/build-zones.ts`, `src/data/zones/**`, the budget row (D-1173, D-1174) | `data` | standard | auto | — |
 | 1 | R199 — The outcome: `src/lib/exampleOutcome.ts` and its test (D-1177's pure half) | `physics` | light | auto | — |
-| 2 | R200 — The example observer: the location slice, `transient()`, the latch effect, `startApp`'s start, `playwright.config.ts`'s zone (D-1175..D-1177, D-1183) | `data` | standard | auto | R198, R199, v2.15 R196 |
-| 2 | R201 — The events: `model/measure.ts`, `measureEffects`, `scripts/funnel.ts` and their tests (D-1182 less `Home`) | `physics` | light | auto | v2.15 R196 |
+| 2 | R200 — The example observer: the location slice, `transient()`, the latch effect, `startApp`'s start, `playwright.config.ts`'s zone, the wait's measurement (D-1175..D-1177, D-1183, D-1212) | `data` | standard | auto | R198, R199 |
+| 2 | R201 — The events: `model/measure.ts`, `measureEffects`, `scripts/funnel.ts` and their tests (D-1182 less `Home`) | `physics` | light | auto | R199 (lane) |
 | 3 | R202 — The first screen: `Home`, `ExampleBand`, `WhereReading`, the place screen, the steps deleted, the words, `where_shown`, `firstRun.spec.ts` (D-1178, D-1179, D-1181, D-1209..D-1211) | `ui` | hard | owner (captures) | R200, R201 |
 | 4 | R203 — The pages and 2.16.0: `ExampleNotice`, the live page's branch, the captures, `package.json`, the release record (D-1180) | `ui` | standard | owner (captures) | R202 |
 
 Decision blocks: R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208.
-Budget: the main chunk grows by at most 1 KB gzipped against 2.15.0; the zone table is a new chunk of at most 6 KB; the home chunk may shrink by the deleted steps.
+Budget: the main chunk grows by at most 1 KB gzipped against 2.15.0; the zone table is a new chunk of at most 9 KB; the home chunk may shrink by the deleted steps.
 R202 is `hard` because it rewrites the home's first-visit branch across two layouts and two languages against a fold rule; the rest are a table, a slice and a list.
