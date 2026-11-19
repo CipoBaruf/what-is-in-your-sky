@@ -811,6 +811,29 @@ async function exampleAt(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await page.mouse.move(0, 0);
 }
 
+/**
+ * R203 (FR-OPEN-7, D-1205): a page one of the example's doors opens, its line under the header — the live page's
+ * card and the wide page's question answered as `liveAt` answers them — at the set's instant on the dot.
+ */
+async function fromExample(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, door: 'door-satellites' | 'door-live' | 'door-stars'): Promise<void> {
+  await exampleAt(page, width, theme, locale, CLOCK);
+  await page.getByTestId(door).click();
+  await ticked(page, page.getByTestId('example-notice'));
+  // The page's chunk and its drawing are lazy, and the paused clock holds their reveals (R32).
+  await ticked(page, page.locator('svg[data-globe][viewBox], svg[data-drawing], [data-testid="sky-chart"] [data-star]'));
+  await page.clock.runFor(1000);
+  // The live page asks once its passes are known: the phone with its card, the desk with its question.
+  const card = page.getByTestId('live-card');
+  const question = page.getByTestId('first-pass-dialog');
+  for (let tick = 0; door === 'door-live' && tick < 25 && (await card.count()) + (await question.count()) === 0; tick++) await page.clock.runFor(200);
+  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+  await stayHere(page);
+  await page.clock.runFor(1000);
+  await pinnedAt(page, CLOCK);
+  await blurFocus(page);
+  await page.mouse.move(0, 0);
+}
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
@@ -864,6 +887,19 @@ const REACH: Record<string, Reach> = {
   async 'first-noon'(page, width, theme, locale) {
     await exampleAt(page, width, theme, locale, EXAMPLE_NOON);
     await expect(page.getByTestId('example-after-dusk')).toBeVisible();
+  },
+
+  // R203 (FR-OPEN-7): the pages the example opens, each with its line.
+  async 'first-pass'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-satellites');
+  },
+
+  async 'first-live'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-live');
+  },
+
+  async 'first-stars'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-stars');
   },
 
   async home(page, width, theme, locale, view) {
