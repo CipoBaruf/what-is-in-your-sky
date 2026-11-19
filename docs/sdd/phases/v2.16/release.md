@@ -8,11 +8,13 @@ CI answers by time: the typecheck, lint and unit suite run beside the build and 
 
 ### 30.1 The captures (FR-OPEN-9, FR-OPEN-11, FR-CAP-5)
 
-The set is **508 files**, against 464 on 2.15.0: R202 added 32 (`first-example`, `first-example-short`, `first-wait`, `first-wait-short`, `first-place`, `first-place-short`, `first-noon`, `location-short` and `location` at 1024; D-1203) and R203 adds 12 (`first-pass`, `first-live` and `first-stars` at 390 and 1280, dark, both languages; D-1207). The step captures of `r76-captures.spec.ts` and `r84-captures.spec.ts` left with the steps; they were not in the set (D-1203).
+The set is **508 files**, against 464 on 2.15.0: R202 added 32 (`first-example`, `first-example-short`, `first-wait`, `first-wait-short`, `first-place`, `first-place-short`, `first-noon`, `location-short` and `location` at 1024; D-1203) and R203 adds 12 (`first-pass`, `first-live` and `first-stars` at 390 and 1280, dark, both languages; D-1207).
+The step captures of `r76-captures.spec.ts` and `r84-captures.spec.ts` left with the steps; they were not in the set (D-1203).
 
 The whole set was not shot here. On the Mac, beside `v2.15.0` built and shot in the same run (plain builds, Google Chrome), seven screens were compared by pixels — `home`, `favourites`, `settings`, `guide`, `live-watching`, `stars`, `stars-globe`, 168 files — with `scripts/captures/diff.ts`:
 
-- **The header's tagline (FR-OPEN-8, FR-OPEN-9, D-1181, D-1204), the one named move of a returning visit.** Every `home` file at 1024, 1280 and 1920 changes in the header alone: in English the tagline's new words (0.2–0.5 % of the pixels); in Spanish at 1024 the tagline now shows, a second header line that moves the page under it down (8–10 %), and at 1280 and 1920 the new words (0.2–0.4 %). The Spanish home captures at 964–1049 px of `captures.yml` gain the same line.
+- **The header's tagline (FR-OPEN-8, FR-OPEN-9, D-1181, D-1204), the one named move of a returning visit.** Every `home` file at 1024, 1280 and 1920 changes in the header alone: in English the tagline's new words (0.2–0.5 % of the pixels); in Spanish at 1024 the tagline now shows, a second header line that moves the page under it down (8–10 %), and at 1280 and 1920 the new words (0.2–0.4 %).
+  The Spanish home captures at 964–1049 px of `captures.yml` gain the same line.
 - **The phone's follow question, a harness change and not the app's.** `live-watching` and `stars` at 360, 390 and 844 differ by 5–6 % because the 2.15.0 spec did not seed `wiys:followAsked:v1` and the question stood over the sky; R204's seed (FR-CI-6, D-1213) answers it before the page opens.
 - **Unchanged** (under 0.1 %): `favourites`, `settings`, `guide`, `stars-globe`, `live-watching` at 1280 and up, `stars` at 1280 and up, and the phones' `home`.
 - **New:** FR-OPEN-11's files (R202) and the pages the example opens (R203). The owner's review copies, shot on the Mac, are `docs/screenshots/v2.16-r202/` and `docs/screenshots/v2.16-r203/`.
@@ -43,11 +45,14 @@ D-178 re-sets every row: the measure × 1.1, up to the next 5 KB line, floored a
 | facts | 4.8 | 6 | 4.8 | −2 bytes |
 | settings | 1.2 | 10 | 1.2 | +1 byte |
 
-**`main` is +385 bytes** (199,454 → 199,839), inside 1 KB of 2.15.0: R200's example and R202's band and `usePlaceOpen` against the steps, the step catalog keys and `lib/moonNote.ts` that R202 removed (199,664 at R202's merge), and R203's page line and `usePageObserver` (+175). D-1204 named 199,845 bytes for 2.15.0; a plain build of the tag reads 199,454 here, and against D-1204's figure the change is −6. The row stays over its 185 line as it was on 2.15.0 (V214-20). **`zones`** is the time zone table (FR-OPEN-1), loaded only on a first visit; the rule's 10 is capped at `ZONE_TABLE_MAX_KB` (9). **`stars`** and **`globe`** take the example's line on the stars page.
+**`main` is +385 bytes** (199,454 → 199,839), inside 1 KB of 2.15.0: R200's example and R202's band and `usePlaceOpen` against the steps, the step catalog keys and `lib/moonNote.ts` that R202 removed (199,664 at R202's merge), and R203's page line and `usePageObserver` (+175).
+D-1204 named 199,845 bytes for 2.15.0; a plain build of the tag reads 199,454 here, and against D-1204's figure the change is −6. The row stays over its 185 line as it was on 2.15.0 (V214-20). **`zones`** is the time zone table (FR-OPEN-1), loaded only on a first visit; the rule's 10 is capped at `ZONE_TABLE_MAX_KB` (9).
+**`stars`** and **`globe`** take the example's line on the stars page.
 
 ### 30.3 What the phase removed
 
-`npm run check:dead` reports nothing. R202 removed the first-run steps, the files named without their path as they are gone: StepLine.tsx, WhenStep.tsx, WhatStep.tsx and Steps.module.css under the home's screens, with WhenStep.clouds.test.tsx and tonight.test.ts; lib/moonNote.ts with its test; the e2e spec first-run-controls.spec.ts; the steps' catalog keys and the doors' `onWhat` (D-1204). R201 removed the `when_shown` and `what_shown` events (D-1197).
+`npm run check:dead` reports nothing. R202 removed the first-run steps, the files named without their path as they are gone:
+StepLine.tsx, WhenStep.tsx, WhatStep.tsx and Steps.module.css under the home's screens, with WhenStep.clouds.test.tsx and tonight.test.ts; lib/moonNote.ts with its test; the e2e spec first-run-controls.spec.ts; the steps' catalog keys and the doors' `onWhat` (D-1204). R201 removed the `when_shown` and `what_shown` events (D-1197).
 
 The phase was built by sub-agents outside the driver, so `sdd-run/usage.jsonl` has no row for it; no tier ceiling is set.
 
