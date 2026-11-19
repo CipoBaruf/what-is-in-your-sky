@@ -31,9 +31,9 @@ It is the first release with a Worker script, so §29.4's preview checks come be
 
 `docs/DEPLOY.md`, *First preview deploy*, has the commands. None of these could be checked while building.
 
-- [ ] The deploy accepts `run_worker_first: ["/e"]`, the `EVENTS` binding and the TypeScript `main`.
-- [ ] An unknown path still answers the 404 page.
-- [ ] `POST /e` answers `204` and `GET /e` answers `405`.
+- [x] The deploy accepts `run_worker_first: ["/e"]`, the `EVENTS` binding and the TypeScript `main`.
+- [x] An unknown path still answers the 404 page.
+- [x] `POST /e` answers `204` and `GET /e` answers `405`.
 
 ### 29.5 The release itself — `v2.15.0`
 
