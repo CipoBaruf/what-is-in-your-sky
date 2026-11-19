@@ -18,7 +18,7 @@ import { LIVE_WINDOW_MS } from '../../lib/livePasses';
 import { HOUR_MS, type SkyBand, type Span } from '../../lib/timeStripe';
 import { tonightsDark, tonightsStarsFrom } from '../../lib/tonightStripe';
 import type { ChartView, EpochMs, Locale, Observer, TonightCloud } from '../../model';
-import { appStore, favouriteCellKey, mostRecentlyUsed, useActiveObserver, useAppStore } from '../../state';
+import { appStore, favouriteCellKey, mostRecentlyUsed, useAppStore } from '../../state';
 import { GLOBE_SPAN_DAYS } from '../components/guide/skychart/globe/constants';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
@@ -40,6 +40,7 @@ import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHead } from '../components/sky/SkyHead';
+import { ExampleNotice } from '../components/common/ExampleNotice';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
 import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
@@ -47,6 +48,7 @@ import { useFollow } from '../components/sky/useFollow';
 import { FollowAsk } from '../components/sky/FollowAsk';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { usePageObserver } from '../hooks/useOwnObserver';
 import { darkWindowText } from '../components/now/ConditionsTable';
 import { close } from '../navigation';
 import { nextView, viewFor, WIDE_VIEWS } from './chartViewDefault';
@@ -203,7 +205,8 @@ const windowBox = (sky: HTMLElement): HTMLElement | null => sky.querySelector('s
 
 export function StarsPage() {
   const p = useStarsPageT();
-  const observer = useActiveObserver();
+  // R203 (FR-OPEN-6, D-1205): the example opens the page while it is drawn, never after the fallback.
+  const observer = usePageObserver();
   // FR-A11Y-1..3: with no place the page's one control, `[ set a place ]`, takes the focus, as the box does with one.
   const inertRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -693,6 +696,8 @@ function StarsSky({ observer }: { observer: Observer }) {
         {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question, a portal while asking. */}
         <FollowAsk follow={follow} />
         <SkyHead line={<StarsHeadLine observer={observer} now={now} sunUp={sunUp} />} onBack={close} className={styles.head} />
+        {/* R203 (FR-OPEN-7, D-1205): the box covers the shell's strip on a phone, so the example's line is drawn under the head. */}
+        <ExampleNotice className={styles.example} />
         {hintLine !== null && !follow.refused && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
             <SkyHint view={chartView} fit />

@@ -197,6 +197,24 @@ describe('<LivePage>', () => {
       expect(onLeave).toHaveBeenCalledTimes(1);
     });
 
+    // R203 (FR-OPEN-7, FR-OPEN-6; D-1180, D-1205): "needs a place" is for no example — or one the fallback replaced.
+    it('opens for the example while it is drawn, and says no place once the fallback replaced it', () => {
+      const example: Observer = { ...observer, label: 'Buenos Aires', source: 'example' };
+      act(() => {
+        appStore.setState({ example, exampleOutcome: 'pending', elements: { status: 'loading' } });
+      });
+      const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'loading');
+      expect(screen.getByTestId('live-place')).toHaveTextContent('Buenos Aires');
+      unmount();
+      act(() => {
+        appStore.setState({ exampleOutcome: 'slow' });
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'no-place');
+      expect(screen.getByTestId('live-inert')).toHaveTextContent(en.live.noPlace);
+    });
+
     it('says loading, with the bead moving, while the elements load — and on a cold open, before the effects start', () => {
       for (const elements of [{ status: 'idle' }, { status: 'loading' }] as const) {
         withSky([], elements);

@@ -14,7 +14,7 @@ import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
 import { nextTarget, openingChoice, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
-import { selectOrbitHeight, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
+import { selectOrbitHeight, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { count } from '../../state/measure';
 import { sameLocation } from '../../state/slices/location';
 import { FailureLine } from '../components/common/FailureLine';
@@ -67,6 +67,7 @@ import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sk
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { REDUCED_MOTION, useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
+import { usePageObserver } from '../hooks/useOwnObserver';
 import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { requestPlace } from './home/placeRequest';
@@ -185,7 +186,8 @@ export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
 
 export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps) {
   const t = useT();
-  const observer = useActiveObserver();
+  // R203 (FR-OPEN-7, D-1180, D-1205): the example opens the page; "needs a place" is for no example, or one the fallback replaced.
+  const observer = usePageObserver();
   const elements = useAppStore((s) => s.elements);
   /*
    * R48 (FR-LIVE-7 as amended, FR-COMP-1, D-244): on compact the top row is one
