@@ -76,6 +76,26 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   `src/lib` may not import `src/state` (PLAN §3), so the failure inputs are typed by `FailureLike` (`{ kind, detail }`), which `state/failure`'s `Failure` satisfies.
   `none` is `isNoEvent(nextEvent(passes, nowMs))`, so a pass already over at `nowMs` does not count and a pass on a later night inside the 72 h does.
 
+- **D-1190 — The slice holds `example`, `exampleStartedMs` and `exampleOutcome`, which starts `pending`.** *(R200)*
+  (D-1175, D-1195.) `exampleOutcome: ExampleOutcome` is `'pending'` until `latchExampleOutcome` stores the first other value; a second call changes nothing, and `setObserver` drops `example` but keeps the outcome, so nothing recomputes it in that load. R201's cast in `measureEffects.ts` is dropped.
+  `setExample(observer, startedMs)` is ignored while a place is set or visited, and sets `nowMs` to `startedMs`, the search window's start.
+  `ObserverSource` gains `'example'` in `src/model/observer.ts` (outside the lane, the one word D-1175 names); its two exhaustive readers follow: `measureEffects`'s `place_set` returns on it (the example is never `observer`) and `WherePlace`'s sentence reads it as a named place until R202 gives it its own line.
+- **D-1191 — The latch reads only the example's own finished run, on one timer.** *(R200)*
+  (D-1177, D-1188.) `startEffects` asks `exampleOutcome` while `example` is the active observer and the outcome is `pending`: `elements` is the slice's failure when its status is `error`, `passes` the run only when the slice's observer is the example's — `passes.error` when failed, `passes.passes` when done and not a stored run, null otherwise.
+  The timer is armed once, at `exampleStartedMs + EXAMPLE_WAIT_MS` by the effects' clock. A place set before the outcome stops it and leaves `pending`, so a reader who answered the question during the wait sends no `example_shown`.
+  `transient()` is `visiting !== null || observer === null`, as D-1175 has it.
+- **D-1192 — The start is a frame then a task, and a place set during the lookup wins.** *(R200)*
+  (D-1176.) `startApp` checks `activeObserver` after the restore and the link; with none it waits for `requestAnimationFrame` then `setTimeout(0)` (the measure sender's own "after the paint") before importing the table, and checks again when the city arrives. The observer's `timeZone` is `Intl`'s zone, its label the city's name.
+  A table chunk that fails to load latches `no_city`, as no city does. Overrides `loadZoneCity` and `afterPaint` are the test seam.
+  Because `activeObserver` includes the example, a `#pass/…` hash the example writes is "the place on screen" to `applyLink` and is not adopted as a stored place; a pasted link for exactly the zone city's coordinates is not adopted either, an accepted edge.
+- **D-1193 — The throttled wait is 3.25 s; `EXAMPLE_WAIT_MS` stays 10 000.** *(R200)*
+  (D-1212, V216-15.) `exampleWait.spec.ts` on Apple silicon with Google Chrome (`channel: 'chrome'`), 2026-11-19: 3.25, 3.38 and 3.67 s, best 3.25 s, each outcome `pass`; a second sitting read 3.81, 3.86 and 3.89 s. Not under 3 s, so the constant is unchanged.
+  The app's own files are throttled by CDP; a fulfilled route skips the browser's emulation, so the elements and the forecast are delayed by hand by 400 ms plus their gzipped size at 400 kbit/s. The first contentful paint is read by a `PerformanceObserver` added before `page.clock.install` (which fakes `performance`), and the latch is timed at the `example_shown` beacon.
+  The spec skips with `test.skip(process.env['EXAMPLE_WAIT'] !== '1', …)` but is not in `playwright.config.ts`'s `GATE`: `tests/docs/ci.test.ts` pins that list to `CAPTURES` and `DOME_PERF`, so CI carries one skipped test.
+- **D-1194 — The zone row prints: 6.6 KB; the main row is +0.9 KB.** *(R200)*
+  (D-1186, FR-OPEN-1.) With `loadZoneCity` imported by `startApp`, `zones-*.js` is 6.6 KB gzipped (6,791 bytes) against `ZONE_TABLE_MAX_KB` (9), and the missing-row warning D-1186 accepted is gone.
+  The main chunk is 195.8 KB (200,794 bytes) against 194.8 KB (199,845) on the phase branch's tip and 2.15.0, +949 bytes, inside the 1 KB the task allows; it stays over the 185 KB line as 2.15.0 was.
+
 - **D-1195 — `example_shown` is sent once per load, from the latch's first value.** *(R201)*
   (FR-OPEN-10, D-1182, D-1177.) `measureEffects` reads `exampleOutcome` from the flat `AppState` (the slices are merged, so it is `state.exampleOutcome`, not `state.location.exampleOutcome`) and sends `example_shown` with the first value that is not `pending`, checking the state it starts on and every change after; a closure flag makes it once, though the latch never moves.
   `no_city` takes the same path: R200's latch stores it where `setExample` is skipped, so `measureEffects` has no second rule.
