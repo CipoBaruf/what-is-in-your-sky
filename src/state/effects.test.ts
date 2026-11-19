@@ -16,6 +16,7 @@ import type { CatalogEntry, EpochMs, NowState, Observer, Pass, PassRun, Satellit
 import { createPassesCache, MAX_STORED_RUNS, memoryPassRunStore, passCellKey, type FinishedRun, type PassRunStore } from '../data/passesCache';
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
 import { SEARCH_WINDOW_MS } from './passWindow';
+import { EXAMPLE_WAIT_MS } from '../lib/exampleOutcome';
 import { createLocalPrefs } from '../data/localPrefs';
 import { startApp } from './index';
 import { followHash } from './openLink';
@@ -1498,5 +1499,208 @@ describe('R86: failures, retries, the forecast refresh and the stale recompute (
       expect(weatherRequests).toHaveLength(1);
       stop = () => undefined;
     });
+  });
+});
+
+/**
+ * TASKS R200 (FR-OPEN-2, FR-OPEN-6; D-1175, D-1177, D-1188): the example runs the chain like a visit — its run is never
+ * saved and its forecast is asked for with `persist: false` — and its outcome is latched once, on a change or on the
+ * one timer at EXAMPLE_WAIT_MS from its start.
+ */
+describe('the example (R200, FR-OPEN-2, FR-OPEN-6)', () => {
+  const example: Observer = { lat: -34.6, lon: -58.45, altM: 0, label: 'Buenos Aires', source: 'example', timeZone: 'America/Argentina/Buenos_Aires' };
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let stop: () => void = () => undefined;
+  let saved: FinishedRun[];
+  let persisted: (boolean | undefined)[];
+  let written: number;
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+  const start = (loader: EffectDeps['loadElements'] = () => Promise.resolve(loaded(fixtureRecords())), now: () => EpochMs = () => NOW): void => {
+    saved = [];
+    persisted = [];
+    written = 0;
+    store = createAppStore({
+      now,
+      prefs: {
+        read: () => ({}),
+        write: () => {
+          written++;
+        },
+      },
+    });
+    worker = fakeWorker();
+    stop = startEffects({
+      store,
+      client: createWorkerClient(() => worker),
+      catalog: CATALOG,
+      loadElements: loader,
+      loadWeather: (lat, lon, options) => {
+        persisted.push(options?.persist);
+        return Promise.resolve(snapshotFor(lat, lon));
+      },
+      loadStoredRun: () => Promise.resolve(null),
+      saveRun: (run) => {
+        saved.push(run);
+        return Promise.resolve(null);
+      },
+      now,
+      visibility: ALWAYS_VISIBLE,
+    });
+  };
+  const runJob = async (passes: Pass[]): Promise<void> => {
+    await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+    worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[0]?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(1));
+    const jobId = sent('computePasses')[0]?.jobId ?? '';
+    if (passes.length > 0) worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes });
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 5, hasDarkness: true });
+  };
+
+  afterEach(() => {
+    stop();
+    vi.useRealTimers();
+  });
+
+  it('FR-OPEN-2: computes for the example, never saves its run, loads its forecast unsaved, and latches pass', async () => {
+    start();
+    store.getState().setExample(example, NOW);
+    await runJob([samplePass(25544, NOW + 3_600_000)]);
+    expect(store.getState().passes).toMatchObject({ status: 'done', observer: example });
+    expect(saved).toEqual([]);
+    expect(persisted).toEqual([false]);
+    expect(store.getState().weather.snapshot).not.toBeNull();
+    expect(written).toBe(0);
+    expect(store.getState().exampleOutcome).toBe('pass');
+  });
+
+  it('FR-OPEN-6: a run with no visible pass latches none, and a later failure does not move it', async () => {
+    start();
+    store.getState().setExample(example, NOW);
+    await runJob([]);
+    expect(store.getState().exampleOutcome).toBe('none');
+    store.getState().setElements({ status: 'error', failure: { kind: 'unknown', detail: 'late' } });
+    expect(store.getState().exampleOutcome).toBe('none');
+  });
+
+  it('FR-OPEN-6: failed elements latch failed, and the run that follows does not move it', async () => {
+    let fail = true;
+    start(() => (fail ? Promise.reject(new Error('offline')) : Promise.resolve(loaded(fixtureRecords()))));
+    await vi.waitFor(() => expect(store.getState().elements.status).toBe('error'));
+    fail = false;
+    store.getState().setExample(example, NOW);
+    expect(store.getState().exampleOutcome).toBe('failed');
+    await runJob([samplePass(25544, NOW + 3_600_000)]);
+    expect(store.getState().passes.status).toBe('done');
+    expect(store.getState().exampleOutcome).toBe('failed');
+  });
+
+  it('D-1188: the one timer at EXAMPLE_WAIT_MS latches slow, and a late run leaves it slow', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(NOW);
+    start(
+      () => new Promise(() => undefined),
+      () => Date.now(),
+    );
+    store.getState().setExample(example, NOW);
+    vi.advanceTimersByTime(EXAMPLE_WAIT_MS - 1);
+    expect(store.getState().exampleOutcome).toBe('pending');
+    vi.advanceTimersByTime(1);
+    expect(store.getState().exampleOutcome).toBe('slow');
+    // The run arrives after the wait: the slice holds it, the outcome does not change (FR-OPEN-6's late run).
+    store.setState({ passes: { ...store.getState().passes, status: 'done', observer: example, passes: [samplePass(25544, NOW + 3_600_000)], storedAt: null } });
+    expect(store.getState().exampleOutcome).toBe('slow');
+  });
+
+  it('a place set before the outcome stops the wait without latching', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(NOW);
+    start(
+      () => new Promise(() => undefined),
+      () => Date.now(),
+    );
+    store.getState().setExample(example, NOW);
+    store.getState().setObserver(neuquen);
+    vi.advanceTimersByTime(EXAMPLE_WAIT_MS);
+    expect(store.getState().exampleOutcome).toBe('pending');
+    expect(store.getState().example).toBeNull();
+  });
+});
+
+/** TASKS R200 (FR-OPEN-2, FR-OPEN-9, D-1176): `startApp` starts the example after the first paint, on a first visit only. */
+describe('startApp’s example (R200, D-1176)', () => {
+  const city = { name: 'Buenos Aires', lat: -34.6, lon: -58.45 };
+  const saved: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
+  let stop: () => void = () => undefined;
+  afterEach(() => {
+    stop();
+  });
+
+  const boot = (stored: Observer | null, found: typeof city | null, hash = '') => {
+    const map = new Map<string, string>();
+    if (stored) map.set('wiys:prefs:v1', JSON.stringify({ observer: stored }));
+    const prefs = createLocalPrefs({ getItem: (key) => map.get(key) ?? null, setItem: (key, value) => void map.set(key, value), removeItem: (key) => void map.delete(key) });
+    const store = createAppStore({ now: () => NOW, prefs });
+    const lookups = vi.fn(() => Promise.resolve(found));
+    let painted: (() => void) | null = null;
+    stop = startApp({
+      store,
+      prefs,
+      cache: { loadForObserver: () => Promise.resolve(null), save: () => Promise.resolve(null) },
+      createWorker: () => fakeWorker(),
+      loadElements: () => new Promise(() => undefined),
+      loadWeather: neverWeather,
+      now: () => NOW + 7,
+      visibility: ALWAYS_VISIBLE,
+      hash,
+      loadZoneCity: lookups,
+      afterPaint: (run) => {
+        painted = run;
+      },
+    });
+    const paint = (): void => {
+      painted?.();
+    };
+    return { store, map, lookups, paint };
+  };
+
+  it('FR-OPEN-2: a first visit looks from the zone city once the first frame has painted, and stores nothing', async () => {
+    const { store, map, lookups, paint } = boot(null, city);
+    expect(lookups).not.toHaveBeenCalled(); // nothing before the paint
+    paint();
+    await vi.waitFor(() => expect(store.getState().example).not.toBeNull());
+    expect(store.getState().example).toEqual({ lat: -34.6, lon: -58.45, altM: 0, label: 'Buenos Aires', source: 'example', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    expect(store.getState().exampleStartedMs).toBe(NOW + 7);
+    expect(store.getState().observer).toBeNull();
+    expect(map.get('wiys:prefs:v1') ?? '').not.toContain('Buenos Aires');
+  });
+
+  it('FR-OPEN-6: no city latches no_city and sets no example', async () => {
+    const { store, paint } = boot(null, null);
+    paint();
+    await vi.waitFor(() => expect(store.getState().exampleOutcome).toBe('no_city'));
+    expect(store.getState().example).toBeNull();
+  });
+
+  it('FR-OPEN-9: a stored place never asks for the table, nor does a link’s place on a first visit', () => {
+    const stored = boot(saved, city);
+    stored.paint();
+    expect(stored.lookups).not.toHaveBeenCalled();
+    stop();
+    const linked = boot(null, city, '#live?lat=48.86&lon=2.35');
+    linked.paint();
+    expect(linked.lookups).not.toHaveBeenCalled();
+    expect(linked.store.getState().exampleOutcome).toBe('pending');
+  });
+
+  it('a place set while the table loads wins over the example', async () => {
+    const { store, lookups, paint } = boot(null, city);
+    paint();
+    store.getState().setObserver(saved);
+    await vi.waitFor(() => expect(lookups).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(store.getState().example).toBeNull();
+    expect(store.getState().exampleOutcome).toBe('pending');
   });
 });

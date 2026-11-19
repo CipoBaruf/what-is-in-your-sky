@@ -88,7 +88,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** `ci.yml` (R205); this phase's own captures (R202, R203).
   - **Done when:** `npm run check` green; `ci-graph.test.ts` asserts the four shards, the `gather` job's needs and the budget; the v1-captures routes that touched an overlay pass locally once each with no retry; the first `captures.yml` run on the phase branch is green with no retry inside the budget (its link in the decisions block).
 
-- [ ] **R200 — The example is a third observer, started on a first visit**
+- [x] **R200 — The example is a third observer, started on a first visit**
   - **Lane:** data
   - **Tier:** standard
   - **Gate:** auto

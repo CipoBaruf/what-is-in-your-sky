@@ -57,6 +57,7 @@ export function placeName(observer: Observer): string | null {
 function whereSentence(observer: Observer, t: Messages): string {
   switch (observer.source) {
     case 'geocode':
+    case 'example': // R200: the zone city reads as a named place until R202 gives the example its own line.
       return t.home.where.centre(placeName(observer) ?? observer.label);
     case 'coords':
       return t.home.where.coords;

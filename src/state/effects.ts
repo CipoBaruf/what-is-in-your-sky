@@ -8,6 +8,7 @@ import { toFailure } from './failure';
 import { IDLE_RETRY } from './slices/retry';
 import type { RejectedElement } from '../worker/protocol';
 import type { WorkerClient } from './workerClient';
+import { EXAMPLE_WAIT_MS, exampleOutcome } from '../lib/exampleOutcome';
 
 /**
  * PLAN §4 `state/effects.ts`: observer change → load elements if needed →
@@ -56,6 +57,10 @@ import type { WorkerClient } from './workerClient';
  * when the page comes back and on the re-check (`recomputeIfStale`), the old
  * list standing in under the progress line; a stored run is shown only for
  * what is left of its window.
+ *
+ * R200 (FR-OPEN-2, FR-OPEN-6; D-1175, D-1177): the example runs this chain as
+ * a visit does, writing nothing (`transient()`), and its outcome is latched
+ * once — on each change and on one timer at `EXAMPLE_WAIT_MS` from its start.
  */
 export interface LoadedElements {
   records: SatelliteRecord[];
@@ -127,8 +132,11 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   let workerLoaded: Promise<void> | null = null;
   /** R83 (D-538): the chain runs for the place on screen, a visited one included. */
   const lookingFrom = (): Observer | null => activeObserver(store.getState());
-  /** A visited place's forecast and passes are not written to the device (FR-VISIT-1, D-538). */
-  const visiting = (): boolean => store.getState().visiting !== null;
+  /** A visited place's or the example's forecast and passes are not written to the device (FR-VISIT-1, D-538, D-1175). */
+  const transient = (): boolean => {
+    const state = store.getState();
+    return state.visiting !== null || state.observer === null;
+  };
 
   const publish = (loaded: LoadedElements, rejected: RejectedElement[]): void => {
     store.getState().setElements({
@@ -243,7 +251,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     const mine = ++weatherSeq;
     const superseded = (): boolean => mine !== weatherSeq || controller.signal.aborted || !sameLocation(lookingFrom(), observer);
     store.getState().startWeather(observer);
-    loadWeather(observer.lat, observer.lon, { persist: !visiting() }).then(
+    loadWeather(observer.lat, observer.lon, { persist: !transient() }).then(
       (snapshot) => {
         const current = lookingFrom();
         if (superseded() || !current) return;
@@ -296,7 +304,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   const storeRun = (jobId: string, observer: Observer, window: TimeWindow): void => {
     const { passes } = store.getState();
     if (passes.jobId !== jobId) return; // a newer job already owns the slice; its own `jobDone` will store it
-    if (visiting()) return; // the stored run stays the saved place's (D-538)
+    if (transient()) return; // the stored run stays the saved place's (D-538, D-1175)
     // An empty run is a real answer — a window with no darkness, or nothing bright enough — and is
     // worth storing. An empty run with objects skipped is not: propagation failed, and writing it
     // back would destroy the good run that is the only thing the app can show offline (D-108).
@@ -483,14 +491,51 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     },
   });
 
+  // --- The example's outcome (D-1177) ------------------------------------------------
+  let exampleTimer: ReturnType<typeof setTimeout> | null = null;
+  const stopExampleTimer = (): void => {
+    if (exampleTimer !== null) clearTimeout(exampleTimer);
+    exampleTimer = null;
+  };
+  /** Asks `exampleOutcome` while the example is on screen and nothing is latched; stores the first answer that is not `pending`. */
+  const latchExample = (): void => {
+    const state = store.getState();
+    const { example, exampleStartedMs, exampleOutcome: latched, elements, passes } = state;
+    if (latched !== 'pending' || example === null || exampleStartedMs === null || activeObserver(state) !== example) {
+      stopExampleTimer();
+      return;
+    }
+    // Only the example's own finished run counts; a stored or another place's run is not its answer.
+    const ours = sameLocation(passes.observer, example);
+    const run = !ours ? null : passes.status === 'error' ? passes.error : passes.status === 'done' && passes.storedAt === null ? passes.passes : null;
+    const nowMs = now();
+    const outcome = exampleOutcome({ city: example, elements: elements.status === 'error' ? elements.failure : null, passes: run, startedMs: exampleStartedMs, nowMs });
+    if (outcome !== 'pending') {
+      stopExampleTimer();
+      state.latchExampleOutcome(outcome);
+      return;
+    }
+    // One timer, at exactly EXAMPLE_WAIT_MS from the start, which `exampleOutcome` answers `slow` (D-1188).
+    exampleTimer ??= setTimeout(
+      () => {
+        exampleTimer = null;
+        latchExample();
+      },
+      Math.max(0, exampleStartedMs + EXAMPLE_WAIT_MS - nowMs),
+    );
+  };
+
   const unsubscribe = store.subscribe((state, previous) => {
     if (state.nowMs !== previous.nowMs || !sameLocation(activeObserver(state), activeObserver(previous))) void onObserverChange();
+    if (state.exampleOutcome === 'pending' && state.example !== null) latchExample();
+    else if (exampleTimer !== null) stopExampleTimer();
   });
   lastCheckAt = now();
   // R24: with a location already restored from the prefs, the start-up chain runs for it — stored run first, then
   // the network. With no location there is nothing stored to show, so the elements are prefetched while the user types (R3).
   if (lookingFrom()) void onObserverChange();
   else void ensureElements();
+  latchExample();
   startRecheck();
 
   return () => {
@@ -499,6 +544,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     unsubscribeVisibility();
     stopTick();
     stopRecheck();
+    stopExampleTimer();
     controller.abort();
     const active = client.activeJobId();
     if (active !== null) client.cancel(active);
