@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
 import type { Observer } from '../../model';
-import type { MeasureName } from '../../model/measure';
 import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
 import { count } from '../../state/measure';
 import styles from '../App.module.css';
@@ -363,9 +362,6 @@ export interface HomeProps {
   steps: HomeSteps;
 }
 
-/** FR-MEAS-2: the name each reading is counted under when it is on screen. */
-const SHOWN = { where: 'where_shown', when: 'when_shown', what: 'what_shown' } as const satisfies Record<Step, MeasureName>;
-
 /** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it, and D-1025's town name a device fix's label). */
 const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.source === 'device' ? 'device' : observer.label}`);
 
@@ -452,14 +448,8 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   // FR-MEAS-2 (D-1147): the first run's step on compact, the cold open and the lit panes on wide; a later compact visit's stacked page is no step.
   const cold = observer === null;
   useEffect(() => {
-    if (current !== null) {
-      count(SHOWN[current]);
-    } else if (mode === 'wide' && cold) {
-      count('where_shown');
-    } else if (mode === 'wide') {
-      count('when_shown');
-      count('what_shown');
-    }
+    // FR-MEAS-2 as amended (D-1182): `when_shown` and `what_shown` are gone; R202 moves `where_shown` to the place group.
+    if (current === 'where' || (current === null && mode === 'wide' && cold)) count('where_shown');
   }, [current, mode, cold]);
   if (current !== null) {
     const { reached, moved, go, finish } = steps;
