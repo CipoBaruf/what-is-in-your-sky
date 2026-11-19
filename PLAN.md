@@ -4,7 +4,7 @@
 |---|---|
 | Status | **Draft v0.27 — for review.** Plans SPEC v2.16 "an answer first": the decisions are §2.54 (D-1173..D-1183, D-1209..D-1216), the tests §9.18, the build §11.10 and the delivery §16.37 (eight tasks, R198..R205, four waves, none waiting on v2.15, CI first), in `docs/sdd/phases/v2.16/plan.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
 | Date | 2026-11-18 (v0.26). Earlier dates are in the [revision history](#revision-history). |
-| Input | `SPEC.md` v2.16: V216-1..V216-17 are fixed like the rows before them. Earlier inputs are in the [revision history](#revision-history). |
+| Input | `SPEC.md` v2.16: V216-1..V216-18 are fixed like the rows before them. Earlier inputs are in the [revision history](#revision-history). |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the tasks of every phase from v1 on are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---

@@ -37,7 +37,7 @@ The place question stays, as the action's destination and as the fallback whenev
   The guess is the zone `Intl.DateTimeFormat().resolvedOptions().timeZone` returns, looked up in a table generated at build time from tzdata's `zone.tab` and `zone1970.tab` (public domain): one row per zone either file lists, holding the zone's name, a display name and its coordinates to 0.01°.
   `zone.tab`'s coordinates come first, so a zone tzdata has merged into another (`Europe/Stockholm` into `Europe/Berlin`, `Atlantic/Reykjavik` into `Africa/Abidjan`) keeps its own city (V216-15).
   An alias zone (`backward`) that neither file lists resolves to its target's row.
-  The display name is the nearest town of `places.txt` (FR-LOC-1 (c)) within `ZONE_NAME_MATCH_KM` (50 km) of the zone's coordinates, which gives its spelling (`São Paulo`); otherwise the zone's last part with `_` as a space.
+  The display name is the zone's last part with `_` as a space, spelled as a town of `places.txt` (FR-LOC-1 (c)) within `ZONE_NAME_MATCH_KM` (50 km) of the zone's coordinates whose name is the same once accents, case and punctuation are ignored (`São Paulo`, `Zürich`); a nearer town of another name never replaces it, so `Europe/Paris` is Paris and not one of its districts (V216-18).
   No zone, `UTC`, any `Etc/` zone, or a zone not in the table is **no city**.
   The lookup asks for no permission, makes no request and writes nothing; the table loads after the first paint, at most `ZONE_TABLE_MAX_KB` (9 KB gzipped; rationale: the two files' 564 zones and aliases measure about 7 KB gzipped before the name column), and is not in the main chunk.
   *Verification:* `zoneCity.test.ts` — a canonical zone, a merged zone (`Europe/Stockholm` → Stockholm, not Berlin), an alias (`Asia/Calcutta`), `Etc/UTC`, `UTC`, an unknown string and an empty value.
@@ -169,4 +169,4 @@ The capture set has failed on every push to `main` since 2026-11-05: v2.14's two
 
 Built right after v2.15, which shipped as 2.15.0 on 2026-11-19, so no task waits on it (V216-16); the CI work goes in the first waves, before the screens (V216-17).
 A first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place, and the place question as the fallback.
-Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-17.
+Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-18.

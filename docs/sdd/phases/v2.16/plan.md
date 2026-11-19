@@ -8,7 +8,8 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (FR-OPEN-1; V216-2, V216-15.) `scripts/data/tz/zone.tab`, `zone1970.tab` and `backward` are copied unchanged from one tzdata release (public domain), its version on the first line of `scripts/data/tz/README.md`; all three are committed (2026f), because task sessions have no network.
   `scripts/build-zones.ts` (`npm run build:zones`) writes `src/data/zones/zones.txt`: a line `Zone\tΔlat\tΔlon[\tName]` per zone `zone.tab` or `zone1970.tab` lists (0.01° as in `places.txt`, sorted by zone, `zone.tab`'s coordinates first where both list it), and a line `=Alias\tZone` per `backward` link whose alias is not a row and whose target is.
   So `Europe/Stockholm` is its own row at Stockholm, though `backward` links it to `Europe/Berlin`; `Asia/Calcutta` is an alias of `Asia/Kolkata`.
-  `Name` is written only where it differs from the zone's last part with `_` as a space; it is the nearest town of `src/data/places/places.txt` within `ZONE_NAME_MATCH_KM` (50), by `greatCircleKm`; otherwise the zone's last part with `_` as a space.
+  `Name` is written only where it differs from the zone's last part with `_` as a space.
+  It is the spelling of a town of `src/data/places/places.txt` within `ZONE_NAME_MATCH_KM` (50), by `greatCircleKm`, whose name equals the zone's last part with `_` as a space once accents, case and punctuation are ignored (the nearest such town where several match); otherwise the zone's last part as it is (V216-18).
   The output is committed, like `places.txt`, so a build never reads the tz files.
 - **D-1174 — The lookup is pure, the table is its own chunk.**
   (FR-OPEN-1.) `src/data/zones/zoneCity.ts` exports `parseZones(text)`, `zoneCity(zone, zones)` → `{ name, lat, lon } | null` and `loadZoneCity()`, which imports `zones.txt?raw` dynamically, as `nearestTown.ts` imports the places.

@@ -69,7 +69,7 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 Right after v2.15, which shipped as 2.15.0 (V216-16); the first waves also make CI faster and the capture set green again (V216-17).
 A first visit opens on an answer, not a question: tonight's next pass for the city of the browser's time zone, labelled as an example, with `[ Not there? Set your place ]` and the place question as the fallback.
-Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61 and roadmap §9 Phase 2y are in [the phase spec](docs/sdd/phases/v2.16/spec.md); the decisions are V216-1..V216-17.
+Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61 and roadmap §9 Phase 2y are in [the phase spec](docs/sdd/phases/v2.16/spec.md); the decisions are V216-1..V216-18.
 
 ### Previous phase — v2.15 ("where they stop", as decided 2026-11-18, V215-1)
 

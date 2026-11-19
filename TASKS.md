@@ -38,7 +38,7 @@ Each phase's header rows (status, inputs, scope) are in [`docs/sdd/reference/bre
 ## v2.16 tasks
 
 Cut 2026-11-19 from the phase folder `docs/sdd/phases/v2.16/` (`spec.md` §2.23, §4.59, §4.60, Phase 2y; `plan.md` §2.54, §9.18, §11.10, §16.37).
-Spec Phase 2y, "an answer first": a first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place and the place question as the fallback; CI answers within 8 minutes and the capture set is green again (V216-1..V216-17).
+Spec Phase 2y, "an answer first": a first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place and the place question as the fallback; CI answers within 8 minutes and the capture set is green again (V216-1..V216-18).
 Delivery is PLAN §16.37: eight tasks in four waves, each built by a sub-agent in its own worktree and merged into the phase branch on green checks; the CI tasks R204 and R205 merge before R202 takes the first captures.
 Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208, R204 D-1217..D-1219, R205 D-1220..D-1223.
 
