@@ -140,9 +140,9 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   The fallback is the existing `location` screen (the set runs in UTC), which gains 1024. "The light theme" is the app's second theme, `night`.
   The example's captures run in a describe with `timezoneId: 'America/Argentina/Buenos_Aires'` at the set's instant and at noon seven hours on; the showcase night's forecast answers for the zone city so no file reads "Weather unknown"; the paused clock is ticked until the example lands and then pinned (F-48).
   `r76-captures.spec.ts` and `r84-captures.spec.ts` lose their when and what step cases; the committed `r82-*` and `r84-what-*` images stay as history. The owner's review copies, shot on the Mac, are `docs/screenshots/v2.16-r202/`.
-- **D-1204 — The tagline never folds; the main chunk is 134 bytes under 2.15.0.** *(R202)*
+- **D-1204 — The tagline never folds; the main chunk is 181 bytes under 2.15.0.** *(R202)*
   (D-1181, D-1194.) The new words make the wide header's line 70 cells in English and 68 in Spanish, so `HEADER_FOLD_PX` is 675 and 656, both under the wide breakpoint: the tagline shows at every wide width, which moves every home capture at 964–1049 px in Spanish.
-  With the steps, `lib/moonNote.ts`, `splitTonight`, their catalog keys and `Steps.module.css` gone, `main` is 195.0 KB gzipped (199,711 bytes) against 199,845 on 2.15.0 and 200,794 after R200.
+  With the steps, `lib/moonNote.ts`, `splitTonight`, the doors' `onWhat`, their catalog keys and `Steps.module.css` gone, `main` is 195.0 KB gzipped (199,664 bytes) against 199,845 on 2.15.0 and 200,794 after R200.
   `tests/e2e/promo-record.spec.ts` still walks the removed steps; it is off every CI path and is left for the next recording.
 
 - **D-1209 — The look line is one catalog function.**
