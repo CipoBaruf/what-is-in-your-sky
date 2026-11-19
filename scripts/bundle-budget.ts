@@ -519,7 +519,7 @@ export const BUDGETS: readonly Budget[] = [
 // R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
 // R171 (D-178, D-1042): empty again; R170's `globe` row is in `BUDGETS` with the 2.12.0 measure.
 /** FR-OPEN-1 (D-1174, V216-15): the time zone table's chunk, gzipped. */
-export const ZONE_TABLE_MAX_KB = 9;
+const ZONE_TABLE_MAX_KB = 9;
 
 // R198 (FR-OPEN-1, D-1174, D-1186): the zone table, `zones.txt?raw` imported by `loadZoneCity`, which Rollup names `zones-*.js`; 6.6 KB (6,760 bytes) with a temporary import. No chunk matches until R200 imports `loadZoneCity`, so the row warns as missing until then.
 export const PHASE_BUDGETS: readonly Budget[] = [{ name: 'zones', match: (file) => /^zones-.*\.js$/.test(file), limitKb: ZONE_TABLE_MAX_KB }];

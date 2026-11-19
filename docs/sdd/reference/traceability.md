@@ -540,6 +540,7 @@
 | FR-OFF-6 | `src/data/localPrefs.test.ts`, `src/lib/installSnooze.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/common/InstallHint.test.tsx`, `tests/deploy/manifest.test.ts` |
 | FR-OFF-7 | `src/data/localPrefs.test.ts`, `src/state/effects.test.ts`, `src/ui/components/location/Favourites.test.tsx` |
 | FR-OFF-8 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts`, `tests/e2e/offline.spec.ts` |
+| FR-OPEN-1 | `src/data/zones/zoneCity.test.ts`, `tests/data/build-zones.test.ts` |
 | FR-OPEN-4 | `src/lib/exampleOutcome.test.ts` |
 | FR-OPEN-6 | `src/lib/exampleOutcome.test.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |

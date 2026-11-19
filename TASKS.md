@@ -42,7 +42,7 @@ Spec Phase 2y, "an answer first": a first visit opens on tonight's next pass for
 Delivery is PLAN §16.37: eight tasks in four waves, each built by a sub-agent in its own worktree and merged into the phase branch on green checks; the CI tasks R204 and R205 merge before R202 takes the first captures.
 Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190..D-1194, R201 D-1195..D-1197, R202 D-1198..D-1204, R203 D-1205..D-1208, R204 D-1217..D-1219, R205 D-1220..D-1223.
 
-- [ ] **R198 — A time zone names a city**
+- [x] **R198 — A time zone names a city** *(the build test is `tests/data/build-zones.test.ts`, D-1187; the budget row prints once R200 imports the lookup, D-1186)*
   - **Lane:** data
   - **Tier:** standard
   - **Gate:** auto

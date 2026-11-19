@@ -11,6 +11,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/build-places.ts` — exports: buildPlaces — FR-LOC-1 (c) as amended 2026-11-02 (PLAN D-1025): `src/data/places/places.txt`, the towns a device location is named after, offline.
 - `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +12 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
 - `scripts/build-stored-run.ts` — exports: none — R37 (FR-CI-3): writes `tests/fixtures/stored-run-neuquen.json`, the finished 72 h run the e2e suite seeds into IndexedDB (`liveHelpers.seed…
+- `scripts/build-zones.ts` — exports: ZONE_NAME_MATCH_KM, hundredths, zoneLastPart, foldName, TzFiles, buildZones — FR-OPEN-1 (PLAN D-1173, D-1184, V216-18): `src/data/zones/zones.txt`, the city each time zone names, from the vendored tzdata in `scripts/d…
 - `scripts/bundle-budget.ts` — exports: Budget, BUDGETS, PHASE_BUDGETS, ChunkSize, mainChunkFile, measure — PLAN §11 bundle budgets (R15): gzipped sizes of the built chunks against their budgets, printed as a table after `vite build`.
 - `scripts/captures/compress.ts` — exports: opaque, compressPng, compressFiles — PLAN D-1068 (FR-SDD-22): captures are written losslessly compressed.
 - `scripts/captures/diff.ts` — exports: CAPTURE_DIFF_SHARE, PIXEL_THRESHOLD, SIDE_GAP_PX, yiqDelta, PixelDiff, diffPng, halve, sideBySide, +5 — PLAN D-1068 (FR-SDD-23): pixel diffs before images.
@@ -73,6 +74,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/data/storage.ts` — exports: StorageLike, browserStorage — The subset of `Storage` the caches and prefs use, so tests and non-browser hosts can substitute a map (R8 `weatherCache`, R10 `localPrefs`).
 - `src/data/weatherCache.ts` — exports: WEATHER_CACHE_KEY, WEATHER_TTL_MS, WEATHER_RETENTION_MS, cellCentre, cellKey, WeatherCacheDeps, WeatherCache, createWeatherCache, +2
 - `src/data/zod.ts` — exports: z — The one place `zod` enters the app (PLAN D-26).
+- `src/data/zones/zoneCity.ts` — exports: ZoneCity, Zones, parseZones, zoneCity, loadZoneCity — FR-OPEN-1 (PLAN D-1174): the city the browser's time zone names, from `zones.txt` (`scripts/build-zones.ts`).
 - `src/i18n/en.ts` — exports: en — FR-I18N-2 (D-69), split per lane (D-199 (2)): `en/ui.ts`, `en/chart.ts`, `en/live.ts` and `en/window.ts` each carry the section their own l…
 - `src/i18n/en/chart.ts` — exports: chart
 - `src/i18n/en/facts.ts` — exports: facts
