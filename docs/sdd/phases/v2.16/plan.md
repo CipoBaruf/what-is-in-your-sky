@@ -76,6 +76,20 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   `src/lib` may not import `src/state` (PLAN §3), so the failure inputs are typed by `FailureLike` (`{ kind, detail }`), which `state/failure`'s `Failure` satisfies.
   `none` is `isNoEvent(nextEvent(passes, nowMs))`, so a pass already over at `nowMs` does not count and a pass on a later night inside the 72 h does.
 
+- **D-1195 — `example_shown` is sent once per load, from the latch's first value.** *(R201)*
+  (FR-OPEN-10, D-1182, D-1177.) `measureEffects` reads `exampleOutcome` from the flat `AppState` (the slices are merged, so it is `state.exampleOutcome`, not `state.location.exampleOutcome`) and sends `example_shown` with the first value that is not `pending`, checking the state it starts on and every change after; a closure flag makes it once, though the latch never moves.
+  `no_city` takes the same path: R200's latch stores it where `setExample` is skipped, so `measureEffects` has no second rule.
+  Until R200 lands the field, the read is `(state as { exampleOutcome?: ExampleOutcome }).exampleOutcome` and a missing field is `pending`.
+  R200 must name the field `exampleOutcome`, of type `ExampleOutcome` (`'pending'` until the latch), on `AppState`; the cast then stays valid and can be dropped by whoever next edits `measureEffects.ts`. The tests set the field with `store.setState({ exampleOutcome } as never)`.
+
+- **D-1196 — The funnel's base is first-visit `open` on `home`; `where_shown` has no `Home` caller yet.** *(R201)*
+  (FR-MEAS-6 as amended, D-1182.) `scripts/funnel.ts` prints `example_shown`, `where_shown`, `place_set` and `door` split by detail and `pass_open`, each with its share of first-visit `open` with detail `home`; the header reads `share of open home`.
+  An `open` on `pass`, `live`, `stars` or `settings` by a first visit is not in the base, so it is not a first-run load.
+
+- **D-1197 — `Home.tsx` loses its `when_shown` and `what_shown` calls here, the build's price.** *(R201)*
+  Removing the names from `EVENTS` breaks `Home.tsx`'s typecheck (`SHOWN`, and the wide pane count), so R201 deletes those two calls and `SHOWN` (a few lines) and rewrites `Home.measure.test.tsx` to expect `where_shown` only, where the task text left `Home` to R202.
+  `where_shown` stays sent as 2.15.0 sent it (no detail, on the where step and the wide cold open); R202 moves it to the place group with its `example` or `fallback` detail, and rewrites `measure.spec.ts`, which still names the removed events and runs only in CI e2e.
+
 - **D-1209 — The look line is one catalog function.**
   (FR-OPEN-12; V216-12.) `example.looks(minutes)` in both catalogs, `minutes` = `max(1, round(durationS / 60))` computed by the band from the pass, never by the catalog.
 - **D-1210 — The plain words are a prop, not a second component.**

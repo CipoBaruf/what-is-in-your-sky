@@ -66,6 +66,29 @@ describe('FR-MEAS-2: the state rows from measureEffects (D-1147)', () => {
     ]);
   });
 
+  it.each(['pass', 'none', 'no_city', 'failed', 'slow'] as const)('FR-OPEN-10: example_shown:%s once when the outcome latches, never again in that load', (outcome) => {
+    wire();
+    expect(sent).toEqual([]);
+    // R200's slice field, set here as its latch does; `pending` is no latch.
+    store.setState({ exampleOutcome: 'pending' } as never);
+    expect(sent).toEqual([]);
+    store.setState({ exampleOutcome: outcome } as never);
+    store.setState({ nowMs: NOW + 1 });
+    store.setState({ exampleOutcome: outcome === 'pass' ? 'slow' : 'pass' } as never);
+    expect(sent).toEqual([['example_shown', outcome]]);
+  });
+
+  it('FR-OPEN-10: a latch already held when the effect starts is sent, once', () => {
+    const { prefs } = memoryPrefs(null);
+    store = createAppStore({ now: () => NOW, prefs });
+    store.setState({ exampleOutcome: 'no_city' } as never);
+    const rec = recorder();
+    sent = rec.sent;
+    stop = startMeasureEffects(store, rec.count);
+    store.setState({ nowMs: NOW + 1 });
+    expect(sent).toEqual([['example_shown', 'no_city']]);
+  });
+
   it('place_set: a favourite picked is favourite, not its source', () => {
     wire({ favourites: [] });
     store.getState().addFavourite(typed);

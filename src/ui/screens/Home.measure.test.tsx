@@ -30,7 +30,7 @@ afterEach(() => {
   });
 });
 
-describe('the readings count when they are on screen (FR-MEAS-2: where_shown, when_shown, what_shown)', () => {
+describe('the readings count when they are on screen (FR-MEAS-2 as amended: where_shown only; when_shown and what_shown are gone)', () => {
   const finds = {
     geolocation: {
       getCurrentPosition: (ok: PositionCallback) => {
@@ -55,17 +55,17 @@ describe('the readings count when they are on screen (FR-MEAS-2: where_shown, wh
     vi.mocked(count).mockClear();
   });
 
-  it('on compact, each first-run step is counted as it comes on screen, and not before', () => {
+  it('on compact, only the where step is counted; the when and what steps count nothing', () => {
     media = stubMatchMedia(COMPACT_PX);
     render(<Host />);
     expect(counted()).toEqual(['where_shown']);
     fireEvent.click(within(screen.getByTestId('cold-open')).getByRole('button', { name: en.location.useMyLocation }));
     withTheRun();
     expect(screen.getByTestId('step-when')).toBeInTheDocument();
-    expect(counted()).toEqual(['where_shown', 'when_shown']);
+    expect(counted()).toEqual(['where_shown']);
     fireEvent.click(within(screen.getByTestId('step-when')).getByRole('button', { name: en.home.whenStep.next }));
     expect(screen.getByTestId('step-what')).toBeInTheDocument();
-    expect(counted()).toEqual(['where_shown', 'when_shown', 'what_shown']);
+    expect(counted()).toEqual(['where_shown']);
   });
 
   it('on compact, a later visit’s stacked page is no step and counts none of the three', () => {
@@ -79,7 +79,7 @@ describe('the readings count when they are on screen (FR-MEAS-2: where_shown, wh
     expect(counted()).toEqual([]);
   });
 
-  it('on wide, the cold open is where_shown, and the When and What panes are counted once they are lit', () => {
+  it('on wide, the cold open is where_shown, and lighting the panes counts nothing', () => {
     media = stubMatchMedia(WIDE_PX);
     render(<Host />);
     expect(screen.getByTestId('ghost-when')).toBeInTheDocument();
@@ -89,6 +89,6 @@ describe('the readings count when they are on screen (FR-MEAS-2: where_shown, wh
     });
     withTheRun();
     expect(screen.queryByTestId('ghost-when')).toBeNull();
-    expect(counted()).toEqual(['where_shown', 'when_shown', 'what_shown']);
+    expect(counted()).toEqual(['where_shown']);
   });
 });

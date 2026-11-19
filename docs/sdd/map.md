@@ -182,7 +182,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +19
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
 - `src/state/measure.ts` — exports: count, randomId, browserEnv, LoadFacts, startMeasure — FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
-- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes` and `failure`.
+- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes`, `failure` and `example_shown`.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
 - `src/state/passWindow.ts` — exports: NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_MS, searchWindow — The pass list window.

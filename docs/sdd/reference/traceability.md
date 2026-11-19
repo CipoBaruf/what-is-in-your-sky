@@ -543,6 +543,7 @@
 | FR-OPEN-1 | `src/data/zones/zoneCity.test.ts`, `tests/data/build-zones.test.ts` |
 | FR-OPEN-4 | `src/lib/exampleOutcome.test.ts` |
 | FR-OPEN-6 | `src/lib/exampleOutcome.test.ts` |
+| FR-OPEN-10 | `src/state/measureEffects.test.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-3 | `src/lib/layout.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/live-full.spec.ts`, `tests/styles/sheetRows.test.ts` |

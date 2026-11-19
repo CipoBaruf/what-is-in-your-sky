@@ -6,18 +6,20 @@ const row = (name: string, detail: string, visit: string, layout: string, lang: 
 
 const ROWS: FunnelRow[] = [
   row('open', 'home', 'first', 'compact', 'en', 8),
-  row('open', 'pass', 'first', 'wide', 'es', 2),
+  row('open', 'home', 'first', 'wide', 'es', 2),
   row('open', 'home', 'return', 'compact', 'en', 5),
-  row('where_shown', '', 'first', 'compact', 'en', 8),
-  row('where_shown', '', 'first', 'wide', 'es', 2),
+  row('example_shown', 'pass', 'first', 'compact', 'en', 6),
+  row('example_shown', 'slow', 'first', 'compact', 'en', 1),
+  row('example_shown', 'no_city', 'first', 'wide', 'es', 1),
+  row('where_shown', 'example', 'first', 'compact', 'en', 5),
+  row('where_shown', 'fallback', 'first', 'compact', 'en', 3),
+  row('where_shown', 'example', 'first', 'wide', 'es', 2),
   row('place_set', 'search', 'first', 'compact', 'en', 3),
   row('place_set', 'device', 'first', 'compact', 'en', 1),
   row('place_set', 'link', 'first', 'wide', 'es', 1),
-  row('when_shown', '', 'first', 'compact', 'en', 4),
-  row('what_shown', '', 'first', 'compact', 'en', 3),
   row('door', 'satellites', 'first', 'compact', 'en', 2),
   row('pass_open', '', 'first', 'compact', 'en', 1),
-  row('where_shown', '', 'return', 'compact', 'en', 5),
+  row('where_shown', 'example', 'return', 'compact', 'en', 5),
   row('device_refused', 'denied', 'first', 'compact', 'en', 1),
   row('failure', 'forecast', 'return', 'compact', 'en', 2),
   row('no_passes', '', 'first', 'wide', 'es', 1),
@@ -27,13 +29,14 @@ const ROWS: FunnelRow[] = [
 const squash = (text: string): string => text.replace(/ {2,}/g, ' ');
 
 describe('FR-MEAS-6 funnelReport', () => {
-  it('FR-MEAS-6: prints the expected table with shares of where_shown', () => {
+  it('FR-MEAS-6: prints the amended rows with shares of first-visit open on home', () => {
     const report = squash(funnelReport(ROWS, { days: 14 }));
     expect(report).toContain('Funnel, last 14 days\n');
     expect(report).toContain(' visit first 10\n visit return 5\n');
-    expect(report).toContain(' where_shown 10 100%\n');
+    expect(report).toContain(' example_shown 8 80%\n pass 6 60%\n none 0 0%\n no_city 1 10%\n failed 0 0%\n slow 1 10%\n');
+    expect(report).toContain(' where_shown 10 100%\n example 7 70%\n fallback 3 30%\n');
     expect(report).toContain(' place_set 5 50%\n search 3 30%\n coords 0 0%\n');
-    expect(report).toContain(' when_shown 4 40%\n what_shown 3 30%\n');
+    expect(report).not.toMatch(/when_shown|what_shown/);
     expect(report).toContain(' door 2 20%\n satellites 2 20%\n');
     expect(report).toContain(' pass_open 1 10%\n');
     expect(report).toContain(' device_refused 1\n denied 1\n');
@@ -57,6 +60,7 @@ describe('FR-MEAS-6 funnelReport', () => {
 
   it('FR-MEAS-6: an empty store prints zeros and no division error', () => {
     const report = squash(funnelReport([], { days: 14 }));
+    expect(report).toContain(' example_shown 0 -\n');
     expect(report).toContain(' where_shown 0 -\n');
     expect(report).toContain(' visit first 0\n');
     expect(report).not.toMatch(/NaN|Infinity/);
@@ -102,7 +106,7 @@ describe('FR-MEAS-6 the command', () => {
     expect(calls[0]?.headers['Authorization']).toBe('Bearer tok');
     expect(calls[0]?.body).toBe(funnelQuery(3));
     expect(a.state.out).toContain('Funnel, last 3 days');
-    expect(squash(a.state.out)).toContain(' where_shown 4 100%\n');
+    expect(squash(a.state.out)).toContain(' where_shown 4 -\n');
   });
 
   it('FUNNEL_DAYS sets the default, a bad flag exits 2, an API error exits 1', async () => {

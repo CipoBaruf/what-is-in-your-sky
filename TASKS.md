@@ -103,7 +103,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** any screen or label (R202, R203); `example_shown` (R201).
   - **Done when:** `npm run check` green; `location.test.ts` covers the order, the clearing and the write-through never holding the example; `effects.test.ts` covers no `saveRun`, `persist: false` and a latch that never moves; the existing first-run e2e specs pass unchanged under `timezoneId: 'UTC'`; `npm run bundle:budget` main row within 1 KB of 2.15.0's.
 
-- [ ] **R201 — The events follow the example**
+- [x] **R201 — The events follow the example**
   - **Lane:** physics
   - **Tier:** light
   - **Gate:** auto
