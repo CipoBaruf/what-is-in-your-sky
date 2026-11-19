@@ -215,7 +215,8 @@ async function fullVisit(page: Page, context: BrowserContext): Promise<{ before:
   await serve(page);
   await page.goto('/');
   // FR-OPEN-10: the visit starts on the example, so its city, zone and coordinates are in reach of every count.
-  await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 60_000 });
+  // Its run is in before the reader moves on: a place set during the wait leaves the outcome `pending` (D-1191).
+  await expect(page.getByTestId('door-satellites')).toHaveAttribute('href', /^#pass=/, { timeout: 60_000 });
   // The elements are cached as they arrive; "before" is the page once both groups are in, with and without the measurement.
   await expect.poll(async () => ((await kept(page, context)) as { idb: Record<string, string[]> }).idb['wiys/elementGroups']).toEqual(['stations', 'visual']);
   const before = await kept(page, context);

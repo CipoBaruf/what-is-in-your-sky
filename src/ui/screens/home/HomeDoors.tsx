@@ -38,12 +38,6 @@ export interface HomeDoorsProps {
   /** The open pass, which the shown passes keep whether or not it is faint (FR-FAINT-1), as the list does. */
   selectedPassId: string | null;
   className?: string;
-  /**
-   * v2.12 (FR-FIRST-4 as amended, D-1021): what a plain click on the Satellites door does when it leads to the What
-   * reading — on the phone's third step the reading is not on the page, so the step hands its own (leave the steps
-   * for the stacked page, then open the reading there). Absent, the reading is opened in place.
-   */
-  onWhat?: () => void;
   /** R202 (FR-OPEN-13, D-1210): the example's doors, the Satellites door's height in words. */
   plain?: boolean;
 }
@@ -62,15 +56,6 @@ function openWhat(event: MouseEvent<HTMLAnchorElement>): void {
     heading.focus({ preventScroll: true });
   }
 }
-
-/** v2.12 (D-1021): a plain click handed to the caller; a new-tab gesture is still the browser's. */
-const whatBy =
-  (onWhat: () => void) =>
-  (event: MouseEvent<HTMLAnchorElement>): void => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    onWhat();
-  };
 
 /** FR-MEAS-2 (D-1147): a door chosen is counted by its name, then the click does what it did. */
 const chosen =
@@ -97,7 +82,7 @@ function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: stri
   );
 }
 
-export function HomeDoors({ observer, selectedPassId, className, onWhat, plain = false }: HomeDoorsProps) {
+export function HomeDoors({ observer, selectedPassId, className, plain = false }: HomeDoorsProps) {
   const t = useT();
   const locale = useLocale();
   const wide = useLayoutMode() === 'wide';
@@ -117,7 +102,7 @@ export function HomeDoors({ observer, selectedPassId, className, onWhat, plain =
     // A labelled list of links and not a `nav`: the page's one navigation landmark is the header's (FR-A11Y-1).
     <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors" data-rhythm="section">
       <ul aria-label={t.doors.region} className={styles.list}>
-        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" onClick={chosen('satellites', passId === null ? (onWhat ? whatBy(onWhat) : openWhat) : undefined)} />
+        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" onClick={chosen('satellites', passId === null ? openWhat : undefined)} />
         <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" onClick={chosen('stars')} />
         <DoorBox door={doors.live} href="#live" wide={wide} testId="door-live" onClick={chosen('live')} />
       </ul>

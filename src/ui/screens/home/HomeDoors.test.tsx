@@ -180,20 +180,4 @@ describe('HomeDoors counts the door chosen (FR-MEAS-2: door)', () => {
     fireEvent.click(screen.getByTestId(testId));
     expect(count).toHaveBeenCalledExactlyOnceWith('door', door);
   });
-
-  it('the Satellites door with no pass to open is counted and still hands the click to the step', () => {
-    media = stubMatchMedia(COMPACT_PX);
-    act(() => {
-      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [], hasDarkness: true } });
-    });
-    const onWhat = vi.fn();
-    render(
-      <I18nProvider locale="en">
-        <HomeDoors observer={observer} selectedPassId={null} onWhat={onWhat} />
-      </I18nProvider>,
-    );
-    fireEvent.click(screen.getByTestId('door-satellites'));
-    expect(count).toHaveBeenCalledExactlyOnceWith('door', 'satellites');
-    expect(onWhat).toHaveBeenCalledTimes(1);
-  });
 });
