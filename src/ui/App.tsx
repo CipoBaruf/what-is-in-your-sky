@@ -19,7 +19,8 @@ import { PassList } from './components/passes/PassList';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
 import { nextView } from './screens/chartViewDefault';
-import { Home, useSteps } from './screens/Home';
+import { Home } from './screens/Home';
+import { usePlaceOpen } from './screens/home/usePlaceOpen';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
@@ -198,17 +199,13 @@ export function App() {
   // v2.14.1 (FR-CLEAN-14 as amended, D-1134): `#pass` with no id, the wide pass page with no pass in the span.
   const passPageEmpty = isPassPageRoute(useHash()) && mode === 'wide' && observer !== null;
   /*
-   * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
-   * steps are held here rather than in `Home`, because the footer is this
-   * component's and takes its `line` form while they are up (F-74).
-   *
-   * `Home` was unmounted by the live and settings routes, which put the steps
-   * back to what a fresh mount makes of the observer; nothing unmounts here, so
-   * the route is passed in and `useSteps` does it. Without that, a place set on
-   * the settings page came back to a step rather than to the stacked page.
+   * R87 (FR-FIRST-1 as amended v2.1, D-548), R202 (D-1178): the first visit's state is held here rather than in
+   * `Home`, because the footer is this component's and takes its `line` form while the place question is the
+   * phone's one screen (F-74). Nothing unmounts here, so the route is passed in and `usePlaceOpen` closes the
+   * question when the reader leaves the home.
    */
-  const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active || stars.active);
-  const stepping = mode === 'compact' && steps.step !== null;
+  const place = usePlaceOpen((live.active && !liveUnreadable) || settings.active || stars.active);
+  const stepping = mode === 'compact' && place.asking;
   /*
    * R186 (FR-WIDE-1, D-1098; amends FR-DESK-3): on wide a selected pass is the desk's shell in the home's place, so
    * the right column's tracks (D-253's split, R76's `pane`) are gone; only the compact sheet stands over the home.
@@ -501,7 +498,7 @@ export function App() {
       title={title}
       banner={<Header inert={inert} />}
       beforeMain={<PageNotices kinds={HOME_NOTES} inert={inert} />}
-      mainProps={{ inert, className: styles.main, 'data-home': observer === null ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
+      mainProps={{ inert, className: styles.main, 'data-home': place.fallback ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
       footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
       after={overlay}
     >
@@ -512,7 +509,7 @@ export function App() {
             selectedPassId={selected ? selected.id : null}
             onOpenPass={openPass}
             MoonLore={MoonLore}
-            steps={steps}
+            place={place}
             passDetail={
               /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
                  is a new guide — its heading takes focus, and closing it returns to the card that

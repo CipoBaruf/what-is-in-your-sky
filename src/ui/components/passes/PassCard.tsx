@@ -3,7 +3,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatMagnitude } from '../../../lib/format';
-import { brightnessBand } from '../../../lib/phrases';
+import { brightnessBand, elevationBand } from '../../../lib/phrases';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { MoonGlareLabel } from '../moon/MoonGlare';
@@ -21,8 +21,8 @@ import styles from './PassCard.module.css';
  *   (`21:14   ISS`), and the `Next ISS` tag on the next featured pass's card
  *   (§8 rank 1 as amended v2.0.2: the tag is what the hero card said);
  * - at `--small` in `--fg-dim`, the duration, the peak altitude and compass
- *   point and the magnitude (`6 min · peak 68° N · mag −3.4`), or on the
- *   phone's third step the brightness phrase in its place (`detail: 'phrase'`);
+ *   point and the magnitude (`6 min · peak 68° N · mag −3.4`), or under the
+ *   example the height as a word and the brightness phrase (`plain`, FR-OPEN-13);
  * - at `--small`, the cloud word in its colour where the list passes a forecast
  *   (US-7 AC2, its percentage and source as its description), with the labels
  *   that say the sky itself works against this pass: `[sky still bright]`
@@ -55,8 +55,6 @@ export interface PassCardProps {
   weather?: WeatherSnapshot | null;
   /** This is the pass the guide is open on (FR-DESK-3): the card is ruled in the accent and announced as the current item. */
   selected?: boolean;
-  /** The magnitude (the list) or the brightness phrase (the phone's third step, FR-FIRST-4). */
-  detail?: 'magnitude' | 'phrase';
   /** The `Next ISS` tag, on the one card `nextFeaturedPass` chooses. */
   tag?: string;
   /** FR-NIGHT-2: the pass is over on the shown clock; the card reads `ended` in place of the cloud word while it lingers. */
@@ -70,18 +68,20 @@ export interface PassCardProps {
   faint?: boolean;
   /** v2.14.1 (V214-38, D-1135): one line — the time, the name, the detail — for the pass page's list in the rail. */
   dense?: boolean;
+  /** R202 (FR-OPEN-13, D-1210): the example's card — the peak's height as a word and the brightness phrase, no degree and no `mag`. */
+  plain?: boolean;
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3, faint = false, dense = false }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false, tag, ended = false, headingLevel = 3, faint = false, dense = false, plain = false }: PassCardProps) {
   const Name = headingLevel === 4 ? 'h4' : 'h3';
   const t = useT();
   const locale = useLocale();
   const headingId = useId();
   const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare || faint;
   const peak = {
-    altitude: degrees(pass.peak.elDeg),
+    altitude: plain ? t.nextEvent.height(elevationBand(pass.peak.elDeg)) : degrees(pass.peak.elDeg),
     point: compassPoint(pass.peak.azDeg),
-    brightness: detail === 'phrase' ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
+    brightness: plain ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
   };
   if (dense) {
     // V214-38: the one-line row drops the minutes so the detail fits the rail's 44..60 cells; the name gives first.

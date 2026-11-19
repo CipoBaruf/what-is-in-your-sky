@@ -51,9 +51,9 @@ function nextEventLabel(event: NextEvent, now: EpochMs, t: Messages, first = fal
   return t.nextEvent.label({ kind, reason: kind === 'end' ? pass.endReason : pass.startReason, countdown: formatClockDuration((event.at - now) / 1000), first });
 }
 
-/** The path, `NW low → 68° N → SE` (D-507). */
-function nextEventPath(pass: Pass, t: Messages): string {
-  return t.nextEvent.path(passPath(pass));
+/** The path, `NW low → 68° N → SE` (D-507); under `plain` its heights are words (FR-OPEN-13). */
+function nextEventPath(pass: Pass, t: Messages, plain: boolean): string {
+  return t.nextEvent.path(passPath(pass), plain);
 }
 
 /** Whole minutes, at least one: a card's duration. */
@@ -160,9 +160,14 @@ export interface NextEventBlockProps {
    * page's own headline with no rule, which the compact live page passes (R77). The card form is never ruled.
    */
   ruled?: boolean;
+  /**
+   * R202 (FR-OPEN-12, FR-OPEN-13; D-1209, D-1210): the example's block — heights and brightness as words, no degree
+   * and no magnitude, and one last line saying what a pass looks like, its minutes this pass's (`passMinutes`).
+   */
+  plain?: boolean;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className, ruled = true, line = null }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className, ruled = true, line = null, plain = false }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const nameId = useId();
@@ -187,7 +192,12 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   const { pass } = result;
   // The time stands alone at 32 px; with no zone for the observer yet the digits are UTC, and say so (F-27).
   const time = formatShortClock(result.at, timeZone, locale, timeZone === null);
-  const path = nextEventPath(pass, t);
+  const path = nextEventPath(pass, t, plain);
+  const looks = plain && (
+    <p className={styles.looks} data-testid="example-looks">
+      {t.example.looks(passMinutes(pass))}
+    </p>
+  );
   const rise = onSee && !card ? jumpInstant(result, now, hours) : null;
   return (
     <Section {...sectionProps}>
@@ -204,8 +214,9 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
             {t.nextEvent.withDuration({ path, minutes: passMinutes(pass) })}
           </p>
           <p className={styles.brightness} data-testid="next-event-brightness">
-            {t.nextEvent.brightness({ band: brightnessBand(pass.peakMagnitude), magnitude: formatMagnitude(pass.peakMagnitude, locale) })}
+            {t.nextEvent.brightness({ band: brightnessBand(pass.peakMagnitude), magnitude: plain ? null : formatMagnitude(pass.peakMagnitude, locale) })}
           </p>
+          {looks}
           {onOpen && <OpenGuide passId={pass.id} nameId={nameId} onOpen={onOpen} />}
         </>
       ) : (
@@ -231,6 +242,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
               {line}
             </p>
           )}
+          {looks}
           {liveLink && <LiveLink />}
         </>
       )}

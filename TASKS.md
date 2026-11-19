@@ -133,7 +133,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** `captures.yml` (R204); refreshing the table later.
   - **Done when:** `npm run check` green; `e2e-shards.test.ts` covers a table, a missing spec at the median and more shards than specs; `ci-graph.test.ts` asserts `static` and `unit` need no `build` and the shards run no typecheck, lint or unit stage; the task's own full CI run finishes within 8 minutes with a shard spread under 60 s (both in the decisions block).
 
-- [ ] **R202 — The first screen is an answer**
+- [x] **R202 — The first screen is an answer** — done; `usePlaceOpen` is `home/usePlaceOpen.ts`, the fallback captures are the `location` screen, and `promo-record.spec.ts` still walks the steps (D-1198..D-1204).
   - **Lane:** ui
   - **Tier:** hard
   - **Gate:** owner

@@ -26,6 +26,15 @@ describe('doorLines', () => {
     expect(doorLines(doorInput({ locale: 'es' }), es).live).toMatchObject({ title: 'Cielo en vivo', lines: ['satélites y estrellas, ahora', 'Nada arriba · próximo 05:48'] });
   });
 
+  it('FR-OPEN-13: under the example the Satellites door names the height of the peak in words, with no degree; a set place keeps the figure', () => {
+    expect(doorLines(doorInput({ plain: true }), en).satellites.lines[1]).toBe('Tiangong · low → ENE');
+    expect(doorLines(doorInput({ plain: true, locale: 'es' }), es).satellites.lines[1]).toBe('Tiangong · bajo → ENE');
+    const high = [{ ...doorPass('tiangong', local(11, 5, 48), 'Tiangong'), peak: { t: local(11, 5, 50), azDeg: 45, elDeg: 80, rangeKm: 420 } }];
+    expect(doorLines(doorInput({ plain: true, passes: high }), en).satellites.lines[1]).toBe('Tiangong · almost overhead → ENE');
+    expect(doorLines(doorInput({ plain: true, passes: high }), en).satellites.lines.join(' ')).not.toMatch(/°/);
+    expect(doorLines(doorInput({ passes: high }), en).satellites.lines[1]).toBe('Tiangong · NE 80° → ENE');
+  });
+
   it('an up-now pass: the countdown to its peak, and the Live sky door counts it with its landmark star', () => {
     const now = local(11, 5, 49);
     const { satellites, live } = doorLines(doorInput({ now }), en);

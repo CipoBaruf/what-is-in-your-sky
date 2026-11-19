@@ -64,9 +64,9 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await expect(page).toHaveTitle(ES_TITLE);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
-  // R76 (FR-FIRST-1): the empty screen is the cold open, in Spanish from its step line to its foot notes.
+  // R76 (FR-FIRST-1), R202 (FR-OPEN-6): the empty screen is the place question, in Spanish from its tagline to its foot notes.
   await expect(page.getByRole('heading', { level: 2, name: '¿Desde dónde se va a mirar?' })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Pasos' }).getByRole('listitem')).toHaveText(['[01] dónde', '02 cuándo', '03 qué']);
+  await expect(page.getByTestId('cold-open').getByTestId('home-tagline')).toHaveText('Qué satélites se ven esta noche, cuándo y hacia dónde mirar.');
   await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
   // D-1150: no privacy line under the place search.
   await expect(page.locator('body')).not.toContainText('Guardada solo en este navegador');

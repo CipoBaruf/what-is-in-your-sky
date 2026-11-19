@@ -47,7 +47,7 @@ export interface WherePlaceProps {
  * is a named device fix's (D-1025, D-1029: "Cipolletti, Argentina" → "Cipolletti"). Typed coordinates, and a
  * device fix still labelled with its coordinates, have none.
  */
-export function placeName(observer: Observer): string | null {
+function placeName(observer: Observer): string | null {
   if (observer.source === 'coords') return null;
   if (observer.source === 'device' && observer.label === coordsLabel(observer.lat, observer.lon)) return null;
   return observer.label.split(',')[0]?.trim() || observer.label;
@@ -57,8 +57,9 @@ export function placeName(observer: Observer): string | null {
 function whereSentence(observer: Observer, t: Messages): string {
   switch (observer.source) {
     case 'geocode':
-    case 'example': // R200: the zone city reads as a named place until R202 gives the example its own line.
       return t.home.where.centre(placeName(observer) ?? observer.label);
+    case 'example': // R202 (D-1179): the example's own line; `Home` draws it in place of this reading's.
+      return t.example.label(observer.label);
     case 'coords':
       return t.home.where.coords;
     case 'device':

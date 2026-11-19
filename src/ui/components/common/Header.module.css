@@ -179,17 +179,17 @@
    derived as the breakpoints are (F-10, `thresholdPx`): the line's cells on the
    widest advance in the font stack, rounded up, so the line never wraps on any
    font and folds a few pixels early on a narrower one. The line is the two
-   paddings, its indent (the mark and a cell) and its own words: 88 cells in
-   English — under the wide breakpoint, so it never folds — and 109 in Spanish.
+   paddings, its indent (the mark and a cell) and its own words: 70 cells in
+   English and 68 in Spanish (R202, D-1181: the shorter words) — both under the wide breakpoint, so it never folds.
    Under that width it is not shown: one tagline line or none, never two.
    `tests/styles/controlRows.test.ts` recomputes each from the catalog. */
-@media (width < 848px) {
+@media (width < 675px) {
   :global(:root[lang='en']) .wide > .tagline {
     display: none;
   }
 }
 
-@media (width < 1050px) {
+@media (width < 656px) {
   :global(:root[lang='es']) .wide > .tagline {
     display: none;
   }

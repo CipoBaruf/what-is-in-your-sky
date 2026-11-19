@@ -1,7 +1,8 @@
 import { useId, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
-import { favouriteCellKey, useActiveObserver, useAppStore } from '../../../state';
+import { favouriteCellKey, useAppStore } from '../../../state';
+import { useOwnObserver } from '../../hooks/useOwnObserver';
 import { SectionHeading } from '../primitives/SectionHeading';
 import { TextButton } from '../primitives/TextButton';
 import styles from './Favourites.module.css';
@@ -58,7 +59,8 @@ export interface FavouritesProps {
 export function Favourites({ footer, titled = false, limit = 'always', form = 'block' }: FavouritesProps) {
   const t = useT();
   const headingId = useId();
-  const observer = useActiveObserver();
+  // R202 (FR-OPEN-2): the example is not a place to save or to mark as current.
+  const observer = useOwnObserver();
   const favourites = useAppStore((s) => s.favourites);
   const add = useAppStore((s) => s.addFavourite);
   const select = useAppStore((s) => s.selectFavourite);

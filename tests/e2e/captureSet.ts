@@ -226,6 +226,8 @@
  * R186 (FR-WIDE-2), so its 1280 file would be `sky-pass-globe`'s. The set is 464 files.
  */
 
+import { FIRST_VISIT } from './captureFirst';
+
 export const THEMES = ['dark', 'night'] as const;
 export const LOCALES = ['en', 'es'] as const;
 export type CaptureTheme = (typeof THEMES)[number];
@@ -314,9 +316,10 @@ export interface CaptureScreen {
 export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'location',
-    widths: [360, 390, 1280],
-    what: 'The cold open (FR-FIRST-1, FR-FIRST-2 as amended v2.0.2): home before a place is known, carrying no hero mark and no tagline. At 390 it is the where step of the phone\'s first visit — the step line, the place field, the coordinates and the device button; at 1280 it is the three panes with Where active and When and What dimmed, so the layout is on the screen before a place is.',
+    widths: [360, 390, 1024, 1280],
+    what: 'The place question with no example (FR-OPEN-6, FR-FIRST-1 as amended v2.16; the set runs in UTC, which has no city): the first screen where there is nothing to show. On the phone the tagline, the question, its sentence and the boxed group — the device button, the place field and the coordinates — with no step line and no `[ back ]`, the footer in its one-line form; at 1024 and 1280 the cold open, Where active and When and What dimmed, the tagline in the header.',
   },
+  ...FIRST_VISIT,
   {
     name: 'home',
     widths: [360, 390, 768, 1024, 1280, 1920],

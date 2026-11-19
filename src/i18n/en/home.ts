@@ -27,8 +27,11 @@ export const home = {
       /** `Up now · peaks in 0:08` while a pass is up, then its end by the end's reason — shorter than the block's label, for 34 cells. */
       up: (p: { kind: 'peak' | 'end'; reason: PassBoundaryReason; countdown: string }) =>
         `Up now · ${p.kind === 'peak' ? 'peaks' : { horizon: 'sets', shadow: 'into shadow', twilight: 'fades' }[p.reason]} in ${p.countdown}`,
-      /** `Tiangong · NE 11° → ENE`: the pass, where it peaks and how high, and where it goes. */
-      path: (p: { name: string; peakPoint: CompassPoint; peakDeg: number; endPoint: CompassPoint }) => `${p.name} · ${p.peakPoint} ${String(p.peakDeg)}° → ${p.endPoint}`,
+      /**
+       * `Tiangong · NE 11° → ENE`: the pass, where it peaks and how high, and where it goes. Under the example
+       * (FR-OPEN-13, D-1210) the height is a word and stands alone, `Tiangong · almost overhead → ENE`, so the line keeps its 34 cells.
+       */
+      path: (p: { name: string; peakPoint: CompassPoint | null; peak: string; endPoint: CompassPoint }) => `${p.name} · ${p.peakPoint === null ? '' : `${p.peakPoint} `}${p.peak} → ${p.endPoint}`,
       none: (hours: number) => `No visible pass in ${String(hours)} h`,
       pending: 'Looking for the next pass…',
     },

@@ -8,7 +8,7 @@
  * - the cold open at 390 × 844 and 1280 × 800, its fields empty under their
  *   placeholders (F-73), and at 390 once a typed pair offers `[ continue ]`
  *   (F-86);
- * - the phone's third step at 390 × 844, whose first card is a control (F-84);
+ * - (R202: the phone's third step went with the steps, FR-FIRST-4 as amended v2.16);
  * - the populated list at 390 × 844 and 1280 × 800: three-line cards with no
  *   Moon sentence (F-77) and the count line (F-78).
  *
@@ -96,7 +96,7 @@ for (const [label, size] of [
 
 for (const theme of THEMES) {
   for (const locale of LOCALES) {
-    test(`the phone's where step with a typed pair and its third step at 390, ${theme}, ${locale}`, async ({ page }) => {
+    test(`the phone's place question with a typed pair at 390, ${theme}, ${locale}`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await coldOpen(page, theme, locale);
       await page.getByLabel(COORDS[locale]).fill(TYPED);
@@ -104,12 +104,9 @@ for (const theme of THEMES) {
       await expect(next).toBeVisible();
       await settle(page);
       await page.screenshot({ path: `${CAPTURE_DIR}/r84-continue-390-${theme}-${locale}.png`, fullPage: true });
+      // R202 (FR-OPEN-5): `[ continue ]` lands on the stacked home; the when and what steps and their capture are gone.
       await next.click();
-      await expect(page.getByTestId('when-passes')).toHaveText(/^\d/, { timeout: 60_000 });
-      await page.getByTestId('see-what').click();
-      await expect(page.getByTestId('step-what').getByTestId('door-satellites')).toBeVisible();
-      await settle(page);
-      await page.screenshot({ path: `${CAPTURE_DIR}/r84-what-390-${theme}-${locale}.png`, fullPage: true });
+      await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 60_000 });
     });
   }
 }
