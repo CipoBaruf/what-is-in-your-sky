@@ -111,6 +111,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/lib/contextLine.ts` — exports: UpEvent, ContextParts, ContextInput, contextLine — R143 (FR-TONIGHT-7, D-903): the compact live page's one context line under the shown time, as parts the catalog words.
 - `src/lib/declination.ts` — exports: DeclinationSite, declinationDeg — R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the local magnetic declination, the angle from true north to magnetic north,…
 - `src/lib/elementsAge.ts` — exports: EPOCH_WARN_MS, newestEpoch, epochIsOld, AgeParts, ageParts — FR-SAT-4: the epoch age of the elements in use, and the 5 day warning.
+- `src/lib/exampleOutcome.ts` — exports: EXAMPLE_WAIT_MS, ExampleOutcome, ExampleOutcomeInput, exampleOutcome — R199 (FR-OPEN-4, FR-OPEN-6, D-1177): what the example first run came to, as one pure function of what the page holds and the clock.
 - `src/lib/faint.ts` — exports: FAINT_MAG, FAINT_MAG_MOON, FaintExemptions, faintLimit, isFaint, splitFaint — R97 (FR-FAINT-1, D-623): which passes the list leaves out by default.
 - `src/lib/flags.ts` — exports: MOON_LORE, IS_PROD — FR-FLAG-1, D-183: the only module that reads `import.meta.env`.
 - `src/lib/format.ts` — exports: degrees, formatDuration, formatMagnitude, formatSignedDegrees, formatList, formatRange, formatClockDuration, DETAIL_TIMES_CELLS, +3 — Number formatting shared by the pass card and the detail screen (R6 moved these out of `PassCard.tsx`).

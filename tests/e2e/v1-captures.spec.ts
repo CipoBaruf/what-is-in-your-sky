@@ -55,7 +55,7 @@ import { GLOBE_KEY_STEP_DEG } from '../../src/ui/components/guide/skychart/globe
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, stayHere, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
@@ -400,6 +400,9 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
     await expect(card).toHaveCount(0);
     await blurFocus(page);
   }
+  // R204 (FR-CI-6, D-1213): the wide page's question, where the instant has nothing up (`live-twilight`), answered the
+  // same way — the reader stays on the instant the capture is of — before the route's first click.
+  if (await stayHere(page)) await blurFocus(page);
   const chip = page.getByTestId('shown-chip');
   if ((await chip.count()) > 0) await expect(chip).toHaveAttribute('data-kind', 'now');
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:

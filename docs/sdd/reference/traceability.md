@@ -344,8 +344,9 @@
 | FR-CAP-1 | `tests/docs/captures.test.ts` |
 | FR-CAP-3 | `tests/docs/captures.test.ts` |
 | FR-CI-1 | `tests/docs/ci.test.ts` |
-| FR-CI-2 | `tests/docs/ci.test.ts` |
+| FR-CI-2 | `tests/docs/ci-graph.test.ts`, `tests/docs/ci.test.ts` |
 | FR-CI-3 | `tests/docs/ci.test.ts` |
+| FR-CI-6 | `tests/docs/ci-graph.test.ts` |
 | FR-CLEAN-1 | `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/clean-sky.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-CLEAN-2 | `src/ui/App.structure.test.tsx`, `src/ui/screens/Stars.test.tsx` |
 | FR-CLEAN-3 | `src/ui/screens/PassDetail.test.tsx` |
@@ -539,6 +540,8 @@
 | FR-OFF-6 | `src/data/localPrefs.test.ts`, `src/lib/installSnooze.test.ts`, `src/state/slices/prefs.test.ts`, `src/ui/components/common/InstallHint.test.tsx`, `tests/deploy/manifest.test.ts` |
 | FR-OFF-7 | `src/data/localPrefs.test.ts`, `src/state/effects.test.ts`, `src/ui/components/location/Favourites.test.tsx` |
 | FR-OFF-8 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts`, `tests/e2e/offline.spec.ts` |
+| FR-OPEN-4 | `src/lib/exampleOutcome.test.ts` |
+| FR-OPEN-6 | `src/lib/exampleOutcome.test.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-3 | `src/lib/layout.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/live-full.spec.ts`, `tests/styles/sheetRows.test.ts` |

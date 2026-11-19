@@ -71,6 +71,13 @@ name: Captures
 # summary shows the images from that commit; a dispatch on another ref commits nothing and uploads them instead.
 # `squash: true` (the release) replaces the branch's history with the one commit. R128's `base` input is gone: the
 # base is always the branch, which holds the set the last run on `main` left.
+#
+# R204 (FR-CI-6, FR-CI-2 as amended; PLAN D-1213, D-1214): 464 files on one runner had outgrown the 60 min, so the set
+# is shot by `shoot`, a matrix of `CAPTURE_SHARDS` jobs (`playwright test v1-captures --shard=<n>/<shards>`, split by
+# test since the config is fully parallel), each uploading its files; `gather` downloads them over the restored set
+# and does what the one job did after its shoot: the design captures, the completeness check, the diff, the commit and
+# the summary. Every job of the two carries `CAPTURES_BUDGET_MIN` as its `timeout-minutes`, a budget now, not a ceiling.
+# `tests/docs/ci-graph.test.ts` holds the graph to the two constants.
 
 on:
   push:
@@ -91,6 +98,12 @@ on:
 concurrency:
   group: captures-branch
   cancel-in-progress: false
+
+# FR-CI-6: the two numbers a change has to raise visibly. `timeout-minutes` and the matrix cannot read `env`, so they
+# write these out, and `tests/docs/ci-graph.test.ts` checks they agree.
+env:
+  CAPTURE_SHARDS: 4
+  CAPTURES_BUDGET_MIN: 20
 
 jobs:
   pick:
@@ -137,13 +150,49 @@ jobs:
             node scripts/ci-affected.ts --captures "$recorded" "$GITHUB_SHA"
           fi
 
-  captures:
+  shoot:
     needs: pick
     if: needs.pick.outputs.captures != 'none'
     runs-on: ubuntu-latest
-    # About 1.7 × the expected 35 min for the whole set (R94, from R80's measured 22 min for 161 files): this job is
-    # off the PR path, so its ceiling is a stuck run, not a budget (FR-CI-1 is `ci.yml`'s).
-    timeout-minutes: 60
+    timeout-minutes: 20
+    strategy:
+      # One shard's failure does not cancel the others: their files are how the failing capture gets diagnosed.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      CAPTURE_SCREENS: ${{ needs.pick.outputs.capture_screens }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # The spec runs against the production build served by `vite preview` (playwright.config.ts).
+      - run: npm run build
+      # A fresh checkout holds no `v1-*` file (they are gitignored), so what this shard uploads is what it shot.
+      - name: shoot the shard
+        env:
+          CAPTURES: '1'
+        run: npx playwright test v1-captures --reporter=list --shard=${{ matrix.shard }}/$CAPTURE_SHARDS
+      - uses: actions/upload-artifact@v5
+        # Even on a failure, as the one job uploaded its set. A shard of a named-screens run may hold no test.
+        if: always()
+        with:
+          name: v1-captures-shard-${{ matrix.shard }}
+          path: docs/screenshots/v1-*.png
+          retention-days: 3
+          if-no-files-found: ignore
+
+  gather:
+    needs: [pick, shoot]
+    # Also after a failed shard, so the diff, the summary and the set's artefact still say what was shot; the step
+    # below fails the job then, and the checks and the commit after it do not run.
+    if: always() && needs.pick.outputs.captures != 'none' && needs.shoot.result != 'skipped' && needs.shoot.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     env:
@@ -158,9 +207,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The design captures shoot the dev server, which needs the browser but no build.
       - run: npx playwright install --with-deps chromium
-      # The spec runs against the production build served by `vite preview` (playwright.config.ts).
-      - run: npm run build
       # The branch's set is the base: restored into `docs/screenshots/` so the set is whole after a partial run,
       # and kept apart under `base/` for the diff. No branch yet is an empty base.
       - name: restore the set from the captures branch
@@ -185,10 +233,18 @@ jobs:
           fi
       - name: clear the design captures
         run: find docs/screenshots/design -name 'design-*.png' -delete
-      - name: shoot the set
+      # The shards' files over the cleared set: what this run shot replaces what it cleared, nothing else.
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: v1-captures-shard-*
+          merge-multiple: true
+          path: docs/screenshots
+      - name: every shard passed
         env:
-          CAPTURES: '1'
-        run: npx playwright test v1-captures --reporter=list
+          SHOOT: ${{ needs.shoot.result }}
+        run: |
+          echo "the shards: $SHOOT"
+          [ "$SHOOT" = success ]
       # R108 (FR-DS-6, D-706): the dev page's four captures. They stay on `main` (docs/DESIGN.md shows them), so
       # this run only shoots them for the artefact; a change to them ships with the task that made it.
       - name: shoot the design captures

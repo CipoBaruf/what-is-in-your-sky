@@ -85,6 +85,17 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (FR-CI-5.) `tests/e2e/durations.json` maps each spec to its seconds on a full run; `scripts/e2e-shards.ts` (pure `splitSpecs(specs, table, n)`, longest first into the lightest shard, the median for a missing spec) prints shard `<n>`'s spec list, which the shard passes to `playwright test` in place of `--shard`.
   `npm run e2e:durations <report.json>` rewrites the table from a run's JSON report; R205 seeds it from the phase's first full run, and a later task refreshes it when the spread passes `CI_SHARD_SPREAD_S`.
   The env flag that keeps skipped capture tests out of the count (`playwright.config.ts`) stays for local `--shard`.
+- **D-1217 — The live route answers the dialog where it is asked, not where a list says.** *(R204)*
+  (FR-CI-6, D-1213.) `liveAt`, the one route every live capture takes, calls `captureSeeds.ts`'s `stayHere` after the compact card's answer: by then the track's pass ticks are drawn and the clock has ticked, so the dialog is asked or not, and `stayHere` presses `Esc` only where it is up (and the focus is blurred only then).
+  In today's set only `live-twilight` at 1280 is asked; a screen that later opens the wide page with nothing up is answered without a list to update. The follow question is seeded for every page through `seedPage`, so `promo-record.spec.ts`, which seeds the same way, no longer meets it either.
+- **D-1218 — `gather` runs after a failed shard, and fails at the shards' verdict.** *(R204)*
+  (FR-CI-6, FR-CI-2.) `gather` is `if: always()` short of a skipped or cancelled `shoot`, so a red run still restores, downloads, diffs, writes the summary and uploads the set; its `every shard passed` step then fails it, and the design captures, the completeness check and the commit do not run — what the one job did after a failed shoot.
+  `shoot` is `fail-fast: false`; each shard's files are an artefact `v1-captures-shard-<n>` kept 3 days, and `gather` uploads the whole set as `v1-captures` as before. `pick` keeps its 5 min, under the budget.
+- **D-1219 — The follow key is written out, held to `useFollow.ts` by a test.** *(R204)*
+  (D-1213.) `useFollow.ts` imports the store, which a Playwright spec cannot load, so `captureSeeds.ts` spells `FOLLOW_ASKED_KEY` out as `follow.spec.ts` does, and `tests/docs/ci-graph.test.ts` reads both files and fails when they differ.
+  Verified locally on R204's branch: the whole set (464 tests) once with `--retries=0` on the installed Chrome (no Playwright browser on the machine), 463 green.
+  The 80 captures that had failed on `main` (20 screen-widths) all passed first time, and the one red, `guide` at 1280 (night, en), touches neither question, timed out on the dome's glyph wait under five workers and passed 12 of 12 on a rerun.
+  The first `captures.yml` run on the phase branch: pending (the orchestrator dispatches it; its link goes here).
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 

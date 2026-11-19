@@ -29,6 +29,11 @@ import { BRIGHTEST_PASS, SHOWCASE_SHOWN } from './promoFlows';
 
 export const DAY_MS = 86_400_000;
 const PREFS_KEY = 'wiys:prefs:v1';
+/**
+ * R204 (FR-CI-6, D-1213): `useFollow.ts`'s `FOLLOW_ASKED_KEY`, written out — that module pulls in the store, which
+ * Node does not load; `tests/docs/ci-graph.test.ts` holds the two spellings together.
+ */
+const FOLLOW_ASKED_KEY = 'wiys:followAsked:v1';
 
 /**
  * The pass the chart screens are of: the night's brightest, Tiangong rising at
@@ -76,10 +81,13 @@ export interface SeedPrefs {
  */
 async function seedPrefs(page: Page, prefs: SeedPrefs): Promise<void> {
   await page.addInitScript(
-    ([key, value]: [string, string]) => {
+    ([key, value, asked]: [string, string, string]) => {
       localStorage.setItem(key, value);
+      // R204 (FR-CI-6, D-1213): the phone's follow question answered for the visit, as a returning reader's tab has
+      // it, so no capture waits under it (v2.14.2's question covered every touch-phone page of the set).
+      sessionStorage.setItem(asked, '1');
     },
-    [PREFS_KEY, JSON.stringify(prefs)] as [string, string],
+    [PREFS_KEY, JSON.stringify(prefs), FOLLOW_ASKED_KEY] as [string, string, string],
   );
 }
 
@@ -92,6 +100,20 @@ export async function seedPage(page: Page, prefs: SeedPrefs, time = CLOCK): Prom
   await seedPrefs(page, prefs);
   await page.clock.install({ time });
   await page.clock.pauseAt(time);
+}
+
+/**
+ * R204 (FR-CI-6, D-1213): the wide live page's first-pass dialog answered `[ stay here ]` — its `Esc`, a key rather
+ * than a click so the focus stays the keyboard's — where it was asked. The dialog is asked in the render that first
+ * has the passes (`Live.tsx`), so a caller that has waited for them (the track's pass ticks) and ticked the clock
+ * meets the decision taken; with nothing asked this does nothing and says so. A capture *of* the dialog does not call it.
+ */
+export async function stayHere(page: Page): Promise<boolean> {
+  const dialog = page.getByTestId('first-pass-dialog');
+  if ((await dialog.count()) === 0) return false;
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  return true;
 }
 
 /** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
