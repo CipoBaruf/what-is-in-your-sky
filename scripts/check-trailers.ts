@@ -32,8 +32,11 @@ import { COMMIT_TITLE_MAX } from './sdd/limits';
  * commits were authored by that identity. The owner chose to move the line
  * rather than rewrite `main` (D-372): that commit joins the history FR-PUB-7
  * reports, and every commit after it is checked as before.
+ *
+ * Moved again on 2026-11-19, on the owner's answer (V215-9), to the squash merge of PR #304 (`89bf0a88`,
+ * v2.15.0), for the same reason; it is tagged and deployed, so the line moves rather than `main` being rewritten.
  */
-export const BASELINE = '668be0d';
+export const BASELINE = '89bf0a88';
 
 /**
  * The trailers that may not appear. All three are the shapes an agent adds to
