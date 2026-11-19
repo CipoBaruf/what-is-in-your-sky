@@ -250,6 +250,17 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect(chipKind()).not.toBe('now');
   });
 
+  // R203 (FR-OPEN-7, D-1205): the example is no place of the reader's; with nothing saved the group is not drawn.
+  it('lists no place under the example, and draws no Place group with nothing saved', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    appStore.setState({ example: { ...BUENOS_AIRES, source: 'example' }, exampleOutcome: 'pass' });
+    await opened();
+    await showGlobe();
+    await screen.findByTestId('globe-turn-row', {}, { timeout: 5_000 });
+    expect(screen.queryByTestId('globe-place')).toBeNull();
+    expect(screen.queryByRole('heading', { name: en.globe.placeHeading })).toBeNull();
+  });
+
   it('lists the observer then the saved places; a press moves the clock’s zone and the list and leaves the store alone (FR-GLOBE-8, FR-GLOBE-9)', async () => {
     media = stubMatchMedia(WIDE_PX);
     const favourites = [saved(TOKYO, 10), saved(LONDON, 20), saved(BUENOS_AIRES, 30)];

@@ -6,7 +6,7 @@ import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { isPassPageRoute, observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
-import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
+import { catalogName, isFeatured, useAppStore } from '../state';
 import { count } from '../state/measure';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
@@ -15,6 +15,7 @@ import { Header } from './components/common/Header';
 import { PageNotices } from './components/common/VisitNotice';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { useLayoutMode } from './hooks/useLayoutMode';
+import { useOwnObserver, usePageObserver } from './hooks/useOwnObserver';
 import { PassList } from './components/passes/PassList';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
@@ -52,6 +53,8 @@ const LIVE_NOTES = ['past', 'far'] as const;
 
 /** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
 const HOME_NOTES = ['unreadable'] as const;
+/** R203 (D-1205): the stars page's strip holds the example's line alone, on wide; on a phone the box covers it and the page draws its own. */
+const NO_NOTES = [] as const;
 
 /** R129 (D-845): the settings header's `[ ← ]`, which the settings chunk focuses when it arrives. One app, one ref. */
 const SETTINGS_BACK = createRef<HTMLButtonElement>();
@@ -101,7 +104,9 @@ const SETTINGS_BACK = createRef<HTMLButtonElement>();
  */
 export function App() {
   const t = useT();
-  const observer = useActiveObserver();
+  // R203 (FR-OPEN-6, D-1205): the example opens the pages while it is drawn, never after the fallback replaced it.
+  const observer = usePageObserver();
+  const own = useOwnObserver();
   const passes = useAppStore((s) => s.passes.passes);
   const locale = useLocale();
   const passesStatus = useAppStore((s) => s.passes.status);
@@ -440,7 +445,7 @@ export function App() {
    * the app's footer, as on every page (R75's privacy line is gone).
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
-  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: own?.label ?? null })} />;
   /*
    * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
    * current page's), the page as `main` — and a chunk of its own, fetched here or from the link ahead
@@ -454,6 +459,7 @@ export function App() {
         routeKey={routeKey}
         title={title}
         banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
+        beforeMain={<PageNotices kinds={NO_NOTES} visit={false} example={mode === 'wide'} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
         {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
         after={overlay}
@@ -497,7 +503,7 @@ export function App() {
       routeKey={routeKey}
       title={title}
       banner={<Header inert={inert} />}
-      beforeMain={<PageNotices kinds={HOME_NOTES} inert={inert} />}
+      beforeMain={<PageNotices kinds={HOME_NOTES} example={false} inert={inert} />}
       mainProps={{ inert, className: styles.main, 'data-home': place.fallback ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
       footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
       after={overlay}

@@ -205,6 +205,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/Shell.tsx` — exports: ShellProps, Shell — R92 (FR-A11Y-1, FR-A11Y-3..5, FR-ROUTE-2; D-529, D-531..D-533; F-71): the one shell every route renders in.
 - `src/ui/components/common/Banner.tsx` — exports: BannerProps, Banner — PLAN §4 `common/Banner.tsx` (R11): one line of plain text the app needs the user to read before trusting the list.
 - `src/ui/components/common/Countdown.tsx` — exports: CountdownState, countdownState, CountdownProps, Countdown — US-6 (R6): the live countdown rise → peak → set.
+- `src/ui/components/common/ExampleNotice.tsx` — exports: ExampleNotice — R203 (FR-OPEN-7; D-1180, D-1205): while a page opens for the example, one line under the header says so — `Example: <city>, from your time…
 - `src/ui/components/common/FailureLine.tsx` — exports: FailureLineProps, FailureLine — R89 (FR-FAIL-1, FR-FAIL-2, D-540): the failure line.
 - `src/ui/components/common/Footer.tsx` — exports: FooterProps, Footer — FR-X-2 (R12): every external data source credited as its terms ask.
 - `src/ui/components/common/Header.tsx` — exports: HeaderProps, Header — R52 (FR-COMP-1, FR-DESK-2 as amended, D-184): the app's header, in the two shapes the two layouts ask for.
@@ -359,7 +360,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/hooks/useNow.ts` — exports: useNow
 - `src/ui/hooks/useOnline.ts` — exports: useOnline — Whether the browser believes it has a connection (FR-OFF-8).
 - `src/ui/hooks/useOpenerFocus.ts` — exports: useOpenerFocus — R50 (F-43): what opens over the page — the compact guide sheet, the shortcuts overlay — moves focus to its own heading and gives it back to…
-- `src/ui/hooks/useOwnObserver.ts` — exports: useOwnObserver — R202 (FR-OPEN-2, D-1178): the reader's own place — the visited one, else the saved one — and never the example.
+- `src/ui/hooks/useOwnObserver.ts` — exports: useOwnObserver, EXAMPLE_SHOWN, usePageObserver — R202 (FR-OPEN-2, D-1178): the reader's own place — the visited one, else the saved one — and never the example.
 - `src/ui/hooks/useShortcuts.ts` — exports: useShortcuts — R35 (FR-DESK-4, D-73): mounts the one `keydown` listener for as long as the screen that owns the shortcuts is up.
 - `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, replace, close, home, clearRoute, +3 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
 - `src/ui/openedRoute.ts` — exports: openedRoute — FR-MEAS-2 (D-1147): the route a load opened on, as `open`'s detail — read from the hash the way `App`'s route hooks read it, so a `#live?…`…

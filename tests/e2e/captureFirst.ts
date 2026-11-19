@@ -3,7 +3,8 @@ import type { CaptureScreen } from './captureSet';
 /**
  * R202 (FR-OPEN-11, D-1203): the first visit's screens of the capture set, beside `location` (the fallback): the
  * example, its wait, the question it opens and the example at noon at 390 × 844, each again at 360 × 640 as a
- * `-short` screen, and the example at 1024 and 1280. `captureSet.ts` spreads them after `location`.
+ * `-short` screen, and the example at 1024 and 1280. `captureSet.ts` spreads them after `location`. R203 (D-1205): the
+ * pass, live and stars pages the example's doors open, at 390 and 1280.
  */
 export const FIRST_VISIT: readonly CaptureScreen[] = [
   {
@@ -55,5 +56,24 @@ export const FIRST_VISIT: readonly CaptureScreen[] = [
     widths: [390],
     themes: ['dark'],
     what: 'The example opened at noon in its zone (FR-OPEN-14): under the card, "Satellites are only visible after dusk.", the card counting down to the evening\'s first pass and the stripe\'s day band under the present hour; the action still above the fold.',
+  },
+  // R203 (FR-OPEN-7, FR-OPEN-11; D-1205): the pages the example's doors open, each with its line.
+  {
+    name: 'first-pass',
+    widths: [390, 1280],
+    themes: ['dark'],
+    what: "The example's next pass opened from the Satellites door (FR-OPEN-7): at 390 the pass page over the sky with `Example: Buenos Aires, from your time zone · [ set your place ]` under its head; at 1280 the pass page with the line under the header.",
+  },
+  {
+    name: 'first-live',
+    widths: [390, 1280],
+    themes: ['dark'],
+    what: "The live page — on a phone the sky screen — opened for the example from the Live sky door (FR-OPEN-7): the example's sky, the line under the head (390) or the header (1280), and no \"The live sky needs a place.\"",
+  },
+  {
+    name: 'first-stars',
+    widths: [390, 1280],
+    themes: ['dark'],
+    what: "The stars page opened for the example from the Stars door (FR-OPEN-7): Buenos Aires's sky, the line under the head (390) or the header (1280).",
   },
 ];

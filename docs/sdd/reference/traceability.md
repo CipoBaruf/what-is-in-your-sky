@@ -547,6 +547,7 @@
 | FR-OPEN-4 | `src/lib/exampleOutcome.test.ts`, `src/ui/screens/Home.first.test.tsx`, `src/ui/screens/home/ExampleBand.test.tsx`, `tests/e2e/firstRun.spec.ts` |
 | FR-OPEN-5 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
 | FR-OPEN-6 | `src/lib/exampleOutcome.test.ts`, `src/state/effects.test.ts`, `src/state/slices/location.test.ts`, `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-7 | `src/ui/components/common/ExampleNotice.test.tsx`, `tests/e2e/examplePages.spec.ts` |
 | FR-OPEN-8 | `tests/styles/controlRows.test.ts` |
 | FR-OPEN-9 | `src/state/effects.test.ts`, `src/ui/screens/Home.first.test.tsx` |
 | FR-OPEN-10 | `src/state/measureEffects.test.ts`, `src/ui/screens/Home.measure.test.tsx`, `tests/e2e/measure.spec.ts` |

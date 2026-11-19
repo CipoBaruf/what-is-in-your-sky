@@ -3,6 +3,7 @@ import { coordsLabel } from '../../../lib/place';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { ExampleNotice } from './ExampleNotice';
 import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
 import styles from './VisitNotice.module.css';
@@ -102,11 +103,17 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
  * The strip under the header that holds both: rendered empty when there is
  * nothing to say, which the stylesheet takes out of the page — and out of the
  * wide shell's grid, which gives it a row only while it holds something.
+ *
+ * R203 (FR-OPEN-7, D-1180, D-1205): and the example's page line, on every page
+ * but the home (`example` false there); the stars page, which had no strip,
+ * takes one with the example's line alone (`visit` false), so a returning
+ * visit draws there what it drew (FR-OPEN-9).
  */
-export function PageNotices({ kinds, inert = false }: { kinds: readonly LinkNoteKind[]; inert?: boolean }) {
+export function PageNotices({ kinds, inert = false, example = true, visit = true }: { kinds: readonly LinkNoteKind[]; inert?: boolean; example?: boolean; visit?: boolean }) {
   return (
     <div className={styles.notices} data-page-notices="">
-      <VisitNotice inert={inert} />
+      {example && <ExampleNotice inert={inert} />}
+      {visit && <VisitNotice inert={inert} />}
       <LinkNote kinds={kinds} inert={inert} />
     </div>
   );

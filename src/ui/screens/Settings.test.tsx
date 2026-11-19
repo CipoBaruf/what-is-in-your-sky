@@ -118,6 +118,17 @@ describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
     expect(screen.getByTestId('app-footer')).not.toHaveTextContent(/Sin rastreo|Sin analítica|privacidad/i);
   });
 
+  // R203 (FR-OPEN-7, D-1205): the example is no place of the reader's, so the location section shows none.
+  it('under the example, shows no place', () => {
+    act(() => {
+      appStore.setState({ example: { lat: -34.6, lon: -58.38, altM: 0, label: 'Buenos Aires', source: 'example', timeZone: null }, exampleOutcome: 'pass' });
+    });
+    show();
+    expect(screen.getByRole('combobox', { name: en.location.placeLabel })).toHaveValue('');
+    expect(screen.getByRole('region', { name: en.location.heading })).not.toHaveTextContent('Buenos Aires');
+    expect(screen.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('with no observer, has no saved places block and the coordinates closed', () => {
     show();
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.location.heading, en.settings.browser]);

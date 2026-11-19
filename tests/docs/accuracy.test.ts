@@ -257,8 +257,9 @@ describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R1
   // R171: §25.2 is that table now, `globe` among its rows; §24.2 is v2.11's as it was measured.
   // R176: §25 is `docs/sdd/phases/v2.12/release.md`; the next release task points this at its own record.
   // R191: §26.2 (`docs/sdd/phases/v2.14/release.md`) is that table now, `facts` among its rows; §25.2 is v2.12's as it was measured.
-  it("§26.2's budget column is the script's rows, one row each and no other", () => {
-    const budget = record('v2.14').split('### 26.2')[1]?.split('### 26.3')[0] ?? '';
+  // R203: §30.2 (`docs/sdd/phases/v2.16/release.md`) is that table now, `zones` among its rows; §26.2 is v2.14's as it was measured.
+  it("§30.2's budget column is the script's rows, one row each and no other", () => {
+    const budget = record('v2.16').split('### 30.2')[1]?.split('### 30.3')[0] ?? '';
     const rows = budget
       .split('\n')
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))

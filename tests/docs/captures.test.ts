@@ -44,8 +44,9 @@ describe('the v1 capture set', () => {
     // R94 (FR-CAP-1): a screen with `view` has every file twice, the second cropped to the viewport.
     expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * (screen.themes ?? THEMES).length * (screen.locales ?? LOCALES).length * (screen.view ? 2 : 1), 0));
     // R202 (FR-OPEN-11): the first visit's states are shot in both languages and the dark theme, the example alone in both themes.
+    // R203 (FR-OPEN-7): the pages the example opens, the same way.
     expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => [screen.name, screen.themes, screen.locales])).toEqual(
-      ['location-short', 'first-wait', 'first-wait-short', 'first-place', 'first-place-short', 'first-noon'].map((name) => [name, ['dark'], undefined]),
+      ['location-short', 'first-wait', 'first-wait-short', 'first-place', 'first-place-short', 'first-noon', 'first-pass', 'first-live', 'first-stars'].map((name) => [name, ['dark'], undefined]),
     );
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
@@ -125,6 +126,10 @@ describe('the v1 capture set', () => {
       ['first-wait', [390]],
       ['first-place', [390]],
       ['first-noon', [390]],
+      // R203 (FR-OPEN-7, D-1205): the pages the example opens, at the phone's and the desk's size.
+      ['first-pass', [390, 1280]],
+      ['first-live', [390, 1280]],
+      ['first-stars', [390, 1280]],
       ['location-short', [360]],
       ['first-example-short', [360]],
       ['first-wait-short', [360]],
@@ -231,7 +236,8 @@ describe('the v1 capture set', () => {
     // R191 (FR-WIDE-2): − 4 `polar` at 1280, which a desk opens on the globe.
     // R202 (FR-OPEN-11): + 4 `location` at 1024 and + 2 `location-short`; + 12 `first-example` (390, 1024, 1280) and + 4
     // `first-example-short`; + 2 each for `first-wait`, `first-wait-short`, `first-place`, `first-place-short` and `first-noon`.
-    expect(captureSet()).toHaveLength(496);
+    // R203 (FR-OPEN-7, D-1205): + 4 each for `first-pass`, `first-live` and `first-stars` (390, 1280; dark, both languages).
+    expect(captureSet()).toHaveLength(508);
   });
 
   it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {

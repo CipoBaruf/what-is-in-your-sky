@@ -144,6 +144,24 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (D-1181, D-1194.) The new words make the wide header's line 70 cells in English and 68 in Spanish, so `HEADER_FOLD_PX` is 675 and 656, both under the wide breakpoint: the tagline shows at every wide width, which moves every home capture at 964–1049 px in Spanish.
   With the steps, `lib/moonNote.ts`, `splitTonight`, the doors' `onWhat`, their catalog keys and `Steps.module.css` gone, `main` is 195.0 KB gzipped (199,664 bytes) against 199,845 on 2.15.0 and 200,794 after R200.
   `tests/e2e/promo-record.spec.ts` still walks the removed steps; it is off every CI path and is left for the next recording.
+- **D-1205 — The pages ask whether the example is drawn, not only whether it is the observer.** *(R203)*
+  (FR-OPEN-6, FR-OPEN-7, D-1180, D-1199.) The latch keeps the example in the store after a fallback, so `activeObserver` alone would open `#live`, `#stars` and a pass for it.
+  `src/ui/hooks/useOwnObserver.ts` adds `usePageObserver()`: the active observer, or `null` when it is the example and the outcome is not `pending` or `pass` (`EXAMPLE_SHOWN`, which `usePlaceOpen` now imports).
+  `App`'s observer, the live page's (so its `noPlace` branch is reached with no example or a replaced one) and the stars page's read it; the store is untouched (the smallest change in the `ui` lane, against clearing the example in the `state` slice).
+  `ExampleNotice` draws while `usePageObserver()` is the example; it lives in `PageNotices` (`example`, default on; the home passes `false`, its band says the same), so the wide live and pass pages and the phone's live sky (its `fullTop`) carry it with no edit of theirs. The stars page had no strip:
+  `App` gives it one with the line alone on wide (`visit={false}`, so a returning visit draws nothing new there, FR-OPEN-9).
+  The settings page is not one of FR-OPEN-7's four, so it carries no line; its location section and its header's place read `useOwnObserver`.
+  The wide stars page's globe `Place` group reads `useOwnObserver` too (the owner's call, 2026-11-19): under the example it lists no place, and with nothing saved `GlobePlaces` draws nothing, heading and all, as `StarsGroup` draws nothing empty; the page line names the city.
+- **D-1206 — On a phone the pass and stars pages draw the line under their head.** *(R203)*
+  (FR-OPEN-7, D-1013.) Both are the full form, whose box covers the shell's strip, so `PassDetail` and `StarsPage` draw `ExampleNotice` in their overlay, `--fg-dim`, across the box less `--space-3` each side.
+  On the stars page it stands a `--space-1` under the head's target row; on the pass page the corner readout's two `--small` lines already stand there (56–96 px at 390), so the line stands a `--space-1` under them (`3 × --space-1 + --target + 2 × --small-row`, 102 px).
+  The wide live page's first-pass question (FR-WIDE-13) opens over the line on its first visit; the e2e and the captures answer `[ stay here ]`.
+- **D-1207 — The example's pages in the capture set: 12 files, three names.** *(R203)*
+  (FR-OPEN-11, D-1203.) `first-pass`, `first-live` and `first-stars` at 390 × 844 and 1280 × 800, dark, both languages: the satellites, live and stars doors pressed from `first-example`'s page, the page's lazy drawing ticked in and the live page's card or question answered. The phone's live page is the sky screen FR-OPEN-7 names (it was retired as a page of its own in v2.9).
+  The set is 508. The owner's review copies, shot on the Mac, are `docs/screenshots/v2.16-r203/`.
+- **D-1208 — The zones row joins `BUDGETS`; no other row moves.** *(R203)*
+  (D-178, D-1174, D-1186.) `zones` is 6.6 KB (6,760 bytes) on 2.16.0: × 1.1 = 7.3, floored at 10 and capped at `ZONE_TABLE_MAX_KB`, so 9; `PHASE_BUDGETS` is empty again. Every other row's rule gives its current budget; `main` (195.2 KB) stays over its 185 line and warns, as on 2.15.0.
+  Measured beside `v2.15.0` built in the same run on the same machine, both plain: `main` +385 bytes (199,454 → 199,839), R202's merge 199,664 and this task +175 (the line and `usePageObserver`). D-1204's 199,845 for 2.15.0 is not what a plain build of the tag reads here; the change against it is −6.
 
 - **D-1209 — The look line is one catalog function.**
   (FR-OPEN-12; V216-12.) `example.looks(minutes)` in both catalogs, `minutes` = `max(1, round(durationS / 60))` computed by the band from the pass, never by the catalog.

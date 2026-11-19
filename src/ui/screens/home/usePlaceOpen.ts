@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import type { ExampleOutcome } from '../../../lib/exampleOutcome';
 import type { Observer } from '../../../model';
 import { useActiveObserver, useAppStore } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { useOwnObserver } from '../../hooks/useOwnObserver';
+import { EXAMPLE_SHOWN, useOwnObserver } from '../../hooks/useOwnObserver';
 import { placeRequested } from './placeRequest';
 
 /** What moves the question on: a different place, not a new object for the same one (the forecast's zone replaces it, and D-1025's town name a device fix's label). */
@@ -13,9 +12,6 @@ const placeKey = (observer: Observer | null): string | null => (observer === nul
 function typingInAField(): boolean {
   return typeof document !== 'undefined' && document.activeElement instanceof HTMLInputElement;
 }
-
-/** D-1178: the outcomes that draw the example; every other one draws the place question (FR-OPEN-6). */
-const SHOWN: readonly ExampleOutcome[] = ['pending', 'pass'];
 
 /**
  * R202 (FR-OPEN-3..6; D-1178, in place of R82's `useSteps`; D-1198): the first visit as the page's own state — not
@@ -62,7 +58,7 @@ export function usePlaceOpen(offHome = false) {
     }
   }
   const first = own === null;
-  const showing = first && SHOWN.includes(outcome) && (active !== null || (outcome === 'pending' && !hadPlace));
+  const showing = first && EXAMPLE_SHOWN.includes(outcome) && (active !== null || (outcome === 'pending' && !hadPlace));
   const fallback = first && !showing;
   const requested = first && placeRequested();
   return {

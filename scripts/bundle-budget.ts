@@ -488,6 +488,9 @@ export interface Budget {
  * and glyphcss's loaders and font atlases (D-63) are emitted as lazy chunks
  * the app never fetches.
  */
+/** FR-OPEN-1 (D-1174, V216-15): the time zone table's chunk, gzipped. */
+const ZONE_TABLE_MAX_KB = 9;
+
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 185 }, // R191 (D-178, V214-20): 192.0 on the 2.14.0 branch against 182.8 on 2.13 (196,600 bytes against 187,170, +9,430) — past SKY_MAIN_KB (2.0) and past the 190 line; R187 alone is +5,418 (the one time control, which the pass detail on the home shares); × 1.1 is past the ceiling, so the row stays at 185 and warns until the owner decides (`docs/sdd/phases/v2.14/release.md` §26.4). V210-16, D-995: the owner accepted the measure and raised the ceiling and the budget to 185. R161 (D-178, D-994): 180.3 on the 2.10.0 branch against 176.6 on 2.9.0 (184,678 bytes against 180,854, +3,824) — `SkyPolar`'s wrappers and the chart's held and controlled view, the theme's rule, the phase's strings; over the 180 ceiling, the rule's 200 past it, so the row stays and the owner decides (RELEASE §23.4); R149 (FR-FULL-9, FULL_MAIN_KB = 0.5 over 2.7.0): 180.0 on the 2.8.0 branch against 179.3 on 2.7.0 (184,363 bytes against 183,560, +803) — the sheet's and the card's strings (+173) and `SkyViewLayout`'s `full` form (+632), which the stars page and the pass detail share; within `FULL_MAIN_KB` as amended (1.0 KB, V28-9, D-940) and at the 180 ceiling the owner kept; R145 (FR-TONIGHT-10, TONIGHT_MAIN_KB = 2.0 over 2.6.1): 179.3 on 2.7.0 against 177.6 on 2.6.1 (+1,737 bytes) — the catalog's new strings, `usePlayback`'s automatic rate and `SkyViewLayout`'s corner readout; D-178's × 1.1 is past the ceiling, so 180 stays; R135 (V26-14, D-875): 177.5 on 2.6.0, the owner's raise to the next 5 KB line, ceiling with it, after D-882 took the dome camera back out; R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 }, // R135 (D-875, D-882): 97.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 106.8, up to 110, its ceiling) — the build puts `domeGeometry` here now, not in the shared `camera` chunk (camera.ts's uses of it are test-only and shaken out); R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
@@ -505,6 +508,8 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'globe', match: (file) => /^(SkyGlobe|GlobeRail|scene)-.*\.js$/.test(file), limitKb: 15 },
   { name: 'facts', match: (file) => /^facts-.*\.js$/.test(file), limitKb: 6 }, // R191 (D-178): 4.8 on 2.14.0, × 1.1 = 5.3, floored at 10 and capped at FACTS_BUDGET_KB, so 6 stays. R188 (FR-WIDE-11, D-1101): FACTS_BUDGET_KB — the 31 objects' facts without their sources (D-1124), both languages' words and the two groups
   // R191 (D-178): the star catalogue (`src/data/stars/catalog.ts`) left `Stars-*.js` for a shared `catalog-*.js` when the live page's and the pass detail's globe drew the stars too (R186); the row matches both, so the catalogue stays budgeted. 30.8 on 2.14.0 (7.5 + 23.4, judged on the total) against 31.4 on 2.13; × 1.1 = 33.9, so 35 stays.
+  // R198 (FR-OPEN-1, D-1174, D-1186): the zone table, `zones.txt?raw` imported by `loadZoneCity`, which Rollup names `zones-*.js`. R203 (D-178, D-1208): 6.6 on 2.16.0 (6,760 bytes), moved here from `PHASE_BUDGETS`; × 1.1 = 7.3, floored at 10 and capped at ZONE_TABLE_MAX_KB, so 9.
+  { name: 'zones', match: (file) => /^zones-.*\.js$/.test(file), limitKb: ZONE_TABLE_MAX_KB },
   { name: 'stars', match: (file) => /^(Stars|catalog)-.*\.js$/.test(file), limitKb: 35 }, // D-1054 (V212-11): 32,121 bytes, −26 against 2.12.0 — the desk's globe default paid for by the `globeSky` class switch going to a `data-view` selector; R171 (D-178): 31.4 on 2.12.0 against 29.9 on 2.11.0 (32,147 bytes against 30,611, +1,536) — the view row's third value, the globe's wiring and its named row, at GLOBE_STARS_KB; × 1.1 = 34.5, so 35 stays; R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
@@ -518,11 +523,8 @@ export const BUDGETS: readonly Budget[] = [
  */
 // R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
 // R171 (D-178, D-1042): empty again; R170's `globe` row is in `BUDGETS` with the 2.12.0 measure.
-/** FR-OPEN-1 (D-1174, V216-15): the time zone table's chunk, gzipped. */
-const ZONE_TABLE_MAX_KB = 9;
-
-// R198 (FR-OPEN-1, D-1174, D-1186): the zone table, `zones.txt?raw` imported by `loadZoneCity`, which Rollup names `zones-*.js`; 6.6 KB (6,760 bytes) with a temporary import. No chunk matches until R200 imports `loadZoneCity`, so the row warns as missing until then.
-export const PHASE_BUDGETS: readonly Budget[] = [{ name: 'zones', match: (file) => /^zones-.*\.js$/.test(file), limitKb: ZONE_TABLE_MAX_KB }];
+// R203 (D-178, D-1208): empty again; v2.16's `zones` row is in `BUDGETS` with the 2.16.0 measure.
+export const PHASE_BUDGETS: readonly Budget[] = [];
 
 /** Every row the script measures: the release's and the phase's. */
 const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];
