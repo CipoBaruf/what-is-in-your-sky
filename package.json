@@ -15,6 +15,7 @@
     "check": "tsx scripts/check.ts",
     "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "VITE_MOON_LORE=on vite build && playwright test",
+    "e2e:durations": "tsx scripts/e2e-shards.ts --durations",
     "promo:record": "VITE_MOON_LORE=on vite build && playwright test --project=promo",
     "build:zones": "tsx scripts/build-zones.ts",
     "bundle:budget": "tsx scripts/bundle-budget.ts",

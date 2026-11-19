@@ -1,5 +1,5 @@
 /**
- * v2.16 (FR-CI-6, FR-CI-2 as amended; FR-CI-4 when R205 adds `ci.yml`'s half): the workflows' job graph, read as text
+ * v2.16 (FR-CI-6, FR-CI-2 as amended; FR-CI-4, FR-CI-5 and FR-CI-1 as amended for `ci.yml`): the workflows' job graph, read as text
  * like `ci.test.ts` (the repository has no YAML parser). Each job is the block under its two-space key in `jobs:`.
  * What this cannot check is the wall time: that is each job's `timeout-minutes` on the runner.
  */
@@ -91,5 +91,85 @@ describe('the capture routes answer the two questions (FR-CI-6, D-1213)', () => 
     expect(seeds).toMatch(/export async function stayHere\(page: Page\)[^]*?page\.keyboard\.press\('Escape'\)/);
     expect(spec).toMatch(/import \{[^}]*\bstayHere\b[^}]*\} from '\.\/captureSeeds'/);
     expect(spec).toContain('if (await stayHere(page)) await blurFocus(page);');
+  });
+});
+
+describe('ci.yml: the checks that need no build run beside it (FR-CI-4, FR-CI-5, D-1215, D-1216)', () => {
+  const ci = read('.github/workflows/ci.yml');
+  const jobs = jobsOf(ci);
+  const budget = constant(ci, 'CI_PR_BUDGET_MIN');
+  const unitShards = constant(ci, 'CI_UNIT_SHARDS');
+  const e2eShards = constant(ci, 'CI_E2E_SHARDS');
+  const needs = (job: string): string[] => {
+    const match = /^ {4}needs: (?:\[([^\]]*)\]|(\S+))$/m.exec(jobs[job] ?? '');
+    return (match?.[1] ?? match?.[2] ?? '').split(',').map((name) => name.trim()).filter(Boolean);
+  };
+  const stages = (job: string): string[] => [...(jobs[job] ?? '').matchAll(/stage\.sh (\w+) /g)].map((match) => match[1] ?? '');
+  const matrix = (job: string): number[] | undefined =>
+    /matrix:\n\s+shard: \[([^\]]+)\]/
+      .exec(jobs[job] ?? '')?.[1]
+      ?.split(',')
+      .map((n) => Number(n.trim()));
+
+  it("FR-CI-1, FR-CI-4, FR-CI-5: the budget, the shard counts and the spread are the spec's constants", () => {
+    expect(budget).toBe(8);
+    expect(unitShards).toBe(2);
+    expect(e2eShards).toBe(6);
+    expect(constant(ci, 'CI_SHARD_SPREAD_S')).toBe(60);
+  });
+
+  it('FR-CI-4: `static` and `unit` need `changes` and not `build`', () => {
+    for (const job of ['static', 'unit']) expect(needs(job), job).toEqual(['changes']);
+    expect(needs('ci')).toEqual(['changes', 'build']);
+  });
+
+  it('FR-CI-4: `static` typechecks and lints on every pull request, `unit` runs the unit suite in CI_UNIT_SHARDS shards', () => {
+    expect(stages('static')).toEqual(['install', 'typecheck', 'lint']);
+    expect(jobs['static']).toMatch(/^ {4}if: \$\{\{ !cancelled\(\) \}\}$/m);
+    expect(stages('unit')).toEqual(['install', 'browsers', 'unit']);
+    expect(matrix('unit')).toEqual(Array.from({ length: unitShards }, (_, i) => i + 1));
+    expect(jobs['unit']).toContain('fail-fast: false');
+    expect(jobs['unit']).toContain('npm test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }} $json');
+    // FR-CI-1's selection holds: a partial one is `vitest related`, on one shard.
+    expect(jobs['unit']).toContain('npx vitest related --run --passWithNoTests $json $UNIT_FILES');
+    expect(jobs['unit']).toContain("RUNS: ${{ matrix.shard == 1 || needs.changes.outputs.unit == 'all' }}");
+  });
+
+  it('FR-CI-4: the e2e shards run no typecheck, lint or unit stage', () => {
+    expect(stages('ci')).toEqual(['install', 'browsers', 'e2e']);
+    const code = (jobs['ci'] ?? '')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    for (const word of ['typecheck', 'eslint', 'vitest', 'npm test']) expect(code, word).not.toContain(word);
+    expect(matrix('ci')).toEqual(Array.from({ length: e2eShards }, (_, i) => i + 1));
+  });
+
+  it("FR-CI-5: a shard runs `e2e-shards.ts`'s cut of the specs, not Playwright's `--shard`, and an empty cut starts no Playwright", () => {
+    const shard = jobs['ci'] ?? '';
+    expect(shard).not.toContain('--shard=');
+    expect(shard).toContain('specs=$(npx tsx scripts/e2e-shards.ts ${{ matrix.shard }} ${{ strategy.job-total }} $E2E_SPECS)');
+    expect(shard.indexOf('if [ -z "$specs" ]; then')).toBeGreaterThan(0);
+    expect(shard.indexOf('if [ -z "$specs" ]; then')).toBeLessThan(shard.indexOf('stage.sh e2e npx playwright test'));
+    expect(shard).toContain('npx playwright test --pass-with-no-tests --reporter=list,github,html,json $specs');
+    // The refresh's input: every shard's JSON report on a full run.
+    expect(shard).toContain('name: e2e-report-shard-${{ matrix.shard }}');
+    expect((JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts['e2e:durations']).toBe('tsx scripts/e2e-shards.ts --durations');
+  });
+
+  it('D-1215, D-1067: each new job leaves its report for `digest`, which waits on it', () => {
+    expect(jobs['static']).toContain('reports/typecheck.txt');
+    expect(jobs['static']).toContain('reports/eslint.json');
+    expect(jobs['static']).toContain('name: reports-static');
+    expect(jobs['unit']).toContain('--outputFile.json=reports/vitest-${{ matrix.shard }}.json');
+    expect(jobs['unit']).toContain('name: reports-unit-${{ matrix.shard }}');
+    expect(needs('digest')).toEqual(expect.arrayContaining(['static', 'unit', 'ci']));
+  });
+
+  it('FR-CI-1: no job waits past the budget, and every job that runs a stage carries it as its timeout', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      expect(Number(/^ {4}timeout-minutes: (\d+)$/m.exec(job)?.[1]), name).toBeLessThanOrEqual(budget);
+      if (job.includes('stage.sh ')) expect(job, name).toMatch(new RegExp(`^ {4}timeout-minutes: ${String(budget)}$`, 'm'));
+    }
   });
 });

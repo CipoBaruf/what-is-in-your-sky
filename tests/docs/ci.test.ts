@@ -27,8 +27,9 @@ const playwrightConfig = read('playwright.config.ts');
 
 describe('the pull-request budget (FR-CI-1)', () => {
   it('is the CI job timeout, and the number is written down as a constant', () => {
-    expect(ci).toMatch(/^\s*timeout-minutes: 10$/m);
-    expect(ci).toMatch(/CI_PR_BUDGET_MIN: 10/);
+    // D-1215 (FR-CI-4): eight since v2.16; `ci-graph.test.ts` holds every job to it.
+    expect(ci).toMatch(/^\s*timeout-minutes: 8$/m);
+    expect(ci).toMatch(/CI_PR_BUDGET_MIN: 8/);
     expect(ci).toContain('FR-CI-1');
   });
 
@@ -37,11 +38,13 @@ describe('the pull-request budget (FR-CI-1)', () => {
     const shards = Number(/CI_E2E_SHARDS: (\d+)/.exec(ci)?.[1]);
     expect(shards).toBeGreaterThan(1);
     // The matrix is that number written out, and the e2e stage is the only sharded one.
-    const matrix = /matrix:\n\s+shard: \[([^\]]+)\]/.exec(ci)?.[1];
+    // D-1215: `unit` has a matrix of its own now, so the e2e one is the `ci` job's.
+    const matrix = /matrix:\n\s+shard: \[([^\]]+)\]/.exec(ci.slice(ci.indexOf('\n  ci:\n')))?.[1];
     expect(matrix?.split(',').map((n) => n.trim())).toEqual(Array.from({ length: shards }, (_, i) => String(i + 1)));
-    expect(ci).toContain('--shard=${{ matrix.shard }}/${{ strategy.job-total }}');
+    // D-1216 (FR-CI-5): the cut is `e2e-shards.ts`'s, by time, in place of Playwright's `--shard`.
+    expect(ci).toContain('npx tsx scripts/e2e-shards.ts ${{ matrix.shard }} ${{ strategy.job-total }} $E2E_SPECS');
     // One shard over the budget still fails the run: the timeout is the job's, and the matrix multiplies the job.
-    expect(ci).toMatch(/^\s*timeout-minutes: 10$/m);
+    expect(ci).toMatch(/^\s*timeout-minutes: 8$/m);
     // A red shard must not cancel its sibling and hide half the failures.
     expect(ci).toMatch(/fail-fast: false/);
     // Two shards would otherwise upload one artefact name twice, and the second would be refused.
@@ -50,13 +53,13 @@ describe('the pull-request budget (FR-CI-1)', () => {
 
   it('times every stage and writes the table to the job summary', () => {
     // Each stage goes through `stage.sh`, which records name, seconds and exit status…
-    // D-1067: the `build` job's three stages, then the shards' six.
+    // D-1067: the `build` job's three stages; D-1215: then `static`'s, `unit`'s and the shards' three each.
     const stages = [...ci.matchAll(/stage\.sh (\w+) /g)].map((match) => match[1]);
-    expect(stages).toEqual(['install', 'build', 'bundle', 'install', 'typecheck', 'lint', 'browsers', 'unit', 'e2e']);
+    expect(stages).toEqual(['install', 'build', 'bundle', 'install', 'typecheck', 'lint', 'install', 'browsers', 'unit', 'install', 'browsers', 'e2e']);
     expect(read('.github/workflows/stage.sh')).toContain('date +%s');
-    // …and the summary step reads them back, on a failed run as well as a passing one, in both jobs.
+    // …and the summary step reads them back, on a failed run as well as a passing one, in every job that times stages.
     expect(read('.github/workflows/stage-summary.sh')).toContain('GITHUB_STEP_SUMMARY');
-    expect([...ci.matchAll(/name: stage times\n\s+if: always\(\)\n\s+run: bash \.github\/workflows\/stage-summary\.sh /g)]).toHaveLength(2);
+    expect([...ci.matchAll(/name: stage times\n\s+if: always\(\)\n\s+run: bash \.github\/workflows\/stage-summary\.sh /g)]).toHaveLength(4);
   });
 });
 
@@ -193,20 +196,23 @@ describe('the tests a change reaches (D-1031)', () => {
 
   it('hands the selection to Vitest and Playwright, and an empty shard passes', () => {
     expect(ci).toContain('npx vitest related --run --passWithNoTests $json $UNIT_FILES');
-    expect(ci).toContain('--pass-with-no-tests --reporter=list,github,html,json $E2E_SPECS');
+    expect(ci).toContain('--pass-with-no-tests --reporter=list,github,html,json $specs');
     // D-1067: the `changes` job selects once and hands the selection on as its outputs.
     expect(ci).toContain('e2e: ${{ steps.affected.outputs.e2e }}');
-    // The build job and the e2e stage wait for an e2e selection, and the unit tests run once, on shard 1.
+    // The build job and the e2e stage wait for an e2e selection, and a partial unit selection runs once,
+    // on the `unit` job's shard 1 (D-1215).
     expect(ci).toMatch(/ {2}build:\n\s+needs: changes\n\s+if: needs\.changes\.outputs\.e2e != 'none'\n/);
-    expect(ci).toMatch(/if: env\.HAS_DIST == 'true'\n(\s+\S.*\n){0,4}\s+run: bash \.github\/workflows\/stage\.sh e2e /);
-    expect(ci).toMatch(/if: matrix\.shard == 1 && needs\.changes\.outputs\.unit != 'none'/);
+    expect(ci).toMatch(/if: env\.HAS_DIST == 'true'\n(\s+\S.*\n){0,8}\s+bash \.github\/workflows\/stage\.sh e2e /);
+    expect(ci).toContain("if: ${{ !cancelled() && needs.changes.outputs.unit != 'none' }}");
+    expect(ci).toContain("RUNS: ${{ matrix.shard == 1 || needs.changes.outputs.unit == 'all' }}");
   });
 
   it('keeps the whole-program checks on every pull request', () => {
     expect(ci).toMatch(/^ {2}trailers:$/m);
     expect(ci).toMatch(/^ {2}dead-code:$/m);
-    expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh typecheck /);
-    expect(ci).toMatch(/if: matrix\.shard == 1\n\s+run: bash \.github\/workflows\/stage\.sh lint /);
+    // D-1215: in the `static` job, whose stages carry no `if:` (`ci-graph.test.ts`).
+    expect(ci).toMatch(/- run: bash \.github\/workflows\/stage\.sh typecheck /);
+    expect(ci).toMatch(/- run: bash \.github\/workflows\/stage\.sh lint /);
   });
 });
 
@@ -255,12 +261,12 @@ describe('FR-SDD-25: CI does less (D-1067)', () => {
 
   it('writes the failure digest when anything failed, from the reports every job leaves', () => {
     const digest = job('digest');
-    expect(digest).toContain('needs: [changes, build, ci, trailers, sdd, dead-code]');
+    expect(digest).toContain('needs: [changes, build, static, unit, ci, trailers, sdd, dead-code]');
     expect(digest).toMatch(/if: failure\(\)/);
     expect(digest).toContain('node scripts/ci-digest.ts reports failure-digest.md');
     expect(digest).toContain('NEEDS: ${{ toJSON(needs) }}');
     expect(digest).toContain('name: failure-digest');
-    for (const report of ['reports/typecheck.txt', 'reports/eslint.json', 'reports/vitest.json', 'reports/playwright-${{ matrix.shard }}.json', 'reports/build.txt', 'reports/trailers.txt', 'reports/sdd.txt', 'reports/dead-code.txt']) {
+    for (const report of ['reports/typecheck.txt', 'reports/eslint.json', 'reports/vitest-${{ matrix.shard }}.json', 'reports/playwright-${{ matrix.shard }}.json', 'reports/build.txt', 'reports/trailers.txt', 'reports/sdd.txt', 'reports/dead-code.txt']) {
       expect(ci, report).toContain(report);
     }
   });

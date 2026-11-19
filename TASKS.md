@@ -118,7 +118,7 @@ Decision blocks (§16.2): R198 D-1184..D-1187, R199 D-1188..D-1189, R200 D-1190.
   - **Out of scope:** `where_shown` from `Home`, the `Home.tsx` calls to the removed names and `measure.spec.ts` (R202).
   - **Done when:** `npm run check` green; `measureEffects.test.ts` asserts `example_shown` once per outcome, never again in that load; `funnel.test.ts` prints FR-MEAS-6's amended rows with the share of first-visit `open` on `home`; the route rejects `when_shown`.
 
-- [ ] **R205 — CI by time: checks beside the build, shards cut by duration**
+- [x] **R205 — CI by time: checks beside the build, shards cut by duration**
   - **Lane:** ui
   - **Tier:** standard
   - **Gate:** auto

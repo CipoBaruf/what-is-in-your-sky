@@ -343,9 +343,11 @@
 | FR-ADDR-4 | `tests/docs/accuracy.test.ts` |
 | FR-CAP-1 | `tests/docs/captures.test.ts` |
 | FR-CAP-3 | `tests/docs/captures.test.ts` |
-| FR-CI-1 | `tests/docs/ci.test.ts` |
+| FR-CI-1 | `tests/docs/ci-graph.test.ts`, `tests/docs/ci.test.ts` |
 | FR-CI-2 | `tests/docs/ci-graph.test.ts`, `tests/docs/ci.test.ts` |
 | FR-CI-3 | `tests/docs/ci.test.ts` |
+| FR-CI-4 | `tests/docs/ci-graph.test.ts` |
+| FR-CI-5 | `tests/docs/ci-graph.test.ts`, `tests/docs/e2e-shards.test.ts` |
 | FR-CI-6 | `tests/docs/ci-graph.test.ts` |
 | FR-CLEAN-1 | `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/clean-sky.spec.ts`, `tests/e2e/sky-layout.spec.ts`, `tests/e2e/stars.spec.ts` |
 | FR-CLEAN-2 | `src/ui/App.structure.test.tsx`, `src/ui/screens/Stars.test.tsx` |

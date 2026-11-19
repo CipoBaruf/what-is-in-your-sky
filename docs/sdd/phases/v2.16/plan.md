@@ -107,6 +107,20 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Verified locally on R204's branch: the whole set (464 tests) once with `--retries=0` on the installed Chrome (no Playwright browser on the machine), 463 green.
   The 80 captures that had failed on `main` (20 screen-widths) all passed first time, and the one red, `guide` at 1280 (night, en), touches neither question, timed out on the dome's glyph wait under five workers and passed 12 of 12 on a rerun.
   The first `captures.yml` run on the phase branch: pending (the orchestrator dispatches it; its link goes here).
+- **D-1220 — The split's test sits in `tests/docs/`, and `ci.test.ts` follows the jobs.** *(R205)*
+  (FR-CI-5, D-1187.) Vitest's `node` project does not read `scripts/**`, so the split's test is `tests/docs/e2e-shards.test.ts`, beside `ci-affected.test.ts`.
+  `tests/docs/ci.test.ts` read the old graph (budget 10, typecheck and lint on shard 1, `--shard`, `reports/vitest.json`), so its lines move to the new jobs in the same change; `ci-graph.test.ts` holds the graph itself.
+- **D-1221 — The table is seeded from a full run's list log.** *(R205)*
+  (D-1216.) No green run keeps a JSON report (`reports-ci-<n>` uploads on failure only), so the seed is the list reporter's per-test durations in the six shard logs of run 44541731659 (`main` at 9bb5c2b4, 2026-11-19, a full run, all green), summed per spec file over every project, retries counted and skipped tests at 0.
+  That is 74 specs and 6,207 s of test time; the cut puts 1,034 to 1,036 s in each of the six shards, about 4.3 min each on four workers, against 3.4 to 6.9 min on that run.
+  A full run now uploads each shard's JSON report as `e2e-report-shard-<n>` (7 days), the input `npm run e2e:durations` takes; the phase's first full run refreshes the table from them if its spread passes `CI_SHARD_SPREAD_S`.
+- **D-1222 — A shard runs whole spec files, and an empty one starts no Playwright.** *(R205)*
+  (FR-CI-5, FR-CI-4.) With no selection the specs are every `tests/e2e/*.spec.ts` less the gated, promo and design ones, read from `playwright.config.ts`'s own exports; a shard hands its files to `playwright test`, which still spreads their tests over the workers.
+  A shard the cut leaves empty exits before Playwright, which given no file would run them all. A partial unit selection runs on `unit`'s shard 1 and the other passes; `unit` skips with none, as `build` does.
+  Every e2e shard now fails at `inputs` on a failed `build` (shard 1 no longer runs checks without `dist/`), so the old `build result` step is gone; the 5-minute jobs keep their 5.
+- **D-1223 — The run that proves it is the task's own, after the push.** *(R205)*
+  (FR-CI-4, FR-CI-5.) The task's own full CI run, its wall time against 8 minutes and its shard spread against 60 s: pending (the orchestrator pushes the branch with `full-ci`; the numbers go here).
+  The new checks are `static` and `unit (shard 1)`, `unit (shard 2)`; making them required on `main` is the owner's (`gh api` branch protection).
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 

@@ -18,7 +18,12 @@ env:
   # FR-CI-1's budget (R37, D-195): a pull request's CI finishes inside ten
   # minutes. This is the constant; `timeout-minutes` below is the same number
   # written out, because a job-level `timeout-minutes` cannot read `env`.
-  CI_PR_BUDGET_MIN: 10
+  # D-1215 (FR-CI-4, v2.16): eight since the typecheck, lint and unit stages left the
+  # e2e shards for jobs of their own beside `build`; no job's timeout passes it.
+  CI_PR_BUDGET_MIN: 8
+  # D-1215 (FR-CI-4): the unit suite runs in this many parallel jobs; `unit`'s matrix is the
+  # same number written out.
+  CI_UNIT_SHARDS: 2
   # D-526 (FR-CI-1 as amended v2.0.3, V20-24): the e2e stage runs in this many
   # parallel shards, so the budget above is the reader's wait and not the run's
   # machine time. It is the number a pull request has to raise in the open to
@@ -37,7 +42,11 @@ env:
   # D-1132 (2026-11-04): six since v2.14's wave 1. Shard 1 (typecheck, lint, the
   # whole unit suite and its share of the e2e) was cancelled at ten minutes on
   # main after #287 and on #288 and #289, every test it reached green.
+  # D-1216 (FR-CI-5, v2.16): the shards are cut by `tests/e2e/durations.json`'s seconds, and no
+  # shard's e2e stage may run more than CI_SHARD_SPREAD_S longer than the shortest's on a full run;
+  # past that the table is refreshed (`npm run e2e:durations`), not the count raised.
   CI_E2E_SHARDS: 6
+  CI_SHARD_SPREAD_S: 60
   STAGE_TIMES: stage-times.tsv
 
 jobs:
@@ -100,7 +109,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.e2e != 'none'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -137,18 +146,126 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # D-1215 (FR-CI-4): the whole-program checks need no `dist/`, so they run beside `build` and not
+  # behind it, on every pull request (FR-CI-1). Like the shards it runs whatever `changes` did, so it
+  # is never skipped, and its first step fails it when `changes` failed.
+  static:
+    needs: changes
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CHANGES: ${{ needs.changes.result }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: inputs
+        run: if [ "$CHANGES" != success ]; then echo "::error::the changes job ended '$CHANGES'"; exit 1; fi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: mkdir -p reports
+      # FR-CI-1: each stage is wrapped so the summary below can name what took the time.
+      - run: bash .github/workflows/stage.sh install npm ci
+      # D-1067 (FR-SDD-16): the typecheck and lint stages also leave a report in `reports/` for the
+      # `digest` job; the log keeps the human-readable output.
+      - run: bash .github/workflows/stage.sh typecheck bash -c 'set -o pipefail; npm run typecheck -- --pretty false 2>&1 | tee reports/typecheck.txt'
+      # ESLint takes one formatter, so on a failure it runs again for the log.
+      - run: bash .github/workflows/stage.sh lint bash -c 'npx eslint . -f json -o reports/eslint.json || { npx eslint .; exit 1; }'
+      - name: stage times
+        if: always()
+        run: bash .github/workflows/stage-summary.sh static
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-static
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # D-1215 (FR-CI-4): the unit suite in CI_UNIT_SHARDS jobs beside `build`. A full selection is cut by
+  # Vitest's own `--shard`; a partial one (D-1031) runs `vitest related` on shard 1 and nothing on the
+  # others, which pass. It skips when no unit test is selected, as `build` does with no spec.
+  unit:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.unit != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    name: unit (shard ${{ matrix.shard }})
+    env:
+      UNIT: ${{ needs.changes.outputs.unit }}
+      E2E: ${{ needs.changes.outputs.e2e }}
+      WHY: ${{ needs.changes.outputs.reason }}
+      CHANGES: ${{ needs.changes.result }}
+      RUNS: ${{ matrix.shard == 1 || needs.changes.outputs.unit == 'all' }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: inputs
+        run: if [ "$CHANGES" != success ]; then echo "::error::the changes job ended '$CHANGES'"; exit 1; fi
+      - uses: actions/setup-node@v5
+        if: env.RUNS == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - run: mkdir -p reports
+      - if: env.RUNS == 'true'
+        run: bash .github/workflows/stage.sh install npm ci
+      # Chromium is needed by `npm test`: the Vitest browser project boots the real worker (R5).
+      # D-1067 (FR-SDD-25): the browsers come from a cache keyed on the locked Playwright version;
+      # a hit still installs the system packages Chromium needs.
+      - id: playwright
+        if: env.RUNS == 'true'
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >>"$GITHUB_OUTPUT"
+      - id: browser-cache
+        if: steps.playwright.outputs.version
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright.outputs.version
+        env:
+          HIT: ${{ steps.browser-cache.outputs.cache-hit }}
+        run: |
+          if [ "$HIT" = true ]; then set -- npx playwright install-deps chromium; else set -- npx playwright install --with-deps chromium; fi
+          bash .github/workflows/stage.sh browsers "$@"
+      # D-1031: `vitest related` runs the test files it is handed and every test file whose
+      # imports reach the other files; `ci-affected.ts` adds the tests that read files by path.
+      - if: env.RUNS == 'true'
+        env:
+          UNIT_FILES: ${{ needs.changes.outputs.unit_files }}
+        # `$UNIT_FILES` is word-split on purpose: the script refuses a path with whitespace in it.
+        run: |
+          json='--reporter=default --reporter=json --outputFile.json=reports/vitest-${{ matrix.shard }}.json'
+          if [ "$UNIT" = all ]; then set -- npm test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }} $json; else set -- npx vitest related --run --passWithNoTests $json $UNIT_FILES; fi
+          bash .github/workflows/stage.sh unit "$@"
+      - name: stage times
+        if: always()
+        run: bash .github/workflows/stage-summary.sh "unit ${{ matrix.shard }} of ${{ strategy.job-total }}"
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: reports-unit-${{ matrix.shard }}
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ci:
-    # PLAN §11: typecheck → lint → unit + golden + component + worker integration → Playwright on the built app.
+    # PLAN §11: Playwright on the built app; the typecheck, lint and unit stages are `static` and
+    # `unit` since D-1215, so a shard runs e2e only (FR-CI-4).
     # D-1067: it waits for `build`, and runs whatever `changes` and `build` did, so a required shard is
     # never skipped (a skipped job passes a required check): the first step fails a shard whose inputs
-    # are missing, and shard 1 still runs the typecheck, lint and unit stages when only `build` failed.
+    # are missing.
     needs: [changes, build]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard. One shard
     # over the budget still fails the run, so a suite that has outgrown its
     # shards is a defect to fix rather than a budget to raise.
-    timeout-minutes: 10
+    timeout-minutes: 8
     strategy:
       # D-526: `fail-fast` off, so a red shard does not cancel the other one and
       # hide half the failures from the reader it is meant to inform.
@@ -170,29 +287,20 @@ jobs:
       - name: inputs
         run: |
           if [ "$CHANGES" != success ]; then echo "::error::the changes job ended '$CHANGES'"; exit 1; fi
-          if [ "${{ matrix.shard }}" != 1 ] && [ "$BUILD" != success ] && [ "$BUILD" != skipped ]; then echo "::error::the build job ended '$BUILD'"; exit 1; fi
+          if [ "$BUILD" != success ] && [ "$BUILD" != skipped ]; then echo "::error::the build job ended '$BUILD'"; exit 1; fi
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
       - run: mkdir -p reports
       # FR-CI-1: each stage is wrapped so the summary below can name what took the time.
-      # D-1031: the whole-program checks and the unit tests run once, on shard 1; the other
-      # shards are e2e shards and stop here when no spec is selected.
-      - if: matrix.shard == 1 || needs.changes.outputs.e2e != 'none'
+      # D-1215: a shard is an e2e shard and nothing else; it stops here when no spec is selected.
+      - if: env.HAS_DIST == 'true'
         run: bash .github/workflows/stage.sh install npm ci
-      # D-1067 (FR-SDD-16): the typecheck, lint, unit and e2e stages also leave a report in
-      # `reports/` for the `digest` job; the log keeps the human-readable output.
-      - if: matrix.shard == 1
-        run: bash .github/workflows/stage.sh typecheck bash -c 'set -o pipefail; npm run typecheck -- --pretty false 2>&1 | tee reports/typecheck.txt'
-      # ESLint takes one formatter, so on a failure it runs again for the log.
-      - if: matrix.shard == 1
-        run: bash .github/workflows/stage.sh lint bash -c 'npx eslint . -f json -o reports/eslint.json || { npx eslint .; exit 1; }'
       # D-1067 (FR-SDD-25): the browsers come from a cache keyed on the locked Playwright version;
       # a hit still installs the system packages Chromium needs.
-      # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
       - id: playwright
-        if: (matrix.shard == 1 && needs.changes.outputs.unit != 'none') || env.HAS_DIST == 'true'
+        if: env.HAS_DIST == 'true'
         run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >>"$GITHUB_OUTPUT"
       - id: browser-cache
         if: steps.playwright.outputs.version
@@ -206,16 +314,6 @@ jobs:
         run: |
           if [ "$HIT" = true ]; then set -- npx playwright install-deps chromium; else set -- npx playwright install --with-deps chromium; fi
           bash .github/workflows/stage.sh browsers "$@"
-      # D-1031: `vitest related` runs the test files it is handed and every test file whose
-      # imports reach the other files; `ci-affected.ts` adds the tests that read files by path.
-      - if: matrix.shard == 1 && needs.changes.outputs.unit != 'none'
-        env:
-          UNIT_FILES: ${{ needs.changes.outputs.unit_files }}
-        # `$UNIT_FILES` is word-split on purpose: the script refuses a path with whitespace in it.
-        run: |
-          json='--reporter=default --reporter=json --outputFile.json=reports/vitest.json'
-          if [ "$UNIT" = all ]; then set -- npm test -- $json; else set -- npx vitest related --run --passWithNoTests $json $UNIT_FILES; fi
-          bash .github/workflows/stage.sh unit "$@"
       # D-1067 (FR-SDD-25): the `build` job's `dist/`, not a build per shard.
       - if: env.HAS_DIST == 'true'
         uses: actions/download-artifact@v5
@@ -225,23 +323,30 @@ jobs:
       # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.
       # FR-CI-3: one worker per core (playwright.config.ts), and page specs load a stored run
       # instead of waiting on the 72 h search. A spec over 60 s on the list reporter is a defect.
-      # D-526: Playwright sorts the spec files and cuts them into `job-total`
-      # shards, so the halves are the same on every run and no spec is dropped
-      # or shot twice. `workers: '100%'` (D-195, FR-CI-3) applies inside one.
-      # D-1031: with specs named, Playwright shards those; a shard left with none passes.
+      # D-1216 (FR-CI-5): `e2e-shards.ts` cuts the specs — the selection (D-1031), or every spec on a
+      # full run — by `tests/e2e/durations.json`'s seconds, longest first into the lightest shard, and
+      # prints this shard's; the same cut on every runner, so no spec is dropped or run twice.
+      # `workers: '100%'` (D-195, FR-CI-3) applies inside one. A shard the cut leaves empty passes
+      # without starting Playwright, which would otherwise run every spec.
       # D-1067: the config's three reporters, named again because `--reporter` replaces them, and a JSON one.
       - if: env.HAS_DIST == 'true'
         env:
           E2E_SPECS: ${{ needs.changes.outputs.e2e_specs }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: reports/playwright-${{ matrix.shard }}.json
           PLAYWRIGHT_HTML_OPEN: never
-        run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests --reporter=list,github,html,json $E2E_SPECS
-      # Shard 1 ran its checks without `dist/`; a failed `build` still makes it red.
-      - name: build result
-        if: matrix.shard == 1 && needs.build.result != 'success' && needs.build.result != 'skipped'
+        # `$E2E_SPECS` and `$specs` are word-split on purpose: no spec path has whitespace in it.
         run: |
-          echo "::error::the build job ended '$BUILD', so no e2e spec ran"
-          exit 1
+          specs=$(npx tsx scripts/e2e-shards.ts ${{ matrix.shard }} ${{ strategy.job-total }} $E2E_SPECS)
+          if [ -z "$specs" ]; then echo "no spec falls to shard ${{ matrix.shard }}"; exit 0; fi
+          bash .github/workflows/stage.sh e2e npx playwright test --pass-with-no-tests --reporter=list,github,html,json $specs
+      # D-1216: a full run keeps every shard's JSON report, the input `npm run e2e:durations` takes.
+      - uses: actions/upload-artifact@v5
+        if: always() && env.HAS_DIST == 'true' && needs.changes.outputs.e2e == 'all'
+        with:
+          name: e2e-report-shard-${{ matrix.shard }}
+          path: reports/playwright-${{ matrix.shard }}.json
+          retention-days: 7
+          if-no-files-found: ignore
       # FR-CI-1: the stage table, in the job summary, on a pass and on a failure alike.
       - name: stage times
         if: always()
@@ -353,7 +458,7 @@ jobs:
   # at most FAILURE_DIGEST_MAX_KB, as the `failure-digest` artifact and in this job's summary.
   # Node runs `ci-digest.ts` as it is, so there is no `npm ci`.
   digest:
-    needs: [changes, build, ci, trailers, sdd, dead-code]
+    needs: [changes, build, static, unit, ci, trailers, sdd, dead-code]
     if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 5
