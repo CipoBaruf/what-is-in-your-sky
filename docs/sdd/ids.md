@@ -5,11 +5,14 @@ G3	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G4	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G5	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G6	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
-R193	TASKS.md#v215-tasks	v2.15 tasks
-R194	TASKS.md#v215-tasks	v2.15 tasks
-R195	TASKS.md#v215-tasks	v2.15 tasks
-R196	TASKS.md#v215-tasks	v2.15 tasks
-R197	TASKS.md#v215-tasks	v2.15 tasks
+R198	TASKS.md#v216-tasks	v2.16 tasks
+R199	TASKS.md#v216-tasks	v2.16 tasks
+R204	TASKS.md#v216-tasks	v2.16 tasks
+R200	TASKS.md#v216-tasks	v2.16 tasks
+R201	TASKS.md#v216-tasks	v2.16 tasks
+R205	TASKS.md#v216-tasks	v2.16 tasks
+R202	TASKS.md#v216-tasks	v2.16 tasks
+R203	TASKS.md#v216-tasks	v2.16 tasks
 US-1	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-2	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-3	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
@@ -1980,6 +1983,11 @@ D-1166	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 de
 D-1167	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 D-1168	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
 D-1169	docs/sdd/phases/v2.15/plan.md#253-v215-decisions-2026-11-18	2.53 v2.15 decisions (2026-11-18)
+R193	docs/sdd/phases/v2.15/tasks.md#v215-tasks	v2.15 tasks
+R194	docs/sdd/phases/v2.15/tasks.md#v215-tasks	v2.15 tasks
+R195	docs/sdd/phases/v2.15/tasks.md#v215-tasks	v2.15 tasks
+R196	docs/sdd/phases/v2.15/tasks.md#v215-tasks	v2.15 tasks
+R197	docs/sdd/phases/v2.15/tasks.md#v215-tasks	v2.15 tasks
 G69	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 G70	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
 G71	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first	2.23 Goals (v2.16, "an answer first")
