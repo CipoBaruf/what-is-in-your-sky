@@ -2002,6 +2002,7 @@ D-1173	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1174	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1175	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1176	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1212	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1177	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1178	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1179	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
@@ -2382,6 +2383,8 @@ V216-11	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-12	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-13	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V216-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

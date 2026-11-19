@@ -32,12 +32,14 @@ This phase opens the first visit on an answer: tonight's next pass for the city 
 The place question stays, as the action's destination and as the fallback whenever the example cannot be shown.
 
 - **FR-OPEN-1** *(V216-2)* **The city from the time zone.**
-  The guess is the zone `Intl.DateTimeFormat().resolvedOptions().timeZone` returns, looked up in a table generated at build time from tzdata's `zone1970.tab` (public domain): one row per canonical zone, holding the zone's name, a display name and its coordinates to 0.01°.
-  An alias zone (`backward`) resolves to its canonical zone.
+  The guess is the zone `Intl.DateTimeFormat().resolvedOptions().timeZone` returns, looked up in a table generated at build time from tzdata's `zone.tab` and `zone1970.tab` (public domain): one row per zone either file lists, holding the zone's name, a display name and its coordinates to 0.01°.
+  `zone.tab`'s coordinates come first, so a zone tzdata has merged into another (`Europe/Stockholm` into `Europe/Berlin`, `Atlantic/Reykjavik` into `Africa/Abidjan`) keeps its own city (V216-15).
+  An alias zone (`backward`) that neither file lists resolves to its target's row.
   The display name is the nearest town of `places.txt` (FR-LOC-1 (c)) within `ZONE_NAME_MATCH_KM` (50 km) of the zone's coordinates, which gives its spelling (`São Paulo`); otherwise the zone's last part with `_` as a space.
   No zone, `UTC`, any `Etc/` zone, or a zone not in the table is **no city**.
-  The lookup asks for no permission, makes no request and writes nothing; the table loads after the first paint, at most `ZONE_TABLE_MAX_KB` (6 KB gzipped), and is not in the main chunk.
-  *Verification:* `zoneCity.test.ts` — a canonical zone, an alias, `Etc/UTC`, `UTC`, an unknown string and an empty value; the display-name rule on a zone with a matching town and one without; the build script's output pinned by a fixture of `zone1970.tab` rows; `npm run bundle:budget` with the table's row.
+  The lookup asks for no permission, makes no request and writes nothing; the table loads after the first paint, at most `ZONE_TABLE_MAX_KB` (9 KB gzipped; rationale: the two files' 564 zones and aliases measure about 7 KB gzipped before the name column), and is not in the main chunk.
+  *Verification:* `zoneCity.test.ts` — a canonical zone, a merged zone (`Europe/Stockholm` → Stockholm, not Berlin), an alias (`Asia/Calcutta`), `Etc/UTC`, `UTC`, an unknown string and an empty value.
+  The display-name rule on a zone with a matching town and one without; the build script's output pinned by a fixture of `zone.tab`, `zone1970.tab` and `backward` rows; `npm run bundle:budget` with the table's row.
 
 - **FR-OPEN-2** *(V216-2, V216-6)* **The example observer.**
   The example is an observer with the source `example`, the city's coordinates, an altitude of 0 m and the display name as its label.
@@ -59,7 +61,7 @@ The place question stays, as the action's destination and as the fallback whenev
 - **FR-OPEN-4** *(V216-5, V216-7)* **The first screen, wide, and the wait.**
   On wide the first visit is the populated page of FR-FIRST-5 for the example, the header carrying the tagline in place of its subtitle; the Where pane opens with the label and `[ Not there? Set your place ]` where the place line and `[ change ]` stand for a real place, and its saved places read none.
   Until the example's run is ready the band (compact) or the Where pane (wide) shows the label, "Finding tonight's passes over <city>…" / "Buscando los pases de esta noche sobre <city>…" (`example.finding`) and the action, already live; the readings that need the run hold their height and show nothing.
-  The wait is at most `EXAMPLE_WAIT_MS` (10 000), rationale: a first visit fetches the elements and runs 72 h before it can answer, and a reader who has waited that long is better served by the question; the plan measures the real time on the test phone and may lower it.
+  The wait is at most `EXAMPLE_WAIT_MS` (10 000), rationale: a first visit fetches the elements and runs 72 h before it can answer, and a reader who has waited that long is better served by the question; the plan measures the real time in a throttled first visit and may lower it (V216-15).
   *Verification:* a component test of the waiting state; a layout e2e at 1280 × 800 and 1024 × 768 asserts the label and the action in the Where pane and the next-event block in When.
 
 - **FR-OPEN-5** *(V216-4)* **Not there: set your place.**
@@ -141,6 +143,6 @@ The place question stays, as the action's destination and as the fallback whenev
 
 ### Phase 2y — v2.16 ("an answer first", as decided 2026-11-18, V216-1)
 
-Built right after v2.15, with the time-zone table and the example's pure module alongside it (they touch no file of v2.15); the screen tasks start once v2.15's R196 has merged (V216-10).
+Built right after v2.15, which shipped as 2.15.0 on 2026-11-19, so no task waits on it (V216-16).
 A first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place, and the place question as the fallback.
-Goals G69–G70, §4.59, FR-OPEN-1..14, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-14.
+Goals G69–G70, §4.59, FR-OPEN-1..14, FR-MEAS-2 and FR-MEAS-6 amended, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61; the decisions are V216-1..V216-16.
