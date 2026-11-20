@@ -16,7 +16,8 @@ const GlobePlaces = lazy(() => loadGlobeRail().then((module) => ({ default: modu
 export interface StarsGlobeChoices {
   turn: GlobeTurn;
   onTurn: (turn: GlobeTurn) => void;
-  observer: Observer;
+  /** The reader's own place, `null` under the example (D-1205). */
+  observer: Observer | null;
   places: readonly Favourite[];
   choice: PlaceChoice;
   onChoice: (choice: PlaceChoice) => void;

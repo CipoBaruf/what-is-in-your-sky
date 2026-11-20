@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type MouseEvent, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import { useT } from '../../i18n/useT';
-import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
+import { searchPlaces, useAppStore } from '../../state';
 import { InstallAction } from '../components/common/InstallAction';
 import { useInstallOffer, type InstallEnv } from '../components/common/installEnv';
 import { LanguageToggle } from '../components/common/LanguageToggle';
@@ -12,6 +12,7 @@ import { Favourites } from '../components/location/Favourites';
 import { COORDS_INPUT_ID, LocationInput } from '../components/location/LocationInput';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { TextButton } from '../components/primitives/TextButton';
+import { useOwnObserver } from '../hooks/useOwnObserver';
 import styles from './Settings.module.css';
 
 /**
@@ -67,7 +68,8 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
   const t = useT();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
-  const observer = useActiveObserver();
+  // R203 (FR-OPEN-7, D-1205): the location section shows no place under the example.
+  const observer = useOwnObserver();
   const browserId = useId();
   const coordsRegionId = useId();
   const [coordsOpen, setCoordsOpen] = useState(() => observer?.source === 'coords');

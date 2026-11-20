@@ -90,7 +90,7 @@ function statusText(observer: Observer | null, elements: ElementsState, passes: 
  * evening, and the headings say so. From noon on, the coming night is the
  * one under way.
  */
-export function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey {
+function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey {
   const { key, beforeNoon } = nightAt(now, timeZone);
   if (!beforeNoon) return key;
   const live = groups.find((group) => group.key === key)?.passes.some((pass) => pass.end.t > now) ?? false;
@@ -140,11 +140,13 @@ export interface PassListProps {
    * count line over those 24 h.
    */
   onlyTonight?: boolean;
+  /** R202 (FR-OPEN-13, D-1210): the example's cards, in words. */
+  plain?: boolean;
 }
 
 const SPAN_HOURS = LIVE_WINDOW_MS / 3_600_000;
 
-export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = false }: PassListProps) {
+export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = false, plain = false }: PassListProps) {
   const t = useT();
   const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
@@ -231,6 +233,7 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
               headingLevel={headingLevel}
               faint={faint.has(pass.id)}
               dense={onlyTonight}
+              plain={plain}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />

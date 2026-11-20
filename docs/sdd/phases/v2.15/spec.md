@@ -128,3 +128,4 @@ One route that receives anonymous counts, the events of the first run and of eac
 Goals G67–G68, §4.58, FR-MEAS-1..7, FR-X-3 amended, US-58..US-59; the decisions are V215-1..V215-7.
 
 **Next, not yet specified:** the first run reworked so a new reader sees an answer before a question, written after two weeks of FR-MEAS-6's numbers and judged against them.
+*(superseded v2.16, V216-1)* The first run's change is v2.16, specified now and built right after this phase.

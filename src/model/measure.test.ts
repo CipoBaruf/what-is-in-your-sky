@@ -8,12 +8,11 @@ describe('FR-MEAS-2: the table', () => {
   it('is exactly the spec table, name by name and detail by detail', () => {
     expect(EVENTS).toEqual({
       open: ['home', 'pass', 'live', 'stars', 'settings'],
-      where_shown: [],
+      example_shown: ['pass', 'none', 'no_city', 'failed', 'slow'],
+      where_shown: ['example', 'fallback'],
       place_set: ['search', 'coords', 'device', 'favourite', 'link'],
       device_refused: ['denied', 'unavailable', 'timeout'],
       search_empty: [],
-      when_shown: [],
-      what_shown: [],
       door: ['satellites', 'stars', 'live'],
       pass_open: [],
       live_open: [],
@@ -32,6 +31,10 @@ describe('FR-MEAS-1: the event type', () => {
     expectTypeOf<MeasureName>().toEqualTypeOf<keyof typeof EVENTS>();
     expectTypeOf({ name: 'place_set', detail: 'device', ...context } as const).toExtend<MeasureEvent>();
     expectTypeOf({ name: 'where_shown', ...context } as const).toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'where_shown', detail: 'fallback', ...context } as const).toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'example_shown', detail: 'no_city', ...context } as const).toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'when_shown', ...context } as const).not.toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'what_shown', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'place_set', detail: 'Neuquén', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'where_shown', detail: 'search', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'typed', ...context } as const).not.toExtend<MeasureEvent>();
@@ -62,6 +65,9 @@ describe('FR-MEAS-1: the runtime guard', () => {
       { name: 'place_set', detail: 'Neuquén, Argentina', ...context },
       { name: 'place_set', detail: '-38.95', ...context },
       { name: 'where_shown', detail: 'search', ...context },
+      { name: 'example_shown', detail: 'Buenos Aires', ...context },
+      { name: 'when_shown', ...context },
+      { name: 'what_shown', ...context },
       { name: 'door', detail: 7, ...context },
       { name: 'open', ...context, lat: -38.95 },
       { name: 'open', ...context, label: 'Neuquén' },

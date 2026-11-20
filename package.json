@@ -1,6 +1,6 @@
 {
   "name": "what-is-in-your-sky-right-now",
-  "version": "2.15.0",
+  "version": "2.16.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,9 @@
     "check": "tsx scripts/check.ts",
     "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "VITE_MOON_LORE=on vite build && playwright test",
+    "e2e:durations": "tsx scripts/e2e-shards.ts --durations",
     "promo:record": "VITE_MOON_LORE=on vite build && playwright test --project=promo",
+    "build:zones": "tsx scripts/build-zones.ts",
     "bundle:budget": "tsx scripts/bundle-budget.ts",
     "design:guide": "tsx scripts/design-guide.ts",
     "design:captures": "playwright test --config playwright.design.config.ts",

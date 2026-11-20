@@ -6,7 +6,7 @@ import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { isPassPageRoute, observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
-import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
+import { catalogName, isFeatured, useAppStore } from '../state';
 import { count } from '../state/measure';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
@@ -15,11 +15,13 @@ import { Header } from './components/common/Header';
 import { PageNotices } from './components/common/VisitNotice';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { useLayoutMode } from './hooks/useLayoutMode';
+import { useOwnObserver, usePageObserver } from './hooks/useOwnObserver';
 import { PassList } from './components/passes/PassList';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
 import { nextView } from './screens/chartViewDefault';
-import { Home, useSteps } from './screens/Home';
+import { Home } from './screens/Home';
+import { usePlaceOpen } from './screens/home/usePlaceOpen';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
@@ -51,6 +53,8 @@ const LIVE_NOTES = ['past', 'far'] as const;
 
 /** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
 const HOME_NOTES = ['unreadable'] as const;
+/** R203 (D-1205): the stars page's strip holds the example's line alone, on wide; on a phone the box covers it and the page draws its own. */
+const NO_NOTES = [] as const;
 
 /** R129 (D-845): the settings header's `[ ← ]`, which the settings chunk focuses when it arrives. One app, one ref. */
 const SETTINGS_BACK = createRef<HTMLButtonElement>();
@@ -100,7 +104,9 @@ const SETTINGS_BACK = createRef<HTMLButtonElement>();
  */
 export function App() {
   const t = useT();
-  const observer = useActiveObserver();
+  // R203 (FR-OPEN-6, D-1205): the example opens the pages while it is drawn, never after the fallback replaced it.
+  const observer = usePageObserver();
+  const own = useOwnObserver();
   const passes = useAppStore((s) => s.passes.passes);
   const locale = useLocale();
   const passesStatus = useAppStore((s) => s.passes.status);
@@ -198,17 +204,13 @@ export function App() {
   // v2.14.1 (FR-CLEAN-14 as amended, D-1134): `#pass` with no id, the wide pass page with no pass in the span.
   const passPageEmpty = isPassPageRoute(useHash()) && mode === 'wide' && observer !== null;
   /*
-   * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
-   * steps are held here rather than in `Home`, because the footer is this
-   * component's and takes its `line` form while they are up (F-74).
-   *
-   * `Home` was unmounted by the live and settings routes, which put the steps
-   * back to what a fresh mount makes of the observer; nothing unmounts here, so
-   * the route is passed in and `useSteps` does it. Without that, a place set on
-   * the settings page came back to a step rather than to the stacked page.
+   * R87 (FR-FIRST-1 as amended v2.1, D-548), R202 (D-1178): the first visit's state is held here rather than in
+   * `Home`, because the footer is this component's and takes its `line` form while the place question is the
+   * phone's one screen (F-74). Nothing unmounts here, so the route is passed in and `usePlaceOpen` closes the
+   * question when the reader leaves the home.
    */
-  const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active || stars.active);
-  const stepping = mode === 'compact' && steps.step !== null;
+  const place = usePlaceOpen((live.active && !liveUnreadable) || settings.active || stars.active);
+  const stepping = mode === 'compact' && place.asking;
   /*
    * R186 (FR-WIDE-1, D-1098; amends FR-DESK-3): on wide a selected pass is the desk's shell in the home's place, so
    * the right column's tracks (D-253's split, R76's `pane`) are gone; only the compact sheet stands over the home.
@@ -443,7 +445,7 @@ export function App() {
    * the app's footer, as on every page (R75's privacy line is gone).
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
-  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: own?.label ?? null })} />;
   /*
    * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
    * current page's), the page as `main` — and a chunk of its own, fetched here or from the link ahead
@@ -457,6 +459,7 @@ export function App() {
         routeKey={routeKey}
         title={title}
         banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
+        beforeMain={<PageNotices kinds={NO_NOTES} visit={false} example={mode === 'wide'} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
         {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
         after={overlay}
@@ -500,8 +503,8 @@ export function App() {
       routeKey={routeKey}
       title={title}
       banner={<Header inert={inert} />}
-      beforeMain={<PageNotices kinds={HOME_NOTES} inert={inert} />}
-      mainProps={{ inert, className: styles.main, 'data-home': observer === null ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
+      beforeMain={<PageNotices kinds={HOME_NOTES} example={false} inert={inert} />}
+      mainProps={{ inert, className: styles.main, 'data-home': place.fallback ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
       footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
       after={overlay}
     >
@@ -512,7 +515,7 @@ export function App() {
             selectedPassId={selected ? selected.id : null}
             onOpenPass={openPass}
             MoonLore={MoonLore}
-            steps={steps}
+            place={place}
             passDetail={
               /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
                  is a new guide — its heading takes focus, and closing it returns to the card that

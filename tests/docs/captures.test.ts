@@ -43,7 +43,11 @@ describe('the v1 capture set', () => {
     // R153 (FR-GYRO-9): that screen left the set with the sky screen, so today every screen has the whole matrix.
     // R94 (FR-CAP-1): a screen with `view` has every file twice, the second cropped to the viewport.
     expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * (screen.themes ?? THEMES).length * (screen.locales ?? LOCALES).length * (screen.view ? 2 : 1), 0));
-    expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => screen.name)).toEqual([]);
+    // R202 (FR-OPEN-11): the first visit's states are shot in both languages and the dark theme, the example alone in both themes.
+    // R203 (FR-OPEN-7): the pages the example opens, the same way.
+    expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => [screen.name, screen.themes, screen.locales])).toEqual(
+      ['location-short', 'first-wait', 'first-wait-short', 'first-place', 'first-place-short', 'first-noon', 'first-pass', 'first-live', 'first-stars'].map((name) => [name, ['dark'], undefined]),
+    );
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
      *
@@ -115,10 +119,37 @@ describe('the v1 capture set', () => {
     const NAMED_PAIR = new Set(['live-twilight', 'stars-zoom']);
     // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
     const SHORT = new Set(['guide-short']);
-    expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
+    // R202 (FR-OPEN-11): the first visit at the sizes the fold rule names — 390 × 844, and 360 × 640 as a screen of
+    // its own (`-short`, D-993's way), with the example also at 1024 and 1280. The fallback is `location`.
+    const FIRST: ReadonlyMap<string, readonly number[]> = new Map([
+      ['first-example', [390, 1024, 1280]],
+      ['first-wait', [390]],
+      ['first-place', [390]],
+      ['first-noon', [390]],
+      // R203 (FR-OPEN-7, D-1205): the pages the example opens, at the phone's and the desk's size.
+      ['first-pass', [390, 1280]],
+      ['first-live', [390, 1280]],
+      ['first-stars', [390, 1280]],
+      ['location-short', [360]],
+      ['first-example-short', [360]],
+      ['first-wait-short', [360]],
+      ['first-place-short', [360]],
+    ]);
+    expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([
+      ['location-short', 640],
+      ['first-example-short', 640],
+      ['first-wait-short', 640],
+      ['first-place-short', 640],
+      ['guide-short', 667],
+    ]);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
+        continue;
+      }
+      const first = FIRST.get(screen.name);
+      if (first) {
+        expect(screen.widths, screen.name).toEqual(first);
         continue;
       }
       const turned = PHONE_TURNED.get(screen.name);
@@ -203,7 +234,10 @@ describe('the v1 capture set', () => {
     // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): + 4 each for `sky-pass-facts`, `sky-live-facts`, `sky-stars-star-facts` and `sky-hover` (1280).
     // R189 (FR-WIDE-10, D-1103): + 4 for `sky-fullscreen` (1280).
     // R191 (FR-WIDE-2): − 4 `polar` at 1280, which a desk opens on the globe.
-    expect(captureSet()).toHaveLength(464);
+    // R202 (FR-OPEN-11): + 4 `location` at 1024 and + 2 `location-short`; + 12 `first-example` (390, 1024, 1280) and + 4
+    // `first-example-short`; + 2 each for `first-wait`, `first-wait-short`, `first-place`, `first-place-short` and `first-noon`.
+    // R203 (FR-OPEN-7, D-1205): + 4 each for `first-pass`, `first-live` and `first-stars` (390, 1280; dark, both languages).
+    expect(captureSet()).toHaveLength(508);
   });
 
   it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {

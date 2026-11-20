@@ -410,7 +410,7 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
       return { bottom: rect.bottom + reach, height: rect.height };
     });
     expect(ring.height).toBeLessThanOrEqual(26);
-    const tagline = await page.getByText('Naked-eye satellite passes', { exact: false }).evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+    const tagline = await page.getByTestId('header').getByText('Which satellites you can see tonight', { exact: false }).evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
     expect(ring.bottom).toBeLessThanOrEqual(tagline.top);
   });
 

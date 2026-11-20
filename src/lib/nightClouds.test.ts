@@ -108,14 +108,6 @@ describe('D-1028: tonight’s cloud in words', () => {
     expect(es.weather.tonight(closing)).toBe('Despejado hasta las 01:00 · parcialmente nublado después');
   });
 
-  it('the what step’s foot: a change is two pieces', () => {
-    const foot = (t: typeof en, cloud: TonightCloud) => t.home.whatStep.foot({ place: 'Neuquén', dark: { from: '21:15', to: '05:20' }, cloud });
-    expect(foot(en, clearing)).toEqual(['Neuquén', 'dark 21:15–05:20', 'likely obscured until 02:00', 'clear after']);
-    expect(foot(es, clearing)).toEqual(['Neuquén', 'oscuro 21:15–05:20', 'probablemente cubierto hasta las 02:00', 'despejado después']);
-    expect(foot(en, { kind: 'variable' })).toEqual(['Neuquén', 'dark 21:15–05:20', 'variable']);
-    expect(foot(es, { kind: 'steady', state: 'clear' })).toEqual(['Neuquén', 'oscuro 21:15–05:20', 'despejado']);
-  });
-
   it('the Stars door: the better part with its stretch of the dark', () => {
     const dark = (t: typeof en, cloud: TonightCloud) => t.doors.stars.dark({ from: '21:15', to: '05:20', cloud });
     expect(dark(en, clearing)).toBe('Dark, clear 02:00 → 05:20');
@@ -125,10 +117,5 @@ describe('D-1028: tonight’s cloud in words', () => {
     expect(dark(en, { kind: 'steady', state: 'obscured' })).toBe('Dark 21:15 → 05:20 · Cloudy');
     expect(en.doors.stars.noDark(clearing)).toBe('No full dark · Variable');
     expect(es.doors.stars.noDark({ kind: 'variable' })).toBe('Sin oscuridad total · Variable');
-  });
-
-  it('the when step’s two rows', () => {
-    expect([en.home.whenStep.cloudsUntil('02:00'), en.home.whenStep.cloudsFrom('02:00')]).toEqual(['Until 02:00', 'From 02:00']);
-    expect([es.home.whenStep.cloudsUntil('02:00'), es.home.whenStep.cloudsFrom('02:00')]).toEqual(['Hasta 02:00', 'Desde 02:00']);
   });
 });

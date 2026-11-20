@@ -11,6 +11,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/build-places.ts` — exports: buildPlaces — FR-LOC-1 (c) as amended 2026-11-02 (PLAN D-1025): `src/data/places/places.txt`, the towns a device location is named after, offline.
 - `scripts/build-stars.ts` — exports: SNAP_MAX_DEG, FigureOut, CatalogOut, NamesEs, parseNamesEs, DeepOut, MilkyWayOut, BV_BLANK, +12 — FR-STAR-1 (R112, D-748): `src/data/stars/catalog.json`, the stars as data.
 - `scripts/build-stored-run.ts` — exports: none — R37 (FR-CI-3): writes `tests/fixtures/stored-run-neuquen.json`, the finished 72 h run the e2e suite seeds into IndexedDB (`liveHelpers.seed…
+- `scripts/build-zones.ts` — exports: ZONE_NAME_MATCH_KM, hundredths, zoneLastPart, foldName, TzFiles, buildZones — FR-OPEN-1 (PLAN D-1173, D-1184, V216-18): `src/data/zones/zones.txt`, the city each time zone names, from the vendored tzdata in `scripts/d…
 - `scripts/bundle-budget.ts` — exports: Budget, BUDGETS, PHASE_BUDGETS, ChunkSize, mainChunkFile, measure — PLAN §11 bundle budgets (R15): gzipped sizes of the built chunks against their budgets, printed as a table after `vite build`.
 - `scripts/captures/compress.ts` — exports: opaque, compressPng, compressFiles — PLAN D-1068 (FR-SDD-22): captures are written losslessly compressed.
 - `scripts/captures/diff.ts` — exports: CAPTURE_DIFF_SHARE, PIXEL_THRESHOLD, SIDE_GAP_PX, yiqDelta, PixelDiff, diffPng, halve, sideBySide, +5 — PLAN D-1068 (FR-SDD-23): pixel diffs before images.
@@ -22,6 +23,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `scripts/ci-digest.ts` — exports: FAILURE_DIGEST_MAX_KB, Tool, Failure, ToolResult, stripAnsi, relativePath, firstAssertion, ownFrames, +9 — PLAN D-1067 (FR-SDD-16): the failure digest, and the report readers `npm run check` shares (D-1066).
 - `scripts/contrast.ts` — exports: TOKENS_PATH, TEXT_TOKENS, GROUND_TOKENS, CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, CHART_RESERVED_TOKENS, +18 — R12 (FR-X-5), extended by R20 (FR-THEME-1..3, D-84): WCAG 2.1 contrast ratios of the tokens in `src/ui/styles/tokens.css`, computed for **b…
 - `scripts/design-guide.ts` — exports: GUIDE_PATH, MANIFEST_PATH, PRIMITIVES_DIR, DEV_PAGE_URL, readNotes, renderGuide — R108 (FR-DS-6, FR-DS-9; D-707, D-729): `docs/DESIGN.md`, generated.
+- `scripts/e2e-shards.ts` — exports: Durations, median, splitSpecs, specKey, durationsFromReports — PLAN D-1216 (FR-CI-5): the e2e shards are cut by time, not by test count.
 - `scripts/funnel.ts` — exports: DATASET, DEFAULT_DAYS, FunnelRow, FunnelOptions, funnelReport, funnelQuery, parseRows, Io, +2 — FR-MEAS-6 (D-1149): the funnel, printed from the site's own Analytics Engine dataset.
 - `scripts/mockup-capture.ts` — exports: none — FR-DESK-5 and FR-COMP-6: regenerate the mockups' captures, one per theme, from the pages under `docs/mockups/`.
 - `scripts/prune-merged-branches.ts` — exports: PROTECTED_BRANCHES, PROTECTED, parseBranches, deletable, PullRequestFact, PruneFacts, PrunePlan, planPrune, +4 — FR-PUB-13 (D-377): the branches on `origin` whose pull request is merged, listed — and deleted only when asked in so many words.
@@ -73,8 +75,10 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/data/storage.ts` — exports: StorageLike, browserStorage — The subset of `Storage` the caches and prefs use, so tests and non-browser hosts can substitute a map (R8 `weatherCache`, R10 `localPrefs`).
 - `src/data/weatherCache.ts` — exports: WEATHER_CACHE_KEY, WEATHER_TTL_MS, WEATHER_RETENTION_MS, cellCentre, cellKey, WeatherCacheDeps, WeatherCache, createWeatherCache, +2
 - `src/data/zod.ts` — exports: z — The one place `zod` enters the app (PLAN D-26).
+- `src/data/zones/zoneCity.ts` — exports: ZoneCity, Zones, parseZones, zoneCity, loadZoneCity — FR-OPEN-1 (PLAN D-1174): the city the browser's time zone names, from `zones.txt` (`scripts/build-zones.ts`).
 - `src/i18n/en.ts` — exports: en — FR-I18N-2 (D-69), split per lane (D-199 (2)): `en/ui.ts`, `en/chart.ts`, `en/live.ts` and `en/window.ts` each carry the section their own l…
 - `src/i18n/en/chart.ts` — exports: chart
+- `src/i18n/en/example.ts` — exports: example — R202 (FR-OPEN-8, D-1181, D-1209): the example first run's words — the band, the Where pane's line and the action.
 - `src/i18n/en/facts.ts` — exports: facts
 - `src/i18n/en/failure.ts` — exports: failure — R89 (FR-FAIL-1, FR-FAIL-2, D-540): the failure line's words.
 - `src/i18n/en/globe.ts` — exports: globe — R170 (FR-GLOBE-1, FR-GLOBE-5, FR-GLOBE-7..10, FR-GLOBE-12, FR-GLOBE-16; PLAN D-1035, D-1042): the words of the stars page's globe rail — th…
@@ -88,6 +92,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/i18n/en/window.ts` — exports: windowMessages — FR-I18N-2 (D-199 (2)): the `window` lane's own section of the English catalog.
 - `src/i18n/es.ts` — exports: es — FR-I18N-2: the Spanish catalog, split per lane like `en.ts` (D-199 (2)).
 - `src/i18n/es/chart.ts` — exports: chart
+- `src/i18n/es/example.ts` — exports: example
 - `src/i18n/es/facts.ts` — exports: facts
 - `src/i18n/es/failure.ts` — exports: failure — R89 (FR-FAIL-1, FR-FAIL-2): las oraciones de la línea de falla, tipadas contra `en/failure.ts`.
 - `src/i18n/es/globe.ts` — exports: globe
@@ -111,6 +116,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/lib/contextLine.ts` — exports: UpEvent, ContextParts, ContextInput, contextLine — R143 (FR-TONIGHT-7, D-903): the compact live page's one context line under the shown time, as parts the catalog words.
 - `src/lib/declination.ts` — exports: DeclinationSite, declinationDeg — R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the local magnetic declination, the angle from true north to magnetic north,…
 - `src/lib/elementsAge.ts` — exports: EPOCH_WARN_MS, newestEpoch, epochIsOld, AgeParts, ageParts — FR-SAT-4: the epoch age of the elements in use, and the 5 day warning.
+- `src/lib/exampleOutcome.ts` — exports: EXAMPLE_WAIT_MS, ExampleOutcome, ExampleOutcomeInput, exampleOutcome — R199 (FR-OPEN-4, FR-OPEN-6, D-1177): what the example first run came to, as one pure function of what the page holds and the clock.
 - `src/lib/faint.ts` — exports: FAINT_MAG, FAINT_MAG_MOON, FaintExemptions, faintLimit, isFaint, splitFaint — R97 (FR-FAINT-1, D-623): which passes the list leaves out by default.
 - `src/lib/flags.ts` — exports: MOON_LORE, IS_PROD — FR-FLAG-1, D-183: the only module that reads `import.meta.env`.
 - `src/lib/format.ts` — exports: degrees, formatDuration, formatMagnitude, formatSignedDegrees, formatList, formatRange, formatClockDuration, DETAIL_TIMES_CELLS, +3 — Number formatting shared by the pass card and the detail screen (R6 moved these out of `PassCard.tsx`).
@@ -121,7 +127,6 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/lib/layout.ts` — exports: BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, thresholdPx, WIDE_CELLS, WIDE_MIN_PX, WIDE_QUERY, +55 — R23 (FR-DESK-1, D-71), R50 (FR-DESK-3 amended, D-252/D-253): the one place that says where compact ends, where wide begins, and where the w…
 - `src/lib/legend.ts` — exports: LegendPass, LegendInput, LegendColor, LegendRow, SERIES_COUNT, keyFor, seriesToken, legendRows, +4 — FR-LEG-1..5 / D-186 (R45): the legend's rows, derived in this one pure module from what the chart is given, so the list beside (or under) t…
 - `src/lib/livePasses.ts` — exports: LIVE_WINDOW_MS, livePasses, firstPassFor — FR-LIVE-2, FR-SKY-6, FR-TRAJ-1: the passes a sky of tonight carries — the live page's chart and, with `[ passes ]` on, the stars page's (R1…
-- `src/lib/moonNote.ts` — exports: MOON_BRIGHT_PCT, MOON_NOTE_STEP_MS, MoonNote, moonNote, moonSampleTimes — R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's **when** step closes its sky box with one sentence about the Moon — "A bright moon w…
 - `src/lib/moonPhrases.ts` — exports: MoonFacts, moonFacts, MoonGlareFacts, moonGlareFacts, MoonPeakFacts, MoonLoreEntries, MoonLoreParams, moonLoreParams, +3 — FR-MOON-2/3/4/5: what the Moon's rows are made of, as keys, flags and already-formatted numbers — never as sentences (FR-I18N-2, the rule `…
 - `src/lib/nextEvent.ts` — exports: NextEventKind, NextEvent, NoEventReason, NoEvent, NextEventContext, nextEvent, isNoEvent — R76 (FR-FIRST-3, FR-WATCH-2, D-442): the next thing to look up for.
 - `src/lib/nightClouds.ts` — exports: NightClouds, nightClouds, tonightCloud, laterIsBetter — D-1028: tonight's cloud across its stretch of night (`nightWindow`), hour by hour, rather than one sample at the middle — a night that is o…
@@ -179,7 +184,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +19
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
 - `src/state/measure.ts` — exports: count, randomId, browserEnv, LoadFacts, startMeasure — FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
-- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes` and `failure`.
+- `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes`, `failure` and `example_shown`.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
 - `src/state/passWindow.ts` — exports: NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_MS, searchWindow — The pass list window.
@@ -200,6 +205,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/Shell.tsx` — exports: ShellProps, Shell — R92 (FR-A11Y-1, FR-A11Y-3..5, FR-ROUTE-2; D-529, D-531..D-533; F-71): the one shell every route renders in.
 - `src/ui/components/common/Banner.tsx` — exports: BannerProps, Banner — PLAN §4 `common/Banner.tsx` (R11): one line of plain text the app needs the user to read before trusting the list.
 - `src/ui/components/common/Countdown.tsx` — exports: CountdownState, countdownState, CountdownProps, Countdown — US-6 (R6): the live countdown rise → peak → set.
+- `src/ui/components/common/ExampleNotice.tsx` — exports: ExampleNotice — R203 (FR-OPEN-7; D-1180, D-1205): while a page opens for the example, one line under the header says so — `Example: <city>, from your time…
 - `src/ui/components/common/FailureLine.tsx` — exports: FailureLineProps, FailureLine — R89 (FR-FAIL-1, FR-FAIL-2, D-540): the failure line.
 - `src/ui/components/common/Footer.tsx` — exports: FooterProps, Footer — FR-X-2 (R12): every external data source credited as its terms ask.
 - `src/ui/components/common/Header.tsx` — exports: HeaderProps, Header — R52 (FR-COMP-1, FR-DESK-2 as amended, D-184): the app's header, in the two shapes the two layouts ask for.
@@ -295,7 +301,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/components/location/LocationInput.tsx` — exports: COORDS_INPUT_ID, LocationInputProps, LocationInput — The location section (PLAN §4): place picker (R9), coordinates and altitude (US-2), the device button (US-3), a line naming the active obse…
 - `src/ui/components/location/PlacePicker.tsx` — exports: DEBOUNCE_MS, PlaceSearchFn, PlacePickerProps, PlacePicker — FR-LOC-1 (a), FR-LOC-2, US-1: one free-text field, searched 500 ms after typing stops (Enter searches at once), with the results as a listb…
 - `src/ui/components/location/UseMyLocation.tsx` — exports: GeolocationEnv, accuracyText, observerFromPosition, UseMyLocationProps, UseMyLocation — FR-LOC-1 (c), US-3: one button that asks the Geolocation API once.
-- `src/ui/components/location/WherePlace.tsx` — exports: WherePlaceProps, placeName, WhereOpenedStatus, WherePlace — R81 (FR-FIRST-11, D-511): the Where reading's head once there is a place, in place of R52/R76's one-line summary.
+- `src/ui/components/location/WherePlace.tsx` — exports: WherePlaceProps, WhereOpenedStatus, WherePlace — R81 (FR-FIRST-11, D-511): the Where reading's head once there is a place, in place of R52/R76's one-line summary.
 - `src/ui/components/mark/Mark.tsx` — exports: MarkProps, Mark — R74 (FR-MARK-1..FR-MARK-5, D-439): the app's mark, "Aperture".
 - `src/ui/components/mark/tiers.ts` — exports: MARK_TIERS, MarkTier, MarkGrid, MARK_GRIDS, MarkCell, MarkRasters, denseFrame, MARK_ORBIT_FRAMES, +7 — R74 (FR-MARK-2, FR-MARK-5): the mark's ladder and its constants, in one place because three programs read them — the generator page under `…
 - `src/ui/components/mark/useBead.ts` — exports: useBead — R74 (FR-MARK-5): which pre-rasterised bead frame to draw.
@@ -310,7 +316,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/components/passes/NextEventBlock.tsx` — exports: NEXT_EVENT_TICK_MS, passMinutes, JUMP_MIN_AHEAD_S, JUMP_SPAN_MARGIN_MS, jumpInstant, JumpControl, NextEventBlockProps, NextEventBlock — R76 (FR-FIRST-3, D-442), re-cut by R81 (FR-FIRST-3 as amended v2.0.2, D-508): the next event as board 1B draws it.
 - `src/ui/components/passes/OpenGuide.tsx` — exports: OpenGuide — FR-DESK-3, FR-FIRST-10 as amended v2.1 (R84, D-548): the accessible control that opens a pass, "Open guide → <name>".
 - `src/ui/components/passes/PassCard.tsx` — exports: PassCardProps, PassCard — R81 (FR-FIRST-10, US-5 AC1, D-510): the one-line card of board 1B.
-- `src/ui/components/passes/PassList.tsx` — exports: tonightKey, PassListProps, PassList — Every upcoming visible pass of the catalog as plain cards, chronological (US-5 AC2 default).
+- `src/ui/components/passes/PassList.tsx` — exports: PassListProps, PassList — Every upcoming visible pass of the catalog as plain cards, chronological (US-5 AC2 default).
 - `src/ui/components/passes/SortToggle.tsx` — exports: SortToggleProps, SortToggle — US-5 AC2 (R12): the list order, chronological by default or "best first" (brightness × elevation, `lib/passSort.ts`).
 - `src/ui/components/passes/nightGroups.ts` — exports: NightGroup, groupByNight — US-16 AC5 as amended v2.1 (FR-NIGHT-1, D-534, F-90): the list cut into nights, a night being local noon to the next local noon in the obser…
 - `src/ui/components/passes/passCursor.ts` — exports: PASS_CARD, cursorCards, cursorCard, moveCursor, passIdAtCursor — R35 (FR-DESK-4, US-14 AC4): where `j` and `k` move, and what `Enter` opens.
@@ -354,10 +360,11 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/hooks/useNow.ts` — exports: useNow
 - `src/ui/hooks/useOnline.ts` — exports: useOnline — Whether the browser believes it has a connection (FR-OFF-8).
 - `src/ui/hooks/useOpenerFocus.ts` — exports: useOpenerFocus — R50 (F-43): what opens over the page — the compact guide sheet, the shortcuts overlay — moves focus to its own heading and gives it back to…
+- `src/ui/hooks/useOwnObserver.ts` — exports: useOwnObserver, EXAMPLE_SHOWN, usePageObserver — R202 (FR-OPEN-2, D-1178): the reader's own place — the visited one, else the saved one — and never the example.
 - `src/ui/hooks/useShortcuts.ts` — exports: useShortcuts — R35 (FR-DESK-4, D-73): mounts the one `keydown` listener for as long as the screen that owns the shortcuts is up.
 - `src/ui/navigation.ts` — exports: depth, subscribe, useHash, open, replace, close, home, clearRoute, +3 — R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app writes the history.
 - `src/ui/openedRoute.ts` — exports: openedRoute — FR-MEAS-2 (D-1147): the route a load opened on, as `open`'s detail — read from the hash the way `App`'s route hooks read it, so a `#live?…`…
-- `src/ui/screens/Home.tsx` — exports: WhereReadingProps, WhereReading, HomeProps, useSteps, Home, StepLine, Step — R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings — **where**, **when**, **what**.
+- `src/ui/screens/Home.tsx` — exports: WhereReadingProps, WhereReading, HomeProps, Home — R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings — **where**, **when**, **what**.
 - `src/ui/screens/Live.tsx` — exports: LivePageProps, TICK_MS, resetFirstPassAsked, visibleCount, LivePage, LiveState, liveState, LIVE_ROUTE_HASH — R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9): the live page at `#live`.
 - `src/ui/screens/LiveRoute.ts` — exports: LiveRoute, useLiveRoute — R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route, read from the hash the way the pass selection is (D-13: no router, the hash is the source of…
 - `src/ui/screens/PassDetail.tsx` — exports: PassDetailProps, TICK_MS, PassDetail — US-6 (R6): the guide for one pass.
@@ -366,16 +373,15 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/screens/Stars.tsx` — exports: firstRowCount, StarsPage, StarsHeadLineInput, starsHeadLine, brightestNow, starSource, moonNow — R115 (FR-STAR-3, FR-STAR-4, FR-STAR-7, FR-STAR-8, FR-STAR-10; US-39; D-756): the `#stars` page — the `stars` chunk's one export, behind `St…
 - `src/ui/screens/StarsRoute.ts` — exports: StarsRoute, useStarsRoute, StarsPage — R115 (FR-STAR-3, D-756): the `#stars` route, read from the hash as the live and settings routes are (D-13: no router, the hash is the route…
 - `src/ui/screens/chartViewDefault.ts` — exports: SkyPage, viewFor, WIDE_VIEWS, nextView
+- `src/ui/screens/home/ExampleBand.tsx` — exports: isDay, ExampleBandProps, ExampleBand
 - `src/ui/screens/home/HomeDoors.tsx` — exports: HomeDoorsProps, HomeDoors — R130 (FR-FLOW-1, D-843): the home's three doors — Satellites, Stars, Live sky (R156, FR-PHONE-13) — in that fixed order, each one link over…
-- `src/ui/screens/home/StepLine.tsx` — exports: Step, STEPS, stepLabel, StepLineProps, StepLine
-- `src/ui/screens/home/WhatStep.tsx` — exports: WhatStepProps, WhatStep — R82 (FR-FIRST-4, D-513, board 1B): the phone's third step on a first visit.
-- `src/ui/screens/home/WhenStep.tsx` — exports: WhenStepProps, WhenStep — R82 (FR-FIRST-4 as amended v2.0.2, D-513, board 1B): the phone's second step on a first visit.
 - `src/ui/screens/home/doorLines.ts` — exports: DOOR_CELLS, WHAT_ID, DoorSky, DoorInput, Door, Doors, doorLines — R130 (FR-FLOW-1, D-843): the home's three doors' lines, from what the home already reads — the next event (FR-FIRST-3's `nextEvent`), tonig…
 - `src/ui/screens/home/placeRequest.ts` — exports: requestPlace, placeRequested, clearPlaceRequest — R87 (FR-FIRST-1 as amended v2.1, F-75): the home page's receiving side of `[ set a place ]`.
 - `src/ui/screens/home/shownPasses.ts` — exports: useShownClock, hasEnded, useShownPasses, ListedPasses, useListedPasses, faintIds, usePassContext
-- `src/ui/screens/home/tonight.ts` — exports: TonightSplit, splitTonight, nightWindow — R82 (FR-FIRST-4 as amended v2.0.2, D-513): what the phone's **when** and **what** steps count, from one rule so the two can never disagree…
+- `src/ui/screens/home/tonight.ts` — exports: nightWindow — R82 (D-513), kept by R202 for the doors (`useNight`): the stretch of tonight the cloud word is about — the rest of the dark band (from now…
 - `src/ui/screens/home/useDoorSky.ts` — exports: useDoorSky
-- `src/ui/screens/home/useNight.ts` — exports: Night, useNight, useMoonNote — R82 (FR-FIRST-4 as amended v2.0.2): tonight as the phone's when and what steps state it — the bands the stripe draws (`useTonight`, the sta…
+- `src/ui/screens/home/useNight.ts` — exports: Night, useNight — R82 (FR-FIRST-4 as amended v2.0.2), kept by R202 for the home's doors: tonight — the bands the stripe draws (`useTonight`, the stacked page…
+- `src/ui/screens/home/usePlaceOpen.ts` — exports: usePlaceOpen, PlaceOpen
 - `src/ui/screens/liveRows.ts` — exports: LiveShape, liveShape, LiveRow, LIVE_ROW_TEST_ID, LIVE_ROWS, COMPACT_OVERLAY, COMPACT_CONDITIONAL, WIDE_CORNERS, +8 — R77 (FR-WATCH-4, D-447): what the live page renders, per state, in one table.
 - `src/ui/screens/passSelection.ts` — exports: passIdFromHash, passLinkFromHash, findSelectedPass, PassSelection, SettingsRoute, useSettingsRoute, usePassSelection, SAME_PASS_TOLERANCE_MS — PLAN D-13: no router; the selected pass id is mirrored to the URL hash as `#pass=<id>` so a reload (and a share link) reopens the same pass.
 - `src/ui/screens/settingsChunk.ts` — exports: loadSettingsChunk, prefetchSettingsWhenIdle — R93 (D-545, F-69): the settings page is its own chunk, and this is the one place that fetches it, so the route, the header's link and the i…

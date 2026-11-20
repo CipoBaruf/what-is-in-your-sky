@@ -55,12 +55,12 @@ import { GLOBE_KEY_STEP_DEG } from '../../src/ui/components/guide/skychart/globe
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, stayHere, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
-import { BARILOCHE, FIXTURE_DATE, LONDON, NEUQUEN } from './observers';
+import { BARILOCHE, BARILOCHE_FORECAST_FILE, FIXTURE_DATE, LONDON, NEUQUEN } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
 import { clickFirstRowMark } from './factsHelpers';
 
@@ -400,6 +400,9 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
     await expect(card).toHaveCount(0);
     await blurFocus(page);
   }
+  // R204 (FR-CI-6, D-1213): the wide page's question, where the instant has nothing up (`live-twilight`), answered the
+  // same way — the reader stays on the instant the capture is of — before the route's first click.
+  if (await stayHere(page)) await blurFocus(page);
   const chip = page.getByTestId('shown-chip');
   if ((await chip.count()) > 0) await expect(chip).toHaveAttribute('data-kind', 'now');
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
@@ -769,15 +772,134 @@ async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
 /** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the eastern horizon by the page's own reading — civil twilight, near the middle of its step. */
 const TWILIGHT = CLOCK + 165 * 60_000;
 
+/** R202 (FR-OPEN-11): the zone every capture of the example is shot in, and noon there on the set's day (FR-OPEN-14). */
+const EXAMPLE_ZONE = 'America/Argentina/Buenos_Aires';
+const EXAMPLE_NOON = CLOCK + 7 * 3_600_000;
+
+/** The paused clock ticked until `locator` is in the document: the example starts a frame and a task after the first paint (D-1192). */
+async function ticked(page: Page, locator: Locator): Promise<void> {
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(100);
+      return locator.count();
+    }, { timeout: 60_000 })
+    .toBeGreaterThan(0);
+}
+
+/**
+ * R202 (FR-OPEN-11): a first visit in the example's zone — nothing stored, the set's elements, and the showcase
+ * night's forecast answering for the zone city, so the example reads a cloud word as any place of the set does.
+ * `hold` leaves the elements unanswered: the wait (FR-OPEN-4).
+ */
+async function firstVisit(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time: number, hold = false): Promise<void> {
+  await open(page, width, { locale, theme }, time);
+  // Registered after `stubNetwork`'s, so these answer first.
+  await page.route('https://api.open-meteo.com/v1/forecast**', (route) => route.fulfill({ path: BARILOCHE_FORECAST_FILE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }));
+  if (hold) await page.route('https://celestrak.org/**', () => undefined);
+  await page.goto('/');
+  await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toBeVisible();
+}
+
+/** The example with its run in, at `time` on the dot: the band on a phone, the next event in the When pane on a desk. */
+async function exampleAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time: number): Promise<void> {
+  await firstVisit(page, width, theme, locale, time);
+  await ticked(page, page.locator('[data-testid="example-band"][data-state="pass"], [data-testid="reading-when"] [data-testid="next-event"]'));
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  await ticked(page, page.getByTestId('tonight-stripe'));
+  await doorsFilled(page);
+  await pinnedAt(page, time);
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * R203 (FR-OPEN-7, D-1205): a page one of the example's doors opens, its line under the header — the live page's
+ * card and the wide page's question answered as `liveAt` answers them — at the set's instant on the dot.
+ */
+async function fromExample(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, door: 'door-satellites' | 'door-live' | 'door-stars'): Promise<void> {
+  await exampleAt(page, width, theme, locale, CLOCK);
+  await page.getByTestId(door).click();
+  await ticked(page, page.getByTestId('example-notice'));
+  // The page's chunk and its drawing are lazy, and the paused clock holds their reveals (R32).
+  await ticked(page, page.locator('svg[data-globe][viewBox], svg[data-drawing], [data-testid="sky-chart"] [data-star]'));
+  await page.clock.runFor(1000);
+  // The live page asks once its passes are known: the phone with its card, the desk with its question.
+  const card = page.getByTestId('live-card');
+  const question = page.getByTestId('first-pass-dialog');
+  for (let tick = 0; door === 'door-live' && tick < 25 && (await card.count()) + (await question.count()) === 0; tick++) await page.clock.runFor(200);
+  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+  await stayHere(page);
+  await page.clock.runFor(1000);
+  await pinnedAt(page, CLOCK);
+  await blurFocus(page);
+  await page.mouse.move(0, 0);
+}
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
 const REACH: Record<string, Reach> = {
+  // R202 (FR-OPEN-6): the set's zone is UTC, which has no city, so the first screen is the place question — once the
+  // zone has been looked up, a frame and a task after the first paint, which the paused clock is ticked through.
   async location(page, width, theme, locale) {
     await open(page, width, { locale, theme });
     await page.goto('/');
     await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toBeVisible();
+    await ticked(page, page.getByTestId('cold-open'));
     await expect(page.getByRole('contentinfo')).toBeVisible();
+  },
+
+  async 'location-short'(page, width, theme, locale) {
+    await REACH['location']?.(page, width, theme, locale, false);
+  },
+
+  // R202 (FR-OPEN-11): the example's four states. The zone is the describe's (`shoot`'s caller), the clock the set's.
+  async 'first-example'(page, width, theme, locale) {
+    await exampleAt(page, width, theme, locale, CLOCK);
+  },
+
+  async 'first-example-short'(page, width, theme, locale) {
+    await exampleAt(page, width, theme, locale, CLOCK);
+  },
+
+  async 'first-wait'(page, width, theme, locale) {
+    await firstVisit(page, width, theme, locale, CLOCK, true);
+    await ticked(page, page.getByTestId('example-finding'));
+    await expect(page.getByTestId('example-band')).toHaveAttribute('data-state', 'pending');
+    await page.mouse.move(0, 0);
+  },
+
+  async 'first-wait-short'(page, width, theme, locale) {
+    await REACH['first-wait']?.(page, width, theme, locale, false);
+  },
+
+  async 'first-place'(page, width, theme, locale) {
+    await exampleAt(page, width, theme, locale, CLOCK);
+    await page.getByTestId('example-set-place').click();
+    await expect(page.getByTestId('cold-open').getByTestId('place-back')).toBeVisible();
+    await expect(page.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
+    await page.mouse.move(0, 0);
+  },
+
+  async 'first-place-short'(page, width, theme, locale) {
+    await REACH['first-place']?.(page, width, theme, locale, false);
+  },
+
+  async 'first-noon'(page, width, theme, locale) {
+    await exampleAt(page, width, theme, locale, EXAMPLE_NOON);
+    await expect(page.getByTestId('example-after-dusk')).toBeVisible();
+  },
+
+  // R203 (FR-OPEN-7): the pages the example opens, each with its line.
+  async 'first-pass'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-satellites');
+  },
+
+  async 'first-live'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-live');
+  },
+
+  async 'first-stars'(page, width, theme, locale) {
+    await fromExample(page, width, theme, locale, 'door-stars');
   },
 
   async home(page, width, theme, locale, view) {
@@ -1469,5 +1591,12 @@ for (const screen of SCREENS.filter((candidate) => ONLY.length === 0 || ONLY.inc
       shoot(screen, touch);
     });
   }
-  shoot(screen, captures.filter((capture) => !isTouch(screen.name, capture.width)));
+  const rest = captures.filter((capture) => !isTouch(screen.name, capture.width));
+  // R202 (FR-OPEN-11, D-1183): the example is the zone's, and the zone is the browser context's — a describe's.
+  if (screen.name.startsWith('first-')) {
+    test.describe(`${screen.name} (the example's zone, FR-OPEN-11)`, () => {
+      test.use({ timezoneId: EXAMPLE_ZONE });
+      shoot(screen, rest);
+    });
+  } else shoot(screen, rest);
 }

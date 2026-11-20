@@ -5,12 +5,11 @@
  */
 export const EVENTS = {
   open: ['home', 'pass', 'live', 'stars', 'settings'],
-  where_shown: [],
+  example_shown: ['pass', 'none', 'no_city', 'failed', 'slow'],
+  where_shown: ['example', 'fallback'],
   place_set: ['search', 'coords', 'device', 'favourite', 'link'],
   device_refused: ['denied', 'unavailable', 'timeout'],
   search_empty: [],
-  when_shown: [],
-  what_shown: [],
   door: ['satellites', 'stars', 'live'],
   pass_open: [],
   live_open: [],

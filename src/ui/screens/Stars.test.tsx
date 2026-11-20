@@ -192,6 +192,16 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getByTestId('stars-layout').querySelector('[data-slot="hint"]')).toBeNull();
   });
 
+  // R203 (FR-OPEN-6, D-1205): the latch keeps the example in the store; after a fallback the page does not open for it.
+  it('is the inert line under an example the fallback replaced', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    act(() => {
+      appStore.setState({ example: { lat: -34.6, lon: -58.38, altM: 0, label: 'Buenos Aires', source: 'example', timeZone: null }, exampleOutcome: 'none' });
+    });
+    page();
+    expect(screen.getByTestId('stars-inert')).toHaveTextContent(STARS_PAGE_CATALOGS.en.noPlace);
+  });
+
   it('is the inert line with [ set a place ] when there is no observer (FR-LIVE-1)', () => {
     media = stubMatchMedia(COMPACT_PX);
     page();

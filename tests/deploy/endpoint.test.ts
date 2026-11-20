@@ -83,7 +83,9 @@ describe('collect (FR-MEAS-4)', () => {
     ['a JSON value that is not an object', '"place_set"'],
     ['an unknown name', JSON.stringify({ ...EVENT, name: 'page_view' })],
     ['an unknown detail', JSON.stringify({ ...EVENT, detail: 'typed text' })],
-    ['a detail on a name that takes none', JSON.stringify({ ...EVENT, name: 'when_shown' })],
+    ['a detail on a name that takes none', JSON.stringify({ ...EVENT, name: 'pass_open' })],
+    ['FR-MEAS-2: the removed when_shown', JSON.stringify({ ...EVENT, name: 'when_shown', detail: undefined })],
+    ['FR-MEAS-2: the removed what_shown', JSON.stringify({ ...EVENT, name: 'what_shown', detail: undefined })],
     ['a seventh field', JSON.stringify({ ...EVENT, path: '/secret' })],
     ['an id that is not 16 hex characters', JSON.stringify({ ...EVENT, id: 'not-an-id' })],
   ])('writes nothing for %s', async (_case, body) => {

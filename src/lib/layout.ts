@@ -151,7 +151,7 @@ export const FOOTER_ONE_LINE_MIN_PX = { en: 1176, es: 1195 } as const;
  * `tests/styles/breakpoint.test.ts` holds `Header.module.css`'s `width <`
  * folds to these, as it holds every other condition to an export of this file.
  */
-export const HEADER_FOLD_PX = { en: { tagline: 848 }, es: { tagline: 1050 } } as const;
+export const HEADER_FOLD_PX = { en: { tagline: 675 }, es: { tagline: 656 } } as const;
 
 /**
  * R103 (FR-DS-3, D-702): the three heights the stylesheets fold at, named

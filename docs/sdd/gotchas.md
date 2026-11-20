@@ -9,6 +9,11 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   Call `page.clock.runFor(1000)` first.
   Where the chunk may land late, use `expect.poll` with `runFor(200)` inside the predicate, and call `locator.count()` there, not `getAttribute()`, which waits for the element and stalls the poll.
   *Why:* a one-off `runFor` is a race that passes on one machine and fails on CI (2026-09-05).
+- **A paused clock holds the first visit on the example's empty shape.**
+  With nothing stored, `startApp` looks the zone up a frame and a task after the first paint (D-1192), and only then is the page the example or, in UTC, the place question.
+  `page.clock.setFixedTime` leaves timers running and needs nothing. After `pauseAt`, poll with `runFor(100)` until `cold-open` or `example-band` is in the document (`v1-captures.spec.ts`'s `ticked`).
+  A component test starts the same way: `exampleOutcome` is `pending`, so set `no_city` to get the question.
+  *Why:* R202, 2026-11-19.
 - **Never tick the clock before the coordinates are typed.**
   The pass search starts from virtual time, so ticking moves every pass id (`25544-1789120094063` becomes `…093995`) and every spec that pins a `data-pass-id` misses.
   Register the lazy chunk *before* the click instead: `await link.hover()` fires the prefetch and `page.waitForResponse(/\/Settings-[^/]*\.js$/)` is the signal.

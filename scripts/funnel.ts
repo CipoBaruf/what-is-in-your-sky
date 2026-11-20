@@ -32,10 +32,10 @@ export interface FunnelOptions {
   lang?: string;
 }
 
-/** The steps of a first visit, in order (FR-MEAS-6); `where_shown`'s count is the share's denominator. */
-const STEPS: readonly MeasureName[] = ['where_shown', 'place_set', 'when_shown', 'what_shown', 'door', 'pass_open'];
+/** The steps of a first visit, in order (FR-MEAS-6); the share's denominator is first-visit `open` on `home` (FR-MEAS-6 as amended, D-1182). */
+const STEPS: readonly MeasureName[] = ['example_shown', 'where_shown', 'place_set', 'door', 'pass_open'];
 /** The steps whose row is split by detail. */
-const SPLIT: ReadonlySet<string> = new Set(['place_set', 'door']);
+const SPLIT: ReadonlySet<string> = new Set(['example_shown', 'where_shown', 'place_set', 'door']);
 const DETAILED: readonly MeasureName[] = ['device_refused', 'search_empty', 'no_passes', 'failure', 'follow_answer'];
 
 const sum = (rows: readonly FunnelRow[], keep: (row: FunnelRow) => boolean): number => rows.filter(keep).reduce((total, row) => total + row.count, 0);
@@ -43,7 +43,7 @@ const share = (n: number, of: number): string => (of === 0 ? '-' : `${String(Mat
 const pad = (text: string, width: number): string => text.padEnd(width);
 const num = (n: number): string => String(n).padStart(7);
 
-/** FR-MEAS-6: the plain-text funnel. Never divides by zero: a share over an empty `where_shown` is `-`. */
+/** FR-MEAS-6: the plain-text funnel. Never divides by zero: a share over no first `open` on `home` is `-`. */
 export function funnelReport(rows: readonly FunnelRow[], options: FunnelOptions): string {
   const narrowed = [...(options.layout === undefined ? [] : [`layout ${options.layout}`]), ...(options.lang === undefined ? [] : [`lang ${options.lang}`])];
   const kept = rows.filter((row) => (options.layout === undefined || row.layout === options.layout) && (options.lang === undefined || row.lang === options.lang));
@@ -60,8 +60,8 @@ export function funnelReport(rows: readonly FunnelRow[], options: FunnelOptions)
   }
 
   const first = kept.filter((row) => row.visit === 'first');
-  const base = sum(first, (row) => row.name === 'where_shown');
-  lines.push('', 'First visits', `  ${pad('step', 22)}${'loads'.padStart(7)}  share of where_shown`);
+  const base = sum(first, (row) => row.name === 'open' && row.detail === 'home');
+  lines.push('', 'First visits', `  ${pad('step', 22)}${'loads'.padStart(7)}  share of open home`);
   for (const step of STEPS) {
     const n = sum(first, (row) => row.name === step);
     lines.push(`  ${pad(step, 22)}${num(n)}  ${share(n, base)}`);

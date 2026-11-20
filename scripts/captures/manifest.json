@@ -21,7 +21,7 @@
     "playwright.config.ts",
     "package-lock.json",
     "tests/fixtures/**",
-    "tests/e2e/{v1-captures.spec,captureSet,captureSeeds,liveHelpers,observers,orientation}.ts",
+    "tests/e2e/{v1-captures.spec,captureSet,captureFirst,captureSeeds,liveHelpers,observers,orientation}.ts",
     "scripts/captures/{compress.ts,manifest.json}",
     "tests/e2e/promoFlows.ts",
     "src/ui/screens/{whenIdle,starsChunk,settingsChunk}.ts"
@@ -29,12 +29,23 @@
   "routes": {
     "home": ["src/ui/screens/Home.tsx", "src/ui/screens/home/**", "src/ui/components/{location,now,passes,weather,moon,elements,live}/**"],
     "settings": ["src/ui/screens/{Settings.tsx,Settings.module.css,SettingsRoute.tsx,settingsChunk.ts}", "src/ui/components/location/**"],
-    "detail": ["src/ui/screens/{PassDetail.tsx,PassDetail.module.css,passSelection.ts,chartViewDefault.ts}", "src/ui/screens/sky/{pass/**,sky.module.css}", "src/ui/screens/stars/{globeChunk,field}.ts", "src/ui/components/{guide,sky,moon,weather,live}/**"],
+    "detail": ["src/ui/screens/{PassDetail.tsx,PassDetail.module.css,passSelection.ts,chartViewDefault.ts}", "src/ui/screens/sky/{pass/**,sky.module.css}", "src/ui/screens/stars/{globeChunk,field}.ts", "src/ui/screens/home/placeRequest.ts", "src/ui/components/{guide,sky,moon,weather,live}/**"],
     "live": ["src/ui/screens/{Live.tsx,Live.module.css,LiveRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/sky/{live/**,sky.module.css}", "src/ui/screens/stars/{globeChunk,field}.ts", "src/ui/screens/home/placeRequest.ts", "src/ui/components/{live,sky,guide,passes,moon,weather}/**"],
     "stars": ["src/ui/screens/{Stars.tsx,Stars.module.css,StarsRoute.ts,liveRows.ts,chartViewDefault.ts}", "src/ui/screens/sky/{stars/**,sky.module.css}", "src/ui/screens/{stars,home}/**", "src/ui/components/{sky,guide,live,now,passes,moon,weather}/**"]
   },
   "screens": {
     "location": {"route": "home", "extras": []},
+    "location-short": {"route": "home", "extras": []},
+    "first-example": {"route": "home", "extras": []},
+    "first-example-short": {"route": "home", "extras": []},
+    "first-wait": {"route": "home", "extras": []},
+    "first-wait-short": {"route": "home", "extras": []},
+    "first-place": {"route": "home", "extras": []},
+    "first-place-short": {"route": "home", "extras": []},
+    "first-noon": {"route": "home", "extras": []},
+    "first-pass": {"route": "detail", "extras": ["src/ui/screens/Home.tsx", "src/ui/screens/home/**"]},
+    "first-live": {"route": "live", "extras": ["src/ui/screens/Home.tsx", "src/ui/screens/home/**"]},
+    "first-stars": {"route": "stars", "extras": ["src/ui/screens/Home.tsx"]},
     "home": {"route": "home", "extras": []},
     "settings": {"route": "settings", "extras": []},
     "guide": {"route": "detail", "extras": []},
