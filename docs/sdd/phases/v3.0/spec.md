@@ -63,7 +63,8 @@ This phase makes the live sky the app's first and main page, removes the home, a
 - **FR-LAND-3** *(V30-4)* **The stars page folds into live.**
   `#stars` is removed: a load of `#stars` (with or without its parameters) draws `#live` and keeps the parameters `#live` understands.
   The live page's rail (wide) and its controls (compact) gain the stars page's groups: `Turn` (with you / with the stars), `Layers` (stars, figures, planets, names, faint) and the `Up from <place>` list (FR-STAR-7's rows), in that order after `Time`.
-  The stars page's entry to the sky screen moves to the live page's controls.
+  `Turn` is drawn on wide only, where the globe is; on compact the window's `follow` (the phone's sensor) stays where it is on `#live`, so nothing of the stars page's phone form is lost.
+  A picked star or planet opens its facts in the rail or the sheet as on `#stars` today (FR-FACT-3).
   *Verification:* e2e of a `#stars` link and of each layer on `#live`.
 - **FR-LAND-4** *(V30-5)* **The place line in the header.**
   Every page's header carries one place line, centred in the header row on wide and centred on the header's second row on compact: `<city> · example` + a `change` button while the example is the observer (FR-OPEN-1), `<place name>` + `change` once a place is set.
