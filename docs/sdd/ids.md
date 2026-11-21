@@ -2061,6 +2061,45 @@ D-1220	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1221	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1222	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1223	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+G72	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+G73	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+G74	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+G75	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+US-62	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+US-63	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+US-64	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+US-65	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+US-66	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
+FR-LAND-1	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-2	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-3	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-4	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-5	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-6	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-LAND-7	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30	4.61 The live sky first *(v3.0)*
+FR-STRIP-1	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-STRIP-2	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-STRIP-3	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-STRIP-4	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-STRIP-5	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-STRIP-6	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30	4.62 The next pass, without a question *(v3.0)*
+FR-DARK-1	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30	4.63 The same dark sky at any hour *(v3.0)*
+FR-DARK-2	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30	4.63 The same dark sky at any hour *(v3.0)*
+FR-DARK-3	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30	4.63 The same dark sky at any hour *(v3.0)*
+FR-DARK-4	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30	4.63 The same dark sky at any hour *(v3.0)*
+FR-CTRL-1	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-2	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-3	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-4	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-5	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-6	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-7	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-8	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-9	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-10	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-11	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-UPD-1	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
+FR-UPD-2	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2435,6 +2474,28 @@ V216-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-17	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V216-18	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-2	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-5	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-6	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-7	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-8	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-9	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-10	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-11	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-12	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-13	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-14	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-15	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-16	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-17	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-18	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-19	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-20	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-21	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-22	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp
@@ -2687,6 +2748,12 @@ PLAN §2.54	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18
 PLAN §9.18	docs/sdd/phases/v2.16/plan.md#918-v216-additions-fr-open
 PLAN §11.10	docs/sdd/phases/v2.16/plan.md#1110-v216-build-fr-open-1
 PLAN §16.37	docs/sdd/phases/v2.16/plan.md#1637-v216-delivery
+SPEC §2.24	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first
+SPEC §4.61	docs/sdd/phases/v3.0/spec.md#461-the-live-sky-first-v30
+SPEC §4.62	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v30
+SPEC §4.63	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30
+SPEC §4.64	docs/sdd/phases/v3.0/spec.md#464-controls-v30
+SPEC §4.65	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies
