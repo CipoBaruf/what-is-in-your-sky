@@ -2098,6 +2098,12 @@ FR-CTRL-8	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-CTRL-9	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-CTRL-10	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-CTRL-11	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-12	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-13	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-14	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-15	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-16	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
+FR-CTRL-17	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-UPD-1	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
 FR-UPD-2	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2496,6 +2502,11 @@ V30-19	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-20	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-21	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-22	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-23	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-24	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-25	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-26	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-27	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp

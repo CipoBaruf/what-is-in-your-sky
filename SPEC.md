@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v3.0 — for review.** Phase v3.0 "the sky first" (the live sky is the first page at both widths, no home, the stars folded into live, a next-pass strip, a dark sky at every hour, one look per control, new versions said on every page): FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..11, FR-UPD-1..2, amendments listed in the phase, Decision Log V30-1..V30-22, in `docs/sdd/phases/v3.0/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Status | **Draft v3.0 — for review.** Phase v3.0 "the sky first" (the live sky is the first page at both widths, no home, the stars folded into live, a next-pass strip, a dark sky at every hour, one look per control, new versions said on every page): FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2, amendments listed in the phase, Decision Log V30-1..V30-27, in `docs/sdd/phases/v3.0/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
 | Date | 2026-11-21 (v3.0). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
@@ -69,7 +69,7 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 After v2.16, which shipped as 2.16.0; the owner's review of that release is the phase.
 The live sky is the first and main page at both widths: the home goes, the stars fold into live, the place is one line in the header, the next pass is a strip rather than a question, the sky is dark at every hour, every control has one look per role, and a new version is said on every page.
-Goals G72–G75, §4.61–§4.65, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..11, FR-UPD-1..2, the amendments, US-62..US-66 and roadmap §9 Phase 2z are in [the phase spec](docs/sdd/phases/v3.0/spec.md); the decisions are V30-1..V30-22.
+Goals G72–G75, §4.61–§4.65, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2, the amendments, US-62..US-66 and roadmap §9 Phase 2z are in [the phase spec](docs/sdd/phases/v3.0/spec.md); the decisions are V30-1..V30-27.
 
 ### Previous phase — v2.16 ("an answer first", as decided 2026-11-18, V216-1)
 

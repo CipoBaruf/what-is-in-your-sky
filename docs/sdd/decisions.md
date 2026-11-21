@@ -401,3 +401,8 @@
 | 2026-11-21 | V30-20 | **One scroll per column.** The pass list scrolled inside a scrolling rail. Supersedes V214-33's cap. | FR-CTRL-10; FR-WIDE-1 amended. |
 | 2026-11-21 | V30-21 | **The app looks for a new version on load, on visibility and every 30 minutes, and says so on every page.** The message took a long time and only the home showed it. | FR-UPD-1, FR-UPD-2; FR-OFF-1 amended. |
 | 2026-11-21 | V30-22 | **The funnel is compared over 14 days before and after 3.0.** | FR-MEAS-2, FR-MEAS-6 amended; the definition of done. |
+| 2026-11-21 | V30-23 | **Brackets mean a label: tags keep them, controls lose them.** A `Tag` primitive draws `[twilight]`, the cloud tags and the banner markers; nothing else may draw a bracket. The owner's call, to keep the terminal look where it carries information. | FR-CTRL-14; FR-X-6, FR-DS-2 amended. |
+| 2026-11-21 | V30-24 | **An action inside a line of text looks like a link.** A box in the middle of a sentence is bulky; boxes are for actions on their own row. The owner chose it from the controls mock. | FR-CTRL-13. |
+| 2026-11-21 | V30-25 | **A picked row is raised with a blue line at its left; every pickable row has a hover.** The owner chose R3 of three; it replaces Card's accent frame and the legend's accent names, and the saved places' white block of V30-18. | FR-CTRL-15, FR-CTRL-8. |
+| 2026-11-21 | V30-26 | **One close: a bare `×` at the top-right corner.** Five looks of close were found; the owner chose X1. | FR-CTRL-12. |
+| 2026-11-21 | V30-27 | **Every remaining control and every feedback state takes one of the looks.** From the agent's inventory of 2026-11-21: the step buttons, share, follow, the night groups, errors, progress, empty, disabled, focus and the dialogs. | FR-CTRL-16, FR-CTRL-17. |

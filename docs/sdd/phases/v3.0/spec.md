@@ -37,7 +37,9 @@ As a visitor, I can tell at a glance what I can press, what is on, and which pag
 - AC2: The header's page links are words; the current page is `--fg` with a 2 px `--accent` underline (FR-CTRL-5).
 - AC3: A busy button keeps its label and its box; `Use my location` is the same width before, during and after the search (FR-CTRL-4).
 - AC4: The place input and its suggestion list have the same left edge and width (FR-CTRL-7).
-- AC5: No scrolling element in the app sits inside another scrolling element at 1280 × 800, 1024 × 700 and 390 × 844 (FR-CTRL-10).
+- AC5: Every close is the same `×`; every action inside a line of text is underlined blue; every bracketed word is a tag that does nothing when pressed (FR-CTRL-12..14).
+- AC6: A picked pass, satellite, star or saved place is raised with a blue line at its left, and every pickable row has a hover (FR-CTRL-15).
+- AC7: No scrolling element in the app sits inside another scrolling element at 1280 × 800, 1024 × 700 and 390 × 844 (FR-CTRL-10).
 
 **US-66 — A new version, said in time** *(v3.0)*
 As a returning visitor after a release, I am told within minutes, on whatever page I am, that a new version is ready.
@@ -132,8 +134,8 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
   A text input is FR-CTRL-1's box (the same height, edge and radius); hover draws the edge in `--fg-dim`, focus in `--accent` with a 1 px `--accent` ring.
   The place picker's suggestion list is exactly the input's width at its left edge, on `--bg-raised` in a `--border-control` box with `--radius-2`; a row is the name in `--fg` and the region in `--fg-dim` on one line, no `>` and no rules between rows, at least `--target` tall on compact; the active row is FR-CTRL-2's block.
   The placeholder is `e.g. Buenos Aires` / `p. ej. Buenos Aires`.
-- **FR-CTRL-8** *(V30-18)* **Saved places.**
-  A saved place is its name as an option: the place in use is FR-CTRL-2's block, the others dim words; the row has no frame; `×` is a bare glyph in `--fg-dim`, `--danger` on hover.
+- **FR-CTRL-8** *(V30-18, V30-25)* **Saved places.**
+  A saved place is a row of FR-CTRL-15: the place in use is the picked row; the row has no frame; its `×` is FR-CTRL-12's, `--danger` on hover.
 - **FR-CTRL-9** *(V30-19)* **Zoom.**
   The globe and the window carry a row of three keys under the view, at its left: `−`, `+` and `⟲` (back to the view's opening camera), joined into one FR-CTRL-1 box with hairline dividers; the wheel and a pinch zoom by the same steps.
   On first open a hint `drag to turn · scroll to zoom` / `arrastrá para girar · rueda para acercar` sits in the box's corner until the first drag or zoom; it is remembered on the device (`wiys:hint:globe:v1`).
@@ -142,6 +144,28 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
   *Verification:* an e2e walks every page at 1280 × 800, 1024 × 700 and 390 × 844 and fails on an element with `overflow` `auto` or `scroll` and content taller than its box that has an ancestor with the same.
 - **FR-CTRL-11** *(V30-14)* **Links.**
   `BracketLink` drops its brackets: a link in a line of text is the global `a` (accent, underlined).
+- **FR-CTRL-12** *(V30-26)* **One close.**
+  Every close or dismiss control (the pass panel, the facts group, full screen's exit, the controls sheet, the shortcuts overlay, the link note) is a bare `×` in `--fg-dim` at the top-right corner of what it closes, `--fg` on a `--bg-raised` ground on hover, with a `--target` hit area and the name "Close" / "Cerrar"; a declined offer (`Not now` on the install hint) is an FR-CTRL-1 button.
+- **FR-CTRL-13** *(V30-24)* **Actions inside a line of text.**
+  A control that sits inside a line of text (`details`, `change`, `retry`, `set your place`, `back to my place`, `keep this place`, `enter coordinates instead`, a pass's clickable times) is drawn as a link: `--accent`, underlined, with no box and no brackets, whether it navigates or acts; it keeps its own element (`<button>` or `<a>`) and the `--tap` hit area of `inline-control`.
+  An action that stands on its own row is FR-CTRL-1's box.
+- **FR-CTRL-14** *(V30-23)* **Tags keep the brackets.**
+  A label that cannot be pressed (a pass's `[twilight]` and `[faint]`, the cloud tags `[clear]` / `[partly]` / `[obscured]`, a banner's `[info]` / `[warning]`, the Moon's tags) is a new `Tag` primitive: the word in brackets in its tone, never underlined, never with a hover ground.
+  Brackets in the app then mean a label and nothing else: FR-DS-2's bracket allowance narrows to `Tag`.
+  The cloud and Moon tags keep their explanation on hover and focus.
+- **FR-CTRL-15** *(V30-25)* **Rows you can pick.**
+  A row or card that opens or picks something (a pass card, a row of the pass list, a satellite in the legend, a star or planet in `Up from <place>`, a saved place) has no frame; hover lays `--bg-raised` under it; the picked one is `--bg-raised` with a 2 px `--accent` line down its left edge and `aria-current` or `aria-pressed`; its name keeps its colour.
+  Card's `selected` frame and the legend's and the star list's accent names go.
+- **FR-CTRL-16** *(V30-27)* **Every other control takes one of the looks.**
+  - Standalone buttons are FR-CTRL-1's box: the step buttons (`|◀ pass` … `pass ▶|`), `controls`, `full screen`, `share` (its edge form goes), `Install`, `reload` (the error page and the update bar), `retry` on its own row, the dialogs' answers (the first one primary).
+  - On/off is FR-CTRL-2's option: `follow` (today a pressed `TextButton` on compact); the night groups' `[+]` / `[−]` become a disclosure, `▸ Tonight · 3` / `▾ Tonight · 3`, the whole line the control.
+  - The custom sliders (the time track, the stripes) keep their accent thumb: blue is a mark.
+- **FR-CTRL-17** *(V30-27)* **Feedback.**
+  - Progress is one `role="status"` line in `--fg-dim` under or after its control (FR-CTRL-4); an error is one `role="alert"` `Line` `failure` in `--danger` in the same place, the same for every form (UseMyLocation's own error style goes); an empty list is one dim line; success is `Line` `ok`.
+  - A disabled control keeps its shape with its words in `--fg-dim`, its edge in `--rule`, and no hover.
+  - Focus is the one global ring at every control, fields excepted (FR-CTRL-7).
+  - A dialog (`AskDialog`) is a `--bg-raised` frame with `--border-control` and `--radius-2` on the dimmed page.
+  *Verification:* a component test per primitive form; `tests/styles/literals.test.ts` fails a bracket outside `Tag`; the capture set's control rows.
 
 ### 4.65 New versions *(v3.0)*
 
@@ -165,14 +189,15 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
 - **FR-LOOK-2** *(amended v3.0, V30-12; before: three tints by the Sun)*: one surface (FR-DARK-1).
 - **FR-STAR-13**, **FR-SKY-3** *(amended v3.0, V30-12; before: stars thinned by the Sun)*: every rung at every hour (FR-DARK-2).
 - **FR-SET-5** *(removed v3.0, V30-13)*: FR-DARK-4.
-- **FR-X-6** *(amended v3.0, V30-14; before: "bracketed controls")*: "outlined buttons, filled options, underlined tabs" (§4.64); FR-DS-2's bracket allowance stays for any primitive that still draws one.
+- **FR-X-6** *(amended v3.0, V30-14, V30-23; before: "bracketed controls")*: "outlined buttons, filled options, underlined tabs, bracketed tags" (§4.64).
+- **FR-DS-2** *(amended v3.0, V30-23; before: brackets allowed in the control primitives)*: brackets are allowed in `Tag` alone.
 - **FR-WIDE-1** *(amended v3.0, V30-20; before: the list takes what is left and scrolls)*: FR-CTRL-10.
 - **FR-OFF-1** *(amended v3.0, V30-21; before: the banner on the next load, on home)*: FR-UPD-1, FR-UPD-2.
 - **FR-MEAS-2**, **FR-MEAS-6** *(amended v3.0, V30-22)*: `open` is counted on `live`; `example_shown` is sent when the live page first draws the example's sky; `where_shown` when the place dialog opens; `door` is removed; `watch` is added, sent once per visit when `▶ watch` is first pressed.
 
 #### Definition of done
 
-- FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..11, FR-UPD-1..2 and the amendments above met, each by its verification; US-62..US-66 by their criteria.
+- FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2 and the amendments above met, each by its verification; US-62..US-66 by their criteria.
 - The capture set re-shot; every capture moves (§4.64), and the release record names the moves by requirement.
 - `npm test` green; no bundle row over 2.16.0's by more than 1 KB without a named reason.
 - `npm run funnel` over the 14 days before and the 14 after the release, compared in the release record (V30-22).
@@ -182,4 +207,4 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
 
 After v2.16, which shipped as 2.16.0 on 2026-11-21.
 The live sky is the first and main page at both widths; the home goes and the stars fold into live; the next pass is a strip, not a question; the sky is dark at every hour; every control gets one look per role; a new version is found and said on every page.
-Goals G72–G75, §4.61–§4.65, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..11, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-22.
+Goals G72–G75, §4.61–§4.65, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-27.
