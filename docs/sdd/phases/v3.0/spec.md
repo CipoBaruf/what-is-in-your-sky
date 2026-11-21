@@ -40,6 +40,8 @@ As a visitor, I can tell at a glance what I can press, what is on, and which pag
 - AC5: Every close is the same `×`; every action inside a line of text is underlined blue; every bracketed word is a tag that does nothing when pressed (FR-CTRL-12..14).
 - AC6: A picked pass, satellite, star or saved place is raised with a blue line at its left, and every pickable row has a hover (FR-CTRL-15).
 - AC7: No scrolling element in the app sits inside another scrolling element at 1280 × 800, 1024 × 700 and 390 × 844 (FR-CTRL-10).
+- AC8: In the settings page's browser group every row has the same height and the same gap, the labels in one column (FR-DS-12).
+- AC9: The live rail at 1280 × 800 reads: the next pass, View, Time, Turn, Layers, Up now with the Moon's and the Sun's rows aligned with the rest, Clouds and Moon as rows (FR-NOW-1..3).
 
 **US-66 — A new version, said in time** *(v3.0)*
 As a returning visitor after a release, I am told within minutes, on whatever page I am, that a new version is ready.
@@ -80,7 +82,7 @@ This phase makes the live sky the app's first and main page, removes the home, a
 ### 4.62 The next pass, without a question *(v3.0)*
 
 - **FR-STRIP-1** *(V30-9)* **The next-pass strip.**
-  The live page carries one strip at the foot of the sky's box (compact) or the foot of the rail (wide), always drawn, one text row tall:
+  The live page carries one strip, always drawn: on compact at the foot of the sky's box, one text row tall; on wide it is the rail's head, in place of today's `Next up` block (its countdown, its time at the pane size, the name and the path line keep their form) with the button under them *(V30-30)*:
   - nothing up at the shown instant and a visible pass within FR-LIVE-2's 24 h span: `Next  <name> · <rise HH:MM> · in <countdown>` and a primary `▶ watch` button;
   - a visible pass up at the shown instant: `Up now  <name> · sets <HH:MM> · look <direction>`;
   - no visible pass in the span: `No visible pass in the next 24 h`.
@@ -175,6 +177,46 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
   The `New version ready · reload` / `Nueva versión lista · recargar` bar is part of the shell, under the header on every page, not the home's (FR-OFF-1); `reload` activates the waiting worker and reloads; the bar stays until then.
   It is never drawn over the sky's box.
 
+### 4.66 The design system is the one place *(v3.0)*
+
+The owner's rule (2026-11-21): a change of look is a change of the design system, made once at the app's level and checked on every page, so the next one is cheap and consistent.
+The first tasks of the phase build this; the screen tasks after them only consume it.
+
+- **FR-DS-10** *(V30-28)* **Control tokens.**
+  `tokens.css` gains the tokens every control reads, with these defaults.
+  `--control-h` is one `--row` plus two hairlines, the drawn height of a button, an input, an option and a row.
+  The others: `--control-pad` (a cell), `--control-radius` (`--radius-2`), `--control-edge` (`--border-control`), `--on-ground` (`--fg`) and `--on-ink` (`--bg`) for what is on, `--hover-ground` (`--bg-raised`), `--mark` (`--accent`, lines, underlines, the picked row's line, focus), `--gap-row` (`--space-1`) and `--gap-group` (`--space-4`), `--label-col` (9 cells).
+  A later change of a control's look is a change of these values or of one primitive, nothing else.
+- **FR-DS-11** *(V30-28)* **Every control is a primitive.**
+  The primitives gain `Tag` (FR-CTRL-14), `Close` (FR-CTRL-12), `PickRow` (FR-CTRL-15), `Disclosure` (FR-CTRL-16), `ZoomKeys` (FR-CTRL-9), `SettingRow` (FR-DS-12) and `StatusLine` (FR-CTRL-17); `TextButton`, `OptionToggle`, `ToggleGroup`, `BracketLink`, `Field` and `SectionHeading` take §4.64's looks.
+  No module outside `src/ui/components/primitives/` renders a `<button>`, an `<a>` or an `<input>` of its own.
+  `tests/styles/controls.test.ts` reads the TSX under `src/ui` and fails on one, with an allow list keyed by file whose counts may only go down and which is empty at the phase's end (the step buttons, the legend and star rows, the night toggles, the times row, the facing hit area, the sheet's and the overlay's close are today's cases).
+- **FR-DS-12** *(V30-29)* **One rhythm.**
+  Inside a group, rows are `--gap-row` apart and every row is `--control-h` tall, the hit area aside; a labelled row (`SettingRow`) is the label in `--fg-dim` in a `--label-col` column and its control; groups are `--gap-group` apart under their `SectionHeading`; every group's content starts at the column's left edge, with no indent of its own.
+  It holds on the settings page, the live rail, the pass rail and the place dialog.
+  *Verification:* an e2e measures the rows of the settings page's browser group and the rail's groups at 1280 × 800 and 390 × 844: equal heights and equal gaps to the pixel, and every group's first box at the column's left edge.
+- **FR-DS-13** *(V30-28)* **The gallery.**
+  The dev-only design page (FR-DS-6) shows every primitive in every state it has (rest, hover, focus, on, picked, busy, disabled, error) in both themes, at 1280 and 390 px; hover and focus are forced by a test hook, not by a pointer.
+  The gallery is in the capture set, a capture per theme and width.
+- **FR-DS-14** *(V30-28)* **How a look change is checked.**
+  A change to `tokens.css` or a primitive re-shoots the gallery and the whole capture set; the pull request lists every capture that moved and why, and the owner checks the gallery and the pages named in the release record by hand (§4.64's moves).
+  The phase's first wave is the design system (FR-DS-10..13 and the primitives' looks) with its captures, before any screen task.
+
+### 4.67 The live rail, ordered *(v3.0)*
+
+The live page's rail on a desk read as loose lines: `nothing up right now`, the Sun and Moon rows two cells in from everything else, and a status line wrapped across two lines under a rule.
+
+- **FR-NOW-1** *(V30-30)* **The rail's order.**
+  On wide the live rail is, top to bottom: the strip (FR-STRIP-1, its head); `View` (the views, a `share` button at the group's right); `Time` (the time line, the steps, play and the speeds); `Turn`; `Layers` (stars, figures, planets, names, faint, hidden objects); `Up now`; `Up from <place>` (FR-LAND-3).
+  On compact the controls sheet holds the same groups in the same order.
+  The compact actions `scrub the night` and `see this pass` are FR-CTRL-1 buttons in `Time`; `Hidden objects` is an option in `Layers`; `Share this sky` is the `share` button.
+- **FR-NOW-2** *(V30-30)* **Up now.**
+  A group headed `Up now` / `Arriba ahora` lists every visible satellite above the horizon at the shown instant as FR-CTRL-15 rows (the legend's), then the Sun and the Moon, each row its swatch, its name, its direction as a compass point and its height in degrees, in aligned columns: `Moon   NE   30° up`, `Sun   WSW   4° below`.
+  With no satellite up, the group's first line is `No satellite up` / `Ningún satélite arriba` in `--fg-dim`, at the column's left edge.
+- **FR-NOW-3** *(V30-30)* **The sky's state as rows.**
+  The status line (`Sky day · Clouds … · Up 0 · Moon …`) is replaced by `SettingRow`s at the end of `Up now`: `Clouds` with the cover in its tone (`clear · 5 %`), `Moon` with its phase and light (`waxing gibbous · 90 % lit`); `Sky` goes (FR-DARK-1, FR-DARK-3) and `Up` goes (the list is the count).
+  *Verification:* captures of the rail at 1280 × 800 with nothing up and with a pass up; a component test of the rows.
+
 #### Amended
 
 - **FR-FLOW-1**, **FR-PHONE-12**, **FR-FIRST-5** *(removed v3.0, V30-2)*: the home and its doors and panes are gone (FR-LAND-1).
@@ -191,13 +233,14 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
 - **FR-SET-5** *(removed v3.0, V30-13)*: FR-DARK-4.
 - **FR-X-6** *(amended v3.0, V30-14, V30-23; before: "bracketed controls")*: "outlined buttons, filled options, underlined tabs, bracketed tags" (§4.64).
 - **FR-DS-2** *(amended v3.0, V30-23; before: brackets allowed in the control primitives)*: brackets are allowed in `Tag` alone.
-- **FR-WIDE-1** *(amended v3.0, V30-20; before: the list takes what is left and scrolls)*: FR-CTRL-10.
+- **FR-WIDE-1** *(amended v3.0, V30-20, V30-30; before: the list takes what is left and scrolls, and the rail's groups in 2.14's order)*: FR-CTRL-10 and FR-NOW-1's order.
 - **FR-OFF-1** *(amended v3.0, V30-21; before: the banner on the next load, on home)*: FR-UPD-1, FR-UPD-2.
 - **FR-MEAS-2**, **FR-MEAS-6** *(amended v3.0, V30-22)*: `open` is counted on `live`; `example_shown` is sent when the live page first draws the example's sky; `where_shown` when the place dialog opens; `door` is removed; `watch` is added, sent once per visit when `▶ watch` is first pressed.
 
 #### Definition of done
 
-- FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2 and the amendments above met, each by its verification; US-62..US-66 by their criteria.
+- FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2 and the amendments above met, each by its verification; US-62..US-66 by their criteria.
+- The design system's wave merged first, with the gallery in the capture set (FR-DS-14).
 - The capture set re-shot; every capture moves (§4.64), and the release record names the moves by requirement.
 - `npm test` green; no bundle row over 2.16.0's by more than 1 KB without a named reason.
 - `npm run funnel` over the 14 days before and the 14 after the release, compared in the release record (V30-22).
@@ -207,4 +250,4 @@ Each role has one look: blue is a line or a mark, white is what is on, an outlin
 
 After v2.16, which shipped as 2.16.0 on 2026-11-21.
 The live sky is the first and main page at both widths; the home goes and the stars fold into live; the next pass is a strip, not a question; the sky is dark at every hour; every control gets one look per role; a new version is found and said on every page.
-Goals G72–G75, §4.61–§4.65, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-27.
+Goals G72–G75, §4.61–§4.67, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-30.

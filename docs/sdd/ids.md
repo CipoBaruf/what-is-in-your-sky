@@ -2106,6 +2106,14 @@ FR-CTRL-16	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-CTRL-17	docs/sdd/phases/v3.0/spec.md#464-controls-v30	4.64 Controls *(v3.0)*
 FR-UPD-1	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
 FR-UPD-2	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30	4.65 New versions *(v3.0)*
+FR-DS-10	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30	4.66 The design system is the one place *(v3.0)*
+FR-DS-11	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30	4.66 The design system is the one place *(v3.0)*
+FR-DS-12	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30	4.66 The design system is the one place *(v3.0)*
+FR-DS-13	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30	4.66 The design system is the one place *(v3.0)*
+FR-DS-14	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30	4.66 The design system is the one place *(v3.0)*
+FR-NOW-1	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
+FR-NOW-2	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
+FR-NOW-3	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2507,6 +2515,9 @@ V30-24	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-25	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-26	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 V30-27	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-28	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-29	docs/sdd/decisions.md#12-decision-log	12. Decision Log
+V30-30	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 SPEC §1	SPEC.md#1-summary
 SPEC §2	SPEC.md#2-goals--non-goals
 SPEC §2.1	SPEC.md#21-goals-mvp
@@ -2765,6 +2776,8 @@ SPEC §4.62	docs/sdd/phases/v3.0/spec.md#462-the-next-pass-without-a-question-v3
 SPEC §4.63	docs/sdd/phases/v3.0/spec.md#463-the-same-dark-sky-at-any-hour-v30
 SPEC §4.64	docs/sdd/phases/v3.0/spec.md#464-controls-v30
 SPEC §4.65	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30
+SPEC §4.66	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30
+SPEC §4.67	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies
