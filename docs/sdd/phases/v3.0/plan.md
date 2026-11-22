@@ -115,6 +115,20 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   (R206; D-1226.) `BRACKET_CELLS` (4) is `BOX_CELLS` (2) in `hintFitsBeside`, so the mouse's drag hint now stands beside `controls` in both languages where only the touch one did.
   The stars page's `firstRowCount` counts the same two cells and a quarter cell between options, so its first row holds three layers in both languages (25.5 and 30.5 of 32 cells).
   The gallery restates the colour aliases on each theme's column, since an alias resolves where it is declared; the app's theme is on the root and needs none.
+- **D-1256 — A field's box is a frame after its input, and busy is not disabled.**
+  (R209; D-1226, FR-CTRL-4, FR-CTRL-7.) An input holds no element, so it draws nothing and the frame after it in their wrapper is the box; its focus rule is the one exception to D-1141's test, the edge and the hairline ring reading as one 2 px line.
+  `busy` sets `aria-disabled` and swallows the press instead of disabling, which would dim the box and drop the focus.
+  The pulse's hold under reduced motion is asked in script (D-932), by a hook of the primitives' own, since FR-DS-3 keeps that query out of a stylesheet.
+- **D-1257 — `Close`'s word is handed down, and the bracket ratchet also reads a stylesheet's `content`.**
+  (R209; D-703, D-1228, D-1229.) A primitive imports no catalog, so `I18nProvider` hands `shortcuts.close` ("Close", "Cerrar") to `closeName.ts`'s context and `label` outranks it; outside the provider a caller passes `label`.
+  Seven of the day's eight files with bracketed words draw them as CSS `content`, so the rule counts that form beside D-1229's three, or the lists could be empty with the brackets still drawn.
+  D-1229's JSX text includes the words written into a prop, which is how `Line` and `TextButton` take theirs; there a selector (an `=`, or a `data-` or `aria-` name) does not count.
+  A `+` is read as the template it equals and an element's children as one text, so a bracket written apart from its word counts; one held in a variable is not followed.
+  A file is listed under the lane of the task that lowers it: `StepControls` under `window` (R223), `ControlsSheet` under `ui` (R224), `screens/stars/**` under `live` (R222).
+- **D-1258 — The picked row's attribute, and a row's height with its hit area aside.**
+  (R209; D-1228, FR-CTRL-15, FR-DS-12.) A `PickRow` link is `aria-current` when picked; a button is `aria-pressed`, or `aria-current` with `current`, where the row is the one shown of its set.
+  A disabled link drops its `href` and any `tabindex` and is a `role="link"` with `aria-disabled`, since an `<a>` has no `disabled` (FR-CTRL-17).
+  `PickRow` and `SettingRow`'s controls are `--control-h` tall on wide and keep their `--tap` hit box in the row on compact, where rows 30 px apart would put one row's hit area over the next one's box.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*
 

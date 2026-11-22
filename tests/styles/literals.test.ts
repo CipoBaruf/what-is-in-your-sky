@@ -5,14 +5,17 @@
  * literal, a `px`/`rem`/`em` length other than `0` outside a media condition,
  * a `z-index` number, an `outline` other than the stripes' tight offset, a
  * `font-family` that is not the stack, and the `[ ` / ` ]` brackets outside
- * the primitives — and held to `literals.allow.json`: one entry per file with
+ * `Tag` — and held to `literals.allow.json`: one entry per file with
  * its count and its reason, seeded at the day's counts by R103. A file's
  * matches must equal its count — more is a new literal, fewer is a count that
  * was not lowered with the change that earned it — and an entry at zero or
- * for a file that is gone is a failure too, so the list only falls.
+ * for a file that is gone is a failure too, so the list only falls. R209
+ * (FR-CTRL-14, FR-CTRL-17; D-1229): a bracketed word outside `Tag` is held to
+ * the lanes' lists in `allow/`, which fail on a raised count alone.
  */
 import { describe, expect, it } from 'vitest';
-import { ALLOW_PATH, components, PRIMITIVES_DIR, readAllowList, scanAll, scanComponent, scanStylesheet, stylesheets, TOKENS_FILE, type Literal } from './literals';
+import { ALLOW_PATH, bracketFiles, components, PRIMITIVES_DIR, readAllowList, scanAll, scanBrackets, scanComponent, scanStylesheet, stylesheets, TAG_COMPONENT, TAG_STYLESHEET, TOKENS_FILE, type Literal } from './literals';
+import { laneLists, listFaults, overCount, type LaneList } from './ratchet';
 
 const allow = readAllowList();
 const scanned = scanAll();
@@ -71,10 +74,11 @@ describe('the literals test (FR-DS-2, D-701)', () => {
       expect(kinds('.a { font-family: var(--font-mono); } .b { font-family: inherit; } .c { font-family: monospace; }')).toEqual(['font-family font-family: inherit', 'font-family font-family: monospace']);
     });
 
-    it('the brackets drawn as content, outside the primitives', () => {
+    it('the brackets drawn as content, outside Tag (FR-DS-2 as amended)', () => {
       const css = ".a::before { content: '[ '; } .a::after { content: ' ]'; } .b::before { content: '── '; } .c::after { content: \"[ \"; }";
       expect(kinds(css)).toEqual(["bracket content: '[ '", "bracket content: ' ]'", 'bracket content: "[ "']);
-      expect(kinds(css, `${PRIMITIVES_DIR}/TextButton.module.css`)).toEqual([]);
+      expect(kinds(css, `${PRIMITIVES_DIR}/TextButton.module.css`)).toHaveLength(3);
+      expect(kinds(css, TAG_STYLESHEET)).toEqual([]);
     });
 
     it('leaves comments and custom properties alone, and keeps the line', () => {
@@ -88,5 +92,112 @@ describe('the literals test (FR-DS-2, D-701)', () => {
       expect(tsx("'--screen-turn': `${String(deg)}deg`, transform: rotate(deg), background: side")).toEqual([]);
       expect(scanComponent('src/ui/X.tsx', '<div style={layerStyle(base)} />')).toEqual([]);
     });
+  });
+});
+
+describe('brackets mean a label, and Tag writes them (FR-CTRL-14, D-1229)', () => {
+  const lists = laneLists('brackets');
+  const count = (text: string, path = 'src/ui/X.tsx'): number => scanBrackets(path, text).length;
+
+  it('FR-CTRL-17: no file draws more bracketed words than its lane’s list allows', () => {
+    const failures = overCount(new Map(bracketFiles().map((path) => [path, scanBrackets(path)])), lists);
+    expect(failures, `A label is a Tag (docs/DESIGN.md).\n${failures.join('\n')}`).toEqual([]);
+  });
+
+  it('the lists are one per lane, a file in one of them, each with its count and reason', () => {
+    expect(listFaults('brackets', lists)).toEqual([]);
+  });
+
+  it('counts a bracketed word in JSX text, the whole or round an expression', () => {
+    expect(count('const x = <p>a [twilight] pass</p>;')).toBe(1);
+    expect(count('const x = <p>[{word}]</p>;')).toBe(1);
+    expect(count("const x = <p>{open ? '[−]' : '[+]'}</p>;")).toBe(2);
+    expect(count('const x = <p>twilight</p>;')).toBe(0);
+  });
+
+  it('counts one in a catalog’s string or message, and no other module’s strings', () => {
+    const text = "export const ui = { tag: '[faint]', level: (n: number) => `[level ${n}] of five` };";
+    expect(count(text, 'src/i18n/en/ui.ts')).toBe(2);
+    expect(count("const selector = '[data-option]';")).toBe(0);
+  });
+
+  it('counts a template that builds [${…}], and no selector or index', () => {
+    expect(count('const marker = `[${t.banner}]`;')).toBe(1);
+    expect(count('const step = `[0${n}] ${word}`;')).toBe(1);
+    expect(count('const a = `[data-pass-id="${id}"]`; const b = `${CARD}[data-selected]`; const c = list[i];')).toBe(0);
+  });
+
+  it('counts one handed to a component as a prop, and no selector', () => {
+    expect(count('const x = <Line marker="[info]">A sentence</Line>;')).toBe(1);
+    expect(count("const x = <Line marker={'[info]'}>A sentence</Line>;")).toBe(1);
+    expect(count('const x = <TextButton label="[ retry ]" />;')).toBe(1);
+    expect(count("const x = <Line marker={warn ? '[warning]' : '[info]'}>A sentence</Line>;")).toBe(2);
+    expect(count("const x = <Line marker={marker ?? '[info]'}>A sentence</Line>;")).toBe(1);
+    expect(count("const x = <Line marker={'[info] ' + word}>A sentence</Line>;")).toBe(1);
+    expect(count('const x = <Line marker={`[info] ${word}`}>A sentence</Line>;')).toBe(1);
+    expect(count('const x = <p>{`[info] ${word}`}</p>;')).toBe(1);
+    expect(count("const x = <ToggleGroup options={[{ value: 'a', label: '[a]' }]} />;")).toBe(1);
+    expect(count("const x = <Line {...(warn ? { marker: '[warning]' } : {})}>A sentence</Line>;")).toBe(1);
+    // A template that builds one is still one, wherever it stands.
+    expect(count('const x = <Line marker={`[${word}]`}>A sentence</Line>;')).toBe(1);
+    expect(count('const x = <p>{`[${word}]`}</p>;')).toBe(1);
+    expect(count('const x = <List within="[data-option]" first=\'[role="option"]\' row={`[data-id="${id}"]`} />;')).toBe(0);
+    expect(count("const x = <Line marker={key === '[' ? open : shut}>A sentence</Line>;")).toBe(0);
+  });
+
+  it('counts no data- or aria- selector that a template builds in a prop', () => {
+    expect(count('const x = <List within={`[data-${kind}]`} />;')).toBe(0);
+    expect(count('const x = <List within={`[aria-${state}] li`} />;')).toBe(0);
+    expect(count('const x = <List {...{ within: `[data-${kind}]` }} />;')).toBe(0);
+    expect(count('const x = <List first={query(`[data-${kind}]`)} />;')).toBe(0);
+    // A child is drawn, inside a prop too.
+    expect(count('const x = <p>{`[data-${kind}]`}</p>;')).toBe(1);
+    expect(count('const x = <Line lead={<b>{`[data-${kind}]`}</b>}>A sentence</Line>;')).toBe(1);
+  });
+
+  it('counts one built with +, as a template would be', () => {
+    expect(count("const x = <Line marker={'[' + t.banner[variant] + ']'}>A sentence</Line>;")).toBe(1);
+    expect(count("const marker = '[' + word + ']';")).toBe(1);
+    expect(count("const marker = ('[' + lead) + (`${word}` + ']');")).toBe(1);
+    expect(count("const x = <p>{'[' + 'warning' + ']'}</p>;")).toBe(1);
+    expect(count("const x = <p>{(on ? '[' : ' ') + word + (on ? ']' : ' ')}</p>;")).toBe(1);
+    expect(count("export const ui = { level: (n: number) => '[level ' + n + ']' };", 'src/i18n/en/ui.ts')).toBe(1);
+    expect(count("export const ui = { tag: (n: number) => '[faint] ' + n };", 'src/i18n/en/ui.ts')).toBe(1);
+    // Once each, and still no selector or index.
+    expect(count("const x = <p>{'[a]' + word + `[${other}]`}</p>;")).toBe(2);
+    expect(count("const x = <List within={'[data-' + kind + ']'} />;")).toBe(0);
+    expect(count('const a = \'[data-id="\' + id + \'"]\'; const b = list[i] + list[j];')).toBe(0);
+  });
+
+  it('counts one whose brackets are children of their own', () => {
+    expect(count("const x = <p>{'['}{word}{']'}</p>;")).toBe(1);
+    expect(count("const x = <p>{'['}warning{']'}</p>;")).toBe(1);
+    expect(count("const x = <p>\n  {'['}\n  {word}\n  {']'}\n</p>;")).toBe(1);
+    expect(count('const x = <p>\n  [\n  {word}\n  ]\n</p>;')).toBe(1);
+    expect(count('const x = <p><span>[</span>{word}<span>]</span></p>;')).toBe(1);
+    expect(count("const x = <p>{on && '['}{word}{on ? ']' : null}</p>;")).toBe(1);
+    expect(count("const x = <p>{`${'['}${word}`}{']'}</p>;")).toBe(1);
+    // Once each: a whole word inside is counted where it is written.
+    expect(count("const x = <p>{'[a]'}{word}<b>[b]</b>{`[${other}]`}</p>;")).toBe(3);
+    expect(count("const x = <p>{key === '[' ? open : shut}{word}</p>;")).toBe(0);
+  });
+
+  it('counts one drawn as a stylesheet’s content', () => {
+    expect(count(".a::before { content: '['; } .a::after { content: ']'; } .b::before { content: '── '; }", 'src/ui/x.module.css')).toBe(2);
+    expect(count(".a::before { content: '[ '; }", `${PRIMITIVES_DIR}/Line.module.css`)).toBe(1);
+  });
+
+  it('never counts Tag’s own', () => {
+    expect(count('const x = <span>[{children}]</span>;', TAG_COMPONENT)).toBe(0);
+    expect(count(".a::before { content: '['; }", TAG_STYLESHEET)).toBe(0);
+  });
+
+  it('fails on a raised count and passes on a lowered one', () => {
+    const path = 'src/ui/X.tsx';
+    const allowed: LaneList[] = [{ path: 'ui.brackets.json', entries: { [path]: { count: 1, reason: 'fixture' } } }];
+    const judged = (text: string): string[] => overCount(new Map([[path, scanBrackets(path, text)]]), allowed);
+    expect(judged('const x = <><p>[a]</p><p>[b]</p></>;')).toEqual([expect.stringContaining('2, over the 1')]);
+    expect(judged('const x = <p>[a]</p>;')).toEqual([]);
+    expect(judged('const x = <p>a</p>;')).toEqual([]);
   });
 });

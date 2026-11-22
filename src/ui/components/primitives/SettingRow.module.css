@@ -1,0 +1,40 @@
+/* R209 (FR-DS-12; D-1258): a labelled row, from the column's left edge. On
+   compact a control keeps its `--tap` hit box and the row holds it, so two
+   rows' hit boxes never overlap; on wide the row and what is pressed in it
+   are the drawn box's `--control-h`. */
+.row {
+  display: grid;
+  grid-template-columns: var(--label-col) minmax(0, 1fr);
+  align-items: center;
+  min-height: var(--control-h);
+}
+
+/* `display: grid` would otherwise outrank the attribute, as on Stack. */
+.row[hidden] {
+  display: none;
+}
+
+/* The gap is between two rows that are shown: a hidden first row leaves none over the next. */
+.row:not([hidden]) + .row,
+.row:not([hidden]) ~ .row[hidden] + .row {
+  margin-top: var(--gap-row);
+}
+
+.label {
+  color: var(--fg-dim);
+  overflow-wrap: anywhere;
+}
+
+.control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-width: 0;
+}
+
+@media (width >= 964px) {
+  .control :is(button, input) {
+    min-height: var(--control-h);
+  }
+}

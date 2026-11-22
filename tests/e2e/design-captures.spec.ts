@@ -16,6 +16,9 @@
  * R206 (FR-DS-13, D-1227): hover and focus are forced on their cells through CDP
  * `CSS.forcePseudoState`, so no production CSS carries a test selector.
  *
+ * R209 (D-1256): the page is shot under reduced motion, so a busy button's words
+ * are held at the pulse's low end and not at whatever frame the shot fell on.
+ *
  * One file is one theme: the page draws both palettes as two `data-theme`
  * subtrees side by side (stacked at 390 px), and the capture is that subtree
  * alone, so a token's change in one theme is a diff in that theme's file and
@@ -47,6 +50,7 @@ async function forceStates(page: Page): Promise<void> {
 for (const capture of designCaptureSet()) {
   test(capture.file, async ({ page }) => {
     await page.setViewportSize(VIEWPORTS[capture.width]);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(DESIGN_PAGE);
     // The grid is the fonts': `--cell` is a character advance, so nothing is measured before they are in.
     await page.evaluate(() => document.fonts.ready);
@@ -70,6 +74,21 @@ for (const capture of designCaptureSet()) {
     await expect(cell('TextButton', 'hover').locator('span')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     const ink = await column.evaluate((el) => getComputedStyle(el).color);
     await expect(cell('OptionToggle', 'on').locator('span')).toHaveCSS('background-color', ink);
+
+    // R209, what jsdom cannot measure. FR-CTRL-4: busy, the button and its box are the size they rest at.
+    const box = (state: string) => cell('TextButton', state).evaluate((el) => [el, el.firstElementChild ?? el].map((e) => [e.getBoundingClientRect().width, e.getBoundingClientRect().height]));
+    expect(await box('busy')).toEqual(await box('rest'));
+    await expect(cell('TextButton', 'busy').locator('span > span')).toHaveCSS('opacity', '0.35');
+    // FR-CTRL-7: the field's box is the button's height, and its hover and focus are drawn on it.
+    const frame = (state: string) => column.locator(`[data-primitive="Field"] [data-state="${state}"] input + span`);
+    const height = (at: ReturnType<typeof frame>) => at.evaluate((el) => el.getBoundingClientRect().height);
+    expect(Math.abs((await height(frame('rest'))) - (await height(cell('TextButton', 'rest').locator('span'))))).toBeLessThan(1);
+    const resting = await frame('rest').evaluate((el) => getComputedStyle(el).borderTopColor);
+    await expect(frame('hover')).not.toHaveCSS('border-top-color', resting);
+    await expect(frame('focus')).not.toHaveCSS('box-shadow', 'none');
+    // FR-CTRL-12: the close's hit area is --target both ways.
+    const close = await cell('Close', 'rest').boundingBox();
+    expect(Math.min(close?.width ?? 0, close?.height ?? 0)).toBeGreaterThanOrEqual(43.9);
 
     mkdirSync(DESIGN_CAPTURE_DIR, { recursive: true });
     await column.screenshot({ path: join(DESIGN_CAPTURE_DIR, capture.file), animations: 'disabled', caret: 'hide' });

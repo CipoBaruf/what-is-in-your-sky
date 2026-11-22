@@ -1,5 +1,6 @@
 import { createContext, createElement, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import type { Locale } from '../model';
+import { CloseNameContext } from '../ui/components/primitives/closeName';
 import { en } from './en';
 import { es } from './es';
 import type { Messages } from './messages';
@@ -39,7 +40,8 @@ export function I18nProvider({ locale, children }: I18nProviderProps) {
   useEffect(() => {
     applyLocale(locale);
   }, [locale]);
-  return createElement(I18nContext.Provider, { value }, children);
+  // D-1257 (FR-CTRL-12): `Close` is a leaf and reads no catalog, so its word is handed down here.
+  return createElement(I18nContext.Provider, { value }, createElement(CloseNameContext.Provider, { value: value.t.shortcuts.close }, children));
 }
 
 /** FR-I18N-5: the document's language follows the app's. Called by the provider and, before the first render, by `main.tsx` (D-70). */

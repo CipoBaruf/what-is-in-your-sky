@@ -1,10 +1,11 @@
-/* R106 (FR-DS-4 item 7; D-703, D-722): the field. One grid column — the
-   label, the input (or its unit box), the rows under it — a row gap apart;
-   every rule here is a prop of `Field`, and a feature module places the field
-   and sets nothing on it. The input's border, ground and ring are the sheet's
-   (global.css); nothing here restates them. */
+/* R106 (FR-DS-4 item 7; D-703, D-722), R209 (FR-CTRL-7; D-1226): the field.
+   One grid column — the label, the input's box, the rows under it — a row gap
+   apart; every rule here is a prop of `Field`, and a feature module places the
+   field and sets nothing on it. */
 .field {
   display: grid;
+  /* Never wider than the field: a host that narrows it (the settings page's 22 cells) narrows the box with the input. */
+  grid-template-columns: minmax(0, 1fr);
   row-gap: var(--space-2);
   align-content: start;
 }
@@ -20,10 +21,52 @@
   color: var(--fg-dim);
 }
 
-/* The input, or the box the unit shares with it: the column's width, or `cells` of it. */
-.input,
-.unitBox {
+/* The input and what is drawn on it: the column's width, or `cells` of it. */
+.inputBox {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
+}
+
+/* D-1226: the input is the hit box, `--tap` tall by global.css's floor, and
+   draws nothing but its words. */
+.input {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0 var(--control-pad);
+}
+
+/* FR-CTRL-7: the box, a button's — its height, edge and corners — centred in the hit box. */
+.frame {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(50% - var(--control-h) / 2);
+  height: var(--control-h);
+  box-sizing: border-box;
+  border: var(--control-edge);
+  border-radius: var(--control-radius);
+  pointer-events: none;
+}
+
+.input:hover:not(:disabled) + .frame {
+  border-color: var(--fg-dim);
+}
+
+/* After hover's and no lighter: the edge and the ring against it are one 2 px line. */
+.input:focus-visible:not(:disabled) + .frame {
+  border-color: var(--mark);
+  box-shadow: 0 0 0 var(--hairline) var(--mark);
+}
+
+/* FR-CTRL-17: disabled, the same shape. */
+.input:disabled {
+  color: var(--fg-dim);
+}
+
+.input:disabled + .frame {
+  border-color: var(--rule);
 }
 
 .sized {
@@ -31,25 +74,18 @@
   max-width: 100%;
 }
 
-/* `unit`: the unit after the value, "0 m" (FR-FIRST-2, R76). The box is the
-   input itself — its border, its ground and its ring are the sheet's — and the
-   unit is drawn over its right-hand end: after the input's hairline and its
-   cell of padding, the value's characters and one space. Clicks pass through
-   to the input, and two cells at the right keep the value clear of the unit. */
-.unitBox {
-  position: relative;
-  display: block;
-}
-
-.inUnit {
-  width: 100%;
+/* `unit`: the unit after the value, "0 m" (FR-FIRST-2, R76), drawn over the
+   input's right-hand end: after its cell of padding, the value's characters
+   and one space. Clicks pass through to the input, and two cells at the right
+   keep the value clear of the unit. */
+.input.inUnit {
   padding-right: calc(2 * var(--cell));
 }
 
 .unit {
   position: absolute;
   top: 50%;
-  left: calc(var(--hairline) + (var(--value-cells, 1) + 2) * var(--cell));
+  left: calc((var(--value-cells, 1) + 2) * var(--cell));
   transform: translateY(-50%);
   color: var(--fg-dim);
   pointer-events: none;
@@ -90,13 +126,12 @@
   grid-row: 1;
 }
 
-.withTrailing > .input,
-.withTrailing > .unitBox {
+.withTrailing > .inputBox {
   grid-column: 1;
   grid-row: 2;
 }
 
-.withTrailing > :not(.label, .input, .unitBox, .trailing) {
+.withTrailing > :not(.label, .inputBox, .trailing) {
   grid-column: 1 / -1;
 }
 
@@ -115,12 +150,11 @@
   grid-row: 1;
 }
 
-.trailing > .field > .input,
-.trailing > .field > .unitBox {
+.trailing > .field > .inputBox {
   grid-column: 2;
   grid-row: 2;
 }
 
-.trailing > .field > :not(.label, .input, .unitBox) {
+.trailing > .field > :not(.label, .inputBox) {
   grid-column: 1 / -1;
 }

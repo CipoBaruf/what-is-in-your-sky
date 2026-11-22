@@ -41,6 +41,10 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **Wait for a settled page before a capture.** `[aria-busy="true"]` at count 0 (the search is done), `getByTestId('readiness')` visible (the finished run has been *stored*, a beat later), and one capture per test (`clock.install` works once per page and init scripts accumulate).
 - **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test and its landmark test at 1280 px (the live page's `h1` not yet there: 6 of 80 repeats at `c5df401e`, 2026-11-22), and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
   Also `sky-window.spec.ts`'s compact reload test (FR-FLOW-14): after the reload the linked pass can read "no longer in the window" and the guide closes (1 of 100 repeats at `dfa07e66` and on R211 alike, 2026-11-22).
+- **`clock.pauseAt: Cannot fast-forward to the past` is a loaded machine, not the app.**
+  `clock.install({ time: t })` then `pauseAt(t)` (`liveHelpers.homeAt`, `sky-window.spec.ts`) throws before `page.goto` when a millisecond passes between the two.
+  Run the spec again with `--workers=1`.
+  *Why:* R209, 2026-11-22, at a load average of 17 on 10 cores.
 - **Headless driver sessions refuse some shell shapes**: `VAR=1 cmd` and `env X=1 cmd`, `rm`, `git checkout`/`restore`/`worktree`, redirects outside the worktree, `for` loops over a variable, `$?`, a `-m` body with a newline then `#`, and `.claude/` edits (an unanswerable prompt).
   Work round them with a `.cjs` or `node -e` that sets `process.env` and uses `child_process.execFileSync`, `fs.cpSync` and `fs.writeFileSync`, and with a wrapper config under `sdd-run/` (see *captures*).
   Check `git status --short` after a batch: a refused commit is easy to miss.
@@ -51,6 +55,16 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   The button is the hit box and the `<span>` inside is the box, so `getByText` and a click's `event.target` are the span: read a control with `closest('button')`, and measure a target on `getByRole`.
   A caller's CSS that styles `.row span` reaches the box: select by class.
   *Why:* R206, 2026-11-22.
+- **A `Field`'s input draws nothing (D-1256).**
+  Its parent is the box's wrapper and the field is one above; the edge and the focus line are on the `<span>` after the input (`input + span`), so the input's own `border-color` says nothing.
+  *Why:* R209, 2026-11-22; `rhythm.spec.ts` and `focus.spec.ts` read both.
+- **A new control, link or bracketed word outside the primitives fails a ratchet (D-1229).**
+  Use the primitive; never raise a count in `tests/styles/allow/`.
+  A task that lowers a count edits its own lane's file only.
+  *Why:* R209; the lists reach `{}` in R224.
+- **A stylesheet takes no motion query.**
+  `breakpoint.test.ts` fails `@media (prefers-reduced-motion)`: ask in script and write `data-motion` (D-932; `primitives/useStill.ts`).
+  *Why:* R209, 2026-11-22.
 - **An alias token resolves where it is declared.**
   `--on-ground: var(--fg)` in `:root` is already the root theme's colour when a nested themed element inherits it, so an element that sets a theme below the root restates every alias (`dev/primitives.css`'s `.theme`).
   The app sets its theme on the root and needs nothing.

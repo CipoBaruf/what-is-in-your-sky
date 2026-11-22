@@ -4,15 +4,21 @@
  * but `tokens.css` and every inline `style={{ … }}` in `src/ui/**\/*.tsx` and
  * returns each literal with its line, by kind, so `literals.test.ts` can hold
  * every file to its allow-list count and say which lines are the matches.
+ * R209 (FR-CTRL-14, FR-DS-2 as amended; D-1229): and every bracketed word
+ * outside `Tag`, for the lanes' ratchet (`ratchet.ts`).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import ts from 'typescript';
 
 const SRC_DIR = 'src';
 const UI_DIR = 'src/ui';
 export const TOKENS_FILE = 'src/ui/styles/tokens.css';
 export const PRIMITIVES_DIR = 'src/ui/components/primitives';
 export const ALLOW_PATH = 'tests/styles/literals.allow.json';
+/** FR-CTRL-14: brackets mean a label, and `Tag` is the one thing that writes them. */
+export const TAG_COMPONENT = `${PRIMITIVES_DIR}/Tag.tsx`;
+export const TAG_STYLESHEET = `${PRIMITIVES_DIR}/Tag.module.css`;
 
 type Kind = 'colour' | 'length' | 'z-index' | 'outline' | 'font-family' | 'bracket' | 'inline-style';
 
@@ -28,6 +34,12 @@ interface Allowance {
 }
 
 export type AllowList = Record<string, Allowance>;
+
+/** One match of a ratchet's rule. */
+export interface Hit {
+  line: number;
+  text: string;
+}
 
 export function walk(dir: string, keep: (path: string) => boolean): string[] {
   return readdirSync(dir)
@@ -95,7 +107,6 @@ const lineOf = (text: string, index: number): number => text.slice(0, index).spl
 /** Every literal D-701 names in one stylesheet. */
 export function scanStylesheet(path: string, css: string = readFileSync(path, 'utf8')): Literal[] {
   const text = prepared(css);
-  const inPrimitives = path.startsWith(`${PRIMITIVES_DIR}/`);
   const found: Literal[] = [];
   // A declaration ends at `;` or at the block's `}` (the last one in a block may have no `;`).
   for (const m of text.matchAll(/([a-z-]+)\s*:\s*([^;{}]*?)\s*(?:;|(?=\}))/g)) {
@@ -111,7 +122,7 @@ export function scanStylesheet(path: string, css: string = readFileSync(path, 'u
     if (property === 'z-index' && /^-?\d/.test(value)) at('z-index', value);
     if (property.startsWith('outline') && `${property}: ${value}` !== 'outline-offset: var(--focus-offset-tight)') at('outline', value);
     if (property === 'font-family' && value !== 'var(--font-mono)') at('font-family', value);
-    if (property === 'content' && !inPrimitives && /^(['"])(\[ | \])\1$/.test(value)) at('bracket', value);
+    if (property === 'content' && path !== TAG_STYLESHEET && /^(['"])(\[ | \])\1$/.test(value)) at('bracket', value);
   }
   return found;
 }
@@ -182,6 +193,163 @@ export function scanComponent(path: string, source: string = readFileSync(path, 
     }
   }
   return found;
+}
+
+/** A module that ships: not a test. */
+export const isShipped = (path: string): boolean => !/\.(test|spec)\.tsx?$/.test(path);
+
+/** A module's tree and the line of a node in it. */
+export function parsed(path: string, text: string): { source: ts.SourceFile; line: (node: ts.Node) => number } {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  return { source, line: (node) => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 };
+}
+
+/** What stands for an interpolation, a nested element or an expression when a text is read for brackets. */
+const SLOT = '\uFFFC';
+const BRACKETED = /\[[^[\]\n]+\]/g;
+/** D-1229's `[${…}]`, by a template or by `+`: an interpolation inside brackets with no `=`, which an attribute selector has. */
+const BUILT = /\[[^[\]=\n]*\uFFFC[^[\]=\n]*\]/g;
+
+/** A bracketed word in a prop, where a selector may stand too: not one with an `=`, or of a `data-` or `aria-` attribute. */
+const BRACKETED_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]+\]/g;
+/** `BUILT` in a prop, with `BRACKETED_PROP`'s exemption (D-1257). */
+const BUILT_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]*￼[^[\]=\n]*\]/g;
+
+/** An expression without its parentheses and its `as`. */
+const bare = (node: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) ? bare(node.expression) : node);
+
+const isPlus = (node: ts.Node): node is ts.BinaryExpression => ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken;
+/** A text built of parts: a template, or a `+`. */
+const isBuilt = (node: ts.Node): node is ts.TemplateExpression | ts.BinaryExpression => ts.isTemplateExpression(node) || isPlus(node);
+
+/** Whether a node is a part of a `+`, whose text is read whole at the top of the chain. */
+function isOperand(node: ts.Node): boolean {
+  const parent = node.parent;
+  return ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent) ? isOperand(parent) : isPlus(parent);
+}
+
+/** What a condition, `??` or `||` can give. */
+function choices(node: ts.Expression): ts.Expression[] {
+  if (ts.isConditionalExpression(node)) return [node.whenTrue, node.whenFalse];
+  if (!ts.isBinaryExpression(node)) return [];
+  const operator = node.operatorToken.kind;
+  if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return [node.right];
+  return operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken ? [node.left, node.right] : [];
+}
+
+/** An expression as one text, `SLOT` where a value is not written, and the expressions that fill its gaps. */
+function written(expression: ts.Expression): { text: string; holes: ts.Expression[] } {
+  const node = bare(expression);
+  if (ts.isStringLiteralLike(node)) return { text: node.text, holes: [] };
+  if (ts.isTemplateExpression(node)) {
+    const holes = node.templateSpans.map((span) => span.expression);
+    return { text: node.head.text + node.templateSpans.map((span) => fragment(span.expression) + span.literal.text).join(''), holes };
+  }
+  if (isPlus(node)) {
+    const left = written(node.left);
+    const right = written(node.right);
+    return { text: left.text + right.text, holes: [...left.holes, ...right.holes] };
+  }
+  return { text: fragment(node), holes: [node] };
+}
+
+/**
+ * What a part lends the text round it: a bracket left open or shut (`'['`, `on && ']'`, `<b>[</b>`). A word
+ * bracketed whole inside the part is counted there, so it is a `SLOT` here, as is a part with no bracket.
+ */
+function fragment(expression: ts.Expression): string {
+  const node = bare(expression);
+  let text: string;
+  if (ts.isJsxElement(node) || ts.isJsxFragment(node)) text = childrenText(node);
+  else if (ts.isStringLiteralLike(node) || isBuilt(node)) text = written(node).text;
+  else text = choices(node).map(fragment).find((words) => /[[\]]/.test(words)) ?? SLOT;
+  const open = text.replace(BRACKETED, SLOT);
+  return /[[\]]/.test(open) ? open : SLOT;
+}
+
+/** An element's children as the one line they draw: a line break in JSX text, with its indent, is not drawn. */
+function childrenText(node: ts.JsxElement | ts.JsxFragment): string {
+  const part = (child: ts.JsxChild): string => {
+    if (ts.isJsxText(child)) return child.text.replace(/\s*\n\s*/g, '');
+    if (ts.isJsxExpression(child)) return child.expression ? fragment(child.expression) : SLOT;
+    return fragment(child);
+  };
+  return node.children.map(part).join('');
+}
+
+/**
+ * The strings a JSX child or prop can draw as written: a literal, what a template or a `+` joins between its gaps
+ * (one round a gap is `BUILT`'s, counted at the whole) and what fills them, what a condition, `??` or `||` can
+ * give, and the values of an array or an object written there (`options`, a spread of props).
+ */
+function drawnStrings(expression: ts.Expression | undefined): string[] {
+  if (!expression) return [];
+  const node = bare(expression);
+  if (ts.isStringLiteralLike(node)) return [node.text];
+  if (isBuilt(node)) {
+    const { text, holes } = written(node);
+    return [...text.split(SLOT), ...holes.flatMap(drawnStrings)];
+  }
+  if (ts.isArrayLiteralExpression(node)) return node.elements.flatMap(drawnStrings);
+  if (ts.isObjectLiteralExpression(node)) return node.properties.flatMap((entry) => (ts.isPropertyAssignment(entry) ? drawnStrings(entry.initializer) : []));
+  return choices(node).flatMap(drawnStrings);
+}
+
+/** What an attribute hands its element: the string itself, the expression in its braces, or the one spread. */
+function handed(node: ts.JsxAttributeLike): ts.Expression | undefined {
+  if (ts.isJsxSpreadAttribute(node)) return node.expression;
+  const value = node.initializer;
+  return value && ts.isJsxExpression(value) ? value.expression : value;
+}
+
+/**
+ * D-1229, D-1257: a bracketed word outside `Tag` — in JSX text, its brackets
+ * children of their own or not, in a JSX prop (how `Line` and `TextButton`
+ * take their words), in a catalog's string, in a template or a `+` that builds
+ * `[${…}]`, and in a stylesheet's `content`, which is how most of the day's
+ * tags draw theirs.
+ */
+export function scanBrackets(path: string, text: string = readFileSync(path, 'utf8')): Hit[] {
+  if (path === TAG_COMPONENT || path === TAG_STYLESHEET) return [];
+  const found: Hit[] = [];
+  if (path.endsWith('.css')) {
+    const css = withoutComments(text);
+    for (const m of css.matchAll(/(?<![\w-])content\s*:\s*(['"])([^'"\n]*)\1/g)) if (/[[\]]/.test(m[2] ?? '')) found.push({ line: lineOf(css, m.index), text: m[0] });
+    return found;
+  }
+  const { source, line } = parsed(path, text);
+  const inCatalog = path.startsWith('src/i18n/');
+  const add = (node: ts.Node, words: string, pattern: RegExp): void => {
+    for (const m of words.matchAll(pattern)) found.push({ line: line(node), text: m[0].replaceAll(SLOT, '…') });
+  };
+  // Whether what is read stands in a prop: an attribute opens one, and an element's children close it.
+  let inProp = false;
+  const visit = (node: ts.Node): void => {
+    const outer = inProp;
+    if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
+      inProp = false;
+      // The children as one line, so `[{word}]` and `{'['}{word}{']'}` are one bracketed word.
+      add(node, childrenText(node), BRACKETED);
+      for (const child of node.children) if (ts.isJsxExpression(child)) for (const words of drawnStrings(child.expression)) add(child, words, BRACKETED);
+    } else if (ts.isJsxAttributeLike(node)) {
+      inProp = true;
+      for (const words of drawnStrings(handed(node))) add(node, words, BRACKETED_PROP);
+    } else if (isBuilt(node)) {
+      if (!isOperand(node)) add(node, written(node).text, inCatalog ? BRACKETED : inProp ? BUILT_PROP : BUILT);
+    } else if (inCatalog && ts.isStringLiteralLike(node)) {
+      if (!isOperand(node)) add(node, node.text, BRACKETED);
+    }
+    ts.forEachChild(node, visit);
+    inProp = outer;
+  };
+  visit(source);
+  return found;
+}
+
+/** What the bracket rule reads: the stylesheets, and the shipped modules of the screens, the catalogs and what formats for them. */
+export function bracketFiles(): string[] {
+  const modules = [UI_DIR, 'src/i18n', 'src/lib'].flatMap((dir) => walk(dir, (path) => /\.tsx?$/.test(path) && isShipped(path)).map(posix));
+  return [...stylesheets(), ...modules];
 }
 
 /** Every file the test reads, with its literals; files with none included, so a stale allow entry is seen. */

@@ -1,0 +1,24 @@
+/* R209 (FR-CTRL-12; D-1226): the close. The button is the `--target` hit box;
+   the `×` stands on a square a control high, which is what hover lights. */
+.close {
+  flex: none;
+  min-width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-dim);
+}
+
+.glyph {
+  display: inline-block;
+  min-width: var(--control-h);
+  line-height: var(--control-h);
+  border-radius: var(--control-radius);
+  text-align: center;
+}
+
+.close:is(:hover, :active):not(:disabled) > .glyph {
+  background: var(--hover-ground);
+  color: var(--fg);
+}

@@ -2,7 +2,8 @@
  * v2.14.1 (FR-WIDE-14, V214-31; D-1141): a focused field draws one line. `global.css` gives a focused text field,
  * select or textarea its own border in the ring's colour and no outline, after the one ring rule (D-704), and no
  * other stylesheet restates a field's focus: no rule on a field — by element, or by the class `Field` puts on its
- * `<input>` — sets an outline or a border under `:focus` or `:focus-visible`. `focus.spec.ts` measures it in Chromium.
+ * `<input>` — sets an outline or a border under `:focus` or `:focus-visible`, the one exception being the frame
+ * `Field` draws for its input (R209; FR-CTRL-7, D-1226). `focus.spec.ts` measures it in Chromium.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -29,6 +30,8 @@ const GLOBAL = 'src/ui/styles/global.css';
 /** The classes `Field` (the one component that draws an `<input>`) puts on it. */
 const FIELD_CLASSES = ['.input', '.inUnit'];
 const FIELD_MODULE = 'src/ui/components/primitives/Field.module.css';
+/** FR-CTRL-7: the frame's one focus rule, which is the field's line. */
+const FRAME_FOCUS = '.input:focus-visible:not(:disabled) + .frame';
 const isField = (path: string, selector: string): boolean => /(^|[\s,>+~(])(input|select|textarea)\b/.test(selector) || (path === FIELD_MODULE && FIELD_CLASSES.some((name) => selector.includes(name)));
 const declares = (body: string, property: RegExp): string[] => body.split(';').map((line) => line.trim()).filter((line) => property.test(line));
 
@@ -48,12 +51,18 @@ describe('a focused field’s one line (FR-WIDE-14, D-1141)', () => {
     expect(field.at).toBeGreaterThan(ring?.at ?? Number.POSITIVE_INFINITY);
   });
 
+  it('FR-CTRL-7: the field’s frame draws the one line — the edge in the mark and a hairline of it against the edge', () => {
+    const frame = rules(readFileSync(FIELD_MODULE, 'utf8')).find((rule) => rule.selector === FRAME_FOCUS);
+    expect(declares(frame?.body ?? '', /^(outline|border|box-shadow)/)).toEqual(['border-color: var(--mark)', 'box-shadow: 0 0 0 var(--hairline) var(--mark)']);
+  });
+
   it('no stylesheet restates a field’s focus: no outline or border on a field under :focus or :focus-visible', () => {
     const offending: string[] = [];
     for (const path of stylesheets()) {
       for (const rule of rules(readFileSync(path, 'utf8'))) {
         if (!/:focus/.test(rule.selector) || !isField(path, rule.selector)) continue;
         if (path === GLOBAL && rule.selector === ':is(input, select, textarea):focus-visible') continue;
+        if (path === FIELD_MODULE && rule.selector === FRAME_FOCUS) continue;
         const set = declares(rule.body, /^(outline|border)/);
         if (set.length > 0) offending.push(`${path}: ${rule.selector} { ${set.join('; ')} }`);
       }

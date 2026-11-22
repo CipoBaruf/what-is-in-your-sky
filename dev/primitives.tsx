@@ -1,5 +1,5 @@
 /**
- * R108 (FR-DS-6, FR-DS-9; D-706, D-728), R206 (FR-DS-13; D-1227): the dev page —
+ * R108 (FR-DS-6, FR-DS-9; D-706, D-728), R206 (FR-DS-13; D-1227), R209 (D-1228): the dev page —
  * every primitive in every state and tone, in both themes side by side, at
  * compact and wide. A state is a `[data-state]` cell; hover and focus are
  * forced on it by `tests/e2e/design-captures.spec.ts`, so here they rest.
@@ -29,14 +29,20 @@ import { createRoot } from 'react-dom/client';
 import { WIDE_QUERY } from '../src/lib/layout';
 import { BracketLink } from '../src/ui/components/primitives/BracketLink';
 import { Card } from '../src/ui/components/primitives/Card';
+import { Close } from '../src/ui/components/primitives/Close';
 import { Cluster } from '../src/ui/components/primitives/Cluster';
+import { Disclosure } from '../src/ui/components/primitives/Disclosure';
 import { Field } from '../src/ui/components/primitives/Field';
 import { Line } from '../src/ui/components/primitives/Line';
 import { PRIMITIVES, type PrimitiveState } from '../src/ui/components/primitives/manifest';
 import { OptionToggle } from '../src/ui/components/primitives/OptionToggle';
+import { PickRow } from '../src/ui/components/primitives/PickRow';
 import { Rule } from '../src/ui/components/primitives/Rule';
 import { SectionHeading } from '../src/ui/components/primitives/SectionHeading';
+import { SettingRow } from '../src/ui/components/primitives/SettingRow';
 import { Stack } from '../src/ui/components/primitives/Stack';
+import { StatusLine } from '../src/ui/components/primitives/StatusLine';
+import { Tag } from '../src/ui/components/primitives/Tag';
 import { TextButton } from '../src/ui/components/primitives/TextButton';
 import { ToggleGroup } from '../src/ui/components/primitives/ToggleGroup';
 import { VisuallyHidden } from '../src/ui/components/primitives/VisuallyHidden';
@@ -74,6 +80,14 @@ function TextButtonCases() {
       </Case>
       <Case props="disabled">
         <TextButton label="disabled" disabled onClick={noop} />
+      </Case>
+      <Case props="busy, its line under it">
+        <Stack gap={1}>
+          <div>
+            <TextButton label="use my location" busy onClick={noop} />
+          </div>
+          <StatusLine tone="progress">Finding your location…</StatusLine>
+        </Stack>
       </Case>
       <Case props="pressed">
         <Cluster>
@@ -393,7 +407,7 @@ function FieldCases() {
         <Field id={sid('dev-field-plain')} label="Place" placeholder="a city or an address" />
       </Case>
       <Case props="labelHidden unit cells">
-        <Field id={sid('dev-field-alt')} label="Altitude" labelHidden unit="m" cells={8} defaultValue="839" />
+        <Field id={sid('dev-field-alt')} label="Altitude" labelHidden unit="m" cells={8} value="839" readOnly />
       </Case>
       <Case props='size="small" cells'>
         <Field id={sid('dev-field-small')} label="Latitude" size="small" cells={12} defaultValue="-41.15" />
@@ -413,6 +427,103 @@ function FieldCases() {
             A validation message under the input.
           </Line>
         </Field>
+      </Case>
+    </>
+  );
+}
+
+function TagCases() {
+  return (
+    <Case props="tone">
+      <Cluster gap={1}>
+        <Tag tone="dim">info</Tag>
+        <Tag tone="accent">twilight</Tag>
+        <Tag tone="ok">clear</Tag>
+        <Tag tone="warn">partly</Tag>
+        <Tag tone="danger">obscured</Tag>
+      </Cluster>
+    </Case>
+  );
+}
+
+function CloseCases() {
+  return (
+    <Case props="label">
+      <Close label="Close the guide" onClose={noop} />
+    </Case>
+  );
+}
+
+function PickRowCases() {
+  const [picked, setPicked] = useState('Vega');
+  return (
+    <>
+      <Case props="a set of them">
+        <div>
+          {['Vega', 'Altair', 'Deneb'].map((name) => (
+            <PickRow key={name} picked={name === picked} current onPick={() => setPicked(name)}>
+              <span>{name}</span>
+              <span className="note">NE 41°</span>
+            </PickRow>
+          ))}
+        </div>
+      </Case>
+      <Case props="href">
+        <PickRow picked={false} href="#dev">
+          A row that is a link
+        </PickRow>
+      </Case>
+    </>
+  );
+}
+
+function DisclosureCases() {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <Case props="open count">
+        <Disclosure open={open} onToggle={() => setOpen((v) => !v)} label="Tonight" count={3} />
+        {open && <p className="prose">What the line opens.</p>}
+      </Case>
+      <Case props="no count">
+        <Disclosure open={false} onToggle={noop} label="Details" />
+      </Case>
+    </>
+  );
+}
+
+function SettingRowCases() {
+  return (
+    <Case props="rows of a group">
+      <div>
+        <SettingRow label="View">
+          <ToggleGroup name="View, in a row" options={VIEWS} value="dome" onChange={noop} />
+        </SettingRow>
+        <SettingRow label="Sort">
+          <ToggleGroup name="Sort, in a row" options={SORTS} value="best" onChange={noop} />
+        </SettingRow>
+        <SettingRow label="Saved">
+          <TextButton label="save" onClick={noop} />
+        </SettingRow>
+      </div>
+    </Case>
+  );
+}
+
+function StatusLineCases() {
+  return (
+    <>
+      <Case props='tone="progress"'>
+        <StatusLine tone="progress">Finding your location…</StatusLine>
+      </Case>
+      <Case props='tone="failure"'>
+        <StatusLine tone="failure">Your location could not be found.</StatusLine>
+      </Case>
+      <Case props='tone="ok"'>
+        <StatusLine tone="ok">Saved.</StatusLine>
+      </Case>
+      <Case props='tone="empty"'>
+        <StatusLine tone="empty">No saved places.</StatusLine>
       </Case>
     </>
   );
@@ -498,9 +609,9 @@ const STATE_SPECIMENS: Readonly<Record<string, (state: PrimitiveState, sid: (id:
       <TextButton label="pressed" pressed onClick={noop} />
     ) : (
       <Cluster>
-        <TextButton label="action" disabled={state === 'disabled'} onClick={noop} />
-        <TextButton label="primary" box="accent" disabled={state === 'disabled'} onClick={noop} />
-        <TextButton label="inline" inline disabled={state === 'disabled'} onClick={noop} />
+        <TextButton label="action" busy={state === 'busy'} disabled={state === 'disabled'} onClick={noop} />
+        <TextButton label="primary" box="accent" busy={state === 'busy'} disabled={state === 'disabled'} onClick={noop} />
+        <TextButton label="inline" inline busy={state === 'busy'} disabled={state === 'disabled'} onClick={noop} />
       </Cluster>
     ),
   BracketLink: (state) => <BracketLink href="#dev" label={state === 'on' ? 'this page' : 'a route'} current={state === 'on'} />,
@@ -535,6 +646,20 @@ const STATE_SPECIMENS: Readonly<Record<string, (state: PrimitiveState, sid: (id:
       )}
     </Field>
   ),
+  Tag: () => <Tag tone="accent">twilight</Tag>,
+  Close: () => <Close label="Close" onClose={noop} />,
+  PickRow: (state) => (
+    <PickRow picked={state === 'picked'} disabled={state === 'disabled'} onPick={noop}>
+      <span>A row to pick</span>
+    </PickRow>
+  ),
+  Disclosure: (state) => <Disclosure open={state === 'on'} disabled={state === 'disabled'} label="Tonight" count={3} onToggle={noop} />,
+  SettingRow: () => (
+    <SettingRow label="Theme">
+      <OptionToggle label="dark" pressed onPress={noop} />
+    </SettingRow>
+  ),
+  StatusLine: (state) => <StatusLine tone={state === 'error' ? 'failure' : 'progress'}>{state === 'error' ? 'It failed.' : 'Searching…'}</StatusLine>,
   Stack: () => (
     <Stack gap={1}>
       <Block>one</Block>
@@ -582,6 +707,12 @@ const SPECIMENS: Readonly<Record<string, () => ReactNode>> = {
   SectionHeading: SectionHeadingCases,
   Line: LineCases,
   Field: FieldCases,
+  Tag: TagCases,
+  Close: CloseCases,
+  PickRow: PickRowCases,
+  Disclosure: DisclosureCases,
+  SettingRow: SettingRowCases,
+  StatusLine: StatusLineCases,
   Stack: StackCases,
   Cluster: ClusterCases,
   VisuallyHidden: VisuallyHiddenCases,

@@ -8,6 +8,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { decorations, rowCells } from '../../../../tests/styles/cells';
 import { TextButton } from './TextButton';
 
 const THEMES = ['dark', 'night'] as const;
@@ -17,6 +18,7 @@ const rule = (selector: string): string => new RegExp(`(?:^|\\})\\s*${selector.r
 
 afterEach(() => {
   document.documentElement.removeAttribute('data-theme');
+  vi.unstubAllGlobals();
 });
 
 describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
@@ -118,6 +120,85 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('FR-CTRL-4: busy is aria-busy with the label, the box and the width unchanged, and takes no press', async () => {
+    themed();
+    const onClick = vi.fn();
+    const rules = decorations(['src/ui/components/primitives/TextButton.module.css']);
+    const form = (busy: boolean) => <TextButton label="Use my location" busy={busy} disabled={busy} onClick={onClick} />;
+    const { container, rerender } = render(form(false));
+    const button = screen.getByRole('button', { name: 'Use my location' });
+    const width = rowCells(container, rules);
+    expect(width).toBe('Use my location'.length + 2);
+    expect(button).not.toHaveAttribute('aria-busy');
+    const box = button.firstElementChild;
+    const boxClass = box?.className;
+
+    rerender(form(true));
+    expect(screen.getByRole('button', { name: 'Use my location' })).toBe(button);
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    // D-1256: never the disabled look or its lost focus, even where the caller disables what is running.
+    expect(button).toBeEnabled();
+    expect(rowCells(container, rules)).toBe(width);
+    expect(button.firstElementChild).toBe(box);
+    expect(box?.className).toBe(boxClass);
+    expect(box?.firstElementChild?.className).toMatch(/words/);
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(await axe(container)).toHaveNoViolations();
+
+    rerender(form(false));
+    expect(button).not.toHaveAttribute('aria-busy');
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('FR-CTRL-4: under reduced motion the busy words are held, and only while busy', () => {
+    themed();
+    vi.stubGlobal('matchMedia', (media: string) => ({ media, matches: media.includes('reduce'), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const { rerender } = render(<TextButton label="retry" busy />);
+    expect(screen.getByRole('button')).toHaveAttribute('data-motion', 'reduce');
+    rerender(<TextButton label="retry" />);
+    expect(screen.getByRole('button')).not.toHaveAttribute('data-motion');
+  });
+
+  it('FR-CTRL-4: busy with a note pulses the words and keeps the description', () => {
+    themed();
+    render(<TextButton label="Use my location" note="It is the quickest way" busy />);
+    const button = screen.getByRole('button', { name: /Use my location/ });
+    expect(button).toHaveAccessibleDescription('It is the quickest way');
+    expect(button.className).toMatch(/busy/);
+    expect(screen.getByText('Use my location').className).toMatch(/words/);
+  });
+
+  it('FR-CTRL-4: a busy summary is aria-busy, held under reduced motion, and toggles nothing', async () => {
+    themed();
+    vi.stubGlobal('matchMedia', (media: string) => ({ media, matches: media.includes('reduce'), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const onClick = vi.fn();
+    const form = (busy: boolean) => (
+      <details data-testid="d">
+        <TextButton as="summary" label="details" busy={busy} disabled={busy} onClick={onClick} data-testid="s" />
+        <p>trace</p>
+      </details>
+    );
+    const { container, rerender } = render(form(true));
+    const summary = screen.getByTestId('s');
+    expect(summary).toHaveAttribute('aria-busy', 'true');
+    expect(summary).toHaveAttribute('aria-disabled', 'true');
+    expect(summary).toHaveAttribute('data-motion', 'reduce');
+    expect(summary).not.toHaveAttribute('disabled');
+    fireEvent.click(summary);
+    expect(screen.getByTestId('d')).not.toHaveAttribute('open');
+    expect(onClick).not.toHaveBeenCalled();
+    expect(await axe(container)).toHaveNoViolations();
+
+    rerender(form(false));
+    for (const name of ['aria-busy', 'aria-disabled', 'data-motion']) expect(summary).not.toHaveAttribute(name);
+    fireEvent.click(summary);
+    expect(screen.getByTestId('d')).toHaveAttribute('open');
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it('as="summary": the disclosure of a <details>, drawn as the control', () => {
     themed();
     render(
@@ -155,6 +236,18 @@ describe('<TextButton> forms in its stylesheet (R206)', () => {
     expect(hover).toMatch(/background:\s*var\(--hover-ground\)/);
     expect(hover).toMatch(/border-color:\s*var\(--fg-dim\)/);
     expect(rule('.accent > .buttonBox')).toMatch(/border-color:\s*var\(--mark\)/);
+  });
+
+  it('FR-CTRL-4: the words pulse between 1 and 0.35, held at 0.35 under reduced motion, and nothing that has a size moves', () => {
+    expect(css).toMatch(/@keyframes pulse \{\s*from \{\s*opacity: 1;\s*\}\s*to \{\s*opacity: 0\.35;/);
+    expect(rule('.words,\n.busy > .note')).toMatch(/animation: pulse/);
+    const held = rule(".busy[data-motion='reduce'] .words,\n.busy[data-motion='reduce'] > .note");
+    expect(held).toMatch(/animation: none;\s*opacity: 0\.35/);
+    expect(rule('.words,\n.busy > .note')).not.toMatch(/padding|margin|width|height|border|display/);
+  });
+
+  it('FR-CTRL-4: a busy summary loses the pointer', () => {
+    expect(rule('.summary.busy')).toMatch(/cursor:\s*default/);
   });
 
   it('FR-CTRL-17: disabled keeps the shape, dim words in the rule’s edge, and no hover; the ring is the global one', () => {

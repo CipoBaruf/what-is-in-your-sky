@@ -1,0 +1,54 @@
+/* R209 (FR-CTRL-15; D-1258): a row you pick. The row is its own hit box, so
+   the sheet's chrome for a `<button>` and an `<a>` comes off: `--tap` tall on
+   compact, a control's height where a pointer picks it. */
+.row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  gap: 0 var(--cell);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 0 var(--control-pad);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--fg);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* `display: flex` would otherwise outrank the attribute, as on Stack. */
+.row[hidden] {
+  display: none;
+}
+
+.row:is(:hover, :active):not(:disabled, [aria-disabled='true']),
+.picked {
+  background: var(--hover-ground);
+}
+
+/* The 2 px line is an edge of its own inside the padding, so picking moves nothing and it shows in forced colours. */
+.picked::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-inline-start: calc(2 * var(--hairline)) solid var(--mark);
+}
+
+/* A link has no `:disabled`: PickRow says it with `aria-disabled`. */
+.row:is(:disabled, [aria-disabled='true']) {
+  color: var(--fg-dim);
+  cursor: default;
+}
+
+@media (width >= 964px) {
+  .row {
+    min-height: var(--control-h);
+  }
+}

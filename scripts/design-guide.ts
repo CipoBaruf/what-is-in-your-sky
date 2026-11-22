@@ -121,7 +121,8 @@ const RULES = `## The rules
 - a \`z-index\` written as a number;
 - an \`outline\` rule other than \`outline-offset: var(--focus-offset-tight)\` — the ring is \`global.css\`'s alone;
 - a \`font-family\` that is not \`var(--font-mono)\`;
-- a \`::before\`/\`::after\` whose \`content\` is \`"[ "\` or \`" ]"\` outside \`src/ui/components/primitives/\` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11);
+- a \`::before\`/\`::after\` whose \`content\` is \`"[ "\` or \`" ]"\` outside \`Tag\` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11), and brackets mean a label (FR-CTRL-14);
+- a bracketed word outside \`Tag\` — in JSX text, a catalog's string, a template that builds one or a stylesheet's \`content\` — over the file's count in \`tests/styles/allow/<lane>.brackets.json\` (D-1229);
 - in a \`.tsx\` file, an inline \`style\` whose value is a colour or a length literal (a custom property and a number measured at runtime are allowed).
 
 The exceptions are in \`tests/styles/literals.allow.json\`, one entry per file with its count and its reason. A count may only go down, and an entry whose count reaches zero is removed. A length a module needs is a token above or a cell count; a colour is a token; a stacking level is a layer.
@@ -129,6 +130,10 @@ The exceptions are in \`tests/styles/literals.allow.json\`, one entry per file w
 ### Breakpoints: one source, one syntax (FR-DS-3)
 
 Every length in an \`@media\` or \`@container\` condition is one of \`src/lib/layout.ts\`'s exported thresholds — the widths, the three heights (\`SIDEWAYS_MAX_HEIGHT_PX\`, \`SHORT_MAX_HEIGHT_PX\`, \`WIDE_SHORT_MAX_HEIGHT_PX\`) and \`FRAME_LEGEND_MIN_CELLS\` — and \`tests/styles/breakpoint.test.ts\` holds each condition in the tree to one of them and to \`tests/styles/breakpoints.json\`'s listing. Every condition is written in range syntax: \`(width >= 964px)\`, \`(height <= 700px)\`, never \`min-width\` or \`max-width\`. That syntax sets the browser floor: **Safari 16.4, Chrome 104, Firefox 63**. Nothing in the tree targets anything older.
+
+### Every control is a primitive (FR-DS-11)
+
+No module outside \`src/ui/components/primitives/\` renders a \`<button>\`, an \`<a>\` or an \`<input>\` of its own. \`tests/styles/controls.test.ts\` holds what is left to \`tests/styles/allow/<lane>.controls.json\`, a file mapped to its count and a reason: a file over its count fails, and a count is only ever lowered.
 
 ### A prop, never an override (FR-DS-4)
 

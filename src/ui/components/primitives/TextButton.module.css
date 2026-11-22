@@ -172,10 +172,41 @@
   color: var(--fg-dim);
 }
 
+/* `busy` (FR-CTRL-4, D-1226): the box stands still and the words alone pulse,
+   on a span inside the box, so the opacity never reaches the edge. Where motion
+   is reduced (`data-motion`, asked in script: D-932) they hold at the low end. */
+.busy {
+  cursor: default;
+}
+
+.words,
+.busy > .note {
+  animation: pulse 800ms ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+.busy[data-motion='reduce'] .words,
+.busy[data-motion='reduce'] > .note {
+  animation: none;
+  opacity: 0.35;
+}
+
 /* `as="summary"` (FR-FAIL-5): the disclosure drawn as the control — no marker, the pointer a control has. */
 .summary {
   list-style: none;
   cursor: pointer;
+}
+
+.summary.busy {
+  cursor: default;
 }
 
 .summary::-webkit-details-marker {
