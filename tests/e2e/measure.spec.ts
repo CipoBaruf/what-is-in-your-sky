@@ -208,6 +208,9 @@ async function kept(page: Page, context: BrowserContext): Promise<unknown> {
   return { cookies, ...stores };
 }
 
+/** D-1177: the example's outcome has latched `pass` — the compact band says so, or the wide When pane draws the next event. */
+const examplePass = (page: Page) => page.locator('[data-testid="example-band"][data-state="pass"], [data-testid="reading-when"] [data-testid="next-event"]').first();
+
 /** US-59 AC1's visit: a place typed and picked, a coordinate pair entered, the device location used — on the settings page, where all three are. */
 async function fullVisit(page: Page, context: BrowserContext): Promise<{ before: unknown; after: unknown }> {
   await context.grantPermissions(['geolocation']);
@@ -216,7 +219,11 @@ async function fullVisit(page: Page, context: BrowserContext): Promise<{ before:
   await page.goto('/');
   // FR-OPEN-10: the visit starts on the example, so its city, zone and coordinates are in reach of every count.
   // Its run is in before the reader moves on: a place set during the wait leaves the outcome `pending` (D-1191).
-  await expect(page.getByTestId('door-satellites')).toHaveAttribute('href', /^#pass=/, { timeout: 60_000 });
+  // The door's `#pass=` href is not that signal: the first streamed chunk writes it while the 72 h run goes on, and
+  // `slow` never comes under a fixed clock, so a slow worker left the outcome unlatched. What the page draws for the
+  // latched `pass` is: the band's state on compact, the When pane's next event on wide.
+  await expect(examplePass(page)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('door-satellites')).toHaveAttribute('href', /^#pass=/);
   // The elements are cached as they arrive; "before" is the page once both groups are in, with and without the measurement.
   await expect.poll(async () => ((await kept(page, context)) as { idb: Record<string, string[]> }).idb['wiys/elementGroups']).toEqual(['stations', 'visual']);
   const before = await kept(page, context);
