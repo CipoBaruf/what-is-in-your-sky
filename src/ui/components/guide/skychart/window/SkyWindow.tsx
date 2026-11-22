@@ -13,7 +13,7 @@ import type { PassPoint } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
-import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
+import { moonVisible } from '../bodies';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { TextButton } from '../../../primitives/TextButton';
@@ -340,29 +340,6 @@ function PassArc({ pass, m, view, limitDeg, dim, series, now, legendKey, onSelec
   );
 }
 
-/** Pixels per degree at the centre of the view: the stereographic scale is `k · tan(θ/2)`, so `k / 2` per radian near the axis. */
-const pixelsPerDegree = (view: View): number => (scaleFor(view) * Math.PI) / 360;
-
-/**
- * FR-DOME-6: the Sun as a band of light on the horizon at its azimuth, the
- * polar's `SunGlow` through this projection — the same `../bodies` ramp, nine
- * samples across `± halfWidth` at half the band's height (F-4), the stroke as
- * tall as the band.
- */
-function SunGlow({ sun, m, view, limitDeg }: { sun: SunState; m: Mat3; view: View; limitDeg: number }) {
-  const strength = glowStrength(sun.altDeg);
-  const halfWidth = glowHalfWidthDeg(strength);
-  const height = glowHeightDeg(strength);
-  const samples = 8;
-  const points: Projected[] = [];
-  for (let k = 0; k <= samples; k += 1) points.push(project(m, sun.azDeg - halfWidth + (2 * halfWidth * k) / samples, height / 2, view));
-  return (
-    <g data-body="sun">
-      <path className={styles.glow} d={pathFrom(points, limitDeg)} strokeWidth={fmt(height * pixelsPerDegree(view))} opacity={fmt(0.3 + 0.5 * strength)} />
-    </g>
-  );
-}
-
 /** FR-LIVE-6: an object up but not worth looking for — hollow, thin, dim — with its legend key above it. */
 function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: Mat3; view: View; legendKey: string | undefined }) {
   const p = project(m, marker.azDeg, marker.elDeg, view);
@@ -380,7 +357,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover, onSkyPick, fieldDeg = WINDOW_FOV, onFieldChoice } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd, onFieldHandoff, opening, onPassHover, onSkyPick, fieldDeg = WINDOW_FOV, onFieldChoice } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -1222,8 +1199,6 @@ export function SkyWindow(props: SkyWindowProps) {
             {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
             {ground !== 'buried' && (
               <>
-                {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-                {sun && sunGlow && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
                 <g className={styles.grid}>
                   <path className={styles.altitude} data-ring="60" d={pathFrom(ALT_60.map(at), limitDeg)} />
                   <path className={styles.altitude} data-ring="30" d={pathFrom(ALT_30.map(at), limitDeg)} />

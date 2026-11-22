@@ -45,7 +45,7 @@ import styles from './SkyDome.module.css';
  * directory is the only importer).
  *
  * Two stacked scenes in one box (D-74, FR-DOME-8): a solid-mode *base* of
- * surfaces — the ground disc, the shaded sky bowl, the Sun glow — behind a
+ * surfaces — the ground disc and the shaded sky bowl — behind a
  * braille *line* scene carrying the grid, the arcs, the markers and the
  * labels. Both are driven by the one camera state this component holds, and
  * both size themselves from the same box, so they cannot drift: `zoom` is
@@ -247,7 +247,7 @@ function DomeLandmark({ anchor }: { anchor: DomeAnchor }) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, hand, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, hand, className }: SkyChartProps) {
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
@@ -411,14 +411,13 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         camera: { rotYDeg: rotY, tiltDeg: camera.tiltDeg },
         measure,
         legendKeys,
-        // v2.12 (FR-SET-5): the layers read the Sun for its glow alone; the light below keeps it either way.
-        sun: sunGlow ? sun : null,
+        sun,
         moon,
         hidden,
         colorBy,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, sunGlow, moon, hidden, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
   );
   // FR-SKY-5 (R124, D-793): the dots from the anchors above, laid into the line scene on their own memo — so a new
   // scene rebuilds the dots alone, and a camera move or a tick rebuilds the line meshes without walking the stars.

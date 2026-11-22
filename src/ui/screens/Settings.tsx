@@ -10,7 +10,6 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ClearSavedLocation } from '../components/location/ClearSavedLocation';
 import { Favourites } from '../components/location/Favourites';
 import { COORDS_INPUT_ID, LocationInput } from '../components/location/LocationInput';
-import { OptionToggle } from '../components/primitives/OptionToggle';
 import { TextButton } from '../components/primitives/TextButton';
 import { useOwnObserver } from '../hooks/useOwnObserver';
 import styles from './Settings.module.css';
@@ -74,8 +73,6 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
   const coordsRegionId = useId();
   const [coordsOpen, setCoordsOpen] = useState(() => observer?.source === 'coords');
   const { available: canInstall } = useInstallOffer(installEnv);
-  const sunGlow = useAppStore((s) => s.sunGlow);
-  const setSunGlow = useAppStore((s) => s.setSunGlow);
 
   /*
    * The reader arrived by pressing a control that is no longer under their
@@ -149,23 +146,6 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
               {t.app.theme}
             </span>
             <ThemeToggle />
-            {/* v2.12 (FR-SET-5, D-1019): the Sun's glow on the sky views, off until turned on here. */}
-            <span className={styles.label} aria-hidden="true">
-              {t.settings.skyLabel}
-            </span>
-            {/* In a span: the rows' cells are flex boxes, and a flex button would stretch its option box out of the text line (R206). */}
-            <span>
-              <OptionToggle
-                label={t.settings.sunGlow}
-                pressed={sunGlow}
-                alone
-                data-testid="settings-sun-glow"
-                aria-label={t.settings.sunGlowName}
-                onPress={() => {
-                  setSunGlow(!sunGlow);
-                }}
-              />
-            </span>
             {canInstall && (
               <>
                 <span className={styles.label} aria-hidden="true">

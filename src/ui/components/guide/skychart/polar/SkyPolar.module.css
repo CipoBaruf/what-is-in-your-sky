@@ -212,14 +212,10 @@
   fill: var(--series);
 }
 
-/* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is.
-   The glow's opacity is its strength, which is also its width and its height
-   (`../bodies`), so a Sun nearing the horizon reads brighter without the
-   marker changing meaning. */
-.glow {
-  fill: none;
-  stroke: var(--chart-sun);
-  stroke-linecap: round;
+/* FR-DARK-2, FR-DOME-6: the Sun's dot and the Moon's disc where they are. */
+.sun {
+  fill: var(--chart-sun);
+  stroke: none;
 }
 
 .moon {

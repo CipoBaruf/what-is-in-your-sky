@@ -6,7 +6,7 @@ import { appStore, useAppStore } from '../../../../state';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { GuideText } from '../GuideText';
-import { moonVisible, sunVisible } from './bodies';
+import { moonVisible, sunListed } from './bodies';
 import { useChartSlot } from '../../sky/SkyViewLayout';
 import { ChartFrame, ChartFrameSlots, LEGEND_PANEL_ID } from './ChartFrame';
 import { Legend } from './Legend';
@@ -273,7 +273,6 @@ export function SkyChart(props: SkyChartProps) {
   const compact = mode === 'compact';
   const chartView = useAppStore((s) => s.chartView);
   // v2.12 (FR-SET-5, D-1019): the Sun's glow on every view, the settings page's switch, off by default.
-  const sunGlow = useAppStore((s) => s.sunGlow);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
   // FR-FOL-2: the one line the last answer left.
@@ -446,7 +445,7 @@ export function SkyChart(props: SkyChartProps) {
     [baseRows, promotedId, shownHighlight],
   );
   const keys = useMemo(() => legendKeys(baseRows), [baseRows]);
-  const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
+  const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunListed(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
 
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   // FR-LEG-3 (R51): on the pass detail the numeric table is the legend's first block, in place of the explained
@@ -527,7 +526,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} fieldDeg={props.fieldDeg ?? kept.fieldDeg} onFieldChoice={props.onFieldChoice ?? setWindowFov} globeZoom={props.globeZoom ?? kept.globeZoom} onGlobeZoom={props.onGlobeZoom ?? setGlobeZoom} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} fieldDeg={props.fieldDeg ?? kept.fieldDeg} onFieldChoice={props.onFieldChoice ?? setWindowFov} globeZoom={props.globeZoom ?? kept.globeZoom} onGlobeZoom={props.onGlobeZoom ?? setGlobeZoom} />
     </figure>
   );
 }
