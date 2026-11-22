@@ -73,7 +73,8 @@ afterEach(() => {
 
 describe('D-1315: the shared-file resolver', () => {
   it('knows the shared files and nothing else', () => {
-    expect([PLAN, IDS, 'docs/sdd/map.md', 'docs/sdd/reference/traceability.md', 'src/i18n/__snapshots__/messages.test.ts.snap'].map(sharedKind)).toEqual(['plan', 'generated', 'generated', 'generated', 'snapshot']);
+    expect([PLAN, IDS, 'docs/sdd/map.md', 'docs/sdd/reference/traceability.md', 'src/i18n/__snapshots__/messages.test.ts.snap'].map(sharedKind)).toEqual(['union', 'generated', 'generated', 'generated', 'snapshot']);
+    expect(sharedKind('docs/sdd/gotchas.md')).toBe('union');
     expect(sharedKind('PLAN.md')).toBeNull();
     expect(sharedKind('src/a.ts')).toBeNull();
   });
@@ -91,6 +92,23 @@ describe('D-1315: the shared-file resolver', () => {
     expect(read(PLAN)).toBe('## Decisions\n\n- **D-1 — one.**\n- **D-2 — the sibling.**\n- **D-3 — the task.**\n\nNext section.\n');
     expect(read(IDS)).toBe('D-1\nD-2\nD-3\n');
     expect(await containsBase(repo, 'main', quiet)).toBe(true);
+  });
+
+  it("D-1321: merges main into a branch that conflicts in gotchas.md: main's lines, then the branch's, no markers", async () => {
+    const GOTCHAS = 'docs/sdd/gotchas.md';
+    forked();
+    git('checkout', '-q', 'main');
+    commit('gotchas base', { [GOTCHAS]: '- **A.**\n  one\n- **Z.**\n' });
+    git('checkout', '-q', 'task');
+    git('reset', '-q', '--hard', 'task');
+    commit('task gotcha', { [GOTCHAS]: '- **A.**\n- **T.**\n- **Z.**\n' });
+    git('checkout', '-q', 'main');
+    commit('main gotcha', { [GOTCHAS]: '- **A.**\n  one\n- **Z.**\n- **M.**\n' });
+    git('checkout', '-q', 'task');
+    expect(await mergeBase(repo, 'main', quiet, io()), log.join('\n')).toBe(true);
+    expect(read(GOTCHAS)).not.toMatch(/^(<{7}|={7}|>{7})/m);
+    expect(read(GOTCHAS).indexOf('M.')).toBeLessThan(read(GOTCHAS).indexOf('T.'));
+    expect(git('status', '--porcelain')).toBe('');
   });
 
   it('aborts the rebase when any other file conflicts too', async () => {
