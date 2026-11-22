@@ -171,6 +171,34 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     expect(screen.getByText('Use my location').className).toMatch(/words/);
   });
 
+  it('FR-CTRL-4: a busy summary is aria-busy, held under reduced motion, and toggles nothing', async () => {
+    themed();
+    vi.stubGlobal('matchMedia', (media: string) => ({ media, matches: media.includes('reduce'), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const onClick = vi.fn();
+    const form = (busy: boolean) => (
+      <details data-testid="d">
+        <TextButton as="summary" label="details" busy={busy} disabled={busy} onClick={onClick} data-testid="s" />
+        <p>trace</p>
+      </details>
+    );
+    const { container, rerender } = render(form(true));
+    const summary = screen.getByTestId('s');
+    expect(summary).toHaveAttribute('aria-busy', 'true');
+    expect(summary).toHaveAttribute('aria-disabled', 'true');
+    expect(summary).toHaveAttribute('data-motion', 'reduce');
+    expect(summary).not.toHaveAttribute('disabled');
+    fireEvent.click(summary);
+    expect(screen.getByTestId('d')).not.toHaveAttribute('open');
+    expect(onClick).not.toHaveBeenCalled();
+    expect(await axe(container)).toHaveNoViolations();
+
+    rerender(form(false));
+    for (const name of ['aria-busy', 'aria-disabled', 'data-motion']) expect(summary).not.toHaveAttribute(name);
+    fireEvent.click(summary);
+    expect(screen.getByTestId('d')).toHaveAttribute('open');
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it('as="summary": the disclosure of a <details>, drawn as the control', () => {
     themed();
     render(
@@ -216,6 +244,10 @@ describe('<TextButton> forms in its stylesheet (R206)', () => {
     const held = rule(".busy[data-motion='reduce'] .words,\n.busy[data-motion='reduce'] > .note");
     expect(held).toMatch(/animation: none;\s*opacity: 0\.35/);
     expect(rule('.words,\n.busy > .note')).not.toMatch(/padding|margin|width|height|border|display/);
+  });
+
+  it('FR-CTRL-4: a busy summary loses the pointer', () => {
+    expect(rule('.summary.busy')).toMatch(/cursor:\s*default/);
   });
 
   it('FR-CTRL-17: disabled keeps the shape, dim words in the rule’s edge, and no hover; the ring is the global one', () => {

@@ -205,6 +205,10 @@
   cursor: pointer;
 }
 
+.summary.busy {
+  cursor: default;
+}
+
 .summary::-webkit-details-marker {
   display: none;
 }

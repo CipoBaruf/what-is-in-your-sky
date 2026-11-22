@@ -1,4 +1,4 @@
-import { useId, type ComponentProps, type ReactNode } from 'react';
+import { useId, type ComponentProps, type MouseEvent, type ReactNode } from 'react';
 import optionStyles from './OptionToggle.module.css';
 import styles from './TextButton.module.css';
 import { useStill } from './useStill';
@@ -101,22 +101,22 @@ export function TextButton({ label, tone, pressed, busy = false, inline = false,
   ) : (
     <span className={boxClass}>{words}</span>
   );
+  // D-1256: busy is not `disabled`, which would dim the box and drop the focus; the press is swallowed instead, so a summary toggles nothing.
+  const running = busy ? { 'data-motion': still ? 'reduce' : undefined, 'aria-busy': true, 'aria-disabled': true, onClick: (event: MouseEvent) => event.preventDefault() } : {};
   if (as === 'summary') {
     // A `<summary>` has no disabled state: the attribute would do nothing and the control would still open (review of #173).
     const { disabled: _disabled, ...summaryRest } = rest;
     void _disabled;
     return (
-      <summary className={classes} {...(summaryRest as Omit<ComponentProps<'summary'>, 'children'>)}>
+      <summary className={classes} {...(summaryRest as Omit<ComponentProps<'summary'>, 'children'>)} {...running}>
         {content}
       </summary>
     );
   }
   // A radio in a `radiogroup` (ToggleGroup) carries its state as `aria-checked`; everything else is a pressed button.
   const state = pressed === undefined ? {} : rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
-  // D-1256: busy is not `disabled`, which would dim the box and drop the focus; the press is swallowed instead.
-  const running: ComponentProps<'button'> & { 'data-motion'?: 'reduce' | undefined } = busy ? { 'data-motion': still ? 'reduce' : undefined, 'aria-busy': true, 'aria-disabled': true, disabled: false, onClick: (event) => event.preventDefault() } : {};
   return (
-    <button type="button" className={classes} {...state} {...rest} {...running} {...(hasNote ? { 'aria-describedby': [rest['aria-describedby'], noteId].filter(Boolean).join(' ') } : {})}>
+    <button type="button" className={classes} {...state} {...rest} {...running} {...(busy ? { disabled: false } : {})}{...(hasNote ? { 'aria-describedby': [rest['aria-describedby'], noteId].filter(Boolean).join(' ') } : {})}>
       {content}
     </button>
   );
