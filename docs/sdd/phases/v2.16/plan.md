@@ -211,6 +211,28 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   The next run, [44623254523](https://github.com/CipoBaruf/what-is-in-your-sky/actions/runs/44623254523), took 7 min 20 s but its e2e stages ran 3.5 to 6.0 min (about 150 s): FR-CI-5's spread is not met, and a shard's time varies by a minute or more between runs of the same specs.
   The new checks are `static` and `unit (shard 1)`, `unit (shard 2)`; making them required on `main` is the owner's (`gh api` branch protection).
 
+### 2.55 Driver pre-flight before v3.0 (2026-11-21)
+
+Repo tooling made before v3.0's unattended run (D-86's precedent), not tasks.
+
+- **D-1310 — A `credits_required` refusal is the model's own limit, and `hard` runs opus for now.**
+  (§16.4 step 10, D-197.) `claude -p --model fable` now answers with a `rate_limit_event` that is `rejected` with `errorCode: "credits_required"`, no `rateLimitType` and a reset days away, and the sentence "Fable 5.2 requires usage credits. Switch to another model…".
+  `limitFromEvent` read a windowless event as account-wide, so the fallback never ran and the task ended `limit`; that code, and a windowless event whose sentence says "switch to another model", are now model-only, and the next tier runs.
+  `sdd.agents.json` maps `hard` to opus with a `note` saying why, `fable` stays readable as an alias of `hard`, and a model two tiers share reads as the lower one, so `Model: opus` still means `standard`.
+- **D-1311 — The CI watch gives up after 40 minutes, and the task ends `ci-timeout`.**
+  (§16.4 step 5.) `gh pr checks --watch` had no cap, so a check stuck pending (a Workers Builds outage) held the wave's slot for good.
+  `watchChecks` kills the watch at `CHECKS_WATCH_TIMEOUT_MS` and returns `timeout`, apart from red; the task ends `ci-timeout` with its PR open and unmerged, the wave ends, and the run exits 1.
+- **D-1312 — The driver merges only the head CI saw.**
+  (§16.4 step 8.) `gh pr merge --squash` gains `--match-head-commit` with the PR head read before the last green watch, so a push after CI fails the merge instead of landing unchecked (gotchas, *GitHub merging*).
+- **D-1313 — The e2e shard's timeout is 10 minutes; the budget stays 8.**
+  (FR-CI-1, D-1215.) Shard 5 of `06f1fb19`'s run ran 8 min 16 s and was cancelled at its 8-minute timeout.
+  `ci.yml` gains `CI_E2E_TIMEOUT_MIN: 10` and the `ci` job carries it; `CI_PR_BUDGET_MIN` stays 8, the target the step summary reports and every other stage job's timeout.
+  This loosens FR-CI-1's "no job's timeout passes it" for the e2e job only; the owner confirms it or the spec takes a row.
+- **D-1314 — `--until-done` runs wave after wave.**
+  (§16.7.) `npm run sdd -- --wave --until-done` repeats the wave in one process, with `--fix` unless `--no-fix`; each wave reads `origin/main` afresh and prunes first.
+  After each wave `nextLoopStep` (`scripts/sdd/loop.ts`) decides: nothing ready stops it (exit 0); a task ended `limit` sleeps to the latest reset plus 2 minutes, at most 7 days, an hour when no reset is known; two waves in a row with nothing merged and the same failures stop it (exit 1); otherwise the next wave runs.
+  The stop prints why and what did not merge; the state between waves is that list and a count, in memory only.
+
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
 - **Pure.** `scripts/build-zones.test.ts` (a fixture of `zone.tab`, `zone1970.tab` and `backward` rows: a merged zone kept at its own city, an alias kept and an alias dropped because it is a row, a name from a town and one without), `src/data/zones/zoneCity.test.ts` (FR-OPEN-1's cases), `src/lib/exampleOutcome.test.ts` (each outcome, the wait's edge, a pass inside 72 h on a later night is `pass`).

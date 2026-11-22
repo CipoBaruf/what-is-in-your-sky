@@ -152,6 +152,10 @@ It is not a scheduler, a queue, or a service: it is a script the owner runs, in 
 It has no state of its own — `origin/main`, the branches and the PRs are the state, so a run can be interrupted at any point and started again with nothing to reconcile.
 It is written and reviewed before the first wave (D-86), proved by `--dry-run` against the existing R1–R15 entries, and it is not itself a task in TASKS.md.
 
+*(2026-11-21, D-1314)* `--wave --until-done` is still that foreground script, not a scheduler: it repeats the wave in the same process until no task is ready, sleeping to a far limit's reset (plus 2 minutes, at most 7 days) and stopping after two waves in a row with nothing merged and the same failures.
+Each wave reads `origin/main` and prunes as a single `--wave` does; between waves it keeps only the last wave's failures in memory, so killing it loses nothing.
+A wave's CI watch gives up after 40 minutes (`ci-timeout`, D-1311), and the merge names the head CI saw (D-1312).
+
 ### 16.8 Tokens and delivery time *(v1.1, D-198, D-199)*
 
 What a v1 task cost, from the logs: a session read SPEC, PLAN and TASKS in full at its start (≈ 40 k tokens, twice with the review), ran the whole unit suite and the whole e2e suite several times, and the `ui` lane ran eleven tasks one after another.
