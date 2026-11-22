@@ -43,3 +43,26 @@
     margin-inline: auto;
   }
 }
+
+/* R93 (FR-HOME-3, D-608), R102 (D-681), R105 (D-720), D-1023; here since R212, for every route with the wide
+   one-row footer: its air halves on a window at most `WIDE_SHORT_MAX_HEIGHT_PX` tall, and where it folds to two
+   lines (`FOOTER_ONE_LINE_MIN_PX`, one literal per language). `Footer.module.css` reads the names. */
+@media (width >= 964px) and (height <= 720px) {
+  :global(#root) > :global(footer[data-form='short']) {
+    --footer-short-window: 0.5;
+  }
+}
+
+@media (width >= 964px) and (width < 1176px) {
+  :global(:root[lang='en'] #root) > :global(footer[data-form='short']) {
+    --footer-rule-gap: var(--space-2);
+    --footer-two-line: 0.5;
+  }
+}
+
+@media (width >= 964px) and (width < 1195px) {
+  :global(:root[lang='es'] #root) > :global(footer[data-form='short']) {
+    --footer-rule-gap: var(--space-2);
+    --footer-two-line: 0.5;
+  }
+}

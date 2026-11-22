@@ -61,54 +61,29 @@ export const WIDE_MIN_PX = thresholdPx(WIDE_CELLS);
 /** R103 (FR-DS-3, D-702): every query, in script and in the stylesheets, is range syntax — the floor is Safari 16.4 / Chrome 104 / Firefox 63. */
 export const WIDE_QUERY = `(width >= ${String(WIDE_MIN_PX)}px)`;
 
-/** The gutter between two columns of the wide shell, in cells (`App.module.css`). */
+/** The gutter between two columns of the wide shell, in cells (the sky pages' grids). */
 export const GUTTER_CELLS = 3;
 
 /** The side padding of the header, the main and the footer, in cells (`styles/global.css`). */
 export const SHELL_PADDING_CELLS = 2;
 
 /**
- * R76 (FR-FIRST-5, D-443): the width from which the wide home is three equal
- * panes — Where, When, What — rather than FR-DESK-2's two columns. 108 cells
- * of content is three panes of 36, the compact card's width and the least a
- * pane can hold a pass card in. Its pixel twin counts the rest by D-253's
- * rule: the two 3-cell gutters and one 2-cell shell padding, 116 cells.
- *
- * The spec gives the twin as "about 1114 px" — 116 cells at the 0.6 em advance
- * — and this is 1118: the literal is derived by `thresholdPx` on the widest
- * advance in the font stack (F-10), as the other two are, so three panes never
- * engage before 108 cells of content exist on any font. 1024 × 768 is under it
- * and 1280 × 800 over it either way, which is what the requirement asks of it.
- *
- * R186 (FR-WIDE-1, D-1098): `WIDE_SPLIT_MIN_CELLS` and its split of the right column are retired, since an open
- * pass on wide is the desk shell in the home's place; the breakpoint test keeps the two literals in order.
- */
-export const HOME_THREE_PANE_MIN_CELLS = 108;
-export const HOME_THREE_PANE_MIN_PX = thresholdPx(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
-export const HOME_THREE_PANE_QUERY = `(width >= ${String(HOME_THREE_PANE_MIN_PX)}px)`;
-
-/** FR-FIRST-5 (D-444): an open pass at three-pane widths takes the first two panes, at least this wide. */
-export const GUIDE_PANE_MIN_CELLS = 72;
-
-/**
- * R93 (FR-HOME-4, D-546): the width the home page stops growing at. From 160
- * cells — about 1540 px on the widest advance — the header, the three panes
- * and the footer hold that width and are centred, the panes staying equal, so
- * a 2560 px screen is not three panes of 80 cells with 20-cell-wide cards. It
- * is a `max-width` in cells on the shell's content (`App.module.css`), not a
+ * R93 (FR-HOME-4, D-546), R166 (FR-CLEAN-12): the width every route stops growing at. From 160
+ * cells — about 1540 px on the widest advance — the header, the main and the footer hold that width and are
+ * centred. It is a `max-width` in cells on the shell's content (`Shell.module.css`), not a
  * media query, so there is no pixel twin to derive: the cap is exactly 160 of
- * whatever cell the device has. The live page is not capped (FR-DOME-1).
+ * whatever cell the device has.
  */
 export const HOME_MAX_CELLS = 160;
 
 /**
  * R99 (FR-TAB-1..3, D-625, D-634): the width the compact column stops growing
  * at. From 60 cells — about 580 px — the header, the main and the footer of
- * the home, the settings page, the guide's sheet and the compact live page
+ * the satellites page, the settings page and the compact live page
  * hold that width and are centred, so a tablet or a narrow window is a
  * phone's column in the middle of the screen and not one stretched across it
  * (US-35). Like `HOME_MAX_CELLS` it is a `max-width` in cells on the column
- * itself (`styles/global.css`, `PassDetail.module.css`), not a media query, so
+ * itself (`styles/global.css`), not a media query, so
  * there is no pixel twin: the cap is exactly 60 of whatever cell the device
  * has, and `tests/styles/breakpoint.test.ts` pins the literal. It is under
  * `WIDE_CELLS`, so it binds on compact only. The landscape phone's live page,
@@ -130,28 +105,11 @@ export const COMPACT_MAX_CELLS = 60;
  * 1330/1349 with the author's name). R190 (FR-KEEP-4, D-1129): the privacy
  * note's `[ × ]` lengthens the row while shown, so 1176 and 1195. Below it the row is two lines, from
  * `WIDE_MIN_PX` up, the 1024 px capture width among them and the 1280 one
- * not; where it is, the shell pays the row from its air — the main's padding
- * above and below the panes halves and the footer's top padding halves
- * (`App.module.css`) — so FR-HOME-2's block stays on screen at 1024 × 768 and
- * When holds its pane at 1118 × 700. The stylesheet carries the two literals
- * under `:root[lang]` the way the header's folds are (D-546);
+ * not; where it is, the footer's top padding halves (`Shell.module.css`
+ * since R212). The stylesheet carries the two literals under `:root[lang]`;
  * `tests/styles/breakpoint.test.ts` holds them to these.
  */
 export const FOOTER_ONE_LINE_MIN_PX = { en: 1176, es: 1195 } as const;
-
-/**
- * R93 (FR-HOME-1, D-546, D-605), named here by R103 (FR-DS-3, D-702): the
- * wide header's folds, one literal per language and per line, each derived as
- * the breakpoints are (`thresholdPx` of the line's cells on the widest
- * advance). Under `tagline` the tagline is not drawn. R129 (FR-FLOW-3, D-845):
- * the title's fold is gone — without the switches the title row fits the wide
- * breakpoint in both languages, and its context is what gives. `tests/styles/controlRows.test.ts` recomputes each
- * from the catalog and the header's gaps, so a longer word in either catalog
- * moves the number here before it wraps the header on a screen;
- * `tests/styles/breakpoint.test.ts` holds `Header.module.css`'s `width <`
- * folds to these, as it holds every other condition to an export of this file.
- */
-export const HEADER_FOLD_PX = { en: { tagline: 675 }, es: { tagline: 656 } } as const;
 
 /**
  * R103 (FR-DS-3, D-702): the three heights the stylesheets fold at, named
@@ -160,14 +118,10 @@ export const HEADER_FOLD_PX = { en: { tagline: 675 }, es: { tagline: 656 } } as 
  * and `tests/styles/breakpoint.test.ts` is the join.
  *
  * - `SHORT_MAX_HEIGHT_PX`, 700: the compact page's short window (FR-FIRST-1's
- *   360 × 640 phone). `App.module.css` halves the gaps of the home's rows,
- *   `LocationInput.module.css` packs the where step's blocks closer and
- *   `Field.module.css` tightens its boxed fields (R106), so the step keeps its
- *   footer on screen.
- * - `WIDE_SHORT_MAX_HEIGHT_PX`, 720: the wide home at 1118 × 700 and 1024 × 768
- *   (D-608). `App.module.css` halves the main's row of air above and below
- *   the panes (`--short-window`), so When keeps its pane and FR-HOME-2's block
- *   stays on screen.
+ *   360 × 640 phone). `LocationInput.module.css` packs the place group's blocks closer and
+ *   `Field.module.css` tightens its boxed fields (R106).
+ * - `WIDE_SHORT_MAX_HEIGHT_PX`, 720: the short desk window (D-608). `Shell.module.css` halves the air
+ *   over the footer's row (`--footer-short-window`).
  * - `SIDEWAYS_MAX_HEIGHT_PX`, 500: the landscape phone (FR-SHP-1, FR-WATCH-5,
  *   D-173), below as `LANDSCAPE_PHONE_QUERY` with its orientation.
  *   `global.css` lifts the compact column's cap from the live page and

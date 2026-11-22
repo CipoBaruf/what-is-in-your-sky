@@ -2,8 +2,8 @@
  * R23 (FR-DESK-1, D-71), R50 (F-6, F-10, D-252/D-253). A media query cannot
  * read `var(--cell)`, so the stylesheets carry pixel literals and this test is
  * what keeps them equal to the cell counts the requirements state: it holds
- * every `min-width` in `src/ui` to one of the two thresholds in
- * `lib/layout.ts`, and holds those two to the rule they are derived by.
+ * every `min-width` in `src/ui` to the one threshold in
+ * `lib/layout.ts` (R212 retired the home's three panes), and holds it to the rule it is derived by.
  *
  * R50 (F-10) is why the derivation is no longer `cells × 0.6 em × 16 px`.
  * `1ch` is one advance of whichever family of `--font-mono` the device has,
@@ -25,17 +25,16 @@
  * `(feature, comparator, value)`, holds the listing to the committed
  * `breakpoints.json` (so a rewrite that changes no size changes no line of
  * it), holds every condition to range syntax, and holds every length in one
- * to an export of `lib/layout.ts` — the widths, the three heights, the
- * header's four folds and the frame's cell count.
+ * to an export of `lib/layout.ts` — the widths, the three heights and the
+ * frame's cell count.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, FOOTER_ONE_LINE_MIN_PX, FRAME_LEGEND_MIN_CELLS, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HEADER_FOLD_PX, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, HOME_THREE_PANE_QUERY, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, SHORT_MAX_HEIGHT_PX, SIDEWAYS_MAX_HEIGHT_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_QUERY, WIDE_SHORT_MAX_HEIGHT_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, FOOTER_ONE_LINE_MIN_PX, FRAME_LEGEND_MIN_CELLS, HOME_MAX_CELLS, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, SHORT_MAX_HEIGHT_PX, SIDEWAYS_MAX_HEIGHT_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_QUERY, WIDE_SHORT_MAX_HEIGHT_PX } from '../../src/lib/layout';
 import { BREAKPOINTS_PATH, conditionText, cssFiles, listing, queriesOf, UI_DIR, type Listing } from './mediaConditions';
 
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
-const APP_PATH = 'src/ui/App.module.css';
 /** D-1023: the footer's top gap, which the shell's short window and two-line widths halve. */
 const FOOTER_CSS_PATH = 'src/ui/components/common/Footer.module.css';
 /** R166 (FR-CLEAN-12, D-1003): the shell's stylesheet, where the desk's cap is written for every route. */
@@ -123,8 +122,6 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
 
   it.each([
     ['the wide breakpoint', WIDE_CELLS, WIDE_MIN_PX],
-    // R76 (D-443): the three panes count the same way — 108 cells of content, two gutters, one padding.
-    ['the three-pane breakpoint', HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX],
   ])('%s is at least its cells on every font in the stack, and no more than one cell over on the widest', (_name, cells, px) => {
     for (const [family, advanceEm] of Object.entries(CELL_ADVANCE_EM)) {
       expect(px, `${family} reaches ${String(cells)} cells before the literal does`).toBeGreaterThanOrEqual(pxFor(cells, advanceEm));
@@ -138,57 +135,26 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(Number(padding?.[1])).toBe(SHELL_PADDING_CELLS);
   });
 
-  it('is written once: every `width >=` in src/ui is one of the two thresholds (R186 retired the split)', () => {
+  it('is written once: every `width >=` in src/ui is the threshold (R186 retired the split, R212 the three panes)', () => {
     const found = files.flatMap(([path, css]) => [...css.matchAll(/width\s*>=\s*(\d+(?:\.\d+)?)px/g)].map((m) => [path, Number(m[1])] as const));
     expect(found.length, 'no `width >=` media query in src/ui — the wide layout is not there').toBeGreaterThan(0);
-    for (const [path, px] of found) expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX], `${path} uses a different breakpoint`).toContain(px);
+    for (const [path, px] of found) expect(px, `${path} uses a different breakpoint`).toBe(WIDE_MIN_PX);
     const literals = found.map(([, px]) => px);
     expect(literals, 'nothing keys off the wide breakpoint').toContain(WIDE_MIN_PX);
-    expect(literals, 'nothing keys off the three-pane breakpoint (FR-FIRST-5)').toContain(HOME_THREE_PANE_MIN_PX);
   });
 
   /*
-   * R76 (FR-FIRST-5, D-443): three literals now, and they are in order — the
-   * wide breakpoint, the three panes, the split — each a real rule in the
-   * page's own stylesheet (a query with a declaration in it), so a fourth
-   * cannot be added by accident and none of the three is left as a comment.
-   */
-  it('keeps the two literals ascending, each a real rule in App.module.css (D-443)', () => {
-    expect(HOME_THREE_PANE_MIN_PX).toBe(1118);
-    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX]).toEqual([964, 1118]);
-    expect(WIDE_MIN_PX).toBeLessThan(HOME_THREE_PANE_MIN_PX);
-    const app = readFileSync(APP_PATH, 'utf8');
-    const queries = [...app.matchAll(/@media\s*\(width >= (\d+)px\)\s*\{/g)].map((m) => Number(m[1]));
-    expect(queries, `${APP_PATH} should have exactly the two wide queries, in order`).toEqual([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX]);
-    for (const block of wideBlocks(app)) expect(block, 'an empty wide block is not a rule').toMatch(/[a-z-]+\s*:\s*[^;]+;/);
-  });
-
-  it('gives the three panes the compact card width each, and an open pass the first two (FR-FIRST-5, D-444)', () => {
-    const PANE_CELLS = 36;
-    expect(HOME_THREE_PANE_MIN_CELLS).toBe(3 * PANE_CELLS);
-    // At the literal on the widest cell, both paddings off: two panes and the gutter between them are still the guide's 72.
-    const cells = HOME_THREE_PANE_MIN_PX / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX) - 2 * SHELL_PADDING_CELLS;
-    const pane = (cells - 2 * GUTTER_CELLS) / 3;
-    expect(2 * pane + GUTTER_CELLS).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS);
-  });
-
-  /*
-   * R93 (FR-HOME-4, D-546): the fourth literal is a cap, not a threshold — 160
+   * R93 (FR-HOME-4, D-546): the second literal is a cap, not a threshold — 160
    * cells as a `max-width` on the shell's rows, so it has no pixel twin and is
-   * written in cells in the stylesheet itself. It stands beside the wide and
-   * three-pane breakpoints: wider than the three panes need, so the cap never
-   * engages before the panes exist, and pinned here so a change to it is a
-   * change to this file too. R166 (FR-CLEAN-12, D-1003): the rule is the
-   * shell's, for every route — the shell's `main` and `#root`'s other rows, the
-   * wide live page's grid among them — and the home's stylesheet no longer
-   * writes it.
+   * written in cells in the stylesheet itself, wider than the wide breakpoint. R166 (FR-CLEAN-12, D-1003): the
+   * rule is the shell's, for every route — the shell's `main` and `#root`'s other rows, the wide live
+   * page's grid among them.
    */
-  it('caps every route at 160 cells beside 964 and 1118, in cells: the shell\'s rows and the live page\'s grid (FR-HOME-4, FR-CLEAN-12)', () => {
+  it('caps every route at 160 cells beside 964, in cells: the shell\'s rows and the live page\'s grid (FR-HOME-4, FR-CLEAN-12)', () => {
     expect(HOME_MAX_CELLS).toBe(160);
-    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX]).toEqual([964, 1118]);
-    expect(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
+    expect(WIDE_MIN_PX).toBe(964);
+    expect(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeGreaterThan(WIDE_MIN_PX);
     const literal = `max-width: calc(${String(HOME_MAX_CELLS)} * var(--cell))`;
-    expect(readFileSync(APP_PATH, 'utf8'), `${APP_PATH} should leave the cap to the shell`).not.toContain(literal);
     const shell = readFileSync(SHELL_PATH, 'utf8');
     expect(outsideMedia(shell), 'the cap is wide\'s alone').not.toContain(literal);
     const cap = wideBlocks(shell).find((block) => block.includes(literal));
@@ -205,10 +171,10 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
   });
 
   /*
-   * R99 (FR-TAB-1..3, US-35; D-625, D-634): the fifth literal is the compact
+   * R99 (FR-TAB-1..3, US-35; D-625, D-634): the third literal is the compact
    * column's cap — `COMPACT_MAX_CELLS`, 60 cells as a `max-width` on the
    * shell's rows and the guide's sheet, centred, written in cells like
-   * `HOME_MAX_CELLS` and with no pixel twin. It stands beside the other four:
+   * `HOME_MAX_CELLS` and with no pixel twin. It stands beside the other two:
    * under the wide breakpoint on every font, so it binds on compact only and
    * the wide block's `max-width: none` is what lifts it; over the 36-cell card
    * (FR-COMP-4), which is a row's budget and not the column's. The compact
@@ -219,10 +185,10 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
    * literal is written once per column — the shell's and the sheet's — and the
    * 80-cell frame it replaces is gone from `src/ui`.
    */
-  it('caps the compact column at 60 cells beside 964, 1118 and 160: the shell, the notices and the live page, lifted from the landscape phone alone (FR-TAB-1, FR-TAB-2, D-625)', () => {
+  it('caps the compact column at 60 cells beside 964 and 160: the shell, the notices and the live page, lifted from the landscape phone alone (FR-TAB-1, FR-TAB-2, D-625)', () => {
     const CARD_CELLS = 36;
     expect(COMPACT_MAX_CELLS).toBe(60);
-    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, HOME_MAX_CELLS, COMPACT_MAX_CELLS]).toEqual([964, 1118, 160, 60]);
+    expect([WIDE_MIN_PX, HOME_MAX_CELLS, COMPACT_MAX_CELLS]).toEqual([964, 160, 60]);
     expect(pxFor(COMPACT_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeLessThan(WIDE_MIN_PX);
     expect(COMPACT_MAX_CELLS).toBeGreaterThan(CARD_CELLS + 2 * SHELL_PADDING_CELLS);
     expect(COMPACT_MAX_CELLS).toBeLessThan(HOME_MAX_CELLS);
@@ -232,7 +198,7 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     const shell = outsideMedia(global);
     const selectors = selectorsOf(shell, cap);
     expect(selectors, `${GLOBAL_PATH} should cap the compact column at COMPACT_MAX_CELLS outside any media block`).not.toBe('');
-    for (const row of ['header', 'main', 'footer', '[data-page-notices]', "#root > [data-compact='true']"]) expect(selectors.split(',').map((s) => s.trim())).toContain(row);
+    for (const row of ['header', 'main', 'footer', '[data-page-notices]', '[data-update-bar]', "#root > [data-compact='true']"]) expect(selectors.split(',').map((s) => s.trim())).toContain(row);
     expect(shell.slice(shell.indexOf(cap)).split('}')[0]).toContain('margin-inline: auto');
 
     // R164 (FR-CLEAN-1): the pass detail is the full form — the box is the viewport on a tablet too — so its stylesheet
@@ -252,21 +218,17 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
   });
 
   /*
-   * R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the sixth
-   * literal is a pair, one per language — the width from which the wide
+   * R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): a measured
+   * pair, one per language — the width from which the wide
    * one-row footer holds one line with its fourth credit, measured on the
    * built app and not derived, so this test cannot check it against a cell
-   * count. What it holds: the two numbers are the measured ones (V22-15: the
-   * library alone in the row, 1118/1137, down from 1330/1349 with the
-   * author's name; R190, the privacy note's `[ × ]` in it, 1176/1195); the Spanish row is the longer; both stand inside the wide
-   * range, under the split literal and between the two desk capture widths,
-   * so the 1024 px captures show the wrap and the 1280 px ones do not; and
-   * `App.module.css` carries each under its own `:root[lang]`, as a `width <`
-   * fold from the wide breakpoint, the block halving the main's row of air
-   * (its share of it, so the block stays in rows) and the short footer's top
-   * padding, and touching nothing else.
+   * count. What it holds: the two numbers are the measured ones (R190, the privacy note's `[ × ]` in it,
+   * 1176/1195); the Spanish row is the longer; both stand inside the wide
+   * range, between the two desk capture widths; and the shell's stylesheet (R212: the home's had it) carries
+   * each under its own `:root[lang]`, as a `width <` fold from the wide breakpoint, halving the short footer's
+   * top padding and touching nothing else.
    */
-  it('pins the two-line footer\'s fold per language, and the shell pays for it from its air (FR-HOME-3, D-681)', () => {
+  it('pins the two-line footer\'s fold per language, and its air halves (FR-HOME-3, D-681)', () => {
     expect(FOOTER_ONE_LINE_MIN_PX).toEqual({ en: 1176, es: 1195 });
     expect(FOOTER_ONE_LINE_MIN_PX.en).toBeLessThan(FOOTER_ONE_LINE_MIN_PX.es);
     const CAPTURE_MID_PX = 1024;
@@ -277,28 +239,22 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
       expect(px).toBeLessThan(CAPTURE_DESK_PX);
       expect(px).toBeLessThan(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX));
     }
-    const app = readFileSync(APP_PATH, 'utf8');
+    const shell = readFileSync(SHELL_PATH, 'utf8');
     for (const [lang, px] of Object.entries(FOOTER_ONE_LINE_MIN_PX)) {
-      const blocks = mediaBlocks(app, new RegExp(`^\\s*\\(width >= ${String(WIDE_MIN_PX)}px\\)\\s*and\\s*\\(width < ${String(px)}px\\)\\s*$`));
-      expect(blocks, `${APP_PATH} should fold the ${lang} footer at ${String(px)} px from the wide breakpoint, once`).toHaveLength(1);
+      const blocks = mediaBlocks(shell, new RegExp(`^\\s*\\(width >= ${String(WIDE_MIN_PX)}px\\)\\s*and\\s*\\(width < ${String(px)}px\\)\\s*$`));
+      expect(blocks, `${SHELL_PATH} should fold the ${lang} footer at ${String(px)} px from the wide breakpoint, once`).toHaveLength(1);
       const body = (blocks[0]?.body ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
       const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]?.trim() ?? '', m[2]?.trim() ?? ''] as const);
-      expect(rules.map(([selector]) => selector)).toEqual([`:global(:root[lang='${lang}']) .main`, `:global(:root[lang='${lang}'] #root) > :global(footer[data-form='short'])`]);
-      expect(rules[0]?.[1]).toBe('--two-line-footer: 0.5;');
+      expect(rules.map(([selector]) => selector)).toEqual([`:global(:root[lang='${lang}'] #root) > :global(footer[data-form='short'])`]);
       // R105 (D-720): the space under the footer's `Rule`, which Footer.module.css reads from this name; D-1023: and the
-      // footer's own top gap, the main's old row of air under the panes, halved by the same share.
-      expect(rules[1]?.[1]).toBe('--footer-rule-gap: var(--space-2);\n    --footer-two-line: 0.5;');
+      // footer's own top gap, halved.
+      expect(rules[0]?.[1]).toBe('--footer-rule-gap: var(--space-2);\n    --footer-two-line: 0.5;');
     }
-    // The main's air is one calculation, the two shares subtracted, so both rules true leave none (D-608 composes).
-    const wide = wideBlocks(app).join('\n');
-    expect(wide).toContain('padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
-    // D-1023: the air under the panes is the footer's top gap now (Footer.module.css), the same calculation on its own names.
-    expect(wide).toContain('padding-bottom: 0;');
     const footer = readFileSync(FOOTER_CSS_PATH, 'utf8');
     expect(footer).toContain('padding-top: calc(var(--space-3) * (1 - var(--footer-short-window, 0) - var(--footer-two-line, 0)));');
-    const short = mediaBlocks(app, new RegExp(`height <= ${String(WIDE_SHORT_MAX_HEIGHT_PX)}px`));
+    const short = mediaBlocks(shell, new RegExp(`height <= ${String(WIDE_SHORT_MAX_HEIGHT_PX)}px`));
     expect(short).toHaveLength(1);
-    expect(short[0]?.body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n\s*\n/g, '\n').trim()).toBe(".main {\n    --short-window: 0.5;\n  }\n  :global(#root) > :global(footer[data-form='short']) {\n    --footer-short-window: 0.5;\n  }");
+    expect(short[0]?.body.trim()).toBe(":global(#root) > :global(footer[data-form='short']) {\n    --footer-short-window: 0.5;\n  }");
   });
 
   it('writes every width inside a wide block in cells or rows, never in px (FR-DESK-1)', () => {
@@ -341,7 +297,7 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
   });
 
   it('holds every length in a condition to an export of lib/layout.ts', () => {
-    const widths = new Set([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, ...Object.values(FOOTER_ONE_LINE_MIN_PX), ...Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold))]);
+    const widths = new Set<number>([WIDE_MIN_PX, ...Object.values(FOOTER_ONE_LINE_MIN_PX)]);
     const heights = new Set([SIDEWAYS_MAX_HEIGHT_PX, SHORT_MAX_HEIGHT_PX, WIDE_SHORT_MAX_HEIGHT_PX]);
     for (const condition of conditions) {
       const where = `${condition.path}: ${conditionText(condition)}`;
@@ -363,35 +319,21 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     expect(SHORT_MAX_HEIGHT_PX).toBeLessThan(WIDE_SHORT_MAX_HEIGHT_PX);
     expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css'].sort());
     // R106 (D-722): the boxed field's tighter padding on a short screen is the `Field`'s own rule.
-    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual([APP_PATH, 'src/ui/components/location/LocationInput.module.css', 'src/ui/components/primitives/Field.module.css'].sort());
-    expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([APP_PATH]);
+    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual(['src/ui/components/location/LocationInput.module.css', 'src/ui/components/primitives/Field.module.css'].sort());
+    expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([SHELL_PATH]);
     // The landscape phone's height stands with its orientation and nothing else, in both files, and is the query the page asks in script.
     for (const query of queries.filter((q) => q.conditions.some((c) => c.feature === 'height' && c.value === `${String(SIDEWAYS_MAX_HEIGHT_PX)}px`))) expect(query.prelude).toBe(LANDSCAPE_PHONE_QUERY);
   });
 
-  it('holds the header’s two tagline folds to HEADER_FOLD_PX, as `width <` and nothing else, under the wide breakpoint’s neighbours', () => {
-    const folds = conditions.filter((c) => c.path === HEADER_PATH && c.comparator === '<').map((c) => Number.parseInt(c.value, 10));
-    expect(folds.sort((a, b) => a - b)).toEqual(Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold)).sort((a, b) => a - b));
-    // Each fold is held to its language and its line, not only to the set: the block under `width < HEADER_FOLD_PX[lang][line]` is the one that hides that language's tagline (R129, D-845: the title no longer folds).
-    const header = readFileSync(HEADER_PATH, 'utf8');
-    for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
-      for (const [line, px] of Object.entries(fold)) {
-        const block = new RegExp(`@media \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(header)?.[1] ?? '';
-        expect(block, `${lang} ${line} at ${String(px)}px`).toContain(`[lang='${lang}']`);
-        expect(block, `${lang} ${line} at ${String(px)}px`).toContain('.tagline');
-      }
-    }
-    for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
-      // Under the 1280 px desk, where the home is widest (the split's 1272 is retired, R186).
-      expect(fold.tagline, lang).toBeLessThan(1280);
-    }
-    // The only other `width <` folds are the footer's two-line rule, one per language, each under its language's selector (R93, D-546).
-    const app = readFileSync(APP_PATH, 'utf8');
-    const footerFolds = conditions.filter((c) => c.comparator === '<' && c.path !== HEADER_PATH);
-    expect(footerFolds.map((c) => c.path)).toEqual([APP_PATH, APP_PATH]);
+  it('folds by `width <` for the footer’s two lines alone: the header’s tagline went with the home (R212)', () => {
+    expect(conditions.filter((c) => c.path === HEADER_PATH)).toEqual([]);
+    // One per language, each under its language's selector (R93, D-546).
+    const shell = readFileSync(SHELL_PATH, 'utf8');
+    const footerFolds = conditions.filter((c) => c.comparator === '<');
+    expect(footerFolds.map((c) => c.path)).toEqual([SHELL_PATH, SHELL_PATH]);
     expect(footerFolds.map((c) => Number.parseInt(c.value, 10)).sort((a, b) => a - b)).toEqual([FOOTER_ONE_LINE_MIN_PX.en, FOOTER_ONE_LINE_MIN_PX.es].sort((a, b) => a - b));
     for (const [lang, px] of Object.entries(FOOTER_ONE_LINE_MIN_PX)) {
-      const block = new RegExp(`@media \\(width >= \\d+px\\) and \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(app)?.[1] ?? '';
+      const block = new RegExp(`@media \\(width >= \\d+px\\) and \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(shell)?.[1] ?? '';
       expect(block, `footer ${lang} at ${String(px)}px`).toContain(`[lang='${lang}']`);
     }
   });
@@ -403,10 +345,8 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     expect(containers[0]?.prelude).toBe(`(min-width: ${String(FRAME_LEGEND_MIN_CELLS)}ch)`);
   });
 
-  it('asks the same queries in script: the wide and three-pane queries are the stylesheets’ conditions', () => {
+  it('asks the same query in script: the wide query is the stylesheets’ condition', () => {
     expect(WIDE_QUERY).toBe(`(width >= ${String(WIDE_MIN_PX)}px)`);
-    expect(HOME_THREE_PANE_QUERY).toBe(`(width >= ${String(HOME_THREE_PANE_MIN_PX)}px)`);
     expect(queries.map((q) => q.prelude)).toContain(WIDE_QUERY);
-    expect(queries.map((q) => q.prelude)).toContain(HOME_THREE_PANE_QUERY);
   });
 });

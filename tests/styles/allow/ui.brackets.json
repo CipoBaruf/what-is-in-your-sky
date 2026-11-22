@@ -23,10 +23,6 @@
     "count": 3,
     "reason": "R209 (D-1229): the cloud tag and its tooltip's [Clouds]; a Tag by R224."
   },
-  "src/ui/screens/Home.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the steps' [01] marker; R212 deletes the home."
-  },
   "src/ui/screens/PassDetail.module.css": {
     "count": 2,
     "reason": "R209 (D-1229): the detail's tag; a Tag by R224."

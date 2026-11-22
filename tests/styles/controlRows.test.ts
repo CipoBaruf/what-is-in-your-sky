@@ -64,7 +64,6 @@ import { SkyHead } from '../../src/ui/components/sky/SkyHead';
 import { StarsPage } from '../../src/ui/screens/Stars';
 import { DETAIL_TIMES_CELLS } from '../../src/lib/format';
 import { TimesRow } from '../../src/ui/components/guide/TimesRow';
-import { DOOR_CELLS } from '../../src/ui/screens/home/doorLines';
 import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
 import { chipRows, contextRows, tapsRows } from './tonightRows';
@@ -79,8 +78,8 @@ const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
 const LIVE_ROW_BUDGET = BUDGET - 2;
 /** R132 (FR-FLOW-4, D-846): the view row is 30 cells in English and 35 in Spanish, and the spec pins the Spanish number. */
 const VIEW_ROW_BUDGET = 35;
-/** R129 (FR-FLOW-3): the pages under the home with the header's compact `[ ← ]` row (the pass detail's went with R164). */
-const SUB_PAGES = ['live', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
+/** R129 (FR-FLOW-3), R212 (D-1231): the pages with the header's compact `[ ← ]` row; live and the satellites' list are tabs. */
+const SUB_PAGES = ['stars', 'settings'] as const satisfies readonly HeaderPage[];
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
@@ -157,6 +156,11 @@ const chartView = (): ReactElement =>
     onChange: noop,
   });
 
+/** R212 (D-1230): the head has no Back on the first page, live with nothing behind it. */
+const offTheFirstPage = (): void => {
+  window.history.replaceState(null, '', '#stars');
+};
+
 const offerAnInstall = (): void => {
   const event = Object.assign(new Event(BEFORE_INSTALL_PROMPT, { cancelable: true }), { prompt: () => Promise.resolve({}) }) as BeforeInstallPromptEvent;
   window.dispatchEvent(event);
@@ -168,7 +172,10 @@ const offerAnInstall = (): void => {
  * component the app renders.
  */
 const rows = (t: Messages): readonly Row[] => [
-  { name: 'the compact header (FR-COMP-1)', element: createElement(Header), find: () => screen.getByTestId('header') },
+  // R212 (FR-LAND-6, D-1231): the two tabs' rows, each linking the other.
+  ...(['live', 'pass'] as const).map(
+    (page): Row => ({ name: `the compact header of the ${page} tab (FR-COMP-1)`, element: createElement(Header, { page }), find: () => screen.getByTestId('header') }),
+  ),
   // R81 (FR-FIRST-11): the Where reading's lines. The place is clipped, not wrapped, so the row is the place's own coordinates here;
   // the sentence under it is prose and wraps.
   {
@@ -181,15 +188,6 @@ const rows = (t: Messages): readonly Row[] => [
   },
   // D-1024 (FR-FLOW-2 amended): the folded Where has no ready line of its own any more (R156's `[ details ]` alone is
   // gone); its place row clips the place, as the place line above does.
-  // R156 (FR-PHONE-13): the third door's two fixed lines, each within FR-FLOW-1's 34 cells (its state line is `doorRows.test.ts`'s).
-  ...(['title', 'line'] as const).map(
-    (key): Row => ({
-      name: `the Live sky door's ${key} (FR-PHONE-13)`,
-      element: createElement('span', { 'data-testid': 'door-live-fixed' }, t.doors.live[key]),
-      find: () => screen.getByTestId('door-live-fixed'),
-      budget: DOOR_CELLS,
-    }),
-  ),
   // R156 (FR-PHONE-14, D-978): the pass detail's one times row at its longest — a three-letter point with a
   // shadow entry, 36 cells — and the plain line with the same peak, within `DETAIL_TIMES_CELLS`.
   ...(['shadow', 'horizon'] as const).map(
@@ -403,6 +401,7 @@ const rows = (t: Messages): readonly Row[] => [
    */
   {
     name: "the stars head's line (FR-CLEAN-2)",
+    setUp: offTheFirstPage,
     element: createElement(SkyHead, { line: createElement('p', { 'data-testid': 'stars-head-line' }, longestStarsLine(t)), onBack: noop }),
     find: () => screen.getByTestId('live-head'),
     measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestStarsLine(t)].length * 14) / 16,
@@ -415,6 +414,7 @@ const rows = (t: Messages): readonly Row[] => [
    */
   {
     name: "the pass detail's head (FR-CLEAN-2)",
+    setUp: offTheFirstPage,
     element: createElement(SkyHead, { line: createElement('p', { 'data-testid': 'pass-head-line' }, longestPassHead(t)), onBack: noop }),
     find: () => screen.getByTestId('live-head'),
     measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestPassHead(t)].length * 5) / 4,
@@ -457,6 +457,7 @@ afterEach(() => {
   // does not get `tests/setup/vitest.jsdom.ts` and RTL's automatic cleanup.
   cleanup();
   media.restore();
+  window.history.replaceState(null, '', window.location.pathname);
   appStore.setState(initial, true);
   localStorage.clear();
   forgetInstallOffer();
@@ -491,8 +492,8 @@ describe.each(LOCALES)('FR-FLOW-3: the three compact sub-page rows in %s', (loca
    * off compact and R149 `Header`'s `status` with it), so 14 → 10 and 17 → 13.
    */
   const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
-    en: { live: 10, stars: 11, settings: 14 },
-    es: { live: 13, stars: 15, settings: 13 },
+    en: { stars: 11, settings: 14 },
+    es: { stars: 15, settings: 13 },
   };
 
   it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {
@@ -810,51 +811,19 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
  * arithmetic rather than at the far edge of the budget.
  */
 it('counts the compact header with the mark at 27 cells (FR-COMP-1, FR-CTRL-11, D-441)', () => {
-  render(createElement(I18nProvider, { locale: 'en', children: createElement(Header) }));
+  render(createElement(I18nProvider, { locale: 'en', children: createElement(Header, { page: 'pass' }) }));
   const header = screen.getByTestId('header');
   expect(screen.getByTestId('mark').getAttribute('data-mark-cells')).toBe('3');
   expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(27);
 });
 
 /**
- * R93 (FR-HOME-1, D-546, D-605; F-76): the wide header's fold. The title row
- * and the tagline are each one line at every wide width in both languages, and
- * what makes that true is not measured at run time: each line's width in cells
- * is known from the catalog, so `Header.module.css` carries one pixel literal
- * per language per line, derived as the breakpoints are (`thresholdPx`, F-10),
- * under which the tagline is not drawn. R129 (FR-FLOW-3, D-845): the title row
- * lost the switches and its fold with them; what is pinned for it now is that a
- * sub-page's row fits the wide breakpoint with room for its context.
- * This is where those literals are recomputed — from the catalogs, the mark's
- * declared cells, and the gaps the stylesheets declare, which are read rather
- * than remembered — so a longer word in either catalog moves the number here
- * before it wraps the header on a screen.
+ * R93 (FR-HOME-1, D-546, D-605; F-76): the wide header's one row, at every wide width in both languages. R129
+ * (FR-FLOW-3, D-845): the title row lost the switches; R212 (D-1230) the tagline and the home link. What is pinned
+ * is that a page's row fits the wide breakpoint with room for its context, recomputed here from the catalogs, the
+ * mark's declared cells, and the gaps the stylesheets declare, which are read rather than remembered.
  */
 const HEADER_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/Header.module.css'), 'utf8');
-
-/** The `@media (width < N px)` blocks of a stylesheet: the literal and the rules under it. */
-function foldBlocks(css: string): { px: number; body: string }[] {
-  const blocks: { px: number; body: string }[] = [];
-  for (const match of css.matchAll(/@media\s*\(width\s*<\s*(\d+)px\)\s*\{/g)) {
-    let depth = 1;
-    let i = match.index + match[0].length;
-    const from = i;
-    while (i < css.length && depth > 0) {
-      if (css[i] === '{') depth += 1;
-      else if (css[i] === '}') depth -= 1;
-      i += 1;
-    }
-    blocks.push({ px: Number(match[1]), body: css.slice(from, i - 1) });
-  }
-  return blocks;
-}
-
-/** The one literal under which `locale`'s block hides the tagline. */
-function foldLiteral(locale: Locale): number {
-  const found = foldBlocks(HEADER_CSS).filter(({ body }) => body.includes(`:root[lang='${locale}']`) && body.includes('.tagline'));
-  expect(found, `Header.module.css should fold the tagline once for ${locale}`).toHaveLength(1);
-  return found[0]?.px ?? NaN;
-}
 
 /** A gap or padding declared in cells, read from the rule itself. */
 function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): number {
@@ -867,7 +836,7 @@ function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): nu
   return 1;
 }
 
-describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its tagline in %s (D-546, D-845)', (locale: Locale) => {
+describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, D-845)', (locale: Locale) => {
   const t = CATALOGS[locale];
   // R206: a link is its words (FR-CTRL-11); `←` in its box is the five cells of `--target` (D-1226).
   const link = (text: string): number => text.length;
@@ -879,7 +848,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
   beforeEach(() => {
     media.restore();
     media = stubMatchMedia(1280);
-    render(createElement(I18nProvider, { locale, children: createElement(Header) }));
+    render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'settings' }) }));
     markCells = Number(screen.getByTestId('mark').getAttribute('data-mark-cells'));
     expect(markCells).toBeGreaterThan(0);
   });
@@ -891,16 +860,16 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('fits a sub-page’s row — [ ← ], the mark and title, the four links, the context, [ settings ] — at the wide breakpoint with the controls whole, the title whole from its own width', () => {
+  it('fits a sub-page’s row — [ ← ], the mark and title, the three links, the context, [ settings ] — at the wide breakpoint with the controls whole, the title whole from its own width', () => {
     // R129 (D-845): with the switches gone the title has no short form on wide; the context is what ellipsises.
-    // R166 (FR-CLEAN-14, D-1007): the links are one cell apart; v2.14.1 (FR-CLEAN-14 as amended, D-1134): four of
-    // them, `satellites` / `satélites` between `live` and `stars`. R206 (FR-CTRL-11): without their brackets the row
+    // R166 (FR-CLEAN-14, D-1007): the links are one cell apart; R212 (D-1230): three of
+    // them, `live satellites stars`. R206 (FR-CTRL-11): without their brackets the row
     // is 20 cells shorter, so the title is whole at the wide breakpoint (964 px, `WIDE_CELLS`) in both languages,
-    // and the English context keeps six cells there.
-    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].reduce((sum, word) => sum + link(word), 0) + 3 * navGap;
+    // and the English context keeps its cells there.
+    const nav = [t.header.pages.live, t.header.pages.pass, t.header.pages.stars].reduce((sum, word) => sum + link(word), 0) + 2 * navGap;
     expect(navGap).toBe(1);
     const fixed = 2 * SHELL_PADDING_CELLS + backCells + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + link(t.settings.open);
-    expect(fixed).toBe(locale === 'es' ? 93 : 84);
+    expect(fixed).toBe(locale === 'es' ? 86 : 79);
     expect(WIDE_MIN_PX).toBe(964);
     expect(fixed, 'the whole row, its title too, at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
     if (locale === 'en') expect(fixed + 10, 'ten cells of context at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
@@ -911,20 +880,20 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     // The finding this answers: on a full Spanish row near 1024 px every item shrank by its share and the title drew
     // over `inicio`. The rendered row — not only the arithmetic — is measured here, `[ ← ]` and the place on it.
     const place = 'San Carlos de Bariloche, Río Negro, Argentina';
-    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'live', context: place, onBack: noop }) }));
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', context: place, onBack: noop }) }));
     const row = within(container).getByTestId('header');
     const parts = rowParts(row, table);
-    // R206 (FR-CTRL-11): each link is its words; D-1134: four links.
-    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].map((word) => word);
+    // R206 (FR-CTRL-11): each link is its words; D-1230: three links.
+    const nav = [t.header.pages.live, t.header.pages.pass, t.header.pages.stars].map((word) => word);
     expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
     expect(parts[0]).toContain(t.header.back);
     // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
     const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
-    const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 3 * navGap;
-    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 93 : 84);
+    const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 2 * navGap;
+    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 86 : 79);
     const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    // R206 (FR-CTRL-11): the brackets' 20 cells are the place's again: 22 of them at 1024 px in English, 13 in Spanish.
-    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? 13 : 22);
+    // R206 (FR-CTRL-11): the brackets' 20 cells are the place's again: with the home link's, 27 of them at 1024 px in English, 20 in Spanish.
+    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? 20 : 27);
     expect(at1024 - measured).toBeLessThan(place.length + rowGap);
     // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
     // `←`, the links and `settings` never shrink.
@@ -936,11 +905,6 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     for (const fixed of ['.back', '.nav', '.settings']) expect(rule(fixed), fixed).toMatch(/flex:\s*0 0 auto;/);
   });
 
-  it('hides the tagline under the width its one line needs: the indent and its words', () => {
-    const cells = 2 * SHELL_PADDING_CELLS + markCells + 1 + t.app.tagline.length;
-    expect(cells).toBe(locale === 'es' ? 68 : 70);
-    expect(foldLiteral(locale)).toBe(thresholdPx(cells));
-  });
 });
 
 /**
