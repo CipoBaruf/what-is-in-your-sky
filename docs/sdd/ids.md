@@ -2169,6 +2169,9 @@ D-1243	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decis
 D-1244	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 D-1245	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 D-1246	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1253	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1254	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1255	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log

@@ -90,6 +90,18 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Each screen task keeps `tests/e2e/captureSet.ts`'s manifest true for what it removes (the home's, the stars page's, the first-pass dialog's names); R227 adds FR-LAND-4's header at 1280 and 1024 px with the example and with a place, the compact sheet's head at 390 px with both, and FR-NOW-3's rail at 1280 × 800 with nothing up and with a pass up.
 - **D-1246 — The budget rows follow the chunks.**
   (The definition of done.) The `home` and `stars` rows leave `scripts/bundle-budget.ts` with their chunks (R212, R222); the `live` row grows by the stars' groups and the strip, a named reason (FR-LAND-3, FR-STRIP-1); R227 re-sets every row by D-178 and names any row over 2.16.0's by more than 1 KB.
+- **D-1253 — Real time running at 1× is nothing held, read each second.**
+  (R208; FR-STRIP-4, FR-LAND-2, D-1233.) The wide live page's opening holds no instant: `realTime` stays true, so the hash, the share link, the watching state and `live` read as real time, while `playing` is true at 1× and the shown instant is the wall clock, read once a second.
+  A frame loop would redraw the globe 60 times a second for as long as the page is open and, adding wall deltas, would drift from the clock it claims to show.
+  The state follows from the opening and from nothing being held: a pause holds the second on screen, a move holds where it lands, and any return to real time on wide (`now`, a held instant real time overtakes, a link whose moment has passed) runs again, as FR-STRIP-3 words it.
+  A speed saved or picked is still the one `play` runs a held instant at (FR-KEEP-1).
+- **D-1254 — The reader's pause or move ends the pass's loop where it lands, paused.**
+  (R208; FR-STRIP-4, D-1233.) "Until the reader pauses or moves the time" is read as ending the playing opening: a tap on `peak` shows the peak and does not run on from it at 60×; `play` then plays as it always has, past the set to the span's end.
+  A speed is neither, so the loop goes on at it; the opening's 60× is not saved. The page's own placing of a rise past the span (`goTo(rise, 'page')`) is no move.
+  The loop runs to the set unclamped, for a pass that rises inside the span and sets past its end, and it is wide's alone: on compact it stands still.
+- **D-1255 — What opens paused is decided in the hook.**
+  (R208; FR-LIVE-9, FR-STRIP-4.) `usePlayback` asks reduced motion itself, so no page can open playing under it.
+  It knows a link's instant by `initial`: any on the live page, and on a pass page any that is not the loop's start. A pass link holds no `t` (its `start` names the pass), so a pass page opened by a link plays.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*
 

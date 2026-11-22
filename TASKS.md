@@ -82,7 +82,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the bar (R212, R220).
   - **Done when:** `npm run check` green; the unit test with fake timers shows `update()` once on register, once per visible change, every 30 min while visible and never while hidden; `npm run check:sdd` green.
 
-- [ ] **R208 — The desk plays on opening**
+- [x] **R208 — The desk plays on opening**
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 300

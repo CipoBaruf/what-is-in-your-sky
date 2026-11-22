@@ -29,6 +29,10 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   *Why:* R55.
 - **Chrome fires one `deviceorientation` event with null alpha, beta and gamma on a sensorless runner**, about 50 ms after the listener is added. It never reproduces on the Mac. Stub it with a capturing listener that calls `stopImmediatePropagation()` on trusted events; the test's own `window.dispatchEvent` readings are untrusted and pass.
 - **A `@container` query never matches the container element itself.** Give the queried element a wrapper that carries `container-type`.
+- **A wide sky page is playing when it opens.**
+  A pass page loops at 60× from its rise, and the live page's clock moves each second (FR-STRIP-4).
+  Press the rise's button or pause before reading an instant or a marker's place, or open under `page.emulateMedia({ reducedMotion: 'reduce' })`, as a capture that must not move does.
+  *Why:* R208, 2026-11-22.
 - **`user-event` hangs under Vitest fake timers.**
   `user.type` and `user.click` never resolve once `setTimeout` is faked, because testing-library's `asyncWrapper` waits on a real timer and only advances Jest's fake ones.
   Fake only `setTimeout` and `clearTimeout`, and drive the DOM with `fireEvent` inside `act(async () => { await vi.advanceTimersByTimeAsync(ms) })`; use `user-event` with real timers for everything else (`PlacePicker.test.tsx` is the model).
