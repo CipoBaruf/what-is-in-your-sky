@@ -31,10 +31,11 @@
   flex: 0 0 auto;
 }
 
-/* F-100 (D-642), as the live page had it: the ring of a focused Back sits flush round its text line, so it stays in
-   the row's leading and off the line under it. The primitive's `inline` form collapses the tap box while it shows. */
+/* F-100 (D-642), as the live page had it: the ring of a focused Back goes round its text line, not the tap box, so it
+   stays in the row's leading and off the line under it. The primitive's `inline` form collapses the tap box while it
+   shows. R206 (FR-CTRL-17, D-1247): a hairline out, flush round the box, which overhangs the line by that much. */
 .back:focus-visible {
-  --focus-offset: 0;
+  --focus-offset: var(--hairline);
 }
 
 .pageName {

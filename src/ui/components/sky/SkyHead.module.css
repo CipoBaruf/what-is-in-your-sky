@@ -25,10 +25,11 @@
   flex: none;
 }
 
-/* F-100 (D-642), as the header has it: the ring of a focused Back sits flush round its text line, not its tap box
-   (R148: `Live.module.css`'s rule for the top row's Back, brought here with the control). */
+/* F-100 (D-642), as the header has it: the ring of a focused Back goes round its text line, not its tap box
+   (R148: `Live.module.css`'s rule for the top row's Back, brought here with the control). R206 (FR-CTRL-17, D-1247):
+   a hairline out, flush round the box, which overhangs the line by that much. */
 .back:focus-visible {
-  --focus-offset: 0;
+  --focus-offset: var(--hairline);
   min-block-size: 0;
   min-height: 0;
   padding-block: 0;
