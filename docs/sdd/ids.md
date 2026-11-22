@@ -5,14 +5,26 @@ G3	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G4	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G5	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
 G6	SPEC.md#21-goals-mvp	2.1 Goals (MVP)
-R198	TASKS.md#v216-tasks	v2.16 tasks
-R199	TASKS.md#v216-tasks	v2.16 tasks
-R204	TASKS.md#v216-tasks	v2.16 tasks
-R200	TASKS.md#v216-tasks	v2.16 tasks
-R201	TASKS.md#v216-tasks	v2.16 tasks
-R205	TASKS.md#v216-tasks	v2.16 tasks
-R202	TASKS.md#v216-tasks	v2.16 tasks
-R203	TASKS.md#v216-tasks	v2.16 tasks
+R206	TASKS.md#v30-tasks	v3.0 tasks
+R207	TASKS.md#v30-tasks	v3.0 tasks
+R208	TASKS.md#v30-tasks	v3.0 tasks
+R209	TASKS.md#v30-tasks	v3.0 tasks
+R210	TASKS.md#v30-tasks	v3.0 tasks
+R211	TASKS.md#v30-tasks	v3.0 tasks
+R212	TASKS.md#v30-tasks	v3.0 tasks
+R213	TASKS.md#v30-tasks	v3.0 tasks
+R214	TASKS.md#v30-tasks	v3.0 tasks
+R215	TASKS.md#v30-tasks	v3.0 tasks
+R216	TASKS.md#v30-tasks	v3.0 tasks
+R217	TASKS.md#v30-tasks	v3.0 tasks
+R218	TASKS.md#v30-tasks	v3.0 tasks
+R219	TASKS.md#v30-tasks	v3.0 tasks
+R220	TASKS.md#v30-tasks	v3.0 tasks
+R221	TASKS.md#v30-tasks	v3.0 tasks
+R222	TASKS.md#v30-tasks	v3.0 tasks
+R223	TASKS.md#v30-tasks	v3.0 tasks
+R224	TASKS.md#v30-tasks	v3.0 tasks
+R225	TASKS.md#v30-tasks	v3.0 tasks
 US-1	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-2	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-3	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
@@ -2061,6 +2073,14 @@ D-1220	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1221	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1222	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1223	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+R198	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R199	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R204	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R200	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R201	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R205	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R202	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
+R203	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
 G72	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
 G73	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
 G74	docs/sdd/phases/v3.0/spec.md#224-goals-v30-the-sky-first	2.24 Goals (v3.0, "the sky first")
