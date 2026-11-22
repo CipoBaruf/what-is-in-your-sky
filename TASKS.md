@@ -102,7 +102,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the strip and the play button's words (R213).
   - **Done when:** `npm run check` green; `usePlayback.test.tsx` covers the three openings, the loop's hold and its end at the first pause; `landing.spec.ts` (new) sees the wide globe with the clock advancing by real seconds, the compact window, and a stored `Window` winning on wide; the pass page's instant passes the rise; `npm run check:sdd` green.
 
-- [ ] **R209 — Every control is a primitive**
+- [x] **R209 — Every control is a primitive** (the bracket ratchet also reads CSS `content`, D-1257)
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 500

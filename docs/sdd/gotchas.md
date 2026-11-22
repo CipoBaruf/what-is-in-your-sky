@@ -50,6 +50,16 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   The button is the hit box and the `<span>` inside is the box, so `getByText` and a click's `event.target` are the span: read a control with `closest('button')`, and measure a target on `getByRole`.
   A caller's CSS that styles `.row span` reaches the box: select by class.
   *Why:* R206, 2026-11-22.
+- **A `Field`'s input draws nothing (D-1256).**
+  Its parent is the box's wrapper and the field is one above; the edge and the focus line are on the `<span>` after the input (`input + span`), so the input's own `border-color` says nothing.
+  *Why:* R209, 2026-11-22; `rhythm.spec.ts` and `focus.spec.ts` read both.
+- **A new control, link or bracketed word outside the primitives fails a ratchet (D-1229).**
+  Use the primitive; never raise a count in `tests/styles/allow/`.
+  A task that lowers a count edits its own lane's file only.
+  *Why:* R209; the lists reach `{}` in R224.
+- **A stylesheet takes no motion query.**
+  `breakpoint.test.ts` fails `@media (prefers-reduced-motion)`: ask in script and write `data-motion` (D-932; `primitives/useStill.ts`).
+  *Why:* R209, 2026-11-22.
 - **An alias token resolves where it is declared.**
   `--on-ground: var(--fg)` in `:root` is already the root theme's colour when a nested themed element inherits it, so an element that sets a theme below the root restates every alias (`dev/primitives.css`'s `.theme`).
   The app sets its theme on the root and needs nothing.
