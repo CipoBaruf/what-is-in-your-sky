@@ -25,6 +25,8 @@ R222	TASKS.md#v30-tasks	v3.0 tasks
 R223	TASKS.md#v30-tasks	v3.0 tasks
 R224	TASKS.md#v30-tasks	v3.0 tasks
 R225	TASKS.md#v30-tasks	v3.0 tasks
+R226	TASKS.md#v30-tasks	v3.0 tasks
+R227	TASKS.md#v30-tasks	v3.0 tasks
 US-1	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-2	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
 US-3	docs/sdd/phases/mvp/spec.md#32-user-stories-mvp-unless-tagged	3.2 User Stories (MVP unless tagged)
