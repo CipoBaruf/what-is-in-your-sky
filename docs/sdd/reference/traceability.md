@@ -525,7 +525,7 @@
 | FR-MARK-6 | `tests/build/mark-icons.test.ts`, `tests/build/mark-rasters.test.ts` |
 | FR-MARK-8 | `src/ui/components/mark/Mark.raster.test.ts`, `tests/build/mark-icons.test.ts` |
 | FR-MEAS-1 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measure.test.ts`, `src/state/measureEffects.test.ts` |
-| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts`, `src/ui/App.measure.test.tsx`, `src/ui/components/location/LocationInput.measure.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/openedRoute.test.ts`, `src/ui/screens/Live.measure.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx` |
+| FR-MEAS-2 | `src/data/measure.test.ts`, `src/model/measure.test.ts`, `src/state/measureEffects.test.ts`, `src/ui/App.measure.test.tsx`, `src/ui/components/location/LocationInput.measure.test.tsx`, `src/ui/components/location/PlacePicker.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/openedRoute.test.ts`, `src/ui/screens/Live.measure.test.tsx`, `src/ui/screens/home/HomeDoors.test.tsx`, `tests/deploy/endpoint.test.ts` |
 | FR-MEAS-3 | `src/data/measure.test.ts`, `src/state/measure.test.ts`, `tests/build/measure-size.test.ts`, `tests/e2e/measure.spec.ts` |
 | FR-MEAS-4 | `tests/deploy/endpoint.test.ts` |
 | FR-MEAS-5 | `src/state/measureEffects.test.ts`, `src/ui/components/location/PlacePicker.test.tsx`, `tests/e2e/measure.spec.ts` |

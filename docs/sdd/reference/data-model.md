@@ -176,4 +176,31 @@ Persistence:
   `catalog.json` gains `bv: number[]` in the same unit.
 - `src/data/stars/milkyWay.json`: `{ bands: [number, number][][] }`, three closed rings of `[ra, dec]` in degrees, outermost first (D-973).
 
+**The events** *(FR-MEAS-2; v3.0, D-1242)*
+
+`EVENTS` in `src/model/measure.ts` is the closed list; the sender and the route drop any other name or detail.
+
+| Name | `detail` |
+|---|---|
+| `open` | `home`, `pass`, `live`, `stars`, `settings` |
+| `example_shown` | `pass`, `none`, `no_city`, `failed`, `slow` |
+| `where_shown` | `example`, `fallback` |
+| `place_set` | `search`, `coords`, `device`, `favourite`, `link` |
+| `device_refused` | `denied`, `unavailable`, `timeout` |
+| `search_empty` | none |
+| `door` | `satellites`, `stars`, `live` |
+| `watch` | none |
+| `pass_open` | none |
+| `live_open` | none |
+| `stars_open` | none |
+| `sky_screen_open` | none |
+| `settings_open` | none |
+| `follow_answer` | `allow`, `not_now`, `refused` |
+| `no_passes` | none |
+| `failure` | `elements`, `forecast`, `search`, `passes`, `live` |
+
+`watch` is accepted before anything sends it (R213 adds the sender).
+`door` stays accepted until R212 removes it with the home; the funnel no longer prints it.
+The funnel reads each step as a share of first-visit `open` whatever its `detail` (FR-MEAS-6 as amended).
+
 ---
