@@ -48,7 +48,7 @@ describe('findSelectedPass', () => {
 describe('usePassSelection (D-13)', () => {
   afterEach(clearHash);
 
-  it('starts from the hash, writes it on open and clears it on close', () => {
+  it('starts from the hash, writes it on open and leaves to the live page on close (FR-LAND-1)', () => {
     window.location.hash = `#pass=${pass.id}`;
     const { result } = renderHook(() => usePassSelection());
     expect(result.current.selectedId).toBe(pass.id);
@@ -57,7 +57,7 @@ describe('usePassSelection (D-13)', () => {
       result.current.close();
     });
     expect(result.current.selectedId).toBeNull();
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
 
     act(() => {
       result.current.open('48274-1');

@@ -38,7 +38,6 @@ import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
 import { LivePage, resetFirstPassAsked, TICK_MS, visibleCount } from './Live';
 import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS } from './liveRows';
-import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -168,7 +167,7 @@ describe('<LivePage>', () => {
   describe('before it can draw (R89)', () => {
     const failure = { kind: 'offline', detail: 'TypeError: Failed to fetch' } as const;
 
-    it('says no place with [ set a place ], which goes home to set one (FR-FIRST-1, F-75)', async () => {
+    it('says no place with [ set a place ], which opens the place group on settings (D-1230, F-75)', async () => {
       const onLeave = vi.fn();
       const hashes: string[] = [];
       const onHash = (): void => {
@@ -189,12 +188,11 @@ describe('<LivePage>', () => {
       expect(await axe(container)).toHaveNoViolations();
       fireEvent.click(screen.getByRole('button', { name: en.live.setPlace }));
       window.removeEventListener('hashchange', onHash);
-      expect(placeRequested()).toBe(true);
-      clearPlaceRequest();
-      expect(hashes).toEqual(['']);
-      // The return control is still there, and still returns.
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(hashes).toEqual(['#settings']);
+      // R212 (D-1230, FR-LAND-6): the first page has no Back; its header links to the list and settings.
+      expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+      expect(screen.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
+      expect(onLeave).not.toHaveBeenCalled();
     });
 
     // R203 (FR-OPEN-7, FR-OPEN-6; D-1180, D-1205): "needs a place" is for no example — or one the fallback replaced.

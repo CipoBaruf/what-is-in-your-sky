@@ -1,12 +1,11 @@
 /**
  * R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route as the hash carries it —
  * active for the bare route and for any `#live?…`, the link only when it
- * parses, following `hashchange`, and `leave` clearing the hash in place while
- * telling every subscriber.
+ * parses, following `hashchange`, and `leave` staying put where live is the
+ * first page (R212, FR-LAND-1).
  */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearRoute } from '../navigation';
 import { useLiveRoute } from './LiveRoute';
 
 const go = (hash: string): void => {
@@ -21,7 +20,7 @@ describe('useLiveRoute', () => {
     window.history.replaceState(null, '', window.location.pathname);
   });
 
-  it('is inactive on the home page and on a pass hash', () => {
+  it('is inactive with no hash (the app writes #live there) and on a pass hash', () => {
     const { result } = renderHook(() => useLiveRoute());
     expect(result.current.active).toBe(false);
     expect(result.current.link).toBeNull();
@@ -43,13 +42,13 @@ describe('useLiveRoute', () => {
     expect(result.current.link).toBeNull();
   });
 
-  it('reads the route on the first render, so a #live URL never paints the home page first', () => {
+  it('reads the route on the first render, so a #live URL never paints another page first', () => {
     window.location.hash = '#live';
     const { result } = renderHook(() => useLiveRoute());
     expect(result.current.active).toBe(true);
   });
 
-  it('leave, on an entry the app did not push (the load, a typed URL), clears the hash without a history entry and dispatches hashchange for every other subscriber', () => {
+  it('leave, on an entry the app did not push (the load, a typed URL), stays: live is the first page (FR-LAND-1)', () => {
     const { result } = renderHook(() => useLiveRoute());
     go('#live');
     const heard = vi.fn();
@@ -59,18 +58,9 @@ describe('useLiveRoute', () => {
       result.current.leave();
     });
     window.removeEventListener('hashchange', heard);
-    expect(window.location.hash).toBe('');
-    expect(result.current.active).toBe(false);
-    expect(heard).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toBe('#live');
+    expect(result.current.active).toBe(true);
+    expect(heard).not.toHaveBeenCalled();
     expect(window.history.length).toBe(entries);
-  });
-
-  it('clearRoute (what an unreadable link leaves by) on the home page still tells the subscribers, and changes nothing else', () => {
-    const heard = vi.fn();
-    window.addEventListener('hashchange', heard);
-    clearRoute();
-    window.removeEventListener('hashchange', heard);
-    expect(heard).toHaveBeenCalledTimes(1);
-    expect(window.location.hash).toBe('');
   });
 });

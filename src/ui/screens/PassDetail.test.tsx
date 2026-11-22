@@ -629,6 +629,7 @@ describe('<App> with the detail sheet (D-13)', () => {
   };
 
   it('opening a card sets the hash, the sheet shows the same pass, and closing returns to the list', async () => {
+    window.history.replaceState(null, '', '#pass');
     withPasses();
     render(<App />);
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -639,8 +640,10 @@ describe('<App> with the detail sheet (D-13)', () => {
     expect(screen.getByRole('main')).toHaveAttribute('inert');
 
     await userEvent.click(within(dialog).getByRole('button', { name: en.header.backName }));
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#pass');
+    });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(window.location.hash).toBe('');
     expect(screen.getByRole('main')).not.toHaveAttribute('inert');
     expect(screen.getByRole('article', { name: 'ISS (Zarya)' })).toBeInTheDocument();
   });

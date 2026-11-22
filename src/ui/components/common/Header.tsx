@@ -137,7 +137,8 @@ export function Header({ page, context = null, onBack, backRef, backClassName, l
         </Root>
       );
     }
-    // A tab's row: the other tab and settings, in FR-COMP-1's cells. The page's `h1` is the page's own.
+    // A tab's row: the other tab and settings, in FR-COMP-1's cells, and under it the context, where the page has
+    // one (the live page before it can draw). The page's `h1` is the page's own.
     return (
       <Root inert={inert} className={rootClass(styles.compact)} data-testid="header" data-page={page}>
         <div className={styles.brand}>
@@ -152,6 +153,7 @@ export function Header({ page, context = null, onBack, backRef, backClassName, l
           )}
           {settings}
         </nav>
+        {contextText}
       </Root>
     );
   }
