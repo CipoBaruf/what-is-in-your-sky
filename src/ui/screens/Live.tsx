@@ -125,10 +125,10 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
  * **Tonight on the phone (R144: FR-TONIGHT-1, 2, 4, 6, 9; FR-WATCH-1..5 as
  * amended v2.7; D-898, D-901, D-902, D-904, D-905).** On compact the two states
  * are still a fact read from `t`, but the page renders one inventory in both:
- * the shown time with its chip, the context line, the view row, the time
+ * the shown time with the time line's end, the context line, the view row, the time
  * track, the three taps and `[ list (n) ] Share`. Wide is R77's page, untouched.
  *
- * **The full sky (R148: FR-FULL-1..7, FR-FULL-10; D-919..D-928, D-934..D-936).**
+ * **The full sky (R148: FR-FULL-1..7; D-919..D-928, D-934..D-936).**
  * On compact the page is the layout's `full` form: the box is the screen, the
  * head (`[ ← ]` and the shown time) is the banner fixed over its top-left, and
  * `[ controls ]` at the bottom-right opens a sheet over the sky with the
@@ -1037,7 +1037,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     </div>
   );
   /*
-   * R148 (FR-FULL-1..7, FR-FULL-10; D-919, D-922..D-925): the compact page is the layout's full form — the box is the
+   * R148 (FR-FULL-1..7; D-919, D-922..D-925): the compact page is the layout's full form — the box is the
    * screen, and over it the overlay (the strip at the foot, the hint until the first gesture) and the sheet slot
    * (`[ controls ]` at the right of the row above the strip, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
    * context line; the track and the taps; the view row; the facing row; `[ Share ]`; and (R150, FR-GYRO-10, D-949)

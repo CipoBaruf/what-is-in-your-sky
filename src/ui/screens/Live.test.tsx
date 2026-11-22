@@ -1178,8 +1178,8 @@ describe('<LivePage>', () => {
   /**
    * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5; D-902) → R148 (FR-FULL-3,
    * FR-FULL-4, FR-WATCH-4 as amended v2.8; D-928): the compact page renders one inventory in both states — split in
-   * two. With the sheet closed the reachable rows are the overlay's (the box, the head, `[ controls ]`, and the hint
-   * and the card on their own conditions); with it open the sheet's rows too, in FR-FULL-4's order. Every other
+   * two. With the sheet closed the reachable rows are the overlay's (the box, the head, `[ controls ]`, the strip, and the hint
+   * and `● back to live` on their own conditions); with it open the sheet's rows too, in FR-FULL-4's order. Every other
    * `LiveRow` is absent, identical before and after the instant leaves real time, in the portrait and the
    * landscape phone alike — both the full form (D-919). "Present" is in the DOM and not under `inert`: the sheet's
    * rows stay mounted while it is closed (D-932). The state is still a fact: the chip says `now` or the offset.

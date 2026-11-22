@@ -66,7 +66,7 @@
   --chart-floor-on: 0;
 }
 
-/* --- R148 (FR-FULL-1..4, FR-FULL-10; D-919, D-920, D-923, D-924, D-934): the compact sky page is the full form. --- */
+/* --- R148 (FR-FULL-1..4; D-919, D-920, D-923, D-924, D-934): the compact sky page is the full form. --- */
 
 /* The head over the sky (FR-FULL-2): the page's banner, fixed at the box's top-left inside the safe area at
    `--z-raised`, as wide as the box; `[ ← ]` and the shown time stand `--space-3` in from the left edge, and the

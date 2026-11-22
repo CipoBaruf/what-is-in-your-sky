@@ -104,8 +104,8 @@ export const live: typeof EnLive = {
     landmarkLine: (p) => `pasa ${p.degrees} ${landmarkWord[p.word]} ${p.star}, en ${p.constellation}`,
     landmarkThrough: (p) => `pasa por ${p.constellation}`,
     /**
-     * R143 (FR-TONIGHT-4): `▶ [ noche ] [ próximo ] [ ahora ]`, 33 celdas con `▶` o `‖`, lo que caben 360 px ("esta
-     * noche" en el botón serían 38).
+     * R143 (FR-TONIGHT-4) → R213 (D-1269): `[ noche ] [ próximo ] [ ahora ]`, 25 celdas bajo el botón de reproducir
+     * ("esta noche" en el botón serían 30).
      */
     taps: 'Saltar en el tiempo',
     tap: { tonight: 'noche', next: 'próximo', now: 'ahora' },
