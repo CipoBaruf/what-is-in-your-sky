@@ -7,12 +7,13 @@ import { legendKeys, legendRows } from '../../lib/legend';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { isNoEvent, nextEvent as nextEventOf } from '../../lib/nextEvent';
 import { contextLine } from '../../lib/contextLine';
-import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant, nightEnd } from '../../lib/playback';
+import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant, nightEnd, type Speed } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { tonightBand } from '../../lib/shownTime';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
-import { nextTarget, openingChoice, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
+import { nextPassStrip, watchInstant } from '../../lib/nextPassStrip';
+import { nextTarget, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
 import { selectOrbitHeight, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { count } from '../../state/measure';
@@ -36,12 +37,11 @@ import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowControl } from '../components/live/FollowControl';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
-import { FirstPassDialog } from '../components/sky/FirstPassDialog';
+import { NextPassStrip, type NextPassStripProps } from '../components/live/NextPassStrip';
 import { FollowAsk } from '../components/sky/FollowAsk';
-import { BackToLive, HiddenToggle, ScrubButton } from '../components/sky/time/PlaybackControls';
+import { HiddenToggle, ScrubButton } from '../components/sky/time/PlaybackControls';
 import { TimeControl } from '../components/sky/time/TimeControl';
-import { ContextLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
+import { ContextLine, DaytimeLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
 import { SkyHead } from '../components/sky/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { TextButton } from '../components/primitives/TextButton';
@@ -133,12 +133,12 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
  * head (`[ ← ]` and the shown time) is the banner fixed over its top-left, and
  * `[ controls ]` at the bottom-right opens a sheet over the sky with the
  * context line, the track and the taps, the view row, the facing row and the
- * actions with the list panel. A `#live` with no `t` waits for the stored run's
- * passes and decides once: a visible pass up now keeps real time; otherwise a
- * card over the sky asks — `[ see next pass ]` lands a minute before the first
- * visible rise and plays (paused under reduced motion), `[ see now ]` stays —
- * and never when the reader moved first. `Esc` takes the card, the sheet and
- * then the page, in that order.
+ * actions with the list panel. `Esc` takes the sheet and then the page.
+ *
+ * **The strip (R213: FR-STRIP-1..3, FR-STRIP-5; D-1232).** `#live` opens at
+ * real time and asks nothing: the next-pass strip, at the box's foot on compact
+ * and at the rail's head on wide, offers the pass (`▶ watch`) and, away from
+ * real time, the way back (`● back to live`).
  *
  * **The sheet (R150: FR-GYRO-7, FR-GYRO-8, FR-GYRO-10; D-947..D-951).** The
  * sheet is a bottom sheet in both shapes and closes on its `×`, a swipe down,
@@ -169,17 +169,6 @@ export interface LivePageProps {
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
 export const TICK_MS = 10_000;
 
-/**
- * v2.14.1 (FR-WIDE-13, D-1140): the first-pass dialog is asked once per visit — a load of the app — and not again
- * when the reader leaves the live page and comes back within it. Module state, so a remount does not reset it.
- */
-let askedThisVisit = false;
-
-/** A new visit, for tests: the next wide opening with nothing up asks again. */
-export function resetFirstPassAsked(): void {
-  askedThisVisit = false;
-}
-
 /** D-160: the satellites visible at `t` are the passes whose interval contains it — exactly the markers on the dome. */
 export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
   return passes.filter((pass) => pass.start.t <= t && t <= pass.end.t).length;
@@ -200,10 +189,10 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
   /*
    * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
    *
-   * R148 (FR-FULL-5, FR-FULL-10; D-927) → R152 (FR-GYRO-6, D-945): `Esc` in three steps, in this one listener —
-   * the card up is answered as `[ see now ]`; else the open sheet closes; else the page is left. (R64's first
-   * step, the sky screen, went with the screen.) The two first steps are the sky page's state (`LiveSky`, which
-   * is mounted only with a sky to draw), read through `escRef`: it answers `true` when it took the key.
+   * R148 (FR-FULL-5; D-927) → R152 (FR-GYRO-6, D-945): `Esc` in steps, in this one listener — the open sheet
+   * closes, then the facts do; else the page is left. (R64's first step, the sky screen, went with the screen, and
+   * R213 took the card's.) The first steps are the sky page's state (`LiveSky`, which is mounted only with a sky
+   * to draw), read through `escRef`: it answers `true` when it took the key.
    */
   const escRef = useRef<() => boolean>(() => false);
   useEffect(() => {
@@ -455,6 +444,23 @@ function ClockedHead({ onBack, ...props }: Omit<ShownTimeProps, 'clock'> & { onB
   return <SkyHead line={<ShownTime {...props} clock={clock} />} onBack={onBack} />;
 }
 
+/**
+ * R213 (FR-STRIP-1): the strip on the second's clock while `t` is real time, so its countdown and the block's tick
+ * with the headline. The block keeps its own form (V30-30), so it is handed the strip's pass and the same instant.
+ */
+function ClockedStrip({
+  passes,
+  now,
+  realTime,
+  renderBlock,
+  ...props
+}: Omit<NextPassStripProps, 'strip' | 'live' | 'block'> & { passes: readonly Pass[]; now: EpochMs; realTime: boolean; renderBlock?: (pass: Pass | null, at: EpochMs) => ReactNode }) {
+  const clock = useContext(SecondClockContext);
+  const at = realTime ? clock : props.t;
+  const strip = nextPassStrip({ passes, shownMs: at, nowMs: now });
+  return <NextPassStrip {...props} t={at} strip={strip} live={realTime} block={renderBlock?.(strip.kind === 'none' ? null : strip.pass, at)} />;
+}
+
 /** The time track, its value text the headline's words on the same 1 s clock (FR-TONIGHT-3, D-900). */
 function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'> & { shownTime: Omit<ShownTimeProps, 'clock'> }) {
   const m = useT();
@@ -465,6 +471,8 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
 
 /** FR-LAND-2, FR-STRIP-4 (D-1233): a desk opens on real time running at 1×. */
 const WIDE_OPENING: Opening = { speed: 1 };
+/** FR-STRIP-2: `▶ watch` on a desk. */
+const WATCH_SPEED: Speed = 60;
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
 function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean>; visitHand: ChartHand | undefined }) {
@@ -537,132 +545,31 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const readClock = useCallback(() => clockRef.current, []);
   const playback = usePlayback({ span, realNow: now, initial, ...(compact ? { speed: 'auto' as const, passes, end: nightEndRule, realFrom: readClock } : { opening: WIDE_OPENING }) });
   // The members are each `usePlayback`'s own callbacks; the object around them is new every render (R144 review).
-  const { scrub, play, pause, toNow, readerWrote } = playback;
+  const { scrub, play, pause, toNow } = playback;
   const shown = playback.t;
-  /*
-   * R148 (FR-FULL-10, FR-TONIGHT-1 and FR-TONIGHT-2 as amended v2.8; D-925): the card in place of R144's jump — one
-   * effect, compact only, decided once when the passes arrive. A URL that carries `t` (FR-LIVE-9) or a reader who
-   * moved the instant or touched a control before the passes landed (`readerWrote`) leaves the page where it is,
-   * with no card. Otherwise `openingChoice` says: a visible pass up now is no card; a rise later in the span is the
-   * card asking, with the pass and the instant `[ see next pass ]` lands on; none in the span is the card's advice.
-   * The page stays on real time, not playing, until the reader answers. A wide render decides once too: never.
-   */
-  const jumpDecided = useRef(false);
-  // The stored run's passes have arrived for this place (FR-OFF-8) — with or without one inside the span, since the
-  // card's advice is for a span with none (R144's jump waited for one in the span, having nothing to say otherwise).
-  const passesKnown = ownPasses && (passesState.passes.length > 0 || passesState.status === 'done');
   const reducedMotion = useMediaQuery(REDUCED_MOTION);
-  const [opening, setOpening] = useState<CardChoice | null>(null);
-  useEffect(() => {
-    if (!passesKnown || jumpDecided.current) return;
-    jumpDecided.current = true;
-    if (!compact || (link?.t ?? null) !== null || readerWrote.current) return;
-    const choice = openingChoice(passes, now, span);
-    // The decision is taken once, when the passes arrive, from a ref the render must not read (`readerWrote`): an effect, as the jump was.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (choice.kind !== 'up') setOpening(choice);
-    // D-898, D-925: the decision is taken once, on the first render with passes; what it reads is what that render has.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passesKnown]);
   /*
-   * D-925: `[ see next pass ]` does what the jump did — lands on the lead instant and plays, paused under reduced
-   * motion (FR-TONIGHT-2) — with the sheet closed, as it is until the reader opens it; `[ see now ]` and
-   * `[ see the sky now ]` leave real time alone. Either way the card goes.
+   * R213 (FR-STRIP-2, D-1242): `▶ watch` lands a minute before the rise and plays — at the automatic rate on compact,
+   * at 60× on wide — or lands paused under reduced motion (FR-TONIGHT-2). `count` sends one `watch` per visit.
    */
-  const onCardNext = useCallback(
-    (at: EpochMs) => {
-      setOpening(null);
-      scrub(at);
-      if (!reducedMotion) play();
+  const watchPass = useCallback(
+    (pass: Pass) => {
+      count('watch');
+      scrub(watchInstant(pass));
+      if (reducedMotion) pause();
+      else play(undefined, compact ? undefined : WATCH_SPEED);
     },
-    [scrub, play, reducedMotion],
+    [scrub, play, pause, reducedMotion, compact],
   );
-  const onCardNow = useCallback(() => {
-    setOpening(null);
-  }, []);
-  /*
-   * v2.14.1 (FR-WIDE-13, D-1140): the wide page's question, decided once when the passes arrive, as the card is on
-   * compact — shown when no visible pass is up at now and one rises in the span (`openingChoice`'s `ask`), the URL
-   * holds no `t`, the reader has not moved first, and it has not been asked this visit. `go and play` holds the page
-   * at that pass's rise (FR-JUMP-1's landing, `[ see this pass ]`'s) and plays at the row's speed; `stay here` and
-   * `Esc` leave the page at now.
-   */
-  const [firstRise, setFirstRise] = useState<EpochMs | null>(null);
-  const firstPassDecided = useRef(false);
-  useEffect(() => {
-    if (!passesKnown || firstPassDecided.current) return;
-    firstPassDecided.current = true;
-    if (compact || askedThisVisit || (link?.t ?? null) !== null || readerWrote.current) return;
-    const choice = openingChoice(passes, now, span);
-    if (choice.kind !== 'ask') return;
-    askedThisVisit = true;
-    // Decided once, when the passes arrive, from a ref the render must not read (`readerWrote`), as the card is.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFirstRise(choice.pass.start.t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passesKnown]);
-  const onFirstPassGo = useCallback(() => {
-    if (firstRise === null) return;
-    setFirstRise(null);
-    playback.stepTo(firstRise);
-    play();
-  }, [firstRise, playback, play]);
-  const onFirstPassStay = useCallback(() => {
-    setFirstRise(null);
-  }, []);
-  /*
-   * D-1140: crossing to compact closes the dialog unanswered and leaves compact's controls as they are. It stays
-   * asked (`askedThisVisit` was set when it showed), so a resize back to wide does not ask again. Set while
-   * rendering, so compact never paints a frame with the question's state.
-   */
-  if (compact && firstRise !== null) setFirstRise(null);
-  const firstPassAsking = !compact && firstRise !== null;
-  /*
-   * D-925: the reader moving the time is an answer in itself — a drag or a tap on the track, `[ tonight ]`,
-   * `[ next ]`, `[ now ]` or the play control, every one a reader's write (the ones that set `readerWrote`), so
-   * each of the page's handlers for them answers the card first. A drag on the sky turns the camera and writes
-   * nothing, so the card stays.
-   */
-  const answered = useCallback(() => {
-    setOpening(null);
-  }, []);
-  const onPlay = useCallback(() => {
-    answered();
-    play();
-  }, [answered, play]);
-  const onPause = useCallback(() => {
-    answered();
-    pause();
-  }, [answered, pause]);
   /*
    * R188 (FR-FACT-2, FR-FACT-3; D-1101): on wide a click, a tap or `Enter` on a legend row or an arc shows its
    * satellite's facts in the page group, and one on a star, a planet or the Moon its facts, until `Esc`, `[ × ]` or
    * another pick; the row's highlight is the chart's (FR-LEG-4). Page state, never in the hash or the store.
    */
   const [picked, setPicked] = useState<{ what: { kind: 'pass'; noradId: NoradId; name: string } | { kind: 'sky'; pick: SkyPick }; keyboard: boolean } | null>(null);
-  /*
-   * FR-FULL-10: when the card goes, focus returns to `[ controls ]` — where the card held it (its first button took
-   * it on appearing, and the card's unmount dropped it to the body). A reader who answered from the sheet keeps the
-   * control under their finger (D-934).
-   */
-  const hadCard = useRef(false);
-  useEffect(() => {
-    if (opening !== null) {
-      hadCard.current = true;
-      return;
-    }
-    if (!hadCard.current) return;
-    hadCard.current = false;
-    const active = document.activeElement;
-    if (active === null || active === document.body) document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
-  }, [opening]);
-  // D-927: the two middle steps of `Esc` — the card answered as `[ see now ]`, then the sheet closed.
+  // D-927: the middle steps of `Esc` — the sheet closed, then the facts.
   useLayoutEffect(() => {
     escRef.current = () => {
-      if (opening !== null) {
-        setOpening(null);
-        return true;
-      }
       if (sheetOpen) {
         closeSheet();
         return true;
@@ -723,7 +630,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const headlineLine = landmarkText;
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
-  const count = visibleCount(passes, shown);
+  const upCount = visibleCount(passes, shown);
   // R144 (FR-FSC-2, D-914): the sheet's facing picker's open state is the page's, so a turn of the phone keeps it.
   const [pickerOpen, setPickerOpen] = useState(false);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
@@ -821,58 +728,79 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   // The control's cells with its brackets, so one of them is the space before it; re-measured as the passes change.
   const fitsOnPath = useJumpFitsOnPath(!compact && has('next-event'), headlineRef, t.live.seeThisPass.length + 4, passes, placement);
   const jumpAt = scrubbing ? null : jumpPlacement(mode, fitsOnPath);
-  const nextEvent = has('next-event') ? (
+  /*
+   * R213 (FR-STRIP-1, V30-30): the strip. On wide it is the rail's head round the next-event block; the landmark
+   * line is the highlighted pass's alone, which a scrub does not move (R127).
+   */
+  const renderBlock = (pass: Pass | null, at: EpochMs): ReactNode => (
     <div className={styles.headline} ref={headlineRef}>
-      {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
-      {/* FR-WIDE-13: while the first-pass dialog asks, it is the way to the pass, and `[ see this pass ]` is not drawn. */}
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' && !firstPassAsking ? { onSee: seePass } : {})} />
+      <NextEventBlock
+        passes={pass === null ? [] : [pass]}
+        now={at}
+        timeZone={observer.timeZone}
+        context={nextEventContext}
+        pending={passesPending}
+        hours={liveHours}
+        liveLink={false}
+        line={pass !== null && pass.id === highlighted?.id ? headlineLine : null}
+        {...(jumpAt === 'path' ? { onSee: seePass } : {})}
+      />
     </div>
-  ) : null;
+  );
+  const strip = (
+    <ClockedStrip
+      passes={passes}
+      now={now}
+      t={shown}
+      realTime={playback.realTime}
+      timeZone={observer.timeZone}
+      form={compact ? 'row' : 'head'}
+      exampleCity={compact && observer.source === 'example' ? observer.label : null}
+      pending={passesPending}
+      onWatch={watchPass}
+      onLive={toNow}
+      {...(compact ? {} : { renderBlock })}
+    />
+  );
+  // FR-DARK-3: the Sun above 0° at the shown instant, whatever the sky's word is in twilight.
+  const daytime = bodies.sun != null && bodies.sun.altDeg > 0 ? <DaytimeLine /> : null;
   // R187 (FR-WIDE-4, D-1100): the wide page's time control is `TimeControl`, shared with the stars page and the pass detail; the step row is this page's own.
   const steps = has('steps') ? <StepControls t={shown} span={playback.span} passes={passes} onStep={playback.stepTo} /> : null;
-  const conditions = has('conditions') ? <StatusStrip sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} /> : null;
+  const conditions = has('conditions') ? <StatusStrip sky={bodies.sky} cloud={cloud} count={upCount} moon={bodies.moon} /> : null;
   /*
    * R144 (FR-TONIGHT-3, FR-TONIGHT-4, FR-TONIGHT-7; D-897, D-900, D-901, D-911): the compact page's own rows. Tonight's
    * band is worked out once per tick for the chip and the context line (D-911). Every seek on the track pauses and
    * holds the instant; `tonight` and `next` land where `lib/tonightJump.ts` says (and `tonight` plays, or pauses at
-   * an empty night's start); `now` is FR-LIVE-5's action. None of these pass `'page'`: they are the reader's writes,
-   * and each answers the card (D-925).
+   * an empty night's start); `now` is FR-LIVE-5's action. None of these pass `'page'`: they are the reader's writes.
    */
   const night = useMemo(() => tonightBand(bands, now), [bands, now]);
   const seek = useCallback(
     (at: EpochMs) => {
-      answered();
       pause();
       scrub(at);
     },
-    [answered, pause, scrub],
+    [pause, scrub],
   );
   const onTonight = useCallback(() => {
     const target = tonightTarget(bands, passes, now, shown, span);
     if (target === null) return;
-    answered();
     scrub(target.t);
     if (target.play) play();
     else pause();
-  }, [bands, passes, now, shown, span, answered, scrub, play, pause]);
+  }, [bands, passes, now, shown, span, scrub, play, pause]);
   const withTaps = rows.has('taps');
   // `tonight` has nowhere to land with no night in the bands (none yet, or a polar summer): disabled, as `next` and `now` are.
   const noTonight = useMemo(() => withTaps && tonightTarget(bands, passes, now, now, span) === null, [withTaps, bands, passes, now, span]);
   const nextAt = useMemo(() => (withTaps ? nextTarget(passes, shown) : null), [withTaps, passes, shown]);
   const onNext = useCallback(() => {
     if (nextAt === null) return;
-    answered();
     scrub(nextAt);
-  }, [nextAt, answered, scrub]);
-  // R148 (FR-TONIGHT-4 as amended v2.8, D-926): `now` returns to real time and stops, and marks nothing — the card is asked on every visit.
-  const onNow = useCallback(() => {
-    answered();
-    toNow();
-  }, [answered, toNow]);
-  const shownTimeProps = { t: shown, realTime: playback.realTime, now, night, timeZone: observer.timeZone };
+  }, [nextAt, scrub]);
+  const shownTimeProps = { t: shown, realTime: playback.realTime, now, timeZone: observer.timeZone };
   const context = has('context') ? (
     <div data-testid="live-context" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       <ContextLine parts={contextLine({ passes, t: shown, span, night, sky: bodies.sky, cloud: cloud.state })} timeZone={observer.timeZone} />
+      {daytime}
     </div>
   ) : null;
   const track = has('track') ? (
@@ -882,30 +810,34 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   ) : null;
   const taps = has('taps') ? (
     <div className={styles.tapsRow} data-rhythm="row">
-      <TimeTaps playing={playback.playing} onPlay={onPlay} onPause={onPause} onTonight={onTonight} tonightDisabled={noTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={onNow} nowDisabled={playback.realTime} />
+      <TimeTaps playing={playback.playing} onPlay={play} onPause={pause} onTonight={onTonight} tonightDisabled={noTonight} onNext={onNext} nextDisabled={nextAt === null} onNow={toNow} nowDisabled={playback.realTime} />
     </div>
   ) : null;
   /*
-   * R78 (FR-WATCH-5, FR-WATCH-6): on wide the rail's head is the indicator with the clock, or with
-   * `[ back to live ]` while scrubbing, so the way out of the state stands in one place and never scrolls away with
-   * the rows under it. The compact page has no such head: its time and chip are `SkyHead`'s and its `now` is
+   * R78 (FR-WATCH-5, FR-WATCH-6): on wide the rail's head is the indicator with the clock, then R213's strip, whose
+   * last button is `● back to live` while scrubbing, so the way out of the state stands in one place. FR-STRIP-6:
+   * the clock's line ends with `● live`; held, the time line is `TimeReadout`'s, which ends with the offset. The compact page has no such head: its time and chip are `SkyHead`'s and its `now` is
    * `TimeTaps`'s, in the sheet (FR-FULL-2, FR-FULL-4).
    */
   const indicatorLine = (
     <div className={styles.indicatorLine}>
       {indicator}
       {has('clock') && (
-        <time className={styles.clock} data-testid="live-clock" dateTime={new Date(shown).toISOString()}>
-          {formatClock(shown, observer.timeZone, locale)}
-        </time>
+        <span className={styles.timeLine} data-testid="live-time-line">
+          <time className={styles.clock} data-testid="live-clock" dateTime={new Date(shown).toISOString()}>
+            {formatClock(shown, observer.timeZone, locale)}
+          </time>{' '}
+          <span className={styles.liveMark} data-testid="live-mark">
+            {`● ${t.live.state.live}`}
+          </span>
+        </span>
       )}
-      {has('back-to-live') && <BackToLive onNow={playback.toNow} />}
     </div>
   );
   const actions = (
     <div className={styles.actions} data-testid="live-actions" {...(compact ? { 'data-rhythm': 'group' } : {})}>
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
-      {has('next-event') && jumpAt === 'actions' && !firstPassAsking && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
+      {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
@@ -929,12 +861,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   ) : (
     <TopRow place={observer.label} onLeave={onLeave} />
   );
-  const page = (children: ReactNode, after: ReactNode = null): ReactNode => (
+  const page = (children: ReactNode): ReactNode => (
     <SecondClock clockRef={clockRef}>
       <Page state="live" wakeLock={wakeLock} placement={placement} shape={shape} top={top} {...(compact ? { form: 'full' as const, title: `${t.header.pages.live} · ${observer.label}` } : {})}>
         {children}
       </Page>
-      {after}
     </SecondClock>
   );
   // FR-FLOW-6: the hint's view is the chart's — the page's held view (above), D-1095's default under it.
@@ -1049,8 +980,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const answer = (
     <div className={styles.railHead} data-testid="live-rail-head">
       {!compact && indicatorLine}
-      {nextEvent}
-      {context}
+      {strip}
+      {daytime}
     </div>
   );
   // R152 (FR-GYRO-1, D-944): on wide `[ follow the phone ]` is the rail's `View` group's second line, after `[x] stars`.
@@ -1107,8 +1038,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   );
   /*
    * R148 (FR-FULL-1..7, FR-FULL-10; D-919, D-922..D-925): the compact page is the layout's full form — the box is the
-   * screen, and over it the overlay (the card while it asks, the hint until the first gesture) and the sheet slot
-   * (`[ controls ]` at the bottom-right, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
+   * screen, and over it the overlay (the strip at the foot, the hint until the first gesture) and the sheet slot
+   * (`[ controls ]` at the right of the row above the strip, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
    * context line; the track and the taps; the view row; the facing row; `[ Share ]`; and (R150, FR-GYRO-10, D-949)
    * the satellites, open, under their heading with the hidden toggle at its end; R152's `[ follow the phone ]` row
    * stands between the view row and the facing row where the phone has the sensor (FR-GYRO-1, FR-GYRO-10). They
@@ -1118,13 +1049,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   if (compact) {
     const overlay = (
       <>
-        {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question first; FR-FULL-10's card waits until it is answered (V214-43). */}
+        {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question, the page's one dialog, on a phone with the sensor alone. */}
         <FollowAsk follow={follow} />
-        {opening !== null && !follow.asking && (
-          <div className={styles.cardArea}>
-            <OpeningCard choice={opening} now={now} timeZone={observer.timeZone} onNext={onCardNext} onNow={onCardNow} />
-          </div>
-        )}
+        {strip}
         {/* R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint steps aside until the next press. */}
         {hintLine !== null && !follow.refused && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
@@ -1207,7 +1134,5 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       }
       list={list}
     />,
-    // FR-WIDE-13: a portal to the body, so where it is rendered here does not place it.
-    firstPassAsking && <FirstPassDialog onGo={onFirstPassGo} onStay={onFirstPassStay} />,
   );
 }

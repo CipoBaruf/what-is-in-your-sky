@@ -1,22 +1,19 @@
-/* R144 (FR-TONIGHT-4, D-901): one row of four text controls, a cell apart — `▶ [ tonight ] [ next ] [ now ]` —
-   each a `.target` (FR-FLOW-11, primitives.css) hung off the text row (`inline`, global.css `inline-control`), so
-   the row is one text row and the hit boxes overhang it by half a row each way (D-246). The controls are the
-   primitive's; this file places the row and draws nothing on them (D-704). No wrap: the row is 33 cells at most
-   (D-911), inside FR-COMP-4's 36. */
+/* R144 (FR-TONIGHT-4, D-901) → R213 (FR-STRIP-6, D-1269): the play button's row, then the three jumps' a cell
+   apart. Each control is a `.target` (FR-FLOW-11, primitives.css) hung off its text row (`inline`, global.css
+   `inline-control`), overhanging it by half a row each way (D-246), so the two rows stand a tap apart and the hit
+   boxes never overlap. The controls are the primitive's; this file places them (D-704). */
 .taps {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--tap) - var(--row));
+  min-width: 0;
+  line-height: var(--row);
+}
+
+.row {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
   gap: 0 var(--cell);
   min-width: 0;
-  line-height: var(--row);
-}
-
-/* The play glyph stands in one cell of text; its `.target` floor is the hit area round it, centred. R149 (D-939):
-   the floor's overhang left of the glyph hangs into the gutter (the sheet's two cells, wider than the half floor),
-   so the glyph is the row's first cell and the row is its 33 cells again: inside the sheet at 360 px in Spanish
-   the 44 px floor counted whole had pushed `[ ahora ]`'s last bracket out of the body. */
-.play {
-  margin-inline-start: calc((var(--cell) - var(--target)) / 2);
-  text-align: center;
 }

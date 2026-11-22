@@ -33,6 +33,9 @@ import styles from './PlaybackControls.module.css';
  *
  * R145 (FR-TONIGHT-6): the playback row is wide's alone — the compact page plays from
  * `TimeTaps` at the automatic rate — so R48's glyphs and bracketed speeds left it.
+ *
+ * R213 (FR-STRIP-6): play and pause are one button, `▶ play` / `❚❚ pause`, named by its word. `[ back to live ]`
+ * is the next-pass strip's last button now (FR-STRIP-3).
  */
 export interface PlaybackControlsProps {
   playing: boolean;
@@ -59,7 +62,7 @@ export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: P
   );
   return (
     <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls">
-      <TextButton label={playWord} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay} />
+      <TextButton label={playing ? t.live.pauseButton : t.live.playButton} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay} />
       {speeds}
     </div>
   );
@@ -74,20 +77,6 @@ export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: P
 export function ScrubButton({ onScrub }: { onScrub: () => void }) {
   const t = useT();
   return <TextButton label={t.live.scrubWide} data-testid="live-scrub" onClick={onScrub} />;
-}
-
-/**
- * R77 (FR-WATCH-1, D-446): `[ back to live ]` — FR-LIVE-5's `now` action,
- * renamed for where it goes: the shown instant returns to real time and
- * advances on the tick again, and the scrub block goes away with the state.
- * It keeps the old control's test id, since it is the same action.
- *
- * R145 (FR-TONIGHT-6): wide's alone — the compact page's `now` tap is `TimeTaps`'s,
- * and R85's short `[ live ]` went with the compact actions row that held it.
- */
-export function BackToLive({ onNow }: { onNow: () => void }) {
-  const t = useT();
-  return <TextButton label={t.live.backToLive} data-testid="live-now" onClick={onNow} />;
 }
 
 /**

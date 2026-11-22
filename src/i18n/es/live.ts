@@ -1,6 +1,6 @@
 import type { UpEvent } from '../../lib/contextLine';
 import type { Landmark } from '../../lib/landmark';
-import { offsetSpan } from '../../lib/playback';
+import { offsetSpan, stripSpan } from '../../lib/playback';
 import type { MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
@@ -49,7 +49,7 @@ export const live: typeof EnLive = {
      */
     state: { live: 'en vivo', held: 'fijado' },
     scrubWide: 'recorrer la noche',
-    backToLive: 'ir al vivo',
+    backToLive: 'volver a en vivo',
     /** R101 (FR-JUMP-1): `[ ver este pase ]`, que fija la página en la salida del pase que nombra el titular. */
     seeThisPass: 'ver este pase',
     seeThisPassName: (name) => `Ver este pase: ${name}, fijado en su salida`,
@@ -95,8 +95,8 @@ export const live: typeof EnLive = {
       forwardChunk: 'Cuatro horas adelante',
       nextRise: 'Pasada siguiente',
     },
-    playShort: '▶',
-    pauseShort: '‖',
+    playButton: '▶ reproducir',
+    pauseButton: '❚❚ pausa',
     hiddenShort: 'Ocultos',
     shareShort: 'Compartir',
     starsToggle: 'estrellas',
@@ -131,23 +131,18 @@ export const live: typeof EnLive = {
       noneSpan: 'Ningún pase visible en 24 h',
       noneTonight: 'Ningún pase visible esta noche',
     },
-    /**
-     * R146 (FR-FULL-10, FR-FULL-8): la tarjeta sobre el cielo. `Tiangong · 21:47 · en 4 h 12 min` a `--small`;
-     * `Ningún pase visible en las próximas 24 h.` son 41 caracteres, también a `--small` (35,9 celdas, D-930).
-     */
-    opening: {
-      nothingUp: 'Nada visible ahora.',
-      noPass: 'Ningún pase visible en las próximas 24 h.',
+    daytime: 'De día · los satélites se ven al anochecer',
+    nextPass: {
+      region: 'Próximo pase',
+      example: 'ejemplo',
       separator: ' · ',
-      passWhen: (p) => `${p.time} · ${p.chip}`,
-      seeNext: 'ver próximo pase',
-      seeNow: 'ver ahora',
-      seeSkyNow: 'ver el cielo ahora',
-    },
-    firstPass: {
-      question: 'Ahora no hay nada arriba. ¿Ir al primer pase y reproducir?',
-      go: 'ir y reproducir',
-      stay: 'quedarme',
+      next: 'Próximo',
+      upNow: 'Arriba ahora',
+      ahead: (p) => `${p.time} · en ${stripSpan(p)}`,
+      up: (p) => `se pone ${p.time} · mirar al ${p.point}`,
+      none: 'Ningún pase visible en las próximas 24 h',
+      watch: 'ver',
+      watchName: (name) => `ver: ${name}, desde un minuto antes de su salida`,
     },
   },
 };
