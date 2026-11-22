@@ -67,10 +67,10 @@ This phase makes the live sky the app's first and main page, removes the home, a
   A picked star or planet opens its facts in the rail or the sheet as on `#stars` today (FR-FACT-3).
   *Verification:* e2e of a `#stars` link and of each layer on `#live`.
 - **FR-LAND-4** *(V30-5)* **The place line in the header.**
-  Every page's header carries one place line, centred in the header row on wide and centred on the header's second row on compact: `<city> · example` + a `change` button while the example is the observer (FR-OPEN-1), `<place name>` + `change` once a place is set.
+  On wide every page's header carries one place line, centred in the header row; on compact the header stays one row and the place line is the first line of the controls sheet (and of the satellites list's head) *(V30-32)*: `<city> · example` + a `change` button while the example is the observer (FR-OPEN-1), `<place name>` + `change` once a place is set.
   `change` opens the place group (FR-OPEN-5's group: search, use my location, coordinates, saved places) in a dialog over the page; a place set there closes it and redraws the page for that place.
   The `Example: … · [ set your place ]` strip under the header (FR-OPEN-7) and the Where pane are removed.
-  *Verification:* captures of the header at 1280, 1024 and 390 px with the example and with a place; a component test of the dialog's three ways.
+  *Verification:* captures of the header at 1280 and 1024 px and of the compact sheet's head at 390 px, with the example and with a place; a component test of the dialog's three ways.
 - **FR-LAND-5** *(V30-6)* **When there is no example.**
   With no stored place and no example (FR-OPEN-6's cases), the live page draws the place group in the sky's box with the tagline above it, and the header's place line reads `Set your place`.
 - **FR-LAND-6** *(V30-7)* **The header's pages.**
@@ -83,7 +83,8 @@ This phase makes the live sky the app's first and main page, removes the home, a
 ### 4.62 The next pass, without a question *(v3.0)*
 
 - **FR-STRIP-1** *(V30-9)* **The next-pass strip.**
-  The live page carries one strip, always drawn: on compact at the foot of the sky's box, one text row tall; on wide it is the rail's head, in place of today's `Next up` block (its countdown, its time at the pane size, the name and the path line keep their form) with the button under them *(V30-30)*:
+  The live page carries one strip, always drawn: on compact at the foot of the sky's box, one text row tall, starting with the tag `[example]` and the city (`[example] Salta · Next …`) while the example is the observer, so a phone never shows the example unnamed (G70, V30-32).
+  On wide it is the rail's head, in place of today's `Next up` block (its countdown, its time at the pane size, the name and the path line keep their form) with the button under them *(V30-30)*:
   - nothing up at the shown instant and a visible pass within FR-LIVE-2's 24 h span: `Next  <name> · <rise HH:MM> · in <countdown>` and a primary `▶ watch` button;
   - a visible pass up at the shown instant: `Up now  <name> · sets <HH:MM> · look <direction>`;
   - no visible pass in the span: `No visible pass in the next 24 h`.
@@ -201,7 +202,7 @@ The first tasks of the phase build this; the screen tasks after them only consum
   The gallery is in the capture set, a capture per theme and width.
 - **FR-DS-14** *(V30-28)* **How a look change is checked.**
   A change to `tokens.css` or a primitive re-shoots the gallery and the whole capture set; the pull request lists every capture that moved and why, and the owner checks the gallery and the pages named in the release record by hand (§4.64's moves).
-  The phase's first wave is the design system (FR-DS-10..13 and the primitives' looks) with its captures, before any screen task.
+  The phase's first wave is the design system (FR-DS-10..13 and the primitives' looks) with its captures, merged to `main` before any screen task; it is not tagged or deployed on its own: the phase ships once, as 3.0.0 (V30-31).
 
 ### 4.67 The live rail, ordered *(v3.0)*
 
@@ -251,4 +252,4 @@ The live page's rail on a desk read as loose lines: `nothing up right now`, the 
 
 After v2.16, which shipped as 2.16.0 on 2026-11-21.
 The live sky is the first and main page at both widths; the home goes and the stars fold into live; the next pass is a strip, not a question; the sky is dark at every hour; every control gets one look per role; a new version is found and said on every page.
-Goals G72–G75, §4.61–§4.67, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-30.
+Goals G72–G75, §4.61–§4.67, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2 and the amendments listed, US-62..US-66; the decisions are V30-1..V30-32.
