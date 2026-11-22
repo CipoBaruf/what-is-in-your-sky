@@ -152,6 +152,7 @@ describe('<Field> box in its stylesheet (R209)', () => {
     expect(rule('.frame')).toMatch(/pointer-events:\s*none/);
     // D-1226: the hit box keeps global.css's --tap floor.
     expect(rule('.input')).not.toMatch(/height/);
+    expect(rule('.field')).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
     expect(rule('.input')).toMatch(/border:\s*0/);
   });
 

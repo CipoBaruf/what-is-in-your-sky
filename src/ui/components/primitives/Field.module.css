@@ -4,6 +4,8 @@
    field and sets nothing on it. */
 .field {
   display: grid;
+  /* Never wider than the field: a host that narrows it (the settings page's 22 cells) narrows the box with the input. */
+  grid-template-columns: minmax(0, 1fr);
   row-gap: var(--space-2);
   align-content: start;
 }

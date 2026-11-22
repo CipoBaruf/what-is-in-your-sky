@@ -104,6 +104,9 @@ test('FR-WIDE-14: the settings page, the coordinates opened — one line on ever
   if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
   await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeVisible();
   oneLineOnEachField(await tabThrough(page, 40), 2);
+  // FR-CTRL-7: the box drawn is as wide as the input under it, the coordinates' 22 cells included.
+  const strays = await page.locator('input:visible').evaluateAll((inputs) => inputs.map((el) => Math.abs(el.getBoundingClientRect().width - (el.nextElementSibling?.getBoundingClientRect().width ?? 0))).filter((off) => off >= 1));
+  expect(strays).toEqual([]);
 });
 
 test('FR-WIDE-14: the stars page — no field draws a ring, its buttons keep theirs', async ({ page }) => {
