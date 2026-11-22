@@ -490,7 +490,7 @@ const ROW_BUDGET_CELLS = 36;
 /** `--small` (0.875 rem): a character of a line at it is this many body cells (D-504, `controlRows.test.ts`). */
 const SMALL_CELL = 14 / BASE_FONT_PX;
 /** R206 (FR-CTRL-1, FR-CTRL-2): a cell of padding each side of a label, in a button's box and an option's block alike. */
-const BOX_CELLS = 2;
+export const BOX_CELLS = 2;
 /** One cell between two controls on a row (`tests/styles/cells.ts`). */
 const GAP_CELLS = 1;
 

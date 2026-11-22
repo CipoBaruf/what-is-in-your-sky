@@ -29,7 +29,7 @@ import { resetOrientationAccess } from '../components/guide/skychart/window/orie
 import { FOLLOW_ASKED_KEY } from '../components/sky/useFollow';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
-import { starsHeadLine, StarsPage } from './Stars';
+import { firstRowCount, starsHeadLine, StarsPage } from './Stars';
 
 const SOUTH: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: 'Cipolletti', source: 'coords', timeZone: null };
 const NORTH: Observer = { ...SOUTH, lat: 48.86, lon: 2.35, label: 'Paris' };
@@ -171,13 +171,20 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(container.querySelector('[data-pass-id]')).toBeNull();
     fireEvent.click(within(layers).getByRole('button', { name: 'figures' }));
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
-    // FR-CLEAN-4: one group of two rows, two toggles each — the row's room is 32 cells, and three would be 33 (D-865's split).
-    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([2, 2]);
+    // FR-CLEAN-4: one group of two rows, the row's room is 32 cells, and it holds three toggles: 25.5 in English (D-865, D-1249).
+    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([3, 1]);
     // FR-CLEAN-1 (D-919): the full form's three slots and nothing else; the hint over the box (a mouse's three clauses here).
     const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
     expect(slots).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
     expect(screen.getByTestId('stars-layout').querySelector('[data-slot="overlay"]')).toContainElement(screen.getByTestId('sky-hint'));
     expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
+  });
+
+  it('counts a layer as its word in two cells of box, a quarter cell from the next (D-1226, D-865)', () => {
+    const count = (locale: Locale, budget: number) => firstRowCount(Object.values(STARS_PAGE_CATALOGS[locale].layers), budget);
+    // `stars figures planets` is 25.5 cells and `estrellas figuras planetas` 30.5.
+    expect([count('en', 25.5), count('en', 25.25)]).toEqual([3, 2]);
+    expect([count('es', 30.5), count('es', 30.25)]).toEqual([3, 2]);
   });
 
   it('puts the hint away for good on the first drag, pinch or tap in the box, and renders no hint after it (FR-FLOW-6)', async () => {

@@ -358,7 +358,7 @@ const rows = (t: Messages): readonly Row[] => [
   /*
    * R115 (FR-STAR-3, FR-STAR-10, FR-COMP-4): the stars page's compact rows, from the page itself — the facing picker
    * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with a cell between, D-245: 24 cells in English, 28 in Spanish with `arriba`), the
-   * layers' two rows of two (`[x] stars [x] figures` 21 and 25; one row of four would be 43 and 51, D-776), and the
+   * layers' rows of three and one (R206: `stars figures planets` 25.5 and 30.5; one row of four would be 32.75 and 39.75, D-776), and the
    * When pane's way in at `--small` (`Estrellas esta noche · [ mirá arriba ]`, 38 of its 41).
    */
   {
@@ -383,8 +383,8 @@ const rows = (t: Messages): readonly Row[] => [
     },
     measure: (row) => rowCells(row, optionTable),
   },
-  // R132 (FR-FLOW-8) → R163 (FR-CLEAN-11): two rows — three toggles then `names` in English (33 and 9 cells), two then two
-  // in Spanish (25 and 24), the split cut to the budget by `firstRowCount`; `[ passes ]` is gone.
+  // R132 (FR-FLOW-8) → R163 (FR-CLEAN-11) → R206 (D-1249): two rows — three toggles then `names` (25.5 and 7 cells in
+  // English, 30.5 and 9 in Spanish), the split cut to the budget by `firstRowCount`; `[ passes ]` is gone.
   ...([0, 1] as const).map(
     (index): Row => ({
       name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-CLEAN-11)`,

@@ -313,6 +313,23 @@ for (const locale of LOCALES) {
   });
 }
 
+for (const width of [320, 360]) {
+  test.describe(`the Spanish layers at ${String(width)} px (FR-CLEAN-11, D-1249)`, () => {
+    test.use({ viewport: { width, height: 640 }, hasTouch: true });
+
+    test(`three stand on the first row and never widen the sheet's body (${width === 360 ? 'one line' : 'wrapped'})`, async ({ page }) => {
+      await openStars(page, 'es');
+      await openSheet(page);
+      const first = page.getByTestId('stars-layers-row').first();
+      await expect(first.getByRole('button')).toHaveText(['estrellas', 'figuras', 'planetas']);
+      const body = await page.getByTestId('sheet-body').evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(body, 'the sheet scrolls sideways').toBeLessThanOrEqual(0);
+      const lines = await first.evaluate((el) => new Set([...el.children].map((child) => Math.round(child.getBoundingClientRect().top))).size);
+      expect(lines).toBe(width === 360 ? 1 : 2);
+    });
+  });
+}
+
 test.describe('the turn with the sheet open (FR-CLEAN-6, FR-CLEAN-7)', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 

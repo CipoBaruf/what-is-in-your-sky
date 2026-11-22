@@ -101,6 +101,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Disabled and on keeps a block, on `--hover-ground` with dim words (FR-CTRL-17).
 - **D-1249 — The widths follow the box, and so does the hint's fit.**
   (R206; D-1226.) `BRACKET_CELLS` (4) is `BOX_CELLS` (2) in `hintFitsBeside`, so the mouse's drag hint now stands beside `controls` in both languages where only the touch one did.
+  The stars page's `firstRowCount` counts the same two cells and a quarter cell between options, so its first row holds three layers in both languages (25.5 and 30.5 of 32 cells).
   The gallery restates the colour aliases on each theme's column, since an alias resolves where it is declared; the app's theme is on the root and needs none.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*
