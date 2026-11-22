@@ -75,7 +75,8 @@ export function openTaskLog(id: string, dir = LOG_DIR, at = new Date(), options:
 }
 
 /** `limit` (v1.1): the account limit ended a session; the worktree is kept and `--wave` or `--task` resumes it once the window resets. */
-type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused' | 'limit';
+/** `ci-timeout` (D-1311): the PR's checks stayed pending past the watch's cap; the PR is open and not merged. */
+export type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused' | 'limit' | 'ci-timeout';
 
 export interface TaskReport {
   id: string;
@@ -90,6 +91,8 @@ export interface TaskReport {
   outcome: TaskOutcome;
   /** Why it ended where it did, in one line. */
   reason: string;
+  /** D-1314: when a `limit` outcome's window resets (epoch ms), for `--until-done`'s sleep; absent or `null` otherwise. */
+  resetsAt?: number | null;
   worktree: string | null;
   log: string | null;
   durations: { implementMs?: number; ciMs?: number; reviewMs?: number; fixMs?: number; totalMs: number };

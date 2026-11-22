@@ -35,7 +35,7 @@ describe('D-1314: the wave loop', () => {
     expect(step.action).toBe('continue');
     ({ step, state } = nextLoopStep(stuck, state, now));
     expect([step.action, state.stalls]).toEqual(['continue', 1]);
-    ({ step, state } = nextLoopStep(stuck, state, now));
+    ({ step } = nextLoopStep(stuck, state, now));
     expect(step).toMatchObject({ action: 'stop' });
     expect(step.action === 'stop' && step.reason).toMatch(/no progress in 2 waves.*R2 failed, R3 ci-timeout/);
   });

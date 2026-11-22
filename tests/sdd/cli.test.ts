@@ -35,6 +35,14 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--task', 'R22', '--model', '--no-wait'])).toThrow(/--model needs a value/);
   });
 
+  it('D-1314: --until-done repeats the wave, turns --fix on unless --no-fix, and needs --wave', () => {
+    expect(parseArgs(['--wave', '--until-done'])).toMatchObject({ mode: 'wave', untilDone: true, fix: true });
+    expect(parseArgs(['--no-fix', '--wave', '--until-done'])).toMatchObject({ untilDone: true, fix: false });
+    expect(parseArgs(['--wave']).untilDone).toBe(false);
+    expect(() => parseArgs(['--task', 'R1', '--until-done'])).toThrow(/use it with --wave/);
+    expect(() => parseArgs(['--until-done'])).toThrow(/use it with --wave/);
+  });
+
   it('keeps the old refusals', () => {
     expect(() => parseArgs(['--task'])).toThrow(/--task needs a task id/);
     expect(() => parseArgs(['--wave', '--tasks-file', 'x.md'])).toThrow(/--tasks-file is for --status and --dry-run only/);

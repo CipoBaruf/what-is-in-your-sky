@@ -11,9 +11,11 @@
  *   npm run sdd -- --task R22 --tier hard    # the same, on another tier than TASKS.md says
  *   npm run sdd -- --wave --agent <name>     # on another entry of sdd.agents.json
  *   npm run sdd -- --wave --no-fallback      # do not retry a limit-stopped session on the next tier
+ *   npm run sdd -- --wave --until-done       # wave after wave (with --fix) until nothing is ready (D-1314)
  *
  * It is not a scheduler or a service (§16.7): it is a script the owner runs
- * in the foreground, with no state of its own. `origin/main`, the branches
+ * in the foreground, with no state of its own; `--until-done` repeats waves
+ * in that same process and keeps only the last wave's failures in memory. `origin/main`, the branches
  * and the PRs are the state, so an interrupted run needs no reconciling.
  * D-86 makes it repo tooling rather than a task in TASKS.md.
  */
@@ -26,12 +28,13 @@ import { layoutLookup } from './sdd/ids';
 import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, layoutTasksText, limitsFor, parseTasks, phaseTasksPath, tierFor, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, CHECKS_WATCH_TIMEOUT_MS, type ChecksVerdict, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { budgetOverrun, LEDGER_PATH, readLedger, type LedgerEntry } from './sdd/ledger';
 import { totalTokens } from './sdd/parsers';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { findingsPath, fixHandoffPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTierFor } from './sdd/review';
 import { limitNote, MAX_RESET_WAITS, resetTime, resetWaitMs, runSession, type SessionResult } from './sdd/session';
+import { INITIAL_LOOP_STATE, nextLoopStep } from './sdd/loop';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
@@ -380,6 +383,7 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
 
   const handoff = readHandoff(dir, task.id);
   if (handoff.blocked !== null) return finish('blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`);
+  if (session.outcome === 'limit') report.resetsAt = session.limit?.resetsAt ?? null;
   if (session.outcome === 'limit') return finish('limit', `a usage limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`);
   if (session.outcome !== 'ok') return finish('failed', `session ended ${session.outcome}`);
 
@@ -399,27 +403,35 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
 
   // FR-SDD-16 (`--fix`): at most one fix session per task run, on the digest or on the findings.
   let fixed = false;
-  const watch = async (): Promise<boolean> => {
+  // D-1312: the head the last green watch saw; the merge names it, so a push after CI cannot land unchecked.
+  let checkedHead: string | null = null;
+  const watch = async (): Promise<ChecksVerdict> => {
     logger.line(`  PR #${String(pr)} opened or updated; watching CI…`);
     const ciStartedAt = Date.now();
-    const green = await watchChecks(dir, pr, logger);
+    const { verdict, head } = await watchChecks(dir, pr, logger);
     report.durations.ciMs = (report.durations.ciMs ?? 0) + Date.now() - ciStartedAt;
-    return green;
+    checkedHead = verdict === 'green' ? head : null;
+    return verdict;
   };
-  let green = await watch();
-  if (!green && options.fix) {
+  const ciTimeout = (): TaskReport => finish('ci-timeout', `PR #${String(pr)}'s checks were still pending after ${String(CHECKS_WATCH_TIMEOUT_MS / 60_000)} min; not merged (D-1311)`);
+  let verdict = await watch();
+  if (verdict === 'timeout') return ciTimeout();
+  if (verdict === 'red' && options.fix) {
     const digest = await failureDigest(dir, pr, task.branch, logger);
     if (digest === null) return finish('failed', 'CI is red, no digest');
     fixed = true;
-    if (await runFix(context, brief, limits.implement, { findings: [], digest }, ran)) green = await watch();
+    if (await runFix(context, brief, limits.implement, { findings: [], digest }, ran)) verdict = await watch();
+    if (verdict === 'timeout') return ciTimeout();
   }
-  if (!green) return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
+  if (verdict !== 'green') return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
 
   // D-1065: the tier comes from the final diff, after any fix session pushed.
   let reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
   if (options.fix && !fixed && reviewed.findings !== null && reviewed.findings.count > 0) {
     if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null }, ran)) {
-      if (!(await watch())) return finish('failed', 'CI is red after the fix session');
+      const after = await watch();
+      if (after === 'timeout') return ciTimeout();
+      if (after !== 'green') return finish('failed', 'CI is red after the fix session');
       reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
     }
   }
@@ -430,6 +442,7 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   await editPullRequestBody(dir, task.id, pr, prBody(task, readHandoff(dir, task.id), screenshots, new Date(startedAt)), logger);
 
   if (review?.outcome === 'limit') {
+    report.resetsAt = review.limit?.resetsAt ?? null;
     await commentOnPullRequest(dir, task.id, pr, `The review session ended on a usage limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);
     return finish('limit', `CI green; a usage limit ended the review (resets ${resetTime(review.limit)}); PR #${String(pr)} waits for a review`);
   }
@@ -446,7 +459,8 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
     await labelPullRequest(dir, pr, OWNER_LABEL, logger);
     return finish('awaiting-owner', `CI green, review clean, \`Gate: owner\` — PR #${String(pr)} labelled \`${OWNER_LABEL}\``);
   }
-  if (!(await mergePullRequest(dir, pr, logger))) return finish('failed', 'squash merge failed');
+  if (checkedHead === null) return finish('failed', `PR #${String(pr)}'s head commit could not be read; not merged (D-1312)`);
+  if (!(await mergePullRequest(dir, pr, checkedHead, logger))) return finish('failed', `squash merge of ${String(checkedHead).slice(0, 8)} failed (a push after CI moves the head; D-1312)`);
   await withSharedGit(() => removeWorktree(dir, logger));
   return finish('merged', `PR #${String(pr)} squash-merged`);
 }
@@ -466,15 +480,38 @@ async function main(): Promise<number> {
     process.stdout.write(helpText(BASE));
     return 0;
   }
-
   const config: AgentsConfig = loadAgents();
+  if (!options.untilDone) return (await runOnce(options, config)).code;
+
+  // D-1314: wave after wave, each from a fresh read of origin/main and its own prune, until nothing is ready or nothing moves.
+  let state = INITIAL_LOOP_STATE;
+  for (let wave = 1; ; wave += 1) {
+    consoleLogger.line(`\n=== --until-done: wave ${String(wave)} (${new Date().toISOString()}) ===`);
+    const result = await runOnce(options, config);
+    const decided = nextLoopStep(result, state, Date.now());
+    state = decided.state;
+    const { step } = decided;
+    if (step.action === 'stop') {
+      consoleLogger.line(`\n--until-done stopped after ${String(wave)} wave(s): ${step.reason}.`);
+      if (state.failures && state.failures.length > 0) consoleLogger.line(`  not merged in the last wave: ${state.failures.join(', ')}; see logs/sdd/ and the run reports`);
+      return result.planned === 0 ? 0 : 1;
+    }
+    if (step.action === 'sleep') {
+      consoleLogger.line(`\n--until-done: ${step.reason}; sleeping ${String(Math.round(step.ms / 60_000))} min, until ${new Date(Date.now() + step.ms).toISOString()}`);
+      await new Promise((done) => setTimeout(done, step.ms));
+    }
+  }
+}
+
+/** One run of the mode the options name: the status, the dry run, one wave or one task. `planned` is how many tasks it selected. */
+async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: number; planned: number; reports: TaskReport[] }> {
   // FR-SDD-10: a task's `Agent:` pins it; else `--agent`; else the config's default.
   const agentOf = (task: Task): Agent => pickAgent(config, task.agent, options.agent);
   const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), Object.keys(config.agents), consoleLogger);
 
   if (options.mode === 'status') {
     printStatus(statuses, problems, consoleLogger);
-    return 0;
+    return { code: 0, planned: 0, reports: [] };
   }
 
   let planned: TaskStatus[];
@@ -483,7 +520,7 @@ async function main(): Promise<number> {
     const refusal = refusalFor(statuses, options.taskId ?? '');
     if (refusal) {
       consoleLogger.line(`Refusing: ${refusal}`);
-      return 1;
+      return { code: 1, planned: 0, reports: [] };
     }
     planned = statuses
       .filter((status) => status.task.id.toLowerCase() === options.taskId?.toLowerCase())
@@ -504,7 +541,7 @@ async function main(): Promise<number> {
       consoleLogger.line('\nBreakdown problems:');
       for (const problem of problems) consoleLogger.line(`  - ${problem}`);
     }
-    return 0;
+    return { code: 0, planned: planned.length, reports: [] };
   }
 
   printPlanned(planned, skipped, agentOf, consoleLogger);
@@ -528,7 +565,7 @@ async function main(): Promise<number> {
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}${report.overruns.length > 0 ? ` (${String(report.overruns.length)} budget overrun(s))` : ''}`);
-  return reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit') ? 1 : 0;
+  return { code: reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit' || report.outcome === 'ci-timeout') ? 1 : 0, planned: planned.length, reports };
 }
 
 main()

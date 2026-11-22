@@ -272,15 +272,38 @@ export async function waitForChecks(exists: () => Promise<boolean>, waits: Check
   return true;
 }
 
-/** §16.4 step 5: CI watched to completion; red CI ends the task as failed. */
-export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits = {}): Promise<boolean> {
+/** D-1311: the longest `gh pr checks --watch` may run; a check stuck pending (a Workers Builds outage) ends the task `ci-timeout`. */
+export const CHECKS_WATCH_TIMEOUT_MS = 40 * 60_000;
+
+/** D-1311: how one watch of the PR's checks ended. */
+export type ChecksVerdict = 'green' | 'red' | 'timeout';
+
+/** `exec`'s 124 is its own kill at `timeoutMs`; every other non-zero exit is a red or unreadable run. */
+export const checksVerdict = (result: ExecResult): ChecksVerdict => (result.code === 0 ? 'green' : result.code === 124 ? 'timeout' : 'red');
+
+/** The commit the PR's head points at, or `null` when `gh` cannot say. */
+export async function pullRequestHead(dir: string, pr: number, logger: Logger): Promise<string | null> {
+  const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
+  const sha = head.stdout.trim();
+  return ok(head) && sha !== '' ? sha : null;
+}
+
+/**
+ * §16.4 step 5: CI watched to completion; red CI ends the task as failed. D-1311: the watch
+ * gives up after `CHECKS_WATCH_TIMEOUT_MS`, and the result carries the head commit read before
+ * it, the one the checks ran on (D-1312 merges only that commit).
+ */
+export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits & { watchMs?: number } = {}): Promise<{ verdict: ChecksVerdict; head: string | null }> {
   const appeared = await waitForChecks(async () => checksExist(await gh(['pr', 'checks', String(pr)], { cwd: dir, logger })), waits);
+  const head = await pullRequestHead(dir, pr, logger);
   if (!appeared) {
     logger.line(`  PR #${String(pr)} reports no checks; treating that as red`);
-    return false;
+    return { verdict: 'red', head };
   }
-  const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
-  return ok(result);
+  const watchMs = waits.watchMs ?? CHECKS_WATCH_TIMEOUT_MS;
+  const verdict = checksVerdict(await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true, timeoutMs: watchMs }));
+  if (verdict === 'timeout') logger.line(`  PR #${String(pr)}'s checks were still pending after ${String(Math.round(watchMs / 60_000))} min; giving up on them (D-1311)`);
+  return { verdict, head };
 }
 
 /** The longest the digest waits for the PR's CI run to finish. */
@@ -298,9 +321,8 @@ export function runForHead(rows: readonly { databaseId?: number; headSha?: strin
  * job, so this waits for the run to finish first.
  */
 export async function failureDigest(dir: string, pr: number, branch: string, logger: Logger, waitMs = DIGEST_WAIT_MS): Promise<string | null> {
-  const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
-  const sha = head.stdout.trim();
-  if (!ok(head) || sha === '') return null;
+  const sha = await pullRequestHead(dir, pr, logger);
+  if (sha === null) return null;
   const list = await gh(['run', 'list', '--branch', branch, '--commit', sha, '--workflow', 'ci.yml', '--limit', '20', '--json', 'databaseId,headSha,headBranch'], { cwd: dir, logger });
   let run: number | undefined;
   try {
@@ -328,6 +350,9 @@ export async function labelPullRequest(dir: string, pr: number, label: string, l
   await gh(['pr', 'edit', String(pr), '--add-label', label], { cwd: dir, logger });
 }
 
-export async function mergePullRequest(dir: string, pr: number, logger: Logger): Promise<boolean> {
-  return ok(await gh(['pr', 'merge', String(pr), '--squash'], { cwd: dir, logger }));
+/** D-1312: the squash merge, refused by GitHub when the PR's head is no longer the commit CI and the review saw. */
+export const mergeArgs = (pr: number, head: string): string[] => ['pr', 'merge', String(pr), '--squash', '--match-head-commit', head];
+
+export async function mergePullRequest(dir: string, pr: number, head: string, logger: Logger): Promise<boolean> {
+  return ok(await gh(mergeArgs(pr, head), { cwd: dir, logger }));
 }
