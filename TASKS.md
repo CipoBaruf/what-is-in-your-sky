@@ -65,7 +65,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Field`, `busy` and the new primitives (R209); any caller's label or layout.
   - **Done when:** `npm run check` green; each primitive's test covers its forms (the box and the `--tap` hit area on compact, `aria-pressed`); `tokens.test.ts`, `targets.test.ts` and the width tests green; `npm run design:captures` writes the four files; `npm run check:sdd` green.
 
-- [ ] **R207 — A new version is looked for within minutes**
+- [x] **R207 — A new version is looked for within minutes**
   - **Lane:** data
   - **Tier:** standard
   - **Turns:** 300
@@ -81,6 +81,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Captures:** none
   - **Out of scope:** the bar (R212, R220).
   - **Done when:** `npm run check` green; the unit test with fake timers shows `update()` once on register, once per visible change, every 30 min while visible and never while hidden; `npm run check:sdd` green.
+  - **Done 2026-11-22:** build and deploy had no line on updates, so one was added (and data-layer §7.7's); three e2e fake registrations gain `update()`; D-1250, D-1251.
 
 - [ ] **R208 — The desk plays on opening**
   - **Lane:** live

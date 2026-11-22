@@ -27,6 +27,8 @@
 
   `style-src-elem` and `script-src` stay `'self'`, and the deploy test gains an assertion on those two directives specifically, so a later "just add unsafe-inline" cannot ride in on an unrelated PR.
   The service worker needs no directive of its own: `worker-src 'self'` already covers it.
+- *(v3.0, FR-UPD-1, D-1236)* **Updates.**
+  An open tab asks for `sw.js` again (the registration's `update()`) on load, whenever it comes back into view and every `UPDATE_POLL_MIN` (30) while in view, so a visible tab finds a deploy within about 30 min; the new version still waits for the reader's reload (data-layer §7.7).
 
 - **CI** (`ci.yml`): typecheck → lint → unit + golden + component → build → Playwright.
   **`live-contract.yml`**: daily, `LIVE=1`, never blocks merges; opens an issue on failure.
