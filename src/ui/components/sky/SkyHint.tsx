@@ -1,5 +1,4 @@
 import { Fragment, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { browserStorage } from '../../../data/storage';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { HINT_TOUCH_CLAUSES } from '../../../lib/layout';
@@ -45,7 +44,7 @@ const zoomHintListeners = new Set<() => void>();
 
 function zoomHintDone(): boolean {
   try {
-    return browserStorage()?.getItem(SKY_HINT_KEY) === '1';
+    return globalThis.localStorage?.getItem(SKY_HINT_KEY) === '1';
   } catch {
     return false;
   }
@@ -55,7 +54,7 @@ function zoomHintDone(): boolean {
 export function markZoomHintDone(): void {
   if (zoomHintDone()) return;
   try {
-    browserStorage()?.setItem(SKY_HINT_KEY, '1');
+    globalThis.localStorage?.setItem(SKY_HINT_KEY, '1');
   } catch {
     // A storage that refuses the write (full, or private) only means the hint stays.
     return;
