@@ -168,7 +168,7 @@ for (const locale of LOCALES) {
         }
         expect(controls.x + controls.width).toBeLessThanOrEqual(size.width + 0.5);
         expect(controls.x).toBeGreaterThan(size.width / 2);
-        // D-1026: the row's overlay holds half a cell inside each end, so neither bracket touches its edge.
+        // D-1026: the row's overlay holds half a cell inside each end, so neither box touches its edge.
         const rowBox = await box(row);
         expect(follow.x - rowBox.x).toBeGreaterThanOrEqual(4.5);
         expect(rowBox.x + rowBox.width - (controls.x + controls.width)).toBeGreaterThanOrEqual(4.5);
@@ -313,6 +313,23 @@ for (const locale of LOCALES) {
   });
 }
 
+for (const width of [320, 360]) {
+  test.describe(`the Spanish layers at ${String(width)} px (FR-CLEAN-11, D-1249)`, () => {
+    test.use({ viewport: { width, height: 640 }, hasTouch: true });
+
+    test(`three stand on the first row and never widen the sheet's body (${width === 360 ? 'one line' : 'wrapped'})`, async ({ page }) => {
+      await openStars(page, 'es');
+      await openSheet(page);
+      const first = page.getByTestId('stars-layers-row').first();
+      await expect(first.getByRole('button')).toHaveText(['estrellas', 'figuras', 'planetas']);
+      const body = await page.getByTestId('sheet-body').evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(body, 'the sheet scrolls sideways').toBeLessThanOrEqual(0);
+      const lines = await first.evaluate((el) => new Set([...el.children].map((child) => Math.round(child.getBoundingClientRect().top))).size);
+      expect(lines).toBe(width === 360 ? 1 : 2);
+    });
+  });
+}
+
 test.describe('the turn with the sheet open (FR-CLEAN-6, FR-CLEAN-7)', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
@@ -435,6 +452,9 @@ for (const locale of LOCALES) {
         // FR-CLEAN-5: the sheet's groups in order, the box unmoved.
         await openSheet(page);
         expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose', 'app-footer']);
+        // FR-CLEAN-5, FR-CTRL-2: where `stars` wraps under the views the row grows by its line, so the option's block is over no row under it.
+        const spill = await page.getByTestId('pass-view-row').evaluate((el) => Math.max(...[...el.children].map((child) => child.getBoundingClientRect().bottom)) - el.getBoundingClientRect().bottom);
+        expect(spill, 'the view row holds its wrapped line').toBeLessThanOrEqual(0.5);
         await expect(page.getByTestId('pass-name-line')).toHaveText(new RegExp(`^${name.replace(/[()]/g, '\\$&')} · \\d{4}-\\d\\d-\\d\\d · UTC$`));
         await expect(dialog.getByRole('timer')).toHaveCount(1);
         const sheet = await expectSheetShape(page, size);

@@ -102,6 +102,19 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1255 — What opens paused is decided in the hook.**
   (R208; FR-LIVE-9, FR-STRIP-4.) `usePlayback` asks reduced motion itself, so no page can open playing under it.
   It knows a link's instant by `initial`: any on the live page, and on a pass page any that is not the loop's start. A pass link holds no `t` (its `start` names the pass), so a pass page opened by a link plays.
+- **D-1247 — A box is its words and two cells, and takes no height in its line.**
+  (R206; D-1226, FR-CTRL-1.) The hairline is inside the cell of padding, so a button and an option are both the label plus two cells; negative block margins leave the box out of the line's height.
+  A short control keeps `--target` of width by a block of no height after the box, not by `min-inline-size`, which would let a flex item shrink under its words.
+  `bare` stays words without a box, in the accent, and `note` draws the box on the button itself.
+- **D-1248 — An option has one look; the props of the older looks stay until their callers move.**
+  (R206; FR-CTRL-2, FR-CTRL-3.) `mark`, `gap` and `alone` are accepted and draw nothing different, because their callers are in other tasks' lanes.
+  A dense row (the facing picker, FR-FLOW-11) keeps its half cell of hit padding and draws its block a quarter cell into it, so the row keeps its cells.
+  Two options side by side outside a group (the stars page's layers) take the same quarter cell between them, or two that are on read as one block.
+  Disabled and on keeps a block, on `--hover-ground` with dim words (FR-CTRL-17).
+- **D-1249 — The widths follow the box, and so does the hint's fit.**
+  (R206; D-1226.) `BRACKET_CELLS` (4) is `BOX_CELLS` (2) in `hintFitsBeside`, so the mouse's drag hint now stands beside `controls` in both languages where only the touch one did.
+  The stars page's `firstRowCount` counts the same two cells and a quarter cell between options, so its first row holds three layers in both languages (25.5 and 30.5 of 32 cells).
+  The gallery restates the colour aliases on each theme's column, since an alias resolves where it is declared; the app's theme is on the root and needs none.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*
 

@@ -4,7 +4,7 @@ import type { Messages } from '../../i18n/messages';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
 import { nightClouds, tonightCloud } from '../../lib/nightClouds';
-import { hintFitsBeside, SHELL_PADDING_CELLS } from '../../lib/layout';
+import { BOX_CELLS, hintFitsBeside, SHELL_PADDING_CELLS } from '../../lib/layout';
 import { shortcutFor } from '../../lib/shortcuts';
 import type { LegendPass } from '../../lib/legend';
 import { constellationName, drawnRungs, starName, starsAt } from '../../lib/skyStars';
@@ -165,22 +165,22 @@ const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies r
 
 /**
  * FR-COMP-4's 36 cells at 390 px less the two cells of padding each side the sheet shares with the shell (R163): the
- * room a layer row has, 32 cells, the budget the first row is cut to. The 36 of R132 counted the padding as room, and
- * `[x] stars [x] figures [x] planets` (33 cells) stood squeezed on the phone, its third toggle with no cell before it.
+ * room a layer row has, 32 cells, the budget the first row is cut to. The 36 of R132 counted the padding as room.
  */
 const LAYER_ROW_BUDGET = 36 - 2 * SHELL_PADDING_CELLS;
+/** FR-CTRL-3, D-1248: a quarter cell between two options side by side (`OptionToggle.module.css`). */
+const OPTION_GAP_CELLS = 0.25;
 
 /**
- * R132 (FR-FLOW-8, D-865): how many of the layer toggles the first row holds — as many as fit the budget as `[x] label`
- * cells with a cell between (`tests/styles/cells.ts`'s count), at least one. Two in both languages at 32 cells: three
- * would be 33 in English and 38 in Spanish (R163; FR-CLEAN-11's row reads `[x] stars [x] figures` then `[x] planets
- * [x] names`).
+ * R132 (FR-FLOW-8, D-865), R206 (D-1226, D-1249): how many of the layer toggles the first row holds — as many as fit
+ * the budget as a word in two cells of box, a quarter cell between (`tests/styles/cells.ts`'s count), at least one.
+ * Three in both languages at 32 cells, 25.5 in English and 30.5 in Spanish, then `names` (FR-CLEAN-11).
  */
 export function firstRowCount(labels: readonly string[], budget: number): number {
   let cells = 0;
   let count = 0;
   for (const label of labels) {
-    const next = cells + (count > 0 ? 1 : 0) + 4 + label.length;
+    const next = cells + (count > 0 ? OPTION_GAP_CELLS : 0) + BOX_CELLS + label.length;
     if (next > budget && count > 0) break;
     cells = next;
     count += 1;
@@ -549,8 +549,7 @@ function StarsSky({ observer }: { observer: Observer }) {
         {p.layersHeading}
       </SectionHeading>
       {/* FR-FLOW-8 → FR-CLEAN-4: one group of two rows `--space-1` apart, the split by the row's room (`firstRowCount`):
-          `[x] stars [x] figures` and `[x] planets [x] names` (21 and 23 cells); `[x] estrellas [x] figuras` and
-          `[x] planetas [x] nombres` (25 and 24). */}
+          `stars figures planets` then `names`, `estrellas figuras planetas` then `nombres` (R206: 25.5 and 30.5 cells). */}
       <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
         <div className={styles.row} data-testid="stars-layers-row" {...(compact ? { 'data-rhythm': 'row' } : {})}>
           {LAYER_KEYS.slice(0, firstRow).map((key, index) => layer(key, index > 0))}

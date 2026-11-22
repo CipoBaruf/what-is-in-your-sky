@@ -1,7 +1,8 @@
 /* Base styles (FR-X-1, FR-X-5, FR-X-6, R12). Everything is monospace on the
    dark ground; boxes are 1 px lines in the rule colour (a box-drawing line at
    the grid's own weight), section titles are `── Title ─────` character rules
-   (SectionHeading), controls are bracketed `[ … ]` text. Focus is one visible
+   (SectionHeading), controls are outlined boxes, filled options and underlined
+   links (the primitives, FR-CTRL-1, 2, 11). Focus is one visible
    ring for every control (`:focus-visible`, never removed without a
    replacement), and every control is at least `--tap` (48 px) tall. */
 
@@ -252,8 +253,8 @@ a,
    the text line; an outline on it crossed its neighbours' words. Dropping both
    while the ring is shown leaves the line box exactly where it was — they
    cancelled each other — so nothing moves and nothing reflows. Nothing else
-   is painted on that box: every inline control draws its own text and its
-   brackets, and the raised grounds in the app belong to tooltips, not to the
+   is painted on that box: every inline control draws its own text or the
+   box on the span inside it (D-1226), and the raised grounds in the app belong to tooltips, not to the
    controls that open them. */
 a:focus-visible,
 .inline-control:focus-visible {

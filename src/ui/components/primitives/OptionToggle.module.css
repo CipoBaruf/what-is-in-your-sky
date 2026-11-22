@@ -1,39 +1,81 @@
-/* R13, moved by R104 (FR-DS-4 item 3; D-704, D-705): the `[ ] option` /
-   `[x] option` text toggle — the pressed one reads `[x]` (FR-X-5: not colour
-   alone) in the accent, the others `[ ]` in the dim ink. The cell of padding
-   after an option is what separates it from the next in a group (D-172: the
-   wide speeds have no gap and still read as four); `tests/styles/controlRows.test.ts`
-   reads it off `.option` to recompute the header's folds. */
+/* R13, moved by R104 (D-704, D-705), R206 (FR-CTRL-2, FR-CTRL-17; D-1226): an
+   option. The element is the hit box; the word stands on the span inside it,
+   which is `--bg` on a block of `--fg` when the option is on — a change of
+   shape and contrast, not of colour alone (FR-X-5) — and the dim word when it is
+   off. The padding is the same in both, so a row never moves with its state.
+   `TextButton`'s `pressed` form draws the same box from this file. */
 .option {
   border: 0;
   background: none;
-  padding: 0 var(--cell) 0 0;
+  padding-inline: 0;
   color: var(--fg-dim);
 }
 
-.option::before {
-  content: '[ ] ';
+/* The width floor of a short option (`1×`), as `TextButton`'s; a dense row has none. */
+.option:not(.inRow)::after {
+  content: '';
+  display: block;
+  inline-size: var(--target);
+}
+
+/* Two options standing side by side outside a group (the stars page's layers)
+   are a group's quarter cell apart (FR-CTRL-3): two blocks that are on would
+   read as one. A group's options carry `data-option` and have its gap. */
+.option:not([data-option]) + .option:not([data-option]) {
+  margin-inline-start: calc(var(--cell) / 4);
+}
+
+.optionBox,
+.denseBox {
+  display: inline-block;
+  box-sizing: border-box;
+  max-inline-size: 100%;
+  /* `clip` and not `hidden`: a place's name is cut with an ellipsis and the box keeps its words' baseline. */
+  overflow: clip;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: var(--control-h);
+  margin-block: calc(var(--control-h) / -2);
+  border-radius: var(--control-radius);
   color: var(--fg-dim);
 }
 
-.option[aria-pressed='true'],
-.option[aria-checked='true'] {
-  color: var(--accent);
+.optionBox {
+  padding-inline: var(--control-pad);
 }
 
-.option[aria-pressed='true']::before {
-  content: '[x] ';
-  color: var(--accent);
+/* In a dense row (FR-FLOW-11: the facing picker's ten points in 36 cells) the
+   block takes its quarter cell out of the half cell of hit area each side, so
+   the row keeps its cells; at the row's two ends there is none to take. */
+.denseBox {
+  /* Wider than the point it stands on, by its margins: nothing to cap or to cut. */
+  max-inline-size: none;
+  overflow: visible;
+  padding-inline: calc(var(--control-pad) / 4);
+  margin-inline: calc(var(--control-pad) / -4);
 }
 
-.option[aria-checked='true']::before {
-  content: '[x] ';
-  color: var(--accent);
+.inRow:first-child > .denseBox {
+  margin-inline-start: 0;
 }
 
-/* `alone`: no option follows, so no cell after it (the live actions row's `[ ] Hidden`, FR-COMP-7). */
-.alone {
-  padding: 0;
+.inRow:last-child > .denseBox {
+  margin-inline-end: 0;
+}
+
+:is(button, summary):is(:hover, :active):not(:disabled) > :is(.optionBox, .denseBox) {
+  background: var(--hover-ground);
+}
+
+/* On, after hover's rule and no lighter: what is on keeps its block under the pointer. */
+:is(button, summary):is([aria-pressed='true'], [aria-checked='true']):not(:disabled) > :is(.optionBox, .denseBox) {
+  background: var(--on-ground);
+  color: var(--on-ink);
+}
+
+/* FR-CTRL-17: disabled, the words are dim and the block of one that is on keeps its shape on the raised ground. */
+:is(button, summary):disabled:is([aria-pressed='true'], [aria-checked='true']) > :is(.optionBox, .denseBox) {
+  background: var(--hover-ground);
 }
 
 /* `inline` (R121, FR-FSC-6 as amended v2.5, D-834): the option's line is one

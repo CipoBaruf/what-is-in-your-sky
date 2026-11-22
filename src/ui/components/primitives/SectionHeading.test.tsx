@@ -5,6 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SectionHeading } from './SectionHeading';
 
@@ -57,5 +58,14 @@ describe.each(THEMES)('<SectionHeading> under data-theme=%s', (theme) => {
     expect(what.className).toMatch(/muted/);
     expect(screen.getByRole('region', { name: 'Where' })).toContainElement(where);
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('<SectionHeading> in its stylesheet (R206)', () => {
+  it('FR-CTRL-6: the rules are the mark in every tone and the title stays --fg', () => {
+    const css = readFileSync('src/ui/components/primitives/SectionHeading.module.css', 'utf8');
+    expect(/\.heading \{([^}]*)\}/.exec(css)?.[1]).toMatch(/color: var\(--mark\)/);
+    expect(/\n\.title \{([^}]*)\}/.exec(css)?.[1]).toMatch(/color: var\(--fg\)/);
+    expect(css).not.toMatch(/var\(--rule\)|::(before|after)[^{]*\{[^}]*color/);
   });
 });

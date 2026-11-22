@@ -1,16 +1,19 @@
 /**
- * R104 (FR-DS-4 item 1, US-37 AC2): the `[ label ]` button in both themes —
- * the words, the state in the characters (`aria-pressed`), the disabled dim,
- * the note that describes and does not name, the summary form; and that the
- * brackets are the stylesheet's `::before` / `::after` rather than text, which
- * is what keeps a control's accessible name its words alone.
+ * R104 (FR-DS-4 item 1, US-37 AC2), R206 (FR-CTRL-1, FR-CTRL-17; D-1226): the
+ * button in both themes — the words, the box on the span inside the hit box,
+ * the state in `aria-pressed`, the disabled form, the note that describes and
+ * does not name, the summary form.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TextButton } from './TextButton';
 
 const THEMES = ['dark', 'night'] as const;
+const css = readFileSync('src/ui/components/primitives/TextButton.module.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+/** The declarations of the rule whose selector is exactly `selector`. */
+const rule = (selector: string): string => new RegExp(`(?:^|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 
 afterEach(() => {
   document.documentElement.removeAttribute('data-theme');
@@ -21,12 +24,14 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     document.documentElement.setAttribute('data-theme', theme);
   };
 
-  it('is a button named by its label alone, the brackets being the stylesheet’s', async () => {
+  it('FR-CTRL-1: is a button named by its label alone, its box the span inside it', async () => {
     themed();
     const onClick = vi.fn();
     const { container } = render(<TextButton label="retry" onClick={onClick} data-testid="t" />);
     const button = screen.getByRole('button', { name: 'retry' });
     expect(button).toHaveTextContent(/^retry$/);
+    expect(button.children).toHaveLength(1);
+    expect(button.firstElementChild?.className).toMatch(/buttonBox/);
     expect(button).toHaveAttribute('type', 'button');
     expect(button).not.toHaveAttribute('aria-pressed');
     fireEvent.click(button);
@@ -43,27 +48,28 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
         <TextButton label="dim" tone="dim" />
         <TextButton label="danger" tone="danger" />
         <TextButton label="inline" inline />
-        <TextButton label="edge" box="edge" />
+        <TextButton label="edge" box="plain" />
         <TextButton label="accent" box="accent" fill tall />
         <TextButton label="wrap" wrap />
-        <TextButton label="bare" bare box="edge" />
+        <TextButton label="bare" bare />
         <TextButton label="padded" padded />
         <TextButton label="off" disabled onClick={onClick} />
       </>,
     );
     const className = (name: string): string => screen.getByRole('button', { name }).className;
     expect(className('plain')).toMatch(/textButton/);
-    // `bare` is a root class of its own with no brackets, so the cell count reads the words alone (D-411).
+    // `bare` is a root class of its own with no box, so the cell count reads the words alone (D-911).
     expect(className('bare')).toMatch(/bare/);
     expect(className('bare')).not.toMatch(/textButton/);
-    expect(className('bare')).toMatch(/edge/);
+    expect(screen.getByRole('button', { name: 'bare' }).children).toHaveLength(0);
     expect(className('padded')).toMatch(/padded/);
     expect(className('padded')).toMatch(/textButton/);
     expect(className('dim')).toMatch(/dim/);
     expect(className('danger')).toMatch(/danger/);
     expect(className('inline')).toMatch(/inline-control/);
     expect(className('inline')).toMatch(/inline/);
-    expect(className('edge')).toMatch(/edge/);
+    // FR-CTRL-1: `plain` is the default's box; only the primary form carries a class.
+    expect(className('edge')).toBe(className('plain'));
     expect(className('accent')).toMatch(/accent/);
     expect(className('accent')).toMatch(/fill/);
     expect(className('accent')).toMatch(/tall/);
@@ -73,16 +79,16 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     expect(screen.getByRole('button', { name: 'off' })).toBeDisabled();
   });
 
-  it('pressed: a pressed text control, its state in aria-pressed, and the tight form a class of its own', async () => {
+  it('FR-CTRL-2: pressed, it is an option — the option’s box and aria-pressed', async () => {
     themed();
     const { container, rerender } = render(<TextButton label="Soonest" pressed />);
     const button = screen.getByRole('button', { name: 'Soonest' });
     expect(button).toHaveAttribute('aria-pressed', 'true');
     expect(button.className).toMatch(/toggle/);
-    expect(button.className).not.toMatch(/toggleTight/);
-    rerender(<TextButton label="Soonest" pressed={false} tight />);
+    expect(button.className).not.toMatch(/textButton/);
+    expect(button.firstElementChild?.className).toMatch(/optionBox/);
+    rerender(<TextButton label="Soonest" pressed={false} />);
     expect(button).toHaveAttribute('aria-pressed', 'false');
-    expect(button.className).toMatch(/toggleTight/);
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -107,7 +113,8 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     expect(button.className).toMatch(/boxedNote/);
     expect(button.className).toMatch(/plain/);
     expect(button.className).not.toMatch(/textButton/);
-    expect(screen.getByText('Use my location').className).toMatch(/noteLabel/);
+    // With a note the button is the box itself (FR-FIRST-2), and has no second one inside.
+    expect(button.querySelector('[class*="buttonBox"]')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -124,5 +131,37 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
     expect(summary.className).toMatch(/textButton/);
     expect(summary.className).toMatch(/summary/);
     expect(summary).toHaveTextContent(/^details$/);
+  });
+});
+
+describe('<TextButton> forms in its stylesheet (R206)', () => {
+  it('FR-CTRL-1: the box is --control-h tall with the cell of padding, the edge and the corners of the control tokens', () => {
+    expect(rule('.buttonBox')).toMatch(/line-height:\s*calc\(var\(--control-h\) - 2 \* var\(--hairline\)\)/);
+    expect(rule('.buttonBox')).toMatch(/padding-inline:\s*calc\(var\(--control-pad\) - var\(--hairline\)\)/);
+    expect(rule('.buttonBox')).toMatch(/border:\s*var\(--control-edge\)/);
+    expect(rule('.buttonBox')).toMatch(/border-radius:\s*var\(--control-radius\)/);
+  });
+
+  it('FR-CTRL-1: the --tap hit area on compact is the element’s — global.css’s floor, inline-control’s padding — and the box takes no height from it', () => {
+    const global = readFileSync('src/ui/styles/global.css', 'utf8');
+    expect(global).toMatch(/\ninput,\nbutton \{[^}]*min-height: var\(--tap\)/);
+    expect(global).toMatch(/\.inline-control \{[^}]*padding-block: calc\(\(var\(--tap\) - var\(--row\)\) \/ 2\)/);
+    for (const selector of ['.textButton,\n.bare,\n.toggle', '.textButton::after', '.buttonBox']) expect(rule(selector), selector).not.toMatch(/min-height|min-block-size|(^|[\s;])height:/);
+    expect(rule('.buttonBox')).toMatch(/margin-block:\s*calc\(var\(--control-h\) \/ -2\)/);
+  });
+
+  it('FR-CTRL-1: hover and press lay the raised ground and the dim edge; the primary form’s edge is the mark', () => {
+    const hover = rule('.textButton:is(:hover, :active):not(:disabled) > .buttonBox');
+    expect(hover).toMatch(/background:\s*var\(--hover-ground\)/);
+    expect(hover).toMatch(/border-color:\s*var\(--fg-dim\)/);
+    expect(rule('.accent > .buttonBox')).toMatch(/border-color:\s*var\(--mark\)/);
+  });
+
+  it('FR-CTRL-17: disabled keeps the shape, dim words in the rule’s edge, and no hover; the ring is the global one', () => {
+    const disabled = rule('.textButton:disabled > .buttonBox');
+    expect(disabled).toMatch(/color:\s*var\(--fg-dim\)/);
+    expect(disabled).toMatch(/border-color:\s*var\(--rule\)/);
+    for (const [selector] of css.matchAll(/[^{}]*:hover[^{}]*(?=\{)/g)) expect(selector).toContain(':not(:disabled)');
+    expect(css).not.toMatch(/outline/);
   });
 });

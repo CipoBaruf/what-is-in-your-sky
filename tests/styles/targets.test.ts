@@ -40,7 +40,9 @@ describe('primitives.css targets (R134, FR-FLOW-11, D-871)', () => {
 
   it('is the one place the 44 px floor is written: TextButton’s .toggle reads --target', () => {
     const textButton = readFileSync('src/ui/components/primitives/TextButton.module.css', 'utf8');
-    expect(rule(textButton, '.toggle')).toMatch(/min-inline-size:\s*var\(--target\)/);
+    expect(rule(textButton, '.toggle::after')).toMatch(/inline-size:\s*var\(--target\)/);
+    // R206 (D-1226): the floor is a block inside, so a button in a flex row never shrinks under its words.
+    expect(rule(textButton, '.textButton::after')).toMatch(/inline-size:\s*var\(--target\)/);
     expect(textButton).not.toMatch(/calc\(var\(--tap\) - var\(--row\) \/ 6\)/);
   });
 });

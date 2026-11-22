@@ -56,6 +56,7 @@ describe('the guide names everything the inputs hold (US-37 AC1)', () => {
     for (const primitive of PRIMITIVES) {
       expect(generated).toContain(`### \`${primitive.name}\``);
       expect(generated).toContain(`\`src/ui/components/primitives/${primitive.file}\``);
+      expect(generated, `FR-DS-13: ${primitive.name}'s states`).toContain(`States: ${primitive.states.join(', ')}.`);
       for (const prop of primitive.props) expect(generated, `${primitive.name}.${prop.name}`).toContain(`| \`${prop.name}\` | \`${prop.type.replace(/\|/g, '\\|')}\` |`);
     }
   });

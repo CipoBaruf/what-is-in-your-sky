@@ -1501,9 +1501,8 @@ const REACH: Record<string, Reach> = {
   async 'stars-globe-place'(page, width, theme, locale) {
     await starsAt(page, width, theme, locale, CLOCK, { favourites: [LONDON_FAVOURITE] });
     await globeShown(page, locale);
-    // The whole label after the option's box (`[ ]`, then `[x]` once pressed), so no other saved London matches.
-    const label = LONDON.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const london = page.getByTestId('globe-place').getByRole('button', { name: new RegExp(`^\\[.\\] ${label}$`) });
+    // The whole label (R206: the name is the label alone), so no other saved London matches.
+    const london = page.getByTestId('globe-place').getByRole('button', { name: LONDON.label, exact: true });
     await london.click();
     await expect(london).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /London/);

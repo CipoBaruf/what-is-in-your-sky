@@ -367,6 +367,12 @@
 | FR-COMP-4 | `src/ui/components/live/StepControls.test.tsx`, `tests/styles/controlRows.test.ts`, `tests/styles/doorRows.test.ts` |
 | FR-COMP-5 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `tests/e2e/narrow.spec.ts`, `tests/styles/liveShape.test.ts` |
 | FR-COMP-7 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-states.spec.ts` |
+| FR-CTRL-1 | `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
+| FR-CTRL-2 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx` |
+| FR-CTRL-3 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/ToggleGroup.test.tsx` |
+| FR-CTRL-6 | `src/ui/components/primitives/SectionHeading.test.tsx` |
+| FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
+| FR-CTRL-17 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `tests/e2e/structure.spec.ts` |
 | FR-DESK-1 | `tests/e2e/desktop.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-2 | `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-DESK-3 | `src/ui/App.shortcuts.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |
@@ -386,6 +392,8 @@
 | FR-DS-3 | `tests/styles/breakpoint.test.ts` |
 | FR-DS-6 | `tests/docs/design.test.ts` |
 | FR-DS-8 | `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/styles/tokens.test.ts` |
+| FR-DS-10 | `tests/styles/tokens.test.ts` |
+| FR-DS-13 | `src/ui/components/primitives/manifest.test.ts` |
 | FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx` |
 | FR-FACT-2 | `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/live.spec.ts` |
 | FR-FACT-3 | `src/lib/riseSet.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/stars.spec.ts` |

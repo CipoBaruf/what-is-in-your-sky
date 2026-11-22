@@ -198,7 +198,7 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByTestId('context-line')).not.toContainText(/peaks|sets|fades/);
   // R148 (FR-FULL-2, FR-FULL-4): the taps and the share action are the sheet's; the page's name is the hidden `h1`.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^en vivo · /);
-  await expect(page.getByRole('button', { name: '[ controles ]', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'controles', exact: true })).toBeVisible();
   await openSheet(page);
   await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶', 'noche', 'próximo', 'ahora']);
   // R150 (FR-GYRO-8, FR-GYRO-10): the `×` named in Spanish, and the satellites' heading.

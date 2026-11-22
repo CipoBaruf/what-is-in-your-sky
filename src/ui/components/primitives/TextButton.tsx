@@ -1,52 +1,45 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
+import optionStyles from './OptionToggle.module.css';
 import styles from './TextButton.module.css';
 
 /**
- * R104 (FR-DS-4 item 1, US-37 AC2; D-703, D-704): the `[ label ]` button —
- * the one place the app's text control is drawn. The brackets are this
- * module's `::before` / `::after` in the dim ink; the reset that takes the
- * sheet's bordered box off a `<button>` is written here once; and every form a
- * control takes in the app is a prop, never a class a feature module adds
- * (D-704: a feature module may place a primitive and may not restyle it).
+ * R104 (FR-DS-4 item 1, US-37 AC2; D-703, D-704), R206 (FR-CTRL-1; D-1226):
+ * the text button — the one place the app's text control is drawn. The button
+ * is the hit box and the outlined box is the span inside it; the reset that
+ * takes the sheet's border off a `<button>` is written here once; and every
+ * form a control takes in the app is a prop, never a class a feature module
+ * adds (D-704: a feature module may place a primitive and may not restyle it).
  *
- * The forms are the ones the twenty-one modules R104 replaced drew, so that
- * no control moves (FR-DS-5): `inline` is a control hung off a line of prose
- * (global.css `inline-control`); `pressed` is the sort row's and the compact
- * speeds' pressed text control, the pressed option bracketed and the others
- * bare (D-705), `tight` the speeds' `[60×]` without the spaces (D-245);
- * `bare` is the words without the brackets (the compact live actions row's
- * share, D-411) and `padded` the sheet's button box without its border (the
- * guide panel's two controls); `box` is a bordered control — `edge` the sheet's own box (the detail sheet's
- * `[ close ]`, the share action), `accent` the home's primary actions in the
- * accent's border (board 1B), with `fill` for the column's width, `tall` for
- * the when step's taller foot and `note` for the primary action's line under
- * its label (FR-FIRST-2), in the group's two looks; `wrap` lets a label that
- * is a place name break; `as="summary"` draws the error page's disclosure
- * (FR-FAIL-5) as the same control. A primitive is a leaf: no copy, no store,
- * only props (D-703).
+ * `inline` is a control hung off a line of prose (global.css `inline-control`);
+ * `pressed` is an option (FR-CTRL-2), drawn on `OptionToggle`'s box; `bare`
+ * the words without a box (the taps row's play glyph); `padded` a cell outside
+ * the box (the guide panel's close); `box="accent"` the screen's one primary
+ * action, with `fill` for the column's width, `tall` for a taller foot and
+ * `note` for the line under its label (FR-FIRST-2), in the group's two looks;
+ * `wrap` lets a label that is a place name break; `as="summary"` draws the
+ * error page's disclosure (FR-FAIL-5) as the same control. A primitive is a
+ * leaf: no copy, no store, only props (D-703).
  */
 type TextButtonTone = 'accent' | 'dim' | 'danger';
 
 export interface TextButtonOwnProps {
-  /** The words between the brackets. */
+  /** The control's words. */
   label: ReactNode;
   onClick?: ComponentProps<'button'>['onClick'];
   /** A disabled control reads in the dim ink (global.css `button:disabled`). */
   disabled?: boolean;
-  /** The words' ink: the accent (an action), the dim ink (a secondary action, the saved place's `×`), or the danger ink. */
+  /** The words' ink, `--fg` left out (FR-CTRL-1): the accent, the dim ink (a secondary action, the saved place's `×`), or the danger ink. */
   tone?: TextButtonTone;
-  /** A pressed text control (`aria-pressed`): bracketed in the accent when pressed, bare and dim when not — the sort row's and the compact speeds' form (D-705, FR-X-5). */
+  /** An option (`aria-pressed`): the dim word when off, `--bg` on a block of `--fg` when on (FR-CTRL-2, FR-X-5). */
   pressed?: boolean;
-  /** With `pressed`: brackets without their spaces, `[60×]` — the compact speeds' 19-cell row (D-245). */
-  tight?: boolean;
   /** Hung off a line of prose: the 48 px box as padding and a matching negative margin (global.css `inline-control`), so the line does not grow. */
   inline?: boolean;
-  /** The words without their brackets, for the one row whose budget buys them off (the compact live actions row's share, D-411). */
+  /** The words without a box, for a glyph that stands in a cell of its own (the compact taps row's play, D-911). */
   bare?: boolean;
-  /** A cell of padding inside at each side and a `--tap` floor on the width: a control standing clear of a heading beside it (the guide panel's `[ × ]`). */
+  /** A cell outside the box at each side and a `--tap` floor on the width: a control standing clear of a heading beside it. */
   padded?: boolean;
-  /** A bordered control: `edge` is the sheet's own box (`--border-control`), `accent` the home's primary action in the accent's border (board 1B). */
-  box?: 'edge' | 'accent';
+  /** The box's edge: `plain` is `--control-edge` (left out, the same), `accent` the primary form, one per screen at most (FR-CTRL-1). */
+  box?: 'plain' | 'accent';
   /** With `box`: the width of the column it stands in. */
   fill?: boolean;
   /** With `box="accent"`: the when step's foot action, 56 px tall (board 1B). */
@@ -57,7 +50,7 @@ export interface TextButtonOwnProps {
   look?: 'boxed' | 'plain';
   /** A label that may break anywhere (a saved place's name) rather than widening its row. */
   wrap?: boolean;
-  /** The element: a `<button>`, or the `<summary>` of a `<details>` drawn as the same control (the error page's `[ details ]`). */
+  /** The element: a `<button>`, or the `<summary>` of a `<details>` drawn as the same control (the error page's details). */
   as?: 'button' | 'summary';
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
@@ -65,23 +58,21 @@ export interface TextButtonOwnProps {
 
 export type TextButtonProps = TextButtonOwnProps & Omit<ComponentProps<'button'>, keyof TextButtonOwnProps | 'children' | 'style' | 'type'>;
 
-const TONE: Record<TextButtonTone, string | undefined> = { accent: undefined, dim: styles.dim, danger: styles.danger };
-const BOX: Record<NonNullable<TextButtonOwnProps['box']>, string | undefined> = { edge: styles.edge, accent: styles.accent };
+const TONE: Record<TextButtonTone, string | undefined> = { accent: styles.inkAccent, dim: styles.dim, danger: styles.danger };
 
-export function TextButton({ label, tone = 'accent', pressed, tight = false, inline = false, bare = false, padded = false, box, fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
+export function TextButton({ label, tone, pressed, inline = false, bare = false, padded = false, box = 'plain', fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
   const noteId = useId();
   const hasNote = note !== undefined;
-  // One root class per form, because `tests/styles/cells.ts` reads the brackets a class draws off this
-  // stylesheet by class name and state; an element carries exactly one of them.
-  const plain = hasNote ? styles.boxedNote : bare ? styles.bare : styles.textButton;
-  const root = pressed === undefined ? plain : tight ? styles.toggleTight : styles.toggle;
+  // One root class per form: an element carries exactly one of them, and only the boxed ones have a span inside.
+  const root = pressed !== undefined ? styles.toggle : hasNote ? styles.boxedNote : bare ? styles.bare : styles.textButton;
+  const boxClass = pressed !== undefined ? optionStyles.optionBox : bare ? undefined : styles.buttonBox;
   const classes = [
     root,
-    TONE[tone],
+    tone === undefined ? undefined : TONE[tone],
     inline ? 'inline-control' : undefined,
     inline ? styles.inline : undefined,
     padded ? styles.padded : undefined,
-    box === undefined ? undefined : BOX[box],
+    box === 'accent' ? styles.accent : undefined,
     fill ? styles.fill : undefined,
     tall ? styles.tall : undefined,
     hasNote && look === 'plain' ? styles.plain : undefined,
@@ -93,13 +84,15 @@ export function TextButton({ label, tone = 'accent', pressed, tight = false, inl
     .join(' ');
   const content = hasNote ? (
     <>
-      <span className={styles.noteLabel}>{label}</span>
+      <span>{label}</span>
       <span id={noteId} className={styles.note}>
         {note}
       </span>
     </>
-  ) : (
+  ) : boxClass === undefined ? (
     label
+  ) : (
+    <span className={boxClass}>{label}</span>
   );
   if (as === 'summary') {
     // A `<summary>` has no disabled state: the attribute would do nothing and the control would still open (review of #173).

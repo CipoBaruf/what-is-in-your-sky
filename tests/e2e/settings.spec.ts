@@ -21,7 +21,7 @@ test.use({ viewport: COMPACT });
 /**
  * Whether every control on the row is on the same line as every other.
  *
- * Not "the same top": a bracketed text control carries a 48 px tap box around a
+ * Not "the same top": a text control carries a 48 px tap box around a
  * 24 px line (`inline-control`), so two controls that read as one line have
  * tops 12 px apart by design. What a *wrapped* row has instead is two boxes
  * that do not overlap vertically at all, which is what this asks.
@@ -40,7 +40,7 @@ async function fitsTheViewport(row: Locator): Promise<boolean> {
 }
 
 /**
- * Where a control's own text is drawn, rather than where its box is: a bracketed
+ * Where a control's own text is drawn, rather than where its box is: a text
  * control carries a 48 px tap box around a 24 px line, so the boxes of two things
  * that read as one line never agree (D-500, D-501).
  */
@@ -238,7 +238,7 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       for (const name of names) await expect(group.getByRole('button', { name })).toBeVisible();
       expect(await isOneLine(group)).toBe(true);
       expect(await fitsTheViewport(group)).toBe(true);
-      // The `[ ] ` mark is a ::before with a trailing space; a flex button would drop it (the phone showed `[ ]brillo`).
+      // The option box stands in the button as a word does (R206): a flex button would stretch it out of its line.
       const display = await page.getByTestId('settings-sun-glow').evaluate((el) => getComputedStyle(el).display);
       expect(display).not.toBe('flex');
       await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
@@ -365,10 +365,11 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     expect(settings.left).toBeGreaterThan(live.right);
     // R166 (FR-CLEAN-14, D-1007): the page links are `[ home ] [ live ] [ stars ]`; the current page is `BracketLink`'s
     // dim `aria-current` span, as `[ settings ]` is on its own page, and the accent rule under it is gone.
-    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, open: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
+    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, before: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
     expect(current.tag).toBe('SPAN');
     expect(current.line).toBe('none');
-    expect(current.open).toBe('"[ "');
+    // R206 (FR-CTRL-6, D-1226): a link is its word, with nothing written before it.
+    expect(current.before).toBe('none');
     expect(current.color).not.toBe(current.accent);
     // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]` opens the
     // whole form in place; the header's `[ settings ]` is the one link to #settings.

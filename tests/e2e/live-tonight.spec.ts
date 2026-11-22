@@ -96,8 +96,8 @@ for (const locale of ['en', 'es'] as const) {
       const card = page.getByTestId('live-card');
       await expect(card).toContainText(words.nothingUp);
       await expect(card.getByTestId('live-card-pass')).toHaveText(/ · \d\d:\d\d · (in|en) \d+ h \d\d min$/);
-      await expect(card.getByRole('button', { name: `[ ${words.seeNext} ]`, exact: true })).toBeFocused();
-      await expect(card.getByRole('button', { name: `[ ${words.seeNow} ]`, exact: true })).toBeVisible();
+      await expect(card.getByRole('button', { name: words.seeNext, exact: true })).toBeFocused();
+      await expect(card.getByRole('button', { name: words.seeNow, exact: true })).toBeVisible();
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
       expect(Math.abs((await shownOnTrack(page)) - MIDDAY), 'real time, a few seconds of the clock on').toBeLessThan(10_000);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
@@ -161,7 +161,7 @@ for (const locale of ['en', 'es'] as const) {
 
       // FR-TONIGHT-4: `[ next ]` lands a minute before the first rise after `t` — paused, as it was.
       const nextRise = ticks.filter((t) => t > dragged + TONIGHT_LEAD_MS).sort((a, b) => a - b)[0];
-      await page.getByRole('button', { name: `[ ${words.next} ]`, exact: true }).click();
+      await page.getByRole('button', { name: words.next, exact: true }).click();
       await page.clock.runFor(100);
       if (nextRise === undefined) {
         await expect(page.getByTestId('live-tap-next')).toBeDisabled();
@@ -171,14 +171,14 @@ for (const locale of ['en', 'es'] as const) {
       }
 
       // `[ tonight ]` goes to tonight's first visible pass and plays (FR-TONIGHT-4).
-      await page.getByRole('button', { name: `[ ${words.tonight} ]`, exact: true }).click();
+      await page.getByRole('button', { name: words.tonight, exact: true }).click();
       await page.clock.runFor(100);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
       expect(await shownOnTrack(page)).toBeGreaterThanOrEqual(landing);
       expect(await shownOnTrack(page)).toBeLessThan(landing + 5 * 60_000);
 
       // FR-TONIGHT-4 as amended (US-42 AC2): `[ now ]` returns to real time, stopped, the bare route; the sheet stays open.
-      await page.getByRole('button', { name: `[ ${words.now} ]`, exact: true }).click();
+      await page.getByRole('button', { name: words.now, exact: true }).click();
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
       await expect(page.getByTestId('live-tap-now')).toBeDisabled();
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
@@ -197,7 +197,7 @@ for (const locale of ['en', 'es'] as const) {
       await openLiveAtMidday(page, locale);
       const words = WORDS[locale];
       await cardAsked(page);
-      await page.getByRole('button', { name: `[ ${words.seeNow} ]`, exact: true }).click();
+      await page.getByRole('button', { name: words.seeNow, exact: true }).click();
       await expect(page.getByTestId('live-card')).toHaveCount(0);
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');

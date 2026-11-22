@@ -39,13 +39,23 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **A plain local build fails the lore specs.** CI builds with `VITE_MOON_LORE=on`; `npm run e2e` does too. A bare `npm run build` plus `playwright test` leaves `moon.spec.ts` and both `moon-captures.spec.ts` cases red on the missing tradition line, which is not a regression. `npm run e2e -- <spec>` rebuilds with the flag and runs one spec.
 - **A full `npm run e2e` rewrites committed captures.** Roughly 60 files under `docs/screenshots/r32..r77-*`, pictures of old layouts whose diff says nothing. Restore them from `git diff --name-only -- docs/screenshots` with `git show HEAD:<path>`, and add only the task's own files.
 - **Wait for a settled page before a capture.** `[aria-busy="true"]` at count 0 (the search is done), `getByTestId('readiness')` visible (the finished run has been *stored*, a beat later), and one capture per test (`clock.install` works once per page and init scripts accumulate).
-- **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test, and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
+- **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test and its landmark test at 1280 px (the live page's `h1` not yet there: 6 of 80 repeats at `c5df401e`, 2026-11-22), and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
 - **Headless driver sessions refuse some shell shapes**: `VAR=1 cmd` and `env X=1 cmd`, `rm`, `git checkout`/`restore`/`worktree`, redirects outside the worktree, `for` loops over a variable, `$?`, a `-m` body with a newline then `#`, and `.claude/` edits (an unanswerable prompt).
   Work round them with a `.cjs` or `node -e` that sets `process.env` and uses `child_process.execFileSync`, `fs.cpSync` and `fs.writeFileSync`, and with a wrapper config under `sdd-run/` (see *captures*).
   Check `git status --short` after a batch: a refused commit is easy to miss.
 - **Do not run prettier here.** There is no config, and it rewrites the files to double quotes and 80 columns.
 - **Lint after the last edit.** `eslint .` also lints `sdd-run/` and `node_modules/.cache/`, and `consistent-type-definitions` fails on a `type X = {}` inside a function. CI catches it 34 s in.
 - **A task session cannot add npm dependencies.** There is no network and every session runs `npm ci`; the owner installs the package first.
+- **A control's hit box and its drawn box are two elements (D-1226, D-1247).**
+  The button is the hit box and the `<span>` inside is the box, so `getByText` and a click's `event.target` are the span: read a control with `closest('button')`, and measure a target on `getByRole`.
+  A caller's CSS that styles `.row span` reaches the box: select by class.
+  *Why:* R206, 2026-11-22.
+- **An alias token resolves where it is declared.**
+  `--on-ground: var(--fg)` in `:root` is already the root theme's colour when a nested themed element inherits it, so an element that sets a theme below the root restates every alias (`dev/primitives.css`'s `.theme`).
+  The app sets its theme on the root and needs nothing.
+  *Why:* R206; the gallery's night column had the dark theme's borders.
+- **An option's accessible name is its word.**
+  There is no `[x]` or `[ … ]` to match since R206: name it with `exact: true` (`60×` is a substring of `600×`) or by `data-option`, and read its state from `aria-pressed`.
 
 ## captures
 

@@ -46,7 +46,8 @@ Decision blocks (§16.2): R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253.
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
 R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-1306, R226 D-1307..D-1308, R227 D-1309..D-1311.
 
-- [ ] **R206 — The controls' look lives in the design system**
+- [x] **R206 — The controls' look lives in the design system**
+  - **Done 2026-11-22:** the footer's one line holds no primitive and measured the same as on the parent, so its literals stand; the mouse's drag hint now fits beside the controls; D-1247..D-1249.
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 500

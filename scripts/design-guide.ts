@@ -31,7 +31,7 @@ const SECTION_TEXT: Record<Exclude<Section, 'night' | 'colour'>, { title: string
   grid: { title: 'Grid', text: 'The source every other length is written from: one character advance (`--cell`), one text row (`--row`), the tap floor and the hairline a rule is drawn with.' },
   space: { title: 'Space', text: 'The vertical scale, each step a share of the row, so what sits between two blocks is a whole number of quarter rows. Horizontal space is in cells (`calc(2 * var(--cell))`) and has no scale. `--space-block` is board 1B’s block gap, kept at its value beside the scale (OQ-37).' },
   type: { title: 'Type', text: 'Every size-and-line-height pair in use, named for the role of the element that sets it and never for the size, so a later collapse of the ladder (OQ-37) is a value change and not a rename. The chart’s sizes are in px on purpose: the drawings do not scale with the base (OQ-38).' },
-  edges: { title: 'Edges', text: 'The plain-character borders, the three radii, the one focus ring (`global.css`’s `:focus-visible`, D-704) and the bold weight.' },
+  edges: { title: 'Edges', text: 'The plain-character borders, the three radii, the one focus ring (`global.css`’s `:focus-visible`, D-704), the bold weight, and the control tokens (FR-DS-10): what every control reads, each an alias, written once for both themes. A change of a control’s look is a change of these values or of one primitive.' },
   layers: { title: 'Layers', text: 'Every `z-index` in the tree, named for what stands at it. A module names the level and never writes the number.' },
 };
 
@@ -100,7 +100,7 @@ function colourTable(colour: SheetSection, night: SheetSection, notes: Map<strin
 }
 
 function primitiveBlock(primitive: PrimitiveEntry): string[] {
-  const lines = [`### \`${primitive.name}\``, '', `${code(`${PRIMITIVES_DIR}/${primitive.file}`)} — ${primitive.when}`, '', '| Prop | Type | What it does |', '|---|---|---|'];
+  const lines = [`### \`${primitive.name}\``, '', `${code(`${PRIMITIVES_DIR}/${primitive.file}`)} — ${primitive.when}`, '', `States: ${primitive.states.join(', ')}.`, '', '| Prop | Type | What it does |', '|---|---|---|'];
   for (const prop of primitive.props) lines.push(`| ${code(prop.name)} | ${code(cell(prop.type))} | ${cell(prop.text)} |`);
   return lines;
 }
@@ -121,7 +121,7 @@ const RULES = `## The rules
 - a \`z-index\` written as a number;
 - an \`outline\` rule other than \`outline-offset: var(--focus-offset-tight)\` — the ring is \`global.css\`'s alone;
 - a \`font-family\` that is not \`var(--font-mono)\`;
-- a \`::before\`/\`::after\` whose \`content\` is \`"[ "\` or \`" ]"\` outside \`src/ui/components/primitives/\` — the brackets are the control primitives';
+- a \`::before\`/\`::after\` whose \`content\` is \`"[ "\` or \`" ]"\` outside \`src/ui/components/primitives/\` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11);
 - in a \`.tsx\` file, an inline \`style\` whose value is a colour or a length literal (a custom property and a number measured at runtime are allowed).
 
 The exceptions are in \`tests/styles/literals.allow.json\`, one entry per file with its count and its reason. A count may only go down, and an entry whose count reaches zero is removed. A length a module needs is a token above or a cell count; a colour is a token; a stacking level is a layer.
@@ -132,7 +132,7 @@ Every length in an \`@media\` or \`@container\` condition is one of \`src/lib/la
 
 ### A prop, never an override (FR-DS-4)
 
-The primitives above are the only place a control is styled. A feature module may place a primitive — a grid area, a margin from the space scale — and may not set its colour, its font, its border, its padding or its brackets. A feature component that wants a different control asks for a prop, and the prop is added to the primitive for every module that needs it, never as a local override. A feature component composes primitives and keeps its own file and name (\`FailureLine\` renders a \`Line\`, \`PassCard\` a \`Card\`, \`SortToggle\` a \`ToggleGroup\`, \`CoordsInput\` a \`Field\`), which is what keeps its tests and its captures unchanged. The primitives are leaves: they import React, their own module and each other, and nothing of the app — no store, no copy, no behaviour (D-703).
+The primitives above are the only place a control is styled. A feature module may place a primitive — a grid area, a margin from the space scale — and may not set its colour, its font, its border or its padding. A feature component that wants a different control asks for a prop, and the prop is added to the primitive for every module that needs it, never as a local override. A feature component composes primitives and keeps its own file and name (\`FailureLine\` renders a \`Line\`, \`PassCard\` a \`Card\`, \`SortToggle\` a \`ToggleGroup\`, \`CoordsInput\` a \`Field\`), which is what keeps its tests and its captures unchanged. The primitives are leaves: they import React, their own module and each other, and nothing of the app — no store, no copy, no behaviour (D-703).
 
 ### How a redesign lands (FR-DS-9)
 
@@ -175,12 +175,12 @@ export function renderGuide(css: string, primitives: readonly PrimitiveEntry[] =
   }
   lines.push('### Colour', '', 'Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥ b`, within 30° of red), so in night mode the status inks differ by lightness and not by hue, and colour is never the only channel (FR-X-5).', '', ...colourTable(section('colour'), section('night'), notes), '');
 
-  lines.push('## The primitives', '', `\`${PRIMITIVES_DIR}/\`: one component, one module and one manifest row each (\`${MANIFEST_PATH}\`, D-703). Every control is \`--tap\` tall. Each one's \`className\` is placement only — a grid area or a margin from the space scale — and nothing else may be set from outside.`, '');
+  lines.push('## The primitives', '', `\`${PRIMITIVES_DIR}/\`: one component, one module and one manifest row each (\`${MANIFEST_PATH}\`, D-703). Every control’s hit box is \`--tap\` tall; its drawn box is \`--control-h\` (D-1226). Each one's \`className\` is placement only — a grid area or a margin from the space scale — and nothing else may be set from outside.`, '');
   for (const primitive of primitives) lines.push(...primitiveBlock(primitive), '');
 
   lines.push(RULES);
 
-  lines.push('## The dev page', '', `\`dev/primitives.html\` renders every primitive in every state and tone, both themes side by side, and is served by \`npm run dev\` only — \`vite build\` never sees it. \`npm run design:captures\` shoots it under \`playwright.design.config.ts\` at 390 and 1280 px, one file per theme, into \`docs/screenshots/design/\`; \`.github/workflows/captures.yml\` re-shoots them after the release set, so they join the set's diff.`, '');
+  lines.push('## The dev page', '', `\`dev/primitives.html\` renders every primitive in every state (FR-DS-13) and tone, both themes side by side — hover and focus forced by the capture spec — and is served by \`npm run dev\` only — \`vite build\` never sees it. \`npm run design:captures\` shoots it under \`playwright.design.config.ts\` at 390 and 1280 px, one file per theme, into \`docs/screenshots/design/\`; \`.github/workflows/captures.yml\` re-shoots them after the release set, so they join the set's diff.`, '');
   for (const width of [390, 1280]) {
     for (const theme of ['dark', 'night']) {
       const file = `design-primitives-${String(width)}-${theme}.png`;

@@ -5,7 +5,7 @@
  * `App.structure.test.tsx` holds the same per screen in jsdom; this is where the widths, the stored run and
  * the real history are.
  */
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { test } from '@playwright/test';
 import { ROW_PX } from '../../src/lib/layout';
 import { domeDrawn, seedStoredRun, STORED_RUN, type StoredRun } from './liveHelpers';
@@ -303,6 +303,30 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
   });
 });
 
+/** FR-CTRL-17, D-1247: the box overhangs Back's line by a hairline, and the ring's inner edge is outside it on every side. */
+async function expectRingOutsideBox(back: Locator): Promise<void> {
+  const covered = await back.evaluate((element) => {
+    const box = element.querySelector('span');
+    if (!box) throw new Error('Back has no box');
+    const line = element.getBoundingClientRect();
+    const drawn = box.getBoundingClientRect();
+    const offset = parseFloat(getComputedStyle(element).outlineOffset);
+    return Math.max(line.top - drawn.top, drawn.bottom - line.bottom, line.left - drawn.left, drawn.right - line.right) - offset;
+  });
+  expect(covered, 'the ring covers none of the box').toBeLessThanOrEqual(0.1);
+}
+
+test("the header's Back keeps its box inside the ring, Settings at 360 px (FR-CTRL-17)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await seedStoredRun(page, { settled: true });
+  await page.evaluate(() => {
+    location.hash = '#settings';
+  });
+  const back = page.getByTestId('settings-back');
+  await expect(back).toBeFocused();
+  await expectRingOutsideBox(back);
+});
+
 /**
  * F-100 (V21-24, D-642; FR-A11Y-4, FR-X-5): entering `#live` focuses Back, and with no pointer or key yet pressed
  * the browser draws that as `:focus-visible`. The ring goes round the text line, not the 48 px tap box, so it stays
@@ -342,6 +366,7 @@ for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 4
     const focusedBoxes = await boxes();
     const ring = await back.boundingBox();
     expect(ring?.height, 'the ring is drawn round the text line, not the tap box').toBeLessThanOrEqual(ROW_PX);
+    await expectRingOutsideBox(back);
     await back.evaluate((element) => {
       (element as HTMLElement).blur();
     });

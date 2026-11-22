@@ -33,7 +33,8 @@ const ZONE = 'America/Argentina/Salta';
 const LONGEST = { hours: 23, minutes: 59 };
 
 export function tapsRows(m: Messages): CountedRow[] {
-  const taps = (glyph: string): string => `${glyph} [ ${m.live.tap.tonight} ] [ ${m.live.tap.next} ] [ ${m.live.tap.now} ]`;
+  // R206 (FR-CTRL-1): a button is its words and the cell each side that holds its edge, drawn here as `│`.
+  const taps = (glyph: string): string => `${glyph} │${m.live.tap.tonight}│ │${m.live.tap.next}│ │${m.live.tap.now}│`;
   return [
     { name: 'taps, paused (▶)', text: taps(m.live.playShort), cells: taps(m.live.playShort).length },
     { name: 'taps, playing (‖)', text: taps(m.live.pauseShort), cells: taps(m.live.pauseShort).length },

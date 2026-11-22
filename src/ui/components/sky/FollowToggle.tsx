@@ -14,8 +14,8 @@ export interface FollowToggleProps {
 }
 
 /**
- * R151 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-3; US-44 AC1, AC2; PLAN D-943): `[ ] follow the phone` /
- * `[ ] seguir el teléfono` — one `OptionToggle` standing alone that lets the page's own window follow the phone.
+ * R151 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-3; US-44 AC1, AC2; PLAN D-943): `follow the phone` /
+ * `seguir el teléfono` — one `OptionToggle` standing alone that lets the page's own window follow the phone.
  *
  * It is drawn only where FR-WIN-4's presence test passes (`follow.sensor`: the constructor and a touch screen);
  * elsewhere it renders nothing and nothing else changes. R159 (FR-PHONE-1, FR-PHONE-2, D-962): the state is the page's

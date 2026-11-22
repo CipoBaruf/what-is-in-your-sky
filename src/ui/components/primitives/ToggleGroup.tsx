@@ -1,6 +1,5 @@
 import type { KeyboardEvent } from 'react';
 import { OptionToggle } from './OptionToggle';
-import { TextButton } from './TextButton';
 import styles from './ToggleGroup.module.css';
 
 /**
@@ -15,13 +14,9 @@ import styles from './ToggleGroup.module.css';
  * stop, and the arrow keys choose. In both the arrow keys move between the
  * options and wrap.
  *
- * `mark` is how the pressed option is told from the others (FR-X-5): `check`
- * is `[x] option` / `[ ] option` (an `OptionToggle` each); `bracket` is the
- * sort row's `Sort: [ Soonest ] Best` (FR-FIRST-10), the pressed option
- * bracketed and the others bare; `tight` the compact speeds' `1× [60×] 600×`
- * (D-245) — the last two are `TextButton`s with `pressed`, which is where the
- * brackets are drawn (D-704). `gap="none"` is the wide speeds' row, 34 cells
- * with no gap between the options (D-172).
+ * R206 (FR-CTRL-3): every set is FR-CTRL-2's look, an `OptionToggle` each, the
+ * options a quarter cell apart; `dense` alone keeps the half cell of hit area
+ * each side of a point in its place.
  */
 interface ToggleGroupOption<T extends string> {
   value: T;
@@ -38,9 +33,9 @@ export interface ToggleGroupProps<T extends string> {
   onChange: (value: T) => void;
   /** `group` (pressed buttons, the default) or `radiogroup` (radios, one tab stop, arrows choose). */
   role?: 'group' | 'radiogroup';
-  /** How the pressed option is marked: `[x]` (`check`), bracketed (`bracket`), bracketed without spaces (`tight`). */
+  /** The marks of before FR-CTRL-3, which draw one look now; callers still name them. */
   mark?: 'check' | 'bracket' | 'tight';
-  /** The space between options: a cell, or none where each option's own trailing cell is the whole gap (the wide speeds). */
+  /** The spacings of before FR-CTRL-3, which are a quarter cell now; callers still name them. */
   gap?: 'cell' | 'none';
   /**
    * R121 (FR-FSC-6 as amended v2.5, D-834): each option's line is one text row with its 48 px box as padding and a
@@ -60,7 +55,7 @@ export interface ToggleGroupProps<T extends string> {
 
 const STEP: Record<string, 1 | -1> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
-export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', mark = 'check', gap = 'cell', inline = false, dense = false, className }: ToggleGroupProps<T>) {
+export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', inline = false, dense = false, className }: ToggleGroupProps<T>) {
   const radio = role === 'radiogroup';
   const choose = (next: T): void => {
     if (next !== value) onChange(next);
@@ -79,7 +74,7 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
     if (radio) choose(next.value);
   };
   return (
-    <div role={role} aria-label={name} className={[styles.group, gap === 'none' || dense ? styles.noGap : undefined, dense ? 'target-row' : undefined, className].filter(Boolean).join(' ')} onKeyDown={onKeyDown}>
+    <div role={role} aria-label={name} className={[styles.group, dense ? styles.noGap : undefined, dense ? 'target-row' : undefined, className].filter(Boolean).join(' ')} onKeyDown={onKeyDown}>
       {prefix && (
         <span className={styles.prefix} aria-hidden="true">
           {prefix}
@@ -94,11 +89,7 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
           'data-option': option.value,
           ...(radio ? { role: 'radio' as const, tabIndex: stop ? 0 : -1 } : {}),
         };
-        return mark === 'check' ? (
-          <OptionToggle key={option.value} {...shared} target={!dense} inline={inline} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />
-        ) : (
-          <TextButton key={option.value} {...shared} {...(dense ? {} : { className: 'target' })} inline={inline} tight={mark === 'tight'} label={option.label} onClick={() => choose(option.value)} />
-        );
+        return <OptionToggle key={option.value} {...shared} target={!dense} inline={inline} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />;
       })}
     </div>
   );

@@ -21,7 +21,7 @@ const layer = (page: Page, key: string): Locator => page.getByTestId('stars-laye
 const sky = (page: Page): Locator => page.getByTestId('stars-sky');
 const windowRoot = (page: Page): Locator => sky(page).locator('[data-look-az]');
 const viewButton = (page: Page, name: string): Locator => page.getByTestId('stars-view-row').getByRole('button', { name, exact: true });
-// The options' names carry their `[x]` mark, so they are found by value.
+// The options are found by value, whatever the language's word.
 const turnButton = (page: Page, value: 'you' | 'stars'): Locator => page.getByTestId('globe-turn-row').locator(`[data-option="${value}"]`);
 // v2.14.1 (D-1138, V214-34): the playback row's speeds, found by rate.
 const speedButton = (page: Page, speed: number): Locator => page.getByTestId('stars-time').getByTestId('playback-controls').locator(`[data-option="${String(speed)}"]`);

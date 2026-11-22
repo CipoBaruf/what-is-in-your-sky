@@ -77,9 +77,7 @@ export function ShareButton({ url, title, text, label, ariaLabel }: ShareButtonP
 
   return (
     <Cluster as="p">
-      {/* R104 (D-704): the sheet's bordered box (global.css `button`), which the live page's compact and folded rows strip to text. */}
       <TextButton
-        box="edge"
         label={label ?? t.share.pass}
         {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
         onClick={() => {

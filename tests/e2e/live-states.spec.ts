@@ -16,7 +16,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { backToLive, closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
-const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
+const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: `${String(factor)}×`, exact: true });
 
 /** The shown instant, as the stripe's slider value says it — the stripe is the scrubbing state's. */
 const shown = async (page: Page): Promise<number> => Number(await page.getByTestId('time-stripe').getAttribute('aria-valuenow'));

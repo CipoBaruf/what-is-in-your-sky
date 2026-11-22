@@ -161,7 +161,7 @@ export const ui = {
     browser: 'This browser',
     /**
      * R75 (FR-SET-1): the disclosure beside `[ Use my location ]` that opens the coordinate and altitude fields.
-     * Lower case, like the other bracketed text controls; the row is 35 of FR-COMP-4's 36 cells.
+     * Lower case, like the other text controls, whose box is two cells (R206); `controlRows.test.ts` holds the row to FR-COMP-4's 36.
      */
     coordinates: 'coordinates',
     /**
@@ -383,8 +383,8 @@ export const ui = {
     /** FR-FIRST-10 (R81, D-510): the count, which shares its line with the sort. */
     countLine: (p: { count: number; hours: number }) => `${String(p.count)} visible passes in ${String(p.hours)} h`,
     /**
-     * FR-FAINT-2 (R97): the control after the count, `[ show 12 faint ]` / `[ hide 12 faint ]` (the brackets
-     * are the control's own), and the same control after `[<n> more tonight]` on the phone's third step.
+     * FR-FAINT-2 (R97): the control after the count, `show 12 faint` / `hide 12 faint` (the box
+     * is the control's own), and the same control after `[<n> more tonight]` on the phone's third step.
      */
     faintToggle: (p: { shown: boolean; count: number }) => `${p.shown ? 'hide' : 'show'} ${String(p.count)} faint`,
     /** FR-FAINT-2: the tag on a shown faint pass's third line. */
@@ -482,8 +482,8 @@ export const ui = {
     /**
      * R50 (FR-DESK-3 as amended, F-6): between the wide breakpoint and the
      * width where both fit, the guide has the right column to itself and this
-     * is what brings the list back. One word, bracketed by the stylesheet like
-     * every other control.
+     * is what brings the list back. One word, boxed by the primitive like
+     * every other control (R206).
      */
     toList: 'list',
     /**

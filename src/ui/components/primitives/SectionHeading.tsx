@@ -16,10 +16,9 @@ export interface SectionHeadingProps {
   id: string;
   children: ReactNode;
   /**
-   * R76 (board 1B): the home's pane headings. `active` draws the leading rule
-   * and the title in the accent (the reading the reader is on), `muted` both in
-   * `--fg-dim` (a pane that is not there yet); either way the trailing rule is
-   * `--rule`, a line and not a word. Left out, the heading is as it always was.
+   * R76 (board 1B): the home's pane headings. `active` draws the title in
+   * the accent (the reading the reader is on), `muted` in `--fg-dim` (a pane
+   * that is not there yet); the rules are the accent in every tone (FR-CTRL-6).
    */
   tone?: 'active' | 'muted';
   /**

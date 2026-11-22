@@ -9,6 +9,15 @@
 }
 
 .theme {
+  /* An alias is resolved where the sheet declares it, on :root, so a column of the other theme restates each one that
+     names a colour; the app switches the theme on :root itself and needs none of this. */
+  --border: var(--hairline) solid var(--rule);
+  --border-control: var(--hairline) solid var(--edge);
+  --control-edge: var(--border-control);
+  --on-ground: var(--fg);
+  --on-ink: var(--bg);
+  --hover-ground: var(--bg-raised);
+  --mark: var(--accent);
   background: var(--bg);
   color: var(--fg);
   padding: var(--space-3) calc(2 * var(--cell)) var(--space-5);
@@ -45,6 +54,14 @@
   color: var(--fg-dim);
   font-size: var(--small);
   line-height: var(--small-row);
+}
+
+/* The states of a primitive, side by side where they fit (FR-DS-13). */
+.states {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(26 * var(--cell))), 1fr));
+  gap: var(--space-2) var(--cell);
+  padding-bottom: var(--space-2);
 }
 
 .caption::before {

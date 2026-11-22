@@ -38,11 +38,11 @@ import styles from './Header.module.css';
  * only while no place is known (the inert page).
  *
  * **Wide.** One row on every page: `[ ← ]` on a sub-page, the mark and the
- * title, the page links `[ home ] [ live ] [ satellites ] [ stars ]` one cell apart (v2.14.1, FR-CLEAN-14 as
+ * title, the page links `home live satellites stars` one cell apart (v2.14.1, FR-CLEAN-14 as
  * amended, D-1134: the pass page is one of them, its link the pass up now or the span's next) — R166
  * (FR-CLEAN-14): `BracketLink`s, the current one the primitive's dim
- * `aria-current` span, as `[ settings ]` is on its own page — the context on a
- * sub-page, and `[ settings ]` at the row's right end. The tagline is the home's only, under the row. The
+ * `aria-current` span, as `settings` is on its own page — the context on a
+ * sub-page, and `settings` at the row's right end. The tagline is the home's only, under the row. The
  * language and theme switches are the settings page's alone (FR-COMP-2,
  * V26-10), on both widths.
  *
@@ -168,8 +168,8 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   // R186 (FR-WIDE-1): the wide pass page names itself by the pass's h1 in its rail, as the stars page does.
   const Title = page === 'home' || page === 'settings' ? 'h1' : 'p';
   /*
-   * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `[ home ] [ live ] [ stars ]`, so they read
-   * as the controls they are, like `[ settings ]`; the current page is the primitive's dim `aria-current` span.
+   * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `home live stars`, underlined (R206, FR-CTRL-11), so they read
+   * as the links they are, like `settings`; the current page is the primitive's dim `aria-current` span.
    */
   const navLink = (target: (typeof NAV_PAGES)[number]): ReactNode => {
     const label = t.header.pages[target];
