@@ -15,11 +15,11 @@ export const LOOP_SLEEP_MAX_MS = 7 * 24 * 60 * 60_000;
 /** The sleep when a limit ended a task with no reset time to read. */
 export const LOOP_UNKNOWN_RESET_MS = 60 * 60_000;
 /** Waves in a row with nothing merged and the same failures before the loop stops. */
-export const LOOP_STALLS_MAX = 2;
+const LOOP_STALLS_MAX = 2;
 /** D-1317: how many times a task the token ceiling killed is resumed before the loop skips it. */
-export const LOOP_BUDGET_RETRIES = 2;
+const LOOP_BUDGET_RETRIES = 2;
 /** D-1317: identical failures in a row before the loop skips a task. */
-export const LOOP_SAME_FAILURES = 2;
+const LOOP_SAME_FAILURES = 2;
 
 /** What one wave left, as the loop reads it. */
 export interface WaveResult {

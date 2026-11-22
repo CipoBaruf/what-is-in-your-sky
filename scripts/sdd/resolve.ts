@@ -8,12 +8,12 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Files a generator writes; whichever side is checked out, the generators rewrite them. */
-export const GENERATED_FILES = ['docs/sdd/ids.md', 'docs/sdd/reference/traceability.md', 'docs/sdd/map.md'] as const;
+const GENERATED_FILES = ['docs/sdd/ids.md', 'docs/sdd/reference/traceability.md', 'docs/sdd/map.md'] as const;
 /** The sorted i18n key snapshot, rewritten by `vitest -u` on its test. */
-export const I18N_SNAPSHOT = 'src/i18n/__snapshots__/messages.test.ts.snap';
+const I18N_SNAPSHOT = 'src/i18n/__snapshots__/messages.test.ts.snap';
 const PLAN_DOC = /^docs\/sdd\/phases\/[^/]+\/plan\.md$/;
 
-export type SharedKind = 'plan' | 'generated' | 'snapshot';
+type SharedKind = 'plan' | 'generated' | 'snapshot';
 
 /** Which kind of shared file `path` is, or `null` for any other file. */
 export function sharedKind(path: string): SharedKind | null {

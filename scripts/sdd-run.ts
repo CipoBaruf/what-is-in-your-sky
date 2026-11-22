@@ -43,6 +43,8 @@ const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
 const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000 };
+/** D-1318: a fix session's own caps, whatever the task's `Turns:` scales the implementation to. */
+const FIX = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 /** D-1316: how many times one task brings its PR up to date with a moved base before it gives up. */
 const MAX_REFRESHES = 3;
 /** D-132: each concurrent task gets its own `vite preview` port, so no session's e2e runs against another's build. `E2E_PORT` in the driver's own environment moves the base, for a `--task` run beside a wave. */
@@ -404,6 +406,7 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   report.pr = pr;
 
   // FR-SDD-16 (`--fix`): at most one fix session per task run, on the digest or on the findings.
+  // FR-SDD-16, D-1318: up to two fix sessions a task run, one on a red CI run and one on review findings.
   let fixed = false;
   // D-1312: the head the last green watch saw; the merge names it, so a push after CI cannot land unchecked.
   let checkedHead: string | null = null;
@@ -422,15 +425,15 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
     const digest = await failureDigest(dir, pr, task.branch, logger);
     if (digest === null) return finish('failed', 'CI is red, no digest');
     fixed = true;
-    if (await runFix(context, brief, limits.implement, { findings: [], digest }, ran)) verdict = await watch();
+    if (await runFix(context, brief, FIX, { findings: [], digest }, ran)) verdict = await watch();
     if (verdict === 'timeout') return ciTimeout();
   }
   if (verdict !== 'green') return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
 
   // D-1065: the tier comes from the final diff, after any fix session pushed.
   let reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
-  if (options.fix && !fixed && reviewed.findings !== null && reviewed.findings.count > 0) {
-    if (await runFix(context, brief, limits.implement, { findings: reviewed.findings.lines, digest: null }, ran)) {
+  if (options.fix && reviewed.findings !== null && reviewed.findings.count > 0) {
+    if (await runFix(context, brief, FIX, { findings: reviewed.findings.lines, digest: null }, ran)) {
       const after = await watch();
       if (after === 'timeout') return ciTimeout();
       if (after !== 'green') return finish('failed', 'CI is red after the fix session');

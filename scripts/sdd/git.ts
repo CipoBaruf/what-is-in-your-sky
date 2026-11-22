@@ -322,7 +322,7 @@ export type ChecksVerdict = 'green' | 'red' | 'timeout';
 export const checksVerdict = (result: ExecResult): ChecksVerdict => (result.code === 0 ? 'green' : result.code === 124 ? 'timeout' : 'red');
 
 /** The commit the PR's head points at, or `null` when `gh` cannot say. */
-export async function pullRequestHead(dir: string, pr: number, logger: Logger): Promise<string | null> {
+async function pullRequestHead(dir: string, pr: number, logger: Logger): Promise<string | null> {
   const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
   const sha = head.stdout.trim();
   return ok(head) && sha !== '' ? sha : null;
