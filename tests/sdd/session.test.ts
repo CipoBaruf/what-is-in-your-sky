@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { spawn } from 'node:child_process';
 import { limitFromText, loadAgents, pickAgent } from '../../scripts/sdd/agents';
 import { readLedger } from '../../scripts/sdd/ledger';
-import { limitFromEvent } from '../../scripts/sdd/parsers';
+import { limitFromEvent, PARSERS } from '../../scripts/sdd/parsers';
 import type { Logger } from '../../scripts/sdd/report';
 import { limitNote, MAX_RESET_WAIT_MS, RESET_MARGIN_MS, resetWaitMs, runSession } from '../../scripts/sdd/session';
 
@@ -47,7 +47,23 @@ const MODEL_WEEKLY = JSON.parse(
 /** The same session's result sentence. */
 const MODEL_WEEKLY_TEXT = "You've reached your Fable limit. Switch to another model, or manage usage credits at https://claude.ai/settings/usage?from=cc_cli_limit_message, to continue.";
 
+/** As `claude -p --model fable` printed it on 2026-11-21: no window, a reset days away, and a credits error code. */
+const CREDITS = JSON.parse(
+  '{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1795000000,"errorCode":"credits_required","overageStatus":"rejected","isUsingOverage":false},"uuid":"00000000-0000-4000-8000-000000000000","session_id":"00000000-0000-4000-8000-000000000001"}',
+) as Parameters<typeof limitFromEvent>[0];
+const CREDITS_TEXT = 'Fable 5.2 requires usage credits. Switch to another model, or manage usage credits at https://claude.ai/settings/usage to continue.';
+
 describe('limitFromEvent', () => {
+  it('calls a credits_required refusal with no window model-only, so the next tier runs (D-1310)', () => {
+    expect(limitFromEvent(CREDITS, agent.limit)).toEqual({ window: null, resetsAt: 1795000000_000, accountWide: false });
+    expect(limitFromText(agent.limit, CREDITS_TEXT)).toMatchObject({ accountWide: false });
+    const windowless = { type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1795000000 } };
+    expect(limitFromEvent(windowless, agent.limit)?.accountWide).toBe(true);
+    const stdout = [JSON.stringify(windowless), JSON.stringify({ type: 'result', subtype: 'success', is_error: true, result: CREDITS_TEXT })].join('\n');
+    const parsed = PARSERS['stream-json'](stdout, 1, null, { limit: agent.limit, stderr: '' });
+    expect(parsed).toMatchObject({ outcome: 'limit', limit: { window: null, accountWide: false } });
+  });
+
   it('reads the rejected five-hour window and its reset, and calls it account-wide', () => {
     expect(limitFromEvent(EVENT, agent.limit)).toEqual({ window: 'five_hour', resetsAt: 1788646200_000, accountWide: true });
     expect(limitFromEvent({ ...EVENT, rate_limit_info: { ...EVENT.rate_limit_info, rateLimitType: 'seven_day' } }, agent.limit)?.accountWide).toBe(true);

@@ -82,7 +82,7 @@ describe('FR-SDD-10: the schema', () => {
 
 describe("FR-SDD-10: the claude entry's command line equals today's", () => {
   it('for each tier, the implementation and the review', () => {
-    const models = { hard: 'fable', standard: 'opus', light: 'sonnet' } as const;
+    const models = { hard: 'opus', standard: 'opus', light: 'sonnet' } as const; // D-1310: hard borrows opus while fable needs credits
     for (const tier of TIERS) {
       const model = agent.tiers[tier].model;
       expect(model).toBe(models[tier]);
@@ -99,8 +99,13 @@ describe("FR-SDD-10: the claude entry's command line equals today's", () => {
 });
 
 describe('FR-SDD-11: tiers', () => {
-  it('maps each model the entry knows to its tier, haiku through the aliases', () => {
+  it('maps each model the entry knows to its tier, fable and haiku through the aliases', () => {
     expect(modelTiers(agent)).toEqual({ fable: 'hard', opus: 'standard', sonnet: 'light', haiku: 'light' });
+  });
+
+  it('reads a model two tiers share as the lower tier (D-1310)', () => {
+    const shared = { ...agent, tiers: { hard: { model: 'opus' }, standard: { model: 'opus' }, light: { model: 'sonnet' } }, aliases: {} };
+    expect(modelTiers(shared)).toEqual({ opus: 'standard', sonnet: 'light' });
   });
 
   it('falls back hard → standard → light and stops there, as fable → opus → sonnet did', () => {

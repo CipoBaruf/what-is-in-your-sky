@@ -32,6 +32,8 @@ const tierEntry = z
     maxTurns: z.number().int().positive().optional(),
     /** FR-SDD-2: total tokens a session of this tier may spend; unset records overruns only. */
     tokenCeiling: z.number().int().positive().optional(),
+    /** Why the tier runs this model, for the reader of the file (D-1310); the driver ignores it. */
+    note: z.string().optional(),
   })
   .strict();
 
@@ -107,10 +109,13 @@ export function pickAgent(config: AgentsConfig, ...names: (string | null | undef
   return { name, ...entry };
 }
 
-/** FR-SDD-11: every model name the agent knows → its tier; the tiers' own models first, then the aliases. */
+/**
+ * FR-SDD-11: every model name the agent knows → its tier; the tiers' own models first, then the aliases.
+ * A model two tiers share reads as the lower one (D-1310: `hard` borrows opus while fable needs credits).
+ */
 export function modelTiers(agent: AgentEntry): Record<string, Tier> {
   const map: Record<string, Tier> = {};
-  for (const tier of TIERS) map[agent.tiers[tier].model] ??= tier;
+  for (const tier of TIERS) map[agent.tiers[tier].model] = tier;
   for (const [model, tier] of Object.entries(agent.aliases)) map[model] ??= tier;
   return map;
 }
