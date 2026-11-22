@@ -369,7 +369,7 @@
 | FR-COMP-7 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-states.spec.ts` |
 | FR-CTRL-1 | `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
 | FR-CTRL-2 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx` |
-| FR-CTRL-3 | `src/ui/components/primitives/ToggleGroup.test.tsx` |
+| FR-CTRL-3 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/ToggleGroup.test.tsx` |
 | FR-CTRL-6 | `src/ui/components/primitives/SectionHeading.test.tsx` |
 | FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
 | FR-CTRL-17 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx` |
