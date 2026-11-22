@@ -48,9 +48,11 @@ describe('the primitives manifest (D-703)', () => {
     expect(withBrackets.sort()).toEqual([]);
   });
 
-  it.each(PRIMITIVES.map((entry) => [entry.name, entry] as const))('FR-DS-13: %s names its states once each, rest first, and hover where its stylesheet has one', (name, entry) => {
-    expect(entry.states[0]).toBe('rest');
-    expect(new Set(entry.states).size).toBe(entry.states.length);
-    if (readFileSync(join(DIR, `${name}.module.css`), 'utf8').includes(':hover')) expect(entry.states).toContain('hover');
+  describe('the states the gallery and the guide read (FR-DS-13, D-1227)', () => {
+    it.each(PRIMITIVES.map((entry) => [entry.name, entry] as const))('%s names its states once each, rest first, and hover where its stylesheet has one', (name, entry) => {
+      expect(entry.states[0]).toBe('rest');
+      expect(new Set(entry.states).size).toBe(entry.states.length);
+      if (readFileSync(join(DIR, `${name}.module.css`), 'utf8').includes(':hover')) expect(entry.states).toContain('hover');
+    });
   });
 });

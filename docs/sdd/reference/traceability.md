@@ -393,6 +393,7 @@
 | FR-DS-6 | `tests/docs/design.test.ts` |
 | FR-DS-8 | `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/styles/tokens.test.ts` |
 | FR-DS-10 | `tests/styles/tokens.test.ts` |
+| FR-DS-13 | `src/ui/components/primitives/manifest.test.ts` |
 | FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx` |
 | FR-FACT-2 | `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/live.spec.ts` |
 | FR-FACT-3 | `src/lib/riseSet.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/stars.spec.ts` |
