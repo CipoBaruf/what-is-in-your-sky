@@ -117,6 +117,21 @@ describe('<PickRow> in its stylesheet', () => {
     expect(css).toMatch(/\.row:is\(:disabled, \[aria-disabled='true'\]\) \{\s*color: var\(--fg-dim\);\s*cursor: default;/);
   });
 
+  it('a hidden row, a button or a link, is off the page', () => {
+    render(
+      <>
+        <PickRow hidden picked={false} onPick={vi.fn()} data-testid="button">
+          ISS
+        </PickRow>
+        <PickRow hidden picked={false} href="#a" data-testid="link">
+          ISS
+        </PickRow>
+      </>,
+    );
+    for (const id of ['button', 'link']) expect(screen.getByTestId(id)).toHaveAttribute('hidden');
+    expect(css).toMatch(/\.row\[hidden\] \{\s*display: none;/);
+  });
+
   it('FR-CTRL-15: no frame, the raised ground on hover and picked, the 2 px mark at the left', () => {
     expect(css).toMatch(/\.row \{[^}]*border: 0;/);
     expect(css).toMatch(/\.row:is\(:hover, :active\):not\([^{]*\),\s*\.picked \{\s*background: var\(--hover-ground\)/);

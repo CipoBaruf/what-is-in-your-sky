@@ -22,6 +22,11 @@
   cursor: pointer;
 }
 
+/* `display: flex` would otherwise outrank the attribute, as on Stack. */
+.row[hidden] {
+  display: none;
+}
+
 .row:is(:hover, :active):not(:disabled, [aria-disabled='true']),
 .picked {
   background: var(--hover-ground);
