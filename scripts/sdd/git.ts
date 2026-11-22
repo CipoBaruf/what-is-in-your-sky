@@ -59,6 +59,8 @@ function exec(file: string, args: readonly string[], options: ExecOptions = {}):
     child.on('close', (code) => {
       if (timer) clearTimeout(timer);
       logger.raw(`exit ${String(code ?? -1)}: ${file} ${args.join(' ')}\n`);
+      // A failed call's stderr, when it was not streamed: the log is the only place it shows (a CI runner's git refusing to commit, say).
+      if (code !== 0 && !stream && stderr.trim()) logger.raw(`${stderr.trim().slice(-1000)}\n`);
       resolve({ code: timedOut ? 124 : (code ?? -1), stdout, stderr });
     });
   });
@@ -188,7 +190,7 @@ export async function rebaseOnto(dir: string, base: string, logger: Logger, io: 
   for (let stops = 0; !ok(result) && stops < MAX_RESOLVED_STOPS; stops += 1) {
     if (!(await resolveSharedConflicts(dir, 'ours', io))) break;
     logger.line('  resolved the shared-file conflict (plan decisions kept on both sides, generated files regenerated; D-1315)');
-    result = await git(['rebase', '--continue'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } });
+    result = await git(['-c', 'core.editor=true', 'rebase', '--continue'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } });
   }
   if (ok(result)) return true;
   await git(['rebase', '--abort'], { cwd: dir, logger });
@@ -202,8 +204,8 @@ export async function containsBase(dir: string, base: string, logger: Logger): P
 
 /** D-1316: merges `base` into the branch (no force-push needed), the shared files resolved as in a rebase; any other conflict aborts. */
 export async function mergeBase(dir: string, base: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<boolean> {
-  if (ok(await git(['merge', '--no-edit', base], { cwd: dir, logger }))) return true;
-  if ((await resolveSharedConflicts(dir, 'theirs', io)) && ok(await git(['commit', '--no-edit'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) {
+  if (ok(await git(['-c', 'core.editor=true', 'merge', '--no-edit', base], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) return true;
+  if ((await resolveSharedConflicts(dir, 'theirs', io)) && ok(await git(['-c', 'core.editor=true', 'commit', '--no-edit'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) {
     logger.line(`  merged ${base} and resolved the shared-file conflict (D-1316)`);
     return true;
   }

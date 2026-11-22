@@ -10,7 +10,9 @@ import { containsBase, gitResolveIo, mergeBase, rebaseOnto } from '../../scripts
 import type { Logger } from '../../scripts/sdd/report';
 import { sharedKind, unionConflicts, type ResolveIo } from '../../scripts/sdd/resolve';
 
-const quiet = { path: null, line: (t: string) => { if (process.env.DBG) console.log(t); }, raw: (t: string) => { if (process.env.DBG) console.log(t); }, command: () => undefined } as unknown as Logger;
+/** Every line and command output the driver's calls wrote, printed with a failed expectation (CI has no other window on git's stderr). */
+const log: string[] = [];
+const quiet = { path: null, line: (text: string) => log.push(text), raw: (text: string) => log.push(text), command: (file: string, args: readonly string[]) => log.push(`$ ${file} ${args.join(' ')}`) } as unknown as Logger;
 const PLAN = 'docs/sdd/phases/v9/plan.md';
 const IDS = 'docs/sdd/ids.md';
 let repo = '';
@@ -40,6 +42,8 @@ const io = (): ResolveIo => ({
 function forked(extra: Record<string, string> = {}): void {
   repo = mkdtempSync(join(tmpdir(), 'sdd-resolve-'));
   git('init', '-q', '-b', 'main');
+  // The repo's own identity and no editor, hooks or signing: a CI runner has no global git config.
+  for (const [key, value] of [['user.name', 't'], ['user.email', 't@t'], ['commit.gpgsign', 'false'], ['core.hooksPath', '/dev/null'], ['init.defaultBranch', 'main']] as const) git('config', key, value);
   commit('base', { [PLAN]: '## Decisions\n\n- **D-1 — one.**\n\nNext section.\n', [IDS]: 'D-1\n', 'src/a.ts': 'a\n' });
   git('checkout', '-q', '-b', 'task');
   commit('task', { [PLAN]: '## Decisions\n\n- **D-1 — one.**\n- **D-3 — the task.**\n\nNext section.\n', [IDS]: 'D-1\nD-3\n', ...extra });
@@ -49,6 +53,7 @@ function forked(extra: Record<string, string> = {}): void {
 }
 
 afterEach(() => {
+  log.length = 0;
   if (repo) rmSync(repo, { recursive: true, force: true });
   repo = '';
 });
@@ -69,7 +74,7 @@ describe('D-1315: the shared-file resolver', () => {
 
   it("rebases through a conflicting decision block and generated file: main's row, then the branch's", async () => {
     forked();
-    expect(await rebaseOnto(repo, 'main', quiet, io())).toBe(true);
+    expect(await rebaseOnto(repo, 'main', quiet, io()), log.join('\n')).toBe(true);
     expect(read(PLAN)).toBe('## Decisions\n\n- **D-1 — one.**\n- **D-2 — the sibling.**\n- **D-3 — the task.**\n\nNext section.\n');
     expect(read(IDS)).toBe('D-1\nD-2\nD-3\n');
     expect(await containsBase(repo, 'main', quiet)).toBe(true);
@@ -87,7 +92,7 @@ describe('D-1316: bringing a published branch up to date by a merge', () => {
   it('merges main in with the same resolution, main first', async () => {
     forked();
     expect(await containsBase(repo, 'main', quiet)).toBe(false);
-    expect(await mergeBase(repo, 'main', quiet, io())).toBe(true);
+    expect(await mergeBase(repo, 'main', quiet, io()), log.join('\n')).toBe(true);
     expect(read(PLAN)).toContain('- **D-2 — the sibling.**\n- **D-3 — the task.**');
     expect(read(IDS)).toBe('D-1\nD-2\nD-3\n');
     expect(await containsBase(repo, 'main', quiet)).toBe(true);
