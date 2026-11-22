@@ -2124,8 +2124,8 @@ describe('<LivePage>', () => {
       media.setCoarsePointer(true);
       const { container, unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
       const hint = within(container.querySelector('[data-slot="overlay"]') as HTMLElement).getByTestId('sky-hint');
-      // The ISS is up and highlighted: the follow clause takes the zoom clause's place, never three.
-      expect(hint).toHaveTextContent(/^Drag to look · tap A to follow$/);
+      // R214 (D-1241): the window's line is turn and zoom, the ISS up and highlighted or not.
+      expect(hint).toHaveTextContent(/^drag to turn · pinch to zoom$/);
       expect(hint.parentElement).toHaveAttribute('data-beside', 'false');
       unmount();
       const again = render(
@@ -2134,7 +2134,7 @@ describe('<LivePage>', () => {
         </I18nProvider>,
       );
       const es = within(again.container.querySelector('[data-slot="overlay"]') as HTMLElement).getByTestId('sky-hint');
-      expect(es).toHaveTextContent(/^Arrastrá para mirar · tocá A para seguir$/);
+      expect(es).toHaveTextContent(/^arrastrá para girar · pellizcá para acercar$/);
       expect(es.parentElement).toHaveAttribute('data-beside', 'false');
       expect(screen.getByTestId('live-follow-control')).toHaveTextContent('seguir');
     });

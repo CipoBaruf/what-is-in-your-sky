@@ -130,30 +130,30 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
     // A page that has no hint to show (seen, or the polar chart) hands the slot `false`, and no corner is left.
     cleanup();
     render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} hint={false} list={<p>list</p>} />);
-    expect(corners()).toEqual(['readout', 'zoom']);
+    expect(corners()).toEqual(['readout']);
     expect(screen.getByTestId('layout')).not.toHaveAttribute('data-fill');
     cleanup();
     render(<SkyViewLayout data-testid="layout" fill drawing={<div>box</div>} />);
     expect(screen.getByTestId('layout')).toHaveAttribute('data-fill', '');
   });
 
-  it('FR-WIDE-5: on wide the box carries its corners — the readout, full screen, the hint, the zoom — in that order', () => {
+  it('FR-WIDE-5: on wide the box carries its corners — the readout, full screen, the hint — in that order, and FR-CTRL-9’s row under it', () => {
     media = stubMatchMedia(WIDE_PX);
     // R189 (FR-WIDE-10): the full screen corner is the layout's own control, where the API is there.
     const support = stubFullscreen();
     all('en');
-    expect(CORNERS).toEqual(['readout', 'fullscreen', 'hint', 'zoom']);
+    expect(CORNERS).toEqual(['readout', 'fullscreen', 'hint']);
     expect(corners()).toEqual([...CORNERS]);
     const layout = screen.getByTestId('layout');
     expect(layout.querySelector('[data-corner="readout"] [data-placed="readout"]')).toHaveTextContent('Facing N');
-    expect(layout.querySelector('[data-corner="zoom"] [data-placed="zoom"]')).toHaveTextContent('+ -');
+    expect(layout.querySelector('[data-slot="drawing"] > [data-zoom-row] [data-placed="zoom"]')).toHaveTextContent('+ -');
     expect(layout.querySelector('[data-corner="hint"]')).toHaveTextContent('hint');
     expect(layout.querySelector('[data-corner="fullscreen"]')).toHaveTextContent('full screen');
     // Without a page's own, the readout's corner is the chart's slot; without the API, full screen is absent.
     cleanup();
     support.restore();
     all('en', { readout: undefined });
-    expect(corners()).toEqual(['readout', 'hint', 'zoom']);
+    expect(corners()).toEqual(['readout', 'hint']);
     expect(screen.getByTestId('layout').querySelector('[data-corner="readout"] [data-placed="readout"]')).toHaveTextContent('Facing N');
   });
 
