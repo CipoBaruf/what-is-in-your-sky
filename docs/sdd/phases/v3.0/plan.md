@@ -126,6 +126,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   A file is listed under the lane of the task that lowers it: `StepControls` under `window` (R223), `ControlsSheet` under `ui` (R224), `screens/stars/**` under `live` (R222).
 - **D-1258 — The picked row's attribute, and a row's height with its hit area aside.**
   (R209; D-1228, FR-CTRL-15, FR-DS-12.) A `PickRow` link is `aria-current` when picked; a button is `aria-pressed`, or `aria-current` with `current`, where the row is the one shown of its set.
+  A disabled link drops its `href` and any `tabindex` and is a `role="link"` with `aria-disabled`, since an `<a>` has no `disabled` (FR-CTRL-17).
   `PickRow` and `SettingRow`'s controls are `--control-h` tall on wide and keep their `--tap` hit box in the row on compact, where rows 30 px apart would put one row's hit area over the next one's box.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*

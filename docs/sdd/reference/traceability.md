@@ -378,7 +378,7 @@
 | FR-CTRL-14 | `src/ui/components/primitives/Tag.test.tsx`, `tests/styles/literals.test.ts` |
 | FR-CTRL-15 | `src/ui/components/primitives/PickRow.test.tsx` |
 | FR-CTRL-16 | `src/ui/components/primitives/Disclosure.test.tsx` |
-| FR-CTRL-17 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/StatusLine.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `tests/e2e/structure.spec.ts`, `tests/styles/literals.test.ts` |
+| FR-CTRL-17 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/PickRow.test.tsx`, `src/ui/components/primitives/StatusLine.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `tests/e2e/structure.spec.ts`, `tests/styles/literals.test.ts` |
 | FR-DESK-1 | `tests/e2e/desktop.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-2 | `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-DESK-3 | `src/ui/App.shortcuts.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |

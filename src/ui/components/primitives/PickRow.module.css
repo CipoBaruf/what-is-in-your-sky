@@ -22,7 +22,7 @@
   cursor: pointer;
 }
 
-.row:is(:hover, :active):not(:disabled),
+.row:is(:hover, :active):not(:disabled, [aria-disabled='true']),
 .picked {
   background: var(--hover-ground);
 }
@@ -36,7 +36,8 @@
   border-inline-start: calc(2 * var(--hairline)) solid var(--mark);
 }
 
-.row:disabled {
+/* A link has no `:disabled`: PickRow says it with `aria-disabled`. */
+.row:is(:disabled, [aria-disabled='true']) {
   color: var(--fg-dim);
   cursor: default;
 }

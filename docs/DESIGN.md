@@ -358,7 +358,7 @@ States: rest, hover, focus, picked, disabled.
 |---|---|---|
 | `picked` | `boolean` | Whether this is the picked one; the parent owns it. |
 | `onPick` | `() => void` | What a press means. |
-| `href` | `string` | Where the row goes: it is then a link, and the picked one is `aria-current`. |
+| `href` | `string` | Where the row goes: it is then a link, and the picked one is `aria-current`; `disabled` takes the target and the focus away. |
 | `current` | `boolean` | A button whose picked row is the one shown of its set: `aria-current` in place of `aria-pressed`. |
 | `children` | `ReactNode` | What the row holds, its items a cell apart in their own inks. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |

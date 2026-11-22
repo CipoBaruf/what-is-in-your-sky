@@ -79,12 +79,47 @@ describe.each(THEMES)('<PickRow> under data-theme=%s', (theme) => {
     expect(row).not.toHaveAttribute('aria-current');
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('FR-CTRL-17: a disabled link goes nowhere, takes no focus or press, and is still a link', async () => {
+    document.documentElement.setAttribute('data-theme', theme);
+    const onPick = vi.fn();
+    const { container, rerender } = render(
+      <PickRow picked={false} href="#x" disabled tabIndex={0} onPick={onPick}>
+        ISS
+      </PickRow>,
+    );
+    const row = screen.getByRole('link', { name: 'ISS' });
+    expect(row).toHaveAttribute('aria-disabled', 'true');
+    expect(row).not.toHaveAttribute('href');
+    expect(row).not.toHaveAttribute('tabindex');
+    expect(row).not.toHaveAttribute('disabled');
+    row.focus();
+    expect(row).not.toHaveFocus();
+    fireEvent.click(row);
+    expect(onPick).not.toHaveBeenCalled();
+    expect(await axe(container)).toHaveNoViolations();
+    rerender(
+      <PickRow picked={false} href="#x" disabled={false} onPick={onPick}>
+        ISS
+      </PickRow>,
+    );
+    expect(row).toHaveAttribute('href', '#x');
+    expect(row).not.toHaveAttribute('aria-disabled');
+    expect(row).not.toHaveAttribute('disabled');
+    fireEvent.click(row);
+    expect(onPick).toHaveBeenCalledExactlyOnceWith();
+  });
 });
 
 describe('<PickRow> in its stylesheet', () => {
+  it('FR-CTRL-17: disabled, a button or a link, is the dim ink and no hover', () => {
+    expect(css).toMatch(/\.row:is\(:hover, :active\):not\(:disabled, \[aria-disabled='true'\]\)/);
+    expect(css).toMatch(/\.row:is\(:disabled, \[aria-disabled='true'\]\) \{\s*color: var\(--fg-dim\);\s*cursor: default;/);
+  });
+
   it('FR-CTRL-15: no frame, the raised ground on hover and picked, the 2 px mark at the left', () => {
     expect(css).toMatch(/\.row \{[^}]*border: 0;/);
-    expect(css).toMatch(/\.row:is\(:hover, :active\):not\(:disabled\),\s*\.picked \{\s*background: var\(--hover-ground\)/);
+    expect(css).toMatch(/\.row:is\(:hover, :active\):not\([^{]*\),\s*\.picked \{\s*background: var\(--hover-ground\)/);
     expect(css).toMatch(/\.picked::before \{[^}]*border-inline-start: calc\(2 \* var\(--hairline\)\) solid var\(--mark\)/);
     expect(css).not.toMatch(/\.picked[^{]*\{[^}]*[\s;]color:/);
   });

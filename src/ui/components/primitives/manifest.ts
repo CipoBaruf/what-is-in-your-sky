@@ -164,7 +164,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
   entry<PickRowOwnProps>('PickRow', 'A row or card that opens or picks something from a set: no frame, the raised ground under the pointer, the accent line at the picked one’s left.', ['rest', 'hover', 'focus', 'picked', 'disabled'], {
     picked: { type: 'boolean', text: 'Whether this is the picked one; the parent owns it.' },
     onPick: { type: '() => void', text: 'What a press means.' },
-    href: { type: 'string', text: 'Where the row goes: it is then a link, and the picked one is `aria-current`.' },
+    href: { type: 'string', text: 'Where the row goes: it is then a link, and the picked one is `aria-current`; `disabled` takes the target and the focus away.' },
     current: { type: 'boolean', text: 'A button whose picked row is the one shown of its set: `aria-current` in place of `aria-pressed`.' },
     children: { type: 'ReactNode', text: 'What the row holds, its items a cell apart in their own inks.' },
     className: PLACEMENT,
