@@ -155,6 +155,33 @@ describe('brackets mean a label, and Tag writes them (FR-CTRL-14, D-1229)', () =
     expect(count('const x = <Line lead={<b>{`[data-${kind}]`}</b>}>A sentence</Line>;')).toBe(1);
   });
 
+  it('counts one built with +, as a template would be', () => {
+    expect(count("const x = <Line marker={'[' + t.banner[variant] + ']'}>A sentence</Line>;")).toBe(1);
+    expect(count("const marker = '[' + word + ']';")).toBe(1);
+    expect(count("const marker = ('[' + lead) + (`${word}` + ']');")).toBe(1);
+    expect(count("const x = <p>{'[' + 'warning' + ']'}</p>;")).toBe(1);
+    expect(count("const x = <p>{(on ? '[' : ' ') + word + (on ? ']' : ' ')}</p>;")).toBe(1);
+    expect(count("export const ui = { level: (n: number) => '[level ' + n + ']' };", 'src/i18n/en/ui.ts')).toBe(1);
+    expect(count("export const ui = { tag: (n: number) => '[faint] ' + n };", 'src/i18n/en/ui.ts')).toBe(1);
+    // Once each, and still no selector or index.
+    expect(count("const x = <p>{'[a]' + word + `[${other}]`}</p>;")).toBe(2);
+    expect(count("const x = <List within={'[data-' + kind + ']'} />;")).toBe(0);
+    expect(count('const a = \'[data-id="\' + id + \'"]\'; const b = list[i] + list[j];')).toBe(0);
+  });
+
+  it('counts one whose brackets are children of their own', () => {
+    expect(count("const x = <p>{'['}{word}{']'}</p>;")).toBe(1);
+    expect(count("const x = <p>{'['}warning{']'}</p>;")).toBe(1);
+    expect(count("const x = <p>\n  {'['}\n  {word}\n  {']'}\n</p>;")).toBe(1);
+    expect(count('const x = <p>\n  [\n  {word}\n  ]\n</p>;')).toBe(1);
+    expect(count('const x = <p><span>[</span>{word}<span>]</span></p>;')).toBe(1);
+    expect(count("const x = <p>{on && '['}{word}{on ? ']' : null}</p>;")).toBe(1);
+    expect(count("const x = <p>{`${'['}${word}`}{']'}</p>;")).toBe(1);
+    // Once each: a whole word inside is counted where it is written.
+    expect(count("const x = <p>{'[a]'}{word}<b>[b]</b>{`[${other}]`}</p>;")).toBe(3);
+    expect(count("const x = <p>{key === '[' ? open : shut}{word}</p>;")).toBe(0);
+  });
+
   it('counts one drawn as a stylesheet’s content', () => {
     expect(count(".a::before { content: '['; } .a::after { content: ']'; } .b::before { content: '── '; }", 'src/ui/x.module.css')).toBe(2);
     expect(count(".a::before { content: '[ '; }", `${PRIMITIVES_DIR}/Line.module.css`)).toBe(1);

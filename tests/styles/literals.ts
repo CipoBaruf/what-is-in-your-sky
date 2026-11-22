@@ -207,34 +207,92 @@ export function parsed(path: string, text: string): { source: ts.SourceFile; lin
 /** What stands for an interpolation, a nested element or an expression when a text is read for brackets. */
 const SLOT = '\uFFFC';
 const BRACKETED = /\[[^[\]\n]+\]/g;
-/** D-1229's `[${…}]`: an interpolation inside brackets with no `=`, which an attribute selector has. */
+/** D-1229's `[${…}]`, by a template or by `+`: an interpolation inside brackets with no `=`, which an attribute selector has. */
 const BUILT = /\[[^[\]=\n]*\uFFFC[^[\]=\n]*\]/g;
-
-const templateText = (node: ts.TemplateExpression): string => node.head.text + node.templateSpans.map((span) => SLOT + span.literal.text).join('');
 
 /** A bracketed word in a prop, where a selector may stand too: not one with an `=`, or of a `data-` or `aria-` attribute. */
 const BRACKETED_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]+\]/g;
 /** `BUILT` in a prop, with `BRACKETED_PROP`'s exemption (D-1257). */
 const BUILT_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]*￼[^[\]=\n]*\]/g;
 
-/**
- * The strings a JSX child or prop can draw as written: a literal, a template's parts (one round an interpolation is
- * `BUILT`'s, counted at the template), what a condition, `??`, `||` or `+` can give, and the values of an array or
- * an object written there (`options`, a spread of props).
- */
-function drawnStrings(node: ts.Expression | undefined): string[] {
-  if (!node) return [];
-  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [node.text];
-  if (ts.isTemplateExpression(node)) return [node.head.text, ...node.templateSpans.flatMap((span) => [...drawnStrings(span.expression), span.literal.text])];
-  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node)) return drawnStrings(node.expression);
-  if (ts.isConditionalExpression(node)) return [...drawnStrings(node.whenTrue), ...drawnStrings(node.whenFalse)];
-  if (ts.isArrayLiteralExpression(node)) return node.elements.flatMap(drawnStrings);
-  if (ts.isObjectLiteralExpression(node)) return node.properties.flatMap((entry) => (ts.isPropertyAssignment(entry) ? drawnStrings(entry.initializer) : []));
+/** An expression without its parentheses and its `as`. */
+const bare = (node: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) ? bare(node.expression) : node);
+
+const isPlus = (node: ts.Node): node is ts.BinaryExpression => ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken;
+/** A text built of parts: a template, or a `+`. */
+const isBuilt = (node: ts.Node): node is ts.TemplateExpression | ts.BinaryExpression => ts.isTemplateExpression(node) || isPlus(node);
+
+/** Whether a node is a part of a `+`, whose text is read whole at the top of the chain. */
+function isOperand(node: ts.Node): boolean {
+  const parent = node.parent;
+  return ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent) ? isOperand(parent) : isPlus(parent);
+}
+
+/** What a condition, `??` or `||` can give. */
+function choices(node: ts.Expression): ts.Expression[] {
+  if (ts.isConditionalExpression(node)) return [node.whenTrue, node.whenFalse];
   if (!ts.isBinaryExpression(node)) return [];
   const operator = node.operatorToken.kind;
-  if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return drawnStrings(node.right);
-  const eitherSide = operator === ts.SyntaxKind.PlusToken || operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken;
-  return eitherSide ? [...drawnStrings(node.left), ...drawnStrings(node.right)] : [];
+  if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return [node.right];
+  return operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken ? [node.left, node.right] : [];
+}
+
+/** An expression as one text, `SLOT` where a value is not written, and the expressions that fill its gaps. */
+function written(expression: ts.Expression): { text: string; holes: ts.Expression[] } {
+  const node = bare(expression);
+  if (ts.isStringLiteralLike(node)) return { text: node.text, holes: [] };
+  if (ts.isTemplateExpression(node)) {
+    const holes = node.templateSpans.map((span) => span.expression);
+    return { text: node.head.text + node.templateSpans.map((span) => fragment(span.expression) + span.literal.text).join(''), holes };
+  }
+  if (isPlus(node)) {
+    const left = written(node.left);
+    const right = written(node.right);
+    return { text: left.text + right.text, holes: [...left.holes, ...right.holes] };
+  }
+  return { text: fragment(node), holes: [node] };
+}
+
+/**
+ * What a part lends the text round it: a bracket left open or shut (`'['`, `on && ']'`, `<b>[</b>`). A word
+ * bracketed whole inside the part is counted there, so it is a `SLOT` here, as is a part with no bracket.
+ */
+function fragment(expression: ts.Expression): string {
+  const node = bare(expression);
+  let text: string;
+  if (ts.isJsxElement(node) || ts.isJsxFragment(node)) text = childrenText(node);
+  else if (ts.isStringLiteralLike(node) || isBuilt(node)) text = written(node).text;
+  else text = choices(node).map(fragment).find((words) => /[[\]]/.test(words)) ?? SLOT;
+  const open = text.replace(BRACKETED, SLOT);
+  return /[[\]]/.test(open) ? open : SLOT;
+}
+
+/** An element's children as the one line they draw: a line break in JSX text, with its indent, is not drawn. */
+function childrenText(node: ts.JsxElement | ts.JsxFragment): string {
+  const part = (child: ts.JsxChild): string => {
+    if (ts.isJsxText(child)) return child.text.replace(/\s*\n\s*/g, '');
+    if (ts.isJsxExpression(child)) return child.expression ? fragment(child.expression) : SLOT;
+    return fragment(child);
+  };
+  return node.children.map(part).join('');
+}
+
+/**
+ * The strings a JSX child or prop can draw as written: a literal, what a template or a `+` joins between its gaps
+ * (one round a gap is `BUILT`'s, counted at the whole) and what fills them, what a condition, `??` or `||` can
+ * give, and the values of an array or an object written there (`options`, a spread of props).
+ */
+function drawnStrings(expression: ts.Expression | undefined): string[] {
+  if (!expression) return [];
+  const node = bare(expression);
+  if (ts.isStringLiteralLike(node)) return [node.text];
+  if (isBuilt(node)) {
+    const { text, holes } = written(node);
+    return [...text.split(SLOT), ...holes.flatMap(drawnStrings)];
+  }
+  if (ts.isArrayLiteralExpression(node)) return node.elements.flatMap(drawnStrings);
+  if (ts.isObjectLiteralExpression(node)) return node.properties.flatMap((entry) => (ts.isPropertyAssignment(entry) ? drawnStrings(entry.initializer) : []));
+  return choices(node).flatMap(drawnStrings);
 }
 
 /** What an attribute hands its element: the string itself, the expression in its braces, or the one spread. */
@@ -245,10 +303,11 @@ function handed(node: ts.JsxAttributeLike): ts.Expression | undefined {
 }
 
 /**
- * D-1229, D-1257: a bracketed word outside `Tag` — in JSX text, in a JSX prop
- * (how `Line` and `TextButton` take their words), in a catalog's string, in a
- * template that builds `[${…}]`, and in a stylesheet's `content`, which is how
- * most of the day's tags draw theirs.
+ * D-1229, D-1257: a bracketed word outside `Tag` — in JSX text, its brackets
+ * children of their own or not, in a JSX prop (how `Line` and `TextButton`
+ * take their words), in a catalog's string, in a template or a `+` that builds
+ * `[${…}]`, and in a stylesheet's `content`, which is how most of the day's
+ * tags draw theirs.
  */
 export function scanBrackets(path: string, text: string = readFileSync(path, 'utf8')): Hit[] {
   if (path === TAG_COMPONENT || path === TAG_STYLESHEET) return [];
@@ -269,16 +328,16 @@ export function scanBrackets(path: string, text: string = readFileSync(path, 'ut
     const outer = inProp;
     if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
       inProp = false;
-      // The children as one line, so `[{word}]` is one bracketed word.
-      add(node, node.children.map((child) => (ts.isJsxText(child) ? child.text : SLOT)).join(''), BRACKETED);
+      // The children as one line, so `[{word}]` and `{'['}{word}{']'}` are one bracketed word.
+      add(node, childrenText(node), BRACKETED);
       for (const child of node.children) if (ts.isJsxExpression(child)) for (const words of drawnStrings(child.expression)) add(child, words, BRACKETED);
     } else if (ts.isJsxAttributeLike(node)) {
       inProp = true;
       for (const words of drawnStrings(handed(node))) add(node, words, BRACKETED_PROP);
-    } else if (ts.isTemplateExpression(node)) {
-      add(node, templateText(node), inCatalog ? BRACKETED : inProp ? BUILT_PROP : BUILT);
-    } else if (inCatalog && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))) {
-      add(node, node.text, BRACKETED);
+    } else if (isBuilt(node)) {
+      if (!isOperand(node)) add(node, written(node).text, inCatalog ? BRACKETED : inProp ? BUILT_PROP : BUILT);
+    } else if (inCatalog && ts.isStringLiteralLike(node)) {
+      if (!isOperand(node)) add(node, node.text, BRACKETED);
     }
     ts.forEachChild(node, visit);
     inProp = outer;
