@@ -189,8 +189,8 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
 
   /**
    * FR-LOOK-1, FR-LOOK-2, FR-LOOK-5, FR-DS-8 as amended v2.10 (R155): the sky
-   * surface sits under the page ground (≤ 1.1 : 1), the day and twilight tints
-   * and the glow are surfaces too (under 1.5 : 1, as the dome's), the haze is
+   * surface sits under the page ground (≤ 1.1 : 1) and has no tints (FR-DARK-1),
+   * the glow is a surface too (under 1.5 : 1, as the dome's), the haze is
    * a tone the bands draw at a few hundredths of alpha, and every star tone —
    * the white and the three from B−V — keeps 3 : 1 against the deep sky and
    * against the lightest sky a star stands on, the glow at the band's alpha
@@ -199,8 +199,9 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
   it('has the sky surfaces under the page ground and every star tone at ≥ 3 : 1 on the deep sky and on the band’s lightest value (FR-LOOK-1, FR-LOOK-5)', () => {
     const tokens = byTheme.get(theme) ?? new Map<string, string>();
     expect(contrastRatio(token(theme, 'chart-sky-deep'), token(theme, 'bg'))).toBeLessThanOrEqual(1.1);
-    for (const sky of ['chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow']) expect(contrastRatio(token(theme, sky), token(theme, 'bg')), sky).toBeLessThan(1.5);
-    expect(CHART_SKY_TOKENS).toEqual(['chart-sky-deep', 'chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow', 'chart-haze']);
+    expect(contrastRatio(token(theme, 'chart-horizon-glow'), token(theme, 'bg'))).toBeLessThan(1.5);
+    expect(CHART_SKY_TOKENS).toEqual(['chart-sky-deep', 'chart-horizon-glow', 'chart-haze']);
+    for (const gone of ['chart-sky-twilight', 'chart-sky-day']) expect(tokens.has(gone), `FR-DARK-1: ${gone}`).toBe(false);
     expect(BAND_ALPHA_AT_HORIZON).toBe(HORIZON_STRENGTH * 0.5);
     const lightest = bandLightest(tokens);
     expect(lightest).toBe(composite(token(theme, 'chart-horizon-glow'), token(theme, 'chart-sky-deep'), BAND_ALPHA_AT_HORIZON));

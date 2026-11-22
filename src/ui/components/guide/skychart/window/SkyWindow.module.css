@@ -77,24 +77,13 @@
   stroke: none;
 }
 
-/* R155 (FR-LOOK-1, FR-LOOK-2, FR-LOOK-3; D-974): the sky surface under
-   everything, in the step's tone; the horizon band's strips in the glow, each
+/* R155 (FR-LOOK-1, FR-LOOK-3; D-974), R214 (FR-DARK-1): the sky surface under
+   everything, one at every hour; the horizon band's strips in the glow, each
    at its own alpha (an attribute, the strip's own); the haze's three bands in
    one tone at theirs. */
 .surface {
-  stroke: none;
-}
-
-.surface[data-tint='deep'] {
   fill: var(--chart-sky-deep);
-}
-
-.surface[data-tint='twilight'] {
-  fill: var(--chart-sky-twilight);
-}
-
-.surface[data-tint='day'] {
-  fill: var(--chart-sky-day);
+  stroke: none;
 }
 
 .band path {
@@ -332,6 +321,12 @@
 
 .moonLit {
   fill: var(--chart-moon);
+  stroke: none;
+}
+
+/* R214 (FR-DARK-2, D-1262): the Sun's dot. */
+.sun {
+  fill: var(--chart-sun);
   stroke: none;
 }
 

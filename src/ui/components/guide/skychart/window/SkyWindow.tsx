@@ -12,7 +12,8 @@ import type { PassPoint } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
-import { moonVisible } from '../bodies';
+import { moonVisible, sunVisible } from '../bodies';
+import { MOON_DISC_PX } from '../../../../../data/stars/constants';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { TextButton } from '../../../primitives/TextButton';
@@ -46,7 +47,7 @@ import { nearestPass } from '../globe/arcs';
  * dome and the polar use (FR-GUIDE-2b: one geometry), clipped to the
  * drawable field, with its rise, peak, end and shadow markers, the arrowhead,
  * the flown part and the live marker (FR-DOME-5), the Moon's disc
- * (FR-DOME-6), and the legend key at each peak (FR-LEG-1). Each
+ * (FR-DOME-6), the Sun's dot while it is up (FR-DARK-2), and the legend key at each peak (FR-LEG-1). Each
  * pass is drawn in its `arc` state as the polar draws it (FR-TRAJ-1, D-189).
  * Colours are the `--chart-*` tokens of `SkyPolar.module.css` (FR-DOME-2,
  * FR-LIVE-2).
@@ -1242,6 +1243,12 @@ export function SkyWindow(props: SkyWindowProps) {
                 {hidden.map((marker) => (
                   <HiddenPoint key={marker.id} marker={marker} m={m} view={view} legendKey={legendKeys[marker.id]} />
                 ))}
+                {/* FR-DARK-2 (R214, D-1262): the Sun's dot while it is up, under the Moon and the Moon's size. */}
+                {sun && sunVisible(sun) && (
+                  <g data-body="sun" {...placed(at({ azDeg: sun.azDeg, elDeg: sun.altDeg }), view)}>
+                    <circle className={styles.sun} data-marker="sun" r={MOON_DISC_PX / 2} />
+                  </g>
+                )}
                 {/* FR-LOOK-7 (R155): the Moon's disc with its phase, the lit limb toward the Sun; its name is a legend line (R45). */}
                 {moon && moonVisible(moon) && <MoonDisc moon={moon} limb={sun ? brightLimbPoint(moon, sun) : null} m={m} view={view} />}
               </>
