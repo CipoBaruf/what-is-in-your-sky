@@ -260,6 +260,17 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   The daytime line wraps as a line of its own at the context line's end; the rail, which has no context line, draws it under the strip.
   `● en vivo` is about 25 px wider than `ahora`, so the follow refusal at 844 × 390 in Spanish covers 0.123 of the box; `follow.spec.ts` reads that transient state against `FULL_OVERLAY_MAX_SHARE` + 0.005, and the closed-sheet budget is unchanged.
 
+- **D-1271 — The keys are named by their host, and `⟲` is the opening rule at 60°.** *(R214)*
+  (FR-CTRL-9, D-1228, D-1241, D-703.) `ZoomKeys` imports no catalog, so beside D-1228's three presses it takes `names`, and `end` for the key that FR-GLOBE-6 disables at its end of the range.
+  `⟲` runs the window's opening rule again at the shown instant (the peak, the followed pass or the next rise, the pole side) at `WINDOW_FOV`, as the globe's `Home` does at zoom 1; the saved field would make it a key that does nothing after a reload.
+  It ends following the phone as a drag does; `−` and `+` keep it, as a pinch does.
+- **D-1272 — In a sky layout the plain wheel zooms the window, a key's step a notch.** *(R214)*
+  (FR-CTRL-9, D-1241; FR-SKY-14's "a plain wheel scrolls" and its 0.002 a pixel superseded.) The hint says "scroll to zoom" and no sky layout scrolls under its box, so the plain wheel zooms there; outside a layout it is left to the page, and ctrl + wheel zooms everywhere.
+  `ZOOM_WHEEL_RATE` is ln 1.25 / 100, so a notch is `ZOOM_KEY_FACTOR` and one event moves a notch at most, as the globe's wheel; the keys keep 1.25 and three `+` still read 30°. The pinch stays the fingers' own ratio, clamped to the same range.
+- **D-1273 — The row is reserved on every wide view, and the hint's key is the zooming views'.** *(R214)*
+  (FR-CTRL-9, D-1241, FR-WIDE-1, FR-WIDE-10.) The box is a `--target` shorter on every view, so a change of view moves no edge of it; the row hangs inside the drawing's element, so full screen keeps the keys, there over the box's foot with the hint a row higher.
+  `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
+
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
 R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-1306, R226 D-1307..D-1308, R227 D-1309..D-1311.**
