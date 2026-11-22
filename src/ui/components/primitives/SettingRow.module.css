@@ -9,7 +9,14 @@
   min-height: var(--control-h);
 }
 
-.row + .row {
+/* `display: grid` would otherwise outrank the attribute, as on Stack. */
+.row[hidden] {
+  display: none;
+}
+
+/* The gap is between two rows that are shown: a hidden first row leaves none over the next. */
+.row:not([hidden]) + .row,
+.row:not([hidden]) ~ .row[hidden] + .row {
   margin-top: var(--gap-row);
 }
 
