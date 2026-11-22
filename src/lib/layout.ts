@@ -489,8 +489,8 @@ export const SHEET_FLICK_PX_PER_MS = 0.5;
 const ROW_BUDGET_CELLS = 36;
 /** `--small` (0.875 rem): a character of a line at it is this many body cells (D-504, `controlRows.test.ts`). */
 const SMALL_CELL = 14 / BASE_FONT_PX;
-/** `TextButton`'s brackets, `[ ` and ` ]`, drawn round its label in body cells. */
-const BRACKET_CELLS = 4;
+/** R206 (FR-CTRL-1, FR-CTRL-2): a cell of padding each side of a label, in a button's box and an option's block alike. */
+const BOX_CELLS = 2;
 /** One cell between two controls on a row (`tests/styles/cells.ts`). */
 const GAP_CELLS = 1;
 
@@ -513,13 +513,13 @@ export const PINCH_HANDOFF_RATIO = 1.15;
 /**
  * R147 (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): whether the sky hint, one line at `--small`, stands on the
  * overlay's bottom row beside its controls (true) or in the row above it (false). They share the row when the hint,
- * then a cell of gap and the bracketed label for each control, fit `ROW_BUDGET_CELLS`, counted as
+ * then a cell of gap and the boxed label for each control, fit `ROW_BUDGET_CELLS`, counted as
  * `controlRows.test.ts` counts a row: a character is a cell at the body size and `14 / 16` of one at `--small`.
- * `labels` are the row's controls' words between their brackets — `[ follow ]` and `[ controls ]` where the phone has
- * the sensor, `[ controls ]` alone where it has not.
+ * `labels` are the row's controls' words in their boxes — `follow` and `controls` where the phone has
+ * the sensor, `controls` alone where it has not.
  */
 export function hintFitsBeside(text: string, labels: readonly string[]): boolean {
   // D-1026: the row's half a cell of padding at each end is one cell more.
-  const controls = labels.reduce((sum, label) => sum + GAP_CELLS + BRACKET_CELLS + label.length, 1);
+  const controls = labels.reduce((sum, label) => sum + GAP_CELLS + BOX_CELLS + label.length, 1);
   return text.length * SMALL_CELL + controls <= ROW_BUDGET_CELLS;
 }

@@ -15,8 +15,8 @@
  * card's first line, the count and the sort, and the new label line join them.
  * Each is rendered on its own with
  * `matchMedia` stubbed to a phone, and measured by `cells.ts`: the text it
- * draws, the brackets its stylesheet adds, and one cell of gap between each
- * pair of controls.
+ * draws, the boxes its stylesheets add (R206: a cell each side), and one cell
+ * of gap between each pair of controls, a quarter between two options.
  *
  * What this cannot see is CSS wrapping — jsdom lays nothing out — so the number
  * is the budget and the 390 px captures in the task are the proof. What it can
@@ -88,9 +88,8 @@ const CSS = [
   'src/ui/components/passes/PassCard.module.css',
   'src/ui/components/passes/PassList.module.css',
   'src/ui/components/common/InstallAction.module.css',
-  // R104 (FR-DS-4, D-704): the brackets and the `[x]` marks are the primitives' alone, read off their modules.
+  // R104 (FR-DS-4, D-704), R206 (D-1226): the boxes and the blocks are the primitives' alone, read off their modules.
   'src/ui/components/primitives/TextButton.module.css',
-  'src/ui/components/primitives/BracketLink.module.css',
   'src/ui/components/primitives/OptionToggle.module.css',
   'src/ui/components/common/ShareButton.module.css',
   'src/ui/components/sky/time/PlaybackControls.module.css',
@@ -109,11 +108,10 @@ const CSS = [
 
 const table = decorations(CSS);
 /**
- * R160: the stars page's view row is `TextButton`s alone, measured on that module's rules — `cells.ts` keys a rule by
- * its local class name, and `PassList.module.css` has a `.toggle::before` of its own that the full table would add to
- * every unpressed option of the bracket mark (four cells a row), which the browser never draws.
+ * R160, R206: the stars page's view row is options alone, measured on that module's rules — `cells.ts` keys a rule by
+ * its local class name, and a page's module may use an option's.
  */
-const textButtonTable = decorations([resolve(process.cwd(), 'src/ui/components/primitives/TextButton.module.css')]);
+const optionTable = decorations([resolve(process.cwd(), 'src/ui/components/primitives/OptionToggle.module.css')]);
 
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const pass = goldenPassFixture();
@@ -383,7 +381,7 @@ const rows = (t: Messages): readonly Row[] => [
     setUp: () => {
       appStore.setState({ observer });
     },
-    measure: (row) => rowCells(row, textButtonTable),
+    measure: (row) => rowCells(row, optionTable),
   },
   // R132 (FR-FLOW-8) → R163 (FR-CLEAN-11): two rows — three toggles then `names` in English (33 and 9 cells), two then two
   // in Spanish (25 and 24), the split cut to the budget by `firstRowCount`; `[ passes ]` is gone.
@@ -513,14 +511,13 @@ describe.each(LOCALES)('FR-FLOW-3: the three compact sub-page rows in %s', (loca
 
 /**
  * R132 (FR-FLOW-4, D-846): the view row at 360 and 390 px in both languages, on the live page and the pass detail —
- * `[Window] Polar Dome  [x] stars` is 30 cells and `[Ventana] Polar Domo  [x] estrellas` 35, the spec's numbers (R150,
- * FR-GYRO-11: the window first, the counts unchanged); at
+ * R206 (FR-CTRL-2, FR-CTRL-3): four blocks, a cell inside each side, a quarter cell between the three views, are 29.5
+ * cells in English and 34.5 in Spanish, half a cell over the bracketed row's (R150, FR-GYRO-11: the window first); at
  * 390 px inside FR-COMP-4's 36, at 360 px inside what that width has on the widest font in the stack.
  */
 describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  // `cells.ts` counts one cell between a row's controls; the spec's 30 and 35 count the two the row's end leaves.
-  const EXPECTED: Record<Locale, number> = { en: 29, es: 34 };
+  const EXPECTED: Record<Locale, number> = { en: 29.5, es: 34.5 };
 
   it.each([
     ['the live page', () => createElement(LivePage, { link: null, onLeave: noop }), 'live-layout', withLiveSky],
@@ -531,12 +528,12 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
     const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"], [data-testid="pass-view-row"]') as Element;
     const cells = rowCells(row, table);
     expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
-    // R150 (FR-GYRO-11, D-950): `[Window] Polar Dome` / `[Ventana] Polar Domo` — the window first.
+    // R150 (FR-GYRO-11, D-950): the window first, every view its block's two cells.
     const view = CATALOGS[locale].chart.view;
-    expect(rowParts(row, table).slice(0, 3)).toEqual([`##${view.window}`, view.polar, view.dome]);
+    expect(rowParts(row, table).slice(0, 3)).toEqual([`##${view.window}`, `##${view.polar}`, `##${view.dome}`]);
     expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
     // At 360 px the widest font gives the row 33 cells: the English row is inside it; the Spanish row is the spec's
-    // own 35 (FR-FLOW-4), two past it, so `[x] estrellas` wraps under the control there — a finding for the spec,
+    // own 35 (FR-FLOW-4), two past it, so `estrellas` wraps under the control there — a finding for the spec,
     // recorded in R132's summary; this pins the number so the gap cannot grow unnoticed.
     expect(cells, 'at 360 px').toBeLessThanOrEqual(Math.max(rowCellsAt(360), VIEW_ROW_BUDGET));
     if (locale === 'en') expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
@@ -544,22 +541,22 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
 });
 
 /**
- * R160 (FR-PHONE-7, D-971): the stars page's view row, `[ Window ] Whole sky` / `[ Ventana ] Cielo entero` — a
- * `ToggleGroup` in the bracket mark, 20 cells in English and 24 in Spanish (the spec's 23 counts `Cielo entero` a
- * character short), the window first (FR-GYRO-11), inside 36 at 390 px and inside what 360 px has.
+ * R160 (FR-PHONE-7, D-971): the stars page's view row, `Window Whole sky` / `Ventana Cielo entero` — a
+ * `ToggleGroup`, 19.25 cells in English and 23.25 in Spanish since R206's two blocks and their quarter cell,
+ * the window first (FR-GYRO-11), inside 36 at 390 px and inside what 360 px has.
  */
 describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  const EXPECTED: Record<Locale, number> = { en: 20, es: 24 };
+  const EXPECTED: Record<Locale, number> = { en: 19.25, es: 23.25 };
 
   it('is one line of the spec’s cells, the window first, inside both widths', () => {
     appStore.setState({ observer });
     render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
     const row = screen.getByTestId('stars-view-row');
-    const cells = rowCells(row, textButtonTable);
-    expect(cells, rowParts(row, textButtonTable).join(' | ')).toBe(EXPECTED[locale]);
+    const cells = rowCells(row, optionTable);
+    expect(cells, rowParts(row, optionTable).join(' | ')).toBe(EXPECTED[locale]);
     const views = CATALOGS[locale].chart.views;
-    expect(rowParts(row, textButtonTable)).toEqual([`####${views.window}`, views.wholeSky]);
+    expect(rowParts(row, optionTable)).toEqual([`##${views.window}`, `##${views.wholeSky}`]);
     expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
     expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
   });
@@ -567,8 +564,8 @@ describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) 
 
 /**
  * R170 (FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-16; D-1035): the wide stars page's globe rail — the view row
- * `[ Window ] Globe`, the four steps, `[ now ]` with the time-lapse (D-1138), the turn and the layer rows with
- * `[ ] faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
+ * `Window Globe`, the four steps, `now` with the time-lapse (D-1138), the turn and the layer rows with
+ * `faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
  * cut at the rail's width with an ellipsis (FR-GLOBE-9) and are not counted.
  */
 describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', (locale: Locale) => {
@@ -584,11 +581,11 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
     await screen.findByTestId('globe-turn-row', {}, { timeout: 5_000 });
   });
 
-  it('FR-WIDE-2: the view row reads [ Globe ] Window Dome', () => {
+  it('FR-WIDE-2: the view row reads Globe, Window, Dome', () => {
     const row = screen.getByTestId('stars-view-row');
-    // The globe pressed: its brackets are drawn, the others' are not.
-    expect(rowParts(row, textButtonTable)).toEqual([`####${t.globe.view}`, t.chart.views.window, t.chart.view.dome]);
-    expect(rowCells(row, textButtonTable)).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+    // FR-CTRL-2: a block's two cells whether on or off, so the row does not move with the choice.
+    expect(rowParts(row, optionTable)).toEqual([`##${t.globe.view}`, `##${t.chart.views.window}`, `##${t.chart.view.dome}`]);
+    expect(rowCells(row, optionTable)).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 
   it.each([
@@ -799,8 +796,10 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
  * R74 (FR-COMP-1 as amended, D-441): the row's arithmetic, not merely the
  * budget it fits inside. The mark is three cells — a 24 px box needs three of
  * the 9.6 px cells and would spill out of two — and the row is
- * `mark + 'Your sky' + [ live ] + [ settings ]` with a cell of gap between each
- * pair: 3 + 8 + 8 + 12 and three gaps, **34** of the 36.
+ * `mark + 'Your sky' + live + settings` with a cell of gap between each
+ * pair: 3 + 8 + 5 + 8 and three gaps, **27** of the 36 since R206 took the
+ * links' brackets (FR-CTRL-11; `live` keeps `--target`'s five cells). It was
+ * 34 with them: 3 + 8 + 8 + 12 and the gaps.
  *
  * FR-COMP-1 and D-441 both say 33. The difference is the gap after the mark:
  * the row without it was 8 + 8 + 12 and two gaps = 30, and adding a three-cell
@@ -810,11 +809,11 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
  * number is pinned here so a mark that quietly grew a cell fails at the
  * arithmetic rather than at the far edge of the budget.
  */
-it('counts the compact header with the mark at 34 cells (FR-COMP-1, D-441)', () => {
+it('counts the compact header with the mark at 27 cells (FR-COMP-1, FR-CTRL-11, D-441)', () => {
   render(createElement(I18nProvider, { locale: 'en', children: createElement(Header) }));
   const header = screen.getByTestId('header');
   expect(screen.getByTestId('mark').getAttribute('data-mark-cells')).toBe('3');
-  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(34);
+  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(27);
 });
 
 /**
@@ -870,7 +869,9 @@ function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): nu
 
 describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its tagline in %s (D-546, D-845)', (locale: Locale) => {
   const t = CATALOGS[locale];
-  const control = (text: string): number => `[ ${text} ]`.length;
+  // R206: a link is its words (FR-CTRL-11); `←` in its box is the five cells of `--target` (D-1226).
+  const link = (text: string): number => text.length;
+  const backCells = Math.ceil(44 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
   const rowGap = cellsOf(HEADER_CSS, '.row', 'gap');
   const navGap = cellsOf(HEADER_CSS, '.nav', 'gap');
   let markCells = 0;
@@ -892,22 +893,18 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
 
   it('fits a sub-page’s row — [ ← ], the mark and title, the four links, the context, [ settings ] — at the wide breakpoint with the controls whole, the title whole from its own width', () => {
     // R129 (D-845): with the switches gone the title has no short form on wide; the context is what ellipsises.
-    // R166 (FR-CLEAN-14, D-1007): the links are bracketed, one cell apart. v2.14.1 (FR-CLEAN-14 as amended, D-1134):
-    // four of them, `[ satellites ]` / `[ satélites ]` between `live` and `stars`, so the row is 15 / 14 cells longer
-    // and no longer fits the wide breakpoint (964 px, `WIDE_CELLS`) whole: there `[ ← ]`, the mark, the links and
-    // `[ settings ]` still stand whole, and the title is what gives after the context (the rule pinned below); it is
-    // whole from `thresholdPx(fixed)`, and the context keeps ten cells from the width that pays for them.
-    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].reduce((sum, word) => sum + control(word), 0) + 3 * navGap;
+    // R166 (FR-CLEAN-14, D-1007): the links are one cell apart; v2.14.1 (FR-CLEAN-14 as amended, D-1134): four of
+    // them, `satellites` / `satélites` between `live` and `stars`. R206 (FR-CTRL-11): without their brackets the row
+    // is 20 cells shorter, so the title is whole at the wide breakpoint (964 px, `WIDE_CELLS`) in both languages,
+    // and the English context keeps six cells there.
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].reduce((sum, word) => sum + link(word), 0) + 3 * navGap;
     expect(navGap).toBe(1);
-    const fixed = 2 * SHELL_PADDING_CELLS + control(t.header.back) + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + control(t.settings.open);
-    expect(fixed).toBe(locale === 'es' ? 113 : 104);
-    // At 964 px: everything but the title — which keeps its first cells and an ellipsis — on the row.
-    const controls = fixed - t.app.title.length;
+    const fixed = 2 * SHELL_PADDING_CELLS + backCells + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + link(t.settings.open);
+    expect(fixed).toBe(locale === 'es' ? 93 : 84);
     expect(WIDE_MIN_PX).toBe(964);
-    expect(controls + 4, 'the controls and four cells of the title at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
-    expect(thresholdPx(fixed)).toBe(locale === 'es' ? 1089 : 1002);
-    expect(thresholdPx(fixed + 10)).toBe(locale === 'es' ? 1185 : 1099);
-    if (locale === 'en') expect(thresholdPx(fixed), 'the English title is whole at 1024 px').toBeLessThanOrEqual(1024);
+    expect(fixed, 'the whole row, its title too, at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
+    if (locale === 'en') expect(fixed + 10, 'ten cells of context at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
+    expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(locale === 'es' ? 1024 : WIDE_MIN_PX);
   });
 
   it('draws a sub-page’s row with [ ← ] and a long place as counted above, and at 1024 px the place gives first, then the title, never the links', () => {
@@ -917,21 +914,20 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'live', context: place, onBack: noop }) }));
     const row = within(container).getByTestId('header');
     const parts = rowParts(row, table);
-    // R166 (FR-CLEAN-14): each link wears `BracketLink`'s four cells of brackets; D-1134: four links.
-    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].map((word) => `####${word}`);
+    // R206 (FR-CTRL-11): each link is its words; D-1134: four links.
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.pass, t.header.pages.stars].map((word) => word);
     expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
     expect(parts[0]).toContain(t.header.back);
     // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
     const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
     const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 3 * navGap;
-    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 113 : 104);
+    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 93 : 84);
     const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    // R166 (D-1007): the brackets are paid from the place. D-1134: with `[ satellites ]` the English place keeps 2 cells
-    // at 1024 px (an ellipsis), and the Spanish row is 7 cells over: the place is gone and the title loses 7 cells.
-    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? -7 : 2);
+    // R206 (FR-CTRL-11): the brackets' 20 cells are the place's again: 22 of them at 1024 px in English, 13 in Spanish.
+    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? 13 : 22);
     expect(at1024 - measured).toBeLessThan(place.length + rowGap);
     // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
-    // `[ ← ]`, the links and `[ settings ]` never shrink.
+    // `←`, the links and `settings` never shrink.
     const rule = (selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(HEADER_CSS)?.[1] ?? '';
     expect(rule('.wide .context')).toMatch(/flex:\s*0 1000 auto;/);
     expect(rule('.context')).toMatch(/text-overflow:\s*ellipsis;/);
@@ -949,12 +945,12 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
 
 /**
  * R143 (FR-TONIGHT-4, FR-TONIGHT-7, FR-COMP-4): the compact live page's new rows — the taps row
- * (`▶ [ tonight ] [ next ] [ now ]`), every chip form of the headline and every form of the context line — in both
+ * (`▶ │tonight│ │next│ │now│`, R206's boxes), every chip form of the headline and every form of the context line — in both
  * languages, from the catalogs (`tonightRows.ts` words them at their longest). Each is at most 36 characters
  * (FR-COMP-4, FR-TONIGHT-7's "at most 36 cells in both languages") and inside what 390 and 360 px hold on the widest
  * font, the headline and the context line counted at their own sizes (1.25 rem and `--small`). The snapshot is the
  * strings' snapshot FR-TONIGHT-7 asks for, with the counts the task's Done note lists. No row is exempt: the play
- * control is one glyph each way (`▶`, `‖`), so the Spanish taps row is 33 cells, what 360 px holds (D-911).
+ * control is one glyph each way (`▶`, `‖`), so the Spanish taps row is 27 cells, six inside what 360 px holds (D-911).
  */
 describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and the context line in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
@@ -967,8 +963,8 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
     expect(row.cells, `${row.text} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
   });
 
-  it('the taps row is the spec’s: 30 cells in English, 33 in Spanish, playing or not', () => {
-    expect(tapsRows(t).map((row) => row.cells)).toEqual(locale === 'en' ? [30, 30] : [33, 33]);
+  it('the taps row: 24 cells in English, 27 in Spanish, playing or not (FR-CTRL-1)', () => {
+    expect(tapsRows(t).map((row) => row.cells)).toEqual(locale === 'en' ? [24, 24] : [27, 27]);
   });
 
   it('the strings, with their cells', () => {
@@ -979,12 +975,12 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
 /**
  * R146 (FR-FULL-10, FR-FULL-8, PLAN §9.10): the opening card's lines and button rows, rendered from `OpeningCard` in
  * both languages and both forms — the sentence at the body size, the pass line and the no-pass sentence at `--small`
- * (0.875 a character, as `tonightRows.ts` counts the context line), the button rows by `cells.ts` with the brackets
+ * (0.875 a character, as `tonightRows.ts` counts the context line), the button rows by `cells.ts` with the box
  * `TextButton` draws. The pass line is at its longest: a rise 23 h 59 min away, `Tiangong` for the name, which is
  * the part that ellipsises. Every line is within 36 cells and inside 390 px on the widest font. At 360 px two
- * Spanish rows are past the 33 cells that width has — the no-pass sentence, 41 characters in the spec's words
- * (35.88 cells at `--small`), and `[ ver próximo pase ] [ ver ahora ]`, 34 — so there the sentence wraps and the
- * second button goes under the first (D-930); this pins both so they cannot grow unnoticed.
+ * Spanish row is past the 33 cells that width has — the no-pass sentence, 41 characters in the spec's words
+ * (35.88 cells at `--small`) — so there it wraps (D-930); this pins it so it cannot grow unnoticed. R206: the two
+ * buttons' boxes are 30 cells and stand on one line there now.
  */
 describe.each(LOCALES)('FR-FULL-10: the opening card’s lines and buttons in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
@@ -1006,8 +1002,8 @@ describe.each(LOCALES)('FR-FULL-10: the opening card’s lines and buttons in %s
       const card = screen.getByTestId('live-card');
       const labels = within(card).getAllByRole('button');
       const actions = labels[0]?.parentElement as Element;
-      // Written as drawn; the count is `cells.ts`'s, the brackets read off `TextButton.module.css`.
-      const buttons = (name: string): Counted => [name, labels.map((b) => `[ ${b.textContent ?? ''} ]`).join(' '), rowCells(actions, table)];
+      // Written as drawn; the count is `cells.ts`'s, the boxes read off `TextButton.module.css`.
+      const buttons = (name: string): Counted => [name, labels.map((b) => `│${b.textContent ?? ''}│`).join(' '), rowCells(actions, table)];
       const sentence = card.querySelector('p')?.textContent ?? '';
       if (choice.kind === 'ask') {
         const line = screen.getByTestId('live-card-pass').textContent ?? '';
@@ -1025,26 +1021,26 @@ describe.each(LOCALES)('FR-FULL-10: the opening card’s lines and buttons in %s
     en: [
       ['ask: the sentence', 'Nothing visible up now.', 23],
       ['ask: the pass line', 'Tiangong · 17:34 · in 23 h 59 min', 28.88],
-      ['ask: the buttons', '[ see next pass ] [ see now ]', 29],
+      ['ask: the buttons', '│see next pass│ │see now│', 25],
       ['advise: the sentence', 'No visible pass in the next 24 h.', 28.88],
-      ['advise: the button', '[ see the sky now ]', 19],
+      ['advise: the button', '│see the sky now│', 17],
     ],
     es: [
       ['ask: the sentence', 'Nada visible ahora.', 19],
       ['ask: the pass line', 'Tiangong · 17:34 · en 23 h 59 min', 28.88],
-      ['ask: the buttons', '[ ver próximo pase ] [ ver ahora ]', 34],
+      ['ask: the buttons', '│ver próximo pase│ │ver ahora│', 30],
       ['advise: the sentence', 'Ningún pase visible en las próximas 24 h.', 35.88],
-      ['advise: the button', '[ ver el cielo ahora ]', 22],
+      ['advise: the button', '│ver el cielo ahora│', 20],
     ],
   };
-  /** The two Spanish rows past 360 px (D-930). */
-  const PAST_360 = new Set(['ask: the buttons', 'advise: the sentence']);
+  /** The one Spanish row past 360 px (D-930). */
+  const PAST_360 = new Set(['advise: the sentence']);
 
   it('every line and button row, rendered, with its cells', () => {
     expect(measured()).toEqual(EXPECTED[locale]);
   });
 
-  it.each(EXPECTED[locale].map((row) => [row[0], row] as const))('%s: within 36 cells, inside 390 px, and 360 px but for the two pinned', (name, [, text, cells]) => {
+  it.each(EXPECTED[locale].map((row) => [row[0], row] as const))('%s: within 36 cells, inside 390 px, and 360 px but for the one pinned', (name, [, text, cells]) => {
     expect(cells, text).toBeLessThanOrEqual(BUDGET);
     expect(cells, `${text} at 390 px`).toBeLessThanOrEqual(rowCellsAt(390));
     if (locale === 'es' && PAST_360.has(name)) expect(cells, `${text} at 360 px`).toBeGreaterThan(rowCellsAt(360));
