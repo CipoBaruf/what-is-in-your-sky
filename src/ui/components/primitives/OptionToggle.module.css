@@ -18,6 +18,13 @@
   inline-size: var(--target);
 }
 
+/* Two options standing side by side outside a group (the stars page's layers)
+   are a group's quarter cell apart (FR-CTRL-3): two blocks that are on would
+   read as one. A group's options carry `data-option` and have its gap. */
+.option:not([data-option]) + .option:not([data-option]) {
+  margin-inline-start: calc(var(--cell) / 4);
+}
+
 .optionBox,
 .denseBox {
   display: inline-block;

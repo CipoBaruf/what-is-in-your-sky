@@ -97,6 +97,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1248 — An option has one look; the props of the older looks stay until their callers move.**
   (R206; FR-CTRL-2, FR-CTRL-3.) `mark`, `gap` and `alone` are accepted and draw nothing different, because their callers are in other tasks' lanes.
   A dense row (the facing picker, FR-FLOW-11) keeps its half cell of hit padding and draws its block a quarter cell into it, so the row keeps its cells.
+  Two options side by side outside a group (the stars page's layers) take the same quarter cell between them, or two that are on read as one block.
   Disabled and on keeps a block, on `--hover-ground` with dim words (FR-CTRL-17).
 - **D-1249 — The widths follow the box, and so does the hint's fit.**
   (R206; D-1226.) `BRACKET_CELLS` (4) is `BOX_CELLS` (2) in `hintFitsBeside`, so the mouse's drag hint now stands beside `controls` in both languages where only the touch one did.

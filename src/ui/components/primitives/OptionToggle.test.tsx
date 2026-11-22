@@ -93,6 +93,10 @@ describe('<OptionToggle> forms in its stylesheet (R206)', () => {
     expect(css.indexOf(hover)).toBeLessThan(css.indexOf(":is([aria-pressed='true']"));
   });
 
+  it('FR-CTRL-3: two options side by side outside a group are a quarter cell apart, a group’s by its own gap', () => {
+    expect(rule('.option:not([data-option]) + .option:not([data-option])')).toMatch(/margin-inline-start:\s*calc\(var\(--cell\) \/ 4\)/);
+  });
+
   it('FR-CTRL-17: disabled and on, the block keeps its shape', () => {
     expect(rule(`:is(button, summary):disabled:is([aria-pressed='true'], [aria-checked='true'])${boxes}`)).toMatch(/background:\s*var\(--hover-ground\)/);
   });
