@@ -185,9 +185,9 @@ describe('<SkyDome> raster', () => {
    * R22, FR-DOME-5 / FR-DOME-6: the same pass halfway through, with the Sun
    * eight degrees under the horizon and the Moon up. What the two committed
    * rasters show that the two above do not: the flown half of the arc, the
-   * live marker on it, the Moon's disc (lines) and the Sun's glow (base).
+   * live marker on it, the Moon's disc (lines) and the key light's side (base).
    */
-  it('draws the live marker, the flown arc, the Moon and the Sun glow at an instant inside the pass', async () => {
+  it('draws the live marker, the flown arc and the Moon at an instant inside the pass', async () => {
     const now = Math.round((pass.start.t + pass.end.t) / 2);
     const sun = { t: now, azDeg: 285, altDeg: -8 };
     const still = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
@@ -202,8 +202,8 @@ describe('<SkyDome> raster', () => {
     const ink = (text: string): number => text.replace(/[\s⠀]/g, '').length;
     const lines = rasterOf(live.container, 'lines');
     expect(ink(lines.text)).toBeGreaterThan(ink(rasterOf(still.container, 'lines').text));
-    // The base is a wash that already covers the sky, so the glow shows as a
-    // change of shading rather than as more ink.
+    // The base is a wash that already covers the sky, so the key light following
+    // the Sun shows as a change of shading rather than as more ink.
     expect(rasterOf(live.container, 'base').text).not.toBe(rasterOf(still.container, 'base').text);
 
     await expect(lines.text).toMatchFileSnapshot('./__snapshots__/SkyDome.live.txt');

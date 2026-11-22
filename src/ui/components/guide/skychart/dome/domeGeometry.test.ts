@@ -20,7 +20,6 @@ import {
   FLOWN_RADIUS,
   aheadStrip,
   flownStrip,
-  glowStrength,
   keyAnchor,
   lingerStrip,
   liveStrip,
@@ -51,8 +50,9 @@ import {
   screenSide,
   skyBowl,
   stripAlong,
+  SUN_DOT_RINGS_DEG,
   sunDirection,
-  sunGlow,
+  sunMarker,
   TICK_HEIGHT_DEG,
   TICK_LABEL_RADIUS,
   tickAnchors,
@@ -262,23 +262,16 @@ describe('base layer (FR-DOME-3, FR-DOME-8a)', () => {
     expect(Math.max(...everyVertex(bowl).map((v) => skyOf(v).elDeg))).toBeCloseTo(90, 6);
   });
 
-  it('grows the Sun glow from nothing at −18° to full at the horizon, at the Sun’s azimuth (FR-DOME-6)', () => {
-    expect(glowStrength(-18)).toBe(0);
-    expect(glowStrength(-30)).toBe(0);
-    expect(glowStrength(0)).toBe(1);
-    expect(glowStrength(2)).toBe(1);
-    expect(glowStrength(-9)).toBeCloseTo(0.5, 9);
-    expect(sunGlow({ azDeg: 285, altDeg: -18 })).toEqual([]);
-    const low = sunGlow({ azDeg: 285, altDeg: -16 });
-    const high = sunGlow({ azDeg: 285, altDeg: -2 });
-    const spread = (polys: typeof low): number => {
-      const azimuths = everyVertex(polys).map((v) => skyOf(v).azDeg);
-      return Math.max(...azimuths) - Math.min(...azimuths);
-    };
-    expect(spread(high)).toBeGreaterThan(spread(low));
-    const middle = everyVertex(high).map((v) => skyOf(v).azDeg);
-    expect((Math.max(...middle) + Math.min(...middle)) / 2).toBeCloseTo(285, 6);
-    expect(Math.max(...everyVertex(high).map((v) => skyOf(v).elDeg))).toBeGreaterThan(0);
+  it('draws the Sun as a filled dot at its place while it is up, and nothing once it is down (FR-DARK-2)', () => {
+    const sun = { azDeg: 285, altDeg: 40 };
+    const dot = sunMarker(sun, 'sun');
+    const rings = SUN_DOT_RINGS_DEG.flatMap((size) => circleAround({ azDeg: 285, elDeg: 40 }, size, MARKER_RADIUS, 'sun'));
+    expect(dot).toHaveLength(rings.length + 1);
+    expect(dot.every((poly) => poly.color === 'sun')).toBe(true);
+    const centre = skyOf(dot[0]?.vertices[0] ?? [0, 0, 0]);
+    expect(centre.azDeg).toBeCloseTo(285, 6);
+    expect(centre.elDeg).toBeCloseTo(40, 6);
+    for (const altDeg of [0, -8, -30]) expect(sunMarker({ ...sun, altDeg })).toEqual([]);
   });
 
   it('points the key light at the Sun (FR-DOME-8a)', () => {

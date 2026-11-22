@@ -10,7 +10,6 @@ import { drawnMagLimit } from './skyStars';
  * `{ azDeg, altDeg }`, azimuth from north through east.
  */
 
-
 /** The faintest a landmark may be: the ladder's third rung, the brightest `+` (FR-STAR-6). */
 export const LANDMARK_MAG = 2.5;
 /** The farthest a landmark may be from the peak, degrees: about a fist and a half at arm's length. */

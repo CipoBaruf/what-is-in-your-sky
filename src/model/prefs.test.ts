@@ -12,7 +12,6 @@ import {
   DEFAULT_PLAY_SPEED,
   DEFAULT_STAR_LAYERS,
   DEFAULT_STARS_LAYER,
-  DEFAULT_SUN_GLOW,
   DEFAULT_THEME,
   DEFAULT_WINDOW_FOV_DEG,
   GLOBE_ZOOM_RANGE,
@@ -52,8 +51,7 @@ describe('FR-KEEP-3: the first visit defaults', () => {
     expect(DEFAULT_PLAY_SPEED).toBe(DEFAULT_SPEED);
   });
 
-  it('FR-KEEP-3: sun glow off, theme dark', () => {
-    expect(DEFAULT_SUN_GLOW).toBe(false);
+  it('FR-KEEP-3: theme dark', () => {
     expect(DEFAULT_THEME).toBe('dark');
   });
 

@@ -1,17 +1,16 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
-import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { STAR_SIZES_PX } from '../data/stars/constants';
-import { AMONG_MAX_DEG, constellationAt, drawnRungs, landmark, LANDMARK_DEG, LANDMARK_LEVEL_DEG, LANDMARK_MAG, segmentDistanceDeg, type SkyPoint } from './landmark';
+import { AMONG_MAX_DEG, constellationAt, landmark, LANDMARK_DEG, LANDMARK_LEVEL_DEG, LANDMARK_MAG, segmentDistanceDeg, type SkyPoint } from './landmark';
 import { angularDistanceDeg } from './skyGeometry';
-import { constellationName, drawnMagLimit, planetsDrawn, starName, starsAt } from './skyStars';
+import { constellationName, drawnMagLimit, starName, starsAt } from './skyStars';
 import { RUNG_MAX_MAG } from './starRungs';
 
 /**
- * R120, FR-SKY-11, FR-SKY-12, FR-STAR-13, FR-STAR-14 (D-795): the landmark,
+ * R120, FR-SKY-11, FR-SKY-12, FR-STAR-14 (D-795): the landmark,
  * the constellation at a point, the distance to a figure's line and the
- * twilight steps — hand cases for every branch, then the three R1 sites
+ * rungs' magnitudes — hand cases for every branch, then the three R1 sites
  * (`tests/fixtures/stars/`), where the published positions stand in for the
  * peak and the point and the app's positions for the stars.
  */
@@ -124,7 +123,7 @@ describe('landmark', () => {
     expect(landmark(stars, peak, ALL)).toMatchObject({ index: 2, word: 'above' });
   });
 
-  it('picks only among the rungs the twilight draws, and none in daylight', () => {
+  it('picks only among the rungs it is given, and none with none', () => {
     const stars = sky([
       { mag: 1.5, at: { azDeg: 180, altDeg: 51 } },
       { mag: 1.6, at: { azDeg: 180, altDeg: 41 } },
@@ -184,34 +183,7 @@ describe('constellationAt', () => {
   });
 });
 
-describe('the twilight steps (FR-STAR-13, FR-SKY-3)', () => {
-  it('draws every rung at −18° and −6°, the first two at −3° and 0°, none at +1°', () => {
-    expect(drawnRungs(-18)).toBe(ALL);
-    expect(drawnRungs(-6)).toBe(ALL);
-    expect(drawnRungs(-5.99)).toBe(2);
-    expect(drawnRungs(-3)).toBe(2);
-    expect(drawnRungs(0)).toBe(2);
-    expect(drawnRungs(1)).toBe(0);
-    expect(drawnRungs(-7, { sunAltMaxDeg: -8 })).toBe(2);
-  });
-
-  it('draws nothing for a Sun altitude that is not a number, as the planets', () => {
-    expect(drawnRungs(NaN)).toBe(0);
-    expect(planetsDrawn(NaN)).toBe(false);
-  });
-
-  it("reads −6° from the threshold skyStateOf calls day", () => {
-    expect(DEFAULT_THRESHOLDS.sunAltMaxDeg).toBe(-6);
-    expect(drawnRungs(DEFAULT_THRESHOLDS.sunAltMaxDeg)).toBe(ALL);
-  });
-
-  it('draws the planets up to 0°', () => {
-    expect(planetsDrawn(-18)).toBe(true);
-    expect(planetsDrawn(-3)).toBe(true);
-    expect(planetsDrawn(0)).toBe(true);
-    expect(planetsDrawn(1)).toBe(false);
-  });
-
+describe('the rungs', () => {
   it("has the marks' three `*` bounds as its top rungs (D-982; R160: the old ladder is gone), and turns rungs into a magnitude", () => {
     expect(RUNG_MAX_MAG).toEqual([...STAR_SIZES_PX.map((row) => row.maxMag), 3.5, Number.POSITIVE_INFINITY]);
     expect(drawnMagLimit(0)).toBe(Number.NEGATIVE_INFINITY);
