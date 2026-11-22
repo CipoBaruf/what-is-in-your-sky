@@ -168,7 +168,8 @@ describe('runSession and the usage ledger (FR-SDD-1)', () => {
     expect(child.kill).toHaveBeenCalledWith('SIGKILL');
     child.emit('close', null);
     expect((await session).outcome).toBe('budget');
-    expect(readLedger(path)[0]).toMatchObject({ outcome: 'budget' });
+    // D-1317: the ledger carries what the stream counted before the kill, not 0.
+    expect(readLedger(path)[0]).toMatchObject({ outcome: 'budget', inputTokens: 10, cachedInputTokens: 500, outputTokens: 600, turns: 1 });
   });
 
   it('FR-SDD-2: stops nothing when no ceiling is set', async () => {

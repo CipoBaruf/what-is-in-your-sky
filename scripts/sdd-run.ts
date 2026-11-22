@@ -507,14 +507,14 @@ async function main(): Promise<number> {
   let state = INITIAL_LOOP_STATE;
   for (let wave = 1; ; wave += 1) {
     consoleLogger.line(`\n=== --until-done: wave ${String(wave)} (${new Date().toISOString()}) ===`);
-    const result = await runOnce(options, config);
+    const result = await runOnce(options, config, new Set(state.skip ?? []));
     const decided = nextLoopStep(result, state, Date.now());
     state = decided.state;
     const { step } = decided;
     if (step.action === 'stop') {
       consoleLogger.line(`\n--until-done stopped after ${String(wave)} wave(s): ${step.reason}.`);
       if (state.failures && state.failures.length > 0) consoleLogger.line(`  not merged in the last wave: ${state.failures.join(', ')}; see logs/sdd/ and the run reports`);
-      return result.planned === 0 ? 0 : 1;
+      return step.code;
     }
     if (step.action === 'sleep') {
       consoleLogger.line(`\n--until-done: ${step.reason}; sleeping ${String(Math.round(step.ms / 60_000))} min, until ${new Date(Date.now() + step.ms).toISOString()}`);
@@ -524,14 +524,15 @@ async function main(): Promise<number> {
 }
 
 /** One run of the mode the options name: the status, the dry run, one wave or one task. `planned` is how many tasks it selected. */
-async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: number; planned: number; reports: TaskReport[] }> {
+async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet<string> = new Set()): Promise<{ code: number; planned: number; reports: TaskReport[]; skippedReady: string[] }> {
+  let skippedReady: string[] = [];
   // FR-SDD-10: a task's `Agent:` pins it; else `--agent`; else the config's default.
   const agentOf = (task: Task): Agent => pickAgent(config, task.agent, options.agent);
   const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), Object.keys(config.agents), consoleLogger);
 
   if (options.mode === 'status') {
     printStatus(statuses, problems, consoleLogger);
-    return { code: 0, planned: 0, reports: [] };
+    return { code: 0, planned: 0, reports: [], skippedReady };
   }
 
   let planned: TaskStatus[];
@@ -540,7 +541,7 @@ async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: 
     const refusal = refusalFor(statuses, options.taskId ?? '');
     if (refusal) {
       consoleLogger.line(`Refusing: ${refusal}`);
-      return { code: 1, planned: 0, reports: [] };
+      return { code: 1, planned: 0, reports: [], skippedReady };
     }
     planned = statuses
       .filter((status) => status.task.id.toLowerCase() === options.taskId?.toLowerCase())
@@ -550,7 +551,11 @@ async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: 
         return tier ? { ...status, task: { ...status.task, tier } } : status;
       });
   } else {
-    const selection = selectWave(statuses);
+    // D-1317: `--until-done` leaves out a skipped task, and one whose kept worktree holds a blocked note, before the lanes are counted.
+    const left = (status: TaskStatus): boolean => status.state === 'ready' && (skip.has(status.task.id) || (options.untilDone && existsSync(join(WORKTREE_ROOT, status.task.id, 'sdd-run', `${status.task.id}.blocked.md`))));
+    skippedReady = statuses.filter(left).map((status) => status.task.id);
+    if (skippedReady.length > 0) consoleLogger.line(`\n--until-done skips ${skippedReady.join(', ')} (D-1317).`);
+    const selection = selectWave(statuses.filter((status) => !left(status)));
     planned = [...selection.wave];
     skipped = [...selection.skipped];
   }
@@ -561,7 +566,7 @@ async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: 
       consoleLogger.line('\nBreakdown problems:');
       for (const problem of problems) consoleLogger.line(`  - ${problem}`);
     }
-    return { code: 0, planned: planned.length, reports: [] };
+    return { code: 0, planned: planned.length, reports: [], skippedReady };
   }
 
   printPlanned(planned, skipped, agentOf, consoleLogger);
@@ -585,7 +590,7 @@ async function runOnce(options: Options, config: AgentsConfig): Promise<{ code: 
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}${report.overruns.length > 0 ? ` (${String(report.overruns.length)} budget overrun(s))` : ''}`);
-  return { code: reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit' || report.outcome === 'ci-timeout') ? 1 : 0, planned: planned.length, reports };
+  return { code: reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit' || report.outcome === 'ci-timeout') ? 1 : 0, planned: planned.length, reports, skippedReady };
 }
 
 main()

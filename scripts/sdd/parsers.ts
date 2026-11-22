@@ -116,7 +116,7 @@ export const totalTokens = (usage: ResultUsage): number => usage.inputTokens + u
  * a ceiling cannot stop it mid-run.
  */
 export class StreamTokens {
-  readonly #byMessage = new Map<string, number>();
+  readonly #byMessage = new Map<string, ResultUsage>();
   #total = 0;
 
   add(line: string): number {
@@ -125,13 +125,30 @@ export class StreamTokens {
       const event = JSON.parse(line) as { type?: string; message?: { id?: string; usage?: Parameters<typeof usageFromResult>[0]['usage'] } };
       if (event.type !== 'assistant' || !event.message?.usage) return this.#total;
       const spent = usageFromResult({ type: 'result', usage: event.message.usage });
-      const tokens = spent ? totalTokens(spent) : 0;
+      if (!spent) return this.#total;
       const id = event.message.id ?? `#${String(this.#byMessage.size)}`;
-      this.#total += tokens - (this.#byMessage.get(id) ?? 0);
-      this.#byMessage.set(id, tokens);
+      const before = this.#byMessage.get(id);
+      this.#total += totalTokens(spent) - (before ? totalTokens(before) : 0);
+      this.#byMessage.set(id, spent);
     } catch {
       // not a JSON event line
     }
     return this.#total;
+  }
+
+  get total(): number {
+    return this.#total;
+  }
+
+  /** D-1317: the running usage, summed per field, for a session killed before its result event (turns = assistant messages seen). */
+  usage(): ResultUsage {
+    const sum: ResultUsage = { inputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, outputTokens: 0, turns: this.#byMessage.size };
+    for (const spent of this.#byMessage.values()) {
+      sum.inputTokens += spent.inputTokens;
+      sum.cachedInputTokens += spent.cachedInputTokens;
+      sum.cacheCreationTokens += spent.cacheCreationTokens;
+      sum.outputTokens += spent.outputTokens;
+    }
+    return sum;
   }
 }
