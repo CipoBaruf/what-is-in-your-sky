@@ -14,6 +14,7 @@ describe('FR-MEAS-2: the table', () => {
       device_refused: ['denied', 'unavailable', 'timeout'],
       search_empty: [],
       door: ['satellites', 'stars', 'live'],
+      watch: [],
       pass_open: [],
       live_open: [],
       stars_open: [],
@@ -33,6 +34,8 @@ describe('FR-MEAS-1: the event type', () => {
     expectTypeOf({ name: 'where_shown', ...context } as const).toExtend<MeasureEvent>();
     expectTypeOf({ name: 'where_shown', detail: 'fallback', ...context } as const).toExtend<MeasureEvent>();
     expectTypeOf({ name: 'example_shown', detail: 'no_city', ...context } as const).toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'watch', ...context } as const).toExtend<MeasureEvent>();
+    expectTypeOf({ name: 'watch', detail: 'pass', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'when_shown', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'what_shown', ...context } as const).not.toExtend<MeasureEvent>();
     expectTypeOf({ name: 'place_set', detail: 'Neuquén', ...context } as const).not.toExtend<MeasureEvent>();
@@ -69,6 +72,7 @@ describe('FR-MEAS-1: the runtime guard', () => {
       { name: 'when_shown', ...context },
       { name: 'what_shown', ...context },
       { name: 'door', detail: 7, ...context },
+      { name: 'watch', detail: 'pass', ...context },
       { name: 'open', ...context, lat: -38.95 },
       { name: 'open', ...context, label: 'Neuquén' },
       { name: 'open', ...context, visit: 'third' },
