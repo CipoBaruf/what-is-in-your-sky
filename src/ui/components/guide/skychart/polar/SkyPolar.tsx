@@ -350,10 +350,10 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             <PolarPinch orientation={orientation} horizonR={HORIZON_R} half={VIEW_HALF} onFieldHandoff={onFieldHandoff} />
           </Suspense>
         )}
-        {/* R158 (FR-LOOK-1, FR-LOOK-2): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
+        {/* R158 (FR-LOOK-1, FR-DARK-1): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
         {field && drawsLayer('polar', 'surface') && (
           <Suspense fallback={null}>
-            <PolarSky positions={field.positions} project={project} />
+            <PolarSky project={project} />
           </Suspense>
         )}
         {/* FR-SKY-1, FR-SKY-4, FR-PHONE-8: the star layer whole under the grid and the arcs, in SVG order. */}

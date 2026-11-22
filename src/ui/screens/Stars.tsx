@@ -7,7 +7,7 @@ import { nightClouds, tonightCloud } from '../../lib/nightClouds';
 import { BOX_CELLS, hintFitsBeside, SHELL_PADDING_CELLS } from '../../lib/layout';
 import { shortcutFor } from '../../lib/shortcuts';
 import type { LegendPass } from '../../lib/legend';
-import { constellationName, drawnRungs, starName, starsAt } from '../../lib/skyStars';
+import { constellationName, starName, starsAt } from '../../lib/skyStars';
 import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
 import { fromKeyboard } from '../components/sky/facts/keyboardIntent';
 import type { FactsStars, SkyPick } from '../components/sky/facts/subject';
@@ -680,7 +680,7 @@ function StarsSky({ observer }: { observer: Observer }) {
   // R148's hint rule (FR-FULL-3, D-924) → R157 (FR-PHONE-3, D-964): the hint's line, for where it stands beside the bottom row's controls.
   const hintLine = useSkyHintLine(chartView);
   const hintBeside = hintLine !== null && hintFitsBeside(hintLine.text, sensor ? [t.sheet.follow, t.sheet.controls] : [t.sheet.controls]);
-  const sunUp = drawnRungs(positions.sunAltDeg) === 0;
+  const sunUp = positions.sunAltDeg > 0;
 
   if (compact) {
     /*
@@ -848,7 +848,7 @@ export interface StarsHeadLineInput {
   zone: string | null;
   bands: readonly SkyBand[];
   cloud: TonightCloud;
-  /** The twilight step draws nothing (`drawnRungs` 0): the Sun is up, and the stars come later. */
+  /** The Sun is above 0°: the stars are drawn (FR-DARK-2), and the eye finds them later. */
   sunUp: boolean;
 }
 

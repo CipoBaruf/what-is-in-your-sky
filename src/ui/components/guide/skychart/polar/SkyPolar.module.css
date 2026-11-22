@@ -251,24 +251,13 @@
 
 /* R158 (FR-LOOK-1, FR-LOOK-2, FR-LOOK-3, FR-PHONE-8; D-968): the whole sky's
    look, the window's tokens at the chart's unit. The surface fills the horizon
-   ring in the twilight step's tone; the band is five stroked annuli in the
+   ring in the deep tone at every hour; the band is five stroked annuli in the
    glow, each at its strip's alpha (an attribute, the strip's own); the haze's
    three bands in one tone at theirs; the figures hairlines in the figure
    token, one path per figure. */
 .surface {
-  stroke: none;
-}
-
-.surface[data-tint='deep'] {
   fill: var(--chart-sky-deep);
-}
-
-.surface[data-tint='twilight'] {
-  fill: var(--chart-sky-twilight);
-}
-
-.surface[data-tint='day'] {
-  fill: var(--chart-sky-day);
+  stroke: none;
 }
 
 .band circle {

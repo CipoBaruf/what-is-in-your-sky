@@ -19,7 +19,7 @@ import { bandHalfWidthDeg, galacticOf, prepareHaze, hazeOpacity, type PreparedHa
 import { brightLimbPoint, limbAngleDeg, litPath } from '../window/MoonDisc';
 import type { StarField } from '../window/scene';
 import { skyFrameOf, unapplyFrame } from '../window/skyFrame';
-import { HORIZON_BAND_STEPS, stripOpacity, tintStep } from '../window/skySurface';
+import { HORIZON_BAND_STEPS, stripOpacity } from '../window/skySurface';
 import { bloomed, collide, LANDMARK_RING_PX, magnitudeOrder, markFor, planetMarkFor, type Mark, type Point } from '../window/starGlyphs';
 import glyphStyles from '../window/starGlyphs.module.css';
 import { ADVANCE_EM, placeLabels, type Box, type FigureLabel, type LabelMark, type LabelSegment, type MarkLabel, type PlacedLabel } from '../window/starLabels';
@@ -61,26 +61,24 @@ const ringR = (project: Project, elDeg: number): number => {
   return Math.hypot(p.x, p.y);
 };
 
-// --- The surface and the band (FR-LOOK-1, FR-LOOK-2) ----------------------------
+// --- The surface and the band (FR-LOOK-1, FR-DARK-1) ----------------------------
 
 interface PolarSkyProps {
-  positions: StarField['positions'];
   project: Project;
 }
 
 /**
- * FR-LOOK-1, FR-LOOK-2 on the chart: the surface inside the horizon ring in the twilight step's tone (the Sun's
- * altitude the positions carry), and the band inside the rim — `HORIZON_BAND_STEPS` annuli of 3° of altitude from
- * the horizon up, each a stroked circle at its strip's alpha (the window's `stripOpacity`), since on a polar chart
- * every altitude ring is a circle about the zenith. Drawn under the Sun's glow and the grid.
+ * FR-LOOK-1, FR-DARK-1 on the chart: the deep surface inside the horizon ring at every Sun altitude, and the band
+ * inside the rim — `HORIZON_BAND_STEPS` annuli of 3° of altitude from the horizon up, each a stroked circle at its
+ * strip's alpha (the window's `stripOpacity`), since on a polar chart every altitude ring is a circle about the
+ * zenith. Drawn under the stars and the grid.
  */
-export const PolarSky = memo(function PolarSky({ positions, project }: PolarSkyProps) {
-  const tint = tintStep(positions.sunAltDeg);
+export const PolarSky = memo(function PolarSky({ project }: PolarSkyProps) {
   const horizon = ringR(project, 0);
   const stripDeg = HORIZON_BAND_DEG / HORIZON_BAND_STEPS;
   return (
-    <g data-layer="sky" data-tint={tint}>
-      <circle className={styles.surface} data-sky-surface data-tint={tint} r={fmt(horizon)} />
+    <g data-layer="sky">
+      <circle className={styles.surface} data-sky-surface r={fmt(horizon)} />
       <g className={styles.band} data-horizon-band>
         {Array.from({ length: HORIZON_BAND_STEPS }, (_, k) => {
           const outer = ringR(project, k * stripDeg);

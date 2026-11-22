@@ -23,21 +23,10 @@
   user-select: none;
 }
 
-/* FR-GLOBE-13: the disc takes FR-LOOK-2's surface for the Sun's altitude at the shown place and instant. */
+/* FR-DARK-1: the disc is the one sky surface at every Sun altitude. */
 .disc {
-  stroke: none;
-}
-
-.disc[data-tint='deep'] {
   fill: var(--chart-sky-deep);
-}
-
-.disc[data-tint='twilight'] {
-  fill: var(--chart-sky-twilight);
-}
-
-.disc[data-tint='day'] {
-  fill: var(--chart-sky-day);
+  stroke: none;
 }
 
 /* FR-GLOBE-3: the ground side's shade; its opacity is `GLOBE_GROUND_OPACITY`, an attribute. */

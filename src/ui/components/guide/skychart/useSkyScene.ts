@@ -23,21 +23,11 @@ import type { SkyScene, StarField } from './window/scene';
  * (FR-SKY-3's toggle) and the names are off (below): the table, not the
  * switches, is what keeps the figures off the polar chart and the dome.
  *
- * R123 (FR-SKY-3, FR-STAR-13 as amended; D-791, D-814): the twilight step is
- * applied once per scene — since D-837 by the source this hook is handed
- * (`starScene.ts`, in the `stars` chunk) — so no view changes for it and one rule thins every
- * drawing of the sky. The source carries `lib/skyStars.ts`'s `drawnRungs` and
- * `drawnMagLimit` with the positions, and the positions carry the Sun's
- * altitude at the same instant — so at 3600× the step follows the shown `t`
- * exactly, not the page's once-a-second bodies (FR-LIVE-5) — and the hook
- * still imports none of it, so `astronomy-engine` stays in the `stars` chunk.
- * With every rung drawn the scene is the whole field; with fewer (the Sun
- * above −6°) the catalogue is cut to the drawn rungs' magnitude, which in
- * D-748's magnitude order is a prefix (`catalogCut.ts`'s `cutCatalog`, the views'
- * own cut), and the figures are left out, since their lines would run to stars
- * the step hides; above 0° the scene carries no stars at all. The planets go
- * with the first two rungs (`planetsDrawn` is true wherever a rung is drawn),
- * so the step needs no planet switch of its own.
+ * FR-DARK-2 (v3.0, FR-STAR-13 and FR-SKY-3 as amended; D-1234): the scene is
+ * the whole field at every Sun altitude — no step thins it and none takes the
+ * figures out — so every drawing of the sky is the night's. The positions come
+ * from the source (`starScene.ts`, in the `stars` chunk since D-837), so the
+ * hook imports none of `lib/skyStars.ts` and `astronomy-engine` stays there.
  *
  * The names layer is off in every scene this hook builds: the live page and the
  * pass detail do not offer it (FR-SKY-3, FR-LEG-1 as amended, OQ-45) — a tap
@@ -55,17 +45,14 @@ import type { SkyScene, StarField } from './window/scene';
  * the shown instant would change under a scrub while the pass did not, which
  * FR-SKY-11 rules out ("moves with a scrub only when the highlighted pass
  * changes"), and it is what the reader sees beside the pass at its peak — the
- * column's rule too (FR-SKY-12, each point at its own instant). The twilight
- * step is the shown instant's, the drawing's: a star the step hides now is no
- * landmark and leaves no line (FR-SKY-11), so the scene then carries
- * `landmark: null` even where a figure is near. The names (D-832) come the
+ * column's rule too (FR-SKY-12, each point at its own instant). The names (D-832) come the
  * same way, as closures over the catalogue, so the pages word the line and the
  * column without the chunk's modules.
  */
 
 /**
  * Where the stars come from: the loaded `stars` chunk, as the scene at an instant (D-837). `starScene.ts`'s
- * `starSourceOf` builds it in the chunk — the positions, the twilight step and the cut — so none of that is in
+ * `starSourceOf` builds it in the chunk — the positions and the landmark — so none of that is in
  * `main`; the same call twice is expected to return the same object (the positions are memoised on the instant).
  */
 /** D-832's three readers of a name, as the page reaches them without the `stars` chunk's modules. */
@@ -81,7 +68,7 @@ export interface StarNames {
 export interface StarSource {
   /**
    * The scene at `t`; R127 (FR-SKY-11; D-826): with the highlighted pass, its landmark too — among the stars at the
-   * peak's own instant, kept per pass in the chunk, under the twilight step drawn at `t` (`null` where there is none).
+   * peak's own instant, kept per pass in the chunk (`null` where there is none).
    */
   sceneAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs, pass?: ScenePass | null) => SkyScene;
   /** The catalogue in the scene's shape, for the pages' names (a star's constellation, D-832). */
@@ -112,11 +99,8 @@ export interface SkySceneInput {
   pass?: ScenePass | null | undefined;
 }
 
-/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen, shared with `starScene.ts`. */
+/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing. */
 const NO_STARS: SkyScene = Object.freeze({ stars: null });
-
-/** D-1139: the stars layer on under a Sun above 0° — no field for the window, the dome or the polar chart; the globe's day stars. Frozen, shared with `starScene.ts`. */
-export const DAY_SKY: SkyScene = Object.freeze({ stars: null, daylight: true });
 
 export function useSkyScene({ observer, now, starsLayer, source, pass = null }: SkySceneInput): SkyScene {
   const { lat, lon } = observer;

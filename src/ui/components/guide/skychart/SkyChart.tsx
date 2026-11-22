@@ -139,18 +139,13 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** With no scene (the stars toggle off, or its source not in yet), the globe draws the planets and nothing of the stars. */
 const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
-/**
- * D-1139 (V214-36): with `[x] stars` the globe draws its stars and figures at every Sun — the field's night layers;
- * above −6° the globe itself cuts them to `DAY_STARS_MAG` and fades them (`dayStars`), where the window's twilight
- * field (`TWILIGHT_LAYERS`) has no figures and its day none at all.
- */
+/** FR-DARK-2: with `[x] stars` the globe draws its stars and figures at every Sun, as the other views do. */
 const STARS_ON: GlobeLayers = { stars: true, figures: true, planets: true, names: false };
 
 function GlobeView(props: SkyChartProps) {
   const language = useLocale();
   const field = props.scene?.stars;
-  const daylight = props.scene?.daylight === true;
-  const layers = useMemo<GlobeLayers>(() => (field ? { ...STARS_ON, planets: field.layers.planets, names: field.layers.names } : daylight ? STARS_ON : NO_STARS), [field, daylight]);
+  const layers = useMemo<GlobeLayers>(() => (field ? { ...STARS_ON, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
   const { onSelectPass, onSkyPick, onPassHover } = props;
   // The page's shown instant; a chart given none (a test) draws the moment it mounted.
   const [mounted] = useState(() => Date.now());

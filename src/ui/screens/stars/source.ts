@@ -2,7 +2,7 @@ import { starCatalog } from '../../../data/stars/catalog';
 import { constellationAt, landmark } from '../../../lib/landmark';
 import { STARS_PAGE_CATALOGS } from '../../../i18n/starsPageT';
 import type { CompassPoint } from '../../../lib/compass';
-import { brightestDrawn, constellationName, drawnMagLimit, drawnRungs, figureName, starName, starsAt } from '../../../lib/skyStars';
+import { brightestDrawn, constellationName, figureName, starName, starsAt } from '../../../lib/skyStars';
 import type { EpochMs, Locale, Observer } from '../../../model';
 import { starSourceOf } from '../../components/guide/skychart/starScene';
 import type { StarNames, StarSource } from '../../components/guide/skychart/useSkyScene';
@@ -28,8 +28,6 @@ export function starSource(): StarSource {
     catalog: sceneCatalog(catalog),
     // `starsAt` memoises on the instant itself: one rotation per tick, whatever number of views reads it (FR-SKY-8).
     positionsAt: (observer, t) => starsAt(catalog, observer, t),
-    drawnRungs,
-    drawnMagLimit,
     // R127 (FR-SKY-11, FR-SKY-12, D-832): the landmark, the column's figure and the names, closed over the catalogue here.
     landmark: (positions, peak, rungs) => landmark({ mag: catalog.mag, altDeg: positions.altDeg, azDeg: positions.azDeg }, peak, rungs),
     constellationAt: (point, positions) => constellationAt(point, catalog.figures, positions),
