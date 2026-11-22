@@ -368,7 +368,7 @@ function DayLine({ observer }: { observer: Observer }) {
 /**
  * D-1179 (FR-OPEN-4, FR-OPEN-14): the example's lines in the Where reading — the label, and in the wide pane
  * `example.finding` until the run is ready and the day line, then the action: the accent's box in the pane, a
- * bracketed control on the phone, whose band over the doors carries the boxed one and those two lines.
+ * plain boxed control on the phone, whose band over the doors carries the boxed one and those two lines.
  */
 function ExampleWhere({ example, controls, pane }: { example: WhereExample; controls: string; pane: boolean }) {
   const t = useT();

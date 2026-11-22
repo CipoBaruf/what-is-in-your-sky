@@ -91,8 +91,8 @@ export function BackToLive({ onNow }: { onNow: () => void }) {
 }
 
 /**
- * FR-LIVE-6's toggle: a pressed button that reads `[x]` like the other text
- * toggles (FR-X-5). R48: one word on compact ("Hidden") under the full
+ * FR-LIVE-6's toggle: a pressed button, filled while on like the other
+ * options (FR-X-5, FR-CTRL-2). R48: one word on compact ("Hidden") under the full
  * accessible name — in the list panel's head since R144 (D-905).
  */
 export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {

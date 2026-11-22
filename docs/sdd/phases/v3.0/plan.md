@@ -90,6 +90,17 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
   Each screen task keeps `tests/e2e/captureSet.ts`'s manifest true for what it removes (the home's, the stars page's, the first-pass dialog's names); R227 adds FR-LAND-4's header at 1280 and 1024 px with the example and with a place, the compact sheet's head at 390 px with both, and FR-NOW-3's rail at 1280 × 800 with nothing up and with a pass up.
 - **D-1246 — The budget rows follow the chunks.**
   (The definition of done.) The `home` and `stars` rows leave `scripts/bundle-budget.ts` with their chunks (R212, R222); the `live` row grows by the stars' groups and the strip, a named reason (FR-LAND-3, FR-STRIP-1); R227 re-sets every row by D-178 and names any row over 2.16.0's by more than 1 KB.
+- **D-1247 — A box is its words and two cells, and takes no height in its line.**
+  (R206; D-1226, FR-CTRL-1.) The hairline is inside the cell of padding, so a button and an option are both the label plus two cells; negative block margins leave the box out of the line's height.
+  A short control keeps `--target` of width by a block of no height after the box, not by `min-inline-size`, which would let a flex item shrink under its words.
+  `bare` stays words without a box, in the accent, and `note` draws the box on the button itself.
+- **D-1248 — An option has one look; the props of the older looks stay until their callers move.**
+  (R206; FR-CTRL-2, FR-CTRL-3.) `mark`, `gap` and `alone` are accepted and draw nothing different, because their callers are in other tasks' lanes.
+  A dense row (the facing picker, FR-FLOW-11) keeps its half cell of hit padding and draws its block a quarter cell into it, so the row keeps its cells.
+  Disabled and on keeps a block, on `--hover-ground` with dim words (FR-CTRL-17).
+- **D-1249 — The widths follow the box, and so does the hint's fit.**
+  (R206; D-1226.) `BRACKET_CELLS` (4) is `BOX_CELLS` (2) in `hintFitsBeside`, so the mouse's drag hint now stands beside `controls` in both languages where only the touch one did.
+  The gallery restates the colour aliases on each theme's column, since an alias resolves where it is declared; the app's theme is on the root and needs none.
 
 ### 8.22 The sky first *(v3.0, FR-LAND, FR-STRIP, FR-DARK, FR-CTRL, FR-DS-10..14, FR-NOW, FR-UPD)*
 

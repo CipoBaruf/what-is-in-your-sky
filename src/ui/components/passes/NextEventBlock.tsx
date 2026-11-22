@@ -96,7 +96,7 @@ export function jumpInstant(result: NextEvent | NoEvent, now: EpochMs, hours: nu
   return ahead > JUMP_MIN_AHEAD_S * 1000 && ahead <= hours * 3_600_000 - JUMP_SPAN_MARGIN_MS ? result.at : null;
 }
 
-/** The control itself, wherever it stands: bracketed text in the accent with a 48 px hit box on a text row (D-246). */
+/** The control itself, wherever it stands: the boxed button (FR-CTRL-1) with a 48 px hit box on a text row (D-246). */
 function SeeThisPass({ rise, pass, onSee }: { rise: EpochMs; pass: Pass; onSee: (rise: EpochMs) => void }) {
   const t = useT();
   return (

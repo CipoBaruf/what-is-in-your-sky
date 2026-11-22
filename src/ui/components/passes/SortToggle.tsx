@@ -16,14 +16,13 @@ import { ToggleGroup } from '../primitives/ToggleGroup';
  * the widths; the meaning may not, and it does not: the same two orders, the
  * same group name for anyone who hears it rather than reads it.
  *
- * R81 (FR-FIRST-10): on the home page's count and sort line the short names
- * at every width (`short`), and the pressed order bracketed —
- * `Sort: [ Soonest ] Best` — which is the board's way of marking it and not
- * colour alone (FR-X-5).
+ * R81 (FR-FIRST-10), R206 (FR-CTRL-2): on the home page's count and sort line
+ * the short names at every width (`short`), and the pressed order the filled
+ * option — a change of shape, not of colour alone (FR-X-5).
  *
- * R104 (FR-DS-4 item 3, D-705): the row is a `ToggleGroup` with the bracket
- * mark; this file keeps its name, its copy and its props, and its own `[x]`
- * markup and stylesheet are gone.
+ * R104 (FR-DS-4 item 3, D-705): the row is a `ToggleGroup`; this file keeps
+ * its name, its copy and its props, and its own markup and stylesheet are
+ * gone.
  */
 const ORDER: readonly PassSort[] = ['chronological', 'best'];
 

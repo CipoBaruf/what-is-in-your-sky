@@ -42,6 +42,16 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **Do not run prettier here.** There is no config, and it rewrites the files to double quotes and 80 columns.
 - **Lint after the last edit.** `eslint .` also lints `sdd-run/` and `node_modules/.cache/`, and `consistent-type-definitions` fails on a `type X = {}` inside a function. CI catches it 34 s in.
 - **A task session cannot add npm dependencies.** There is no network and every session runs `npm ci`; the owner installs the package first.
+- **A control's hit box and its drawn box are two elements (D-1226, D-1247).**
+  The button is the hit box and the `<span>` inside is the box, so `getByText` and a click's `event.target` are the span: read a control with `closest('button')`, and measure a target on `getByRole`.
+  A caller's CSS that styles `.row span` reaches the box: select by class.
+  *Why:* R206, 2026-11-22.
+- **An alias token resolves where it is declared.**
+  `--on-ground: var(--fg)` in `:root` is already the root theme's colour when a nested themed element inherits it, so an element that sets a theme below the root restates every alias (`dev/primitives.css`'s `.theme`).
+  The app sets its theme on the root and needs nothing.
+  *Why:* R206; the gallery's night column had the dark theme's borders.
+- **An option's accessible name is its word.**
+  There is no `[x]` or `[ … ]` to match since R206: name it with `exact: true` (`60×` is a substring of `600×`) or by `data-option`, and read its state from `aria-pressed`.
 
 ## captures
 

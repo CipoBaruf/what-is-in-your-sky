@@ -153,7 +153,7 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
             <span className={styles.label} aria-hidden="true">
               {t.settings.skyLabel}
             </span>
-            {/* In a span: the rows' cells are flex boxes, and a flex button drops the trailing space of its `[ ] ` mark. */}
+            {/* In a span: the rows' cells are flex boxes, and a flex button would stretch its option box out of the text line (R206). */}
             <span>
               <OptionToggle
                 label={t.settings.sunGlow}
