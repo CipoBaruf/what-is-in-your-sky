@@ -1,6 +1,6 @@
 /**
  * D-1315: the conflicts every parallel task makes, resolved the way the owner's `resolve-sdd.sh`
- * did in v2.14. A phase `plan.md` keeps both sides' rows (main's first, then the branch's); the
+ * did in v2.14. A phase `plan.md` and `docs/sdd/gotchas.md` (D-1321) keep both sides' rows (main's first, then the branch's); the
  * generated files are taken from either side and regenerated; the i18n key snapshot is rewritten
  * by its own test. A conflict in any other file is not this module's to resolve.
  */
@@ -12,12 +12,14 @@ const GENERATED_FILES = ['docs/sdd/ids.md', 'docs/sdd/reference/traceability.md'
 /** The sorted i18n key snapshot, rewritten by `vitest -u` on its test. */
 const I18N_SNAPSHOT = 'src/i18n/__snapshots__/messages.test.ts.snap';
 const PLAN_DOC = /^docs\/sdd\/phases\/[^/]+\/plan\.md$/;
+/** D-1321: parallel tasks append to it too; both sides are kept like a plan's rows. */
+const GOTCHAS_DOC = 'docs/sdd/gotchas.md';
 
-type SharedKind = 'plan' | 'generated' | 'snapshot';
+type SharedKind = 'union' | 'generated' | 'snapshot';
 
 /** Which kind of shared file `path` is, or `null` for any other file. */
 export function sharedKind(path: string): SharedKind | null {
-  if (PLAN_DOC.test(path)) return 'plan';
+  if (PLAN_DOC.test(path) || path === GOTCHAS_DOC) return 'union';
   if ((GENERATED_FILES as readonly string[]).includes(path)) return 'generated';
   if (path === I18N_SNAPSHOT) return 'snapshot';
   return null;
@@ -71,12 +73,12 @@ export interface ResolveIo {
 export async function resolveSharedConflicts(dir: string, mainSide: 'ours' | 'theirs', io: ResolveIo): Promise<boolean> {
   const conflicted = await io.conflicted();
   if (conflicted.length === 0 || conflicted.some((path) => sharedKind(path) === null)) return false;
-  for (const path of conflicted.filter((file) => sharedKind(file) === 'plan')) {
+  for (const path of conflicted.filter((file) => sharedKind(file) === 'union')) {
     const merged = unionConflicts(readFileSync(join(dir, path), 'utf8'), mainSide);
     if (merged === null) return false;
     writeFileSync(join(dir, path), merged);
   }
-  for (const path of conflicted.filter((file) => sharedKind(file) !== 'plan')) if (!(await io.checkoutSide(path))) return false;
+  for (const path of conflicted.filter((file) => sharedKind(file) !== 'union')) if (!(await io.checkoutSide(path))) return false;
   if (!(await io.regenerate())) return false;
   if (conflicted.includes(I18N_SNAPSHOT) && !(await io.regenerateSnapshot())) return false;
   return io.add([...new Set([...conflicted, ...GENERATED_FILES])].filter((path) => existsSync(join(dir, path))));
