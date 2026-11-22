@@ -212,14 +212,10 @@
   fill: var(--series);
 }
 
-/* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is.
-   The glow's opacity is its strength, which is also its width and its height
-   (`../bodies`), so a Sun nearing the horizon reads brighter without the
-   marker changing meaning. */
-.glow {
-  fill: none;
-  stroke: var(--chart-sun);
-  stroke-linecap: round;
+/* FR-DARK-2, FR-DOME-6: the Sun's dot and the Moon's disc where they are. */
+.sun {
+  fill: var(--chart-sun);
+  stroke: none;
 }
 
 .moon {
@@ -255,24 +251,13 @@
 
 /* R158 (FR-LOOK-1, FR-LOOK-2, FR-LOOK-3, FR-PHONE-8; D-968): the whole sky's
    look, the window's tokens at the chart's unit. The surface fills the horizon
-   ring in the twilight step's tone; the band is five stroked annuli in the
+   ring in the deep tone at every hour; the band is five stroked annuli in the
    glow, each at its strip's alpha (an attribute, the strip's own); the haze's
    three bands in one tone at theirs; the figures hairlines in the figure
    token, one path per figure. */
 .surface {
-  stroke: none;
-}
-
-.surface[data-tint='deep'] {
   fill: var(--chart-sky-deep);
-}
-
-.surface[data-tint='twilight'] {
-  fill: var(--chart-sky-twilight);
-}
-
-.surface[data-tint='day'] {
-  fill: var(--chart-sky-day);
+  stroke: none;
 }
 
 .band circle {

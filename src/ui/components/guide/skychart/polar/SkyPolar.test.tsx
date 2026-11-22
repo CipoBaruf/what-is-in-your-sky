@@ -16,7 +16,7 @@ import type { ChartOrientation, Observer, PassPoint } from '../../../../../model
 import { appStore } from '../../../../../state';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { starsAt } from '../../../../../lib/skyStars';
-import { glowHalfWidthDeg, glowHeightDeg, glowStrength, MOON_PHASE_GLYPH } from '../bodies';
+import { MOON_PHASE_GLYPH } from '../bodies';
 import { sceneCatalog } from '../../../../screens/stars/field';
 import { POLAR_STAR_MAG } from '../layers';
 import { createHandCamera } from '../window/camera';
@@ -231,18 +231,12 @@ describe('<SkyPolar>', () => {
     expect(container.querySelector('[data-marker="flown"]')).toBeNull();
   });
 
-  it('draws the Sun on the horizon and the Moon where it is, neither captioned (FR-DOME-6 as amended), and neither when there is nothing to draw', () => {
-    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+  it('draws the Sun’s dot and the Moon where they are, neither captioned (FR-DARK-2, FR-DOME-6 as amended), and neither when there is nothing to draw', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: 40 };
     const props = { passes: [pass], observer, highlightedPassId: pass.id };
     const { container, rerender } = render(<SkyPolar {...props} sun={sun} moon={MOON_FIXTURE} />);
 
-    // The glow sits at the Sun's azimuth, near the horizon: its band's midpoint
-    // is further from the zenith than the 60° ring is.
-    const glow = container.querySelector('[data-body="sun"] path');
-    const start = /M(-?[\d.]+) (-?[\d.]+)/.exec(glow?.getAttribute('d') ?? '');
-    if (!start) throw new Error('no glow path');
-    expect(Math.hypot(Number(start[1]), Number(start[2]))).toBeGreaterThan(HORIZON_R / 2);
-    // R45: the names and the phase glyph are legend lines; the drawing carries the glow and the disc only.
+    expectAt(markerAt(container, 'sun'), expected({ t: sun.t, azDeg: 285, elDeg: 40, rangeKm: 0 }, 'looking-up'));
     expect(container.querySelector('[data-anchor="sun"]')).toBeNull();
     expect(container.querySelector('[data-anchor="moon"]')).toBeNull();
     expect(container.querySelector('svg')?.textContent).not.toMatch(/Sun|Moon/);
@@ -250,7 +244,7 @@ describe('<SkyPolar>', () => {
 
     expectAt(markerAt(container, 'moon'), expected({ ...MOON_FIXTURE, rangeKm: 0 }, 'looking-up'));
 
-    rerender(<SkyPolar {...props} sun={{ ...sun, altDeg: -30 }} moon={MOON_DOWN} />);
+    rerender(<SkyPolar {...props} sun={{ ...sun, altDeg: -8 }} moon={MOON_DOWN} />);
     expect(container.querySelector('[data-body="sun"]')).toBeNull();
     expect(container.querySelector('[data-body="moon"]')).toBeNull();
 
@@ -259,13 +253,13 @@ describe('<SkyPolar>', () => {
     expect(container.querySelector('[data-body="moon"]')).toBeNull();
   });
 
-  it('keeps the glow a surface under the grid (F-3)', () => {
-    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
-    const horizon = container.querySelector('circle');
-    const glow = container.querySelector('[data-body="sun"] path');
-    if (!horizon || !glow) throw new Error('no horizon ring or glow');
-    expect(horizon.compareDocumentPosition(glow) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  it('FR-DARK-2: keeps the dot over the grid and the arcs, under the Moon', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: 40 };
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} />);
+    const order = [...(container.querySelector('svg')?.children ?? [])];
+    const index = (selector: string): number => order.findIndex((el) => el.matches(selector));
+    expect(index('[data-body="sun"]')).toBeGreaterThan(index('[data-pass-id]'));
+    expect(index('[data-body="sun"]')).toBeLessThan(index('[data-body="moon"]'));
   });
 
   /** FR-LEG-1 (R45): the key at the peak is the arc's one label and the one element carrying the pass id is its group. */
@@ -331,23 +325,6 @@ describe('<SkyPolar>', () => {
     expect(css).toMatch(/\.ahead \.track \{[^}]*stroke-dasharray/);
     expect(css).toMatch(/\.linger \.track \{[^}]*stroke-width: 1;/);
     expect(css).not.toMatch(/opacity: 0\.[0-9]+;\n\}\n\n\.(ahead|linger)/);
-  });
-
-  // -3 and -5 are altitudes where `d += step` used to drift past halfWidth and drop the last sample.
-  it.each([-8, -3, -5])('samples the glow all the way to ±halfWidth around the Sun, not short by up to half a fixed step (F-4), at %d°', (altDeg) => {
-    const sun = { t: MOON_FIXTURE.t, azDeg: 200, altDeg };
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
-    const glow = container.querySelector('[data-body="sun"] path');
-    const d = glow?.getAttribute('d') ?? '';
-    const points = [...d.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => ({ x: Number(x), y: Number(y) }));
-    if (points.length < 2) throw new Error('no glow points');
-    const strength = glowStrength(sun.altDeg);
-    const halfWidth = glowHalfWidthDeg(strength);
-    const height = glowHeightDeg(strength);
-    const left = expected({ t: sun.t, azDeg: sun.azDeg - halfWidth, elDeg: height / 2, rangeKm: 0 }, 'looking-up');
-    const right = expected({ t: sun.t, azDeg: sun.azDeg + halfWidth, elDeg: height / 2, rangeKm: 0 }, 'looking-up');
-    expectAt(points[0] ?? { x: NaN, y: NaN }, left);
-    expectAt(points[points.length - 1] ?? { x: NaN, y: NaN }, right);
   });
 
   it('draws the hidden objects dimmed where they are, each with its legend key and not its words, and none by default (FR-LIVE-6 as amended)', () => {
@@ -635,19 +612,17 @@ describe('<SkyPolar> stars', () => {
     expect(segmentsOf(container).length).toBeGreaterThan(0);
   });
 
-  it('draws the surface and the band under the glow and the grid, the stars under the grid and the arcs, and nothing without a scene or with the layers off', async () => {
-    const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={{ t: 0, azDeg: 270, altDeg: -3 }} scene={SNAPSHOT_SCENE} />);
+  it('draws the surface and the band under the grid, the stars under the grid and the arcs, and nothing without a scene or with the layers off', async () => {
+    const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
     await settle();
     const svg = container.querySelector('svg') as SVGSVGElement;
     const children = [...svg.children];
     const index = (test: (el: Element) => boolean): number => children.findIndex(test);
     const sky = index((el) => el.getAttribute('data-layer') === 'sky');
-    const glow = index((el) => el.getAttribute('data-body') === 'sun');
     const layer = index((el) => el.getAttribute('data-layer') === 'stars');
     const grid = index((el) => el.tagName.toLowerCase() === 'circle');
     expect(sky).toBe(0);
-    expect(sky).toBeLessThan(glow);
-    expect(glow).toBeLessThan(layer);
+    expect(sky).toBeLessThan(layer);
     expect(layer).toBeLessThan(grid);
     expect(layer).toBeLessThan(index((el) => el.hasAttribute('data-pass-id')));
     expect(svg.querySelector('[data-layer="stars"]')).toHaveAttribute('class', expect.stringContaining('stars'));
@@ -661,18 +636,14 @@ describe('<SkyPolar> stars', () => {
     expect(glyphs(container)).toHaveLength(0);
   });
 
-  /** FR-LOOK-1, FR-LOOK-2 on the chart (R158). */
-  it.each([
-    [5, 'day'],
-    [-3, 'twilight'],
-    [-12, 'deep'],
-    [undefined, 'deep'],
-  ] as const)('fills the horizon ring with the surface in the twilight step’s tone (Sun at %s°: %s) and draws the band’s five annuli inside the rim', async (sunAltDeg, tint) => {
+  /** FR-LOOK-1 (R158) and FR-DARK-1 on the chart. */
+  it.each([40, 5, -3, -12, undefined])('FR-DARK-1: fills the horizon ring with the one deep surface (Sun at %s°) and draws the band’s five annuli inside the rim', async (sunAltDeg) => {
     const scene = handScene([{ mag: 1, azDeg: 90, altDeg: 10 }], [], sunAltDeg === undefined ? {} : { sunAltDeg });
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
     await settle();
     const surface = container.querySelector('[data-sky-surface]');
-    expect(surface).toHaveAttribute('data-tint', tint);
+    expect(surface).not.toHaveAttribute('data-tint');
+    expect(readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8')).toMatch(/\.surface \{\n {2}fill: var\(--chart-sky-deep\);/);
     expect(surface).toHaveAttribute('r', HORIZON_R.toFixed(2));
     const strips = [...container.querySelectorAll('[data-horizon-band] circle')];
     expect(strips).toHaveLength(5);

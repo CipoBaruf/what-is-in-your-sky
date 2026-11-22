@@ -698,8 +698,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arcs, at the shown instant — one scene for
    * whichever view the page draws and for the screen, rotated once per shown instant, so at 3600× the stars turn
-   * with the arcs. The twilight step reads the Sun at the same shown instant (the positions carry it), not the
-   * once-a-second bodies, so a fast scrub into the day never draws a night sky.
+   * with the arcs. The positions carry the Sun at the same shown instant, not the
+   * once-a-second bodies, and no Sun altitude thins them (FR-DARK-2).
    */
   const starsLayer = useAppStore((s) => s.starsLayer);
   const starSource = useStarSource(starsLayer);

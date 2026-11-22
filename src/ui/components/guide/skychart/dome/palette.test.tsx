@@ -46,7 +46,7 @@ describe('dome palette', () => {
     expect([...reserved].sort()).toEqual(['chart-figure', 'chart-star-dim', 'chart-star-faint']);
     // R184 (D-1104): the desk's planet and cloud marks are the globe's, the window's and the stripe's, never the dome's.
     const desk = new Set<string>(CHART_DESK_TOKENS);
-    const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name) && !desk.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
+    const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name) && !desk.has(name)), ...CHART_SURFACE_TOKENS].map((name) => (name === 'chart-sky' ? '--chart-sky-deep' : `--${name}`)).sort(); // FR-DARK-1 (D-1263): the bowl is the one sky surface
     expect([...MEANINGS].map((meaning) => CHART_TOKENS[meaning]).sort()).toEqual(declared);
     expect(CHART_TOKENS.star).toBe('--chart-star');
     expect(CHART_TOKENS.planet).toBe('--chart-planet');

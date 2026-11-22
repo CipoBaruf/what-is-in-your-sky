@@ -1,7 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { constellationAt, landmark, type FigureLines } from '../../../../lib/landmark';
-import { drawnMagLimit, drawnRungs } from '../../../../lib/skyStars';
 import type { Observer } from '../../../../model';
 import { starSourceOf, type StarParts } from './starScene';
 import { useSkyScene, type SkySceneInput, type StarSource } from './useSkyScene';
@@ -23,18 +22,18 @@ function landmarkOf(catalog: StarField['catalog'], figures: readonly FigureLines
  * FR-SKY-1, FR-SKY-8 / PLAN D-788, D-802 (R119): one scene per tick from the
  * observer, the instant and the toggle, through a source the page supplies;
  * the same inputs give the same object, a new instant a new one, and `[ stars ]`
- * off or no source gives a scene with no stars. R123 (FR-STAR-13, D-791): the
- * twilight steps, applied here and nowhere else.
+ * off or no source gives a scene with no stars. FR-DARK-2 (D-1234): the whole
+ * field at every Sun altitude.
  */
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const catalog: StarField['catalog'] = { ra: [0], dec: [0], mag: [0], name: ['A'], desig: ['a'], con: ['Ori'], figures: [] };
 
-/** A dark sky: every rung drawn (FR-STAR-13). */
+/** A dark sky. */
 const NIGHT = -18;
 
 function fakeSource(): StarSource & { positionsAt: ReturnType<typeof vi.fn> } {
   const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number): Positions => ({ altDeg: [t % 90], azDeg: [0], planets: [], sunAltDeg: NIGHT }));
-  return { ...starSourceOf({ catalog, positionsAt, drawnRungs, drawnMagLimit, ...landmarkOf(catalog) }), positionsAt };
+  return { ...starSourceOf({ catalog, positionsAt, ...landmarkOf(catalog) }), positionsAt };
 }
 
 const input = (rest: Omit<SkySceneInput, 'observer'> & Partial<Pick<SkySceneInput, 'observer'>>): SkySceneInput => ({ observer, ...rest });
@@ -86,12 +85,10 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
   });
 
   /*
-   * R123 (FR-STAR-13 as amended, FR-SKY-3; D-791, D-814): the twilight steps applied once, in the scene, so no view
-   * changes for them — every rung at −6° and below, the first two and the planets up to 0°, nothing above — over the
-   * real `skyStars.ts` functions, at PLAN §9.7's four altitudes. The Sun is the positions' own, at the scene's
-   * instant, so the step follows the shown `t` however fast it runs (R123 review).
+   * FR-DARK-2 (FR-STAR-13 and FR-SKY-3 as amended v3.0; D-1234): no step thins the scene — every rung, the figures
+   * and the planets at every altitude of the Sun, which is the positions' own at the scene's instant.
    */
-  describe('the twilight steps (FR-STAR-13, D-791)', () => {
+  describe('every rung at every hour (FR-DARK-2, D-1234)', () => {
     // In D-748's magnitude order, one star on each of the ladder's five rungs (0.5, 1.5, 2.5, 3.5, the rest).
     const ladder: StarField['catalog'] = {
       ra: [0, 10, 20, 30, 40],
@@ -106,46 +103,27 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
     const positions = (sunAltDeg: number): Positions => ({ altDeg: [10, 20, 30, 40, 50], azDeg: [0, 0, 0, 0, 0], planets, sunAltDeg });
     // The Sun at `t` is `t`'s own here: the step reads it from the positions at the scene's instant.
     const figures: FigureLines[] = [{ con: 'Ori', part: 0, segments: [0, 4] }];
-    const source: StarSource = starSourceOf({ catalog: ladder, positionsAt: (_where, t) => positions(t), drawnRungs, drawnMagLimit, ...landmarkOf(ladder, figures) });
+    const source: StarSource = starSourceOf({ catalog: ladder, positionsAt: (_where, t) => positions(t), ...landmarkOf(ladder, figures) });
     const at = (sunAltDeg: number) => renderHook(() => useSkyScene({ observer, now: sunAltDeg, starsLayer: true, source })).result.current;
 
-    it('draws the whole field, the figures and the planets at −18° and at −6°', () => {
-      for (const sun of [-18, -6]) {
-        const field = at(sun).stars;
-        expect(field?.catalog).toBe(ladder);
-        expect(field?.layers).toEqual({ stars: true, figures: true, planets: true, names: false });
-      }
+    it.each([-18, -6, -3, 0, 1, 40, 80])('FR-DARK-2: draws the whole field, the figures and the planets at %s°', (sun) => {
+      const field = at(sun).stars;
+      expect(field?.catalog).toBe(ladder);
+      expect(field?.layers).toEqual({ stars: true, figures: true, planets: true, names: false });
+      expect(field?.positions.planets).toBe(planets);
     });
 
-    it('draws the first two rungs and every planet at −3°, and no figure', () => {
-      const field = at(-3).stars;
-      expect(Array.from(field?.catalog.mag ?? [])).toEqual([0, 1]);
-      expect(field?.catalog.name).toEqual(['A', 'B']);
-      expect(field?.catalog.figures).toEqual([]);
-      expect(field?.layers).toEqual({ stars: true, figures: false, planets: true, names: false });
-      // The positions stay whole: a view counts its stars by the catalogue's length.
-      expect(Array.from(field?.positions.altDeg ?? [])).toHaveLength(5);
-      // The cut is made once per catalogue and limit, so a view's memo on the catalogue holds from tick to tick.
-      expect(at(-2).stars?.catalog).toBe(field?.catalog);
-    });
-
-    // v2.14.1 (D-1139): no field at +1° still, and the scene says it is daylight, for the globe's day stars.
-    it('draws no field at +1°, and says it is daylight (D-1139)', () => {
-      expect(at(1)).toEqual({ stars: null, daylight: true });
-    });
-
-    it('steps with the shown instant itself: a scrub from night into day thins and then empties the field at once', () => {
+    it('FR-DARK-2: a scrub from night into day keeps the same field', () => {
       const { result, rerender } = renderHook((now: number) => useSkyScene({ observer, now, starsLayer: true, source }), { initialProps: -20 });
-      expect(result.current.stars?.catalog).toBe(ladder);
-      rerender(-5);
-      expect(result.current.stars?.catalog.mag).toHaveLength(2);
-      rerender(5);
-      expect(result.current).toEqual({ stars: null, daylight: true });
+      for (const now of [-5, 5, 40]) {
+        rerender(now);
+        expect(result.current.stars?.catalog).toBe(ladder);
+      }
     });
 
     /*
      * R127 (FR-SKY-11, FR-SKY-12; D-796, D-826): the highlighted pass's landmark is the scene's — found among the
-     * stars at the peak's instant under the scene's twilight step, the same star for every view, through the source's closures.
+     * stars at the peak's instant, the same star for every view, through the source's closures.
      */
     describe('the landmark (FR-SKY-11, D-796)', () => {
       const scene = (sunAltDeg: number, pass: SkySceneInput['pass']) => renderHook(() => useSkyScene({ observer, now: sunAltDeg, starsLayer: true, source, pass })).result.current;
@@ -164,33 +142,26 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
         expect(scene(-18, { id: 'p', peak: { azDeg: 90, elDeg: 30, t: -18 } }).landmark).toBeNull();
       });
 
-      it('carries none without a pass, and none when the twilight step hides the star the night would show', () => {
+      it('carries none without a pass, and the night’s at every altitude of the Sun (FR-DARK-2)', () => {
         // Without a pass the scene carries no `landmark` at all (absent is none, D-826).
         expect(scene(-18, null).landmark).toBeUndefined();
         expect(scene(-18, undefined).landmark).toBeUndefined();
-        // At −3° the first two rungs are drawn: the mag 2 star by the peak is hidden, so there is no landmark and no line — not the figure's either.
-        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } }).landmark).toBeNull();
-        // Nor a farther star the step still draws: at 27° the night's landmark is C (3° off, hidden at −3°), and B,
-        // 7° off and drawn, does not stand in for it (R127 review).
-        expect(scene(-18, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark?.star?.index).toBe(2);
-        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark).toBeNull();
-        // A star the step still draws is the landmark in twilight too.
-        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 21, t: -18 } }).landmark?.star?.index).toBe(1);
+        for (const sun of [-18, -3, 40]) expect(scene(sun, { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } }).landmark?.star?.index).toBe(2);
       });
 
-      it('places the peak’s stars and searches once per pass and step, for two passes in turn (R127 review)', () => {
+      it('places the peak’s stars and searches once per pass, for two passes in turn (R127 review)', () => {
         const parts = landmarkOf(ladder, figures);
         const search = vi.fn(parts.landmark);
         const place = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number) => positions(t));
-        const counted = starSourceOf({ catalog: ladder, positionsAt: place, drawnRungs, drawnMagLimit, ...parts, landmark: search });
+        const counted = starSourceOf({ catalog: ladder, positionsAt: place, ...parts, landmark: search });
         const p = { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } };
         const q = { id: 'q', peak: { azDeg: 0, elDeg: 21, t: -19 } };
         for (const now of [-18.5, -18.4, -18.3]) {
           expect(counted.sceneAt(observer, now, p).landmark?.star?.index).toBe(2);
           expect(counted.sceneAt(observer, now, q).landmark?.star?.index).toBe(1);
         }
-        // Two searches (the step's and the night's) per pass, one placement of each peak, and one of each instant.
-        expect(search).toHaveBeenCalledTimes(4);
+        // One search per pass, one placement of each peak, and one of each instant.
+        expect(search).toHaveBeenCalledTimes(2);
         expect(place.mock.calls.filter(([, t]) => t === -18 || t === -19)).toHaveLength(2);
       });
 

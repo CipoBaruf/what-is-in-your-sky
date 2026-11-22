@@ -26,7 +26,7 @@ import {
   riseMarker,
   ringAnchors,
   skyBowl,
-  sunGlow,
+  sunMarker,
   tickAnchors,
   type LabelBox,
   type LabelKind,
@@ -41,7 +41,7 @@ import { seriesColor, type DomePalette } from './palette';
  * FR-DOME-8 (R21, D-74): which meshes belong to which scene. The dome is two
  * stacked `GlyphScene`s and one set of labels:
  *
- *   base   solid mode — the ground disc, the shaded sky bowl and the Sun glow
+ *   base   solid mode — the ground disc and the shaded sky bowl
  *          (surfaces, lit by the scene's key light along the Sun's direction)
  *   lines  braille wireframe — the grid, the pass arcs, the markers, the
  *          arrowhead and the live marker
@@ -92,7 +92,7 @@ export interface LayersInput {
   highlightedPassId: string | null;
   /** The instant to mark on the arc, if it falls inside a pass, and the instant everything before it is drawn as flown (FR-DOME-5). */
   now?: number | undefined;
-  /** Where the Sun is, for the glow and the key light (FR-DOME-6, FR-DOME-8a). */
+  /** Where the Sun is, for its dot (FR-DARK-2). */
   sun?: { azDeg: number; altDeg: number } | null | undefined;
   /** Where the Moon is, for its marker and its phase glyph (FR-DOME-6). */
   moon?: MoonState | null | undefined;
@@ -151,13 +151,12 @@ export interface DomeLayers {
 
 const colored = (mesh: Mesh): boolean => mesh.polygons.length > 0;
 
-/** The base scene: surfaces only, and only where there is something to draw (no Sun below −18°, D-92). */
-export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
-  const { palette, sun } = input;
+/** The base scene: surfaces only, and the same at every Sun altitude (FR-DARK-1). */
+export function baseLayer(input: Pick<LayersInput, 'palette'>): Mesh[] {
+  const { palette } = input;
   return [
     { id: 'ground', polygons: groundDisc(palette?.ground) },
     { id: 'bowl', polygons: skyBowl(palette?.sky) },
-    { id: 'glow', polygons: sun ? sunGlow(sun, palette?.sun) : [] },
   ].filter(colored);
 }
 
@@ -188,12 +187,12 @@ export function withStarDots(lines: Mesh[], dots: Poly[]): Mesh[] {
 
 /**
  * The line scene: the grid, one mesh per pass with its markers, the flown part
- * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
+ * of each arc and the live marker (FR-DOME-5), and the two bodies (FR-DOME-6, FR-DARK-2). The
  * Moon comes last so it is drawn over whatever it sits on. The stars go in
  * after the grid by `withStarDots`.
  */
-export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'hidden' | 'palette' | 'colorBy'>): Mesh[] {
-  const { passes, highlightedPassId, now, moon, hidden = [], palette, colorBy = 'highlight' } = input;
+export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'sun' | 'moon' | 'hidden' | 'palette' | 'colorBy'>): Mesh[] {
+  const { passes, highlightedPassId, now, sun, moon, hidden = [], palette, colorBy = 'highlight' } = input;
   const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
   passes.forEach((pass, index) => {
     // FR-LEG-4 (R45): a highlight dims the others in either colouring — by weight in series mode, where the colour is the pass's identity.
@@ -238,6 +237,7 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
   });
   // FR-LIVE-6: the dimmed objects, in the dim pass colour, under the Moon.
   for (const marker of hidden) meshes.push({ id: marker.id, polygons: hiddenMarker(marker, palette?.dim) });
+  if (sun) meshes.push({ id: 'sun', polygons: sunMarker(sun, palette?.sun) });
   if (moon) meshes.push({ id: 'moon', polygons: moonMarker(moon, palette?.moon) });
   return meshes.filter(colored);
 }

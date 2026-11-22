@@ -195,15 +195,11 @@ describe('<SettingsPage> (FR-COMP-2: the controls and the way back, unchanged)',
     expect(appStore.getState().theme).toBe('night');
   });
 
-  it('turns the Sun’s glow on and off from its row, off at first (FR-SET-5)', async () => {
+  it('US-64 AC3, FR-DARK-4: has no sun-glow row', () => {
     show();
-    const toggle = screen.getByRole('button', { name: en.settings.sunGlowName });
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await userEvent.click(toggle);
-    expect(appStore.getState().sunGlow).toBe(true);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(toggle);
-    expect(appStore.getState().sunGlow).toBe(false);
+    const browser = screen.getByTestId('settings-browser');
+    expect(screen.queryByTestId('settings-sun-glow')).toBeNull();
+    expect(browser).not.toHaveTextContent(/glow|brillo|\bSky\b/);
   });
 
   it('takes focus to the way out, which is the control the reader arrived on the page needing', () => {

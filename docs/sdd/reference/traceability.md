@@ -373,6 +373,9 @@
 | FR-CTRL-6 | `src/ui/components/primitives/SectionHeading.test.tsx` |
 | FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
 | FR-CTRL-17 | `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `tests/e2e/structure.spec.ts` |
+| FR-DARK-1 | `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx` |
+| FR-DARK-2 | `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/bodies.test.ts`, `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx`, `src/ui/components/guide/skychart/useSkyScene.test.ts` |
+| FR-DARK-4 | `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-DESK-1 | `tests/e2e/desktop.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-2 | `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-DESK-3 | `src/ui/App.shortcuts.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/passes/passCursor.test.ts`, `tests/e2e/home.spec.ts`, `tests/styles/breakpoint.test.ts` |
@@ -455,7 +458,7 @@
 | FR-GLOBE-10 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/screens/Stars.test.tsx`, `src/ui/screens/StarsGlobe.test.tsx` |
 | FR-GLOBE-11 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/window/starLabels.test.ts`, `tests/e2e/globe.spec.ts` |
 | FR-GLOBE-12 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/screens/StarsGlobe.test.tsx` |
-| FR-GLOBE-13 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts` |
+| FR-GLOBE-13 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts` |
 | FR-GLOBE-14 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx` |
 | FR-GLOBE-15 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-GLOBE-16 | `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/globe.spec.ts`, `tests/styles/controlRows.test.ts` |
@@ -631,7 +634,6 @@
 | FR-SET-1 | `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-SET-2 | `tests/e2e/settings.spec.ts` |
 | FR-SET-3 | `src/ui/components/location/WherePlace.test.tsx` |
-| FR-SET-5 | `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/screens/Settings.test.tsx` |
 | FR-SHARE-1 | `src/ui/screens/Live.test.tsx`, `src/ui/screens/passSelection.test.ts` |
 | FR-SHARE-3 | `src/lib/shareLinks.test.ts`, `src/ui/App.share.test.tsx`, `src/ui/App.structure.test.tsx` |
 | FR-SHOW-1 | `tests/docs/accuracy.test.ts`, `tests/docs/public.test.ts` |
@@ -646,7 +648,7 @@
 | FR-SHP-5 | `tests/e2e/shapes.spec.ts` |
 | FR-SKY-1 | `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts` |
 | FR-SKY-2 | `src/ui/components/guide/skychart/SkyChart.fallback.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/screens/Live.test.tsx` |
-| FR-SKY-3 | `src/data/localPrefs.test.ts`, `src/lib/landmark.test.ts`, `src/ui/components/live/useStarSource.test.tsx` |
+| FR-SKY-3 | `src/data/localPrefs.test.ts`, `src/ui/components/live/useStarSource.test.tsx` |
 | FR-SKY-4 | `src/ui/components/guide/skychart/window/starGlyphs.test.ts` |
 | FR-SKY-5 | `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/e2e/dome-perf.spec.ts` |
 | FR-SKY-7 | `src/ui/components/guide/skychart/window/camera.test.ts`, `src/ui/screens/PassDetail.test.tsx` |
@@ -673,7 +675,7 @@
 | FR-STAR-9 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/starGlyphs.test.ts`, `tests/docs/accuracy.test.ts`, `tests/e2e/stars-perf.spec.ts` |
 | FR-STAR-10 | `src/ui/screens/Stars.test.tsx`, `src/ui/screens/stars/field.test.ts`, `tests/data/starCatalog.test.ts`, `tests/e2e/stars.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-STAR-11 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
-| FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
+| FR-STAR-13 | `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-STAR-14 | `src/ui/components/guide/skychart/window/starLabels.test.ts` |
 | FR-STRIP-3 | `src/ui/screens/Live.test.tsx` |
 | FR-STRIP-4 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts` |
@@ -768,3 +770,4 @@
 | US-59 | `tests/e2e/measure.spec.ts` |
 | US-60 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts` |
 | US-61 | `src/ui/screens/Home.first.test.tsx`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/measure.spec.ts` |
+| US-64 | `src/ui/screens/Settings.test.tsx` |

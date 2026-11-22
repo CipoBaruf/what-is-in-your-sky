@@ -305,19 +305,17 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
-  /** v2.12 (FR-SET-5, D-1019): the Sun's glow is off by default; turning it on is remembered, and only `true` is stored. */
-  it('keeps the Sun’s glow off until the setting turns it on, remembers that, and stores no key for off', () => {
+  it('FR-DARK-4: ignores a stored sunGlow on load, whatever its value, and drops it on the next save', () => {
     const storage = memoryStorage();
-    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
-    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(fresh.getState().sunGlow).toBe(false);
-    fresh.getState().setSunGlow(true);
-    expect(stored(storage)).toEqual({ theme: 'night', sunGlow: true });
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sunGlow).toBe(true);
-    fresh.getState().setSunGlow(false);
-    expect(stored(storage)).toEqual({ theme: 'night' });
-    storage.map.set(PREFS_KEY, JSON.stringify({ sunGlow: 'yes' }));
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sunGlow).toBe(false);
+    for (const sunGlow of [true, false, 'yes']) {
+      storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', sunGlow }));
+      const prefs = createLocalPrefs(storage);
+      expect(prefs.read()).toEqual({ theme: 'night' });
+      const store = createAppStore({ now: () => NOW, prefs });
+      expect(store.getState()).not.toHaveProperty('sunGlow');
+      store.getState().setLocale('es');
+      expect(stored(storage)).toEqual({ theme: 'night', locale: 'es' });
+    }
   });
 
   it('reads an Auto saved by 2.10 as no choice, so dark, keeping the other preferences (v2.12, D-1020)', () => {

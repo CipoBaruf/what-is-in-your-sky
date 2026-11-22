@@ -29,7 +29,8 @@ export const CHART_TOKENS = {
   sun: '--chart-sun',
   moon: '--chart-moon',
   ground: '--chart-ground',
-  sky: '--chart-sky',
+  // FR-DARK-1 (D-1263): the bowl is the one sky surface. Lit by the key light it is still no lighter than the token.
+  sky: '--chart-sky-deep',
   // FR-LIVE-2 (R32): one colour per satellite on the live page, in pass order.
   series1: '--chart-series-1',
   series2: '--chart-series-2',

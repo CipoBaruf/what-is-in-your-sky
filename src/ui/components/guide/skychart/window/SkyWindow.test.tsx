@@ -188,11 +188,11 @@ describe('<SkyWindow>', () => {
     expect(readout).toHaveTextContent(`Facing E (${String(trueAz(90))}°) · up 30°`);
   });
 
-  it('draws the Sun on the horizon and the Moon where it is, and the hidden objects with their keys', () => {
+  it('draws the Moon where it is, no glow for the Sun (FR-DARK-4), and the hidden objects with their keys', () => {
     const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
     const hidden: HiddenMarker[] = [{ id: 'hidden-1', azDeg: pass.peak.azDeg + 10, elDeg: 35, label: 'Cosmos · in shadow' }];
     const { container, rerender } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} hidden={hidden} legendKeys={{ [pass.id]: 'A', 'hidden-1': 'B' }} />);
-    expect(container.querySelector('[data-body="sun"] path')?.getAttribute('stroke-width')).toMatch(/^\d+\.\d$/);
+    expect(container.querySelector('[data-body="sun"] path')).toBeNull();
     expect(container.querySelector('[data-body="moon"] [data-marker="moon"]')).not.toBeNull();
     expect(container.querySelector('[data-hidden-id="hidden-1"] [data-marker="hidden"]')).not.toBeNull();
     expect(container.querySelector('[data-hidden-id="hidden-1"] [data-anchor="key"]')).toHaveTextContent('B');
@@ -293,11 +293,10 @@ describe('<SkyWindow>', () => {
       const note = screen.getByTestId('window-ground-note');
       expect(note).toHaveAttribute('role', 'status');
       expect(note).toHaveTextContent(en.window.ground);
-      // Above the horizon nothing changes: the arc, its markers, the horizon, the Sun and the Moon are all still drawn.
+      // Above the horizon nothing changes: the arc, its markers, the horizon and the Moon are all still drawn.
       expect(container.querySelector(`[data-pass-id="${pass.id}"] path`)?.getAttribute('d')).toMatch(/^M/);
       expect(container.querySelector('[data-horizon]')?.getAttribute('d')).toMatch(/^M/);
       expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
-      expect(container.querySelector('[data-body="sun"]')).not.toBeNull();
       expect(container.querySelector('[data-body="moon"]')).not.toBeNull();
     });
 

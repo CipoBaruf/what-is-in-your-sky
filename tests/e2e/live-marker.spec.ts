@@ -81,8 +81,8 @@ test('the dome redraws at every tick while the satellite is up, and labels the S
   await page.clock.runFor(10_000);
   await expect.poll(async () => raster.textContent()).toBe(before);
 
-  // FR-DOME-6: the Sun is 10.6° under the horizon here, inside the glow's
-  // band; the Moon is 11° below it and is drawn nowhere.
+  // FR-DOME-6: the Sun is 10.6° under the horizon here, inside its legend
+  // line’s band; the Moon is 11° below it and is drawn nowhere.
   // R45 (FR-DOME-6 as amended): the two bodies are legend lines, not captions in the drawing.
   await expect(dialog.getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sun');
   await expect(dialog.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(0);
@@ -111,7 +111,7 @@ test('the polar view moves the live marker and grows the flown arc behind it at 
   // Before the pass there is nothing to mark and nothing flown.
   await expect(drawing.locator('[data-marker="now"]')).toHaveCount(0);
   await expect(drawing.locator('[data-marker="flown"]')).toHaveCount(0);
-  // v2.12 (FR-SET-5, D-1019): the Sun's glow is off unless the settings page turns it on; the legend still names the Sun.
+  // FR-DARK-2, FR-DARK-4: no glow, and the dot waits for sunrise; the legend still names the Sun.
   await expect(drawing.locator('[data-body="sun"]')).toHaveCount(0);
   await expect(dialog.getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sun');
 

@@ -215,6 +215,16 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1251 — A load in the background still checks once.** *(R207)*
   (FR-UPD-1, D-1236.) `update()` runs once after registering whether or not the page is visible, as both texts say "on load"; "never while hidden" is the timer's rule, and a hidden page holds no timer.
   A failed check is dropped and the next one is the retry.
+- **D-1262 — The Sun's dot is drawn while it is up; its legend line keeps twilight.** *(R211)*
+  (FR-DARK-2, FR-DARK-4, FR-DOME-6, FR-LEG-3.) The dome and the polar chart draw the dot while the Sun's centre is above 0°, as they draw the Moon (`sunVisible`): a filled spot in `--chart-sun` under the Moon.
+  The legend's line keeps its old reach, down to −18° (`sunListed`), so a twilight reader still reads how far down the Sun is.
+  The window loses the glow with the prop and has no mark for the Sun until R214 draws its dot.
+- **D-1263 — The dome's sky is its bowl, in the deep token; the key light stays the Sun's.** *(R211)*
+  (FR-DARK-1, FR-DOME-8.) The dome has no CSS surface, so its palette's `sky` is `--chart-sky-deep` in place of `--chart-sky`, which the stripes keep.
+  FR-DOME-8's key light still follows the Sun and still shades the bowl's side: glyphcss multiplies the polygon's colour by the lights, so a near-black bowl stays near-black at every altitude.
+- **D-1264 — The step is deleted, and what reads it for the eye reads the Sun.** *(R211)*
+  (FR-DARK-2, D-1234, D-1139 superseded.) With every rung drawn the cut has no caller, so `drawnRungs`, `planetsDrawn`, the scene's twilight and day branches and the globe's day cut and fade (`dayStars`) are deleted rather than left returning a constant; a highlighted pass has its landmark at every hour.
+  Two readers said what the eye can find rather than what is drawn, and keep saying it from the Sun's altitude: the stars page's `Stars from 20:25` and the home door's brightest star, both none of it while the Sun is above 0°; in twilight the door's star is no longer held to the first two rungs.
 
 - **D-1259 — The watch row stands where the door row stood, and is not split.** *(R210)*
   (FR-MEAS-6 as amended, D-1242.) The rows are `example_shown`, `where_shown`, `place_set`, `watch` and `pass_open`; `watch` takes no detail, so it has one line.

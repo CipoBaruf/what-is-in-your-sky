@@ -15,7 +15,7 @@ import { ADVANCE_EM, placeLabels, STAR_NAME_PX, textWidth, type Box, type Figure
 import { GlobeArcLayer, type ArcColorBy } from './arcLayer';
 import { GLOBE_DIM_OPACITY, GLOBE_GRID_STEP_DEG, GLOBE_GROUND_OPACITY, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { add, dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, groundPath, meridian, normalize, parallel, pathOf, project, projector, radec, scale, type Frame, type Projector, type Vec3 } from './projection';
-import { altAz, dayStars, figureAnchor, globeSky, starVectors, surfaceAt, type GlobeSky } from './scene';
+import { altAz, figureAnchor, globeSky, starVectors, type GlobeSky } from './scene';
 import styles from './SkyGlobe.module.css';
 
 /**
@@ -166,8 +166,6 @@ export interface DotBucket {
   dirs: number[];
   /** How many numbers of `dirs` are the bright catalogue's (three per star); the rest are the deep chunk's. */
   bright: number;
-  /** D-1139: the bright catalogue members' magnitudes, one per star, for the day's cut (`dayStars`). */
-  mags: number[];
   above: SVGPathElement;
   below: SVGPathElement;
 }
@@ -341,9 +339,6 @@ export class GlobeRenderer {
   private readonly figuresBelow: SVGPathElement;
   /** FR-GLOBE-11 as amended (V212-13, D-1056): the named figure's lines again, over the rest, in the emphasis. */
   private readonly figureNamed: SVGPathElement;
-  /** D-1139: the groups `DAY_STARS_ALPHA` fades by day — the figures' lines, the dots and the `*` marks. */
-  private readonly dayFaded: SVGGElement[];
-  private dayAlpha: number | null = null;
   private readonly horizon: SVGPathElement;
   private readonly glyphs: GlyphStar[] = [];
   private readonly starNames = new Map<number, SVGTextElement>();
@@ -404,12 +399,11 @@ export class GlobeRenderer {
         const attrs = { 'data-tone': tone, 'data-size': r, 'stroke-width': r * 2 };
         const below = el('path', { class: `${cls('dot')} ${DIM}`, 'data-side': 'below', opacity: GLOBE_DIM_OPACITY, ...attrs }, dots);
         const above = el('path', { class: cls('dot'), 'data-side': 'above', ...attrs }, dots);
-        this.buckets.push({ tone, r, dirs: [], bright: 0, mags: [], above, below });
+        this.buckets.push({ tone, r, dirs: [], bright: 0, above, below });
       }
     }
 
     const stars = g(cls('marks'), { 'data-stars': '' });
-    this.dayFaded = [figures, dots, stars];
     const names = g(cls('names'), { 'data-names': '' });
     for (let i = 0; i < n; i += 1) {
       const mag = catalog.mag[i] ?? 99;
@@ -421,7 +415,6 @@ export class GlobeRenderer {
       } else {
         const bucket = this.bucketFor(mark.tone, mark.r);
         bucket.dirs.push(this.dirs[3 * i] ?? 0, this.dirs[3 * i + 1] ?? 0, this.dirs[3 * i + 2] ?? 0);
-        bucket.mags.push(mag);
       }
     }
     // R185 (FR-NAME-2): the one label rule — a proper name to `NAMED_MAG`, a designation brighter than `BAYER_LABEL_MAG` (a dot too).
@@ -613,16 +606,6 @@ export class GlobeRenderer {
     node.setAttribute('visibility', on ? 'visible' : 'hidden');
   }
 
-  /** D-1139: `DAY_STARS_ALPHA` on the stars' and figures' groups by day (it multiplies FR-GLOBE-3's dim), none by night. */
-  private fadeForDay(alpha: number | null): void {
-    if (this.dayAlpha === alpha) return;
-    this.dayAlpha = alpha;
-    for (const group of this.dayFaded) {
-      if (alpha === null) group.removeAttribute('opacity');
-      else group.setAttribute('opacity', String(alpha));
-    }
-  }
-
   /** FR-GLOBE-3: the dimmed class and `GLOBE_DIM_OPACITY` on what is below the horizon; neither on what is above. */
   private dim(node: Element, below: boolean): void {
     if (this.dimmed.get(node) === below) return;
@@ -651,17 +634,13 @@ export class GlobeRenderer {
     const [zx, zy, zz] = sky.zenith;
     const { r: ar, u: au, c: ac } = p.axes;
 
-    // The disc, its surface step (FR-GLOBE-13) and the ground (FR-GLOBE-3).
+    // The disc (FR-DARK-1) and the ground (FR-GLOBE-3).
     this.disc.setAttribute('cx', fmt(p.cx));
     this.disc.setAttribute('cy', fmt(p.cy));
     this.disc.setAttribute('r', fmt(p.radius));
-    this.disc.setAttribute('data-tint', surfaceAt(sky));
     this.ground.setAttribute('d', groundPath(p, sky.zenith));
-    // v2.14.1 (FR-STAR-13 as amended, V214-36, D-1139): above −6° the stars to `DAY_STARS_MAG`, they and the figures at `DAY_STARS_ALPHA`.
-    const day = dayStars(sky.sunAltDeg);
-    const maxMag = day?.maxMag ?? Number.POSITIVE_INFINITY;
-    const drawsStar = (i: number): boolean => s.layers.stars && this.near[i] === 1 && (this.catalog.mag[i] ?? 0) <= maxMag;
-    this.fadeForDay(day?.alpha ?? null);
+    // FR-DARK-2: every rung, whatever the Sun's altitude.
+    const drawsStar = (i: number): boolean => s.layers.stars && this.near[i] === 1;
 
     // The grid, the ecliptic, the Milky Way (FR-GLOBE-2).
     this.gridPath.setAttribute('d', this.grid.map((line) => pathOf(p, line)).join(''));
@@ -695,8 +674,7 @@ export class GlobeRenderer {
       const x2 = xs[seg.b] ?? 0;
       const y2 = ys[seg.b] ?? 0;
       const length = Math.hypot(x2 - x1, y2 - y1);
-      // D-1139: by day a line is drawn only between two stars the day draws, so none ends on an empty sky.
-      if (!s.layers.figures || !near[seg.a] || !near[seg.b] || length <= 2 * COLLISION_PX || (day !== null && !(drawsStar(seg.a) && drawsStar(seg.b)))) {
+      if (!s.layers.figures || !near[seg.a] || !near[seg.b] || length <= 2 * COLLISION_PX) {
         this.lines[k] = null;
         return;
       }
@@ -718,11 +696,9 @@ export class GlobeRenderer {
     for (const bucket of this.buckets) {
       let above = '';
       let below = '';
-      // By day (D-1139) the bright catalogue's dots to the day's magnitude, and none of the deep chunk's.
       if (s.layers.stars) {
-        const limit = day === null && s.faint ? bucket.dirs.length : bucket.bright;
+        const limit = s.faint ? bucket.dirs.length : bucket.bright;
         for (let k = 0; k + 2 < limit; k += 3) {
-          if (day !== null && (bucket.mags[k / 3] ?? 99) > maxMag) continue;
           const x = bucket.dirs[k] ?? 0;
           const y = bucket.dirs[k + 1] ?? 0;
           const z = bucket.dirs[k + 2] ?? 0;

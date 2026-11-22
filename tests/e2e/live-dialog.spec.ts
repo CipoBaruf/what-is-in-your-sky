@@ -73,10 +73,13 @@ for (const locale of ['en', 'es'] as const) {
       await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
       await expect(page.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
       await expect(page.getByTestId('next-event-see')).toBeVisible();
-      // FR-STAR-13 as amended (V214-36, D-1139): at now, by day, the globe draws a faint sky — the stars to magnitude
-      // 3.5 and their figures at 0.35 — not a dozen points.
+      // FR-DARK-2 (D-1234, D-1264 over D-1139): at now, by day, the globe draws the night's sky — every rung, at full
+      // strength. The whole sky has under 300 stars to magnitude 3.5, so more dots than that above the horizon are the
+      // fainter rungs.
       const globe = page.getByTestId('live-layout').locator('[data-globe]');
-      for (const group of ['[data-stars]', '[data-dots]', '[data-figure-lines]']) await expect(globe.locator(group).first()).toHaveAttribute('opacity', '0.35', { timeout: 30_000 });
+      const dotsUp = () => globe.locator('[data-dots] path[data-side="above"]').evaluateAll((paths) => paths.reduce((sum, p) => sum + (p.getAttribute('d')?.split('M').length ?? 1) - 1, 0));
+      await expect.poll(dotsUp, { timeout: 30_000 }).toBeGreaterThan(300);
+      for (const group of ['[data-stars]', '[data-dots]', '[data-figure-lines]']) expect(await globe.locator(group).first().getAttribute('opacity'), group).toBeNull();
       expect(await globe.locator('[data-star][visibility="visible"]').count()).toBeGreaterThan(10);
       expect(await globe.locator('[data-figures]').evaluateAll((paths) => paths.map((p) => p.getAttribute('d') ?? '').join('').length)).toBeGreaterThan(0);
       // Home and back by the hash: the same visit.

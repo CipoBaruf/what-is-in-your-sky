@@ -2,7 +2,7 @@ import type { MoonPhaseName, MoonState } from '../../../../model';
 
 /**
  * FR-DOME-6 (R22): the Sun's and the Moon's *reading* — when each one is
- * drawn, how wide and how bright the Sun's glow is, and which glyph carries
+ * drawn, when the Sun has its legend line, and which glyph carries
  * the phase — in one pure module both views import, so the dome and the polar
  * chart tell the same story (FR-DOME-7) rather than each inventing its own
  * thresholds. The shapes themselves belong to the views: the dome builds
@@ -13,29 +13,14 @@ import type { MoonPhaseName, MoonState } from '../../../../model';
  * chunk and `astronomy-engine` does not.
  */
 
-/** FR-DOME-6: below this Sun altitude the sky is dark and there is no glow at all (astronomical twilight). */
-export const GLOW_MIN_ALT_DEG = -18;
+/** FR-DOME-6, FR-LEG-3: the Sun keeps its legend line down to here, the end of astronomical twilight. */
+const SUN_LINE_MIN_ALT_DEG = -18;
 
-/**
- * FR-DOME-6: how wide and how bright the Sun's glow is at a Sun altitude —
- * nothing at −18°, full at the horizon. Above the horizon it stays at full
- * strength rather than switching off: the requirement's band is where the glow
- * *grows*, and a live page at midday that drew no Sun at all would be telling
- * a worse lie than one that draws it at its brightest (R22).
- */
-export function glowStrength(sunAltDeg: number): number {
-  if (sunAltDeg > 0) return 1;
-  if (sunAltDeg < GLOW_MIN_ALT_DEG) return 0;
-  return 1 + sunAltDeg / -GLOW_MIN_ALT_DEG;
-}
+/** Whether the Sun has its line in the legend (D-1262): through twilight too, when the drawing has no dot. */
+export const sunListed = (sun: { altDeg: number }): boolean => sun.altDeg > SUN_LINE_MIN_ALT_DEG;
 
-/** Whether the Sun is drawn at all. */
-export const sunVisible = (sun: { altDeg: number }): boolean => glowStrength(sun.altDeg) > 0;
-
-/** How far the glow reaches either side of the Sun's azimuth, in degrees of sky (D-92's shape). */
-export const glowHalfWidthDeg = (strength: number): number => 12 + 28 * strength;
-/** How far the glow rises off the horizon, in degrees of sky. */
-export const glowHeightDeg = (strength: number): number => 6 + 18 * strength;
+/** FR-DARK-2 (D-1262): the dome and the polar chart draw the Sun's dot while its centre is up, as they do the Moon. */
+export const sunVisible = (sun: { altDeg: number }): boolean => sun.altDeg > 0;
 
 /**
  * FR-DOME-6: the Moon is drawn while it is above the horizon. Its centre, not

@@ -137,7 +137,8 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** removing `door` (R212); sending `watch` (R213) and `where_shown` (R215).
   - **Done when:** `npm run check` green; the route and the sender accept `watch` with no detail; the funnel's test prints the new rows from a fixture spanning 2.16 and 3.0 events; `npm run check:sdd` green.
 
-- [ ] **R211 — The dome, the polar chart and the globe are dark at noon; the glow goes**
+- [x] **R211 — The dome, the polar chart and the globe are dark at noon; the glow goes**
+  - **Done 2026-11-22:** the rung cut is deleted rather than left constant, and the globe's day cut and fade go with it; the stars page's and the door's eye-based lines read the Sun; the settings page's one-row allowance goes with the row; D-1262..D-1264.
   - **Lane:** chart
   - **Tier:** standard
   - **Turns:** 300

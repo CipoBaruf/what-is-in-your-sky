@@ -47,17 +47,12 @@ const ids = (meshes: readonly { id: string }[]): string[] => meshes.map((mesh) =
 const byId = (labels: readonly DomeLabel[], id: string): DomeLabel | undefined => labels.find((label) => label.id === id);
 
 describe('baseLayer (FR-DOME-8a)', () => {
-  it('carries the surfaces and nothing else, and drops the glow when there is no Sun', () => {
-    expect(ids(baseLayer({ palette, sun: null }))).toEqual(['ground', 'bowl']);
-    expect(ids(baseLayer({ palette, sun: { azDeg: 270, altDeg: -8 } }))).toEqual(['ground', 'bowl', 'glow']);
-  });
-
-  it('drops the glow once the Sun is below the FR-DOME-6 band, where it has no strength left', () => {
-    expect(ids(baseLayer({ palette, sun: { azDeg: 270, altDeg: -20 } }))).toEqual(['ground', 'bowl']);
+  it('carries the surfaces and nothing else, at every Sun altitude (FR-DARK-1, FR-DARK-4)', () => {
+    for (const altDeg of [40, -3, -20]) expect(ids(domeLayers(input({ sun: { azDeg: 270, altDeg } })).base)).toEqual(['ground', 'bowl']);
   });
 
   it('colours the surfaces from their own meanings, never from a mark', () => {
-    const [ground, bowl] = baseLayer({ palette, sun: null });
+    const [ground, bowl] = baseLayer({ palette });
     expect(ground?.polygons.every((poly) => poly.color === 'ground')).toBe(true);
     expect(bowl?.polygons.every((poly) => poly.color === 'sky')).toBe(true);
   });
@@ -358,6 +353,12 @@ describe('the Sun and the Moon (FR-DOME-6)', () => {
   const sun = { azDeg: 285, altDeg: -8 };
   const moonUp = { ...MOON_FIXTURE };
 
+  it('FR-DARK-2: puts the Sun on the line layer while it is up, in the Sun colour, and nowhere while it is down', () => {
+    const mesh = lineLayer(input({ sun: { ...sun, altDeg: 40 } })).find(({ id }) => id === 'sun');
+    expect(mesh?.polygons.every((poly) => poly.color === 'sun')).toBe(true);
+    expect(ids(lineLayer(input({ sun })))).not.toContain('sun');
+  });
+
   it('puts the Moon on the line layer while it is up, in the Moon colour, and nowhere while it is down', () => {
     const up = lineLayer(input({ moon: moonUp }));
     expect(ids(up)).toContain('moon');
@@ -366,7 +367,7 @@ describe('the Sun and the Moon (FR-DOME-6)', () => {
     expect(ids(lineLayer(input()))).not.toContain('moon');
   });
 
-  /** FR-DOME-6 as amended (R45): "both labelled" is a legend line each; the drawing carries the glow and the disc only. */
+  /** FR-DOME-6 as amended (R45): "both labelled" is a legend line each; the drawing carries the dot and the disc only. */
   it('captions neither body on the drawing', () => {
     const labels = domeLabels(input({ sun, moon: moonUp }));
     expect(labels.filter((label) => label.kind !== 'compass' && label.kind !== 'tick' && label.kind !== 'ring' && label.kind !== 'key')).toEqual([]);
