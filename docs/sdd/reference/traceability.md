@@ -181,7 +181,7 @@
 | FR-STAR-5 *(v2.4.1)* | `components/screen/{SkyScreen.tsx,useSkyScreen.ts}` (`inventory`), `tests/e2e/stars-screen.spec.ts` (D-756, D-757) |
 | FR-STAR-6 *(v2.4.1)* | `skychart/window/{starGlyphs.ts,inkOffsets.ts,starLabels.ts,StarField.tsx}`, `ui/styles/tokens.css` (the four tokens), `scripts/contrast.ts` (D-752..D-755) |
 | FR-STAR-9 *(v2.4.1)* | `StarField.tsx` (the channel), `scripts/bundle-budget.ts` (`stars`), `tests/e2e/stars-perf.spec.ts` (D-751, D-759) |
-| FR-STAR-13 *(v2.4.1; built v2.5; amended v3.0)* | `skychart/starScene.ts` (every rung at every hour), every view's star group through the scene (D-1234, D-1264) |
+| FR-STAR-13 *(v2.4.1; built v2.5)* | `lib/skyStars.ts` (`drawnRungs`, `planetsDrawn`), every view's star group through the scene (D-791) |
 | FR-STAR-14 *(v2.4.1; built v2.5)* | `lib/landmark.ts` (`segmentDistanceDeg`, `constellationAt`), `skychart/window/StarField.tsx`'s hit test (D-795, D-796) |
 | FR-SKY-1 *(v2.5)* | `skychart/{useSkyScene.ts,layers.ts}` and its test, `SkyChart.types.ts` (`scene`), `SkyChart.contract.test.tsx` (D-788) |
 | FR-SKY-2 *(v2.5)* | `skychart/SkyChart.tsx` (`WINDOW_VIEW.available`), `skychart/ChartFrame.tsx` (`windowBox`), `screens/{Live.tsx,PassDetail.tsx}`, `model/prefs.ts`, `data/localPrefs.ts` (D-789) |
@@ -259,7 +259,7 @@
 | FR-PHONE-15 *(v2.10)* | `model/prefs.ts` (`Theme`), `ui/styles/theme.ts` (`resolveTheme`, `THEME_AUTO_SUN_DEG`, `useThemeTick`), `Shell.tsx` (the tick), `screens/Settings.tsx` (D-972, D-979) |
 | FR-PHONE-16 *(v2.10)* | `src/i18n/**`, `scripts/bundle-budget.ts`, `tests/e2e/{captureSet.ts,v1-captures.spec.ts}`, `docs/RELEASE.md` (D-966, D-975) |
 | FR-LOOK-1 *(v2.10)* | `skychart/window/skySurface.ts`, `skychart/window/StarField.tsx`, `skychart/polar/SkyPolar.tsx`, `ui/styles/tokens.css`, `scripts/contrast.ts` (D-974) |
-| FR-LOOK-2 *(v2.10; amended v3.0)* | `skychart/polar/SkyPolar.module.css`, `skychart/globe/SkyGlobe.module.css`, `skychart/dome/palette.ts` (the one surface), `skychart/window/skySurface.ts` (the window's step, until R214) (D-1234, D-1263) |
+| FR-LOOK-2 *(v2.10)* | `skychart/window/skySurface.ts` (the tint step), `skychart/starScene.ts` (D-974) |
 | FR-LOOK-3 *(v2.10)* | `scripts/build-stars.ts` (`milkyWay.json`), `skychart/window/milkyWay.ts`, `data/stars/constants.ts` (D-973, D-974) |
 | FR-LOOK-4 *(v2.10)* | `skychart/window/starGlyphs.ts`, `skychart/window/StarField.tsx`, `skychart/window/starGlyphs.module.css` (D-974) |
 | FR-LOOK-5 *(v2.10)* | `scripts/build-stars.ts` (`bv`), `skychart/window/starGlyphs.ts` (the tones), `ui/styles/tokens.css` (D-973, D-974) |
@@ -298,7 +298,7 @@
 | FR-GLOBE-10 *(v2.12)* | `skychart/globe/GlobeRenderer.ts`, `data/stars/deepChunk.ts` (read only), `screens/Stars.tsx` (the toggle) (D-1038) |
 | FR-GLOBE-11 *(v2.12)* | `skychart/window/starLabels.ts` (the two options), `skychart/globe/GlobeRenderer.ts`, `skychart/globe/scene.ts` (`figureAnchor`) (D-1041) |
 | FR-GLOBE-12 *(v2.12)* | `skychart/globe/scene.ts` (`upCount`, `upList`), `screens/stars/FieldList.tsx`, `screens/Stars.tsx` (D-1035, D-1037) |
-| FR-GLOBE-13 *(v2.12; amended by FR-DARK-1)* | `skychart/globe/SkyGlobe.module.css` (the one surface) (D-1234) |
+| FR-GLOBE-13 *(v2.12)* | `skychart/globe/scene.ts` (`surfaceAt`), `skychart/window/skySurface.ts` (read only) (D-1037) |
 | FR-GLOBE-14 *(v2.12)* | `skychart/globe/SkyGlobe.module.css`, `ui/styles/tokens.css` (only if a token is missing) (D-1038) |
 | FR-GLOBE-15 *(v2.12)* | `scripts/bundle-budget.ts` (the `globe` row), `screens/Stars.tsx` (the lazy import and the prefetch), `tests/e2e/globe-perf.spec.ts` (D-1034, D-1042) |
 | FR-GLOBE-16 *(v2.12)* | `src/i18n/{en,es}/globe.ts`, `tests/e2e/axe.spec.ts`, `tests/styles/controlRows.test.ts` (D-1042) |
