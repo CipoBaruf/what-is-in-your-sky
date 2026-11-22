@@ -102,20 +102,6 @@ export async function seedPage(page: Page, prefs: SeedPrefs, time = CLOCK): Prom
   await page.clock.pauseAt(time);
 }
 
-/**
- * R204 (FR-CI-6, D-1213): the wide live page's first-pass dialog answered `[ stay here ]` — its `Esc`, a key rather
- * than a click so the focus stays the keyboard's — where it was asked. The dialog is asked in the render that first
- * has the passes (`Live.tsx`), so a caller that has waited for them (the track's pass ticks) and ticked the clock
- * meets the decision taken; with nothing asked this does nothing and says so. A capture *of* the dialog does not call it.
- */
-export async function stayHere(page: Page): Promise<boolean> {
-  const dialog = page.getByTestId('first-pass-dialog');
-  if ((await dialog.count()) === 0) return false;
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  return true;
-}
-
 /** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
 export const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
 

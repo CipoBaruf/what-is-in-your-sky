@@ -94,7 +94,8 @@ for (const [width, height, placement] of SHAPES) {
     await enterScrubbing(page);
     await expect(indicator).toContainText('held');
     await expect(indicator.getByTestId('mark')).toHaveAttribute('data-mark-running', 'false');
-    await expect(page.getByTestId('next-event')).toHaveCount(0);
+    // R213 (FR-STRIP-1): the strip round the next event is the rail's head in both states.
+    await expect(page.getByTestId('live-strip').getByTestId('next-event')).toBeVisible();
     for (const id of SCRUB_ROWS) await expect(page.getByTestId(id), `${id} is rendered while scrubbing`).toBeVisible();
     await expect(page.getByTestId('time-readout')).toHaveText(/^\d\d:\d\d · \+0 min$/);
 
@@ -175,10 +176,10 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
     await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
     await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
-    const OVERLAY = ['live-head', 'live-back', 'live-controls'] as const;
+    const OVERLAY = ['live-head', 'live-back', 'live-controls', 'live-strip'] as const;
     // R150 (FR-GYRO-10): `[ list (n) ]` is gone; the satellites, their heading and the hidden toggle at its end are the sheet's last group.
     const SHEET = ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions', 'live-share', 'live-satellites', 'live-satellites-head', 'live-hidden-toggle'] as const;
-    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-legend-toggle', 'stripe-block'] as const;
+    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-legend-toggle', 'stripe-block'] as const;
     const inventory = async (state: string, sheetOpen: boolean): Promise<void> => {
       for (const id of OVERLAY) await expect(page.getByTestId(id), `${state}: ${id} is visible`).toBeVisible();
       // The sheet's rows stay in the tree while it is closed (D-932), inert and hidden; reachable only while it is open.
@@ -188,10 +189,11 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
         else await expect(page.getByTestId(id), `${state}: ${id} is not reachable`).toBeHidden();
       }
       for (const id of GONE) await expect(page.getByTestId(id), `${state}: ${id} is not in the DOM`).toHaveCount(0);
+      // R213 (FR-STRIP-3): `● back to live` is the strip's while the instant is held.
+      await expect(page.getByTestId('live-now'), `${state}: back to live`).toHaveCount(state.startsWith('held') ? 1 : 0);
     };
-    // Watching: the ISS is up at T, so the page stays on real time with no card (FR-FULL-10) and the chip says now.
+    // Watching: the ISS is up at T, the page is on real time (FR-STRIP-5) and the time line says live.
     await inventory('watching', false);
-    await expect(page.getByTestId('live-card')).toHaveCount(0);
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     await expect(page).toHaveURL(/#live$/);
     const closed = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
@@ -300,9 +302,9 @@ test('a #live link with an instant opens held, and a reload after now opens watc
   expect(url).toMatch(/#live\?lat=.*&t=/);
   await page.reload();
   await domeDrawn(page);
-  // R148 (FR-FULL-10): a link's `t` opens that instant with no card; the chip says it is held.
+  // R213 (FR-STRIP-3): a link's `t` opens that instant; the time line says it is held and the strip offers the way back.
   await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
-  await expect(page.getByTestId('live-card')).toHaveCount(0);
+  await expect(page.getByTestId('live-now')).toBeAttached();
   expect(await shownOnTrack(page)).toBe(landed);
   await backToLive(page);
   await page.clock.runFor(600);

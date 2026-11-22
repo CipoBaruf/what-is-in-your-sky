@@ -86,9 +86,9 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
         await page.getByTestId('live-link').click();
         await domeDrawn(page);
         await stripFilled(page);
-        // Watching: the ISS is up at T, so the page stays on real time with no card (FR-FULL-10) and the chip says `now`.
+        // Watching: the ISS is up at T, the page is on real time (FR-STRIP-5) and the time line ends `● live`.
         await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-        await expect(page.getByTestId('live-card')).toHaveCount(0);
+        await expect(page.getByTestId('live-strip')).toBeVisible();
         const box = await page.getByTestId('chart-box').boundingBox();
         if (!box) throw new Error('the box is not laid out');
         // FR-FULL-1: the box is the viewport.

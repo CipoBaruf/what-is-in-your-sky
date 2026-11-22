@@ -35,23 +35,23 @@ async function openAtMidday(page: Page, size: { width: number; height: number },
   await domeDrawn(page);
   if (size.width < 900) {
     await stripFilled(page);
-    // R153: since v2.8 the day's page asks with its card rather than jumping (FR-FULL-10); `landed` answers it.
+    // R213 (FR-STRIP-5): the day's page opens on real time with the strip; `landed` presses its `▶ watch`.
     await expect
       .poll(async () => {
         await page.clock.runFor(100);
-        return page.getByTestId('live-card').getAttribute('data-kind');
+        return page.getByTestId('live-strip').getAttribute('data-kind');
       }, { timeout: 15_000 })
-      .toBe('ask');
+      .toBe('next');
   }
 }
 
 /**
- * After the jump: paused where it landed, so the capture is one instant. R153: the jump is the card's
- * `[ see next pass ]` since v2.8 (FR-FULL-10), and the pause is in the sheet (FR-FULL-4), closed again for the shot
+ * After the jump: paused where it landed, so the capture is one instant. R213: the jump is the strip's
+ * `▶ watch` (FR-STRIP-2), and the pause is in the sheet (FR-FULL-4), closed again for the shot
  * (`r148-captures.spec.ts`'s route).
  */
 async function landed(page: Page): Promise<void> {
-  await page.getByTestId('live-card-next').click();
+  await page.getByTestId('live-watch').click();
   const play = page.getByTestId('live-play');
   await expect
     .poll(async () => {

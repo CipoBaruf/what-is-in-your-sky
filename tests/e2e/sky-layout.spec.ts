@@ -185,8 +185,6 @@ for (const locale of LOCALES) {
       const layout = await openLive(page, locale);
       await expect(layout).toHaveAttribute('data-shape', 'full');
       await expect(layout).toHaveAttribute('data-readout', 'sheet');
-      const card = page.getByTestId('live-card');
-      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
       await openSheet(page);
       for (const view of VIEWS) {
         await chooseView(page, layout, locale, view);
@@ -416,8 +414,6 @@ for (const viewport of TURNED) {
         expect(Math.round(drawing.width)).toBe(viewport.width);
         expect(Math.round(drawing.height)).toBe(viewport.height);
         expect(await pageScrolls(layout)).toEqual([]);
-        const card = page.getByTestId('live-card');
-        if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
         await openSheet(page);
         await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
         const sheet = await box(page.getByTestId('live-sheet'));
@@ -553,10 +549,9 @@ test.describe('FR-FLOW-15: the turn', () => {
   test('turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera and the shown instant and opens no screen', async ({ page }) => {
     const layout = await openLive(page, 'en');
     await expect(layout).toHaveAttribute('data-shape', 'full');
-    // R148 (FR-FULL-10): nothing visible is up at the seed's instant, so the card asks; `[ see next pass ]` lands on the
+    // R213 (FR-STRIP-2): nothing visible is up at the seed's instant, so the strip offers the pass; `▶ watch` lands on the
     // next rise and plays; the pause holds the instant the turn must keep, and the turn keeps it paused (FR-FLOW-15).
-    await expect.poll(() => page.getByTestId('live-card').count(), { timeout: 15_000 }).toBe(1);
-    await page.getByTestId('live-card-next').click();
+    await page.getByTestId('live-watch').click({ timeout: 15_000 });
     const play = page.getByTestId('live-play');
     await expect.poll(() => play.getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
     await openSheet(page);

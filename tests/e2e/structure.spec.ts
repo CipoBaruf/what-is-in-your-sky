@@ -161,11 +161,8 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
 
     await page.getByTestId('live-link').focus();
     await page.keyboard.press('Enter');
-    // R148 (FR-FULL-10): nothing is up at the seed's instant, so the card asks and takes the focus; `Esc` answers it
-    // (focus to `[ controls ]`), and the next `Esc` leaves the page to the control that opened it (FR-A11Y-4).
-    await expect.poll(() => focused(page)).toBe('live-card-next');
-    await page.keyboard.press('Escape');
-    await expect.poll(() => focused(page)).toBe('live-controls');
+    // R213 (FR-STRIP-5): nothing asks, so the focus is Back's and one `Esc` leaves the page to the control that opened it (FR-A11Y-4).
+    await expect.poll(() => focused(page)).toBe('live-back');
     await page.keyboard.press('Escape');
     await home(page);
     await expect.poll(() => focused(page)).toBe('live-link');
@@ -342,18 +339,8 @@ for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 4
     });
     await domeDrawn(page);
     const back = page.getByTestId('live-back');
-    // v2.14.1 (FR-WIDE-13): on wide the first-pass dialog asks instead; `seedStoredRun`'s handler answers it with `Esc`
-    // and the focus goes back to Back, the keyboard's still.
-    await expect(page.getByTestId('first-pass-dialog')).toHaveCount(0);
-    // R148 (FR-FULL-10): on compact nothing is up at the seed's instant, so the card asks and takes the focus; `Esc`
-    // answers it, and the Back control is reached by the keyboard, so the ring is still the keyboard's (F-100).
-    const card = page.getByTestId('live-card');
-    if ((await card.count()) > 0) {
-      await expect(card.getByTestId('live-card-next')).toBeFocused();
-      await page.keyboard.press('Escape');
-      await expect(page.getByTestId('live-controls')).toBeFocused();
-      await back.focus();
-    }
+    // R213 (FR-STRIP-5): nothing asks at any width, so the focus is where the page put it and the ring the browser's own.
+    await expect(page.locator('[aria-modal="true"]')).toHaveCount(0);
     await expect(back).toBeFocused();
     expect(await back.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
     const boxes = (): Promise<number[][]> =>

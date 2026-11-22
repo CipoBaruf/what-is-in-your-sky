@@ -52,12 +52,10 @@ async function unasked(page: Page): Promise<void> {
   }, FOLLOW_ASKED_KEY);
 }
 
-/** The question's `[ allow ]`, then FR-FULL-10's card, which waited for it on the live page (V214-43), answered `now`. */
+/** The question's `[ allow ]` (FR-PHONE-17). */
 async function allowInQuestion(page: Page): Promise<void> {
   await page.getByTestId('follow-ask-allow').click();
   await expect(page.getByTestId('follow-ask')).toHaveCount(0);
-  const card = page.getByTestId('live-card');
-  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
 }
 
 type Locale = 'en' | 'es';
@@ -104,8 +102,6 @@ async function openPage(page: Page, which: Which, locale: Locale): Promise<Locat
       const layout = page.getByTestId('live-layout');
       await expect(layout).toBeVisible({ timeout: 30_000 });
       await expect(layout.locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
-      const card = page.getByTestId('live-card');
-      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
       await openSheet(page);
       return layout;
     }
@@ -343,8 +339,6 @@ async function openPlain(page: Page, which: Which, locale: Locale, prefs: Record
       const root = page.getByTestId('live-layout');
       await expect(root).toBeVisible({ timeout: 30_000 });
       await expect(root.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
-      const card = page.getByTestId('live-card');
-      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
       return { root, sky: root.getByTestId('sky-chart') };
     }
     case 'stars': {

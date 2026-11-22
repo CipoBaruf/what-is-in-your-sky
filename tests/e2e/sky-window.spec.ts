@@ -20,7 +20,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { bandUnderBox, openSheet, SPACE_3_PX, stayOnFirstPass } from './liveHelpers';
+import { bandUnderBox, openSheet, SPACE_3_PX } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -285,9 +285,7 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     await openLive(page);
     const chart = page.getByTestId('sky-chart');
-    // R148 (FR-FULL-4): the view control is the sheet's; the card over the sky is answered first.
-    const card = page.getByTestId('live-card');
-    if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+    // R148 (FR-FULL-4): the view control is the sheet's.
     await openSheet(page);
     await page.getByTestId('live-layout').getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
@@ -319,7 +317,6 @@ const ORION_CLOCK = ORION_RISE - 5 * 60_000;
 
 /** The showcase night's home page, the passes computed. */
 async function openShowcase(page: Page, viewport: { width: number; height: number }, locale: CaptureLocale, chartView: 'dome' | 'window'): Promise<string> {
-  await stayOnFirstPass(page);
   await page.setViewportSize(viewport);
   await page.addInitScript(
     ([key, value]: [string, string]) => {

@@ -34,15 +34,15 @@ async function openAtMidday(page: Page, size: { width: number; height: number },
   await expect
     .poll(async () => {
       await page.clock.runFor(100);
-      return page.getByTestId('live-card').getAttribute('data-kind');
+      return page.getByTestId('live-strip').getAttribute('data-kind');
     }, { timeout: 15_000 })
-    .toBe('ask');
+    .toBe('next');
   await page.mouse.move(0, 0);
 }
 
-/** `[ see next pass ]`, then paused where it landed, so the capture is one instant. */
+/** R213: `▶ watch`, then paused where it landed, so the capture is one instant. */
 async function landed(page: Page): Promise<void> {
-  await page.getByTestId('live-card-next').click();
+  await page.getByTestId('live-watch').click();
   const play = page.getByTestId('live-play');
   await expect
     .poll(async () => {
