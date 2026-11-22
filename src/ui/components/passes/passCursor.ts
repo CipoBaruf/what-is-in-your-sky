@@ -15,7 +15,7 @@
  * sheet and the wide panel both — carries the pass id too, and the cursor must
  * not land on it.
  */
-export const PASS_CARD = '[data-pass-card]';
+const PASS_CARD = '[data-pass-card]';
 
 /**
  * The cards the reader can actually move to, in the order the page shows them.

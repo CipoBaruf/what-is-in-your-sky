@@ -18,7 +18,6 @@ import { useStarSource } from '../../../components/live/useStarSource';
 import { useWallThrottle } from '../../../components/live/useWallThrottle';
 import { ConditionsTable } from '../../../components/now/ConditionsTable';
 import { TonightStripe } from '../../../components/now/TonightStripe';
-import { useTonight } from '../../../components/now/useTonight';
 import { PassList } from '../../../components/passes/PassList';
 import { TextButton } from '../../../components/primitives/TextButton';
 import { VisuallyHidden } from '../../../components/primitives/VisuallyHidden';
@@ -27,6 +26,7 @@ import { useNow } from '../../../hooks/useNow';
 import { replace } from '../../../navigation';
 import { requestPlace } from '../../home/placeRequest';
 import { useShownClock, useShownPasses } from '../../home/shownPasses';
+import { useNight } from '../../home/useNight';
 import { viewFor } from '../../chartViewDefault';
 import styles from '../../PassDetail.module.css';
 import tonightStyles from './Empty.module.css';
@@ -131,7 +131,7 @@ export function PassTonight({ observer, ...list }: PassTonightProps) {
 function Tonight({ observer, selectedPassId, onOpenPass }: Omit<PassTonightProps, 'notice' | 'observer'> & { observer: Observer }) {
   // R97: the open pass is kept here as the list keeps it, so the stripe's ticks and the list's count agree.
   const passes = useShownPasses(selectedPassId);
-  const tonight = useTonight(observer);
+  const tonight = useNight(observer);
   const now = useAppStore((s) => s.now);
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   const example = observer.source === 'example';
