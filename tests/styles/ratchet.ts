@@ -5,9 +5,9 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 
-export const ALLOW_DIR = 'tests/styles/allow';
+const ALLOW_DIR = 'tests/styles/allow';
 /** The lanes with controls or brackets to lower in this phase (§8.22); each has both lists, empty or not. */
-export const RATCHET_LANES = ['chart', 'live', 'ui', 'window'] as const;
+const RATCHET_LANES = ['chart', 'live', 'ui', 'window'] as const;
 
 type Ratchet = 'controls' | 'brackets';
 
