@@ -323,13 +323,6 @@
   fill: var(--series);
 }
 
-/* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is. */
-.glow {
-  fill: none;
-  stroke: var(--chart-sun);
-  stroke-linecap: round;
-}
-
 /* R155 (FR-LOOK-7): the Moon's disc — the dark part in the deep sky's tone with a hairline rim, the lit part filled. */
 .moonDark {
   fill: var(--chart-sky-deep);

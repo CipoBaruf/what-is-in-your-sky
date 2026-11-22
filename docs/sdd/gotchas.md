@@ -40,6 +40,7 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **A full `npm run e2e` rewrites committed captures.** Roughly 60 files under `docs/screenshots/r32..r77-*`, pictures of old layouts whose diff says nothing. Restore them from `git diff --name-only -- docs/screenshots` with `git show HEAD:<path>`, and add only the task's own files.
 - **Wait for a settled page before a capture.** `[aria-busy="true"]` at count 0 (the search is done), `getByTestId('readiness')` visible (the finished run has been *stored*, a beat later), and one capture per test (`clock.install` works once per page and init scripts accumulate).
 - **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test and its landmark test at 1280 px (the live page's `h1` not yet there: 6 of 80 repeats at `c5df401e`, 2026-11-22), and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
+  Also `sky-window.spec.ts`'s compact reload test (FR-FLOW-14): after the reload the linked pass can read "no longer in the window" and the guide closes (1 of 100 repeats at `dfa07e66` and on R211 alike, 2026-11-22).
 - **`clock.pauseAt: Cannot fast-forward to the past` is a loaded machine, not the app.**
   `clock.install({ time: t })` then `pauseAt(t)` (`liveHelpers.homeAt`, `sky-window.spec.ts`) throws before `page.goto` when a millisecond passes between the two.
   Run the spec again with `--workers=1`.

@@ -1,7 +1,6 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
-import { drawnMagLimit, drawnRungs } from '../../lib/skyStars';
 import type { Observer } from '../../model';
 import { starSourceOf, type StarParts } from '../components/guide/skychart/starScene';
 import { PassDetail, TICK_MS } from './PassDetail';
@@ -12,7 +11,7 @@ import { PassDetail, TICK_MS } from './PassDetail';
  * stubbed so the test counts the placements, not the catalogue.
  */
 const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, _t: number): ReturnType<StarParts['positionsAt']> => ({ altDeg: [], azDeg: [], planets: [], sunAltDeg: -18 }));
-const source = starSourceOf({ catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, drawnRungs, drawnMagLimit, landmark: () => null, constellationAt: () => null, names: { star: () => '', figure: () => undefined, constellation: () => undefined } });
+const source = starSourceOf({ catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, landmark: () => null, constellationAt: () => null, names: { star: () => '', figure: () => undefined, constellation: () => undefined } });
 
 vi.mock('../components/live/useStarSource', () => ({ useStarSource: () => source }));
 

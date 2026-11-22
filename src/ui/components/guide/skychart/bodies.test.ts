@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import type { MoonPhaseName } from '../../../../model';
-import { GLOW_MIN_ALT_DEG, glowHalfWidthDeg, glowHeightDeg, glowStrength, MOON_PHASE_GLYPH, moonGlyph, moonVisible, sunVisible } from './bodies';
+import { MOON_PHASE_GLYPH, moonGlyph, moonVisible, sunListed, sunVisible } from './bodies';
 
 /**
  * R22, FR-DOME-6: the reading both views share. These are the rules that keep
@@ -10,32 +10,15 @@ import { GLOW_MIN_ALT_DEG, glowHalfWidthDeg, glowHeightDeg, glowStrength, MOON_P
  */
 const PHASES: readonly MoonPhaseName[] = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent'];
 
-describe('the Sun glow ramp', () => {
-  it('is nothing at −18°, half at −9° and full at the horizon, and stays full above it', () => {
-    expect(glowStrength(GLOW_MIN_ALT_DEG)).toBe(0);
-    expect(glowStrength(-30)).toBe(0);
-    expect(glowStrength(-9)).toBeCloseTo(0.5, 9);
-    expect(glowStrength(0)).toBe(1);
-    expect(glowStrength(20)).toBe(1);
+describe('the Sun', () => {
+  it('FR-DARK-2: is drawn while its centre is above the horizon', () => {
+    for (const altDeg of [0.01, 40, 90]) expect(sunVisible({ altDeg })).toBe(true);
+    for (const altDeg of [0, -0.1, -8, -30]) expect(sunVisible({ altDeg })).toBe(false);
   });
 
-  it('grows without a step as the Sun rises, and the Sun is drawn exactly where it has a strength', () => {
-    let previous = -1;
-    for (let alt = GLOW_MIN_ALT_DEG; alt <= 0; alt += 0.5) {
-      const strength = glowStrength(alt);
-      expect(strength).toBeGreaterThanOrEqual(previous);
-      expect(sunVisible({ altDeg: alt })).toBe(strength > 0);
-      previous = strength;
-    }
-    expect(sunVisible({ altDeg: GLOW_MIN_ALT_DEG - 0.1 })).toBe(false);
-  });
-
-  it('is wider than it is tall, and both grow with it', () => {
-    for (const strength of [0.1, 0.5, 1]) {
-      expect(glowHalfWidthDeg(strength)).toBeGreaterThan(glowHeightDeg(strength));
-    }
-    expect(glowHalfWidthDeg(1)).toBeGreaterThan(glowHalfWidthDeg(0));
-    expect(glowHeightDeg(1)).toBeGreaterThan(glowHeightDeg(0));
+  it('keeps its legend line down to −18° (D-1262)', () => {
+    for (const altDeg of [40, 0, -8, -17.9]) expect(sunListed({ altDeg })).toBe(true);
+    for (const altDeg of [-18, -30]) expect(sunListed({ altDeg })).toBe(false);
   });
 });
 

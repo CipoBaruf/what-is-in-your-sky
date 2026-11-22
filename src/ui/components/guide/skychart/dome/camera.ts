@@ -253,8 +253,7 @@ export const KEY_INTENSITY = 0.85;
  * it owns the prop that carries it. Until then the base layer's key light
  * points along a fixed civil-twilight direction, so the bowl is shaded from
  * one side rather than lit flat, and R22 replaces this with the Sun the
- * worker reports. The altitude is inside the −18°..0° band of FR-DOME-6, so
- * the same number drives a glow once there is a Sun to draw.
+ * worker reports.
  */
 export const DEFAULT_SUN = { azDeg: 270, altDeg: -8 } as const;
 

@@ -129,7 +129,7 @@ describe('starsAt memo', () => {
     expect(d).toBeGreaterThan(0.2);
     expect(d).toBeLessThan(0.3);
   });
-  /** R123 (FR-STAR-13): the Sun the twilight steps read is the Sun at the same instant, as the physics has it. */
+  /** R123: the positions' Sun is the Sun at the same instant, as the physics has it. */
   it('carries the Sun’s altitude at the instant, as `physics/sun.ts` gives it', () => {
     for (const at of [t, t + 6 * 3_600_000, t + 12 * 3_600_000]) {
       expect(starsAt(catalog, paris, at).sunAltDeg).toBeCloseTo(sunAltitudeDeg({ ...paris, altM: 0, label: '', source: 'coords', timeZone: null }, at), 2);
@@ -199,9 +199,8 @@ describe('brightestDrawn', () => {
     expect(brightestDrawn(scene({ planets: [{ ...venus, altDeg: -1 }] }))?.kind).toBe('star');
   });
 
-  it('follows the twilight step: the first two rungs in civil twilight, nothing with the Sun up', () => {
-    // At −3° only the rungs to magnitude 1.5 are drawn, so the faint star never counts even alone above the horizon.
-    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, -5, 60] }))).toBeNull();
+  it('names what the eye can find: any star in twilight, nothing with the Sun up (D-1264)', () => {
+    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, -5, 60] }))).toMatchObject({ kind: 'star', index: 2 });
     expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, 30, 60] }))?.dir).toBe('S');
     expect(brightestDrawn(scene({ sunAltDeg: 5, planets: [{ body: 'Venus', azDeg: 250, altDeg: 10, mag: -4.2 }] }))).toBeNull();
   });

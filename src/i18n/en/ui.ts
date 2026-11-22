@@ -171,10 +171,6 @@ export const ui = {
     clearSaved: 'Clear saved',
     /** R91 (FR-SET-1 as amended v2.1, F-83): the Install row's label, so the row reads `App [ Install ]` rather than the action twice. */
     installLabel: 'App',
-    /** v2.12 (FR-SET-5): the Sun's glow row — its label, the toggle and the toggle's name. */
-    skyLabel: 'Sky',
-    sunGlow: 'sun glow',
-    sunGlowName: 'The Sun’s glow on the horizon',
   },
 
   compass,

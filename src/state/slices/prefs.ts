@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_FAINT_STARS, DEFAULT_FOLLOW_GRANTED, DEFAULT_GLOBE_TURN, DEFAULT_GLOBE_ZOOM, DEFAULT_PLAY_SPEED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STAR_LAYERS, DEFAULT_STARS_LAYER, DEFAULT_SUN_GLOW, DEFAULT_THEME, DEFAULT_WINDOW_FOV_DEG, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../../model';
+import { DEFAULT_FAINT_STARS, DEFAULT_FOLLOW_GRANTED, DEFAULT_GLOBE_TURN, DEFAULT_GLOBE_ZOOM, DEFAULT_PLAY_SPEED, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STAR_LAYERS, DEFAULT_STARS_LAYER, DEFAULT_THEME, DEFAULT_WINDOW_FOV_DEG, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type GlobeTurn, type Locale, type Observer, type PassSort, type PlaySpeed, type StarLayers, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -108,9 +108,6 @@ export interface PrefsSlice {
    */
   starsLayer: boolean;
   setStarsLayer: (starsLayer: boolean) => void;
-  /** v2.12 (FR-SET-5, D-1019): whether the sky views draw the Sun's glow on the horizon. Off unless saved on; only `true` is stored. */
-  sunGlow: boolean;
-  setSunGlow: (sunGlow: boolean) => void;
   /**
    * R132 (FR-FLOW-6, D-848): whether the reader has made a first drag, pinch or tap on a sky view. The hint under the
    * drawing shows until then; `useChartHand`'s gesture sets it, once, and it is never unset. Only `true` is stored.
@@ -260,12 +257,6 @@ export const createPrefsSlice =
       setStarsLayer: (starsLayer) => {
         set({ starsLayer });
         deps.prefs.write({ ...deps.prefs.read(), starsLayer });
-      },
-      sunGlow: deps.prefs.read().sunGlow ?? DEFAULT_SUN_GLOW,
-      setSunGlow: (sunGlow) => {
-        set({ sunGlow });
-        const { sunGlow: _was, ...rest } = deps.prefs.read();
-        deps.prefs.write(sunGlow ? { ...rest, sunGlow: true } : rest);
       },
       skyHintSeen: deps.prefs.read().skyHintSeen ?? DEFAULT_SKY_HINT_SEEN,
       setSkyHintSeen: (skyHintSeen) => {

@@ -6,7 +6,7 @@ import { appStore, useAppStore } from '../../../../state';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { GuideText } from '../GuideText';
-import { moonVisible, sunVisible } from './bodies';
+import { moonVisible, sunListed } from './bodies';
 import { useChartSlot } from '../../sky/SkyViewLayout';
 import { ChartFrame, ChartFrameSlots, LEGEND_PANEL_ID } from './ChartFrame';
 import { Legend } from './Legend';
@@ -139,18 +139,13 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** With no scene (the stars toggle off, or its source not in yet), the globe draws the planets and nothing of the stars. */
 const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
-/**
- * D-1139 (V214-36): with `[x] stars` the globe draws its stars and figures at every Sun — the field's night layers;
- * above −6° the globe itself cuts them to `DAY_STARS_MAG` and fades them (`dayStars`), where the window's twilight
- * field (`TWILIGHT_LAYERS`) has no figures and its day none at all.
- */
+/** FR-DARK-2: with `[x] stars` the globe draws its stars and figures at every Sun, as the other views do. */
 const STARS_ON: GlobeLayers = { stars: true, figures: true, planets: true, names: false };
 
 function GlobeView(props: SkyChartProps) {
   const language = useLocale();
   const field = props.scene?.stars;
-  const daylight = props.scene?.daylight === true;
-  const layers = useMemo<GlobeLayers>(() => (field ? { ...STARS_ON, planets: field.layers.planets, names: field.layers.names } : daylight ? STARS_ON : NO_STARS), [field, daylight]);
+  const layers = useMemo<GlobeLayers>(() => (field ? { ...STARS_ON, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
   const { onSelectPass, onSkyPick, onPassHover } = props;
   // The page's shown instant; a chart given none (a test) draws the moment it mounted.
   const [mounted] = useState(() => Date.now());
@@ -272,8 +267,6 @@ export function SkyChart(props: SkyChartProps) {
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const chartView = useAppStore((s) => s.chartView);
-  // v2.12 (FR-SET-5, D-1019): the Sun's glow on every view, the settings page's switch, off by default.
-  const sunGlow = useAppStore((s) => s.sunGlow);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
   // FR-FOL-2: the one line the last answer left.
@@ -446,7 +439,7 @@ export function SkyChart(props: SkyChartProps) {
     [baseRows, promotedId, shownHighlight],
   );
   const keys = useMemo(() => legendKeys(baseRows), [baseRows]);
-  const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
+  const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunListed(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
 
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   // FR-LEG-3 (R51): on the pass detail the numeric table is the legend's first block, in place of the explained
@@ -527,7 +520,7 @@ export function SkyChart(props: SkyChartProps) {
       {inLayout && controlSlot.place(chartControls)}
       {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view; R151: with `follow` the window takes the sensor beside it. */}
-      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} sunGlow={sunGlow} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} fieldDeg={props.fieldDeg ?? kept.fieldDeg} onFieldChoice={props.onFieldChoice ?? setWindowFov} globeZoom={props.globeZoom ?? kept.globeZoom} onGlobeZoom={props.onGlobeZoom ?? setGlobeZoom} />
+      <view.Component {...forwarded} {...handoff} highlightedPassId={shownHighlight} onSelectPass={select} onPassHover={hoverPass} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !inLayout ? { controls: chartControls } : {})} hand={hand} fieldDeg={props.fieldDeg ?? kept.fieldDeg} onFieldChoice={props.onFieldChoice ?? setWindowFov} globeZoom={props.globeZoom ?? kept.globeZoom} onGlobeZoom={props.onGlobeZoom ?? setGlobeZoom} />
     </figure>
   );
 }

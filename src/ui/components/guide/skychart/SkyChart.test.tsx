@@ -484,18 +484,18 @@ describe('the offered views, the page’s own view and the pinch handoff (R160)'
   });
 });
 
-describe('the Sun’s glow (FR-SET-5, D-1019)', () => {
-  it('is off by default and drawn once the setting is on, the Sun still the legend’s', () => {
+describe('the Sun (FR-DARK-2, FR-DARK-4)', () => {
+  it('is a dot while it is up and never a glow, and keeps its legend line through twilight', () => {
     const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
     act(() => {
       appStore.getState().setChartView('polar');
     });
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} />);
+    const chart = (altDeg: number) => <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={{ ...sun, altDeg }} moon={MOON_FIXTURE} />;
+    const { container, rerender } = render(chart(-8));
     expect(container.querySelector('svg [data-body="sun"]')).toBeNull();
-    act(() => {
-      appStore.getState().setSunGlow(true);
-    });
-    expect(container.querySelector('svg [data-body="sun"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="chart-legend"] [data-body="sun"]')).not.toBeNull();
+    rerender(chart(40));
+    expect(container.querySelector('svg [data-body="sun"] circle')).not.toBeNull();
   });
 });
 

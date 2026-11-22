@@ -5,12 +5,10 @@ import { PLANETS, starName, type StarNamesSource, type StarPositionsSource } fro
 import type { EpochMs, Locale, MoonState, Observer } from '../../../../../model';
 import { FIELD_LIST_MAX, type FieldObject } from '../../../../screens/stars/field';
 import type { Point } from '../window/starGlyphs';
-import { tintStep, type TintStep } from '../window/skySurface';
-import { DAY_STARS_ALPHA, DAY_STARS_MAG } from './constants';
 import { add, dot, localFrame, scale, type Frame, type Vec3 } from './projection';
 
 /**
- * R167 (FR-GLOBE-3, FR-GLOBE-8, FR-GLOBE-12, FR-GLOBE-13, FR-GLOBE-17; PLAN
+ * R167 (FR-GLOBE-3, FR-GLOBE-8, FR-GLOBE-12, FR-GLOBE-17; PLAN
  * D-1037): the shown place's sky at one instant, as J2000 geometry for the
  * globe. One rotation per instant — FR-STAR-2's `Rotation_EQJ_HOR`, the call
  * `lib/skyStars.ts` makes, precession and nutation inside it — read backwards:
@@ -58,8 +56,6 @@ export interface GlobeSky {
   sun: GlobeBody;
   moon: GlobeBody & { state: MoonState };
   planets: readonly GlobePlanet[];
-  /** The Sun's geometric altitude at `t`, degrees — what the surface's step reads. */
-  sunAltDeg: number;
 }
 
 let memo: { t: EpochMs; lat: number; lon: number; altM: number; sky: GlobeSky } | undefined;
@@ -106,7 +102,6 @@ export function globeSky(place: Observer, t: EpochMs): GlobeSky {
     sun: fromHorizon(bodies.sun.azDeg, bodies.sun.altDeg),
     moon: { ...fromHorizon(bodies.moon.azDeg, bodies.moon.elDeg), state: bodies.moon },
     planets,
-    sunAltDeg: bodies.sun.altDeg,
   };
   memo = { t, lat, lon, altM, sky };
   return sky;
@@ -158,11 +153,10 @@ export function upCount(sky: GlobeSky, dirs: StarVectors): number {
  * star up; `planets` (the sky's, or none when the layer is off) are merged in
  * by their magnitude, a planet's index past the catalogue's length (D-750).
  */
-export function upList(sky: GlobeSky, catalog: StarPositionsSource & StarNamesSource & { mag: ArrayLike<number> }, planets: readonly GlobePlanet[], lang: Locale, maxMag = Number.POSITIVE_INFINITY): FieldObject[] {
+export function upList(sky: GlobeSky, catalog: StarPositionsSource & StarNamesSource & { mag: ArrayLike<number> }, planets: readonly GlobePlanet[], lang: Locale): FieldObject[] {
   const dirs = starVectors(catalog);
   const found: FieldObject[] = [];
-  // V214-36 (D-1139): by day the list is the drawn stars' (`dayStars`' `maxMag`); the catalogue is in magnitude order.
-  for (let i = 0; i < catalog.size && found.length < FIELD_LIST_MAX && (catalog.mag[i] ?? 99) <= maxMag; i += 1) {
+  for (let i = 0; i < catalog.size && found.length < FIELD_LIST_MAX; i += 1) {
     const { altDeg, azDeg } = altAz(sky, starAt(dirs, i));
     if (altDeg < 0) continue;
     found.push({ index: i, name: starName(catalog, i, lang), planet: null, mag: catalog.mag[i] ?? 99, altDeg, point: compassPoint(azDeg) });
@@ -211,26 +205,4 @@ export function figureAnchor(figure: { segments: ArrayLike<number> }, drawn: rea
     }
   }
   return best;
-}
-
-/** FR-GLOBE-13: the disc's surface step — FR-LOOK-2's, for the Sun's altitude at the place and the globe's instant. */
-export function surfaceAt(sky: GlobeSky): TintStep {
-  return tintStep(sky.sunAltDeg);
-}
-
-/** D-1139: how the globe draws its stars by day — the faintest magnitude drawn and the opacity stars and figures take. */
-export interface DayStars {
-  maxMag: number;
-  alpha: number;
-}
-
-/**
- * v2.14.1 (FR-STAR-13 as amended, V214-30, V214-36; D-1139): the globe's stars while the Sun is above −6° — the
- * surface's `day` and `twilight` steps — the stars to `DAY_STARS_MAG` and the figures between them, at
- * `DAY_STARS_ALPHA`; `null` at −6° and below, when the globe draws as at night (the window, the dome and the polar
- * chart keep FR-STAR-13 as written). With the stars layer off nothing is drawn, whatever this says.
- */
-export function dayStars(sunAltDeg: number): DayStars | null {
-  if (tintStep(sunAltDeg) === 'deep') return null;
-  return { maxMag: DAY_STARS_MAG, alpha: DAY_STARS_ALPHA };
 }

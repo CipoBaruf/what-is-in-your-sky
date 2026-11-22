@@ -1,7 +1,7 @@
 import { cutTrack } from '../../../../../lib/arcReveal';
 import { interpolateTrack, resampleArc, splitArcAt, toDome, type Vec3 } from '../../../../../lib/skyGeometry';
 import type { MoonState, Pass, PassPoint } from '../../../../../model';
-import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible } from '../bodies';
+import { moonVisible, sunVisible } from '../bodies';
 import { GROUND_RADIUS } from './bowl';
 
 /**
@@ -17,7 +17,7 @@ import { GROUND_RADIUS } from './bowl';
  *
  * R21 adds, from the R16 composition (D-92): a colour per polygon (FR-DOME-2,
  * the value comes from `palette.ts`, never from here), the base layer's
- * surfaces (ground disc, sky bowl, Sun glow — FR-DOME-3/8a), the orientation
+ * surfaces (ground disc, sky bowl — FR-DOME-3/8a), the orientation
  * detail of FR-DOME-4 (10° horizon ticks with a degree every 30°, labelled
  * altitude rings, an arrowhead at the arc's end), the observer's mark at the
  * centre of the ground (FR-DOME-3), and the label-collision resolution, which
@@ -59,11 +59,10 @@ export const PASS_LABEL_RADIUS = 1.06;
 export const TICK_LABEL_RADIUS = 1.03;
 const RING_LABEL_RADIUS = 1.02;
 const RING_LABEL_AZ_DEG = 315;
-/** Base layer (FR-DOME-8a, D-92): the ground reaches 1.1 radii (`GROUND_RADIUS`, in `bowl.ts` since R135, D-882), the sky bowl sits just inside the lines, the glow just inside the horizon ring. */
+/** Base layer (FR-DOME-8a, D-92): the ground reaches 1.1 radii (`GROUND_RADIUS`, in `bowl.ts` since R135, D-882), the sky bowl sits just inside the lines. */
 export { GROUND_RADIUS };
 const GROUND_DEPTH = 0.002;
 export const BOWL_RADIUS = 0.985;
-const GLOW_RADIUS = 0.995;
 /** The base layer's surfaces are coarse on purpose: it is a wash, not a drawing (D-92). */
 const BASE_STEP_DEG = 10;
 /** The last fifth of a pass strip has every other quad left out, so the direction of travel reads. */
@@ -371,6 +370,8 @@ export const HIDDEN_LABEL_OFFSET_DEG = 4;
 /** FR-DOME-6: the Moon's disc, and how far above it its label sits. */
 export const MOON_MARKER_SIZE_DEG = 2.5;
 const MOON_RING_STEP_DEG = 30;
+/** FR-DARK-2: the Sun's dot, as the sizes of the rings that fill it, degrees of sky. */
+export const SUN_DOT_RINGS_DEG = [1, 2] as const;
 
 /**
  * A small circle of angular radius `sizeDeg` around a sky point: the outline
@@ -386,6 +387,16 @@ export function circleAround(point: { azDeg: number; elDeg: number }, sizeDeg: n
     pts.push(mul(norm(add(p, add(mul(e, s * Math.cos(th)), mul(f, s * Math.sin(th))))), radius));
   }
   return stripAlong(pts, { halfWidthDeg: GRID_HALF_WIDTH_DEG, radius, closed: true, ...(color ? { color } : {}) });
+}
+
+/**
+ * FR-DARK-2 (D-1262): the Sun's dot, while it is up — rings a degree apart about a centre point, which the
+ * wireframe raster runs together into one solid spot, where the Moon's one ring stays hollow.
+ */
+export function sunMarker(sun: { azDeg: number; altDeg: number }, color?: string): Poly[] {
+  if (!sunVisible(sun)) return [];
+  const point = { azDeg: sun.azDeg, elDeg: sun.altDeg };
+  return [pointMark(tuple(toDome(point.azDeg, point.elDeg), MARKER_RADIUS), color), ...SUN_DOT_RINGS_DEG.flatMap((sizeDeg) => circleAround(point, sizeDeg, MARKER_RADIUS, color))];
 }
 
 /**
@@ -615,24 +626,6 @@ export function skyBowl(color?: string): Poly[] {
       const p = (a: number, e: number): Tuple3 => tuple(toDome(a, Math.min(90, e)), BOWL_RADIUS);
       out.push(painted({ vertices: [p(az, el), p(az + BASE_STEP_DEG, el), p(az + BASE_STEP_DEG, el + BASE_STEP_DEG), p(az, el + BASE_STEP_DEG)] }, color));
     }
-  }
-  return out;
-}
-
-/** FR-DOME-6's ramp, shared with the polar view (`../bodies`) so both draw one Sun. */
-export { glowStrength };
-
-/** FR-DOME-6: the Sun as a patch of light on the horizon ring at its azimuth, wider and taller the closer it is to rising. */
-export function sunGlow(sun: { azDeg: number; altDeg: number }, color?: string): Poly[] {
-  const strength = glowStrength(sun.altDeg);
-  if (strength <= 0) return [];
-  const halfWidth = glowHalfWidthDeg(strength);
-  const height = glowHeightDeg(strength);
-  const step = halfWidth / 4;
-  const out: Poly[] = [];
-  for (let d = -halfWidth; d < halfWidth; d += step) {
-    const p = (a: number, e: number): Tuple3 => tuple(toDome(sun.azDeg + a, e), GLOW_RADIUS);
-    out.push(painted({ vertices: [p(d, 0), p(d + step, 0), p(d + step, height), p(d, height)] }, color));
   }
   return out;
 }

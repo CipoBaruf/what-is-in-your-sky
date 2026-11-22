@@ -8,7 +8,7 @@
  * viewport FR-COMP-4 names.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { SETTINGS_FIT_PLACES, SETTINGS_SKY_ROW_PX } from '../../src/lib/layout';
+import { SETTINGS_FIT_PLACES } from '../../src/lib/layout';
 import type { Observer } from '../../src/model';
 import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 import { NEUQUEN as NEUQUEN_OBSERVER } from './observers';
@@ -230,7 +230,7 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       await expect(page.getByTestId('favourites')).toHaveCount(0);
     });
 
-    test(`the Theme row is Dark and Night on one line, and the Sky row's toggle keeps its mark's space, in ${locale} (D-1020)`, async ({ page }) => {
+    test(`the Theme row is Dark and Night on one line, and there is no sun-glow row, in ${locale} (D-1020, FR-DARK-4)`, async ({ page }) => {
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER });
       const group = page.getByRole('group', { name: locale === 'es' ? 'Tema' : 'Theme' });
       const names = locale === 'es' ? ['Oscuro', 'Noche'] : ['Dark', 'Night'];
@@ -238,18 +238,15 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
       for (const name of names) await expect(group.getByRole('button', { name })).toBeVisible();
       expect(await isOneLine(group)).toBe(true);
       expect(await fitsTheViewport(group)).toBe(true);
-      // The option box stands in the button as a word does (R206): a flex button would stretch it out of its line.
-      const display = await page.getByTestId('settings-sun-glow').evaluate((el) => getComputedStyle(el).display);
-      expect(display).not.toBe('flex');
-      await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
+      await expect(page.getByTestId('settings-sun-glow')).toHaveCount(0);
+      await fitsOneViewport(page);
     });
 
     test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
       const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });
       await expect(page.getByTestId('favourite')).toHaveCount(SETTINGS_FIT_PLACES);
-      // v2.12 (FR-SET-2 as amended, D-1019): the fullest state may run one row past, the Sun's glow row's.
-      await fitsOneViewport(page, SETTINGS_SKY_ROW_PX);
+      await fitsOneViewport(page);
       // The observer came from coordinates, so the disclosure starts open: the larger of its two states.
       await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
     });

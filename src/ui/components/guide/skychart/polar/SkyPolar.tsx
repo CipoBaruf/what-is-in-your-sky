@@ -6,7 +6,7 @@ import { interpolateTrack, resampleArc, splitArcAt, toPolar } from '../../../../
 import type { SunState } from '../../../../../lib/skyBodies';
 import type { ChartOrientation, MoonState, PassPoint } from '../../../../../model';
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
-import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
+import { moonVisible, sunVisible } from '../bodies';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { drawsLayer, landmarkFor } from '../layers';
@@ -229,30 +229,12 @@ function PassArc({ pass, orientation, dim, series, now, legendKey, onSelect }: A
 /** How far above a hidden object's mark its key sits, in user units. */
 const HIDDEN_KEY_GAP = 7;
 
-/**
- * FR-DOME-6: the Sun as a band of light on the horizon at its azimuth, wider,
- * taller and brighter the closer it is to rising — the same `../bodies` ramp
- * the dome's glow is built from, so the two views agree about where the Sun is
- * and how strongly it shows. The band is a thick stroked arc centred half its
- * own height above the horizon, so it fills the sky from the horizon up.
- *
- * F-4: the sample step is a quarter of the half-width, like the dome's
- * `sunGlow` (`dome/domeGeometry.ts`), so the band's edge always lands exactly
- * on the Sun's azimuth ± `halfWidth` instead of stopping short by up to a
- * fixed step's worth of degrees.
- */
-function SunGlow({ sun, orientation }: { sun: SunState; orientation: ChartOrientation }) {
-  const strength = glowStrength(sun.altDeg);
-  const halfWidth = glowHalfWidthDeg(strength);
-  const height = glowHeightDeg(strength);
-  // Nine samples by index, not by accumulating `step`: `d += step` drifts past `halfWidth` by a rounding error for about one altitude in seven and drops the last sample (F-4).
-  const samples = 8;
-  const points: Xy[] = [];
-  for (let k = 0; k <= samples; k += 1) points.push(project({ azDeg: sun.azDeg - halfWidth + (2 * halfWidth * k) / samples, elDeg: height / 2 }, orientation));
-  const width = (HORIZON_R * height) / 90;
+/** FR-DARK-2 (D-1262): the Sun as a filled dot where it is, at the Moon marker's size. */
+function SunDot({ sun, orientation }: { sun: SunState; orientation: ChartOrientation }) {
+  const p = project({ azDeg: sun.azDeg, elDeg: sun.altDeg }, orientation);
   return (
     <g data-body="sun">
-      <path className={styles.glow} d={polyline(points)} strokeWidth={fmt(width)} opacity={fmt(0.3 + 0.5 * strength)} />
+      <circle className={styles.sun} data-marker="sun" r="4.5" transform={at(p)} />
     </g>
   );
 }
@@ -307,7 +289,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, sunGlow = true, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, follow = false, onFieldHandoff, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, camera, hand, follow = false, onFieldHandoff, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
@@ -368,14 +350,12 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             <PolarPinch orientation={orientation} horizonR={HORIZON_R} half={VIEW_HALF} onFieldHandoff={onFieldHandoff} />
           </Suspense>
         )}
-        {/* R158 (FR-LOOK-1, FR-LOOK-2): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
+        {/* R158 (FR-LOOK-1, FR-DARK-1): the sky surface and the band inside the rim, under everything, where the scene carries stars. */}
         {field && drawsLayer('polar', 'surface') && (
           <Suspense fallback={null}>
-            <PolarSky positions={field.positions} project={project} />
+            <PolarSky project={project} />
           </Suspense>
         )}
-        {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-        {sun && sunGlow && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
         {/* FR-SKY-1, FR-SKY-4, FR-PHONE-8: the star layer whole under the grid and the arcs, in SVG order. */}
         {field && (
           <Suspense fallback={null}>
@@ -434,6 +414,8 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         {hidden.map((marker) => (
           <HiddenPoint key={marker.id} marker={marker} orientation={orientation} legendKey={legendKeys[marker.id]} />
         ))}
+        {/* FR-DARK-2: the Sun's dot, under the Moon as it is in the sky. */}
+        {sun && sunVisible(sun) && <SunDot sun={sun} orientation={orientation} />}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
         {/* R158 (FR-LOOK-7): with its phase, by the table, where the scene carries stars (whose chunk draws it); FR-DOME-6's marker until it lands, and without stars. */}
         {moon &&

@@ -2,9 +2,9 @@ import type { StarField } from './window/scene';
 
 /**
  * D-748's prefix cut, the one copy: the catalogue to a magnitude, shared by
- * the views' caps (`layers.ts`'s `sceneFor`) and the scene's twilight step
- * (`useSkyScene`, R123). Its own module so the scene hook, which the main
- * chunk carries for the pass detail, takes these few lines and not the table.
+ * the views' caps (`layers.ts`'s `sceneFor`)
+ * alone since v3.0 (FR-DARK-2: the scene cuts nothing). Its own module, so
+ * a caller takes these few lines and not the table.
  */
 type Catalog = StarField['catalog'];
 

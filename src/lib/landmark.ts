@@ -1,4 +1,4 @@
-import { drawnMagLimit, drawnRungs } from './skyStars';
+import { drawnMagLimit } from './skyStars';
 
 /**
  * FR-SKY-11, FR-SKY-12, FR-STAR-14 (R120, D-795): which bright star a pass's
@@ -9,8 +9,6 @@ import { drawnMagLimit, drawnRungs } from './skyStars';
  * Distances are great-circle degrees on the observer's sky. A point is
  * `{ azDeg, altDeg }`, azimuth from north through east.
  */
-
-export { drawnRungs };
 
 /** The faintest a landmark may be: the ladder's third rung, the brightest `+` (FR-STAR-6). */
 export const LANDMARK_MAG = 2.5;
