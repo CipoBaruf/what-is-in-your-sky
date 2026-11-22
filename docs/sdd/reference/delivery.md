@@ -155,6 +155,8 @@ It is written and reviewed before the first wave (D-86), proved by `--dry-run` a
 *(2026-11-21, D-1314)* `--wave --until-done` is still that foreground script, not a scheduler: it repeats the wave in the same process until no task is ready, sleeping to a far limit's reset (plus 2 minutes, at most 7 days) and stopping after two waves in a row with nothing merged and the same failures.
 Each wave reads `origin/main` and prunes as a single `--wave` does; between waves it keeps only the last wave's failures in memory, so killing it loses nothing.
 A wave's CI watch gives up after 40 minutes (`ci-timeout`, D-1311), and the merge names the head CI saw (D-1312).
+It skips a blocked task, one killed at the token ceiling three times and one that failed the same way twice, and stops when only those are ready (D-1317).
+A rebase or a pre-merge refresh resolves conflicts in the shared files itself (D-1315, D-1316); a task run gets two fix sessions on their own caps (D-1318).
 
 ### 16.8 Tokens and delivery time *(v1.1, D-198, D-199)*
 
