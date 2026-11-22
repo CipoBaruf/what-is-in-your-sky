@@ -267,7 +267,6 @@ export function SkyChart(props: SkyChartProps) {
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const chartView = useAppStore((s) => s.chartView);
-  // v2.12 (FR-SET-5, D-1019): the Sun's glow on every view, the settings page's switch, off by default.
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
   // FR-FOL-2: the one line the last answer left.

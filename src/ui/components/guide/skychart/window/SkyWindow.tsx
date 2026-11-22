@@ -45,8 +45,8 @@ import { nearestPass } from '../globe/arcs';
  * ticks every 30°, each pass as an arc through the same `resampleArc` the
  * dome and the polar use (FR-GUIDE-2b: one geometry), clipped to the
  * drawable field, with its rise, peak, end and shadow markers, the arrowhead,
- * the flown part and the live marker (FR-DOME-5), the Sun's glow and the
- * Moon's disc (FR-DOME-6), and the legend key at each peak (FR-LEG-1). Each
+ * the flown part and the live marker (FR-DOME-5), the Moon's disc
+ * (FR-DOME-6), and the legend key at each peak (FR-LEG-1). Each
  * pass is drawn in its `arc` state as the polar draws it (FR-TRAJ-1, D-189).
  * Colours are the `--chart-*` tokens of `SkyPolar.module.css` (FR-DOME-2,
  * FR-LIVE-2).

@@ -1,7 +1,7 @@
 /**
  * R22 captures (FR-DOME-5, FR-DOME-6, FR-DOME-7): both chart views with the
- * satellite on its arc, the flown part behind it, the Sun's glow on the
- * horizon and the Moon where it is — at both widths, in both themes and in
+ * satellite on its arc, the flown part behind it, the Sun in twilight (a
+ * legend line, FR-DARK-4) and the Moon where it is — at both widths, in both themes and in
  * both languages. Evidence for the PR, not a test: the assertions here only
  * make sure the capture shows the thing it is named after.
  *

@@ -362,7 +362,7 @@ describe('<LivePage>', () => {
     });
     const moonLine = container.querySelector('[data-testid="chart-legend"] [data-body="moon"]');
     if (moonLine !== null) expect(moonLine).toHaveTextContent(`${String(Math.round(expected.moon.illuminatedFraction * 100))} %`);
-    // R45 (FR-DOME-6 as amended): the Sun is a glow in the raster and a legend line, not a caption in the drawing.
+    // R45 (FR-DOME-6 as amended): the Sun is a legend line, not a caption in the drawing; FR-DARK-4: and no glow.
     expect(container.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
     expect(figure.querySelector('[data-anchor="sun"]')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
