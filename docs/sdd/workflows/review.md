@@ -21,7 +21,7 @@ If the findings per phase rise after this rule took effect, review goes back to 
 ## Steps
 
 1. Read the brief (`sdd-run/<task>.brief.md`): the task's scope, its done-when, the ids it satisfies, the lane's directories.
-2. Read the diff against the base the prompt names (`git diff <base>...HEAD`), whole. Open a file beyond the diff only to confirm a finding.
+2. Read `git diff --stat <base>...HEAD` for the shape, then the diff with renames detected and deleted files left out (`git diff -M --diff-filter=d <base>...HEAD`), whole (D-1319). Open a file beyond the diff only to confirm a finding.
 3. Read the sections of `docs/sdd/gotchas.md` the diff touches.
 4. Check, in this order:
    - correctness: a concrete input or state that gives a wrong result, a crash or a lost write;

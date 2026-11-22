@@ -2061,6 +2061,16 @@ D-1220	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 de
 D-1221	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1222	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
 D-1223	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18	2.54 v2.16 decisions (2026-11-18)
+D-1310	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1311	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1312	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1313	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1314	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1315	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1316	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1317	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1318	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1319	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2684,6 +2694,7 @@ SPEC §2.23	docs/sdd/phases/v2.16/spec.md#223-goals-v216-an-answer-first
 SPEC §4.59	docs/sdd/phases/v2.16/spec.md#459-the-example-first-run-v216
 SPEC §4.60	docs/sdd/phases/v2.16/spec.md#460-ci-time-again-v216
 PLAN §2.54	docs/sdd/phases/v2.16/plan.md#254-v216-decisions-2026-11-18
+PLAN §2.55	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21
 PLAN §9.18	docs/sdd/phases/v2.16/plan.md#918-v216-additions-fr-open
 PLAN §11.10	docs/sdd/phases/v2.16/plan.md#1110-v216-build-fr-open-1
 PLAN §16.37	docs/sdd/phases/v2.16/plan.md#1637-v216-delivery

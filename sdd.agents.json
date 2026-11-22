@@ -4,14 +4,14 @@
     "claude": {
       "command": ["claude", "-p", "{prompt}", "--model", "{model}", "--permission-mode", "acceptEdits", "--max-turns", "{maxTurns}", "--output-format", "stream-json", "--verbose"],
       "tiers": {
-        "hard": { "model": "fable" },
-        "standard": { "model": "opus", "tokenCeiling": 32716582 },
+        "hard": { "model": "opus", "note": "fable until 2026-11-21, when it began to need usage credits (credits_required); back to fable once the account has them (D-1310)" },
+        "standard": { "model": "opus", "tokenCeiling": 40000000 },
         "light": { "model": "sonnet" }
       },
-      "aliases": { "haiku": "light" },
+      "aliases": { "fable": "hard", "haiku": "light" },
       "fallback": ["hard", "standard", "light"],
       "limit": {
-        "pattern": "hit your (?:session |weekly |usage )?limit(?: · resets ([^\\n]+))?|reached your \\w+ limit|usage limit|limit reached|out of extra usage|rate_limit_error",
+        "pattern": "hit your (?:session |weekly |usage )?limit(?: · resets ([^\\n]+))?|reached your \\w+ limit|usage limit|limit reached|out of extra usage|rate_limit_error|requires usage credits",
         "modelPattern": "switch to another model|reached your (?!(?:session|weekly|usage) )\\w+ limit",
         "accountWindows": ["five_hour", "seven_day"]
       },

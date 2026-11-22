@@ -29,19 +29,25 @@ export type ResultParser = (stdout: string, exitCode: number | null, handoffPath
 
 interface RateLimitEvent {
   type?: string;
-  rate_limit_info?: { status?: string; resetsAt?: number; rateLimitType?: string };
+  rate_limit_info?: { status?: string; resetsAt?: number; rateLimitType?: string; errorCode?: string };
 }
+
+/** D-1310: the `errorCode` of a model that needs usage credits the account lacks (the hard tier's model, 2026-11-21); another model runs. */
+const MODEL_ONLY_CODES = ['credits_required'];
 
 /**
  * §16.4 step 10: the limit a stream event announces, or `null` for any other
  * event. A window the entry lists as shared (`five_hour`, `seven_day`) stops
  * every model; any other, such as one model's own weekly window, does not.
+ * An event with no window stops every model too, unless its `errorCode`
+ * names one model's own refusal (`credits_required`, D-1310).
  */
 export function limitFromEvent(event: RateLimitEvent, limit: Pick<LimitConfig, 'accountWindows'>): LimitInfo | null {
   if (event.type !== 'rate_limit_event' || event.rate_limit_info?.status !== 'rejected') return null;
   const info = event.rate_limit_info;
   const window = info.rateLimitType ?? null;
-  return { window, resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : null, accountWide: window === null || limit.accountWindows.includes(window) };
+  const modelOnly = info.errorCode !== undefined && MODEL_ONLY_CODES.includes(info.errorCode);
+  return { window, resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : null, accountWide: !modelOnly && (window === null || limit.accountWindows.includes(window)) };
 }
 
 const done = (outcome: SessionOutcome, text: string | null, usage: ResultUsage | null, limit: LimitInfo | null): ParsedResult => ({ ok: outcome === 'ok', outcome, text, usage, limit: outcome === 'limit' ? limit : null });
@@ -68,7 +74,12 @@ const streamJson: ResultParser = (stdout, exitCode, _handoff, { limit: config, s
     if (event.type !== 'result') continue;
     text = event.result ?? null;
     usage = usageFromResult(event);
-    if (outcome === 'limit') continue; // the event already said so; the result is the synthetic sentence
+    if (outcome === 'limit') {
+      // The event already said so; the result is the synthetic sentence. A windowless event whose sentence says
+      // "switch to another model" is that model's own limit (D-1310), so the fallback may run.
+      if (limit?.window === null && limit.accountWide && limitFromText(config, text)?.accountWide === false) limit = { ...limit, accountWide: false };
+      continue;
+    }
     const said = limitFromText(config, text);
     if (event.subtype === 'error_max_turns') outcome = 'max-turns';
     else if (said) {
@@ -105,7 +116,7 @@ export const totalTokens = (usage: ResultUsage): number => usage.inputTokens + u
  * a ceiling cannot stop it mid-run.
  */
 export class StreamTokens {
-  readonly #byMessage = new Map<string, number>();
+  readonly #byMessage = new Map<string, ResultUsage>();
   #total = 0;
 
   add(line: string): number {
@@ -114,13 +125,30 @@ export class StreamTokens {
       const event = JSON.parse(line) as { type?: string; message?: { id?: string; usage?: Parameters<typeof usageFromResult>[0]['usage'] } };
       if (event.type !== 'assistant' || !event.message?.usage) return this.#total;
       const spent = usageFromResult({ type: 'result', usage: event.message.usage });
-      const tokens = spent ? totalTokens(spent) : 0;
+      if (!spent) return this.#total;
       const id = event.message.id ?? `#${String(this.#byMessage.size)}`;
-      this.#total += tokens - (this.#byMessage.get(id) ?? 0);
-      this.#byMessage.set(id, tokens);
+      const before = this.#byMessage.get(id);
+      this.#total += totalTokens(spent) - (before ? totalTokens(before) : 0);
+      this.#byMessage.set(id, spent);
     } catch {
       // not a JSON event line
     }
     return this.#total;
+  }
+
+  get total(): number {
+    return this.#total;
+  }
+
+  /** D-1317: the running usage, summed per field, for a session killed before its result event (turns = assistant messages seen). */
+  usage(): ResultUsage {
+    const sum: ResultUsage = { inputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, outputTokens: 0, turns: this.#byMessage.size };
+    for (const spent of this.#byMessage.values()) {
+      sum.inputTokens += spent.inputTokens;
+      sum.cachedInputTokens += spent.cachedInputTokens;
+      sum.cacheCreationTokens += spent.cacheCreationTokens;
+      sum.outputTokens += spent.outputTokens;
+    }
+    return sum;
   }
 }

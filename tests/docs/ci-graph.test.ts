@@ -113,6 +113,7 @@ describe('ci.yml: the checks that need no build run beside it (FR-CI-4, FR-CI-5,
 
   it("FR-CI-1, FR-CI-4, FR-CI-5: the budget, the shard counts and the spread are the spec's constants", () => {
     expect(budget).toBe(8);
+    expect(constant(ci, 'CI_E2E_TIMEOUT_MIN')).toBe(10);
     expect(unitShards).toBe(2);
     expect(e2eShards).toBe(6);
     expect(constant(ci, 'CI_SHARD_SPREAD_S')).toBe(60);
@@ -166,10 +167,12 @@ describe('ci.yml: the checks that need no build run beside it (FR-CI-4, FR-CI-5,
     expect(needs('digest')).toEqual(expect.arrayContaining(['static', 'unit', 'ci']));
   });
 
-  it('FR-CI-1: no job waits past the budget, and every job that runs a stage carries it as its timeout', () => {
+  it('FR-CI-1, D-1313: no job waits past the budget but the e2e shard, which carries its own timeout; every other stage job carries the budget', () => {
+    const e2eTimeout = constant(ci, 'CI_E2E_TIMEOUT_MIN');
     for (const [name, job] of Object.entries(jobs)) {
-      expect(Number(/^ {4}timeout-minutes: (\d+)$/m.exec(job)?.[1]), name).toBeLessThanOrEqual(budget);
-      if (job.includes('stage.sh ')) expect(job, name).toMatch(new RegExp(`^ {4}timeout-minutes: ${String(budget)}$`, 'm'));
+      const limit = name === 'ci' ? e2eTimeout : budget;
+      expect(Number(/^ {4}timeout-minutes: (\d+)$/m.exec(job)?.[1]), name).toBeLessThanOrEqual(limit);
+      if (job.includes('stage.sh ')) expect(job, name).toMatch(new RegExp(`^ {4}timeout-minutes: ${String(limit)}$`, 'm'));
     }
   });
 });

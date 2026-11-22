@@ -3,7 +3,11 @@
  * here reaches the network — the probe is what `gh pr checks` would have said.
  */
 import { describe, expect, it } from 'vitest';
-import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, checksExist, DIGEST_WAIT_MS, pullRequestTitle, runForHead, waitForChecks, type ExecResult } from '../../scripts/sdd/git';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, CHECKS_WATCH_TIMEOUT_MS, checksExist, checksVerdict, DIGEST_WAIT_MS, mergeArgs, pullRequestTitle, runForHead, waitForChecks, watchChecks, type ExecResult } from '../../scripts/sdd/git';
+import type { Logger } from '../../scripts/sdd/report';
 import { COMMIT_TITLE_MAX } from '../../scripts/sdd/limits';
 
 /** A probe whose checks appear on call `times + 1`. */
@@ -115,5 +119,41 @@ describe('FR-SDD-20: pullRequestTitle', () => {
     expect(cut.endsWith('…')).toBe(true);
     expect(long.startsWith(cut.slice(0, -1))).toBe(true);
     expect(cut.slice(0, -1)).not.toMatch(/[\s,:;]$/u);
+  });
+});
+
+const quiet: Logger = { path: null, line: () => undefined, raw: () => undefined, command: () => undefined } as unknown as Logger;
+
+/** A stand-in `gh` on PATH: `pr checks` lists one pending check, `pr view` prints a head, and `--watch` never finishes. */
+function withFakeGh<T>(work: () => Promise<T>): Promise<T> {
+  const bin = mkdtempSync(join(tmpdir(), 'sdd-gh-'));
+  const gh = join(bin, 'gh');
+  writeFileSync(gh, '#!/bin/sh\ncase "$*" in\n  *--watch*) exec sleep 30 ;;\n  "pr view"*) echo abc123 ;;\n  *) printf "build\\tpending\\t0\\turl\\n"; exit 8 ;;\nesac\n');
+  chmodSync(gh, 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path ?? ''}`;
+  return work().finally(() => {
+    process.env.PATH = path;
+    rmSync(bin, { recursive: true, force: true });
+  });
+}
+
+describe('D-1311: the CI watch has a cap', () => {
+  it('reads exec\'s kill as a timeout, distinct from red', () => {
+    expect(checksVerdict({ code: 0, stdout: '', stderr: '' })).toBe('green');
+    expect(checksVerdict({ code: 1, stdout: '', stderr: '' })).toBe('red');
+    expect(checksVerdict({ code: 124, stdout: '', stderr: '' })).toBe('timeout');
+    expect(CHECKS_WATCH_TIMEOUT_MS).toBe(40 * 60_000);
+  });
+
+  it('gives up on a check stuck pending and returns the head it read', async () => {
+    const result = await withFakeGh(() => watchChecks(process.cwd(), 7, quiet, { watchMs: 300 }));
+    expect(result).toEqual({ verdict: 'timeout', head: 'abc123' });
+  }, 10_000);
+});
+
+describe('D-1312: the merge names the head CI saw', () => {
+  it('squashes with --match-head-commit', () => {
+    expect(mergeArgs(42, 'abc123')).toEqual(['pr', 'merge', '42', '--squash', '--match-head-commit', 'abc123']);
   });
 });

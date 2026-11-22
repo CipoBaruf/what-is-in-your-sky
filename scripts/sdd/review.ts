@@ -66,7 +66,7 @@ export function parseFindings(text: string): { findings: Finding[]; unreadable: 
 export function reviewPrompt(input: { id: string; brief: string; base: string; workflow: string }): string {
   return [
     `Review ${input.id}. Read ${input.brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session.`,
-    `The diff is \`git diff ${input.base}...HEAD\`. The handoff file is ${findingsPath(input.id)}: write it even when it stays empty, and change nothing else.`,
+    `The diff is \`git diff -M --diff-filter=d ${input.base}...HEAD\` (renames as renames, deleted files left out; D-1319); read \`git diff --stat ${input.base}...HEAD\` first for its whole shape, deletions included. The handoff file is ${findingsPath(input.id)}: write it even when it stays empty, and change nothing else.`,
     'Follow this procedure:',
     '',
     input.workflow.trim(),
