@@ -140,7 +140,7 @@
   white-space: nowrap;
 }
 
-/* R166 (FR-CLEAN-14, D-1007): `home live stars`, one cell apart. The underline (R206, FR-CTRL-11) and
+/* R166 (FR-CLEAN-14, D-1007): `live satellites stars`, one cell apart. The underline (R206, FR-CTRL-11) and
    the current page's dim span are `BracketLink`'s; the 2 px accent rule under the current page went with the words. */
 .nav {
   flex: 0 0 auto;
@@ -157,41 +157,10 @@
   margin-left: auto;
 }
 
-/* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
-   first letter, so its indent is the mark's width — one `--row`, which is what
-   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it.
-   R75 (FR-X-5): a quarter row above it, because the title row's links carry a
-   focus ring and the two rows were flush. */
-.tagline {
-  margin: calc(var(--row) / 4) 0 0;
-  padding-left: calc(var(--row) + var(--cell));
-  color: var(--fg-dim);
-}
-
 /* R105 (D-720): the rule under the header, a row of space above it, and out
    into the frame's two cells of side padding (global.css `header, main,
    footer`), where the border it replaces ran. */
 .wide > .rule {
   margin-top: var(--space-3);
   margin-inline: calc(-2 * var(--cell));
-}
-
-/* R93 (FR-HOME-1, D-546, D-605): the tagline's fold, one literal per language,
-   derived as the breakpoints are (F-10, `thresholdPx`): the line's cells on the
-   widest advance in the font stack, rounded up, so the line never wraps on any
-   font and folds a few pixels early on a narrower one. The line is the two
-   paddings, its indent (the mark and a cell) and its own words: 70 cells in
-   English and 68 in Spanish (R202, D-1181: the shorter words) — both under the wide breakpoint, so it never folds.
-   Under that width it is not shown: one tagline line or none, never two.
-   `tests/styles/controlRows.test.ts` recomputes each from the catalog. */
-@media (width < 675px) {
-  :global(:root[lang='en']) .wide > .tagline {
-    display: none;
-  }
-}
-
-@media (width < 656px) {
-  :global(:root[lang='es']) .wide > .tagline {
-    display: none;
-  }
 }

@@ -15,7 +15,7 @@ import { altitudeInRange, latitudeInRange, longitudeInRange, observerFromCoords 
  *   here so both share actions are one round-trip test surface.
  *
  * Nothing in here throws on a hash it does not understand: a stranger's URL is
- * arbitrary text, and FR-SHARE-1's failure mode is the home screen, not an
+ * arbitrary text, and FR-SHARE-1's failure mode is the first page, not an
  * error boundary. `parseHash` answers `null` for anything malformed, partial
  * or unknown, and every caller treats `null` as "no selection".
  *
@@ -323,6 +323,21 @@ export function isLiveRoute(hash: string): boolean {
 export function liveLinkFromHash(hash: string): LiveLink | null {
   const parsed = parseHash(hash);
   return parsed?.kind === 'live' ? parsed : null;
+}
+
+/** R212 (FR-LAND-1): the first page's hash, what the route with no hash becomes. */
+export const LIVE_HASH = '#live';
+
+export type HashRoute = 'live' | 'pass' | 'settings' | 'stars';
+
+/** R212 (FR-LAND-1, D-1230): the route a hash names, or null for an empty, unknown or unreadable one, which opens live. */
+export function routeOfHash(hash: string): HashRoute | null {
+  if (isLiveRoute(hash)) return hash.replace(/^#/, '') === 'live' || liveLinkFromHash(hash) !== null ? 'live' : null;
+  if (isSettingsRoute(hash)) return 'settings';
+  if (isStarsRoute(hash)) return 'stars';
+  if (isPassPageRoute(hash)) return 'pass';
+  const parsed = parseHash(hash);
+  return parsed?.kind === 'passId' || parsed?.kind === 'pass' ? 'pass' : null;
 }
 
 /**

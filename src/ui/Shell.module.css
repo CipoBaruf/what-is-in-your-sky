@@ -7,8 +7,33 @@
    measures the capped row it stands in (`ChartFrame`, D-187; `Stars.tsx`'s `fitBox`). `width: 100%` because inside
    D-119's grid an auto margin turns off the stretch a grid item gets, and a row left to size itself shrinks to its
    text (global.css). The rule is wide's alone: compact keeps global.css's 60-cell frame (FR-TAB-1). */
+/* R212 (FR-UPD-2, D-1237): the update bar's row under the header, out of the page while it says nothing. The phone's
+   sky pages are fixed to the viewport, so there it is fixed under their head (R220 holds it out of the box). */
+.update {
+  box-sizing: border-box;
+  padding-inline: calc(2 * var(--cell));
+}
+
+.update:empty {
+  display: none;
+}
+
+.update[data-chrome='live'],
+.update[data-chrome='stars'] {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: calc(env(safe-area-inset-top) + var(--space-2) + var(--tap));
+  z-index: var(--z-raised);
+  background: var(--bg);
+}
+
 @media (width >= 964px) {
+  .update[data-chrome] {
+    position: static;
+  }
+
   .main,
+  :global(#root) > :global([data-update-bar]),
   :global(#root) > :global(header),
   :global(#root) > :global(footer),
   :global(#root) > :global([data-page-notices]),

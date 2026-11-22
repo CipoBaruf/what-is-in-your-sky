@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { useT } from '../../../i18n/useT';
+import { useAtStart } from '../../navigation';
 import { TextButton } from '../primitives/TextButton';
 import styles from './SkyHead.module.css';
 
@@ -19,6 +20,8 @@ import styles from './SkyHead.module.css';
  * countdown with the name as its chip — and the row cuts that line's paragraph as it cut the shown time's: the line
  * is one `<p>` (the stylesheet's `.time > p`) that sets its own sizes and does not wrap. `[ ← ]` is
  * still the page's Back (`onBack`): every page's Back is the history-aware rule of §4.37, not an address.
+ *
+ * R212 (FR-LAND-1, D-1230): none on the live page a visit opened on, which is the first page.
  */
 export interface SkyHeadProps {
   /** The page's one line after `[ ← ]`: one `<p>` that sets its own sizes and does not wrap, cut with an ellipsis at its end. */
@@ -33,9 +36,10 @@ export interface SkyHeadProps {
 
 export function SkyHead({ line, onBack, backRef, className }: SkyHeadProps) {
   const t = useT();
+  const atStart = useAtStart();
   return (
     <div className={[styles.head, className].filter(Boolean).join(' ')} data-testid="live-head">
-      <TextButton label={t.header.back} aria-label={t.header.backName} className={`${styles.back} target`} onClick={onBack} ref={backRef} data-testid="live-back" />
+      {!atStart && <TextButton label={t.header.back} aria-label={t.header.backName} className={`${styles.back} target`} onClick={onBack} ref={backRef} data-testid="live-back" />}
       <div className={styles.time}>{line}</div>
     </div>
   );

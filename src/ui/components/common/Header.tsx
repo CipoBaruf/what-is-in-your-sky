@@ -1,11 +1,10 @@
-import type { MouseEvent, ReactNode, Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import type { HeaderPage } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { firstPassFor } from '../../../lib/livePasses';
-import { PASS_PAGE_HASH, passIdHash, SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
+import { LIVE_HASH, PASS_PAGE_HASH, passIdHash, SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
 import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { home } from '../../navigation';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { useShownClock, useShownPasses } from '../../screens/home/shownPasses';
 import { loadStarsChunk } from '../../screens/starsChunk';
@@ -27,35 +26,24 @@ import styles from './Header.module.css';
  * optional `context` — the place, or the pass's date — and is the one header of
  * every page, so it says where the reader is.
  *
- * **Compact.** The home keeps its row of at most 36 cells (FR-COMP-1): the
- * mark, the short title, `[ live ]` and `[ settings ]`, and no tagline. Every
- * other page — live, stars, the pass detail, settings — has `[ ← ]`
- * (FR-COMP-7's control: the arrow drawn, "Back" / "Volver" its name), the
- * page's name in the accent, and the context in `--fg-dim`, cut with an
- * ellipsis where the row's cells run out. On settings the name is the page's
- * `h1`, which has no other. The compact live page has no header row since v2.8:
- * its head is `SkyHead` over the sky (FR-FULL-2), and this row is drawn there
- * only while no place is known (the inert page).
+ * **Compact.** A tab — live, the satellites' list (R212, FR-LAND-6, D-1231) — is a row of at most 36 cells
+ * (FR-COMP-1): the mark, the short title, the link to the other tab and `settings`. Every other page — stars,
+ * settings — has `[ ← ]` (FR-COMP-7's control: the arrow drawn, "Back" / "Volver" its name), the page's name in the
+ * accent, and the context in `--fg-dim`, cut with an ellipsis where the row's cells run out. On settings the name
+ * is the page's `h1`, which has no other. The compact live page has no header row since v2.8: its head is `SkyHead`
+ * over the sky (FR-FULL-2), and this row is drawn there only while there is no sky to draw (the inert page).
  *
- * **Wide.** One row on every page: `[ ← ]` on a sub-page, the mark and the
- * title, the page links `home live satellites stars` one cell apart (v2.14.1, FR-CLEAN-14 as
+ * **Wide.** One row on every page: `[ ← ]` where a page has one — never live, the first page (D-1230) — the mark
+ * and the title, the page links `live satellites stars` one cell apart (v2.14.1, FR-CLEAN-14 as
  * amended, D-1134: the pass page is one of them, its link the pass up now or the span's next) — R166
  * (FR-CLEAN-14): `BracketLink`s, the current one the primitive's dim
- * `aria-current` span, as `settings` is on its own page — the context on a
- * sub-page, and `settings` at the row's right end. The tagline is the home's only, under the row. The
- * language and theme switches are the settings page's alone (FR-COMP-2,
- * V26-10), on both widths.
+ * `aria-current` span, as `settings` is on its own page — the context, and `settings` at the row's right end.
+ * The language and theme switches are the settings page's alone (FR-COMP-2, V26-10), on both widths.
  *
  * R74 (FR-MARK-4 a, b; D-441): the mark stands before the title at
- * `MARK_HEADER_PX` — one `--row`. On the home page its bead runs while the app
+ * `MARK_HEADER_PX` — one `--row`. On live and the satellites page its bead runs while the app
  * is still working out what to show (FR-MARK-5 a), and wherever it is drawn
  * while the settings chunk is on its way (`busy`, D-545).
- *
- * R93 (FR-HOME-1, D-546, D-605; F-76): the tagline is one line or none — the
- * stylesheet hides it under the width its line needs, one pixel literal per
- * language that `tests/styles/controlRows.test.ts` recomputes from the catalog.
- * The title row needs no fold since R129: without the switches it fits the
- * wide breakpoint in both languages, and its context is what gives.
  *
  * `landmark={false}` renders the row as a `div`, for a page that holds the
  * header inside a landmark of its own (the live page's grid, D-529) or inside a
@@ -64,10 +52,10 @@ import styles from './Header.module.css';
  */
 export interface HeaderProps {
   /** Which page this header stands on (D-845). */
-  page?: HeaderPage;
-  /** A sub-page's place; drawn after the name, cut with an ellipsis. */
+  page: HeaderPage;
+  /** The page's place; drawn after the name or the links, cut with an ellipsis. */
   context?: string | null;
-  /** A sub-page's `[ ← ]`: leaves the page. */
+  /** The page's `[ ← ]`, where it has one: leaves the page. */
   onBack?: () => void;
   /** The `[ ← ]` element, for a page that places the focus on it when it is entered (the settings page). */
   backRef?: Ref<HTMLButtonElement>;
@@ -82,8 +70,8 @@ export interface HeaderProps {
 }
 
 /** The wide row's page links, in order (FR-FLOW-3; v2.14.1, FR-CLEAN-14 as amended, D-1134: `pass` between `live` and `stars`). */
-const NAV_PAGES = ['home', 'live', 'pass', 'stars'] as const satisfies readonly HeaderPage[];
-const NAV_HREF: Record<Exclude<(typeof NAV_PAGES)[number], 'pass'>, string> = { home: '#', live: '#live', stars: STARS_HASH };
+const NAV_PAGES = ['live', 'pass', 'stars'] as const satisfies readonly HeaderPage[];
+const NAV_HREF: Record<Exclude<(typeof NAV_PAGES)[number], 'pass'>, string> = { live: LIVE_HASH, stars: STARS_HASH };
 
 /**
  * D-1134: `[ satellites ]`'s href — `#pass=<id>` of the pass up now, else the span's next (`firstPassFor`, over the
@@ -99,10 +87,10 @@ function usePassPageHref(): string {
 /** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
 const TARGET = 'target';
 
-export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false }: HeaderProps) {
+export function Header({ page, context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
-  const loading = (useAppStore(isLoading) && page === 'home') || busy;
+  const loading = (useAppStore(isLoading) && (page === 'live' || page === 'pass')) || busy;
   const passHref = usePassPageHref();
   const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
   // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
@@ -111,7 +99,6 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
   // R115 (D-756): the same for the stars chunk, from its own link.
   const prefetchStars = (): void => void loadStarsChunk().catch(() => undefined);
   const Root = landmark ? 'header' : 'div';
-  const sub = page !== 'home';
   const rootClass = (shape: string | undefined): string => [styles.header, shape, landmark ? styles.landmark : undefined].filter(Boolean).join(' ');
 
   /*
@@ -121,11 +108,11 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
    * (`Live.module.css` `[data-fold] button`) is what takes it to one text row.
    */
   const inlineBack = mode === 'compact' || landmark;
-  const back = sub && (
+  const back = page !== 'live' && onBack !== undefined && (
     <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={[styles.back, TARGET, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
   );
   const contextText =
-    sub && context !== null && context !== '' ? (
+    context !== null && context !== '' ? (
       <span className={styles.context} data-testid={`${page}-place`}>
         {context}
       </span>
@@ -138,7 +125,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
     );
 
   if (mode === 'compact') {
-    if (sub) {
+    if (page === 'settings' || page === 'stars') {
       const Name = page === 'settings' ? 'h1' : 'span';
       return (
         <Root inert={inert} className={rootClass(`${styles.compact} ${styles.sub}`)} data-testid="header" data-page={page}>
@@ -150,25 +137,30 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
         </Root>
       );
     }
+    // A tab's row: the other tab and settings, in FR-COMP-1's cells. The page's `h1` is the page's own.
     return (
       <Root inert={inert} className={rootClass(styles.compact)} data-testid="header" data-page={page}>
         <div className={styles.brand}>
           {mark}
-          <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
+          <p className={styles.shortTitle}>{t.app.shortTitle}</p>
         </div>
         <nav className={styles.links} aria-label={t.header.nav}>
-          <BracketLink href="#live" label={t.live.openShort} className={TARGET} data-testid="live-link" />
+          {page === 'live' ? (
+            <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className={TARGET} data-testid="pass-link" />
+          ) : (
+            <BracketLink href={LIVE_HASH} label={t.live.openShort} className={TARGET} data-testid="live-link" />
+          )}
           {settings}
         </nav>
       </Root>
     );
   }
 
-  // The home and settings pages have no `h1` of their own on wide; the live and stars pages do (FR-A11Y-1).
+  // The settings page has no `h1` of its own on wide; the other pages do (FR-A11Y-1).
   // R186 (FR-WIDE-1): the wide pass page names itself by the pass's h1 in its rail, as the stars page does.
-  const Title = page === 'home' || page === 'settings' ? 'h1' : 'p';
+  const Title = page === 'settings' ? 'h1' : 'p';
   /*
-   * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `home live stars`, underlined (R206, FR-CTRL-11), so they read
+   * R166 (FR-CLEAN-14, D-1003, D-1007): the page links are `BracketLink`s, `live satellites stars`, underlined (R206, FR-CTRL-11), so they read
    * as the links they are, like `settings`; the current page is the primitive's dim `aria-current` span.
    */
   const navLink = (target: (typeof NAV_PAGES)[number]): ReactNode => {
@@ -183,18 +175,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
         label={label}
         className={TARGET}
         data-testid={`${target}-link`}
-        {...(target === 'home'
-          ? {
-              onClick: (event: MouseEvent<HTMLAnchorElement>) => {
-                // As the shell's route links (`takeRouteLink`): a modified or other-button click is the browser's.
-                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                event.preventDefault();
-                home();
-              },
-            }
-          : target === 'stars'
-            ? { onPointerEnter: prefetchStars, onFocus: prefetchStars }
-            : {})}
+        {...(target === 'stars' ? { onPointerEnter: prefetchStars, onFocus: prefetchStars } : {})}
       />
     );
   };
@@ -215,7 +196,6 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
         {settings}
       </div>
       {/* R186 (FR-WIDE-1): the wide pass detail's header is one row, as the other sky pages' are, so the three boxes stand at one top. */}
-      {page === 'home' && <p className={styles.tagline}>{t.app.tagline}</p>}
       {/* R105 (D-720): the wide header's rule under its last line (R23, FR-DESK-2). The live page's own grid draws its
           rows (D-855): there the header is the top row, one text row on a short window (FR-SHP-3), and carries no rule. */}
       {landmark && <Rule className={styles.rule} />}
@@ -224,7 +204,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
 }
 
 /**
- * FR-MARK-5 (a): the bead runs while the home page is still assembling what it
+ * FR-MARK-5 (a): the bead runs while the page is still assembling what it
  * will show — the elements are being fetched, or the worker is computing the
  * run — and stands still once the list is there.
  */
