@@ -281,7 +281,7 @@ for (const locale of LOCALES) {
         // FR-PHONE-5: the touch hint, two clauses, drawn whole above the two controls.
         const hint = page.getByTestId('sky-hint');
         await expect(hint).toHaveAttribute('data-pointer', 'coarse');
-        await expect(hint).toHaveText(locale === 'en' ? 'Drag to look · pinch to zoom' : 'Arrastrá para mirar · pellizcá para acercar');
+        await expect(hint).toHaveText(locale === 'en' ? 'drag to turn · pinch to zoom' : 'arrastrá para girar · pellizcá para acercar');
         const fits = await hint.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflow: getComputedStyle(el).textOverflow }));
         expect(fits.scrollWidth, 'no clause cut').toBe(fits.clientWidth);
         expect(fits.overflow).not.toBe('ellipsis');

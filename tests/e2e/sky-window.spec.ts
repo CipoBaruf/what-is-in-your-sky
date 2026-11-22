@@ -150,7 +150,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
     expect(readout.y).toBeGreaterThanOrEqual(boxRect.y - 1);
     expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
-    await expect(guide(page).getByTestId('sky-hint')).toHaveText('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
+    await expect(guide(page).getByTestId('sky-hint')).toHaveText('drag to turn · scroll to zoom');
     // The picker: `peak` first and pressed, the eight points, `up`; no `[ follow the phone ]` without a sensor (FR-GYRO-1).
     const picker = guide(page).getByRole('group', { name: 'Facing' });
     await expect(picker.getByRole('button')).toHaveText(['peak', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
