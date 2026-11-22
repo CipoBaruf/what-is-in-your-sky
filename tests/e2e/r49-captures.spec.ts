@@ -89,7 +89,7 @@ test('the wide page with both offers up and a guide open beside them (F-30)', as
     const container = {
       controller: {},
       addEventListener: () => undefined,
-      register: () => Promise.resolve({ waiting: { postMessage: () => undefined }, addEventListener: () => undefined }),
+      register: () => Promise.resolve({ waiting: { postMessage: () => undefined }, update: () => Promise.resolve(), addEventListener: () => undefined }),
     };
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, get: () => container });
   });

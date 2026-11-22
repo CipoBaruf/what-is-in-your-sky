@@ -115,7 +115,7 @@ test('the update offer, in both languages', async ({ page }) => {
     const container = {
       controller: {},
       addEventListener: () => undefined,
-      register: () => Promise.resolve({ waiting: { postMessage: () => undefined }, addEventListener: () => undefined }),
+      register: () => Promise.resolve({ waiting: { postMessage: () => undefined }, update: () => Promise.resolve(), addEventListener: () => undefined }),
     };
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, get: () => container });
   });

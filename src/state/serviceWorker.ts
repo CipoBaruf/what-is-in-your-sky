@@ -1,4 +1,5 @@
 import { IS_PROD } from '../lib/flags';
+import { ALWAYS_VISIBLE, documentVisibility, type VisibilitySource } from './effects';
 import type { AppStore } from './store';
 
 /**
@@ -27,10 +28,24 @@ export const SKIP_WAITING = 'SKIP_WAITING';
 /** The worker the build writes to the site root, so its scope is the whole app. */
 export const SERVICE_WORKER_URL = '/sw.js';
 
+/** FR-UPD-1: how often a visible page asks whether `sw.js` has changed. */
+export const UPDATE_POLL_MIN = 30;
+
+const MINUTE_MS = 60_000;
+
+/** What `watchForUpdates` needs of the browser (D-1236): the document's visibility, the timers, the clock. */
+export interface UpdateWatchHost {
+  visibility: VisibilitySource;
+  setInterval: (tick: () => void, ms: number) => number;
+  clearInterval: (id: number) => void;
+  now: () => number;
+}
+
 /** The pieces of the browser this module touches, named so a test can supply them. */
 export interface ServiceWorkerHost {
   container: ServiceWorkerContainer | undefined;
   reload: () => void;
+  updates: UpdateWatchHost;
 }
 
 function browserHost(): ServiceWorkerHost {
@@ -39,6 +54,53 @@ function browserHost(): ServiceWorkerHost {
     reload: () => {
       window.location.reload();
     },
+    updates: {
+      visibility: typeof document === 'undefined' ? ALWAYS_VISIBLE : documentVisibility(document),
+      setInterval: (tick, ms) => window.setInterval(tick, ms),
+      clearInterval: (id) => {
+        window.clearInterval(id);
+      },
+      now: () => Date.now(),
+    },
+  };
+}
+
+/**
+ * FR-UPD-1 (D-1236): asks for a new `sw.js` now, on each return to view and
+ * every `UPDATE_POLL_MIN` while in view. The timer ticks by the minute against
+ * the clock because a sleeping machine stops timers (D-1250). Returns the stop.
+ */
+export function watchForUpdates(registration: Pick<ServiceWorkerRegistration, 'update'>, host: UpdateWatchHost): () => void {
+  const { visibility, now } = host;
+  let timer: number | undefined;
+  let checkedAt = 0;
+
+  const check = (): void => {
+    checkedAt = now();
+    // Offline, or the script would not load: the next check is the retry.
+    registration.update().catch(() => undefined);
+  };
+  const pause = (): void => {
+    if (timer !== undefined) host.clearInterval(timer);
+    timer = undefined;
+  };
+  const poll = (): void => {
+    pause();
+    if (visibility.hidden()) return;
+    timer = host.setInterval(() => {
+      if (now() - checkedAt >= UPDATE_POLL_MIN * MINUTE_MS) check();
+    }, MINUTE_MS);
+  };
+
+  check();
+  poll();
+  const unsubscribe = visibility.subscribe(() => {
+    if (!visibility.hidden()) check();
+    poll();
+  });
+  return () => {
+    unsubscribe();
+    pause();
   };
 }
 
@@ -90,6 +152,7 @@ export async function registerServiceWorker(
         if (installing.state === 'installed') offer(installing);
       });
     });
+    watchForUpdates(registration, host.updates);
     return registration;
   } catch {
     return null;
