@@ -16,6 +16,7 @@ import type { TagOwnProps } from './Tag';
 import type { TextButtonOwnProps } from './TextButton';
 import type { ToggleGroupProps } from './ToggleGroup';
 import type { VisuallyHiddenOwnProps } from './VisuallyHidden';
+import type { ZoomKeysOwnProps } from './ZoomKeys';
 
 /**
  * R104 (FR-DS-4, FR-DS-6; D-703): the manifest — one row per primitive, the
@@ -174,6 +175,14 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     onToggle: { type: '() => void', text: 'What a press means.' },
     label: { type: 'ReactNode', text: 'The line’s words.' },
     count: { type: 'number', text: 'How many it holds, after a middle dot.' },
+    className: PLACEMENT,
+  }),
+  entry<ZoomKeysOwnProps>('ZoomKeys', 'The zoom of a view that zooms, `−`, `+` and `⟲` joined in one box under the view at its left.', ['rest', 'hover', 'focus', 'disabled'], {
+    onIn: { type: '() => void', text: 'What `+` does: one step nearer.' },
+    onOut: { type: '() => void', text: 'What `−` does: one step wider.' },
+    onReset: { type: '() => void', text: 'What `⟲` does: back to the view’s opening camera.' },
+    names: { type: '{ in, out, reset }', text: 'The three keys’ names, in the host’s language.' },
+    end: { type: "'in' | 'out' | null", text: 'The end of the range the zoom stands at: that key is disabled.' },
     className: PLACEMENT,
   }),
   entry<SettingRowOwnProps>('SettingRow', 'A labelled row of a group: the dim label in its column and its control, the rows on one rhythm.', ['rest'], {
