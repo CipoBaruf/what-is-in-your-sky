@@ -40,6 +40,10 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
 - **A full `npm run e2e` rewrites committed captures.** Roughly 60 files under `docs/screenshots/r32..r77-*`, pictures of old layouts whose diff says nothing. Restore them from `git diff --name-only -- docs/screenshots` with `git show HEAD:<path>`, and add only the task's own files.
 - **Wait for a settled page before a capture.** `[aria-busy="true"]` at count 0 (the search is done), `getByTestId('readiness')` visible (the finished run has been *stored*, a beat later), and one capture per test (`clock.install` works once per page and init scripts accumulate).
 - **Specs that are timing flakes on main:** `pass-detail.spec.ts` ("no high pass among the fixtures"), `structure.spec.ts`'s announcer test and its landmark test at 1280 px (the live page's `h1` not yet there: 6 of 80 repeats at `c5df401e`, 2026-11-22), and `theme.spec.ts` under five workers. A rerun of the failed job passes them; check the log before treating one as a regression.
+- **`clock.pauseAt: Cannot fast-forward to the past` is a loaded machine, not the app.**
+  `clock.install({ time: t })` then `pauseAt(t)` (`liveHelpers.homeAt`, `sky-window.spec.ts`) throws before `page.goto` when a millisecond passes between the two.
+  Run the spec again with `--workers=1`.
+  *Why:* R209, 2026-11-22, at a load average of 17 on 10 cores.
 - **Headless driver sessions refuse some shell shapes**: `VAR=1 cmd` and `env X=1 cmd`, `rm`, `git checkout`/`restore`/`worktree`, redirects outside the worktree, `for` loops over a variable, `$?`, a `-m` body with a newline then `#`, and `.claude/` edits (an unanswerable prompt).
   Work round them with a `.cjs` or `node -e` that sets `process.env` and uses `child_process.execFileSync`, `fs.cpSync` and `fs.writeFileSync`, and with a wrapper config under `sdd-run/` (see *captures*).
   Check `git status --short` after a batch: a refused commit is easy to miss.
