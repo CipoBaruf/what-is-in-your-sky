@@ -127,6 +127,24 @@ describe('brackets mean a label, and Tag writes them (FR-CTRL-14, D-1229)', () =
     expect(count('const a = `[data-pass-id="${id}"]`; const b = `${CARD}[data-selected]`; const c = list[i];')).toBe(0);
   });
 
+  it('counts one handed to a component as a prop, and no selector', () => {
+    expect(count('const x = <Line marker="[info]">A sentence</Line>;')).toBe(1);
+    expect(count("const x = <Line marker={'[info]'}>A sentence</Line>;")).toBe(1);
+    expect(count('const x = <TextButton label="[ retry ]" />;')).toBe(1);
+    expect(count("const x = <Line marker={warn ? '[warning]' : '[info]'}>A sentence</Line>;")).toBe(2);
+    expect(count("const x = <Line marker={marker ?? '[info]'}>A sentence</Line>;")).toBe(1);
+    expect(count("const x = <Line marker={'[info] ' + word}>A sentence</Line>;")).toBe(1);
+    expect(count('const x = <Line marker={`[info] ${word}`}>A sentence</Line>;')).toBe(1);
+    expect(count('const x = <p>{`[info] ${word}`}</p>;')).toBe(1);
+    expect(count("const x = <ToggleGroup options={[{ value: 'a', label: '[a]' }]} />;")).toBe(1);
+    expect(count("const x = <Line {...(warn ? { marker: '[warning]' } : {})}>A sentence</Line>;")).toBe(1);
+    // A template that builds one is still one, wherever it stands.
+    expect(count('const x = <Line marker={`[${word}]`}>A sentence</Line>;')).toBe(1);
+    expect(count('const x = <p>{`[${word}]`}</p>;')).toBe(1);
+    expect(count('const x = <List within="[data-option]" first=\'[role="option"]\' row={`[data-id="${id}"]`} />;')).toBe(0);
+    expect(count("const x = <Line marker={key === '[' ? open : shut}>A sentence</Line>;")).toBe(0);
+  });
+
   it('counts one drawn as a stylesheet’s content', () => {
     expect(count(".a::before { content: '['; } .a::after { content: ']'; } .b::before { content: '── '; }", 'src/ui/x.module.css')).toBe(2);
     expect(count(".a::before { content: '[ '; }", `${PRIMITIVES_DIR}/Line.module.css`)).toBe(1);

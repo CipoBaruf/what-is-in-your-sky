@@ -122,6 +122,7 @@ Phase file of PLAN.md (FR-SDD-3); ids resolve through `docs/sdd/ids.md`.
 - **D-1257 — `Close`'s word is handed down, and the bracket ratchet also reads a stylesheet's `content`.**
   (R209; D-703, D-1228, D-1229.) A primitive imports no catalog, so `I18nProvider` hands `shortcuts.close` ("Close", "Cerrar") to `closeName.ts`'s context and `label` outranks it; outside the provider a caller passes `label`.
   Seven of the day's eight files with bracketed words draw them as CSS `content`, so the rule counts that form beside D-1229's three, or the lists could be empty with the brackets still drawn.
+  D-1229's JSX text includes the words written into a prop, which is how `Line` and `TextButton` take theirs; there a selector (an `=`, or a `data-` or `aria-` name) does not count.
   A file is listed under the lane of the task that lowers it: `StepControls` under `window` (R223), `ControlsSheet` under `ui` (R224), `screens/stars/**` under `live` (R222).
 - **D-1258 — The picked row's attribute, and a row's height with its hit area aside.**
   (R209; D-1228, FR-CTRL-15, FR-DS-12.) A `PickRow` link is `aria-current` when picked; a button is `aria-pressed`, or `aria-current` with `current`, where the row is the one shown of its set.
