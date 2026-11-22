@@ -227,7 +227,7 @@ Repo tooling made before v3.0's unattended run (D-86's precedent), not tasks.
 - **D-1313 — The e2e shard's timeout is 10 minutes; the budget stays 8.**
   (FR-CI-1, D-1215.) Shard 5 of `06f1fb19`'s run ran 8 min 16 s and was cancelled at its 8-minute timeout.
   `ci.yml` gains `CI_E2E_TIMEOUT_MIN: 10` and the `ci` job carries it; `CI_PR_BUDGET_MIN` stays 8, the target the step summary reports and every other stage job's timeout.
-  This loosens FR-CI-1's "no job's timeout passes it" for the e2e job only; the owner confirms it or the spec takes a row.
+  This loosens FR-CI-1's "no job's timeout passes it" for the e2e job only; the owner confirmed it on 2026-11-21.
 - **D-1314 — `--until-done` runs wave after wave.**
   (§16.7.) `npm run sdd -- --wave --until-done` repeats the wave in one process, with `--fix` unless `--no-fix`; each wave reads `origin/main` afresh and prunes first.
   After each wave `nextLoopStep` (`scripts/sdd/loop.ts`) decides: nothing ready stops it (exit 0); a task ended `limit` sleeps to the latest reset plus 2 minutes, at most 7 days, an hour when no reset is known; two waves in a row with nothing merged and the same failures stop it (exit 1); otherwise the next wave runs.
