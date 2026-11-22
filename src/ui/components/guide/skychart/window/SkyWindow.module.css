@@ -399,7 +399,7 @@
   min-height: var(--tap);
 }
 
-/* R132 (FR-FLOW-6, D-848): R121's `.handHint` in the box's corner is gone; the hint is the layout's `SkyHint`. */
+/* R132 (FR-FLOW-6, D-848): R121's `.handHint` is gone; the hint in the box's corner is the layout's `SkyHint`. */
 
 .readout {
   margin: 0;

@@ -41,8 +41,8 @@ import { clampWindowFov, uprightRotation, WINDOW_FOV, type Mat3 } from './projec
  * it, held inside [`WINDOW_FOV_MIN_DEG`, `WINDOW_FOV_MAX_DEG`]. `zoomBy` scales
  * it and `resetZoom` puts it back; every other move keeps it, so picking a
  * facing point keeps the zoom. The two zoom rates are the window's own
- * constants, beside the dome's three the hand imports: `ZOOM_WHEEL_RATE` for
- * ctrl + wheel and `ZOOM_KEY_FACTOR` for `+`/`-`.
+ * constants, beside the dome's three the hand imports: `ZOOM_KEY_FACTOR` for
+ * the keys and `ZOOM_WHEEL_RATE`, the same step for a notch of the wheel.
  *
  * R127 (FR-SKY-13; D-797, D-827): the seventh move **follows a pass**. The
  * live page's picker offers the highlighted pass's key after `up`, and `f`
@@ -73,12 +73,22 @@ export interface HandState {
 export type HandAim = Pick<HandState, 'azDeg' | 'altDeg'> & Partial<Pick<HandState, 'fovDeg'>>;
 
 /**
- * FR-SKY-14: ctrl + wheel scales the field by `exp(deltaY × ZOOM_WHEEL_RATE)`
- * — one mouse notch of about 100 px is about a fifth — and `+` / `-` by
- * `ZOOM_KEY_FACTOR`, so three `+` from 60° read 30°.
+ * FR-SKY-14, FR-CTRL-9 (R214, D-1272): the keys scale the field by
+ * `ZOOM_KEY_FACTOR`, so three `+` from 60° read 30°, and the wheel by
+ * `exp(px × ZOOM_WHEEL_RATE)`: a notch, `WHEEL_NOTCH_PX`, is one key's step
+ * and the most one event moves.
  */
-export const ZOOM_WHEEL_RATE = 0.002;
 export const ZOOM_KEY_FACTOR = 1.25;
+const WHEEL_NOTCH_PX = 100;
+const WHEEL_LINE_PX = WHEEL_NOTCH_PX / 3;
+export const ZOOM_WHEEL_RATE = Math.log(ZOOM_KEY_FACTOR) / WHEEL_NOTCH_PX;
+
+/** The factor one wheel event asks for, by its `deltaMode` (pixels, lines, or pages of `pagePx`), a notch at most. */
+export function wheelFactor(event: Pick<WheelEvent, 'deltaY' | 'deltaMode'>, pagePx: number): number {
+  const unit = event.deltaMode === 1 ? WHEEL_LINE_PX : event.deltaMode === 2 ? pagePx || WHEEL_NOTCH_PX : 1;
+  const px = Math.max(-WHEEL_NOTCH_PX, Math.min(WHEEL_NOTCH_PX, event.deltaY * unit));
+  return Math.exp(px * ZOOM_WHEEL_RATE);
+}
 
 /** FR-STAR-4: the hand can look a little below the horizon, and straight up. */
 export const STARS_TILT_MIN_DEG = -10;

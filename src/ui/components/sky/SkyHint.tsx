@@ -1,4 +1,5 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { browserStorage } from '../../../data/storage';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { HINT_TOUCH_CLAUSES } from '../../../lib/layout';
@@ -7,24 +8,22 @@ import { useAppStore } from '../../../state';
 import styles from './SkyHint.module.css';
 
 /**
- * R132 (FR-FLOW-6, D-848): the hand hint, one line at `--small` in `--fg-dim`
- * under the facing picker (the layout's `hint` slot), in the reader's terms.
- * Worded by the pointer — `(pointer: coarse)` is a touch screen, anything else
- * a mouse — read once per mount: "Drag to look · pinch to zoom · tap a star" or
- * "Drag or use the arrow keys · ctrl + wheel to zoom · click a star". The dome
- * gets the drag clause alone; the polar chart, which has no drag, gets no hint
- * (D-864). On the live page with a highlighted pass the coarse line ends
- * "· tap A to follow" (FR-SKY-13).
+ * R132 (FR-FLOW-6, D-848): the hint over the box's corner, one line at
+ * `--small` in `--fg-dim`, worded by the pointer — `(pointer: coarse)` is a
+ * touch screen, anything else a mouse — read once per mount.
  *
- * R157 (FR-PHONE-5, D-966): on a touch pointer the line is `HINT_TOUCH_CLAUSES`
- * clauses — "Drag to look · pinch to zoom", the star clause dropped — and with a
- * highlighted pass the follow clause takes the zoom clause's place, so the line
- * is never three ("Drag to look · tap A to follow"). The fine line is unchanged.
+ * R214 (FR-CTRL-9; D-1241, D-1273): the window and the globe, which zoom, read
+ * "drag to turn · scroll to zoom", on touch "drag to turn · pinch to zoom",
+ * until the first drag or zoom on either; then `SKY_HINT_KEY` is set on the
+ * device and the line is gone from both for good.
  *
- * It shows until the reader's first drag, pinch or tap on any sky view —
- * `useChartHand`'s gesture sets `skyHintSeen`, saved in the prefs — and is then
- * gone for good. A page asks `useSkyHintShown` first and hands the layout's
- * `hint` slot nothing when there is no line, so the slot is not rendered at all.
+ * The dome keeps its own line: the drag clause, and on a touch pointer on the
+ * live page with a highlighted pass "· tap A to follow" (FR-SKY-13,
+ * FR-PHONE-5: at most `HINT_TOUCH_CLAUSES`), until a first gesture on any sky
+ * view sets `skyHintSeen` in the prefs. The polar chart, which has no drag,
+ * has no hint (D-864). A page asks `useSkyHintShown` first and hands the
+ * layout's `hint` slot nothing when there is no line, so the slot is not
+ * rendered at all.
  */
 export interface SkyHintProps {
   view: ChartView;
@@ -40,22 +39,56 @@ export interface SkyHintProps {
 
 const SEPARATOR = ' · ';
 
-/** Whether the hint has a line for `view`: not once a gesture has set `skyHintSeen`, and never on the polar chart (D-864). */
+/** FR-CTRL-9 (D-1241): the device's key, `'1'` once the globe or the window was dragged or zoomed. */
+const SKY_HINT_KEY = 'wiys:hint:globe:v1';
+const zoomHintListeners = new Set<() => void>();
+
+function zoomHintDone(): boolean {
+  try {
+    return browserStorage()?.getItem(SKY_HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** The first drag or zoom on a view that zooms: the view calls it, and the hint goes from both. */
+export function markZoomHintDone(): void {
+  if (zoomHintDone()) return;
+  try {
+    browserStorage()?.setItem(SKY_HINT_KEY, '1');
+  } catch {
+    // A storage that refuses the write (full, or private) only means the hint stays.
+    return;
+  }
+  for (const listener of [...zoomHintListeners]) listener();
+}
+
+function onZoomHintDone(listener: () => void): () => void {
+  zoomHintListeners.add(listener);
+  return () => {
+    zoomHintListeners.delete(listener);
+  };
+}
+
+const zooms = (view: ChartView): boolean => view === 'window' || view === 'globe';
+
+/** Whether the hint has a line for `view`: the zooming views' until their key is set, the dome's until `skyHintSeen`, never the polar chart's (D-864). */
 export function useSkyHintShown(view: ChartView): boolean {
   const seen = useAppStore((s) => s.skyHintSeen);
-  return !seen && view !== 'polar';
+  const done = useSyncExternalStore(onZoomHintDone, zoomHintDone);
+  return zooms(view) ? !done : !seen && view !== 'polar';
 }
 
 /**
- * R157 (FR-PHONE-5, D-966): the hint's words for `view` and `pointer`, pure. Fine: the window's three clauses (drag,
- * zoom, star), the dome's drag clause alone, never a follow clause. Coarse: the drag clause, then the follow clause
- * where the live page names a key, else the window's zoom clause — at most `HINT_TOUCH_CLAUSES`. The polar chart has
- * no hint (D-864) and is not asked.
+ * R157 (FR-PHONE-5, D-966), R214 (FR-CTRL-9, D-1241): the hint's words for `view` and `pointer`, pure. A view that
+ * zooms: turn, then zoom by the pointer, never a follow clause. The dome: the drag clause, and on touch the follow
+ * clause where the live page names a key. The polar chart has no hint (D-864) and is not asked.
  */
 export function skyHintLine(words: Messages['window']['skyHint'], view: ChartView, pointer: 'coarse' | 'fine', { follow }: { follow: string | null }): string {
-  if (pointer === 'fine') return (view === 'window' ? [words.drag.fine, words.zoom.fine, words.star.fine] : [words.drag.fine]).join(SEPARATOR);
-  const second = follow !== null ? words.follow({ key: follow }) : view === 'window' ? words.zoom.coarse : null;
-  return [words.drag.coarse, ...(second === null ? [] : [second])].slice(0, HINT_TOUCH_CLAUSES).join(SEPARATOR);
+  if (zooms(view)) return [words.turn, words.zoom[pointer]].join(SEPARATOR);
+  if (pointer === 'fine') return words.drag.fine;
+  const second = follow === null ? [] : [words.follow({ key: follow })];
+  return [words.drag.coarse, ...second].slice(0, HINT_TOUCH_CLAUSES).join(SEPARATOR);
 }
 
 /**
