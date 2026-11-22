@@ -247,6 +247,12 @@ Repo tooling made before v3.0's unattended run (D-86's precedent), not tasks.
   (FR-SDD-16.) A fix spent on red CI left review findings with none, and the PR stalled its lane. A task run now gets one fix on red CI and one on findings, each capped at 250 turns and 45 minutes whatever the task's `Turns:`.
 - **D-1319 — The review reads the stat, then the diff without deletions.**
   (D-1065.) The review prompt and `review.md` read `git diff --stat <base>...HEAD`, then `git diff -M --diff-filter=d <base>...HEAD`, so a large deletion or rename does not fill the session's context.
+- **D-1320 — A published branch is pushed up to date, a conflicting PR is refreshed, and the loop carries an open PR on before it stops.**
+  (§16.4 steps 5 and 8, D-1314, D-1316, D-98.) In the v3.0 run R206's fix session waited out a limit while R207 and R208 merged; the push made PR #312 conflict with `main`, GitHub ran no CI, `gh pr checks` said "no checks reported", the task ended `failed — CI is red after the fix session`, and `--until-done` stopped with exit 0 on "no task is ready" with every other task blocked on R206.
+  Every push of a branch that has a PR (after a fix session, the pre-merge refresh, a conflicting PR) now goes through `pushUpToDate`: fetch, merge `origin/main` in when it is not in the branch (the D-1315 resolver), push without force; the first push fetches before its rebase.
+  While a PR shows no checks, `watchChecks` reads its `mergeable`: `CONFLICTING` answers `conflicting` at once, the driver refreshes the branch and watches again, at most 3 times; otherwise the D-98 wait for the checks to register stands, and only its deadline is red.
+  When nothing is ready, `--until-done` reruns once each open-phase task whose PR is open, not labelled `needs-owner` and with no blocked note: the run skips the session, brings the branch up to date, then CI, review (with `--fix`) and merge as usual, and keeps the PR body. A limit does not spend the retry; the D-1317 skips still apply.
+  It then stops with exit 0 only when every unmerged task of the phase waits on the owner (a `needs-owner` PR, `Model: interactive`, a missing `Precondition:`, or blocked only on those); otherwise exit 1, listing each task and what holds it.
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 

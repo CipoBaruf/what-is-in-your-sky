@@ -158,6 +158,10 @@ A wave's CI watch gives up after 40 minutes (`ci-timeout`, D-1311), and the merg
 It skips a blocked task, one killed at the token ceiling three times and one that failed the same way twice, and stops when only those are ready (D-1317).
 A rebase or a pre-merge refresh resolves conflicts in the shared files itself (D-1315, D-1316); a task run gets two fix sessions on their own caps (D-1318).
 
+*(2026-11-22, D-1320)* Every push of a branch that has a PR merges `origin/main` in first when it moved, and a PR GitHub calls conflicting is refreshed and watched again rather than scored red, at most 3 times.
+When nothing is ready, `--until-done` carries each open PR of the phase on once (no session: up to date, CI, review, merge) before it stops; the stop exits 0 only when every unmerged task waits on the owner, and otherwise exits 1 with the list.
+The retries are kept in memory with the rest, so a relaunch retries each open PR once again.
+
 ### 16.8 Tokens and delivery time *(v1.1, D-198, D-199)*
 
 What a v1 task cost, from the logs: a session read SPEC, PLAN and TASKS in full at its start (≈ 40 k tokens, twice with the review), ran the whole unit suite and the whole e2e suite several times, and the `ui` lane ran eleven tasks one after another.

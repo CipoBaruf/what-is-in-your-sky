@@ -119,7 +119,8 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `ZoomKeys` (R214); using the primitives on a page (R212 onward).
   - **Done when:** `npm run check` green; a test per primitive form (`aria-busy` with the width unchanged, `Close`'s name in both languages, `Tag` never a control, `StatusLine`'s roles, `PickRow`'s `aria-current`, `Disclosure`'s `aria-expanded`); the ratchet fails on a raised count and passes on a lowered one (fixture cases), and ignores `<abbr>`, `<aside>`, `<article>`; `npm run check:sdd` green.
 
-- [ ] **R210 — The events follow the live page**
+- [x] **R210 — The events follow the live page**
+  - **Done 2026-11-22:** `data-model.md` had no event list, so the task wrote it; D-1259, D-1260.
   - **Lane:** physics
   - **Tier:** standard
   - **Turns:** 300

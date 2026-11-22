@@ -2085,6 +2085,7 @@ D-1316	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21
 D-1317	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
 D-1318	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
 D-1319	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
+D-1320	docs/sdd/phases/v2.16/plan.md#255-driver-pre-flight-before-v30-2026-11-21	2.55 Driver pre-flight before v3.0 (2026-11-21)
 R198	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
 R199	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
 R204	docs/sdd/phases/v2.16/tasks.md#v216-tasks	v2.16 tasks
@@ -2180,6 +2181,8 @@ D-1257	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decis
 D-1258	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 D-1250	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
 D-1251	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
+D-1259	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
+D-1260	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log

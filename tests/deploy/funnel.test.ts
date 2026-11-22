@@ -4,9 +4,12 @@ import { funnelQuery, funnelReport, main, parseRows, type Fetch, type FunnelRow 
 
 const row = (name: string, detail: string, visit: string, layout: string, lang: string, count: number): FunnelRow => ({ name, detail, visit, layout, lang, count });
 
+/** A window across the 3.0 release: 2.16 opens on `home` and sends `door`, 3.0 opens on `live` and sends `watch`. */
 const ROWS: FunnelRow[] = [
+  // 2.16
   row('open', 'home', 'first', 'compact', 'en', 8),
   row('open', 'home', 'first', 'wide', 'es', 2),
+  row('open', 'pass', 'first', 'compact', 'en', 2),
   row('open', 'home', 'return', 'compact', 'en', 5),
   row('example_shown', 'pass', 'first', 'compact', 'en', 6),
   row('example_shown', 'slow', 'first', 'compact', 'en', 1),
@@ -23,37 +26,54 @@ const ROWS: FunnelRow[] = [
   row('device_refused', 'denied', 'first', 'compact', 'en', 1),
   row('failure', 'forecast', 'return', 'compact', 'en', 2),
   row('no_passes', '', 'first', 'wide', 'es', 1),
+  // 3.0
+  row('open', 'live', 'first', 'compact', 'en', 6),
+  row('open', 'live', 'first', 'wide', 'es', 1),
+  row('open', 'settings', 'first', 'wide', 'es', 1),
+  row('open', 'live', 'return', 'wide', 'en', 4),
+  row('watch', '', 'first', 'compact', 'en', 4),
+  row('watch', '', 'first', 'wide', 'es', 1),
+  row('watch', '', 'return', 'wide', 'en', 2),
 ];
 
 /** Runs of spaces to one, so a column's width is not what is tested. */
 const squash = (text: string): string => text.replace(/ {2,}/g, ' ');
 
 describe('FR-MEAS-6 funnelReport', () => {
-  it('FR-MEAS-6: prints the amended rows with shares of first-visit open on home', () => {
+  it('FR-MEAS-6: prints the amended rows with shares of first-visit open on any route', () => {
     const report = squash(funnelReport(ROWS, { days: 14 }));
     expect(report).toContain('Funnel, last 14 days\n');
-    expect(report).toContain(' visit first 10\n visit return 5\n');
-    expect(report).toContain(' example_shown 8 80%\n pass 6 60%\n none 0 0%\n no_city 1 10%\n failed 0 0%\n slow 1 10%\n');
-    expect(report).toContain(' where_shown 10 100%\n example 7 70%\n fallback 3 30%\n');
-    expect(report).toContain(' place_set 5 50%\n search 3 30%\n coords 0 0%\n');
+    expect(report).toContain(' visit first 20\n visit return 9\n');
+    expect(report).toContain(' step loads share of open, any route\n');
+    expect(report).toContain(' example_shown 8 40%\n pass 6 30%\n none 0 0%\n no_city 1 5%\n failed 0 0%\n slow 1 5%\n');
+    expect(report).toContain(' where_shown 10 50%\n example 7 35%\n fallback 3 15%\n');
+    expect(report).toContain(' place_set 5 25%\n search 3 15%\n coords 0 0%\n');
     expect(report).not.toMatch(/when_shown|what_shown/);
-    expect(report).toContain(' door 2 20%\n satellites 2 20%\n');
-    expect(report).toContain(' pass_open 1 10%\n');
+    expect(report).toContain(' link 1 5%\n watch 5 25%\n pass_open 1 5%\n');
+    expect(report).not.toMatch(/door|satellites/);
     expect(report).toContain(' device_refused 1\n denied 1\n');
     expect(report).toContain(' failure 2\n elements 0\n forecast 2\n');
     expect(report).toContain(' no_passes 1\n');
   });
 
+  it('FR-MEAS-6: the base is the same rule before and after 3.0', () => {
+    const before = squash(funnelReport([row('open', 'home', 'first', 'wide', 'en', 4), row('pass_open', '', 'first', 'wide', 'en', 1)], { days: 14 }));
+    expect(before).toContain(' watch 0 0%\n pass_open 1 25%\n');
+    const after = squash(funnelReport([row('open', 'live', 'first', 'wide', 'en', 4), row('pass_open', '', 'first', 'wide', 'en', 1)], { days: 14 }));
+    expect(after).toContain(' watch 0 0%\n pass_open 1 25%\n');
+  });
+
   it('FR-MEAS-6: --layout and --lang narrow every row', () => {
     const wide = squash(funnelReport(ROWS, { days: 14, layout: 'wide' }));
     expect(wide).toContain('Funnel, last 14 days (layout wide)');
-    expect(wide).toContain(' where_shown 2 100%\n');
-    expect(wide).toContain(' place_set 1 50%\n');
+    expect(wide).toContain(' where_shown 2 50%\n');
+    expect(wide).toContain(' place_set 1 25%\n');
+    expect(wide).toContain(' watch 1 25%\n');
     expect(wide).toContain(' no_passes 1\n');
     expect(wide).toContain(' device_refused 0\n');
     const both = squash(funnelReport(ROWS, { days: 7, layout: 'compact', lang: 'en' }));
     expect(both).toContain('Funnel, last 7 days (layout compact, lang en)');
-    expect(both).toContain(' where_shown 8 100%\n');
+    expect(both).toContain(' where_shown 8 50%\n');
     expect(both).toContain(' no_passes 0\n');
     expect(funnelReport(ROWS, { days: 14, lang: 'es' })).toContain('(lang es)');
   });

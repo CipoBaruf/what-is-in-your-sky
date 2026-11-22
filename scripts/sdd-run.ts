@@ -28,13 +28,13 @@ import { layoutLookup } from './sdd/ids';
 import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, layoutTasksText, limitsFor, parseTasks, phaseTasksPath, tierFor, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, containsBase, mergeBase, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, CHECKS_WATCH_TIMEOUT_MS, type ChecksVerdict, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { addWorktree, addWorktreeFromRemote, branchAt, changedFiles, containsBase, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, CHECKS_WATCH_TIMEOUT_MS, type ChecksVerdict, openPullRequests, push, pushUpToDate, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks, type OpenPullRequest, type RefreshOutcome } from './sdd/git';
 import { budgetOverrun, LEDGER_PATH, readLedger, type LedgerEntry } from './sdd/ledger';
 import { totalTokens } from './sdd/parsers';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { findingsPath, fixHandoffPath, FIX_WORKFLOW, fixPrompt, parseFindings, REVIEW_WORKFLOW, reviewPrompt, reviewTierFor } from './sdd/review';
 import { limitNote, MAX_RESET_WAITS, resetTime, resetWaitMs, runSession, type SessionResult } from './sdd/session';
-import { INITIAL_LOOP_STATE, nextLoopStep } from './sdd/loop';
+import { INITIAL_LOOP_STATE, nextLoopStep, type LoopTask } from './sdd/loop';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
@@ -67,13 +67,15 @@ function withSharedGit<T>(work: () => Promise<T>): Promise<T> {
 let tasksMarkdown: string | null = null;
 /** FR-SDD-2: the open phase's task ids, whose sessions are the running 90th percentile's history. */
 let openPhaseTasks = new Set<string>();
+/** D-1320: the tasks whose open PR carries the owner's label, from the last `readFacts`. */
+let ownerLabelled = new Set<string>();
 
 /** Everything the wave logic needs, read from the remote. `models` is the default agent's model → tier map (FR-SDD-11). */
 async function readFacts(options: Options, models: Readonly<Record<string, Tier>>, agentNames: readonly string[], logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
   let open: string;
   let markdown: string;
   let branches = new Set<string>();
-  let prsByBranch = new Map<string, number>();
+  let prsByBranch = new Map<string, OpenPullRequest>();
   if (options.tasksFile) {
     const base = dirname(options.tasksFile);
     open = readFileSync(options.tasksFile, 'utf8');
@@ -95,9 +97,12 @@ async function readFacts(options: Options, models: Readonly<Record<string, Tier>
   openPhaseTasks = new Set(parseTasks(open, models).tasks.map((task) => task.id));
   const { tasks, problems } = parseTasks(markdown, models, agentNames);
   const openPrs = new Map<string, number>();
+  ownerLabelled = new Set<string>();
   for (const task of tasks) {
     const pr = prsByBranch.get(task.branch);
-    if (pr !== undefined) openPrs.set(task.id, pr);
+    if (pr === undefined) continue;
+    openPrs.set(task.id, pr.number);
+    if (pr.labels.includes(OWNER_LABEL)) ownerLabelled.add(task.id);
   }
   // §16.3 `Precondition:`: read once per path from origin/main; with --tasks-file nothing is checked.
   const present = new Map<string, boolean>();
@@ -277,12 +282,12 @@ const readWorkflow = (dir: string, path: string): string => readFileSync(join(di
 /**
  * FR-SDD-16, D-1065 (`--fix`): one fix session on `tier` (the one the implementation ended on), handed the
  * review's findings or the CI failure digest and `fix-ci.md`, never a log or
- * a transcript; then its commits are pushed. `false` when it did not commit
- * or the push failed.
+ * a transcript; then its commits are pushed, brought up to date with the base first (D-1320).
+ * `none` when it did not commit.
  */
-async function runFix(context: TaskContext, brief: string, caps: { maxTurns: number; timeoutMs: number }, input: { findings: readonly string[]; digest: string | null }, tier: Tier): Promise<boolean> {
+async function runFix(context: TaskContext, brief: string, caps: { maxTurns: number; timeoutMs: number }, input: { findings: readonly string[]; digest: string | null }, tier: Tier): Promise<RefreshOutcome | 'none'> {
   const { dir, task, logger, report } = context;
-  if (input.digest === null && input.findings.length === 0) return false;
+  if (input.digest === null && input.findings.length === 0) return 'none';
   const before = await commitsAhead(dir, BASE, logger);
   logger.line(`  running a fix session on ${input.digest !== null ? 'the failure digest' : `${String(input.findings.length)} finding(s)`}…`);
   const prompt = fixPrompt({ id: task.id, brief, workflow: readWorkflow(dir, FIX_WORKFLOW), findings: input.findings, digest: input.digest });
@@ -290,8 +295,25 @@ async function runFix(context: TaskContext, brief: string, caps: { maxTurns: num
   rmSync(join(dir, fixHandoffPath(task.id)), { force: true });
   const { session } = await runStage(context, 'fix', tier, prompt, caps, undefined, fixHandoffPath(task.id));
   report.durations.fixMs = report.attempts.filter((attempt) => attempt.stage === 'fix').reduce((sum, attempt) => sum + attempt.durationMs, 0);
-  if (session.outcome !== 'ok' || (await commitsAhead(dir, BASE, logger)) <= before) return false;
-  return push(dir, task.branch, logger);
+  if (session.outcome !== 'ok' || (await commitsAhead(dir, BASE, logger)) <= before) return 'none';
+  return (await refreshAndPush(context)).outcome;
+}
+
+/**
+ * D-1320: the one way a branch that already has a PR is pushed — fetch, merge `origin/main` in when it moved
+ * (D-1316's resolver), push without force. The post-fix push, the conflicting-PR refresh and the pre-merge
+ * refresh all come here.
+ */
+async function refreshAndPush(context: Pick<TaskContext, 'dir' | 'task' | 'logger'>): Promise<{ outcome: RefreshOutcome; merged: boolean }> {
+  const { dir, task, logger } = context;
+  try {
+    await withSharedGit(() => fetchOrigin(logger));
+  } catch (error) {
+    logger.line(`  fetch before the push failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const result = await pushUpToDate(dir, BASE, task.branch, logger);
+  if (result.merged) logger.line(`  merged ${BASE} into the branch before pushing (D-1316, D-1320)`);
+  return result;
 }
 
 /** D-1065 and FR-SDD-9: the review on the tier the diff calls for, from `review.md`; `null` tier when the diff is docs-only. */
@@ -310,9 +332,66 @@ async function runReview(context: TaskContext, brief: string, changed: readonly 
   return { session, tier: ran, findings: readHandoff(dir, task.id).findings };
 }
 
+/** D-1320: how a watch ended, the refresh before it included. */
+type Watched = ChecksVerdict | Exclude<RefreshOutcome, 'pushed'>;
+
+/** How the implementation (or the resume of an open PR) ended: a PR to carry on, or the task's outcome. */
+type Opened = { pr: number; ran: Tier; screenshots: string[] } | { finished: [TaskReport['outcome'], string] };
+
+/** §16.4 steps 3–4: the implementation session, then rebase, push and the PR. */
+async function implementAndOpen(context: TaskContext, tier: Tier, brief: string, caps: { maxTurns: number; timeoutMs: number }, resumed: boolean, startedAt: number): Promise<Opened> {
+  const { task, agent, dir, logger, report } = context;
+  logger.line(`  running the implementation session… (${String(caps.maxTurns)} turns, ${String(Math.round(caps.timeoutMs / 60_000))} min, fallback ${context.fallback ? 'on' : 'off'})`);
+  const implementPrompt = (cutShort: boolean): string =>
+    `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${cutShort ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`;
+  const { session, tier: ran } = await runStage(context, 'implement', tier, implementPrompt(resumed), caps, implementPrompt(true), join('sdd-run', `${task.id}.summary.md`));
+  report.tier = ran;
+  report.model = agent.tiers[ran].model;
+  report.durations.implementMs = report.attempts.filter((attempt) => attempt.stage === 'implement').reduce((sum, attempt) => sum + attempt.durationMs, 0);
+
+  const handoff = readHandoff(dir, task.id);
+  if (handoff.blocked !== null) return { finished: ['blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`] };
+  if (session.outcome === 'limit') report.resetsAt = session.limit?.resetsAt ?? null;
+  if (session.outcome === 'limit') return { finished: ['limit', `a usage limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`] };
+  if (session.outcome !== 'ok') return { finished: ['failed', `session ended ${session.outcome}`] };
+
+  const commits = await commitsAhead(dir, BASE, logger);
+  if (commits === 0) return { finished: ['failed', 'the branch has no commits'] };
+  const branchTasks = parseTasks(readFileSync(join(dir, 'TASKS.md'), 'utf8'), modelTiers(agent)).tasks;
+  if (!branchTasks.find((candidate) => candidate.id === task.id)?.done) return { finished: ['failed', `${task.id} is not checked off on the branch`] };
+
+  // D-1320: a sibling may have merged during the session; rebase onto the base as it is now.
+  try {
+    await withSharedGit(() => fetchOrigin(logger));
+  } catch (error) {
+    logger.line(`  fetch before the rebase failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!(await rebaseOnto(dir, BASE, logger))) return { finished: ['failed', `rebase onto ${BASE} conflicted`] };
+  if (!(await push(dir, task.branch, logger))) return { finished: ['failed', 'push failed'] };
+
+  const changed = await changedFiles(dir, BASE, logger);
+  const screenshots = changed.filter((path) => path.startsWith('docs/screenshots/'));
+  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
+  if (pr === null) return { finished: ['failed', 'gh pr create failed'] };
+  return { pr, ran, screenshots };
+}
+
+/** D-1320: the loop's retry of a task whose PR is open: no session, the branch brought up to date and pushed, then CI, review and merge as usual. */
+async function resumePullRequest(context: TaskContext, tier: Tier, pr: number): Promise<Opened> {
+  const { dir, logger } = context;
+  logger.line(`  PR #${String(pr)} is open: carrying it on — up to date with ${BASE}, CI, review, merge (D-1320)`);
+  const { outcome } = await refreshAndPush(context);
+  if (outcome === 'conflict') return { finished: ['failed', `merging ${BASE} into the branch conflicted outside the shared files; PR #${String(pr)} is left open (D-1320)`] };
+  if (outcome === 'push-failed') return { finished: ['failed', `push failed; PR #${String(pr)} is left open`] };
+  const screenshots = (await changedFiles(dir, BASE, logger)).filter((path) => path.startsWith('docs/screenshots/'));
+  return { pr, ran: tier, screenshots };
+}
+
 /** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
 async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; count: number }, options: Pick<Options, 'fallback' | 'waitForReset' | 'fix'>): Promise<TaskReport> {
   const { task } = status;
+  // D-1320: a task with an open PR (the loop's retry) skips the implementation and carries that PR on.
+  const openPr = status.state === 'in-review' ? status.pr : null;
   const logger = openTaskLog(task.id, undefined, undefined, { prefixConsole: slot.count > 1 });
   const env = { npm_config_cache: NPM_CACHE, E2E_PORT: String(E2E_BASE_PORT + slot.index) };
   const startedAt = Date.now();
@@ -359,6 +438,9 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
       const dirty = await dirtyFiles(dir, logger);
       logger.line(`  resuming the kept worktree: ${String(ahead)} commit(s) ahead of ${BASE}, ${String(dirty.length)} uncommitted file(s)`);
       if (!existsSync(join(dir, 'node_modules'))) await installDeps(dir, NPM_CACHE, logger);
+    } else if (openPr !== null) {
+      await withSharedGit(() => addWorktreeFromRemote(dir, task.branch, logger));
+      await installDeps(dir, NPM_CACHE, logger);
     } else {
       await withSharedGit(() => addWorktree(dir, task.branch, BASE, logger));
       await installDeps(dir, NPM_CACHE, logger);
@@ -377,32 +459,9 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   // §16.3 (v2.2, D-659): `Turns:` and `Fallback:` on the task, else the driver's defaults and the flag.
   const limits = limitsFor(task, { implement: IMPLEMENT, review: REVIEW });
   const context: TaskContext = { task, agent, dir, logger, env, fallback: fallbackFor(task, options.fallback), waitForReset: options.waitForReset, report };
-  logger.line(`  running the implementation session… (${String(limits.implement.maxTurns)} turns, ${String(Math.round(limits.implement.timeoutMs / 60_000))} min, fallback ${context.fallback ? 'on' : 'off'})`);
-  const implementPrompt = (cutShort: boolean): string =>
-    `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${cutShort ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`;
-  const { session, tier: ran } = await runStage(context, 'implement', tier, implementPrompt(resumed), limits.implement, implementPrompt(true), join('sdd-run', `${task.id}.summary.md`));
-  report.tier = ran;
-  report.model = agent.tiers[ran].model;
-  report.durations.implementMs = report.attempts.filter((attempt) => attempt.stage === 'implement').reduce((sum, attempt) => sum + attempt.durationMs, 0);
-
-  const handoff = readHandoff(dir, task.id);
-  if (handoff.blocked !== null) return finish('blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`);
-  if (session.outcome === 'limit') report.resetsAt = session.limit?.resetsAt ?? null;
-  if (session.outcome === 'limit') return finish('limit', `a usage limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`);
-  if (session.outcome !== 'ok') return finish('failed', `session ended ${session.outcome}`);
-
-  const commits = await commitsAhead(dir, BASE, logger);
-  if (commits === 0) return finish('failed', 'the branch has no commits');
-  const branchTasks = parseTasks(readFileSync(join(dir, 'TASKS.md'), 'utf8'), modelTiers(agent)).tasks;
-  if (!branchTasks.find((candidate) => candidate.id === task.id)?.done) return finish('failed', `${task.id} is not checked off on the branch`);
-
-  if (!(await rebaseOnto(dir, BASE, logger))) return finish('failed', `rebase onto ${BASE} conflicted`);
-  if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed');
-
-  const changed = await changedFiles(dir, BASE, logger);
-  const screenshots = changed.filter((path) => path.startsWith('docs/screenshots/'));
-  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, new Date(startedAt)), logger);
-  if (pr === null) return finish('failed', 'gh pr create failed');
+  const opened = openPr !== null ? await resumePullRequest(context, tier, openPr) : await implementAndOpen(context, tier, brief, limits.implement, resumed, startedAt);
+  if ('finished' in opened) return finish(opened.finished[0], opened.finished[1]);
+  const { pr, ran, screenshots } = opened;
   report.pr = pr;
 
   // FR-SDD-16 (`--fix`): at most one fix session per task run, on the digest or on the findings.
@@ -410,33 +469,47 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   let fixed = false;
   // D-1312: the head the last green watch saw; the merge names it, so a push after CI cannot land unchecked.
   let checkedHead: string | null = null;
-  const watch = async (): Promise<ChecksVerdict> => {
-    logger.line(`  PR #${String(pr)} opened or updated; watching CI…`);
-    const ciStartedAt = Date.now();
-    const { verdict, head } = await watchChecks(dir, pr, logger);
-    report.durations.ciMs = (report.durations.ciMs ?? 0) + Date.now() - ciStartedAt;
-    checkedHead = verdict === 'green' ? head : null;
-    return verdict;
+  // D-1320: a PR GitHub calls conflicting gets no CI; it is brought up to date and watched again, at most MAX_REFRESHES times.
+  const watch = async (): Promise<Watched> => {
+    for (let refresh = 0; ; refresh += 1) {
+      logger.line(`  PR #${String(pr)} opened or updated; watching CI…`);
+      const ciStartedAt = Date.now();
+      const { verdict, head } = await watchChecks(dir, pr, logger);
+      report.durations.ciMs = (report.durations.ciMs ?? 0) + Date.now() - ciStartedAt;
+      checkedHead = verdict === 'green' ? head : null;
+      if (verdict !== 'conflicting') return verdict;
+      if (refresh >= MAX_REFRESHES) return 'conflicting';
+      logger.line(`  bringing PR #${String(pr)} up to date with ${BASE} (D-1320, ${String(refresh + 1)} of ${String(MAX_REFRESHES)})`);
+      const { outcome } = await refreshAndPush(context);
+      if (outcome !== 'pushed') return outcome;
+    }
   };
-  const ciTimeout = (): TaskReport => finish('ci-timeout', `PR #${String(pr)}'s checks were still pending after ${String(CHECKS_WATCH_TIMEOUT_MS / 60_000)} min; not merged (D-1311)`);
+  /** The task's end when a watch, or the push before it, was not green; `after` names the step it followed. */
+  const notGreen = (watched: Exclude<Watched, 'green'>, after: string): TaskReport => {
+    if (watched === 'timeout') return finish('ci-timeout', `PR #${String(pr)}'s checks were still pending after ${String(CHECKS_WATCH_TIMEOUT_MS / 60_000)} min; not merged (D-1311)`);
+    if (watched === 'conflict') return finish('failed', `merging ${BASE} into the branch conflicted outside the shared files${after}; PR #${String(pr)} is left open (D-1320)`);
+    if (watched === 'conflicting') return finish('failed', `PR #${String(pr)} still conflicts with ${BASE} after ${String(MAX_REFRESHES)} refreshes${after}; left open (D-1320)`);
+    if (watched === 'push-failed') return finish('failed', `push failed${after}; PR #${String(pr)} is left open`);
+    return finish('failed', `CI is red${after}`);
+  };
   let verdict = await watch();
-  if (verdict === 'timeout') return ciTimeout();
   if (verdict === 'red' && options.fix) {
     const digest = await failureDigest(dir, pr, task.branch, logger);
     if (digest === null) return finish('failed', 'CI is red, no digest');
     fixed = true;
-    if (await runFix(context, brief, FIX, { findings: [], digest }, ran)) verdict = await watch();
-    if (verdict === 'timeout') return ciTimeout();
+    const pushed = await runFix(context, brief, FIX, { findings: [], digest }, ran);
+    if (pushed === 'pushed') verdict = await watch();
+    else if (pushed !== 'none') verdict = pushed;
   }
-  if (verdict !== 'green') return finish('failed', fixed ? 'CI is red after the fix session' : 'CI is red');
+  if (verdict !== 'green') return notGreen(verdict, fixed ? ' after the fix session' : '');
 
   // D-1065: the tier comes from the final diff, after any fix session pushed.
   let reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
   if (options.fix && reviewed.findings !== null && reviewed.findings.count > 0) {
-    if (await runFix(context, brief, FIX, { findings: reviewed.findings.lines, digest: null }, ran)) {
-      const after = await watch();
-      if (after === 'timeout') return ciTimeout();
-      if (after !== 'green') return finish('failed', 'CI is red after the fix session');
+    const pushed = await runFix(context, brief, FIX, { findings: reviewed.findings.lines, digest: null }, ran);
+    if (pushed !== 'none') {
+      const after = pushed === 'pushed' ? await watch() : pushed;
+      if (after !== 'green') return notGreen(after, ' after the fix session');
       reviewed = await runReview(context, brief, await changedFiles(dir, BASE, logger), limits.review);
     }
   }
@@ -444,7 +517,8 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
   report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);
   report.review = findings === null ? null : { findings: findings.count, tier: reviewed.tier, model: reviewed.tier === null ? null : agent.tiers[reviewed.tier].model };
   // FR-SDD-1: the body carries one usage line per session, and the review's are new since the PR opened.
-  await editPullRequestBody(dir, task.id, pr, prBody(task, readHandoff(dir, task.id), screenshots, new Date(startedAt)), logger);
+  // D-1320: a carried-on PR keeps its body — this run's ledger lacks the implementation's lines.
+  if (openPr === null) await editPullRequestBody(dir, task.id, pr, prBody(task, readHandoff(dir, task.id), screenshots, new Date(startedAt)), logger);
 
   if (review?.outcome === 'limit') {
     report.resetsAt = review.limit?.resetsAt ?? null;
@@ -474,11 +548,9 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
     if (!(await containsBase(dir, BASE, logger))) {
       if (attempt > MAX_REFRESHES) return finish('failed', `${BASE} kept moving; PR #${String(pr)} was brought up to date ${String(MAX_REFRESHES)} times and is not merged (D-1316)`);
       logger.line(`  ${BASE} moved since the checks ran; merging it into the branch (D-1316, ${String(attempt)} of ${String(MAX_REFRESHES)})`);
-      if (!(await mergeBase(dir, BASE, logger))) return finish('failed', `merging ${BASE} into the branch conflicted outside the shared files; PR #${String(pr)} is not merged (D-1316)`);
-      if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed after merging the base');
-      const refreshed = await watch();
-      if (refreshed === 'timeout') return ciTimeout();
-      if (refreshed !== 'green') return finish('failed', `CI is red after merging ${BASE} into the branch (D-1316)`);
+      const { outcome } = await pushUpToDate(dir, BASE, task.branch, logger);
+      const refreshed = outcome === 'pushed' ? await watch() : outcome;
+      if (refreshed !== 'green') return notGreen(refreshed, ` after merging ${BASE} into the branch (D-1316)`);
     }
     if (checkedHead === null) return finish('failed', `PR #${String(pr)}'s head commit could not be read; not merged (D-1312)`);
     if (await mergePullRequest(dir, pr, checkedHead, logger)) break;
@@ -508,9 +580,12 @@ async function main(): Promise<number> {
 
   // D-1314: wave after wave, each from a fresh read of origin/main and its own prune, until nothing is ready or nothing moves.
   let state = INITIAL_LOOP_STATE;
+  // D-1320: the open PRs the next wave carries on instead of selecting ready tasks.
+  let retry: readonly string[] = [];
   for (let wave = 1; ; wave += 1) {
     consoleLogger.line(`\n=== --until-done: wave ${String(wave)} (${new Date().toISOString()}) ===`);
-    const result = await runOnce(options, config, new Set(state.skip ?? []));
+    const result = await runOnce(options, config, new Set(state.skip ?? []), new Set(retry));
+    retry = [];
     const decided = nextLoopStep(result, state, Date.now());
     state = decided.state;
     const { step } = decided;
@@ -518,6 +593,10 @@ async function main(): Promise<number> {
       consoleLogger.line(`\n--until-done stopped after ${String(wave)} wave(s): ${step.reason}.`);
       if (state.failures && state.failures.length > 0) consoleLogger.line(`  not merged in the last wave: ${state.failures.join(', ')}; see logs/sdd/ and the run reports`);
       return step.code;
+    }
+    if (step.action === 'retry') {
+      consoleLogger.line(`\n--until-done: ${step.reason}.`);
+      retry = step.ids;
     }
     if (step.action === 'sleep') {
       consoleLogger.line(`\n--until-done: ${step.reason}; sleeping ${String(Math.round(step.ms / 60_000))} min, until ${new Date(Date.now() + step.ms).toISOString()}`);
@@ -527,8 +606,9 @@ async function main(): Promise<number> {
 }
 
 /** One run of the mode the options name: the status, the dry run, one wave or one task. `planned` is how many tasks it selected. */
-async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet<string> = new Set()): Promise<{ code: number; planned: number; reports: TaskReport[]; skippedReady: string[] }> {
+async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet<string> = new Set(), retry: ReadonlySet<string> = new Set()): Promise<{ code: number; planned: number; reports: TaskReport[]; skippedReady: string[]; retryable?: string[]; unmerged?: LoopTask[] }> {
   let skippedReady: string[] = [];
+  let loopFacts: { retryable: string[]; unmerged: LoopTask[] } = { retryable: [], unmerged: [] };
   // FR-SDD-10: a task's `Agent:` pins it; else `--agent`; else the config's default.
   const agentOf = (task: Task): Agent => pickAgent(config, task.agent, options.agent);
   const { statuses, problems } = await readFacts(options, modelTiers(pickAgent(config)), Object.keys(config.agents), consoleLogger);
@@ -553,6 +633,9 @@ async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet
         const tier = overrideTier(options, agentOf(status.task));
         return tier ? { ...status, task: { ...status.task, tier } } : status;
       });
+  } else if (retry.size > 0) {
+    // D-1320: the loop's retry wave: only the open PRs it names, each in its own lane's slot.
+    planned = statuses.filter((status) => status.state === 'in-review' && retry.has(status.task.id));
   } else {
     // D-1317: `--until-done` leaves out a skipped task, and one whose kept worktree holds a blocked note, before the lanes are counted.
     const left = (status: TaskStatus): boolean => status.state === 'ready' && (skip.has(status.task.id) || (options.untilDone && existsSync(join(WORKTREE_ROOT, status.task.id, 'sdd-run', `${status.task.id}.blocked.md`))));
@@ -561,6 +644,7 @@ async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet
     const selection = selectWave(statuses.filter((status) => !left(status)));
     planned = [...selection.wave];
     skipped = [...selection.skipped];
+    if (options.untilDone) loopFacts = loopFactsOf(statuses);
   }
 
   if (options.mode === 'dry-run') {
@@ -569,7 +653,7 @@ async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet
       consoleLogger.line('\nBreakdown problems:');
       for (const problem of problems) consoleLogger.line(`  - ${problem}`);
     }
-    return { code: 0, planned: planned.length, reports: [], skippedReady };
+    return { code: 0, planned: planned.length, reports: [], skippedReady, ...loopFacts };
   }
 
   printPlanned(planned, skipped, agentOf, consoleLogger);
@@ -593,7 +677,22 @@ async function runOnce(options: Options, config: AgentsConfig, skip: ReadonlySet
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}${report.overruns.length > 0 ? ` (${String(report.overruns.length)} budget overrun(s))` : ''}`);
-  return { code: reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit' || report.outcome === 'ci-timeout') ? 1 : 0, planned: planned.length, reports, skippedReady };
+  return { code: reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit' || report.outcome === 'ci-timeout') ? 1 : 0, planned: planned.length, reports, skippedReady, ...loopFacts };
+}
+
+/** D-1320: what `--until-done` needs when nothing is ready — the open phase's open PRs it may carry on, and its unmerged tasks. */
+function loopFactsOf(statuses: readonly TaskStatus[]): { retryable: string[]; unmerged: LoopTask[] } {
+  const phase = statuses.filter((status) => openPhaseTasks.has(status.task.id) && status.state !== 'merged');
+  const blockedNote = (id: string): boolean => existsSync(join(WORKTREE_ROOT, id, 'sdd-run', `${id}.blocked.md`));
+  return {
+    retryable: phase.filter((status) => status.state === 'in-review' && !ownerLabelled.has(status.task.id) && !blockedNote(status.task.id)).map((status) => status.task.id),
+    unmerged: phase.map((status) => ({
+      id: status.task.id,
+      state: status.state === 'in-review' ? `in review (PR #${String(status.pr)})` : status.state,
+      missingDeps: status.missingDeps,
+      owner: status.state === 'owner-driven' || ownerLabelled.has(status.task.id) || status.missingPrecondition !== null,
+    })),
+  };
 }
 
 main()
