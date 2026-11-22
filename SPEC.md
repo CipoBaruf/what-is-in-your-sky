@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft v2.16 — for review.** Phase v2.16 "an answer first" (a first visit opens on tonight's next pass for the time zone's city, labelled as an example, with one action to set a place): FR-OPEN-1..14, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, Decision Log V216-1..V216-14, in `docs/sdd/phases/v2.16/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
-| Date | 2026-11-18 (v2.16). Earlier dates are in the [revision history](#revision-history). |
+| Status | **Draft v3.0 — for review.** Phase v3.0 "the sky first" (the live sky is the first page at both widths, no home, the stars folded into live, a next-pass strip, a dark sky at every hour, one look per control, new versions said on every page): FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2, amendments listed in the phase, Decision Log V30-1..V30-32, in `docs/sdd/phases/v3.0/spec.md`. Every earlier status line, word for word, is in the [revision history](#revision-history). |
+| Date | 2026-11-21 (v3.0). Earlier dates are in the [revision history](#revision-history). |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -65,17 +65,17 @@ The app predicts visible passes for the coming hours, ranks them by how good the
 
 ---
 
-### Current phase — v2.16 ("an answer first", as decided 2026-11-18, V216-1)
+### Current phase — v3.0 ("the sky first", as decided 2026-11-21, V30-1)
+
+After v2.16, which shipped as 2.16.0; the owner's review of that release is the phase.
+The live sky is the first and main page at both widths: the home goes, the stars fold into live, the place is one line in the header, the next pass is a strip rather than a question, the sky is dark at every hour, every control has one look per role, and a new version is said on every page.
+Goals G72–G75, §4.61–§4.67, FR-LAND-1..7, FR-STRIP-1..6, FR-DARK-1..4, FR-CTRL-1..17, FR-DS-10..14, FR-NOW-1..3, FR-UPD-1..2, the amendments, US-62..US-66 and roadmap §9 Phase 2z are in [the phase spec](docs/sdd/phases/v3.0/spec.md); the decisions are V30-1..V30-32.
+
+### Previous phase — v2.16 ("an answer first", as decided 2026-11-18, V216-1)
 
 Right after v2.15, which shipped as 2.15.0 (V216-16); the first waves also make CI faster and the capture set green again (V216-17).
 A first visit opens on an answer, not a question: tonight's next pass for the city of the browser's time zone, labelled as an example, with `[ Not there? Set your place ]` and the place question as the fallback.
 Goals G69–G71, §4.59, §4.60, FR-OPEN-1..14, FR-CI-4..6, FR-CI-1, FR-CI-2, FR-MEAS-2, FR-MEAS-6, FR-FIRST-1, FR-FIRST-4 and FR-FIRST-7 amended, US-60..US-61 and roadmap §9 Phase 2y are in [the phase spec](docs/sdd/phases/v2.16/spec.md); the decisions are V216-1..V216-18.
-
-### Previous phase — v2.15 ("where they stop", as decided 2026-11-18, V215-1)
-
-After v2.14.3 is on `main`.
-Readers say the app is hard to understand, so before the first run changes the site counts where first visits stop: one route of its own that receives anonymous counts, a command that prints the funnel, and the privacy note removed.
-Goals G67–G68, §4.58, FR-MEAS-1..7, FR-X-3 amended, US-58..US-59 and roadmap §9 Phase 2x are in [the phase spec](docs/sdd/phases/v2.15/spec.md); the decisions are V215-1..V215-7.
 
 ### Phase 3 — Later
 - Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.
@@ -125,7 +125,8 @@ Every id resolves through [`docs/sdd/ids.md`](docs/sdd/ids.md): `npm run sdd:id 
 | v2.14.1 | [spec](docs/sdd/phases/v2.14.1/spec.md) | [plan](docs/sdd/phases/v2.14.1/plan.md) | — |
 | v2.14.2 | [spec](docs/sdd/phases/v2.14.2/spec.md) | [plan](docs/sdd/phases/v2.14.2/plan.md) | [tasks](docs/sdd/phases/v2.14.2/tasks.md) |
 | v2.15 | [spec](docs/sdd/phases/v2.15/spec.md) | [plan](docs/sdd/phases/v2.15/plan.md) | [TASKS.md](TASKS.md) |
-| v2.16 | [spec](docs/sdd/phases/v2.16/spec.md) | [plan](docs/sdd/phases/v2.16/plan.md) | — |
+| v2.16 | [spec](docs/sdd/phases/v2.16/spec.md) | [plan](docs/sdd/phases/v2.16/plan.md) | [tasks](docs/sdd/phases/v2.16/tasks.md) |
+| v3.0 | [spec](docs/sdd/phases/v3.0/spec.md) | [plan](docs/sdd/phases/v3.0/plan.md) | [TASKS.md](TASKS.md) |
 
 The Decision Log (SPEC §12): [decisions.md](docs/sdd/decisions.md).
 Reference: [glossary](docs/sdd/reference/glossary.md),
