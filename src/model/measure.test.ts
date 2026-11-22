@@ -7,13 +7,12 @@ const context = { visit: 'first', layout: 'compact', lang: 'en', id: '0123456789
 describe('FR-MEAS-2: the table', () => {
   it('is exactly the spec table, name by name and detail by detail', () => {
     expect(EVENTS).toEqual({
-      open: ['home', 'pass', 'live', 'stars', 'settings'],
+      open: ['pass', 'live', 'stars', 'settings'],
       example_shown: ['pass', 'none', 'no_city', 'failed', 'slow'],
       where_shown: ['example', 'fallback'],
       place_set: ['search', 'coords', 'device', 'favourite', 'link'],
       device_refused: ['denied', 'unavailable', 'timeout'],
       search_empty: [],
-      door: ['satellites', 'stars', 'live'],
       watch: [],
       pass_open: [],
       live_open: [],
@@ -71,7 +70,8 @@ describe('FR-MEAS-1: the runtime guard', () => {
       { name: 'example_shown', detail: 'Buenos Aires', ...context },
       { name: 'when_shown', ...context },
       { name: 'what_shown', ...context },
-      { name: 'door', detail: 7, ...context },
+      { name: 'door', detail: 'stars', ...context },
+      { name: 'open', detail: 'home', ...context },
       { name: 'watch', detail: 'pass', ...context },
       { name: 'open', ...context, lat: -38.95 },
       { name: 'open', ...context, label: 'Neuquén' },

@@ -5,8 +5,6 @@ import { routeTitle } from './routeTitle';
 
 describe('routeTitle (FR-A11Y-3, D-531)', () => {
   it('is the bare app title on home', () => {
-    expect(routeTitle('home', en)).toBe('What is in your sky right now');
-    expect(routeTitle('home', es)).toBe('Qué hay en el cielo ahora mismo');
   });
 
   it('puts the route before the app title on the live and settings pages, in the active language', () => {

@@ -24,7 +24,7 @@ describe('FR-MEAS-1: the context is fixed at load', () => {
   it('visit, layout and lang come from the load and do not change within it', () => {
     const env = recording();
     startMeasure({ returning: true, wide: true, lang: 'es' }, env);
-    count('open', 'home');
+    count('open', 'live');
     count('where_shown');
     const [first, second] = env.bodies();
     expect(first).toMatchObject({ visit: 'return', layout: 'wide', lang: 'es' });
@@ -34,17 +34,17 @@ describe('FR-MEAS-1: the context is fixed at load', () => {
   it('a first visit on a narrow screen is first and compact', () => {
     const env = recording();
     startMeasure({ returning: false, wide: false, lang: 'en' }, env);
-    count('open', 'home');
+    count('open', 'live');
     expect(env.bodies()[0]).toMatchObject({ visit: 'first', layout: 'compact', lang: 'en' });
   });
 
   it('two loads make two ids, each 16 hex characters', () => {
     const one = recording();
     startMeasure({ returning: false, wide: false, lang: 'en' }, one);
-    count('open', 'home');
+    count('open', 'live');
     const two = recording();
     startMeasure({ returning: false, wide: false, lang: 'en' }, two);
-    count('open', 'home');
+    count('open', 'live');
     const ids = [one.bodies()[0]?.['id'], two.bodies()[0]?.['id']];
     for (const id of ids) expect(id).toMatch(ID_PATTERN);
     expect(ids[0]).not.toBe(ids[1]);

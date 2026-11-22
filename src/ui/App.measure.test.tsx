@@ -57,13 +57,15 @@ describe.each([
   });
 
   it.each([
-    ['pass_open', passIdHash(pass.id)],
-    ['live_open', '#live'],
-    ['stars_open', '#stars'],
-    ['settings_open', '#settings'],
-  ])('%s when %s is on screen, and nothing on the home before it', async (name, hash) => {
+    ['pass_open', passIdHash(pass.id), '#settings'],
+    ['live_open', '#live', '#settings'],
+    ['stars_open', '#stars', '#settings'],
+    ['settings_open', '#settings', '#stars'],
+  ])('%s when %s is on screen, and not before it', async (name, hash, before) => {
+    window.history.replaceState(null, '', before);
     render(<App />);
-    expect(opened()).toEqual([]);
+    expect(opened()).not.toContain(name);
+    vi.mocked(count).mockClear();
     go(hash);
     await act(async () => {
       await Promise.resolve();
@@ -71,12 +73,17 @@ describe.each([
     expect(opened()).toEqual([name]);
   });
 
+  it('FR-LAND-1: the route with no hash is a live opening', () => {
+    render(<App />);
+    expect(opened()).toEqual(['live_open']);
+  });
+
   it('a pass page with no pass to show (`#pass`, an empty span) is no pass detail', () => {
     act(() => {
       appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [], hasDarkness: true } });
     });
+    window.history.replaceState(null, '', '#pass');
     render(<App />);
-    go('#pass');
     expect(opened()).toEqual([]);
   });
 });

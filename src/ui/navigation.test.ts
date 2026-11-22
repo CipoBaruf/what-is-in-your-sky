@@ -3,9 +3,9 @@
  * what opened the route. jsdom traverses the history a task later, as a browser does, hence the waits.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearRoute, close, depth, home, isRouteHref, open, replace, resetNavigation, subscribe, takeFocusTarget } from './navigation';
+import { close, depth, isRouteHref, landRoute, open, replace, resetNavigation, subscribe, takeFocusTarget } from './navigation';
 
-// Every traversal here lands on home; waiting for it rather than for a fixed time keeps a loaded run honest.
+// Every traversal here lands on the load's entry; waiting for it rather than for a fixed time keeps a loaded run honest.
 const settle = (): Promise<void> =>
   vi.waitFor(() => {
     expect(window.location.hash).toBe('');
@@ -47,13 +47,13 @@ describe('navigation (D-533)', () => {
   });
 
   it('replaces in place when the route was the load entry (a bookmark, a link), and tells the subscribers', () => {
-    window.history.replaceState(null, '', '#live');
+    window.history.replaceState(null, '', '#settings');
     const heard = vi.fn();
     const off = subscribe(heard);
     const entries = window.history.length;
     close();
     off();
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
     expect(window.history.length).toBe(entries);
     expect(heard).toHaveBeenCalledTimes(1);
   });
@@ -86,13 +86,42 @@ describe('navigation (D-533)', () => {
     expect(takeFocusTarget()).toBe(link);
   });
 
-  it('clearRoute leaves the state as it is and changes no entry', () => {
-    const heard = vi.fn();
-    const off = subscribe(heard);
-    clearRoute();
-    off();
-    expect(heard).toHaveBeenCalledTimes(1);
-    expect(window.location.hash).toBe('');
+  it('FR-LAND-1: landRoute writes #live over a hash that names no route, in its entry, keeping its state, and tells nobody', () => {
+    for (const hash of ['', '#', '#nope', '#live?lat=999', '#pass?lat=999']) {
+      window.history.replaceState({ wiys: 2 }, '', `${window.location.pathname}${hash}`);
+      const entries = window.history.length;
+      const heard = vi.fn();
+      const off = subscribe(heard);
+      landRoute();
+      off();
+      expect(window.location.hash, hash).toBe('#live');
+      expect(depth(), hash).toBe(2);
+      expect(window.history.length, hash).toBe(entries);
+      expect(heard, hash).not.toHaveBeenCalled();
+    }
+    window.history.replaceState(null, '', '#settings');
+    landRoute();
+    expect(window.location.hash).toBe('#settings');
+  });
+
+  it('FR-LAND-1: the live page as the load entry has nowhere to close to', () => {
+    const link = '#live?lat=51.5&lon=-0.12&alt=0';
+    window.history.replaceState(null, '', link);
+    close();
+    expect(window.location.hash).toBe(link);
+  });
+
+  it('D-1231: a pass stacked on the list closes to it, and one that was the load entry to the hash it is given', async () => {
+    open('#pass');
+    open('#pass=25544-1', null, { stack: true });
+    expect(depth()).toBe(2);
+    close();
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#pass');
+    });
+    window.history.replaceState(null, '', '#pass=25544-1');
+    close('#pass');
+    expect(window.location.hash).toBe('#pass');
   });
 
   it('takes only the app routes from the browser', () => {
@@ -159,56 +188,5 @@ describe('the focus after a route is left (D-532)', () => {
     window.history.back();
     await settle();
     expect(takeFocusTarget()).toBe(button);
-  });
-});
-
-describe('home, the wide header link (R129, FR-FLOW-3, D-857)', () => {
-  it('goes back past every entry the session pushed in one step, to home', async () => {
-    const button = document.body.appendChild(document.createElement('button'));
-    open('#stars', button);
-    open('#live');
-    expect(depth()).toBe(2);
-    home();
-    await settle();
-    expect(depth()).toBe(0);
-    expect(takeFocusTarget()).toBe(button);
-  });
-
-  it('lands on home when the load was a route: a bookmark on #stars, then the live link, then home', async () => {
-    const h1 = document.body.appendChild(document.createElement('h1'));
-    window.history.replaceState(null, '', '#stars');
-    const heard = vi.fn();
-    const off = subscribe(heard);
-    open('#live');
-    home();
-    await settle();
-    // The entry is the load's own, cleared in place: Back from here leaves the app, as it would have from #stars.
-    expect(depth()).toBe(0);
-    await vi.waitFor(() => {
-      expect(heard).toHaveBeenCalled();
-    });
-    off();
-    expect(takeFocusTarget()).toBe(h1);
-  });
-
-  it('lands on home after a reload on a pushed entry, when the openers are gone', async () => {
-    window.history.replaceState(null, '', '#settings');
-    open('#stars');
-    open('#live');
-    // A reload keeps the entries and their states but not this module's memory of them.
-    resetNavigation();
-    home();
-    await settle();
-    expect(depth()).toBe(0);
-  });
-
-  it('clears a route that was the load entry in place, and does nothing at home', () => {
-    window.history.replaceState(null, '', '#stars');
-    const entries = window.history.length;
-    home();
-    expect(window.location.hash).toBe('');
-    expect(window.history.length).toBe(entries);
-    home();
-    expect(window.location.hash).toBe('');
   });
 });
