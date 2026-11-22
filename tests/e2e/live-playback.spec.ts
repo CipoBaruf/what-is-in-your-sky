@@ -31,11 +31,10 @@ const clockText = (t: number): RegExp => new RegExp(`^${new Date(t).toISOString(
  * R39 (F-37): a speed button, named exactly. A `name` option is a substring
  * match, so `60×` also named `600×` and `3600×` — three buttons, a strict-mode
  * failure the moment it was clicked, and the `60×` half of the test below never
- * ran. `exact` is not the answer either: the accessible name carries the
- * `[ ]`/`[x]` the CSS writes before the label (FR-X-5), so an anchored pattern
- * is what names one button and only one.
+ * ran. Since R206 (FR-CTRL-2) the accessible name is the label alone, so
+ * `exact` is what names one button and only one.
  */
-const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
+const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: `${String(factor)}×`, exact: true });
 
 /** Presses a row (the stripe, or R70's overview) `fraction` of the way along and lets go. */
 async function pressRow(page: Page, testId: 'time-stripe' | 'stripe-overview', fraction: number): Promise<void> {
@@ -349,7 +348,7 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   // R144 (FR-TONIGHT-4, FR-TONIGHT-7): the taps row and the headline in Spanish; the held instant three hours on.
   await expect(page.getByRole('group', { name: 'Saltar en el tiempo', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '[ ahora ]', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'ahora', exact: true })).toBeEnabled();
   await expect(page.getByTestId('shown-chip')).toHaveText(/en (2|3) h \d\d min/);
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);
   await page.screenshot({ path: 'docs/screenshots/r33-live-390-dark-es.png' });

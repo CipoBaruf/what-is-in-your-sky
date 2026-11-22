@@ -99,7 +99,7 @@ const marks = (page: Page): Locator => polar(page).locator('[data-layer="stars"]
 const figures = (page: Page): Locator => polar(page).locator('[data-figures] path');
 const names = (page: Page): Locator => polar(page).locator('[data-names] text');
 const outline = (page: Page): Locator => polar(page).locator('[data-field-outline]');
-/** A layer toggle by its word: its accessible name carries the `[x]` mark Playwright reads off the stylesheet, so the word is matched inside it. */
+/** A layer toggle by its word, which ends its accessible name. */
 const layerToggle = (page: Page, name: string): Locator => page.getByTestId('stars-layers').getByRole('button', { name: new RegExp(`${name}$`) });
 
 /** The whole sky chosen from the row — on compact the sheet's, opened first (R163) — its stars drawn (the polar chart's star group is a lazy chunk; a paused clock is run for it). */
