@@ -46,6 +46,6 @@ describe('<BracketLink> in its stylesheet (R206)', () => {
     const css = readFileSync('src/ui/components/primitives/BracketLink.module.css', 'utf8');
     expect(css).not.toMatch(/content:|text-decoration:/);
     expect(/\.bracketLink \{([^}]*)\}/.exec(css)?.[1]).not.toMatch(/color/);
-    expect(readFileSync('src/ui/styles/global.css', 'utf8')).toMatch(/\na \{\n  color: var\(--accent\);\n  text-decoration: underline;/);
+    expect(readFileSync('src/ui/styles/global.css', 'utf8')).toMatch(/\na \{\n {2}color: var\(--accent\);\n {2}text-decoration: underline;/);
   });
 });
