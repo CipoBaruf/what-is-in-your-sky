@@ -107,7 +107,7 @@ describe('bad values', () => {
     expect(bad.tasks[0]).toMatchObject({ lane: null, model: null, gate: null });
     expect(bad.problems).toEqual([
       'R30: `Lane: everything` is not one of ui, chart, data, physics, live, window, docs.',
-      'R30: `Model: gemini` is not one of fable, opus, sonnet, haiku, interactive.',
+      'R30: `Model: gemini` is not one of opus, sonnet, fable, haiku, interactive.',
       'R30: `Gate: maybe` is not one of auto, owner.',
       'R30: `Findings: bug-2` is not an F-<n> id.',
       'R30: appears twice in TASKS.md.',
@@ -181,7 +181,7 @@ describe('the v2.2 fields: `Review:`, `Turns:` and `Fallback:` (§16.3, D-659)',
     const bad = parseTasks(['- [ ] **P7 — A task**', '  - **Review:** interactive', '  - **Turns:** many', '  - **Fallback:** maybe'].join('\n'), models);
     expect(bad.tasks[0]).toMatchObject({ review: null, turns: null, fallback: null });
     expect(bad.problems).toEqual([
-      'P7: `Review: interactive` is not one of hard, standard, light, fable, opus, sonnet, haiku.',
+      'P7: `Review: interactive` is not one of hard, standard, light, opus, sonnet, fable, haiku.',
       'P7: `Turns: many` is not a positive whole number.',
       'P7: `Fallback: maybe` is not one of on, off.',
     ]);

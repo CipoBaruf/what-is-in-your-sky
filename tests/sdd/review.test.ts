@@ -69,7 +69,9 @@ describe('FR-SDD-9, FR-SDD-16: the prompts come from the workflows', () => {
   it("the review prompt contains review.md's text, the base and the handoff file", () => {
     const prompt = reviewPrompt({ id: 'R9', brief: 'sdd-run/R9.brief.md', base: 'origin/main', workflow: review });
     expect(prompt).toContain(review.trim());
-    expect(prompt).toContain('git diff origin/main...HEAD');
+    // D-1319: renames detected and deletions left to the stat, so a big deletion does not fill the review's context.
+    expect(prompt).toContain('git diff -M --diff-filter=d origin/main...HEAD');
+    expect(prompt).toContain('git diff --stat origin/main...HEAD');
     expect(prompt).toContain(findingsPath('R9'));
     expect(prompt).toContain('sdd-run/R9.brief.md');
   });

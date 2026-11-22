@@ -43,8 +43,8 @@ describe('the pull-request budget (FR-CI-1)', () => {
     expect(matrix?.split(',').map((n) => n.trim())).toEqual(Array.from({ length: shards }, (_, i) => String(i + 1)));
     // D-1216 (FR-CI-5): the cut is `e2e-shards.ts`'s, by time, in place of Playwright's `--shard`.
     expect(ci).toContain('npx tsx scripts/e2e-shards.ts ${{ matrix.shard }} ${{ strategy.job-total }} $E2E_SPECS');
-    // One shard over the budget still fails the run: the timeout is the job's, and the matrix multiplies the job.
-    expect(ci).toMatch(/^\s*timeout-minutes: 8$/m);
+    // D-1313: the shard's kill is its own constant, two minutes past the budget; the matrix multiplies the job.
+    expect(ci.slice(ci.indexOf('\n  ci:\n'))).toMatch(/^\s*timeout-minutes: 10$/m);
     // A red shard must not cancel its sibling and hide half the failures.
     expect(ci).toMatch(/fail-fast: false/);
     // Two shards would otherwise upload one artefact name twice, and the second would be refused.

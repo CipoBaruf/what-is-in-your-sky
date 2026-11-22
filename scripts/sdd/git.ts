@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { COMMIT_TITLE_MAX } from './limits';
+import { resolveSharedConflicts, type ResolveIo } from './resolve';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -58,6 +59,8 @@ function exec(file: string, args: readonly string[], options: ExecOptions = {}):
     child.on('close', (code) => {
       if (timer) clearTimeout(timer);
       logger.raw(`exit ${String(code ?? -1)}: ${file} ${args.join(' ')}\n`);
+      // A failed call's stderr, when it was not streamed: the log is the only place it shows (a CI runner's git refusing to commit, say).
+      if (code !== 0 && !stream && stderr.trim()) logger.raw(`${stderr.trim().slice(-1000)}\n`);
       resolve({ code: timedOut ? 124 : (code ?? -1), stdout, stderr });
     });
   });
@@ -163,11 +166,50 @@ export async function changedFiles(dir: string, base: string, logger: Logger): P
   return ok(result) ? result.stdout.split('\n').filter(Boolean) : [];
 }
 
-/** §16.4 step 4. A conflict ends the task as failed (§16.5), so the rebase is aborted first. */
-export async function rebaseOnto(dir: string, base: string, logger: Logger): Promise<boolean> {
-  const result = await git(['rebase', base], { cwd: dir, logger });
+/** D-1315: the resolver's git calls and the repo's generators, run in the task's worktree. */
+export function gitResolveIo(dir: string, logger: Logger): ResolveIo {
+  const npx = (args: readonly string[]): Promise<boolean> => exec('npx', args, { cwd: dir, logger }).then(ok);
+  return {
+    conflicted: async () => (await git(['diff', '--name-only', '--diff-filter=U'], { cwd: dir, logger })).stdout.split('\n').filter(Boolean),
+    checkoutSide: async (path) => ok(await git(['checkout', '--theirs', '--', path], { cwd: dir, logger })) || ok(await git(['checkout', '--ours', '--', path], { cwd: dir, logger })),
+    regenerate: async () => (await npx(['tsx', 'scripts/sdd/ids.ts', '--write'])) && (await npx(['tsx', 'scripts/sdd/traceability.ts', '--write'])) && (await npx(['tsx', 'scripts/sdd-map.ts'])),
+    regenerateSnapshot: () => npx(['vitest', 'run', 'src/i18n/messages.test.ts', '-u']),
+    add: async (paths) => ok(await git(['add', '--', ...paths], { cwd: dir, logger })),
+  };
+}
+
+/** How many times one rebase may stop on a conflict the resolver settles (one per replayed commit). */
+const MAX_RESOLVED_STOPS = 50;
+
+/**
+ * §16.4 step 4. D-1315: a conflict only in the shared files (`resolve.ts`) is resolved and the
+ * rebase continues; any other conflict aborts it and ends the task as failed (§16.5).
+ */
+export async function rebaseOnto(dir: string, base: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<boolean> {
+  let result = await git(['rebase', base], { cwd: dir, logger });
+  for (let stops = 0; !ok(result) && stops < MAX_RESOLVED_STOPS; stops += 1) {
+    if (!(await resolveSharedConflicts(dir, 'ours', io))) break;
+    logger.line('  resolved the shared-file conflict (plan decisions kept on both sides, generated files regenerated; D-1315)');
+    result = await git(['-c', 'core.editor=true', 'rebase', '--continue'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } });
+  }
   if (ok(result)) return true;
   await git(['rebase', '--abort'], { cwd: dir, logger });
+  return false;
+}
+
+/** D-1316: whether `base` is already in HEAD's history, so a merge needs no refresh. */
+export async function containsBase(dir: string, base: string, logger: Logger): Promise<boolean> {
+  return ok(await git(['merge-base', '--is-ancestor', base, 'HEAD'], { cwd: dir, logger }));
+}
+
+/** D-1316: merges `base` into the branch (no force-push needed), the shared files resolved as in a rebase; any other conflict aborts. */
+export async function mergeBase(dir: string, base: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<boolean> {
+  if (ok(await git(['-c', 'core.editor=true', 'merge', '--no-edit', base], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) return true;
+  if ((await resolveSharedConflicts(dir, 'theirs', io)) && ok(await git(['-c', 'core.editor=true', 'commit', '--no-edit'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) {
+    logger.line(`  merged ${base} and resolved the shared-file conflict (D-1316)`);
+    return true;
+  }
+  await git(['merge', '--abort'], { cwd: dir, logger });
   return false;
 }
 
@@ -272,15 +314,38 @@ export async function waitForChecks(exists: () => Promise<boolean>, waits: Check
   return true;
 }
 
-/** §16.4 step 5: CI watched to completion; red CI ends the task as failed. */
-export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits = {}): Promise<boolean> {
+/** D-1311: the longest `gh pr checks --watch` may run; a check stuck pending (a Workers Builds outage) ends the task `ci-timeout`. */
+export const CHECKS_WATCH_TIMEOUT_MS = 40 * 60_000;
+
+/** D-1311: how one watch of the PR's checks ended. */
+export type ChecksVerdict = 'green' | 'red' | 'timeout';
+
+/** `exec`'s 124 is its own kill at `timeoutMs`; every other non-zero exit is a red or unreadable run. */
+export const checksVerdict = (result: ExecResult): ChecksVerdict => (result.code === 0 ? 'green' : result.code === 124 ? 'timeout' : 'red');
+
+/** The commit the PR's head points at, or `null` when `gh` cannot say. */
+async function pullRequestHead(dir: string, pr: number, logger: Logger): Promise<string | null> {
+  const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
+  const sha = head.stdout.trim();
+  return ok(head) && sha !== '' ? sha : null;
+}
+
+/**
+ * §16.4 step 5: CI watched to completion; red CI ends the task as failed. D-1311: the watch
+ * gives up after `CHECKS_WATCH_TIMEOUT_MS`, and the result carries the head commit read before
+ * it, the one the checks ran on (D-1312 merges only that commit).
+ */
+export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits & { watchMs?: number } = {}): Promise<{ verdict: ChecksVerdict; head: string | null }> {
   const appeared = await waitForChecks(async () => checksExist(await gh(['pr', 'checks', String(pr)], { cwd: dir, logger })), waits);
+  const head = await pullRequestHead(dir, pr, logger);
   if (!appeared) {
     logger.line(`  PR #${String(pr)} reports no checks; treating that as red`);
-    return false;
+    return { verdict: 'red', head };
   }
-  const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
-  return ok(result);
+  const watchMs = waits.watchMs ?? CHECKS_WATCH_TIMEOUT_MS;
+  const verdict = checksVerdict(await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true, timeoutMs: watchMs }));
+  if (verdict === 'timeout') logger.line(`  PR #${String(pr)}'s checks were still pending after ${String(Math.round(watchMs / 60_000))} min; giving up on them (D-1311)`);
+  return { verdict, head };
 }
 
 /** The longest the digest waits for the PR's CI run to finish. */
@@ -298,9 +363,8 @@ export function runForHead(rows: readonly { databaseId?: number; headSha?: strin
  * job, so this waits for the run to finish first.
  */
 export async function failureDigest(dir: string, pr: number, branch: string, logger: Logger, waitMs = DIGEST_WAIT_MS): Promise<string | null> {
-  const head = await gh(['pr', 'view', String(pr), '--json', 'headRefOid', '--jq', '.headRefOid'], { cwd: dir, logger });
-  const sha = head.stdout.trim();
-  if (!ok(head) || sha === '') return null;
+  const sha = await pullRequestHead(dir, pr, logger);
+  if (sha === null) return null;
   const list = await gh(['run', 'list', '--branch', branch, '--commit', sha, '--workflow', 'ci.yml', '--limit', '20', '--json', 'databaseId,headSha,headBranch'], { cwd: dir, logger });
   let run: number | undefined;
   try {
@@ -328,6 +392,9 @@ export async function labelPullRequest(dir: string, pr: number, label: string, l
   await gh(['pr', 'edit', String(pr), '--add-label', label], { cwd: dir, logger });
 }
 
-export async function mergePullRequest(dir: string, pr: number, logger: Logger): Promise<boolean> {
-  return ok(await gh(['pr', 'merge', String(pr), '--squash'], { cwd: dir, logger }));
+/** D-1312: the squash merge, refused by GitHub when the PR's head is no longer the commit CI and the review saw. */
+export const mergeArgs = (pr: number, head: string): string[] => ['pr', 'merge', String(pr), '--squash', '--match-head-commit', head];
+
+export async function mergePullRequest(dir: string, pr: number, head: string, logger: Logger): Promise<boolean> {
+  return ok(await gh(mergeArgs(pr, head), { cwd: dir, logger }));
 }

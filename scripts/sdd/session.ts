@@ -140,7 +140,8 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       if (line.includes('"type":"result"')) events = [...events.filter((kept) => !kept.includes('"type":"result"')), line];
       else if (line.includes('"rate_limit_event"') && line.includes('"rejected"')) events = [...events, line].slice(-EVENTS_KEEP);
       // FR-SDD-2: a set ceiling stops the session as the wall clock does.
-      if (tokenCeiling !== undefined && agent.parser === 'stream-json' && tokens.add(line) > tokenCeiling && stopped === null) {
+      const spent = agent.parser === 'stream-json' ? tokens.add(line) : 0;
+      if (tokenCeiling !== undefined && agent.parser === 'stream-json' && spent > tokenCeiling && stopped === null) {
         logger.line(`  the session passed the ${tier} tier's ceiling of ${String(tokenCeiling)} tokens; stopping it (FR-SDD-2)`);
         kill('budget');
       }
@@ -167,7 +168,9 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       readLine(pending);
       const parsed = parse(agent.parser === 'stream-json' ? events.join('\n') : tail, code, handoff === undefined ? null : `${cwd}/${handoff}`, { limit: agent.limit, stderr });
       const outcome = stopped ?? parsed.outcome;
-      resolve(finish({ outcome, code, durationMs: Date.now() - startedAt, result: parsed.text, limit: outcome === 'limit' ? parsed.limit : null, usage: parsed.usage, model }));
+      // D-1317: a killed session has no result event; the ledger gets what the stream counted, not 0.
+      const usage = parsed.usage ?? (stopped !== null && tokens.total > 0 ? tokens.usage() : null);
+      resolve(finish({ outcome, code, durationMs: Date.now() - startedAt, result: parsed.text, limit: outcome === 'limit' ? parsed.limit : null, usage, model }));
     });
   });
 }
