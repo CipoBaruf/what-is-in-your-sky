@@ -1,0 +1,6 @@
+/* R209 (FR-CTRL-17): the feedback line. The inks are `Line`'s; this only keeps
+   a long reason inside the column the control stands in. */
+.statusLine {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

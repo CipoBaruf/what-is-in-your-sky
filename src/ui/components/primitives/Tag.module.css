@@ -1,0 +1,26 @@
+/* R209 (FR-CTRL-14; D-704): the tag. Its tone and nothing else: never
+   underlined, never a ground under the pointer. */
+.tag {
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.dim {
+  color: var(--fg-dim);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.warn {
+  color: var(--warn);
+}
+
+.danger {
+  color: var(--danger);
+}

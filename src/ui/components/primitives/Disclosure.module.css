@@ -1,0 +1,32 @@
+/* R209 (FR-CTRL-16; D-1226): the disclosure. The button is the whole line and
+   the hit box; hover lights the line inside it, a control high, from the
+   column's left edge (FR-DS-12). */
+.disclosure {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  text-align: start;
+}
+
+.line {
+  display: block;
+  line-height: var(--control-h);
+  border-radius: var(--control-radius);
+  overflow-wrap: anywhere;
+}
+
+/* A cell whichever glyph, so the words stand still when it opens. */
+.arrow {
+  display: inline-block;
+  width: var(--cell);
+}
+
+.disclosure:is(:hover, :active):not(:disabled) > .line {
+  background: var(--hover-ground);
+}
+
+.disclosure:disabled {
+  color: var(--fg-dim);
+}

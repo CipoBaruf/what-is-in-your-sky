@@ -1,12 +1,18 @@
 import type { BracketLinkOwnProps } from './BracketLink';
 import type { CardOwnProps } from './Card';
+import type { CloseOwnProps } from './Close';
 import type { ClusterOwnProps } from './Cluster';
+import type { DisclosureOwnProps } from './Disclosure';
 import type { FieldOwnProps } from './Field';
 import type { LineOwnProps } from './Line';
 import type { OptionToggleOwnProps } from './OptionToggle';
+import type { PickRowOwnProps } from './PickRow';
 import type { RuleProps } from './Rule';
 import type { SectionHeadingProps } from './SectionHeading';
+import type { SettingRowOwnProps } from './SettingRow';
 import type { StackOwnProps } from './Stack';
+import type { StatusLineOwnProps } from './StatusLine';
+import type { TagOwnProps } from './Tag';
 import type { TextButtonOwnProps } from './TextButton';
 import type { ToggleGroupProps } from './ToggleGroup';
 import type { VisuallyHiddenOwnProps } from './VisuallyHidden';
@@ -142,6 +148,42 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     box: { type: 'boolean', text: 'A box ruled in `--rule` round the field, half a row by a cell inside and a third of a row on a short screen (the phone’s input group).' },
     trailing: { type: 'ReactNode', text: 'A control or a field on the input’s row: a `Field` here joins this one’s grid, its control in the second column and its rows across both.' },
     children: { type: 'ReactNode', text: 'The rows under the input: a validation message (a `Line`), a status, a pick list.' },
+    className: PLACEMENT,
+  }),
+  // R209 (FR-DS-11; D-1228): the controls and labels every page is built from.
+  entry<TagOwnProps>('Tag', 'A label that cannot be pressed, its word in brackets in its tone: the only brackets in the app.', ['rest'], {
+    tone: { type: "'dim' | 'accent' | 'ok' | 'warn' | 'danger'", text: 'The ink of the word and its brackets.' },
+    children: { type: 'ReactNode', text: 'The word.' },
+    className: PLACEMENT,
+  }),
+  entry<CloseOwnProps>('Close', 'The one close or dismiss, a bare × the host places at the top-right corner of what it closes; a declined offer is a TextButton.', ['rest', 'hover', 'focus'], {
+    onClose: { type: '() => void', text: 'What closes.' },
+    label: { type: 'string', text: 'The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”.' },
+    className: PLACEMENT,
+  }),
+  entry<PickRowOwnProps>('PickRow', 'A row or card that opens or picks something from a set: no frame, the raised ground under the pointer, the accent line at the picked one’s left.', ['rest', 'hover', 'focus', 'picked', 'disabled'], {
+    picked: { type: 'boolean', text: 'Whether this is the picked one; the parent owns it.' },
+    onPick: { type: '() => void', text: 'What a press means.' },
+    href: { type: 'string', text: 'Where the row goes: it is then a link, and the picked one is `aria-current`.' },
+    current: { type: 'boolean', text: 'A button whose picked row is the one shown of its set: `aria-current` in place of `aria-pressed`.' },
+    children: { type: 'ReactNode', text: 'What the row holds, its items a cell apart in their own inks.' },
+    className: PLACEMENT,
+  }),
+  entry<DisclosureOwnProps>('Disclosure', 'A line that opens and closes what is under it, `▸ Tonight · 3`, the whole line the control.', ['rest', 'hover', 'focus', 'on', 'disabled'], {
+    open: { type: 'boolean', text: 'Whether what it opens is shown (`aria-expanded`); the parent owns it.' },
+    onToggle: { type: '() => void', text: 'What a press means.' },
+    label: { type: 'ReactNode', text: 'The line’s words.' },
+    count: { type: 'number', text: 'How many it holds, after a middle dot.' },
+    className: PLACEMENT,
+  }),
+  entry<SettingRowOwnProps>('SettingRow', 'A labelled row of a group: the dim label in its column and its control, the rows on one rhythm.', ['rest'], {
+    label: { type: 'ReactNode', text: 'The row’s words, in the `--label-col` column; the control carries its own name.' },
+    children: { type: 'ReactNode', text: 'The row’s control.' },
+    className: PLACEMENT,
+  }),
+  entry<StatusLineOwnProps>('StatusLine', 'The one line of feedback under or after a control: progress, an error, success, or an empty list.', ['rest', 'error'], {
+    tone: { type: "'progress' | 'failure' | 'ok' | 'empty'", text: 'What it reports: dim progress or emptiness, success in `--ok` (all three `role="status"`), or a failure in `--danger` (`role="alert"`).' },
+    children: { type: 'ReactNode', text: 'The sentence.' },
     className: PLACEMENT,
   }),
   // R107 (FR-DS-4 item 8; D-725): the layout helpers and the hidden-text block.

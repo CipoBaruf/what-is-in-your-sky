@@ -30,6 +30,12 @@
   "src/ui/components/primitives/Field.module.css": [
     "@media (height <= 700px)"
   ],
+  "src/ui/components/primitives/PickRow.module.css": [
+    "@media (width >= 964px)"
+  ],
+  "src/ui/components/primitives/SettingRow.module.css": [
+    "@media (width >= 964px)"
+  ],
   "src/ui/screens/Live.module.css": [
     "@media (orientation : landscape) and (height <= 500px)"
   ],
