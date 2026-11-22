@@ -190,7 +190,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/moonLore.ts` — exports: MOON_LORE, fullMoonName, phaseLore, signAtLongitude — R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state, the way the catalog does (D-97, PLAN §3).
 - `src/state/openLink.ts` — exports: OpenLinkResult, LINK_SPAN_MS, openLink, applyLink, followHash — R83 (FR-VISIT-1..4, FR-SHARE-3, D-539): one reading of a link, for the boot and for a hash pasted into a running tab alike, which ends the…
 - `src/state/passWindow.ts` — exports: NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_MS, searchWindow — The pass list window.
-- `src/state/serviceWorker.ts` — exports: SKIP_WAITING, SERVICE_WORKER_URL, ServiceWorkerHost, registerServiceWorker — Registering the app-shell service worker (FR-OFF-1, FR-X-4 amended, D-79).
+- `src/state/serviceWorker.ts` — exports: SKIP_WAITING, SERVICE_WORKER_URL, UPDATE_POLL_MIN, UpdateWatchHost, ServiceWorkerHost, watchForUpdates, registerServiceWorker — Registering the app-shell service worker (FR-OFF-1, FR-X-4 amended, D-79).
 - `src/state/slices/appUpdate.ts` — exports: AppUpdateSlice, createAppUpdateSlice — A new version of the app shell, downloaded and waiting (FR-OFF-1, OQ-14, D-79).
 - `src/state/slices/elements.ts` — exports: ElementsState, ElementsSlice, createElementsSlice, selectOrbitHeight — Orbital elements as the main thread knows them: loaded through the cache (R3 loader, R11 IndexedDB cache with the 2 h rule), then handed to…
 - `src/state/slices/location.ts` — exports: LocationSlice, LocationDeps, activeObserver, sameLocation, createLocationSlice — The observer and the instant it was (last) set.

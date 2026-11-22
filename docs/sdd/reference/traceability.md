@@ -684,6 +684,7 @@
 | FR-TRAJ-3 | `src/lib/arcReveal.test.ts`, `src/lib/legend.test.ts`, `tests/e2e/r48-trajectories.spec.ts` |
 | FR-TRAJ-4 | `src/lib/timeStripe.test.ts` |
 | FR-TRAJ-5 | `src/lib/timeStripe.test.ts`, `src/ui/components/live/touch.test.ts` |
+| FR-UPD-1 | `src/state/serviceWorker.test.ts` |
 | FR-VIS-3 | `src/ui/components/guide/PassNumbers.test.tsx` |
 | FR-VIS-5 | `src/state/effects.test.ts`, `src/state/slices/prefs.test.ts` |
 | FR-VIS-7 | `src/ui/components/passes/PassCard.test.tsx` |
