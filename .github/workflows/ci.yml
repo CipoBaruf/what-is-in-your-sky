@@ -21,6 +21,10 @@ env:
   # D-1215 (FR-CI-4, v2.16): eight since the typecheck, lint and unit stages left the
   # e2e shards for jobs of their own beside `build`; no job's timeout passes it.
   CI_PR_BUDGET_MIN: 8
+  # D-1313: the e2e shard's kill timeout, two minutes past the budget: shard 5 of 06f1fb19 ran
+  # 8 min 16 s and was cancelled at 8. The budget stays the target the step summary measures;
+  # `ci`'s `timeout-minutes` is this number written out.
+  CI_E2E_TIMEOUT_MIN: 10
   # D-1215 (FR-CI-4): the unit suite runs in this many parallel jobs; `unit`'s matrix is the
   # same number written out.
   CI_UNIT_SHARDS: 2
@@ -262,10 +266,10 @@ jobs:
     needs: [changes, build]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard. One shard
-    # over the budget still fails the run, so a suite that has outgrown its
-    # shards is a defect to fix rather than a budget to raise.
-    timeout-minutes: 8
+    # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard, is the target; D-1313:
+    # the kill is CI_E2E_TIMEOUT_MIN, so a shard a minute slow on a busy runner is not cancelled.
+    # A shard over the budget is still a defect to fix rather than a budget to raise.
+    timeout-minutes: 10
     strategy:
       # D-526: `fail-fast` off, so a red shard does not cancel the other one and
       # hide half the failures from the reader it is meant to inform.
