@@ -180,12 +180,13 @@ The header's Status and Input cells grew one paragraph per revision until they r
 On 2026-11-03 the paragraphs moved here unchanged, newest first, and the header kept the current line.
 When the plan is revised, the Status and Input lines it replaces go to the top of these lists.
 
-**Dates since the split:** 2026-11-18 (v0.26); 2026-11-18 (v0.25); 2026-11-05 (v0.23); 2026-11-04 (v0.22).
+**Dates since the split:** 2026-11-18 (v0.27); 2026-11-18 (v0.26); 2026-11-18 (v0.25); 2026-11-05 (v0.23); 2026-11-04 (v0.22).
 
 **Dates:** 2026-11-03 (v0.21); 2026-11-03 (v0.20); 2026-11-02 (v0.19); 2026-11-01 (v0.18); 2026-10-30 (v0.17); 2026-10-30 (v0.16); 2026-10-29 (v0.15); 2026-10-29 (v0.14.1); 2026-10-27 (v0.14); 2026-10-25 (v0.13); 2026-10-23 (v0.12); 2026-10-23 (v0.11); 2026-10-19 (v0.10); 2026-09-28 (v0.9.2); 2026-09-28 (v0.9.1); 2026-09-25 (v0.9); 2026-09-21 (v0.8); 2026-09-19 (v0.7.3); 2026-09-18 (v0.7.2); 2026-09-14 (v0.7.1); 2026-09-09 (v0.7); 2026-09-09 (v0.6.5); 2026-09-08 (v0.6.4); 2026-09-08 (v0.6.3); 2026-09-08 (v0.6.2); 2026-09-08 (v0.6.1); 2026-09-08 (v0.6); 2026-09-07 (v0.5); 2026-09-06 (v0.4.2); 2026-09-06 (v0.4.1); 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2)
 
 ### Status, newest first
 
+- **Draft v0.27 — for review.** Plans SPEC v2.16 "an answer first": the decisions are §2.54 (D-1173..D-1183, D-1209..D-1216), the tests §9.18, the build §11.10 and the delivery §16.37 (eight tasks, R198..R205, four waves, none waiting on v2.15, CI first), in `docs/sdd/phases/v2.16/plan.md`.
 - **Draft v0.26 — for review.**
   Plans SPEC v2.16 "an answer first": the decisions are §2.54 (D-1173..D-1183, D-1209..D-1211), the tests §9.18, the build §11.10 and the delivery §16.37 (six tasks, R198..R203, four waves, the first alongside v2.15), in `docs/sdd/phases/v2.16/plan.md`.
 - **Draft v0.25 — for review.**
@@ -266,6 +267,7 @@ When the plan is revised, the Status and Input lines it replaces go to the top o
 
 ### Input, newest first
 
+- `SPEC.md` v2.16: V216-1..V216-18 are fixed like the rows before them.
 - `SPEC.md` v2.16: V216-1..V216-14 are fixed like the rows before them.
 - `SPEC.md` v2.15: V215-1..V215-7 are fixed like the rows before them.
 - `SPEC.md` v2.14.2: V214-39..V214-44 are fixed like the rows before them.

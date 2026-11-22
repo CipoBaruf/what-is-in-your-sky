@@ -2114,6 +2114,29 @@ FR-DS-14	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30
 FR-NOW-1	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
 FR-NOW-2	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
 FR-NOW-3	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30	4.67 The live rail, ordered *(v3.0)*
+D-1224	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1225	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1226	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1227	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1228	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1229	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1230	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1231	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1232	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1233	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1234	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1235	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1236	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1237	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1238	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1239	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1240	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1241	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1242	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1243	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1244	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1245	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
+D-1246	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
@@ -2780,6 +2803,11 @@ SPEC §4.64	docs/sdd/phases/v3.0/spec.md#464-controls-v30
 SPEC §4.65	docs/sdd/phases/v3.0/spec.md#465-new-versions-v30
 SPEC §4.66	docs/sdd/phases/v3.0/spec.md#466-the-design-system-is-the-one-place-v30
 SPEC §4.67	docs/sdd/phases/v3.0/spec.md#467-the-live-rail-ordered-v30
+PLAN §2.55	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21
+PLAN §8.22	docs/sdd/phases/v3.0/plan.md#822-the-sky-first-v30-fr-land-fr-strip-fr-dark-fr-ctrl-fr-ds-1014-fr-now-fr-upd
+PLAN §9.19	docs/sdd/phases/v3.0/plan.md#919-v30-additions-fr-land-fr-strip-fr-dark-fr-ctrl-fr-ds-fr-now-fr-upd
+PLAN §11.11	docs/sdd/phases/v3.0/plan.md#1111-v30-build-fr-upd-1-fr-land-3
+PLAN §16.38	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246
 SPEC §12	docs/sdd/decisions.md#12-decision-log
 PLAN §11	docs/sdd/reference/build-and-deploy.md#11-build-deploy-tooling
 PLAN §11.1	docs/sdd/reference/build-and-deploy.md#111-runtime-dependencies
