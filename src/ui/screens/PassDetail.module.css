@@ -190,9 +190,12 @@
   overflow-wrap: anywhere;
 }
 
-/* `[Window] Polar Dome  [x] stars`: the live sheet's view row (`Live.module.css`), `[x] stars` at the row's end. */
+/* `[Window] Polar Dome  [x] stars`: the live sheet's view row (`Live.module.css`), `[x] stars` at the row's end.
+   R206: the sheet's body is a column that scrolls, so the row never shrinks in it: a wrapped `stars` keeps its line
+   and its block is over no row under it. */
 .viewRow {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
   column-gap: var(--cell);

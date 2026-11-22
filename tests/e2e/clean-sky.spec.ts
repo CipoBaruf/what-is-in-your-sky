@@ -435,6 +435,9 @@ for (const locale of LOCALES) {
         // FR-CLEAN-5: the sheet's groups in order, the box unmoved.
         await openSheet(page);
         expect(await sheetOrder(page)).toEqual(['pass-head', 'pass-times-row', 'pass-view-row', 'pass-follow', 'pass-facing', 'pass-share', 'pass-prose', 'app-footer']);
+        // FR-CLEAN-5, FR-CTRL-2: where `stars` wraps under the views the row grows by its line, so the option's block is over no row under it.
+        const spill = await page.getByTestId('pass-view-row').evaluate((el) => Math.max(...[...el.children].map((child) => child.getBoundingClientRect().bottom)) - el.getBoundingClientRect().bottom);
+        expect(spill, 'the view row holds its wrapped line').toBeLessThanOrEqual(0.5);
         await expect(page.getByTestId('pass-name-line')).toHaveText(new RegExp(`^${name.replace(/[()]/g, '\\$&')} · \\d{4}-\\d\\d-\\d\\d · UTC$`));
         await expect(dialog.getByRole('timer')).toHaveCount(1);
         const sheet = await expectSheetShape(page, size);
