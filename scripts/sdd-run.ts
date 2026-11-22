@@ -28,7 +28,7 @@ import { layoutLookup } from './sdd/ids';
 import { OPEN_PHASE, PHASES } from './sdd/splitMap';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, layoutTasksText, limitsFor, parseTasks, phaseTasksPath, tierFor, type Task } from './sdd/tasks';
-import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, CHECKS_WATCH_TIMEOUT_MS, type ChecksVerdict, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { addWorktree, branchAt, changedFiles, containsBase, mergeBase, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, editPullRequestBody, failureDigest, fetchOrigin, fileExistsAtRef, installDeps, listFilesAtRef, labelPullRequest, mergePullRequest, CHECKS_WATCH_TIMEOUT_MS, type ChecksVerdict, openPullRequests, push, readFileAtRef, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { budgetOverrun, LEDGER_PATH, readLedger, type LedgerEntry } from './sdd/ledger';
 import { totalTokens } from './sdd/parsers';
 import { checksRun, closedIds, consoleLogger, openTaskLog, prBody as shortPrBody, whatChanged, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
@@ -43,6 +43,8 @@ const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
 const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000 };
+/** D-1316: how many times one task brings its PR up to date with a moved base before it gives up. */
+const MAX_REFRESHES = 3;
 /** D-132: each concurrent task gets its own `vite preview` port, so no session's e2e runs against another's build. `E2E_PORT` in the driver's own environment moves the base, for a `--task` run beside a wave. */
 const E2E_BASE_PORT = Number(process.env['E2E_PORT'] ?? 4173);
 
@@ -459,8 +461,26 @@ async function runTask(status: TaskStatus, agent: Agent, slot: { index: number; 
     await labelPullRequest(dir, pr, OWNER_LABEL, logger);
     return finish('awaiting-owner', `CI green, review clean, \`Gate: owner\` — PR #${String(pr)} labelled \`${OWNER_LABEL}\``);
   }
-  if (checkedHead === null) return finish('failed', `PR #${String(pr)}'s head commit could not be read; not merged (D-1312)`);
-  if (!(await mergePullRequest(dir, pr, checkedHead, logger))) return finish('failed', `squash merge of ${String(checkedHead).slice(0, 8)} failed (a push after CI moves the head; D-1312)`);
+  // D-1316: a sibling merged since the checks ran → merge origin/main in (shared files resolved), push, watch again; at most MAX_REFRESHES times.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await withSharedGit(() => fetchOrigin(logger));
+    } catch (error) {
+      logger.line(`  fetch before the merge failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (!(await containsBase(dir, BASE, logger))) {
+      if (attempt > MAX_REFRESHES) return finish('failed', `${BASE} kept moving; PR #${String(pr)} was brought up to date ${String(MAX_REFRESHES)} times and is not merged (D-1316)`);
+      logger.line(`  ${BASE} moved since the checks ran; merging it into the branch (D-1316, ${String(attempt)} of ${String(MAX_REFRESHES)})`);
+      if (!(await mergeBase(dir, BASE, logger))) return finish('failed', `merging ${BASE} into the branch conflicted outside the shared files; PR #${String(pr)} is not merged (D-1316)`);
+      if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed after merging the base');
+      const refreshed = await watch();
+      if (refreshed === 'timeout') return ciTimeout();
+      if (refreshed !== 'green') return finish('failed', `CI is red after merging ${BASE} into the branch (D-1316)`);
+    }
+    if (checkedHead === null) return finish('failed', `PR #${String(pr)}'s head commit could not be read; not merged (D-1312)`);
+    if (await mergePullRequest(dir, pr, checkedHead, logger)) break;
+    if (attempt >= MAX_REFRESHES) return finish('failed', `squash merge of ${String(checkedHead).slice(0, 8)} failed ${String(attempt)} times (D-1312, D-1316)`);
+  }
   await withSharedGit(() => removeWorktree(dir, logger));
   return finish('merged', `PR #${String(pr)} squash-merged`);
 }

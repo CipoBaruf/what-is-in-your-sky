@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { COMMIT_TITLE_MAX } from './limits';
+import { resolveSharedConflicts, type ResolveIo } from './resolve';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -163,11 +164,50 @@ export async function changedFiles(dir: string, base: string, logger: Logger): P
   return ok(result) ? result.stdout.split('\n').filter(Boolean) : [];
 }
 
-/** §16.4 step 4. A conflict ends the task as failed (§16.5), so the rebase is aborted first. */
-export async function rebaseOnto(dir: string, base: string, logger: Logger): Promise<boolean> {
-  const result = await git(['rebase', base], { cwd: dir, logger });
+/** D-1315: the resolver's git calls and the repo's generators, run in the task's worktree. */
+export function gitResolveIo(dir: string, logger: Logger): ResolveIo {
+  const npx = (args: readonly string[]): Promise<boolean> => exec('npx', args, { cwd: dir, logger }).then(ok);
+  return {
+    conflicted: async () => (await git(['diff', '--name-only', '--diff-filter=U'], { cwd: dir, logger })).stdout.split('\n').filter(Boolean),
+    checkoutSide: async (path) => ok(await git(['checkout', '--theirs', '--', path], { cwd: dir, logger })) || ok(await git(['checkout', '--ours', '--', path], { cwd: dir, logger })),
+    regenerate: async () => (await npx(['tsx', 'scripts/sdd/ids.ts', '--write'])) && (await npx(['tsx', 'scripts/sdd/traceability.ts', '--write'])) && (await npx(['tsx', 'scripts/sdd-map.ts'])),
+    regenerateSnapshot: () => npx(['vitest', 'run', 'src/i18n/messages.test.ts', '-u']),
+    add: async (paths) => ok(await git(['add', '--', ...paths], { cwd: dir, logger })),
+  };
+}
+
+/** How many times one rebase may stop on a conflict the resolver settles (one per replayed commit). */
+const MAX_RESOLVED_STOPS = 50;
+
+/**
+ * §16.4 step 4. D-1315: a conflict only in the shared files (`resolve.ts`) is resolved and the
+ * rebase continues; any other conflict aborts it and ends the task as failed (§16.5).
+ */
+export async function rebaseOnto(dir: string, base: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<boolean> {
+  let result = await git(['rebase', base], { cwd: dir, logger });
+  for (let stops = 0; !ok(result) && stops < MAX_RESOLVED_STOPS; stops += 1) {
+    if (!(await resolveSharedConflicts(dir, 'ours', io))) break;
+    logger.line('  resolved the shared-file conflict (plan decisions kept on both sides, generated files regenerated; D-1315)');
+    result = await git(['rebase', '--continue'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } });
+  }
   if (ok(result)) return true;
   await git(['rebase', '--abort'], { cwd: dir, logger });
+  return false;
+}
+
+/** D-1316: whether `base` is already in HEAD's history, so a merge needs no refresh. */
+export async function containsBase(dir: string, base: string, logger: Logger): Promise<boolean> {
+  return ok(await git(['merge-base', '--is-ancestor', base, 'HEAD'], { cwd: dir, logger }));
+}
+
+/** D-1316: merges `base` into the branch (no force-push needed), the shared files resolved as in a rebase; any other conflict aborts. */
+export async function mergeBase(dir: string, base: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<boolean> {
+  if (ok(await git(['merge', '--no-edit', base], { cwd: dir, logger }))) return true;
+  if ((await resolveSharedConflicts(dir, 'theirs', io)) && ok(await git(['commit', '--no-edit'], { cwd: dir, logger, env: { GIT_EDITOR: 'true' } }))) {
+    logger.line(`  merged ${base} and resolved the shared-file conflict (D-1316)`);
+    return true;
+  }
+  await git(['merge', '--abort'], { cwd: dir, logger });
   return false;
 }
 
