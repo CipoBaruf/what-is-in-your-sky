@@ -124,6 +124,10 @@ export interface PassDetailProps {
 
 export const TICK_MS = 1000;
 
+/** FR-STRIP-4 (D-1233): the wide page's opening — the pass at 60×, held this long at the set before it rises again. */
+const LOOP_SPEED = 60;
+const LOOP_HOLD_MS = 2_000;
+
 export function PassDetail({ pass, observer, onClose, passList = null, inert = false }: PassDetailProps) {
   const t = useT();
   const locale = useLocale();
@@ -148,27 +152,28 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * is back; the countdown keeps the clock.
    */
   /*
-   * R187 (FR-WIDE-4, D-1100): the page's instant `t`, the shared time control's — it opens at now and follows the
-   * tick; on wide the time control and the rise, peak and set buttons move it (a move past the span moves the span,
+   * R187 (FR-WIDE-4, D-1100): the page's instant `t`, the shared time control's; on wide the time control and the rise, peak and set buttons move it (a move past the span moves the span,
    * so a pass days ahead is reachable). Compact draws no control, so there `t` is the tick (FR-WIDE-12).
    */
   /*
-   * v2.14.1 (FR-WIDE-3 as amended, D-1137): on wide the page opens paused at the pass's rise — the span reaches back to
-   * it for a pass already up — `Play` runs the marker along the drawn path, `[ now ]` returns to real time. A pass
-   * past the span is reached by `goTo` once, at open, as its rise button would (a move past the span moves the span).
+   * v2.14.1 (FR-WIDE-3 as amended, D-1137): on wide the page opens at the pass's rise — the span reaches back to it
+   * for a pass already up — and `[ now ]` returns to real time. A pass past the span is reached by `goTo` once, at
+   * open, as the page's write (a move past the span moves the span). R208 (FR-STRIP-4, D-1233): it opens playing,
+   * the pass at 60× over and over, until the reader pauses or moves the time; reduced motion opens paused at the rise.
    */
   const rise = pass.start.t;
   const baseSpan = useMemo<Span>(() => {
     const start = compact ? now : Math.min(now, rise);
     return { start, end: start + LIVE_WINDOW_MS };
   }, [now, rise, compact]);
-  const playback = usePlayback({ span: baseSpan, realNow: now, initial: compact ? null : rise, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone } });
+  const opening = compact ? undefined : { speed: LOOP_SPEED, loop: { fromMs: rise, toMs: pass.end.t, holdMs: LOOP_HOLD_MS } } as const;
+  const playback = usePlayback({ span: baseSpan, realNow: now, initial: compact ? null : rise, opening, shift: { maxDays: GLOBE_SPAN_DAYS, timeZone } });
   const { goTo } = playback;
   const openedAtRise = useRef(false);
   useEffect(() => {
     if (compact || openedAtRise.current) return;
     openedAtRise.current = true;
-    if (rise > baseSpan.end) goTo(rise);
+    if (rise > baseSpan.end) goTo(rise, 'page');
   }, [compact, rise, baseSpan.end, goTo]);
   const shownT = playback.t;
   const [drawnNow, setDrawnNow] = useState(shownT);
