@@ -29,6 +29,12 @@ for (const which of DESK_PAGES) {
       const layout = await openDeskPage(page, which);
       // v2.14.1 (D-1137): the pass page opens held at its pass's rise, the other two at now; the steps are from there.
       await expect(timeState(layout)).toHaveAttribute('data-state', which === 'pass' ? 'scrubbing' : 'watching', { timeout: 30_000 });
+      // R208 (FR-STRIP-4): the pass page is playing from that rise, so Space holds it before the steps are counted.
+      if (which === 'pass') {
+        await expect(playState(layout)).toHaveAttribute('data-playing', 'true');
+        await page.keyboard.press(' ');
+        await expect(playState(layout)).toHaveAttribute('data-playing', 'false');
+      }
       const now = await shownInstant(layout);
       await page.keyboard.press('.');
       await expect(timeState(layout)).toHaveAttribute('data-state', 'scrubbing');
@@ -41,6 +47,11 @@ for (const which of DESK_PAGES) {
 
       await page.keyboard.press(' ');
       const play = playState(layout);
+      // R208 (FR-STRIP-4, D-1253): the live page at real time is running, so there the first Space is the pause.
+      if (which === 'live') {
+        await expect(play).toHaveAttribute('data-playing', 'false');
+        await page.keyboard.press(' ');
+      }
       await expect(play).toHaveAttribute('data-playing', 'true');
       await page.keyboard.press(' ');
       await expect(play).toHaveAttribute('data-playing', 'false');
@@ -53,9 +64,9 @@ for (const which of DESK_PAGES) {
       await layout.locator('[data-slot="viewRow"]').getByRole('button', { name: /^(\[ )?Window( \])?$/ }).focus();
       await page.keyboard.press(' ');
       await expect.poll(() => shownView(layout), { timeout: 30_000 }).toBe('window');
-      // Nothing played: the instant is still real time (no playback row; the stars page's window has no time control) —
-      // on the pass page, still held at the rise and paused (v2.14.1, D-1137).
-      if (which === 'pass') await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+      // The key was the button's alone: the instant is still real time (no playback row; the stars page's window has no
+      // time control) — on the pass page, still playing as it opened (R208, FR-STRIP-4), where the page's Space pauses.
+      if (which === 'pass') await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
       else await expect(layout.getByTestId('live-play')).toHaveCount(0);
 
       await page.keyboard.press('?');

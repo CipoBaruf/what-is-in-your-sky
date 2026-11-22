@@ -3,6 +3,7 @@ import { advance, advanceAuto, autoRates, autoSpeed, spanFor, type Advance, type
 import { clampToSpan, DAY_MS, type Span } from '../../../../lib/timeStripe';
 import type { EpochMs } from '../../../../model';
 import { appStore, useAppStore } from '../../../../state';
+import { REDUCED_MOTION, useMediaQuery } from '../../../hooks/useMediaQuery';
 
 /**
  * R33 (FR-LIVE-4, FR-LIVE-5, D-81): the live page's instant. It is either
@@ -27,16 +28,26 @@ import { appStore, useAppStore } from '../../../../state';
  *
  * R187 (FR-WIDE-4, D-1100): with `shift` a move past the span moves the span with it — `goTo` and `shiftDays` — to
  * the 24 h from the noon before the new instant, up to `maxDays` from real time either way; `toNow` brings it back.
+ *
+ * R208 (FR-STRIP-4, D-1233): with `opening` a page opens playing. At 1× that is real time itself, read each second,
+ * nothing held (D-1253); with a loop it is the rise to the set, over again, until the reader's first write (D-1254).
  */
 
 /** Who made a write: the page itself (the jump, FR-TONIGHT-1) passes `'page'`; anything else is the reader's. */
 type WriteOrigin = 'page';
+
+/** A second of real time while it runs at 1× (D-1253). */
+const CLOCK_MS = 1_000;
+
+/** FR-STRIP-4 (D-1233): how a page opens playing — real time at 1×, or a loop between two instants at a speed. */
+export type Opening = { speed: 1; loop?: undefined } | { speed: Speed; loop: { fromMs: EpochMs; toMs: EpochMs; holdMs: number } };
 
 export interface Playback {
   /** The shown instant: real time, or the held one clamped to the span. */
   t: EpochMs;
   /** True while the shown instant is real time (no `t` in the link). */
   realTime: boolean;
+  /** True while time runs: playback, the opening's loop, or real time at 1× (R208). */
   playing: boolean;
   /** The chosen speed; with `'auto'`, the rate the last frame ran at while playing and the rate at `t` otherwise. */
   speed: Speed;
@@ -57,7 +68,7 @@ export interface Playback {
   /** R187 (FR-WIDE-4): the span the instant is in — the caller's, or the 24 h a move past it went to (`shift`). */
   span: Span;
   /** R187 (FR-WIDE-4): sets the held instant, moving the span where it falls outside it (with `shift`; a scrub otherwise). */
-  goTo: (t: EpochMs) => void;
+  goTo: (t: EpochMs, origin?: WriteOrigin) => void;
   /** R187 (FR-WIDE-4): moves the shown instant by `days` (an hour is 1/24), the span with it where it leaves it. */
   shiftDays: (days: number) => void;
   /** R141 (FR-TONIGHT-1): true once the reader has written the instant or tapped a time control; the frame loop and `'page'` writes never set it. */
@@ -92,6 +103,11 @@ export interface PlaybackOptions {
   realFrom?: () => EpochMs;
   /** R187 (FR-WIDE-4, D-1100): lets a move past the span move it, within `maxDays` of real time; the noon is the zone's. */
   shift?: { maxDays: number; timeZone: string | null };
+  /**
+   * R208 (FR-STRIP-4, D-1233): how the page opens. An `initial` that is not the loop's start is a link's and opens
+   * paused, and so does reduced motion, whatever is passed here.
+   */
+  opening?: Opening | undefined;
   /** Injected for tests; the window's by default. */
   raf?: { request: (callback: (wall: number) => void) => number; cancel: (id: number) => void };
 }
@@ -105,7 +121,7 @@ const windowRaf = {
 
 const NO_PASSES: readonly PassTimes[] = [];
 
-export function usePlayback({ span: base, realNow, initial, speed: speedOption, passes = NO_PASSES, end, realFrom, shift, raf = windowRaf }: PlaybackOptions): Playback {
+export function usePlayback({ span: base, realNow, initial, speed: speedOption, passes = NO_PASSES, end, realFrom, shift, opening, raf = windowRaf }: PlaybackOptions): Playback {
   // R187 (D-1100): the start of the 24 h a move past the caller's span went to; `null` is the caller's span.
   const [anchor, setAnchor] = useState<EpochMs | null>(null);
   const baseLength = base.end - base.start;
@@ -113,6 +129,13 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
   const auto = speedOption === 'auto';
   const [held, setHeldState] = useState<EpochMs | null>(initial);
   const [playing, setPlaying] = useState(false);
+  const still = useMediaQuery(REDUCED_MOTION);
+  // Read at open: a pass refined later does not restart a loop the reader is watching, or one they have stopped.
+  const [loop, setLoop] = useState(() => (!still && opening?.loop?.fromMs === initial ? (opening?.loop ?? null) : null));
+  const looping = loop !== null && opening?.loop !== undefined && !still;
+  // D-1253: real time running is nothing held, so the hash, the share link and the watching state read as real time.
+  const followsClock = opening !== undefined && opening.loop === undefined && !still;
+  const following = followsClock && held === null && !playing;
   const fixed = speedOption === undefined || auto ? null : speedOption;
   /*
    * R190 (FR-KEEP-1, FR-KEEP-2; D-1097): the rate `play` starts at is the saved `playSpeed`, read once; a speed the
@@ -120,7 +143,7 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
    * watching, whatever rate is saved.
    */
   const savePlaySpeed = useAppStore((s) => s.setPlaySpeed);
-  const [chosen, setChosen] = useState<Speed>(() => fixed ?? appStore.getState().playSpeed);
+  const [chosen, setChosen] = useState<Speed>(() => fixed ?? (looping ? opening.speed : appStore.getState().playSpeed));
   // A new fixed speed from the caller is adopted during render, as React's "a prop changed" pattern does.
   const [lastFixed, setLastFixed] = useState(fixed);
   if (fixed !== lastFixed) {
@@ -144,7 +167,9 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
   }, []);
   const readerWrote = useRef(false);
   const mark = useCallback((origin: WriteOrigin | undefined) => {
-    if (origin !== 'page') readerWrote.current = true;
+    if (origin === 'page') return;
+    readerWrote.current = true;
+    setLoop(null);
   }, []);
   const spanEnd = span.end;
 
@@ -186,34 +211,63 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
    * `realNow` in the deps the flag would be recomputed ten times a minute and go false the moment real time
    * caught up, which is exactly the state the release is reading.
    */
-  const realNowRef = useRef(realNow);
+  // D-1253: the second last read while following. It outlives a pause: the instant paused on is not ahead of real time.
+  const [clock, setClock] = useState<EpochMs | null>(null);
+  const live = clock === null ? realNow : Math.max(realNow, clock);
+  const realNowRef = useRef(live);
   useEffect(() => {
-    realNowRef.current = realNow;
-  }, [realNow]);
+    realNowRef.current = live;
+  }, [live]);
   // Read at the tap, so a new reader each render (an inline arrow) does not remake `play`.
   const realFromRef = useRef(realFrom);
   useEffect(() => {
     realFromRef.current = realFrom;
   }, [realFrom]);
+  const readClock = useCallback((): EpochMs => realFromRef.current?.() ?? Date.now(), []);
+  useEffect(() => {
+    if (!following) return;
+    const id = window.setInterval(() => {
+      setClock(readClock());
+    }, CLOCK_MS);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [following, readClock]);
   const aheadRef = useRef(initial !== null && initial > realNow);
   useEffect(() => {
     aheadRef.current = held !== null && held > realNowRef.current;
   }, [held]);
   useEffect(() => {
-    if (playing || held === null || !aheadRef.current || realNow < held) return;
+    if (playing || looping || held === null || !aheadRef.current || realNow < held) return;
     setPlaying(false);
     setHeld(null);
     setAnchor(null);
-  }, [realNow, held, playing, setHeld]);
+  }, [realNow, held, playing, looping, setHeld]);
 
+  const heldAtSetRef = useRef(0);
+  // The loop has its own end, so the span's moving with the tick does not restart its frames.
+  const runEnd = looping ? loop.toMs : spanEnd;
   useEffect(() => {
-    if (!playing) return;
+    if (!playing && !looping) return;
     let last: number | null = null;
     let id = 0;
     const frame = (wall: number): void => {
       if (last !== null) {
         const from = heldRef.current ?? realNow;
-        const stop = Math.min(spanEnd, stopRef.current);
+        if (looping) {
+          if (from < runEnd) setHeld(advance(from, wall - last, chosenRef.current, runEnd).t);
+          else {
+            heldAtSetRef.current += wall - last;
+            if (heldAtSetRef.current >= loop.holdMs) {
+              heldAtSetRef.current = 0;
+              setHeld(loop.fromMs);
+            }
+          }
+          last = wall;
+          id = raf.request(frame);
+          return;
+        }
+        const stop = Math.min(runEnd, stopRef.current);
         let next: Advance;
         // A stop that a new rule moved behind the instant (the bands late, the run already past the night) stops it where it is.
         if (from >= stop) next = { t: from, atEnd: true };
@@ -237,7 +291,7 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
     };
     // `realNow` is only the starting point when nothing is held; a tick must not restart the loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, auto, spanEnd, raf, setHeld, publishRate]);
+  }, [playing, looping, loop, auto, runEnd, raf, setHeld, publishRate]);
 
   const scrub = useCallback(
     (t: EpochMs, origin?: WriteOrigin) => {
@@ -257,29 +311,32 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
       // the span there is nowhere to go. R39 (F-36): the held instant is clamped here, not only on the way out. It is set unclamped — a link's
       // `t` before the span, or one real time has walked past — and the frame loop reads the held value itself,
       // so without this playback would run from outside the span while the page went on showing its edge.
-      const from = clampToSpan(heldRef.current ?? realFromRef.current?.() ?? realNow, span);
+      const from = clampToSpan(heldRef.current ?? realFromRef.current?.() ?? live, span);
       anchorStop(from);
       if (from >= Math.min(spanEnd, stopRef.current)) return;
       if (auto) publishRate(autoSpeed(from, passesRef.current));
       setHeld(from);
       setPlaying(true);
     },
-    [realNow, span, spanEnd, auto, setHeld, mark, anchorStop, publishRate],
+    [live, span, spanEnd, auto, setHeld, mark, anchorStop, publishRate],
   );
   const pause = useCallback(
     (origin?: WriteOrigin) => {
       mark(origin);
       setPlaying(false);
+      // D-1253: pausing real time holds the second on screen (FR-LIVE-5's pause at now).
+      if (following) setHeld(clampToSpan(realNowRef.current, span));
     },
-    [mark],
+    [mark, following, span, setHeld],
   );
   const setSpeed = useCallback(
     (next: Speed) => {
-      mark(undefined);
+      // Not `mark`: a speed is neither a pause nor a move, so the opening's loop goes on at it (D-1254).
+      readerWrote.current = true;
       setChosen(next);
       savePlaySpeed(next);
     },
-    [mark, savePlaySpeed],
+    [savePlaySpeed],
   );
   const toNow = useCallback(
     (origin?: WriteOrigin) => {
@@ -287,18 +344,19 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
       setPlaying(false);
       setHeld(null);
       setAnchor(null);
+      if (followsClock) setClock(readClock());
     },
-    [setHeld, mark],
+    [setHeld, mark, followsClock, readClock],
   );
   const maxDays = shift?.maxDays ?? null;
   const shiftZone = shift?.timeZone ?? null;
   const goTo = useCallback(
-    (target: EpochMs) => {
+    (target: EpochMs, origin?: WriteOrigin) => {
       if (maxDays === null) {
-        scrub(target);
+        scrub(target, origin);
         return;
       }
-      mark(undefined);
+      mark(origin);
       const reach = maxDays * DAY_MS;
       const at = Math.min(Math.max(target, realNowRef.current - reach), realNowRef.current + reach);
       const next = spanFor(at, base, span, shiftZone);
@@ -317,16 +375,17 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
     [goTo, span],
   );
 
-  const t = held === null ? realNow : clampToSpan(held, span);
+  // A loop is not clamped: a pass that rises inside the span may set past its end.
+  const t = held === null ? live : looping ? held : clampToSpan(held, span);
   return {
     t,
     span,
     goTo,
     shiftDays,
     realTime: held === null,
-    playing,
+    playing: playing || looping || following,
     // Paused (a scrub, `now`, the stop at the night's end) no frame runs, so the readout is the rate at `t` itself.
-    speed: auto ? (playing ? rate : autoSpeed(t, passes)) : chosen,
+    speed: auto ? (playing ? rate : autoSpeed(t, passes)) : following ? 1 : chosen,
     scrub,
     stepTo: scrub,
     play,

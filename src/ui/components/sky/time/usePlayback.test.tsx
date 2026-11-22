@@ -2,15 +2,17 @@
  * R33 (FR-LIVE-5, D-81): the playback loop under a scripted animation-frame
  * clock. A dropped frame loses no simulated time, the instant stops at the
  * end of the span, `now` returns to the tick, and a scrub during playback
- * moves the instant without stopping it.
+ * moves the instant without stopping it. R208 (FR-STRIP-4, D-1233): how a page opens — real time at 1×, the pass's
+ * loop, or paused under a link's instant and under reduced motion.
  */
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../../../tests/support/matchMedia';
 import { nightEnd, type Speed } from '../../../../lib/playback';
 import { HOUR_MS, type SkyBand, type Span } from '../../../../lib/timeStripe';
 import { DEFAULT_PLAY_SPEED } from '../../../../model';
 import { appStore } from '../../../../state';
-import { usePlayback } from './usePlayback';
+import { usePlayback, type Opening, type Playback } from './usePlayback';
 
 const NOW = Date.UTC(2026, 8, 11, 9, 30, 0);
 const span: Span = { start: NOW, end: NOW + 24 * HOUR_MS };
@@ -506,6 +508,201 @@ describe('usePlayback', () => {
       tick(100_000);
       expect(result.current.playing).toBe(false);
       expect(result.current.t).toBe(result.current.span.end);
+    });
+  });
+
+  describe('the opening (FR-STRIP-4, D-1233)', () => {
+    const LIVE: Opening = { speed: 1 };
+    const RISE = NOW + 2 * HOUR_MS;
+    const SET = RISE + 300_000;
+    const PASS: Opening = { speed: 60, loop: { fromMs: RISE, toMs: SET, holdMs: 2_000 } };
+    const spanAt = (now: number): Span => ({ start: now, end: now + 24 * HOUR_MS });
+    let media: MatchMediaStub;
+    beforeEach(() => {
+      media = stubMatchMedia(WIDE_PX);
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+      vi.setSystemTime(NOW);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+      media.restore();
+      appStore.setState({ playSpeed: DEFAULT_PLAY_SPEED });
+    });
+    const seconds = (n: number): void => {
+      act(() => {
+        vi.advanceTimersByTime(n * 1_000);
+      });
+    };
+    /** A live page's hook: the caller's tick stands still at `realNow` until the test moves it. */
+    const live = (initial: number | null = null) =>
+      renderHook(({ realNow }: { realNow: number }) => usePlayback({ span: spanAt(realNow), realNow, initial, opening: LIVE }), { initialProps: { realNow: NOW } });
+    const looped = () => {
+      const { raf, tick } = scriptedRaf();
+      const hook = renderHook(() => usePlayback({ span, realNow: NOW, initial: RISE, opening: PASS, raf }));
+      return { ...hook, tick };
+    };
+
+    it('FR-STRIP-4: live opens on real time running at 1×, by real seconds, nothing held, whatever speed is saved', () => {
+      appStore.setState({ playSpeed: 3600 });
+      const { result } = live();
+      expect(result.current).toMatchObject({ t: NOW, realTime: true, playing: true, speed: 1 });
+      seconds(3);
+      expect(result.current).toMatchObject({ t: NOW + 3_000, realTime: true, playing: true });
+      expect(result.current.readerWrote.current).toBe(false);
+      expect(appStore.getState().playSpeed).toBe(3600);
+    });
+
+    it('FR-STRIP-4: the first pause holds the second on screen, and the next tick of real time does not release it', () => {
+      const { result, rerender } = live();
+      seconds(7);
+      act(() => {
+        result.current.pause();
+      });
+      expect(result.current).toMatchObject({ t: NOW + 7_000, realTime: false, playing: false });
+      seconds(5);
+      rerender({ realNow: NOW + 10_000 });
+      // The span's start moves with the tick, so the held second reads as its start; it stays held.
+      expect(result.current).toMatchObject({ realTime: false, playing: false });
+    });
+
+    it('FR-STRIP-4: a move holds it paused, and now runs again from the second it is', () => {
+      const { result } = live();
+      act(() => {
+        result.current.scrub(NOW + HOUR_MS);
+      });
+      seconds(8);
+      expect(result.current).toMatchObject({ t: NOW + HOUR_MS, realTime: false, playing: false });
+      act(() => {
+        result.current.toNow();
+      });
+      expect(result.current).toMatchObject({ t: NOW + 8_000, realTime: true, playing: true, speed: 1 });
+    });
+
+    it('FR-STRIP-4: a pass page opens at 60× from the rise, holds 2 s at the set and starts again from the rise', () => {
+      appStore.setState({ playSpeed: 600 });
+      const { result, tick } = looped();
+      expect(result.current).toMatchObject({ t: RISE, realTime: false, playing: true, speed: 60 });
+      tick(0);
+      tick(1_000);
+      expect(result.current.t).toBe(RISE + 60_000);
+      tick(9_000);
+      expect(result.current).toMatchObject({ t: SET, playing: true });
+      tick(10_000);
+      tick(10_900);
+      expect(result.current.t).toBe(SET);
+      tick(11_000);
+      expect(result.current).toMatchObject({ t: RISE, playing: true });
+      tick(12_000);
+      expect(result.current.t).toBe(RISE + 60_000);
+      // Round again: the hold is whole each time.
+      tick(20_000);
+      tick(21_500);
+      expect(result.current.t).toBe(SET);
+      tick(22_000);
+      expect(result.current.t).toBe(RISE);
+      expect(result.current.readerWrote.current).toBe(false);
+      expect(appStore.getState().playSpeed).toBe(600);
+    });
+
+    it('FR-STRIP-4: the loop ends at the first pause; play then runs on past the set', () => {
+      const { result, tick } = looped();
+      tick(0);
+      tick(4_000);
+      act(() => {
+        result.current.pause();
+      });
+      expect(result.current).toMatchObject({ t: RISE + 240_000, playing: false });
+      act(() => {
+        result.current.play();
+      });
+      tick(5_000);
+      tick(9_000);
+      expect(result.current).toMatchObject({ t: RISE + 480_000, playing: true });
+    });
+
+    it.each([
+      ['a scrub', (p: Playback) => p.scrub(RISE + 90_000)],
+      ['a time button', (p: Playback) => p.goTo(RISE + 90_000)],
+      ['a key step', (p: Playback) => p.stepTo(RISE + 90_000)],
+    ])('FR-STRIP-4: %s during the hold ends the loop for good, paused where it landed', (_name, move) => {
+      const { result, tick } = looped();
+      tick(0);
+      tick(5_000);
+      act(() => {
+        move(result.current);
+      });
+      tick(8_000);
+      expect(result.current).toMatchObject({ t: RISE + 90_000, playing: false });
+    });
+
+    it('FR-STRIP-4: now ends the loop at real time', () => {
+      const { result } = looped();
+      act(() => {
+        result.current.toNow();
+      });
+      expect(result.current).toMatchObject({ t: NOW, realTime: true, playing: false });
+    });
+
+    it('FR-STRIP-4: a speed is neither, so the loop goes on at it', () => {
+      const { result, tick } = looped();
+      act(() => {
+        result.current.setSpeed(1);
+      });
+      tick(0);
+      tick(1_000);
+      expect(result.current).toMatchObject({ t: RISE + 1_000, playing: true, speed: 1 });
+    });
+
+    it('FR-STRIP-4: the page placing a rise past the span keeps the loop, and the span’s moving drops no frame', () => {
+      const { raf, tick } = scriptedRaf();
+      const rise = NOW + 30 * HOUR_MS;
+      const opening: Opening = { speed: 60, loop: { fromMs: rise, toMs: rise + 300_000, holdMs: 2_000 } };
+      const shift = { maxDays: 3, timeZone: 'Europe/London' };
+      const { result, rerender } = renderHook(({ realNow }: { realNow: number }) => usePlayback({ span: spanAt(realNow), realNow, initial: rise, opening, shift, raf }), {
+        initialProps: { realNow: NOW },
+      });
+      act(() => {
+        result.current.goTo(rise, 'page');
+      });
+      expect(result.current.span.end).toBeGreaterThan(rise);
+      tick(0);
+      rerender({ realNow: NOW + 1_000 });
+      tick(1_000);
+      expect(result.current).toMatchObject({ t: rise + 60_000, playing: true });
+    });
+
+    it('FR-STRIP-4: a pass that rises inside the span and sets past its end still reaches its set', () => {
+      const { raf, tick } = scriptedRaf();
+      const opening: Opening = { speed: 60, loop: { fromMs: span.end - 60_000, toMs: span.end + 120_000, holdMs: 2_000 } };
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: span.end - 60_000, opening, raf }));
+      tick(0);
+      tick(3_000);
+      expect(result.current.t).toBe(span.end + 120_000);
+    });
+
+    it.each([
+      ['live', LIVE],
+      ['a pass', PASS],
+    ])('FR-LIVE-9: a link’s instant opens %s paused, whatever is passed', (_name, opening) => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: NOW + HOUR_MS, opening }));
+      seconds(2);
+      expect(result.current).toMatchObject({ t: NOW + HOUR_MS, realTime: false, playing: false });
+    });
+
+    it.each([
+      ['live', LIVE, null],
+      ['a pass', PASS, RISE],
+    ])('FR-STRIP-4: reduced motion opens %s paused', (_name, opening, initial) => {
+      media.setReducedMotion(true);
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial, opening }));
+      seconds(2);
+      expect(result.current).toMatchObject({ t: initial ?? NOW, playing: false, speed: DEFAULT_PLAY_SPEED });
+    });
+
+    it('FR-LAND-2: with no opening, the compact page, real time stays on the caller’s tick', () => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null }));
+      seconds(3);
+      expect(result.current).toMatchObject({ t: NOW, playing: false });
     });
   });
 

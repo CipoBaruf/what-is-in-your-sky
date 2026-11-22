@@ -52,7 +52,7 @@ import { TimeTaps } from '../components/live/TimeTaps';
 import { TimeTrack, type TimeTrackProps } from '../components/live/TimeTrack';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePageShape } from '../components/live/usePageShape';
-import { usePlayback } from '../components/sky/time/usePlayback';
+import { usePlayback, type Opening } from '../components/sky/time/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
 import { useStarSource } from '../components/live/useStarSource';
@@ -92,8 +92,9 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
  * chart draws (D-160).
  *
  * **The instant (R33: FR-LIVE-4, FR-LIVE-5, FR-LIVE-9; D-81).** `usePlayback`
- * owns it: real time on the 10 s tick, or an instant held by the link, a
- * scrub or playback. The window's `now` is always real time: what is drawn
+ * owns it: real time on the 10 s tick (each second on wide, where it runs at
+ * 1×: R208, FR-STRIP-4), or an instant held by the link, a scrub or playback.
+ * The window's `now` is always real time: what is drawn
  * is the coming 24 h, whatever instant inside it is shown. The hash follows
  * the shown instant at most twice a second while scrubbing and never while
  * playing (D-171), so a reload or a share lands on the same moment.
@@ -361,7 +362,7 @@ const LIVE_NOTES: readonly LinkNoteKind[] = ['past', 'far'];
 /**
  * D-171: the hash follows the shown instant so a reload or a share lands on
  * it — written with `replaceState` (no history entry, no `hashchange`), at
- * most twice a second while scrubbing and never while playing, where it would
+ * most twice a second while scrubbing and never while playing from a held instant, where it would
  * be a write per frame for a URL nobody can copy in time. Real time is the
  * bare route, `#live`, not a link: a reload then opens on the saved observer
  * with its own label, where a `#live?lat=…` would rename it to coordinates
@@ -372,7 +373,8 @@ export const LIVE_ROUTE_HASH = '#live';
 function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, playing: boolean): void {
   const lastWrite = useRef<number | null>(null);
   useEffect(() => {
-    if (playing) return;
+    // Real time running (FR-STRIP-4) still writes its bare route: it is one value however long it runs.
+    if (playing && !realTime) return;
     const hash = realTime ? LIVE_ROUTE_HASH : liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: shown });
     const write = (): void => {
       if (window.location.hash === hash) return;
@@ -461,6 +463,9 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
   return <TimeTrack {...props} valueText={shownTimeText(m, locale, { ...shownTime, clock })} />;
 }
 
+/** FR-LAND-2, FR-STRIP-4 (D-1233): a desk opens on real time running at 1×. */
+const WIDE_OPENING: Opening = { speed: 1 };
+
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
 function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean>; visitHand: ChartHand | undefined }) {
   const t = useT();
@@ -522,12 +527,15 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
    * R144 (FR-TONIGHT-5, D-899, D-908): on compact playback runs at the automatic rate — 60× while a pass is up or
    * near, 600× between — read each frame from the visible passes, and stops at the end of the night the instant is
    * in (`nightEnd`, over the stripe's bands). Wide keeps the chosen speed and the span's end.
+   *
+   * R208 (FR-STRIP-4, FR-LAND-2; D-1233): wide opens playing — real time at 1×, each second — and is so again whenever
+   * it returns to real time; compact opens at real time on its tick.
    */
   const nightEndRule = useCallback((from: EpochMs) => nightEnd(bands, from), [bands]);
   // R144 (FR-TONIGHT-7): `▶` from real time starts at the second the headline shows, not at the 10 s tick before it.
   const clockRef = useRef<EpochMs>(now);
   const readClock = useCallback(() => clockRef.current, []);
-  const playback = usePlayback({ span, realNow: now, initial, ...(compact ? { speed: 'auto' as const, passes, end: nightEndRule, realFrom: readClock } : {}) });
+  const playback = usePlayback({ span, realNow: now, initial, ...(compact ? { speed: 'auto' as const, passes, end: nightEndRule, realFrom: readClock } : { opening: WIDE_OPENING }) });
   // The members are each `usePlayback`'s own callbacks; the object around them is new every render (R144 review).
   const { scrub, play, pause, toNow, readerWrote } = playback;
   const shown = playback.t;
@@ -675,7 +683,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   );
   /*
    * R77 (FR-WATCH-1, D-446): the page is watching while the shown instant is real time and scrubbing while it is
-   * held — paused, or playing at a speed. The state is that predicate over the instant `usePlayback` already
+   * held — paused, or playing from a held instant. The state is that predicate over the instant `usePlayback` already
    * holds, and nothing else: no flag in the store, nothing new in the hash. So a `#live?t=` link opens scrubbing
    * (its `t` is held from the first render), a bare `#live` opens watching, and no code here knows about states
    * beyond this line. `rowsFor` (D-447) is what the page renders in each.
@@ -887,8 +895,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     <div className={styles.indicatorLine}>
       {indicator}
       {has('clock') && (
-        <time className={styles.clock} data-testid="live-clock" dateTime={new Date(now).toISOString()}>
-          {formatClock(now, observer.timeZone, locale)}
+        <time className={styles.clock} data-testid="live-clock" dateTime={new Date(shown).toISOString()}>
+          {formatClock(shown, observer.timeZone, locale)}
         </time>
       )}
       {has('back-to-live') && <BackToLive onNow={playback.toNow} />}
@@ -1180,7 +1188,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       onFirstTouch={follow.firstTouch}
       // R189 (FR-WIDE-9, FR-WIDE-10): the desk keys over this page's view and instant, and the full screen's readout.
       keys={skyKeys(onChartView, playback)}
-      clock={{ t: shown, now, timeZone: observer.timeZone }}
+      clock={{ t: shown, now: playback.realTime ? shown : now, timeZone: observer.timeZone }}
       answer={answer}
       viewRow={viewRow}
       drawing={drawing}
