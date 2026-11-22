@@ -89,6 +89,7 @@ The generated worker is `dist/sw.js` at the site root, on its own 15 KB budget (
   A waiting worker sets a store flag; `UpdateBanner.tsx` offers "new version ready — reload"; the button posts `SKIP_WAITING` and reloads.
   Nothing swaps under a running live page.
   *(R25)* The flag is the `appUpdate` slice: `updateReady`, and `applyUpdate`, the function the registration puts there and the banner is the only caller of (D-126).
+  *(v3.0, R207)* `watchForUpdates` is what finds that worker in an open tab: `update()` once registered, on each return to view, and every 30 min while visible, by the clock (FR-UPD-1, D-1236, D-1250).
 - **Data requests are never intercepted.**
   With `runtimeCaching: []` Workbox generates no fetch handler for cross-origin requests, so CelesTrak and Open-Meteo responses reach the network or fail, and their caching stays in IndexedDB where FR-SAT-6 and FR-WX-5 put it.
   A test asserts the generated `sw.js` contains no `registerRoute` for those hosts.

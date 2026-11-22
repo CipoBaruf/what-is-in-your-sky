@@ -41,7 +41,7 @@ async function fakeWaitingWorker(page: import('@playwright/test').Page): Promise
       addEventListener: (type: string, listener: (event: Event) => void) => {
         listeners.set(type, [...(listeners.get(type) ?? []), listener]);
       },
-      register: () => Promise.resolve({ waiting: sessionStorage.getItem(key) === null ? waiting : null, addEventListener: () => undefined }),
+      register: () => Promise.resolve({ waiting: sessionStorage.getItem(key) === null ? waiting : null, update: () => Promise.resolve(), addEventListener: () => undefined }),
     };
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, get: () => container });
   }, APPLIED_KEY);
