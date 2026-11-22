@@ -94,7 +94,9 @@ export const helpText = (base: string): string => `sdd-run — the task driver (
   npm run sdd -- --wave --no-prune        keep merged branches and worktrees (FR-SDD-27); a wave prunes them first
   npm run sdd -- --wave --until-done      wave after wave, with --fix, until no task is ready (D-1314): a limit
                                           past the in-run wait sleeps to its reset + 2 min (at most 7 days), and
-                                          two waves in a row with nothing merged and the same failures stop it
+                                          two waves in a row with nothing merged and the same failures stop it;
+                                          with nothing ready it carries each open PR on once (D-1320), and exits 0
+                                          only when every unmerged task waits on the owner
 
   --tasks-file <path>                    read TASKS.md from a file instead of ${base}
                                           (--status and --dry-run only)

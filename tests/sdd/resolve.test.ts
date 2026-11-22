@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { containsBase, gitResolveIo, mergeBase, rebaseOnto } from '../../scripts/sdd/git';
+import { containsBase, gitResolveIo, mergeBase, pushUpToDate, rebaseOnto } from '../../scripts/sdd/git';
 import type { Logger } from '../../scripts/sdd/report';
 import { sharedKind, unionConflicts, type ResolveIo } from '../../scripts/sdd/resolve';
 
@@ -52,10 +52,23 @@ function forked(extra: Record<string, string> = {}): void {
   git('checkout', '-q', 'task');
 }
 
+let remote = '';
+
+/** A bare `origin` holding both branches, as GitHub does once the task's PR is open. */
+function published(): void {
+  remote = mkdtempSync(join(tmpdir(), 'sdd-origin-'));
+  execFileSync('git', ['init', '-q', '--bare', remote]);
+  git('remote', 'add', 'origin', remote);
+  git('push', '-q', 'origin', 'main', 'task');
+}
+const remoteHead = (branch: string): string => execFileSync('git', ['rev-parse', branch], { cwd: remote, encoding: 'utf8' }).trim();
+
 afterEach(() => {
   log.length = 0;
   if (repo) rmSync(repo, { recursive: true, force: true });
+  if (remote) rmSync(remote, { recursive: true, force: true });
   repo = '';
+  remote = '';
 });
 
 describe('D-1315: the shared-file resolver', () => {
@@ -101,6 +114,34 @@ describe('D-1316: bringing a published branch up to date by a merge', () => {
   it('aborts the merge on another conflict', async () => {
     forked({ 'src/a.ts': 'task\n' });
     expect(await mergeBase(repo, 'main', quiet, io())).toBe(false);
+    expect(git('status', '--porcelain')).toBe('');
+  });
+});
+
+describe('D-1320: a published branch is pushed only up to date with main', () => {
+  it('merges a moved main in, then pushes without force', async () => {
+    forked();
+    published();
+    expect(await pushUpToDate(repo, 'main', 'task', quiet, io()), log.join('\n')).toEqual({ outcome: 'pushed', merged: true });
+    expect(remoteHead('task')).toBe(git('rev-parse', 'HEAD').trim());
+    expect(git('merge-base', '--is-ancestor', 'main', 'origin/task')).toBe('');
+  });
+
+  it('pushes a branch already up to date with no merge', async () => {
+    forked();
+    git('merge', '-q', '--no-edit', '-X', 'theirs', 'main');
+    published();
+    commit('fix', { 'src/b.ts': 'fix\n' });
+    expect(await pushUpToDate(repo, 'main', 'task', quiet, io())).toEqual({ outcome: 'pushed', merged: false });
+    expect(remoteHead('task')).toBe(git('rev-parse', 'HEAD').trim());
+  });
+
+  it('pushes nothing when the merge conflicts outside the shared files', async () => {
+    forked({ 'src/a.ts': 'task\n' });
+    published();
+    const before = remoteHead('task');
+    expect(await pushUpToDate(repo, 'main', 'task', quiet, io())).toEqual({ outcome: 'conflict', merged: false });
+    expect(remoteHead('task')).toBe(before);
     expect(git('status', '--porcelain')).toBe('');
   });
 });

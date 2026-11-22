@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, CHECKS_WATCH_TIMEOUT_MS, checksExist, checksVerdict, DIGEST_WAIT_MS, mergeArgs, pullRequestTitle, runForHead, waitForChecks, watchChecks, type ExecResult } from '../../scripts/sdd/git';
+import { CHECKS_APPEAR_INTERVAL_MS, CHECKS_APPEAR_TIMEOUT_MS, CHECKS_WATCH_TIMEOUT_MS, checksExist, openPullRequests, checksVerdict, DIGEST_WAIT_MS, mergeArgs, pullRequestTitle, runForHead, waitForChecks, watchChecks, type ExecResult } from '../../scripts/sdd/git';
 import type { Logger } from '../../scripts/sdd/report';
 import { COMMIT_TITLE_MAX } from '../../scripts/sdd/limits';
 
@@ -124,11 +124,13 @@ describe('FR-SDD-20: pullRequestTitle', () => {
 
 const quiet: Logger = { path: null, line: () => undefined, raw: () => undefined, command: () => undefined } as unknown as Logger;
 
-/** A stand-in `gh` on PATH: `pr checks` lists one pending check, `pr view` prints a head, and `--watch` never finishes. */
-function withFakeGh<T>(work: () => Promise<T>): Promise<T> {
+const PENDING_GH = '#!/bin/sh\ncase "$*" in\n  *--watch*) exec sleep 30 ;;\n  "pr view"*) echo abc123 ;;\n  *) printf "build\\tpending\\t0\\turl\\n"; exit 8 ;;\nesac\n';
+
+/** A stand-in `gh` on PATH; by default `pr checks` lists one pending check, `pr view` prints a head, and `--watch` never finishes. */
+function withFakeGh<T>(work: () => Promise<T>, script = PENDING_GH): Promise<T> {
   const bin = mkdtempSync(join(tmpdir(), 'sdd-gh-'));
   const gh = join(bin, 'gh');
-  writeFileSync(gh, '#!/bin/sh\ncase "$*" in\n  *--watch*) exec sleep 30 ;;\n  "pr view"*) echo abc123 ;;\n  *) printf "build\\tpending\\t0\\turl\\n"; exit 8 ;;\nesac\n');
+  writeFileSync(gh, script);
   chmodSync(gh, 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path ?? ''}`;
@@ -155,5 +157,32 @@ describe('D-1311: the CI watch has a cap', () => {
 describe('D-1312: the merge names the head CI saw', () => {
   it('squashes with --match-head-commit', () => {
     expect(mergeArgs(42, 'abc123')).toEqual(['pr', 'merge', '42', '--squash', '--match-head-commit', 'abc123']);
+  });
+});
+
+/** A `gh` whose PR has no checks (the "no checks reported" exit 1) and whose `mergeable` is `state`. */
+const noChecksGh = (state: string): string =>
+  `#!/bin/sh\ncase "$*" in\n  *mergeable*) echo ${state} ;;\n  "pr view"*) echo abc123 ;;\n  "pr checks"*) echo "no checks reported on the 'r206' branch" >&2; exit 1 ;;\nesac\n`;
+
+describe('D-1320: no checks on a conflicting PR is not red CI', () => {
+  it('answers `conflicting` at once when GitHub calls the PR conflicting', async () => {
+    const clock = fakeClock();
+    const result = await withFakeGh(() => watchChecks(process.cwd(), 312, quiet, { now: clock.now, sleep: clock.sleep }), noChecksGh('CONFLICTING'));
+    expect(result).toEqual({ verdict: 'conflicting', head: 'abc123' });
+    expect(clock.slept()).toEqual([]);
+  });
+
+  it('keeps waiting for checks on a mergeable PR, and is red only at the deadline', async () => {
+    const clock = fakeClock();
+    const result = await withFakeGh(() => watchChecks(process.cwd(), 312, quiet, { now: clock.now, sleep: clock.sleep, timeoutMs: 30_000, intervalMs: 10_000 }), noChecksGh('MERGEABLE'));
+    expect(result).toEqual({ verdict: 'red', head: 'abc123' });
+    expect(clock.slept()).toEqual([10_000, 10_000, 10_000]);
+  });
+
+  it('reads each open PR\'s labels, so the loop leaves an owner-labelled PR alone', async () => {
+    const rows = JSON.stringify([{ number: 312, headRefName: 'r206', labels: [] }, { number: 313, headRefName: 'r209', labels: [{ name: 'needs-owner' }] }]);
+    const prs = await withFakeGh(() => openPullRequests(quiet), `#!/bin/sh\necho '${rows}'\n`);
+    expect(prs.get('r206')).toEqual({ number: 312, labels: [] });
+    expect(prs.get('r209')).toEqual({ number: 313, labels: ['needs-owner'] });
   });
 });
