@@ -1,0 +1,6 @@
+{
+  "src/ui/components/live/StepControls.tsx": {
+    "count": 6,
+    "reason": "R209 (D-1229): the six step buttons; R223 makes them TextButtons (FR-CTRL-16), so the window lane lists them."
+  }
+}

@@ -174,7 +174,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 `src/ui/components/primitives/TextButton.tsx` — An outlined box with its words: any action the reader taps that is words and not a field or a card.
 
-States: rest, hover, focus, on, disabled.
+States: rest, hover, focus, on, busy, disabled.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -182,6 +182,7 @@ States: rest, hover, focus, on, disabled.
 | `onClick` | `(event) => void` | What the tap does. |
 | `disabled` | `boolean` | A disabled control reads in the dim ink and takes no tap. |
 | `tone` | `'accent' \| 'dim' \| 'danger'` | The words’ ink, `--fg` left out: the accent, a secondary action’s dim ink, or the danger ink. |
+| `busy` | `boolean` | The action runs: `aria-busy`, the words pulse (held dim under reduced motion), the label and the box do not change; it keeps the focus and takes no press. |
 | `pressed` | `boolean` | An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle. |
 | `inline` | `boolean` | Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow. |
 | `bare` | `boolean` | The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play). |
@@ -308,7 +309,7 @@ States: rest, error.
 
 `src/ui/components/primitives/Field.tsx` — A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.
 
-States: rest, focus, disabled, error.
+States: rest, hover, focus, disabled, error.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -321,6 +322,83 @@ States: rest, focus, disabled, error.
 | `box` | `boolean` | A box ruled in `--rule` round the field, half a row by a cell inside and a third of a row on a short screen (the phone’s input group). |
 | `trailing` | `ReactNode` | A control or a field on the input’s row: a `Field` here joins this one’s grid, its control in the second column and its rows across both. |
 | `children` | `ReactNode` | The rows under the input: a validation message (a `Line`), a status, a pick list. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `Tag`
+
+`src/ui/components/primitives/Tag.tsx` — A label that cannot be pressed, its word in brackets in its tone: the only brackets in the app.
+
+States: rest.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `tone` | `'dim' \| 'accent' \| 'ok' \| 'warn' \| 'danger'` | The ink of the word and its brackets. |
+| `children` | `ReactNode` | The word. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `Close`
+
+`src/ui/components/primitives/Close.tsx` — The one close or dismiss, a bare × the host places at the top-right corner of what it closes; a declined offer is a TextButton.
+
+States: rest, hover, focus.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `onClose` | `() => void` | What closes. |
+| `label` | `string` | The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `PickRow`
+
+`src/ui/components/primitives/PickRow.tsx` — A row or card that opens or picks something from a set: no frame, the raised ground under the pointer, the accent line at the picked one’s left.
+
+States: rest, hover, focus, picked, disabled.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `picked` | `boolean` | Whether this is the picked one; the parent owns it. |
+| `onPick` | `() => void` | What a press means. |
+| `href` | `string` | Where the row goes: it is then a link, and the picked one is `aria-current`. |
+| `current` | `boolean` | A button whose picked row is the one shown of its set: `aria-current` in place of `aria-pressed`. |
+| `children` | `ReactNode` | What the row holds, its items a cell apart in their own inks. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `Disclosure`
+
+`src/ui/components/primitives/Disclosure.tsx` — A line that opens and closes what is under it, `▸ Tonight · 3`, the whole line the control.
+
+States: rest, hover, focus, on, disabled.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `open` | `boolean` | Whether what it opens is shown (`aria-expanded`); the parent owns it. |
+| `onToggle` | `() => void` | What a press means. |
+| `label` | `ReactNode` | The line’s words. |
+| `count` | `number` | How many it holds, after a middle dot. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `SettingRow`
+
+`src/ui/components/primitives/SettingRow.tsx` — A labelled row of a group: the dim label in its column and its control, the rows on one rhythm.
+
+States: rest.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `label` | `ReactNode` | The row’s words, in the `--label-col` column; the control carries its own name. |
+| `children` | `ReactNode` | The row’s control. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `StatusLine`
+
+`src/ui/components/primitives/StatusLine.tsx` — The one line of feedback under or after a control: progress, an error, success, or an empty list.
+
+States: rest, error.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `tone` | `'progress' \| 'failure' \| 'ok' \| 'empty'` | What it reports: dim progress or emptiness, success in `--ok` (all three `role="status"`), or a failure in `--danger` (`role="alert"`). |
+| `children` | `ReactNode` | The sentence. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `Stack`
@@ -372,7 +450,8 @@ States: rest.
 - a `z-index` written as a number;
 - an `outline` rule other than `outline-offset: var(--focus-offset-tight)` — the ring is `global.css`'s alone;
 - a `font-family` that is not `var(--font-mono)`;
-- a `::before`/`::after` whose `content` is `"[ "` or `" ]"` outside `src/ui/components/primitives/` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11);
+- a `::before`/`::after` whose `content` is `"[ "` or `" ]"` outside `Tag` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11), and brackets mean a label (FR-CTRL-14);
+- a bracketed word outside `Tag` — in JSX text, a catalog's string, a template that builds one or a stylesheet's `content` — over the file's count in `tests/styles/allow/<lane>.brackets.json` (D-1229);
 - in a `.tsx` file, an inline `style` whose value is a colour or a length literal (a custom property and a number measured at runtime are allowed).
 
 The exceptions are in `tests/styles/literals.allow.json`, one entry per file with its count and its reason. A count may only go down, and an entry whose count reaches zero is removed. A length a module needs is a token above or a cell count; a colour is a token; a stacking level is a layer.
@@ -380,6 +459,10 @@ The exceptions are in `tests/styles/literals.allow.json`, one entry per file wit
 ### Breakpoints: one source, one syntax (FR-DS-3)
 
 Every length in an `@media` or `@container` condition is one of `src/lib/layout.ts`'s exported thresholds — the widths, the three heights (`SIDEWAYS_MAX_HEIGHT_PX`, `SHORT_MAX_HEIGHT_PX`, `WIDE_SHORT_MAX_HEIGHT_PX`) and `FRAME_LEGEND_MIN_CELLS` — and `tests/styles/breakpoint.test.ts` holds each condition in the tree to one of them and to `tests/styles/breakpoints.json`'s listing. Every condition is written in range syntax: `(width >= 964px)`, `(height <= 700px)`, never `min-width` or `max-width`. That syntax sets the browser floor: **Safari 16.4, Chrome 104, Firefox 63**. Nothing in the tree targets anything older.
+
+### Every control is a primitive (FR-DS-11)
+
+No module outside `src/ui/components/primitives/` renders a `<button>`, an `<a>` or an `<input>` of its own. `tests/styles/controls.test.ts` holds what is left to `tests/styles/allow/<lane>.controls.json`, a file mapped to its count and a reason: a file over its count fails, and a count is only ever lowered.
 
 ### A prop, never an override (FR-DS-4)
 

@@ -4,15 +4,21 @@
  * but `tokens.css` and every inline `style={{ … }}` in `src/ui/**\/*.tsx` and
  * returns each literal with its line, by kind, so `literals.test.ts` can hold
  * every file to its allow-list count and say which lines are the matches.
+ * R209 (FR-CTRL-14, FR-DS-2 as amended; D-1229): and every bracketed word
+ * outside `Tag`, for the lanes' ratchet (`ratchet.ts`).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import ts from 'typescript';
 
 const SRC_DIR = 'src';
 const UI_DIR = 'src/ui';
 export const TOKENS_FILE = 'src/ui/styles/tokens.css';
 export const PRIMITIVES_DIR = 'src/ui/components/primitives';
 export const ALLOW_PATH = 'tests/styles/literals.allow.json';
+/** FR-CTRL-14: brackets mean a label, and `Tag` is the one thing that writes them. */
+export const TAG_COMPONENT = `${PRIMITIVES_DIR}/Tag.tsx`;
+export const TAG_STYLESHEET = `${PRIMITIVES_DIR}/Tag.module.css`;
 
 type Kind = 'colour' | 'length' | 'z-index' | 'outline' | 'font-family' | 'bracket' | 'inline-style';
 
@@ -28,6 +34,12 @@ interface Allowance {
 }
 
 export type AllowList = Record<string, Allowance>;
+
+/** One match of a ratchet's rule. */
+export interface Hit {
+  line: number;
+  text: string;
+}
 
 export function walk(dir: string, keep: (path: string) => boolean): string[] {
   return readdirSync(dir)
@@ -95,7 +107,6 @@ const lineOf = (text: string, index: number): number => text.slice(0, index).spl
 /** Every literal D-701 names in one stylesheet. */
 export function scanStylesheet(path: string, css: string = readFileSync(path, 'utf8')): Literal[] {
   const text = prepared(css);
-  const inPrimitives = path.startsWith(`${PRIMITIVES_DIR}/`);
   const found: Literal[] = [];
   // A declaration ends at `;` or at the block's `}` (the last one in a block may have no `;`).
   for (const m of text.matchAll(/([a-z-]+)\s*:\s*([^;{}]*?)\s*(?:;|(?=\}))/g)) {
@@ -111,7 +122,7 @@ export function scanStylesheet(path: string, css: string = readFileSync(path, 'u
     if (property === 'z-index' && /^-?\d/.test(value)) at('z-index', value);
     if (property.startsWith('outline') && `${property}: ${value}` !== 'outline-offset: var(--focus-offset-tight)') at('outline', value);
     if (property === 'font-family' && value !== 'var(--font-mono)') at('font-family', value);
-    if (property === 'content' && !inPrimitives && /^(['"])(\[ | \])\1$/.test(value)) at('bracket', value);
+    if (property === 'content' && path !== TAG_STYLESHEET && /^(['"])(\[ | \])\1$/.test(value)) at('bracket', value);
   }
   return found;
 }
@@ -182,6 +193,73 @@ export function scanComponent(path: string, source: string = readFileSync(path, 
     }
   }
   return found;
+}
+
+/** A module that ships: not a test. */
+export const isShipped = (path: string): boolean => !/\.(test|spec)\.tsx?$/.test(path);
+
+/** A module's tree and the line of a node in it. */
+export function parsed(path: string, text: string): { source: ts.SourceFile; line: (node: ts.Node) => number } {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  return { source, line: (node) => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 };
+}
+
+/** What stands for an interpolation, a nested element or an expression when a text is read for brackets. */
+const SLOT = '\uFFFC';
+const BRACKETED = /\[[^[\]\n]+\]/g;
+/** D-1229's `[${…}]`: an interpolation inside brackets with no `=`, which an attribute selector has. */
+const BUILT = /\[[^[\]=\n]*\uFFFC[^[\]=\n]*\]/g;
+
+const templateText = (node: ts.TemplateExpression): string => node.head.text + node.templateSpans.map((span) => SLOT + span.literal.text).join('');
+
+/** The strings a JSX child can draw as written: a literal, or either side of a condition. */
+function drawnStrings(node: ts.Expression | undefined): string[] {
+  if (!node) return [];
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [node.text];
+  if (ts.isParenthesizedExpression(node)) return drawnStrings(node.expression);
+  if (ts.isConditionalExpression(node)) return [...drawnStrings(node.whenTrue), ...drawnStrings(node.whenFalse)];
+  if (ts.isBinaryExpression(node)) return drawnStrings(node.right);
+  return [];
+}
+
+/**
+ * D-1229, D-1257: a bracketed word outside `Tag` — in JSX text, in a catalog's
+ * string, in a template that builds `[${…}]`, and in a stylesheet's `content`,
+ * which is how most of the day's tags draw theirs.
+ */
+export function scanBrackets(path: string, text: string = readFileSync(path, 'utf8')): Hit[] {
+  if (path === TAG_COMPONENT || path === TAG_STYLESHEET) return [];
+  const found: Hit[] = [];
+  if (path.endsWith('.css')) {
+    const css = withoutComments(text);
+    for (const m of css.matchAll(/(?<![\w-])content\s*:\s*(['"])([^'"\n]*)\1/g)) if (/[[\]]/.test(m[2] ?? '')) found.push({ line: lineOf(css, m.index), text: m[0] });
+    return found;
+  }
+  const { source, line } = parsed(path, text);
+  const inCatalog = path.startsWith('src/i18n/');
+  const add = (node: ts.Node, words: string, pattern: RegExp): void => {
+    for (const m of words.matchAll(pattern)) found.push({ line: line(node), text: m[0].replaceAll(SLOT, '…') });
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
+      // The children as one line, so `[{word}]` is one bracketed word.
+      add(node, node.children.map((child) => (ts.isJsxText(child) ? child.text : SLOT)).join(''), BRACKETED);
+      for (const child of node.children) if (ts.isJsxExpression(child)) for (const words of drawnStrings(child.expression)) add(child, words, BRACKETED);
+    } else if (ts.isTemplateExpression(node)) {
+      add(node, templateText(node), inCatalog ? BRACKETED : BUILT);
+    } else if (inCatalog && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))) {
+      add(node, node.text, BRACKETED);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+/** What the bracket rule reads: the stylesheets, and the shipped modules of the screens, the catalogs and what formats for them. */
+export function bracketFiles(): string[] {
+  const modules = [UI_DIR, 'src/i18n', 'src/lib'].flatMap((dir) => walk(dir, (path) => /\.tsx?$/.test(path) && isShipped(path)).map(posix));
+  return [...stylesheets(), ...modules];
 }
 
 /** Every file the test reads, with its literals; files with none included, so a stale allow entry is seen. */
