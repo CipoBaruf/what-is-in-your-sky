@@ -107,6 +107,15 @@ describe('FR-MEAS-3: sending', () => {
     expect(bodies(env.beacon)).toEqual([{ name: 'open', detail: 'home', ...context }]);
   });
 
+  it('FR-MEAS-2: watch leaves once, with no detail', () => {
+    const env = envWith();
+    const count = createMeasure(env, context);
+    count('watch');
+    count('watch');
+    (count as (name: string, detail?: string) => void)('watch', 'pass');
+    expect(bodies(env.beacon)).toEqual([{ name: 'watch', ...context }]);
+  });
+
   it('FR-MEAS-1: a detail outside the list never leaves, even past the type', () => {
     const env = envWith();
     const count = createMeasure(env, context) as (name: string, detail?: string) => void;

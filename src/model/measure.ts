@@ -11,6 +11,7 @@ export const EVENTS = {
   device_refused: ['denied', 'unavailable', 'timeout'],
   search_empty: [],
   door: ['satellites', 'stars', 'live'],
+  watch: [],
   pass_open: [],
   live_open: [],
   stars_open: [],

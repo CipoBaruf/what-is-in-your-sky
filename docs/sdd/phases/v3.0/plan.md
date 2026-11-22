@@ -226,6 +226,13 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   (FR-DARK-2, D-1234, D-1139 superseded.) With every rung drawn the cut has no caller, so `drawnRungs`, `planetsDrawn`, the scene's twilight and day branches and the globe's day cut and fade (`dayStars`) are deleted rather than left returning a constant; a highlighted pass has its landmark at every hour.
   Two readers said what the eye can find rather than what is drawn, and keep saying it from the Sun's altitude: the stars page's `Stars from 20:25` and the home door's brightest star, both none of it while the Sun is above 0°; in twilight the door's star is no longer held to the first two rungs.
 
+- **D-1259 — The watch row stands where the door row stood, and is not split.** *(R210)*
+  (FR-MEAS-6 as amended, D-1242.) The rows are `example_shown`, `where_shown`, `place_set`, `watch` and `pass_open`; `watch` takes no detail, so it has one line.
+  A window that spans the release sums both sides under the one base and ignores the stored `door` rows; the header reads "share of open, any route".
+- **D-1260 — The data model gains the event list.** *(R210)*
+  (D-1242, D-1243.) R210 names an event list in `docs/sdd/reference/data-model.md` and that page had none, so it is written there whole, from `EVENTS`.
+  A task that adds or removes a name or a detail (R212, R222) edits that table with it, as D-1243 asks.
+
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
 R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-1306, R226 D-1307..D-1308, R227 D-1309..D-1311.**

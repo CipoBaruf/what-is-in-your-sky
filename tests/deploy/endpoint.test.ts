@@ -52,6 +52,13 @@ describe('collect (FR-MEAS-4)', () => {
     expect(writes).toEqual([event]);
   });
 
+  it('FR-MEAS-2: writes watch, which takes no detail', async () => {
+    const event: MeasureEvent = { name: 'watch', visit: 'first', layout: 'wide', lang: 'en', id: '0123456789abcdef' };
+    const { response, writes } = await run(post(JSON.stringify(event)));
+    await expectSilent(response);
+    expect(writes).toEqual([event]);
+  });
+
   it('keeps a body of exactly EVENT_MAX_BYTES and drops one byte more', async () => {
     const base = JSON.stringify(EVENT);
     const padded = (size: number) => base.slice(0, -1) + ' '.repeat(size - base.length) + '}';
@@ -84,6 +91,7 @@ describe('collect (FR-MEAS-4)', () => {
     ['an unknown name', JSON.stringify({ ...EVENT, name: 'page_view' })],
     ['an unknown detail', JSON.stringify({ ...EVENT, detail: 'typed text' })],
     ['a detail on a name that takes none', JSON.stringify({ ...EVENT, name: 'pass_open' })],
+    ['FR-MEAS-2: a detail on watch', JSON.stringify({ ...EVENT, name: 'watch' })],
     ['FR-MEAS-2: the removed when_shown', JSON.stringify({ ...EVENT, name: 'when_shown', detail: undefined })],
     ['FR-MEAS-2: the removed what_shown', JSON.stringify({ ...EVENT, name: 'what_shown', detail: undefined })],
     ['a seventh field', JSON.stringify({ ...EVENT, path: '/secret' })],
