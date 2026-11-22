@@ -214,6 +214,8 @@ const templateText = (node: ts.TemplateExpression): string => node.head.text + n
 
 /** A bracketed word in a prop, where a selector may stand too: not one with an `=`, or of a `data-` or `aria-` attribute. */
 const BRACKETED_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]+\]/g;
+/** `BUILT` in a prop, with `BRACKETED_PROP`'s exemption (D-1257). */
+const BUILT_PROP = /\[(?!(?:data|aria)-)[^[\]=\n]*￼[^[\]=\n]*\]/g;
 
 /**
  * The strings a JSX child or prop can draw as written: a literal, a template's parts (one round an interpolation is
@@ -261,19 +263,25 @@ export function scanBrackets(path: string, text: string = readFileSync(path, 'ut
   const add = (node: ts.Node, words: string, pattern: RegExp): void => {
     for (const m of words.matchAll(pattern)) found.push({ line: line(node), text: m[0].replaceAll(SLOT, '…') });
   };
+  // Whether what is read stands in a prop: an attribute opens one, and an element's children close it.
+  let inProp = false;
   const visit = (node: ts.Node): void => {
+    const outer = inProp;
     if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
+      inProp = false;
       // The children as one line, so `[{word}]` is one bracketed word.
       add(node, node.children.map((child) => (ts.isJsxText(child) ? child.text : SLOT)).join(''), BRACKETED);
       for (const child of node.children) if (ts.isJsxExpression(child)) for (const words of drawnStrings(child.expression)) add(child, words, BRACKETED);
     } else if (ts.isJsxAttributeLike(node)) {
+      inProp = true;
       for (const words of drawnStrings(handed(node))) add(node, words, BRACKETED_PROP);
     } else if (ts.isTemplateExpression(node)) {
-      add(node, templateText(node), inCatalog ? BRACKETED : BUILT);
+      add(node, templateText(node), inCatalog ? BRACKETED : inProp ? BUILT_PROP : BUILT);
     } else if (inCatalog && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))) {
       add(node, node.text, BRACKETED);
     }
     ts.forEachChild(node, visit);
+    inProp = outer;
   };
   visit(source);
   return found;
