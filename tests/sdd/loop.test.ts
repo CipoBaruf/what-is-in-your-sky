@@ -2,7 +2,7 @@
  * D-1314: `--until-done`'s decision after each wave.
  */
 import { describe, expect, it } from 'vitest';
-import { failuresOf, INITIAL_LOOP_STATE, LOOP_RESET_MARGIN_MS, LOOP_SLEEP_MAX_MS, LOOP_UNKNOWN_RESET_MS, nextLoopStep, type WaveResult } from '../../scripts/sdd/loop';
+import { failuresOf, INITIAL_LOOP_STATE, LOOP_RESET_MARGIN_MS, LOOP_SLEEP_MAX_MS, LOOP_UNKNOWN_RESET_MS, nextLoopStep, stuckTasks, type LoopTask, type WaveResult } from '../../scripts/sdd/loop';
 
 const now = Date.UTC(2026, 10, 21, 22, 0);
 const wave = (reports: WaveResult['reports']): WaveResult => ({ planned: reports.length, reports });
@@ -85,5 +85,52 @@ describe('D-1317: the loop skips what will not move', () => {
 
   it('stops with exit 1 when every remaining ready task is skipped', () => {
     expect(nextLoopStep({ planned: 0, reports: [], skippedReady: ['R7', 'R8'] }, INITIAL_LOOP_STATE, now).step).toMatchObject({ action: 'stop', code: 1, reason: expect.stringMatching(/every remaining ready task is skipped: R7, R8/) });
+  });
+});
+
+describe('D-1320: an open PR is carried on before the loop stops', () => {
+  const r206: LoopTask = { id: 'R206', state: 'in review (PR #312)', missingDeps: [], owner: false };
+  const r209: LoopTask = { id: 'R209', state: 'blocked', missingDeps: ['R206'], owner: false };
+  const idle = (extra: Partial<WaveResult> = {}): WaveResult => ({ planned: 0, reports: [], ...extra });
+
+  it('retries a task whose PR is open when nothing is ready, then counts it retried', () => {
+    const { step, state } = nextLoopStep(idle({ retryable: ['R206'], unmerged: [r206, r209] }), INITIAL_LOOP_STATE, now);
+    expect(step).toMatchObject({ action: 'retry', ids: ['R206'] });
+    expect(state.retried).toEqual(['R206']);
+  });
+
+  it('stops with exit 1 and the list once the retry is spent and the PR is still open', () => {
+    const after = { ...INITIAL_LOOP_STATE, retried: ['R206'] };
+    const { step } = nextLoopStep(idle({ retryable: ['R206'], unmerged: [r206, r209] }), after, now);
+    expect(step).toMatchObject({ action: 'stop', code: 1 });
+    expect(step.action === 'stop' && step.reason).toMatch(/R206 in review \(PR #312\); R209 blocked on R206/);
+  });
+
+  it('does not retry a skipped task', () => {
+    const { step } = nextLoopStep(idle({ retryable: ['R206'], unmerged: [r206] }), { ...INITIAL_LOOP_STATE, skip: ['R206'] }, now);
+    expect(step).toMatchObject({ action: 'stop', code: 1 });
+  });
+
+  it('keeps the retry through a wave that merged something, and gives it back when a limit cut it short', () => {
+    const retried = { ...INITIAL_LOOP_STATE, retried: ['R206'] };
+    expect(nextLoopStep(wave([{ id: 'R1', outcome: 'merged' }]), retried, now).state.retried).toEqual(['R206']);
+    expect(nextLoopStep(wave([{ id: 'R206', outcome: 'limit', resetsAt: now + 60_000 }]), retried, now).state.retried).toEqual([]);
+  });
+
+  it('exits 0 when the phase is merged, or every task left waits on the owner', () => {
+    expect(nextLoopStep(idle({ unmerged: [] }), INITIAL_LOOP_STATE, now).step).toMatchObject({ action: 'stop', code: 0 });
+    const owner = { ...r206, owner: true };
+    const { step } = nextLoopStep(idle({ unmerged: [owner, r209] }), INITIAL_LOOP_STATE, now);
+    expect(step).toMatchObject({ action: 'stop', code: 0 });
+    expect(step.action === 'stop' && step.reason).toMatch(/waits on the owner \(R206, R209\)/);
+  });
+
+  it('counts a task blocked only on owner tasks, transitively, as the owner\'s', () => {
+    const a: LoopTask = { id: 'A', state: 'owner-driven', missingDeps: [], owner: true };
+    const b: LoopTask = { id: 'B', state: 'blocked', missingDeps: ['A'], owner: false };
+    const c: LoopTask = { id: 'C', state: 'blocked', missingDeps: ['B'], owner: false };
+    const d: LoopTask = { id: 'D', state: 'blocked', missingDeps: ['B', 'E'], owner: false };
+    const e: LoopTask = { id: 'E', state: 'failed', missingDeps: [], owner: false };
+    expect(stuckTasks([a, b, c, d, e]).map((task) => task.id)).toEqual(['D', 'E']);
   });
 });

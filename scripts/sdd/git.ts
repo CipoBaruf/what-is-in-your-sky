@@ -113,17 +113,29 @@ export async function remoteBranches(logger: Logger): Promise<Set<string>> {
   return names;
 }
 
+/** An open PR: its number and its label names (D-1320 reads `needs-owner`). */
+export interface OpenPullRequest {
+  number: number;
+  labels: readonly string[];
+}
+
 /** Open PRs by head branch. */
-export async function openPullRequests(logger: Logger): Promise<Map<string, number>> {
-  const result = await gh(['pr', 'list', '--state', 'open', '--json', 'number,headRefName', '--limit', '100'], { logger });
-  const byBranch = new Map<string, number>();
+export async function openPullRequests(logger: Logger): Promise<Map<string, OpenPullRequest>> {
+  const result = await gh(['pr', 'list', '--state', 'open', '--json', 'number,headRefName,labels', '--limit', '100'], { logger });
+  const byBranch = new Map<string, OpenPullRequest>();
   if (!ok(result)) {
     logger.line(`  (gh pr list failed, treating the remote as having no open PRs: ${result.stderr.trim().split('\n')[0] ?? ''})`);
     return byBranch;
   }
-  const rows = JSON.parse(result.stdout) as { number: number; headRefName: string }[];
-  for (const row of rows) byBranch.set(row.headRefName, row.number);
+  const rows = JSON.parse(result.stdout) as { number: number; headRefName: string; labels?: { name: string }[] }[];
+  for (const row of rows) byBranch.set(row.headRefName, { number: row.number, labels: (row.labels ?? []).map((label) => label.name) });
   return byBranch;
+}
+
+/** D-1320: `git worktree add` for a branch already on origin (an open PR the loop retries with no kept worktree). */
+export async function addWorktreeFromRemote(dir: string, branch: string, logger: Logger): Promise<void> {
+  const result = await git(['worktree', 'add', '-B', branch, dir, `origin/${branch}`], { logger });
+  if (!ok(result)) throw new Error(`git worktree add failed: ${result.stderr.trim()}`);
 }
 
 /** §16.4 step 2: a fresh worktree from `origin/main`, never from the current checkout. */
@@ -215,6 +227,23 @@ export async function mergeBase(dir: string, base: string, logger: Logger, io: R
 
 export async function push(dir: string, branch: string, logger: Logger): Promise<boolean> {
   return ok(await git(['push', '-u', 'origin', branch], { cwd: dir, logger }));
+}
+
+/** D-1320: how a push of a published branch went: pushed, the base merge conflicted outside the shared files, or the push failed. */
+export type RefreshOutcome = 'pushed' | 'conflict' | 'push-failed';
+
+/**
+ * D-1320: every push of a branch that already has a PR goes through here — after a fix session, before the
+ * merge (D-1316) and when GitHub calls the PR conflicting. `base` not in the branch → it is merged in (the
+ * D-1315 resolver, main's side first); then the branch is pushed, never forced. The caller fetches first.
+ */
+export async function pushUpToDate(dir: string, base: string, branch: string, logger: Logger, io: ResolveIo = gitResolveIo(dir, logger)): Promise<{ outcome: RefreshOutcome; merged: boolean }> {
+  let merged = false;
+  if (!(await containsBase(dir, base, logger))) {
+    if (!(await mergeBase(dir, base, logger, io))) return { outcome: 'conflict', merged };
+    merged = true;
+  }
+  return { outcome: (await push(dir, branch, logger)) ? 'pushed' : 'push-failed', merged };
 }
 
 /**
@@ -317,8 +346,8 @@ export async function waitForChecks(exists: () => Promise<boolean>, waits: Check
 /** D-1311: the longest `gh pr checks --watch` may run; a check stuck pending (a Workers Builds outage) ends the task `ci-timeout`. */
 export const CHECKS_WATCH_TIMEOUT_MS = 40 * 60_000;
 
-/** D-1311: how one watch of the PR's checks ended. */
-export type ChecksVerdict = 'green' | 'red' | 'timeout';
+/** D-1311: how one watch of the PR's checks ended. D-1320: `conflicting` — GitHub runs no CI on a PR that conflicts with its base. */
+export type ChecksVerdict = 'green' | 'red' | 'timeout' | 'conflicting';
 
 /** `exec`'s 124 is its own kill at `timeoutMs`; every other non-zero exit is a red or unreadable run. */
 export const checksVerdict = (result: ExecResult): ChecksVerdict => (result.code === 0 ? 'green' : result.code === 124 ? 'timeout' : 'red');
@@ -330,14 +359,31 @@ async function pullRequestHead(dir: string, pr: number, logger: Logger): Promise
   return ok(head) && sha !== '' ? sha : null;
 }
 
+/** D-1320: GitHub's `mergeable` for the PR — `MERGEABLE`, `CONFLICTING` or `UNKNOWN` (still computing) — or `null` when `gh` cannot say. */
+async function pullRequestMergeable(dir: string, pr: number, logger: Logger): Promise<string | null> {
+  const result = await gh(['pr', 'view', String(pr), '--json', 'mergeable', '--jq', '.mergeable'], { cwd: dir, logger });
+  const value = result.stdout.trim();
+  return ok(result) && value !== '' ? value : null;
+}
+
 /**
  * §16.4 step 5: CI watched to completion; red CI ends the task as failed. D-1311: the watch
  * gives up after `CHECKS_WATCH_TIMEOUT_MS`, and the result carries the head commit read before
  * it, the one the checks ran on (D-1312 merges only that commit).
  */
 export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits & { watchMs?: number } = {}): Promise<{ verdict: ChecksVerdict; head: string | null }> {
-  const appeared = await waitForChecks(async () => checksExist(await gh(['pr', 'checks', String(pr)], { cwd: dir, logger })), waits);
+  // D-1320: while no checks show, ask whether the PR conflicts with its base: then none will ever come.
+  let conflicting = false;
+  const appeared = await waitForChecks(async () => {
+    if (checksExist(await gh(['pr', 'checks', String(pr)], { cwd: dir, logger }))) return true;
+    conflicting = (await pullRequestMergeable(dir, pr, logger)) === 'CONFLICTING';
+    return conflicting;
+  }, waits);
   const head = await pullRequestHead(dir, pr, logger);
+  if (conflicting) {
+    logger.line(`  PR #${String(pr)} conflicts with its base, so GitHub runs no CI on it (D-1320)`);
+    return { verdict: 'conflicting', head };
+  }
   if (!appeared) {
     logger.line(`  PR #${String(pr)} reports no checks; treating that as red`);
     return { verdict: 'red', head };
