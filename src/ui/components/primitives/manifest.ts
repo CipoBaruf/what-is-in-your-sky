@@ -28,35 +28,39 @@ interface PrimitivePropDoc {
   text: string;
 }
 
+/** FR-DS-13, D-1227: the states the gallery draws, in its order. `busy` is drawn from R209, with the prop. */
+export type PrimitiveState = 'rest' | 'hover' | 'focus' | 'on' | 'picked' | 'busy' | 'disabled' | 'error';
+
 export interface PrimitiveEntry {
   name: string;
   /** The component's file in this directory. */
   file: string;
   /** One sentence on when this is the right primitive. */
   when: string;
+  /** The states this primitive has (FR-DS-13): the gallery lays it once per state and the guide lists them. */
+  states: readonly PrimitiveState[];
   props: readonly PrimitivePropDoc[];
 }
 
 type Docs<P> = { readonly [K in keyof P]-?: Omit<PrimitivePropDoc, 'name'> };
 
-function entry<P extends object>(name: string, when: string, docs: Docs<P>): PrimitiveEntry {
-  return { name, file: `${name}.tsx`, when, props: Object.entries(docs as Record<string, Omit<PrimitivePropDoc, 'name'>>).map(([key, doc]) => ({ name: key, ...doc })) };
+function entry<P extends object>(name: string, when: string, states: readonly PrimitiveState[], docs: Docs<P>): PrimitiveEntry {
+  return { name, file: `${name}.tsx`, when, states, props: Object.entries(docs as Record<string, Omit<PrimitivePropDoc, 'name'>>).map(([key, doc]) => ({ name: key, ...doc })) };
 }
 
 const PLACEMENT = { type: 'string', text: 'Placement only: a grid area or a margin from the space scale (D-704).' };
 
 export const PRIMITIVES: readonly PrimitiveEntry[] = [
-  entry<TextButtonOwnProps>('TextButton', 'A `[ label ]` button: any action the reader taps that is words and not a field or a card.', {
-    label: { type: 'ReactNode', text: 'The words between the brackets.' },
+  entry<TextButtonOwnProps>('TextButton', 'An outlined box with its words: any action the reader taps that is words and not a field or a card.', ['rest', 'hover', 'focus', 'on', 'disabled'], {
+    label: { type: 'ReactNode', text: 'The control’s words.' },
     onClick: { type: '(event) => void', text: 'What the tap does.' },
     disabled: { type: 'boolean', text: 'A disabled control reads in the dim ink and takes no tap.' },
-    tone: { type: "'accent' | 'dim' | 'danger'", text: 'The words’ ink: an action, a secondary action, or the danger ink.' },
-    pressed: { type: 'boolean', text: 'A pressed text control: bracketed in the accent when pressed, bare and dim when not (the sort row, the compact speeds).' },
-    tight: { type: 'boolean', text: 'With `pressed`: brackets without their spaces, `[60×]` (the compact speeds).' },
+    tone: { type: "'accent' | 'dim' | 'danger'", text: 'The words’ ink, `--fg` left out: the accent, a secondary action’s dim ink, or the danger ink.' },
+    pressed: { type: 'boolean', text: 'An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle.' },
     inline: { type: 'boolean', text: 'Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow.' },
-    bare: { type: 'boolean', text: 'The words without their brackets, for the one row whose budget buys them off (the compact live actions row’s share).' },
-    padded: { type: 'boolean', text: 'A cell of padding inside at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it.' },
-    box: { type: "'edge' | 'accent'", text: 'A bordered control: the sheet’s own box, or the home’s primary action in the accent’s border.' },
+    bare: { type: 'boolean', text: 'The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play).' },
+    padded: { type: 'boolean', text: 'A cell outside the box at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it.' },
+    box: { type: "'plain' | 'accent'", text: 'The box’s edge: `--control-edge` (the default), or the accent of the primary form, one per screen at most.' },
     fill: { type: 'boolean', text: 'With `box`: the width of the column it stands in.' },
     tall: { type: 'boolean', text: 'With `box="accent"`: the when step’s 56 px foot action.' },
     note: { type: 'ReactNode', text: 'With `box="accent"`: a line under the label, the control’s description and never its name.' },
@@ -65,37 +69,37 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     as: { type: "'button' | 'summary'", text: 'A `<button>`, or the `<summary>` of a `<details>` drawn as the same control.' },
     className: PLACEMENT,
   }),
-  entry<BracketLinkOwnProps>('BracketLink', 'A `[ label ]` that goes somewhere: a link to a route, never an action.', {
+  entry<BracketLinkOwnProps>('BracketLink', 'An underlined link that goes somewhere: a route, never an action.', ['rest', 'focus', 'on'], {
     href: { type: 'string', text: 'Where it goes.' },
-    label: { type: 'ReactNode', text: 'The words between the brackets.' },
+    label: { type: 'ReactNode', text: 'The link’s words.' },
     current: { type: 'boolean', text: 'The page this control stands on: a dim `aria-current` span with the same box, not a link.' },
     className: PLACEMENT,
   }),
-  entry<OptionToggleOwnProps>('OptionToggle', 'One `[x] option` whose state the reader can see in the characters; alone for a single on/off, or inside a ToggleGroup.', {
-    label: { type: 'ReactNode', text: 'The option’s words, after the `[x] ` mark.' },
+  entry<OptionToggleOwnProps>('OptionToggle', 'One option, a filled block when on and the dim word when off; alone for a single on/off, or inside a ToggleGroup.', ['rest', 'hover', 'focus', 'on', 'disabled'], {
+    label: { type: 'ReactNode', text: 'The option’s words.' },
     pressed: { type: 'boolean', text: 'Whether the option is on; the parent owns it.' },
     onPress: { type: '() => void', text: 'What a tap means; a group passes nothing for the option already pressed.' },
     value: { type: 'string', text: 'The option’s value as `data-option`, so a caller can find it in its group again.' },
-    alone: { type: 'boolean', text: 'An option standing alone has no trailing cell; in a group that cell separates it from the next.' },
+    alone: { type: 'boolean', text: 'An option standing alone; drawn as any other, its padding the same at each side.' },
     inline: { type: 'boolean', text: 'The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control).' },
     target: { type: 'boolean', text: 'A 44 px hit area at least (`.target`, the default); `false` in a dense row, where the row is the target.' },
     className: PLACEMENT,
   }),
-  entry<ToggleGroupProps<string>>('ToggleGroup', 'A row of options under one name where exactly one is chosen: a view, a sort, a speed, a language, a theme.', {
+  entry<ToggleGroupProps<string>>('ToggleGroup', 'A row of options under one name where exactly one is chosen: a view, a sort, a speed, a language, a theme.', ['rest', 'hover', 'focus', 'on'], {
     name: { type: 'string', text: 'The group’s accessible name.' },
     prefix: { type: 'string', text: 'An optional visible prefix such as `View:`, hidden from assistive technology.' },
     options: { type: '{ value, label }[]', text: 'The options in order.' },
     value: { type: 'string', text: 'The chosen option; the parent owns it.' },
     onChange: { type: '(value) => void', text: 'Called with the new value when another option is chosen, never for the chosen one.' },
     role: { type: "'group' | 'radiogroup'", text: 'Pressed buttons (the default), or radios with one tab stop where the arrow keys choose.' },
-    mark: { type: "'check' | 'bracket' | 'tight'", text: 'How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces.' },
-    gap: { type: "'cell' | 'none'", text: 'A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds).' },
+    mark: { type: "'check' | 'bracket' | 'tight'", text: 'The marks of before FR-CTRL-3, one look now: the chosen option is the filled block whatever is named.' },
+    gap: { type: "'cell' | 'none'", text: 'The spacings of before FR-CTRL-3, one now: the options are a quarter cell apart whatever is named.' },
     inline: { type: 'boolean', text: 'Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row.' },
     dense: { type: 'boolean', text: 'A row too dense for a 44 px target per option (the facing picker): the options at least 44 px tall with their hit areas meeting, the cell between them split into their padding.' },
     className: PLACEMENT,
   }),
   // R105 (FR-DS-4 items 4–6; D-718..D-720): the surfaces.
-  entry<CardOwnProps>('Card', 'A box ruled in the rule colour that holds one thing — a pass, the next event — and, as a button or a link, is one control.', {
+  entry<CardOwnProps>('Card', 'A box ruled in the rule colour that holds one thing — a pass, the next event — and, as a button or a link, is one control.', ['rest', 'hover', 'focus', 'picked'], {
     as: { type: "'article' | 'section' | 'button' | 'a'", text: 'The element: a pass’s article, the next event’s named section, or the card as one button or link with the sheet’s control chrome taken off.' },
     selected: { type: 'boolean', text: 'The card the guide is open on: ruled in the accent on the raised ground and `aria-current`.' },
     frame: { type: "'rule' | 'accent'", text: 'The frame’s ink: the rule (a card among cards), or the accent (the phone’s first card).' },
@@ -103,17 +107,17 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     children: { type: 'ReactNode', text: 'What the card holds.' },
     className: PLACEMENT,
   }),
-  entry<RuleProps>('Rule', 'The plain divider between two blocks, where a module used to draw a bare border-top; the space beside it is the host’s margin.', {
+  entry<RuleProps>('Rule', 'The plain divider between two blocks, where a module used to draw a bare border-top; the space beside it is the host’s margin.', ['rest'], {
     className: { type: 'string', text: 'Placement only: a grid area, a flex basis or a margin from the space scale (D-704).' },
   }),
-  entry<SectionHeadingProps>('SectionHeading', 'A section’s title drawn as a character rule, `── Title ─────`, named by the title alone.', {
+  entry<SectionHeadingProps>('SectionHeading', 'A section’s title drawn as a character rule, `── Title ─────`, named by the title alone.', ['rest'], {
     id: { type: 'string', text: 'The heading’s id, for the section’s `aria-labelledby`.' },
     children: { type: 'ReactNode', text: 'The title.' },
     tone: { type: "'active' | 'muted'", text: 'The home’s pane headings: the reading the reader is on in the accent, a pane not there yet in the dim ink.' },
     level: { type: '2 | 3', text: 'The heading’s rank in the outline (FR-A11Y-2); the drawing is the same at either.' },
     visuallyHidden: { type: 'boolean', text: 'The heading read and not drawn (a `VisuallyHidden` at the same rank), for a region whose name is on the screen already.' },
   }),
-  entry<LineOwnProps>('Line', 'One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.', {
+  entry<LineOwnProps>('Line', 'One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.', ['rest', 'error'], {
     tone: { type: "'status' | 'ok' | 'notice' | 'failure'", text: 'The ink for the marker and the frame’s edge: dim, `--ok`, `--warn` or `--danger`.' },
     marker: { type: 'ReactNode', text: 'The leading marker in the tone’s ink, the banner’s spelled-out `[Warning]`: the second channel beside the colour (FR-X-5).' },
     children: { type: 'ReactNode', text: 'The sentence.' },
@@ -127,7 +131,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     className: PLACEMENT,
   }),
   // R106 (FR-DS-4 item 7; D-722): the field.
-  entry<FieldOwnProps>('Field', 'A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.', {
+  entry<FieldOwnProps>('Field', 'A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.', ['rest', 'focus', 'disabled', 'error'], {
     id: { type: 'string', text: 'The input’s id, which is the label’s `htmlFor`.' },
     label: { type: 'ReactNode', text: 'The label’s words.' },
     labelHidden: { type: 'boolean', text: 'The label read by assistive technology and not drawn (the home’s altitude, whose unit is in its box).' },
@@ -140,19 +144,19 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     className: PLACEMENT,
   }),
   // R107 (FR-DS-4 item 8; D-725): the layout helpers and the hidden-text block.
-  entry<StackOwnProps>('Stack', 'A column of blocks a step of the space scale apart — a line and the panel it opens, a sentence and the detail under it.', {
+  entry<StackOwnProps>('Stack', 'A column of blocks a step of the space scale apart — a line and the panel it opens, a sentence and the detail under it.', ['rest'], {
     gap: { type: '1 | 2 | 3 | 4 | 5', text: 'The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`).' },
     children: { type: 'ReactNode', text: 'The blocks, in order.' },
     className: { type: 'string', text: 'Placement only: a grid area, a margin from the space scale, a `min-width` (D-704).' },
   }),
-  entry<ClusterOwnProps>('Cluster', 'A row of controls that wraps when the width runs out, a cell count apart and on one baseline — a share row, a pair of fields, a row of links.', {
+  entry<ClusterOwnProps>('Cluster', 'A row of controls that wraps when the width runs out, a cell count apart and on one baseline — a share row, a pair of fields, a row of links.', ['rest'], {
     gap: { type: '1 | 2 | 3', text: 'The space between the controls, in cells; two left out.' },
     align: { type: "'baseline' | 'center'", text: 'The controls on their baseline (a row of text controls) or centred (a row that mixes boxes and text).' },
     as: { type: "'div' | 'p'", text: 'A `div`, or a `p` where the row is a sentence with its control.' },
     children: { type: 'ReactNode', text: 'The controls, in order.' },
     className: PLACEMENT,
   }),
-  entry<VisuallyHiddenOwnProps>('VisuallyHidden', 'Words for assistive technology that the eye does not get — a spoken label, a live region, a heading the outline needs where the page draws none — in the one copy of the clip rule.', {
+  entry<VisuallyHiddenOwnProps>('VisuallyHidden', 'Words for assistive technology that the eye does not get — a spoken label, a live region, a heading the outline needs where the page draws none — in the one copy of the clip rule.', ['rest'], {
     as: { type: "'span' | 'p' | 'h1' | 'h2' | 'h3' | 'dt' | 'label'", text: 'The element: a span in a line (the default), a paragraph, a heading in the outline, a `dt`, or a `label`; every other attribute passes through.' },
     children: { type: 'ReactNode', text: 'The words.' },
     className: { type: 'string', text: 'Placement only: a grid area the host’s rules name (D-704).' },

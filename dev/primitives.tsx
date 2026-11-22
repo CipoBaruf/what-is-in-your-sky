@@ -1,6 +1,8 @@
 /**
- * R108 (FR-DS-6, FR-DS-9; D-706, D-728): the dev page — every primitive in
- * every state and tone, in both themes side by side, at compact and wide.
+ * R108 (FR-DS-6, FR-DS-9; D-706, D-728), R206 (FR-DS-13; D-1227): the dev page —
+ * every primitive in every state and tone, in both themes side by side, at
+ * compact and wide. A state is a `[data-state]` cell; hover and focus are
+ * forced on it by `tests/e2e/design-captures.spec.ts`, so here they rest.
  *
  * A second Vite entry (`dev/primitives.html`) that `npm run dev` serves at
  * `/dev/primitives.html` and `vite build` never sees: `index.html` is the only
@@ -30,7 +32,7 @@ import { Card } from '../src/ui/components/primitives/Card';
 import { Cluster } from '../src/ui/components/primitives/Cluster';
 import { Field } from '../src/ui/components/primitives/Field';
 import { Line } from '../src/ui/components/primitives/Line';
-import { PRIMITIVES } from '../src/ui/components/primitives/manifest';
+import { PRIMITIVES, type PrimitiveState } from '../src/ui/components/primitives/manifest';
 import { OptionToggle } from '../src/ui/components/primitives/OptionToggle';
 import { Rule } from '../src/ui/components/primitives/Rule';
 import { SectionHeading } from '../src/ui/components/primitives/SectionHeading';
@@ -79,11 +81,11 @@ function TextButtonCases() {
           <TextButton label="not pressed" pressed={false} onClick={noop} />
         </Cluster>
       </Case>
-      <Case props="pressed tight">
+      <Case props="pressed, in a row">
         <Cluster gap={1}>
-          <TextButton label="1×" pressed={false} tight onClick={noop} />
-          <TextButton label="60×" pressed tight onClick={noop} />
-          <TextButton label="600×" pressed={false} tight onClick={noop} />
+          <TextButton label="1×" pressed={false} onClick={noop} />
+          <TextButton label="60×" pressed onClick={noop} />
+          <TextButton label="600×" pressed={false} onClick={noop} />
         </Cluster>
       </Case>
       <Case props="inline">
@@ -97,8 +99,8 @@ function TextButtonCases() {
       <Case props="padded">
         <TextButton label="×" padded onClick={noop} aria-label="close" />
       </Case>
-      <Case props='box="edge"'>
-        <TextButton label="boxed" box="edge" onClick={noop} />
+      <Case props='box="plain"'>
+        <TextButton label="boxed" box="plain" onClick={noop} />
       </Case>
       <Case props='box="accent"'>
         <TextButton label="primary" box="accent" onClick={noop} />
@@ -174,27 +176,32 @@ const SPEEDS = [
   { value: '60', label: '60×' },
   { value: '600', label: '600×' },
 ] as const;
+const POINTS = (['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const).map((value) => ({ value, label: value }));
 
 function ToggleGroupCases() {
+  const [point, setPoint] = useState<(typeof POINTS)[number]['value']>('NE');
   const [view, setView] = useState<(typeof VIEWS)[number]['value']>('dome');
   const [sort, setSort] = useState<(typeof SORTS)[number]['value']>('soonest');
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]['value']>('60');
   return (
     <>
-      <Case props='role="group" mark="check" prefix'>
+      <Case props='role="group" prefix'>
         <ToggleGroup name="View" prefix="View:" options={VIEWS} value={view} onChange={setView} />
       </Case>
-      <Case props='role="radiogroup" mark="check"'>
+      <Case props='role="radiogroup"'>
         <ToggleGroup name="View" options={VIEWS} value={view} onChange={setView} role="radiogroup" />
       </Case>
-      <Case props='mark="bracket" prefix'>
-        <ToggleGroup name="Sort" prefix="Sort:" options={SORTS} value={sort} onChange={setSort} mark="bracket" />
+      <Case props="prefix">
+        <ToggleGroup name="Sort" prefix="Sort:" options={SORTS} value={sort} onChange={setSort} />
       </Case>
-      <Case props='mark="tight"'>
-        <ToggleGroup name="Speed" options={SPEEDS} value={speed} onChange={setSpeed} mark="tight" />
+      <Case props="short labels">
+        <ToggleGroup name="Speed" options={SPEEDS} value={speed} onChange={setSpeed} />
       </Case>
-      <Case props='mark="tight" gap="none"'>
-        <ToggleGroup name="Speed" options={SPEEDS} value={speed} onChange={setSpeed} mark="tight" gap="none" />
+      <Case props="inline">
+        <ToggleGroup name="View" options={VIEWS} value={view} onChange={setView} inline />
+      </Case>
+      <Case props="dense">
+        <ToggleGroup name="Facing" options={POINTS} value={point} onChange={setPoint} dense />
       </Case>
     </>
   );
@@ -444,7 +451,7 @@ function ClusterCases() {
       ))}
       <Case props='align="center"'>
         <Cluster align="center">
-          <TextButton label="boxed" box="edge" onClick={noop} />
+          <TextButton label="boxed" onClick={noop} />
           <TextButton label="text" onClick={noop} />
         </Cluster>
       </Case>
@@ -481,6 +488,86 @@ function VisuallyHiddenCases() {
         <p className="note">(nothing to see: the clip rule is the whole point)</p>
       </Case>
     </>
+  );
+}
+
+/** FR-DS-13: each primitive as it stands in one state; hover and focus are its rest, for the spec to force. */
+const STATE_SPECIMENS: Readonly<Record<string, (state: PrimitiveState, sid: (id: string) => string) => ReactNode>> = {
+  TextButton: (state) =>
+    state === 'on' ? (
+      <TextButton label="pressed" pressed onClick={noop} />
+    ) : (
+      <Cluster>
+        <TextButton label="action" disabled={state === 'disabled'} onClick={noop} />
+        <TextButton label="primary" box="accent" disabled={state === 'disabled'} onClick={noop} />
+        <TextButton label="inline" inline disabled={state === 'disabled'} onClick={noop} />
+      </Cluster>
+    ),
+  BracketLink: (state) => <BracketLink href="#dev" label={state === 'on' ? 'this page' : 'a route'} current={state === 'on'} />,
+  OptionToggle: (state) => (
+    <Cluster gap={1}>
+      <OptionToggle label="option" pressed={state === 'on'} disabled={state === 'disabled'} onPress={noop} />
+      {state === 'disabled' && <OptionToggle label="on" pressed disabled onPress={noop} />}
+    </Cluster>
+  ),
+  ToggleGroup: (state) => <ToggleGroup name={`View, ${state}`} options={VIEWS} value={state === 'on' ? 'polar' : 'dome'} onChange={noop} />,
+  Card: (state) => (
+    <Card as="button" emphasis selected={state === 'picked'} onClick={noop}>
+      <CardBody title="A card" />
+    </Card>
+  ),
+  Rule: () => <Rule />,
+  SectionHeading: (_state, sid) => <SectionHeading id={sid('dev-state-heading')}>Tonight</SectionHeading>,
+  Line: (state) =>
+    state === 'error' ? (
+      <Line tone="failure" marker="×">
+        Something failed.
+      </Line>
+    ) : (
+      <Line marker="·">A status line.</Line>
+    ),
+  Field: (state, sid) => (
+    <Field id={sid(`dev-state-field-${state}`)} label="Place" defaultValue="Bariloche" disabled={state === 'disabled'} aria-invalid={state === 'error'}>
+      {state === 'error' && (
+        <Line tone="failure" marker="×" size="small">
+          No such place.
+        </Line>
+      )}
+    </Field>
+  ),
+  Stack: () => (
+    <Stack gap={1}>
+      <Block>one</Block>
+      <Block>two</Block>
+    </Stack>
+  ),
+  Cluster: () => (
+    <Cluster>
+      <span>one</span>
+      <span>two</span>
+    </Cluster>
+  ),
+  VisuallyHidden: () => (
+    <p className="prose">
+      Before <VisuallyHidden>(hidden words)</VisuallyHidden> after.
+    </p>
+  ),
+};
+
+/** The primitive once per state of its manifest row, each in its `data-state` cell. */
+function States({ name, states }: { name: string; states: readonly PrimitiveState[] }) {
+  const sid = useScopedId();
+  const draw = STATE_SPECIMENS[name];
+  if (!draw) return <p className="missing">no specimen</p>;
+  return (
+    <div className="states">
+      {states.map((state) => (
+        <div key={state} className="case" data-state={state}>
+          <p className="caption">{state}</p>
+          <div className="specimen">{draw(state, sid)}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -527,6 +614,7 @@ function Column({ theme }: { theme: Theme }) {
               {primitive.name}
             </h2>
             <p className="note">{primitive.when}</p>
+            <States name={primitive.name} states={primitive.states} />
             {Cases ? <Cases /> : <p className="missing">no specimen</p>}
           </section>
         );

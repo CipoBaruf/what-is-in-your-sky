@@ -1,13 +1,14 @@
 /**
  * R104 (FR-DS-4 item 3; D-705): the row of options in both themes — the group
  * and its name, the pressed option, a change reported only for another option,
- * the arrow keys moving between options and wrapping, the three marks, and
+ * the arrow keys moving between options and wrapping, the one look (FR-CTRL-3), and
  * the `radiogroup` form where the arrows choose. The `group` form's DOM is the
  * one every row rendered before this primitive (role `group`, `aria-pressed`
  * buttons), which is what `controlRows.test.ts` and the captures count on.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToggleGroup } from './ToggleGroup';
 
@@ -67,20 +68,19 @@ describe.each(THEMES)('<ToggleGroup> under data-theme=%s', (theme) => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('the bracket and tight marks render pressed text controls, the pressed one with its own class', () => {
+  it('FR-CTRL-3: every mark is the option’s one look, a quarter cell apart', () => {
     themed();
-    const { rerender } = render(<ToggleGroup name="Sort" prefix="Sort:" mark="bracket" options={options} value="a" onChange={vi.fn()} />);
-    const group = screen.getByRole('group', { name: 'Sort' });
-    const alpha = within(group).getByRole('button', { name: 'Alpha' });
-    expect(alpha).toHaveAttribute('aria-pressed', 'true');
-    expect(alpha.className).toMatch(/toggle/);
-    expect(alpha.className).not.toMatch(/toggleTight/);
-    expect(within(group).getByRole('button', { name: 'Beta' })).toHaveAttribute('aria-pressed', 'false');
-    rerender(<ToggleGroup name="Speed" mark="tight" gap="none" options={options} value="b" onChange={vi.fn()} />);
-    const speeds = screen.getByRole('group', { name: 'Speed' });
-    expect(speeds.className).toMatch(/noGap/);
-    expect(within(speeds).getByRole('button', { name: 'Beta' }).className).toMatch(/toggleTight/);
-    expect(within(speeds).getAllByRole('button')).toHaveLength(3);
+    const { rerender } = render(<ToggleGroup name="Pick" options={options} value="a" onChange={vi.fn()} />);
+    const drawn = (): string[] => within(screen.getByRole('group', { name: 'Pick' })).getAllByRole('button').map((button) => `${button.className} ${button.firstElementChild?.className ?? ''}`);
+    const look = drawn();
+    expect(look).toHaveLength(3);
+    for (const option of look) expect(option).toMatch(/option.*optionBox/);
+    for (const mark of ['check', 'bracket', 'tight'] as const) {
+      rerender(<ToggleGroup name="Pick" mark={mark} gap="none" options={options} value="a" onChange={vi.fn()} />);
+      expect(drawn(), mark).toEqual(look);
+      expect(screen.getByRole('group', { name: 'Pick' }).className).not.toMatch(/noGap/);
+    }
+    expect(readFileSync('src/ui/components/primitives/ToggleGroup.module.css', 'utf8')).toMatch(/\.group \{[^}]*gap: 0 calc\(var\(--cell\) \/ 4\)/);
   });
 
   it('as a radiogroup: radios with aria-checked, one tab stop, and the arrow keys choose', async () => {

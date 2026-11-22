@@ -1,21 +1,24 @@
-/* R104 (FR-DS-4 item 3; D-705): the row of options and its prefix. One cell
-   between controls, which is what every control row declares and what
-   `tests/styles/cells.ts` counts; `tests/styles/controlRows.test.ts` reads
-   `.group`'s gap off this file to recompute the header's folds. */
+/* R104 (FR-DS-4 item 3; D-705), R206 (FR-CTRL-3): the row of options and its
+   prefix, the options a quarter cell apart. `tests/styles/cells.ts` reads
+   `.group`'s gap off this file to count a group's cells. */
 .group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 var(--cell);
+  gap: 0 calc(var(--cell) / 4);
 }
 
-/* `gap="none"` (D-172): the wide speeds — 34 cells with no gap between the
-   options, which keeps them on one line of a 36-cell phone; each option's own
-   trailing cell is what still makes them read as four. */
+/* `dense` (D-851): the cell between two points is their own padding. */
 .noGap {
   gap: 0;
 }
 
+/* One cell between the prefix and the first option, the group's quarter counted. */
 .prefix {
   color: var(--fg-dim);
+  margin-inline-end: calc(3 * var(--cell) / 4);
+}
+
+.noGap > .prefix {
+  margin-inline-end: 0;
 }

@@ -41,10 +41,16 @@ describe('the primitives manifest (D-703)', () => {
     expect(new Set(entry.props.map((prop) => prop.name)).size).toBe(entry.props.length);
   });
 
-  it('writes the brackets in TextButton and BracketLink and nowhere else in the directory', () => {
+  it('FR-CTRL-1, FR-CTRL-11: writes no bracket anywhere in the directory', () => {
     const withBrackets = readdirSync(DIR)
       .filter((file) => file.endsWith('.css'))
-      .filter((file) => /content:\s*'\[ '/.test(readFileSync(join(DIR, file), 'utf8')));
-    expect(withBrackets.sort()).toEqual(['BracketLink.module.css', 'TextButton.module.css']);
+      .filter((file) => /content:\s*'[^']*[[\]]/.test(readFileSync(join(DIR, file), 'utf8')));
+    expect(withBrackets.sort()).toEqual([]);
+  });
+
+  it.each(PRIMITIVES.map((entry) => [entry.name, entry] as const))('FR-DS-13: %s names its states once each, rest first, and hover where its stylesheet has one', (name, entry) => {
+    expect(entry.states[0]).toBe('rest');
+    expect(new Set(entry.states).size).toBe(entry.states.length);
+    if (readFileSync(join(DIR, `${name}.module.css`), 'utf8').includes(':hover')) expect(entry.states).toContain('hover');
   });
 });

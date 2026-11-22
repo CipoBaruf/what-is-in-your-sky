@@ -67,7 +67,7 @@ Every size-and-line-height pair in use, named for the role of the element that s
 
 ### Edges
 
-The plain-character borders, the three radii, the one focus ring (`global.css`’s `:focus-visible`, D-704) and the bold weight.
+The plain-character borders, the three radii, the one focus ring (`global.css`’s `:focus-visible`, D-704), the bold weight, and the control tokens (FR-DS-10): what every control reads, each an alias, written once for both themes. A change of a control’s look is a change of these values or of one primitive.
 
 | Token | Value | Note |
 |---|---|---|
@@ -83,6 +83,17 @@ The plain-character borders, the three radii, the one focus ring (`global.css`�
 | `--window-fill-opacity` | `0.88` |  |
 | `--chart-hairline` | `calc(var(--hairline) * 0.75)` |  |
 | `--screen-overlay-alpha` | `85%` |  |
+| `--control-h` | `calc(var(--row) + 2 * var(--hairline))` | 26 px, the drawn height of a button, an input, an option and a row |
+| `--control-pad` | `var(--cell)` | the cell inside a control at each side |
+| `--control-radius` | `var(--radius-2)` | a control's corners |
+| `--control-edge` | `var(--border-control)` | a button's boundary |
+| `--on-ground` | `var(--fg)` | the block under what is on |
+| `--on-ink` | `var(--bg)` | the words of what is on |
+| `--hover-ground` | `var(--bg-raised)` | under what the pointer is on |
+| `--mark` | `var(--accent)` | lines, underlines, the picked row's line, focus |
+| `--gap-row` | `var(--space-1)` | between two rows |
+| `--gap-group` | `var(--space-4)` | between two groups |
+| `--label-col` | `calc(9 * var(--cell))` | the column a row's label stands in |
 
 ### Layers
 
@@ -157,24 +168,25 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 ## The primitives
 
-`src/ui/components/primitives/`: one component, one module and one manifest row each (`src/ui/components/primitives/manifest.ts`, D-703). Every control is `--tap` tall. Each one's `className` is placement only — a grid area or a margin from the space scale — and nothing else may be set from outside.
+`src/ui/components/primitives/`: one component, one module and one manifest row each (`src/ui/components/primitives/manifest.ts`, D-703). Every control’s hit box is `--tap` tall; its drawn box is `--control-h` (D-1226). Each one's `className` is placement only — a grid area or a margin from the space scale — and nothing else may be set from outside.
 
 ### `TextButton`
 
-`src/ui/components/primitives/TextButton.tsx` — A `[ label ]` button: any action the reader taps that is words and not a field or a card.
+`src/ui/components/primitives/TextButton.tsx` — An outlined box with its words: any action the reader taps that is words and not a field or a card.
+
+States: rest, hover, focus, on, disabled.
 
 | Prop | Type | What it does |
 |---|---|---|
-| `label` | `ReactNode` | The words between the brackets. |
+| `label` | `ReactNode` | The control’s words. |
 | `onClick` | `(event) => void` | What the tap does. |
 | `disabled` | `boolean` | A disabled control reads in the dim ink and takes no tap. |
-| `tone` | `'accent' \| 'dim' \| 'danger'` | The words’ ink: an action, a secondary action, or the danger ink. |
-| `pressed` | `boolean` | A pressed text control: bracketed in the accent when pressed, bare and dim when not (the sort row, the compact speeds). |
-| `tight` | `boolean` | With `pressed`: brackets without their spaces, `[60×]` (the compact speeds). |
+| `tone` | `'accent' \| 'dim' \| 'danger'` | The words’ ink, `--fg` left out: the accent, a secondary action’s dim ink, or the danger ink. |
+| `pressed` | `boolean` | An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle. |
 | `inline` | `boolean` | Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow. |
-| `bare` | `boolean` | The words without their brackets, for the one row whose budget buys them off (the compact live actions row’s share). |
-| `padded` | `boolean` | A cell of padding inside at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it. |
-| `box` | `'edge' \| 'accent'` | A bordered control: the sheet’s own box, or the home’s primary action in the accent’s border. |
+| `bare` | `boolean` | The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play). |
+| `padded` | `boolean` | A cell outside the box at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it. |
+| `box` | `'plain' \| 'accent'` | The box’s edge: `--control-edge` (the default), or the accent of the primary form, one per screen at most. |
 | `fill` | `boolean` | With `box`: the width of the column it stands in. |
 | `tall` | `boolean` | With `box="accent"`: the when step’s 56 px foot action. |
 | `note` | `ReactNode` | With `box="accent"`: a line under the label, the control’s description and never its name. |
@@ -185,26 +197,30 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 ### `BracketLink`
 
-`src/ui/components/primitives/BracketLink.tsx` — A `[ label ]` that goes somewhere: a link to a route, never an action.
+`src/ui/components/primitives/BracketLink.tsx` — An underlined link that goes somewhere: a route, never an action.
+
+States: rest, focus, on.
 
 | Prop | Type | What it does |
 |---|---|---|
 | `href` | `string` | Where it goes. |
-| `label` | `ReactNode` | The words between the brackets. |
+| `label` | `ReactNode` | The link’s words. |
 | `current` | `boolean` | The page this control stands on: a dim `aria-current` span with the same box, not a link. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `OptionToggle`
 
-`src/ui/components/primitives/OptionToggle.tsx` — One `[x] option` whose state the reader can see in the characters; alone for a single on/off, or inside a ToggleGroup.
+`src/ui/components/primitives/OptionToggle.tsx` — One option, a filled block when on and the dim word when off; alone for a single on/off, or inside a ToggleGroup.
+
+States: rest, hover, focus, on, disabled.
 
 | Prop | Type | What it does |
 |---|---|---|
-| `label` | `ReactNode` | The option’s words, after the `[x] ` mark. |
+| `label` | `ReactNode` | The option’s words. |
 | `pressed` | `boolean` | Whether the option is on; the parent owns it. |
 | `onPress` | `() => void` | What a tap means; a group passes nothing for the option already pressed. |
 | `value` | `string` | The option’s value as `data-option`, so a caller can find it in its group again. |
-| `alone` | `boolean` | An option standing alone has no trailing cell; in a group that cell separates it from the next. |
+| `alone` | `boolean` | An option standing alone; drawn as any other, its padding the same at each side. |
 | `inline` | `boolean` | The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control). |
 | `target` | `boolean` | A 44 px hit area at least (`.target`, the default); `false` in a dense row, where the row is the target. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
@@ -212,6 +228,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `ToggleGroup`
 
 `src/ui/components/primitives/ToggleGroup.tsx` — A row of options under one name where exactly one is chosen: a view, a sort, a speed, a language, a theme.
+
+States: rest, hover, focus, on.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -221,8 +239,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `value` | `string` | The chosen option; the parent owns it. |
 | `onChange` | `(value) => void` | Called with the new value when another option is chosen, never for the chosen one. |
 | `role` | `'group' \| 'radiogroup'` | Pressed buttons (the default), or radios with one tab stop where the arrow keys choose. |
-| `mark` | `'check' \| 'bracket' \| 'tight'` | How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces. |
-| `gap` | `'cell' \| 'none'` | A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds). |
+| `mark` | `'check' \| 'bracket' \| 'tight'` | The marks of before FR-CTRL-3, one look now: the chosen option is the filled block whatever is named. |
+| `gap` | `'cell' \| 'none'` | The spacings of before FR-CTRL-3, one now: the options are a quarter cell apart whatever is named. |
 | `inline` | `boolean` | Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row. |
 | `dense` | `boolean` | A row too dense for a 44 px target per option (the facing picker): the options at least 44 px tall with their hit areas meeting, the cell between them split into their padding. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
@@ -230,6 +248,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `Card`
 
 `src/ui/components/primitives/Card.tsx` — A box ruled in the rule colour that holds one thing — a pass, the next event — and, as a button or a link, is one control.
+
+States: rest, hover, focus, picked.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -244,6 +264,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 `src/ui/components/primitives/Rule.tsx` — The plain divider between two blocks, where a module used to draw a bare border-top; the space beside it is the host’s margin.
 
+States: rest.
+
 | Prop | Type | What it does |
 |---|---|---|
 | `className` | `string` | Placement only: a grid area, a flex basis or a margin from the space scale (D-704). |
@@ -251,6 +273,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `SectionHeading`
 
 `src/ui/components/primitives/SectionHeading.tsx` — A section’s title drawn as a character rule, `── Title ─────`, named by the title alone.
+
+States: rest.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -263,6 +287,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `Line`
 
 `src/ui/components/primitives/Line.tsx` — One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.
+
+States: rest, error.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -282,6 +308,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 `src/ui/components/primitives/Field.tsx` — A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.
 
+States: rest, focus, disabled, error.
+
 | Prop | Type | What it does |
 |---|---|---|
 | `id` | `string` | The input’s id, which is the label’s `htmlFor`. |
@@ -299,6 +327,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 
 `src/ui/components/primitives/Stack.tsx` — A column of blocks a step of the space scale apart — a line and the panel it opens, a sentence and the detail under it.
 
+States: rest.
+
 | Prop | Type | What it does |
 |---|---|---|
 | `gap` | `1 \| 2 \| 3 \| 4 \| 5` | The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`). |
@@ -308,6 +338,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `Cluster`
 
 `src/ui/components/primitives/Cluster.tsx` — A row of controls that wraps when the width runs out, a cell count apart and on one baseline — a share row, a pair of fields, a row of links.
+
+States: rest.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -320,6 +352,8 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 ### `VisuallyHidden`
 
 `src/ui/components/primitives/VisuallyHidden.tsx` — Words for assistive technology that the eye does not get — a spoken label, a live region, a heading the outline needs where the page draws none — in the one copy of the clip rule.
+
+States: rest.
 
 | Prop | Type | What it does |
 |---|---|---|
@@ -338,7 +372,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 - a `z-index` written as a number;
 - an `outline` rule other than `outline-offset: var(--focus-offset-tight)` — the ring is `global.css`'s alone;
 - a `font-family` that is not `var(--font-mono)`;
-- a `::before`/`::after` whose `content` is `"[ "` or `" ]"` outside `src/ui/components/primitives/` — the brackets are the control primitives';
+- a `::before`/`::after` whose `content` is `"[ "` or `" ]"` outside `src/ui/components/primitives/` — no control draws brackets (FR-CTRL-1, FR-CTRL-2, FR-CTRL-11);
 - in a `.tsx` file, an inline `style` whose value is a colour or a length literal (a custom property and a number measured at runtime are allowed).
 
 The exceptions are in `tests/styles/literals.allow.json`, one entry per file with its count and its reason. A count may only go down, and an entry whose count reaches zero is removed. A length a module needs is a token above or a cell count; a colour is a token; a stacking level is a layer.
@@ -349,7 +383,7 @@ Every length in an `@media` or `@container` condition is one of `src/lib/layout.
 
 ### A prop, never an override (FR-DS-4)
 
-The primitives above are the only place a control is styled. A feature module may place a primitive — a grid area, a margin from the space scale — and may not set its colour, its font, its border, its padding or its brackets. A feature component that wants a different control asks for a prop, and the prop is added to the primitive for every module that needs it, never as a local override. A feature component composes primitives and keeps its own file and name (`FailureLine` renders a `Line`, `PassCard` a `Card`, `SortToggle` a `ToggleGroup`, `CoordsInput` a `Field`), which is what keeps its tests and its captures unchanged. The primitives are leaves: they import React, their own module and each other, and nothing of the app — no store, no copy, no behaviour (D-703).
+The primitives above are the only place a control is styled. A feature module may place a primitive — a grid area, a margin from the space scale — and may not set its colour, its font, its border or its padding. A feature component that wants a different control asks for a prop, and the prop is added to the primitive for every module that needs it, never as a local override. A feature component composes primitives and keeps its own file and name (`FailureLine` renders a `Line`, `PassCard` a `Card`, `SortToggle` a `ToggleGroup`, `CoordsInput` a `Field`), which is what keeps its tests and its captures unchanged. The primitives are leaves: they import React, their own module and each other, and nothing of the app — no store, no copy, no behaviour (D-703).
 
 ### How a redesign lands (FR-DS-9)
 
@@ -364,7 +398,7 @@ A screen's module is never the first file a redesign touches. The `sdd-spec` ski
 
 ## The dev page
 
-`dev/primitives.html` renders every primitive in every state and tone, both themes side by side, and is served by `npm run dev` only — `vite build` never sees it. `npm run design:captures` shoots it under `playwright.design.config.ts` at 390 and 1280 px, one file per theme, into `docs/screenshots/design/`; `.github/workflows/captures.yml` re-shoots them after the release set, so they join the set's diff.
+`dev/primitives.html` renders every primitive in every state (FR-DS-13) and tone, both themes side by side — hover and focus forced by the capture spec — and is served by `npm run dev` only — `vite build` never sees it. `npm run design:captures` shoots it under `playwright.design.config.ts` at 390 and 1280 px, one file per theme, into `docs/screenshots/design/`; `.github/workflows/captures.yml` re-shoots them after the release set, so they join the set's diff.
 
 ![The primitives at 390 px in the dark theme](screenshots/design/design-primitives-390-dark.png)
 

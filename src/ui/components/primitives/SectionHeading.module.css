@@ -1,8 +1,9 @@
+/* FR-CTRL-6: the rules are drawn in the mark, the accent; the title stays `--fg`. */
 .heading {
   display: flex;
   align-items: baseline;
   gap: var(--cell);
-  color: var(--fg-dim);
+  color: var(--mark);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -25,17 +26,11 @@
   color: var(--fg);
 }
 
-/* R76 (board 1B): the home's pane headings. */
-.active,
+/* R76 (board 1B): the home's pane headings, told apart by the title's ink. */
 .active .title {
   color: var(--accent);
 }
 
 .muted .title {
   color: var(--fg-dim);
-}
-
-.active::after,
-.muted::after {
-  color: var(--rule);
 }

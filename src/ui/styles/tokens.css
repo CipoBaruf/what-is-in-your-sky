@@ -31,6 +31,7 @@
      --ok         11.18 : 1            9.97 : 1                  11.94 : 1
      --warn       11.93 : 1           10.63 : 1                  10.12 : 1
      --bg on --accent (pressed sort button)   11.75 : 1 dark, 7.28 : 1 night
+     --on-ink on --on-ground (what is on)     13.79 : 1 dark, 9.27 : 1 night
 
    All ≥ 4.5 : 1 (AA for normal text). The night column is against the page
    ground, which is the pair every night value was chosen against in R16;
@@ -167,6 +168,21 @@
      an alpha and not a colour, so it has no per-theme value: the colour it is
      mixed with is `--bg-raised`, which each theme already sets. */
   --screen-overlay-alpha: 85%;
+
+  /* FR-DS-10 (D-1225): what every control reads, each an alias, written once
+     and read by both themes: a theme changes one by changing what it aliases.
+     Only the primitives and the dev page read these. */
+  --control-h: calc(var(--row) + 2 * var(--hairline)); /* 26 px, the drawn height of a button, an input, an option and a row */
+  --control-pad: var(--cell); /* the cell inside a control at each side */
+  --control-radius: var(--radius-2); /* a control's corners */
+  --control-edge: var(--border-control); /* a button's boundary */
+  --on-ground: var(--fg); /* the block under what is on */
+  --on-ink: var(--bg); /* the words of what is on */
+  --hover-ground: var(--bg-raised); /* under what the pointer is on */
+  --mark: var(--accent); /* lines, underlines, the picked row's line, focus */
+  --gap-row: var(--space-1); /* between two rows */
+  --gap-group: var(--space-4); /* between two groups */
+  --label-col: calc(9 * var(--cell)); /* the column a row's label stands in */
 
   /* == layers == */
   /* FR-DS-1: every `z-index` in the tree, named for what stands at it. */

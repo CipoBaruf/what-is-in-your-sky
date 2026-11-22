@@ -11,7 +11,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ICON_TONES } from '../../scripts/build-mark';
 import { HORIZON_STRENGTH } from '../../src/data/stars/constants';
-import { BAND_ALPHA_AT_HORIZON, bandLightest, CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_SKY_TOKENS, CHART_STAR_TONE_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, composite, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
+import { BAND_ALPHA_AT_HORIZON, bandLightest, CHART_DESK_TOKENS, CHART_MARK_TOKENS, CHART_SKY_TOKENS, CHART_STAR_TONE_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, composite, CONTROL_PAIRS, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, resolveColour, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
+import { PRIMITIVES_DIR, stylesheets } from './literals';
 
 const css = readFileSync(TOKENS_PATH, 'utf8');
 /** The header comment wraps, so the prose assertions read it as one line. */
@@ -86,7 +87,39 @@ describe('tokens.css sections (FR-DS-1, D-700)', () => {
   });
 });
 
+describe('tokens.css control tokens (FR-DS-10, D-1225)', () => {
+  it('FR-DS-10: has the eleven names once in :root, each an alias at its default', () => {
+    const CONTROL_TOKENS = {
+      'control-h': 'calc(var(--row) + 2 * var(--hairline))',
+      'control-pad': 'var(--cell)',
+      'control-radius': 'var(--radius-2)',
+      'control-edge': 'var(--border-control)',
+      'on-ground': 'var(--fg)',
+      'on-ink': 'var(--bg)',
+      'hover-ground': 'var(--bg-raised)',
+      mark: 'var(--accent)',
+      'gap-row': 'var(--space-1)',
+      'gap-group': 'var(--space-4)',
+      'label-col': 'calc(9 * var(--cell))',
+    };
+    for (const [name, value] of Object.entries(CONTROL_TOKENS)) {
+      expect(section('edges').get(name), name).toBe(value);
+      expect(css.match(new RegExp(`^\\s+--${name}:`, 'gm')), `--${name} is written once, for both themes`).toHaveLength(1);
+    }
+  });
+
+  it('FR-DS-10: is read by no module outside the primitives and the dev page', () => {
+    const CONTROL = /var\(--(control-(h|pad|radius|edge)|on-ground|on-ink|hover-ground|mark|gap-row|gap-group|label-col)\)/;
+    const readers = stylesheets().filter((path) => !path.startsWith(PRIMITIVES_DIR) && CONTROL.test(readFileSync(path, 'utf8')));
+    expect(readers).toEqual([]);
+  });
+});
+
 describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
+  it.each(CONTROL_PAIRS)('FR-DS-10: has --$fg on --$bg at its ratio', ({ fg, bg, min }) => {
+    expect(contrastRatio(resolveColour(css, theme, fg), resolveColour(css, theme, bg))).toBeGreaterThanOrEqual(min);
+  });
+
   it('has every text token at ≥ 4.5 : 1 on both grounds, and the ground at ≥ 4.5 : 1 on the accent', () => {
     for (const text of TEXT_TOKENS) for (const ground of GROUND_TOKENS) expect(contrastRatio(token(theme, text), token(theme, ground)), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(token(theme, 'bg'), token(theme, 'accent'))).toBeGreaterThanOrEqual(4.5);
@@ -235,6 +268,7 @@ describe('tokens.css documentation', () => {
       expect(line?.slice(1, 4)).toEqual(columns.map(([theme, ground]) => ratio(theme, text, ground)));
     }
     expect(prose).toContain(`--bg on --accent (pressed sort button) ${ratio('dark', 'bg', 'accent')} : 1 dark, ${ratio('night', 'bg', 'accent')} : 1 night`);
+    expect(prose).toContain(`--on-ink on --on-ground (what is on) ${ratio('dark', 'bg', 'fg')} : 1 dark, ${ratio('night', 'bg', 'fg')} : 1 night`);
     expect(prose).toContain(`is ${ratio('dark', 'edge', 'bg')} : 1 on \`--bg\` (${ratio('dark', 'edge', 'bg-raised')} : 1 on \`--bg-raised\`) dark and ${ratio('night', 'edge', 'bg')} : 1 on \`--bg\` night`);
     expect(prose).toContain(`\`--rule\` (${ratio('dark', 'rule', 'bg')} : 1 dark) is decorative only`);
   });

@@ -174,6 +174,30 @@ export function bandLightest(tokens: Map<string, string>): string {
   return composite(glow, deep, BAND_ALPHA_AT_HORIZON);
 }
 
+/**
+ * FR-DS-10 (D-1225): the pairs the control tokens make — the words of what is
+ * on, at text's 4.5 : 1, and a control's edge at WCAG 1.4.11's 3 : 1.
+ */
+export const CONTROL_PAIRS = [
+  { fg: 'on-ink', bg: 'on-ground', min: 4.5 },
+  { fg: 'control-edge', bg: 'bg', min: 3 },
+] as const;
+
+/** The colour a token ends at in one theme: an alias is followed through the sheet, a border to the colour it names last. */
+export function resolveColour(css: string, theme: Theme, name: string): string {
+  const colours = readTokens(css, theme);
+  const aliases = new Map(readSections(css).flatMap((section) => (section.name === 'night' ? [] : [...section.tokens])));
+  let at = name;
+  for (let step = 0; step < aliases.size; step += 1) {
+    const colour = colours.get(at);
+    if (colour) return colour;
+    const next = [...(aliases.get(at) ?? '').matchAll(/var\(--([a-z0-9-]+)\)/g)].at(-1)?.[1];
+    if (!next) break;
+    at = next;
+  }
+  throw new Error(`--${name} ends at no colour in the ${theme} theme of ${TOKENS_PATH}`);
+}
+
 function channel(c: number): number {
   const s = c / 255;
   return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
@@ -238,6 +262,10 @@ if (process.argv[1]?.endsWith('contrast.ts')) {
   console.log(`--bg on --accent   ${THEMES.map((theme) => `${theme} ${contrastRatio(get(theme, 'bg'), get(theme, 'accent')).toFixed(2)} : 1`).join(', ')}`);
   console.log(row('edge (non-text)', ratio('edge')));
   console.log(row('rule (decor.)', ratio('rule')));
+
+  for (const { fg, bg, min } of CONTROL_PAIRS) {
+    console.log(`--${fg} on --${bg} (${String(min)} : 1)  ${THEMES.map((theme) => `${theme} ${contrastRatio(resolveColour(css, theme, fg), resolveColour(css, theme, bg)).toFixed(2)} : 1`).join(', ')}`);
+  }
 
   console.log('\nFR-DOME-2 marks, on each theme’s --bg (3 : 1 is the bar); the two base surfaces are meant to sit near 1.');
   for (const chart of [...CHART_MARK_TOKENS, ...CHART_SURFACE_TOKENS]) {
