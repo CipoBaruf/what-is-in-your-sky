@@ -41,6 +41,9 @@
    block takes its quarter cell out of the half cell of hit area each side, so
    the row keeps its cells; at the row's two ends there is none to take. */
 .denseBox {
+  /* Wider than the point it stands on, by its margins: nothing to cap or to cut. */
+  max-inline-size: none;
+  overflow: visible;
   padding-inline: calc(var(--control-pad) / 4);
   margin-inline: calc(var(--control-pad) / -4);
 }
