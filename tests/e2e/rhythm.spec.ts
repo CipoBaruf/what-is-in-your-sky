@@ -203,12 +203,14 @@ for (const locale of LOCALES) {
       // The field's rows (its label, its box, the help line once a place is picked) stand its row gap apart.
       const clear = await input.evaluate((el) => {
         const style = getComputedStyle(el);
-        const field = el.parentElement;
+        // R209 (D-1226): the input stands in its box, which is the field's row.
+        const box = el.parentElement;
+        const field = box?.parentElement;
         if (!field) throw new Error('the input has no field');
         return {
           ring: parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset),
           gap: parseFloat(getComputedStyle(field).rowGap),
-          above: el.getBoundingClientRect().top - (el.previousElementSibling?.getBoundingClientRect().bottom ?? -Infinity),
+          above: el.getBoundingClientRect().top - (box?.previousElementSibling?.getBoundingClientRect().bottom ?? -Infinity),
         };
       });
       expect(clear.ring).toBeGreaterThan(0);

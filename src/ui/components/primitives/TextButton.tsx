@@ -1,6 +1,7 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
 import optionStyles from './OptionToggle.module.css';
 import styles from './TextButton.module.css';
+import { useStill } from './useStill';
 
 /**
  * R104 (FR-DS-4 item 1, US-37 AC2; D-703, D-704), R206 (FR-CTRL-1; D-1226):
@@ -17,8 +18,9 @@ import styles from './TextButton.module.css';
  * action, with `fill` for the column's width, `tall` for a taller foot and
  * `note` for the line under its label (FR-FIRST-2), in the group's two looks;
  * `wrap` lets a label that is a place name break; `as="summary"` draws the
- * error page's disclosure (FR-FAIL-5) as the same control. A primitive is a
- * leaf: no copy, no store, only props (D-703).
+ * error page's disclosure (FR-FAIL-5) as the same control; `busy` (R209,
+ * FR-CTRL-4) keeps the label and the box while the action runs. A primitive is
+ * a leaf: no copy, no store, only props (D-703).
  */
 type TextButtonTone = 'accent' | 'dim' | 'danger';
 
@@ -30,6 +32,8 @@ export interface TextButtonOwnProps {
   disabled?: boolean;
   /** The words' ink, `--fg` left out (FR-CTRL-1): the accent, the dim ink (a secondary action, the saved place's `×`), or the danger ink. */
   tone?: TextButtonTone;
+  /** FR-CTRL-4: the action runs: `aria-busy`, the words pulse, nothing else moves; it keeps the focus and takes no press, so a caller need not disable it. */
+  busy?: boolean;
   /** An option (`aria-pressed`): the dim word when off, `--bg` on a block of `--fg` when on (FR-CTRL-2, FR-X-5). */
   pressed?: boolean;
   /** Hung off a line of prose: the 48 px box as padding and a matching negative margin (global.css `inline-control`), so the line does not grow. */
@@ -60,8 +64,9 @@ export type TextButtonProps = TextButtonOwnProps & Omit<ComponentProps<'button'>
 
 const TONE: Record<TextButtonTone, string | undefined> = { accent: styles.inkAccent, dim: styles.dim, danger: styles.danger };
 
-export function TextButton({ label, tone, pressed, inline = false, bare = false, padded = false, box = 'plain', fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
+export function TextButton({ label, tone, pressed, busy = false, inline = false, bare = false, padded = false, box = 'plain', fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
   const noteId = useId();
+  const still = useStill(busy);
   const hasNote = note !== undefined;
   // One root class per form: an element carries exactly one of them, and only the boxed ones have a span inside.
   const root = pressed !== undefined ? styles.toggle : hasNote ? styles.boxedNote : bare ? styles.bare : styles.textButton;
@@ -78,21 +83,23 @@ export function TextButton({ label, tone, pressed, inline = false, bare = false,
     hasNote && look === 'plain' ? styles.plain : undefined,
     wrap ? styles.wrap : undefined,
     as === 'summary' ? styles.summary : undefined,
+    busy ? styles.busy : undefined,
     className,
   ]
     .filter(Boolean)
     .join(' ');
+  const words = busy ? <span className={styles.words}>{label}</span> : label;
   const content = hasNote ? (
     <>
-      <span>{label}</span>
+      <span>{words}</span>
       <span id={noteId} className={styles.note}>
         {note}
       </span>
     </>
   ) : boxClass === undefined ? (
-    label
+    words
   ) : (
-    <span className={boxClass}>{label}</span>
+    <span className={boxClass}>{words}</span>
   );
   if (as === 'summary') {
     // A `<summary>` has no disabled state: the attribute would do nothing and the control would still open (review of #173).
@@ -106,8 +113,10 @@ export function TextButton({ label, tone, pressed, inline = false, bare = false,
   }
   // A radio in a `radiogroup` (ToggleGroup) carries its state as `aria-checked`; everything else is a pressed button.
   const state = pressed === undefined ? {} : rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
+  // D-1256: busy is not `disabled`, which would dim the box and drop the focus; the press is swallowed instead.
+  const running: ComponentProps<'button'> & { 'data-motion'?: 'reduce' | undefined } = busy ? { 'data-motion': still ? 'reduce' : undefined, 'aria-busy': true, 'aria-disabled': true, disabled: false, onClick: (event) => event.preventDefault() } : {};
   return (
-    <button type="button" className={classes} {...state} {...rest} {...(hasNote ? { 'aria-describedby': [rest['aria-describedby'], noteId].filter(Boolean).join(' ') } : {})}>
+    <button type="button" className={classes} {...state} {...rest} {...running} {...(hasNote ? { 'aria-describedby': [rest['aria-describedby'], noteId].filter(Boolean).join(' ') } : {})}>
       {content}
     </button>
   );

@@ -39,7 +39,8 @@ async function focused(page: Page): Promise<Seen | null> {
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
       outlineColor: style.outlineColor,
-      borderColor: style.borderTopColor,
+      // R209 (FR-CTRL-7, D-1226): a `Field`'s input draws no border; its line is the frame after it.
+      borderColor: el instanceof HTMLInputElement && el.nextElementSibling ? getComputedStyle(el.nextElementSibling).borderTopColor : style.borderTopColor,
       accent,
       inCard: el.parentElement?.hasAttribute('data-card') ?? false,
     };

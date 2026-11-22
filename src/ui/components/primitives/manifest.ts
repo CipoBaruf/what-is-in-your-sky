@@ -28,7 +28,7 @@ interface PrimitivePropDoc {
   text: string;
 }
 
-/** FR-DS-13, D-1227: the states the gallery draws, in its order. `busy` is drawn from R209, with the prop. */
+/** FR-DS-13, D-1227: the states the gallery draws, in its order. */
 export type PrimitiveState = 'rest' | 'hover' | 'focus' | 'on' | 'picked' | 'busy' | 'disabled' | 'error';
 
 export interface PrimitiveEntry {
@@ -51,11 +51,12 @@ function entry<P extends object>(name: string, when: string, states: readonly Pr
 const PLACEMENT = { type: 'string', text: 'Placement only: a grid area or a margin from the space scale (D-704).' };
 
 export const PRIMITIVES: readonly PrimitiveEntry[] = [
-  entry<TextButtonOwnProps>('TextButton', 'An outlined box with its words: any action the reader taps that is words and not a field or a card.', ['rest', 'hover', 'focus', 'on', 'disabled'], {
+  entry<TextButtonOwnProps>('TextButton', 'An outlined box with its words: any action the reader taps that is words and not a field or a card.', ['rest', 'hover', 'focus', 'on', 'busy', 'disabled'], {
     label: { type: 'ReactNode', text: 'The control’s words.' },
     onClick: { type: '(event) => void', text: 'What the tap does.' },
     disabled: { type: 'boolean', text: 'A disabled control reads in the dim ink and takes no tap.' },
     tone: { type: "'accent' | 'dim' | 'danger'", text: 'The words’ ink, `--fg` left out: the accent, a secondary action’s dim ink, or the danger ink.' },
+    busy: { type: 'boolean', text: 'The action runs: `aria-busy`, the words pulse (held dim under reduced motion), the label and the box do not change; it keeps the focus and takes no press.' },
     pressed: { type: 'boolean', text: 'An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle.' },
     inline: { type: 'boolean', text: 'Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow.' },
     bare: { type: 'boolean', text: 'The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play).' },
@@ -131,7 +132,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     className: PLACEMENT,
   }),
   // R106 (FR-DS-4 item 7; D-722): the field.
-  entry<FieldOwnProps>('Field', 'A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.', ['rest', 'focus', 'disabled', 'error'], {
+  entry<FieldOwnProps>('Field', 'A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.', ['rest', 'hover', 'focus', 'disabled', 'error'], {
     id: { type: 'string', text: 'The input’s id, which is the label’s `htmlFor`.' },
     label: { type: 'ReactNode', text: 'The label’s words.' },
     labelHidden: { type: 'boolean', text: 'The label read by assistive technology and not drawn (the home’s altitude, whose unit is in its box).' },
