@@ -13,7 +13,7 @@
  * named after.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { openLocationGroup, seedStoredRun } from './liveHelpers';
+import { openSettings, seedStoredRun } from './liveHelpers';
 
 const WIDE = { width: 1280, height: 900 };
 
@@ -133,8 +133,8 @@ test('? opens the overlay, which lists the keys, and Esc closes it', async ({ pa
 
 test('typing a place name types it and fires nothing (FR-DESK-4, D-73)', async ({ page }) => {
   await loadWithPasses(page);
-  // R76 (FR-FIRST-4): with a place set the field is under the location line's `[ change ]`.
-  await openLocationGroup(page);
+  // R212 (D-1230): the place group is the settings page’s.
+  await openSettings(page);
   const field = page.getByLabel('Place name');
   await field.click();
   await field.pressSequentially('jknvl?');

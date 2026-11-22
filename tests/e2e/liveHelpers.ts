@@ -2,12 +2,13 @@
  * The live page's e2e fixtures and steps, shared by `live.spec.ts` (R32) and
  * `live-playback.spec.ts` (R33): the R1 fixtures at Neuquén, the clock
  * installed ten seconds into the golden ISS pass — the instant `now-panel.spec`
- * pins the conditions table at — the network stubs, the home page with the place
- * typed in, and the live page with its dome drawn.
+ * pins the conditions table at — the network stubs, the satellites page with the place
+ * typed in (R212: the list's page, `/` being the live page), and the live page with its dome drawn.
  */
 import { readFileSync } from 'node:fs';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { ROW_PX } from '../../src/lib/layout';
+import { ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { LIVE_WINDOW_MS } from '../../src/lib/livePasses';
 import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, LONDON_FORECAST_FILE, LONDON_GEOCODE_FILE, LONDON_QUERY, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
@@ -37,8 +38,8 @@ export const LABEL = {
   es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', backCompact: 'Volver', theme: 'Tema', night: 'Noche', dark: 'Oscuro', passes: 'Próximos pases' },
 } as const;
 
-/** The pass list's status line once the window has been searched, in either language. */
-export const PASS_COUNT = /\d+ (visible passes in 72 h|pases visibles en 72 h)/;
+/** The pass list's status line once the window has been searched, in either language: 72 h, and the wide rail's 24 (R212). */
+export const PASS_COUNT = /\d+ (visible pass(es)? in (72|24) h|pases? visibles? en (72|24) h)/;
 
 /**
  * The showcase's places (D-686, D-696): each recorded forecast with the 0.1° cell its `.meta.json` names,
@@ -166,18 +167,7 @@ async function openCoordinates(page: Page): Promise<void> {
   await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
 }
 
-/**
- * R76 (FR-FIRST-4): the home page's input group — open already in the cold
- * open, and under the location line's `[ change ]` once a place is set.
- */
-export async function openLocationGroup(page: Page): Promise<void> {
-  const change = page.getByTestId('location-summary-change');
-  if ((await change.count()) === 0) return;
-  if ((await change.getAttribute('aria-expanded')) === 'false') await change.click();
-  await expect(page.getByTestId('location-group')).toBeVisible();
-}
-
-/** Back to the home screen, through the page's own control. */
+/** Back to the page settings was opened from, through the page's own control. */
 export async function leaveSettings(page: Page): Promise<void> {
   await page.getByTestId('settings-back').click();
   await expect(page.getByTestId('settings-back')).toHaveCount(0);
@@ -186,14 +176,18 @@ export async function leaveSettings(page: Page): Promise<void> {
 /**
  * The app at `t` with the fixtures, Neuquén typed in, and the `Up now` row's count for that instant (FR-FIRST-9).
  * `wholeList` waits for the 72 h search to finish first, so a capture shows every arc of the coming night
- * rather than the first few to stream in.
+ * rather than the first few to stream in. R212 (FR-LAND-6): it leaves the page on `#pass`, where the list is. The
+ * conditions and the 72 h count are the phone's form of it, so a wide page is read at a phone's width and put back.
  */
 export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', wholeList = false): Promise<number> {
   await page.clock.install({ time: t });
   await page.clock.pauseAt(t);
   await stubNetwork(page);
   await savedDome(page);
-  await page.goto('/');
+  await page.goto('/#pass');
+  const size = page.viewportSize();
+  const wide = size !== null && size.width >= WIDE_MIN_PX;
+  if (wide) await page.setViewportSize({ width: 390, height: 844 });
   await withSettings(page, async () => {
     if (locale === 'es') await page.getByRole('button', { name: 'Español' }).click();
     await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
@@ -205,7 +199,12 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
     const passes = page.getByRole('region', { name: LABEL[locale].passes });
     await expect(passes.getByRole('status')).toHaveText(PASS_COUNT, { timeout: 60_000 });
   }
-  return upNowCount((await upNow.textContent()) ?? '');
+  const count = upNowCount((await upNow.textContent()) ?? '');
+  if (wide) {
+    await page.setViewportSize(size);
+    await expect(page.locator('main[data-sky="pass"]')).toBeAttached();
+  }
+  return count;
 }
 
 /** The `Up now` row's value, in either language: `ISS (Zarya) · 3:12 left +2`. */
@@ -219,7 +218,7 @@ function upNowCount(text: string): number {
 }
 
 /**
- * FR-CI-3 (R37): the home screen with a finished 72 h run already on it.
+ * FR-CI-3 (R37): the satellites page (R212, FR-LAND-6: `#pass`, the list's) with a finished 72 h run already on it.
  *
  * A spec whose subject is the rendered page — the palette, the language, the
  * desktop layout, the shortcut overlay — used to type a coordinate pair and
@@ -337,6 +336,10 @@ export async function seedStoredRun(
     // R136 (D-876): the dome saved, as `savedDome` says why; `prefs: { chartView: undefined }` is a fresh profile.
     [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN_OBSERVER, chartView: 'dome', ...prefs })] as [string, string],
   );
+  // R212 (FR-LAND-1, FR-LAND-6): `/` is the live page; the list is the satellites'.
+  await page.evaluate(() => {
+    history.replaceState(null, '', '#pass');
+  });
   await page.reload();
   // The stored list, on screen without a search: the count is what a spec that follows builds on,
   // and a seed that silently failed fails here rather than three assertions later.
@@ -366,11 +369,18 @@ export async function listSettled(page: Page): Promise<void> {
   // from the same fixtures at the same instant, so the list is settled when the count is the seed's.
   await recomputeEnded(page);
   // R97 (FR-FAINT-2): the faint passes the list hides are counted by its control, `[ show 4 faint ]`.
-  await expect.poll(() => shownAndHidden(page), { timeout: 60_000 }).toBe(STORED_RUN.passes.length);
+  await expect.poll(async () => (await shownAndHidden(page)) === (await seedListed(page)), { timeout: 60_000 }).toBe(true);
+}
+
+/** R212 (D-1135): how many of the seed's passes the page lists: the run, and on the wide rail the next 24 h of it. */
+async function seedListed(page: Page): Promise<number> {
+  if ((await page.locator('main[data-sky="pass"]').count()) === 0) return STORED_RUN.passes.length;
+  const now = await page.evaluate(() => Date.now());
+  return (STORED_RUN.passes as { start: { t: number }; end: { t: number } }[]).filter((pass) => pass.end.t >= now && pass.start.t <= now + LIVE_WINDOW_MS).length;
 }
 
 /**
- * The recompute a load starts has shown and ended, on a page that draws the pass list (the home).
+ * The recompute a load starts has shown and ended, on a page that draws the pass list (the satellites').
  * The stored list is on screen with nothing busy *before* the recompute starts — the elements
  * load first, then the worker — so "nothing busy" alone can return in that gap and the spec
  * then reads a list the first batch is about to replace. Wait for the job to show, then to end.
@@ -470,7 +480,7 @@ export async function stubCompass(page: Page): Promise<void> {
 /**
  * R48 (D-244): the compact live page carries no theme switch — on a phone the
  * theme is the settings page's (FR-COMP-2) — so a capture run sets the theme
- * on the home page's header before entering, and comes back to change it.
+ * on the settings page before entering, and comes back to change it.
  * The theme is remembered (US-19), so the run puts it back when it is done.
  */
 export async function setThemeOnHome(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
@@ -496,16 +506,18 @@ export async function setThemeByKey(page: Page, theme: 'dark' | 'night'): Promis
 /**
  * R148 (FR-FULL-5, FR-FULL-10, D-927): leaves the live page with `Esc`. On compact `Esc` answers the card first and
  * closes the sheet second, so the page is left as a reader leaves it: the card answered, the sheet closed, then `Esc`.
+ * R212 (FR-LAND-1): live as the load's entry has nowhere to go back to, so there it is left for the list.
  */
 export async function leaveLive(page: Page): Promise<void> {
   const card = page.getByTestId('live-card');
   if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
   await closeSheet(page);
-  await page.keyboard.press('Escape');
+  if (await page.evaluate(() => ((history.state as { wiys?: number } | null)?.wiys ?? 0) > 0)) await page.keyboard.press('Escape');
+  else await page.evaluate(() => location.replace('#pass'));
   await expect(page.getByTestId('live-page')).toHaveCount(0);
 }
 
-/** Leaves the live page for the home one, sets the theme there and comes back with the dome drawn. */
+/** Leaves the live page for the satellites one, sets the theme there and comes back with the dome drawn. */
 export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
   await leaveLive(page);
   await expect(page.getByRole('banner')).toBeVisible();
