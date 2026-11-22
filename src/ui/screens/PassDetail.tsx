@@ -152,8 +152,8 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
    * is back; the countdown keeps the clock.
    */
   /*
-   * R187 (FR-WIDE-4, D-1100): the page's instant `t`, the shared time control's; on wide the time control and the rise, peak and set buttons move it (a move past the span moves the span,
-   * so a pass days ahead is reachable). Compact draws no control, so there `t` is the tick (FR-WIDE-12).
+   * R187 (FR-WIDE-4, D-1100): the page's instant `t`, the shared time control's; on wide the time control
+   * and the rise, peak and set buttons move it (a move past the span moves the span, so a pass days ahead is reachable). Compact draws no control, so there `t` is the tick (FR-WIDE-12).
    */
   /*
    * v2.14.1 (FR-WIDE-3 as amended, D-1137): on wide the page opens at the pass's rise — the span reaches back to it

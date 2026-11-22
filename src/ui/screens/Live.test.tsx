@@ -1159,7 +1159,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('time-readout')).toHaveTextContent(/^10:18 · \+29 min$/);
     expect(screen.getByRole('button', { name: en.live.shareMoment })).toBeInTheDocument();
 
-    // `[ back to live ]`: real time again, advancing on the tick, and the scrub block gone with the state.
+    // `[ back to live ]`: real time again, running, and the scrub block gone with the state.
     fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
     inventory('watching');
     expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
@@ -1742,6 +1742,38 @@ describe('<LivePage>', () => {
     });
     expect(window.location.hash).toBe('#live');
     expect(screen.getByTestId('next-event-see')).toBeInTheDocument();
+  });
+
+  it('FR-STRIP-4, FR-LAND-2: wide opens on real time running by seconds; compact opens not playing', () => {
+    withSky();
+    media = stubMatchMedia(1280, 800);
+    window.location.hash = '#live';
+    const wide = render(<LivePage link={null} onLeave={() => undefined} />);
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+    expect(screen.getByTestId('live-clock')).toHaveTextContent(/^09:48:27 UTC$/);
+    expect(screen.getByTestId('time-control')).toHaveAttribute('data-state', 'watching');
+    expect(window.location.hash).toBe('#live');
+    wide.unmount();
+    media.restore();
+    media = stubMatchMedia(390, 844);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+  });
+
+  it('FR-STRIP-3: back to live from a held instant clears t from the hash while real time runs', () => {
+    withSky();
+    media = stubMatchMedia(1280, 800);
+    window.location.hash = '#live';
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
+    expect(window.location.hash).toContain('t=');
+    act(() => {
+      vi.setSystemTime(T + 2_000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
+    expect(window.location.hash).toBe('#live');
   });
 
   /** D-171: the hash is written at most twice a second while scrubbing and never while playing. */

@@ -425,6 +425,23 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     }
   });
 
+  it('FR-STRIP-4: on a desk the page opens playing at 60× from the rise; under reduced motion paused there', () => {
+    const media = stubMatchMedia(1280, 800);
+    try {
+      const playing = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+      expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
+      expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(pass.start.t);
+      expect(screen.getByRole('button', { name: '60×' })).toHaveAttribute('aria-pressed', 'true');
+      playing.unmount();
+      media.setReducedMotion(true);
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+      expect(screen.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+      expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(pass.start.t);
+    } finally {
+      media.restore();
+    }
+  });
+
   it('omits the twilight label when the pass is not a twilight one', () => {
     render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');

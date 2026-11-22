@@ -92,8 +92,8 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
  * chart draws (D-160).
  *
  * **The instant (R33: FR-LIVE-4, FR-LIVE-5, FR-LIVE-9; D-81).** `usePlayback`
- * owns it: real time on the 10 s tick, or an instant held by the link, a
- * scrub or playback. The window's `now` is always real time: what is drawn
+ * owns it: real time on the 10 s tick (each second on wide, where it runs at
+ * 1×: R208, FR-STRIP-4), or an instant held by the link, a scrub or playback. The window's `now` is always real time: what is drawn
  * is the coming 24 h, whatever instant inside it is shown. The hash follows
  * the shown instant at most twice a second while scrubbing and never while
  * playing (D-171), so a reload or a share lands on the same moment.
