@@ -215,6 +215,16 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1251 — A load in the background still checks once.** *(R207)*
   (FR-UPD-1, D-1236.) `update()` runs once after registering whether or not the page is visible, as both texts say "on load"; "never while hidden" is the timer's rule, and a hidden page holds no timer.
   A failed check is dropped and the next one is the retry.
+- **D-1262 — The Sun's dot is drawn while it is up; its legend line keeps twilight.** *(R211)*
+  (FR-DARK-2, FR-DARK-4, FR-DOME-6, FR-LEG-3.) The dome and the polar chart draw the dot while the Sun's centre is above 0°, as they draw the Moon (`sunVisible`): a filled spot in `--chart-sun` under the Moon.
+  The legend's line keeps its old reach, down to −18° (`sunListed`), so a twilight reader still reads how far down the Sun is.
+  The window loses the glow with the prop and has no mark for the Sun until R214 draws its dot.
+- **D-1263 — The dome's sky is its bowl, in the deep token; the key light stays the Sun's.** *(R211)*
+  (FR-DARK-1, FR-DOME-8.) The dome has no CSS surface, so its palette's `sky` is `--chart-sky-deep` in place of `--chart-sky`, which the stripes keep.
+  FR-DOME-8's key light still follows the Sun and still shades the bowl's side: glyphcss multiplies the polygon's colour by the lights, so a near-black bowl stays near-black at every altitude.
+- **D-1264 — The step is deleted, and what reads it for the eye reads the Sun.** *(R211)*
+  (FR-DARK-2, D-1234, D-1139 superseded.) With every rung drawn the cut has no caller, so `drawnRungs`, `planetsDrawn`, the scene's twilight and day branches and the globe's day cut and fade (`dayStars`) are deleted rather than left returning a constant; a highlighted pass has its landmark at every hour.
+  Two readers said what the eye can find rather than what is drawn, and keep saying it from the Sun's altitude: the stars page's `Stars from 20:25` and the home door's brightest star, both none of it while the Sun is above 0°; in twilight the door's star is no longer held to the first two rungs.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,

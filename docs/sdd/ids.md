@@ -2178,6 +2178,9 @@ D-1248	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decis
 D-1249	docs/sdd/phases/v3.0/plan.md#255-v30-decisions-2026-11-21	2.55 v3.0 decisions (2026-11-21)
 D-1250	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
 D-1251	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
+D-1262	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
+D-1263	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
+D-1264	docs/sdd/phases/v3.0/plan.md#1638-v30-delivery-v30-1v30-32-d-1224d-1246	16.38 v3.0 delivery *(V30-1..V30-32, D-1224..D-1246)*
 OQ-1	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-3	docs/sdd/decisions.md#12-decision-log	12. Decision Log
 OQ-4	docs/sdd/decisions.md#12-decision-log	12. Decision Log
