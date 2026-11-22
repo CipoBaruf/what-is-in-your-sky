@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * R144 (FR-TONIGHT-4, D-901): the three taps and the play control — the four controls in their order with the
- * catalog's words in both languages, each a `.target`; the play glyph named by its word and switching with the
+ * R144 (FR-TONIGHT-4, D-901) → R213 (FR-STRIP-6): the one play button and the three taps — in their order with
+ * the catalog's words in both languages, each a `.target`; the button named by its word and switching with the
  * state; each tap calling its handler; `next` and `now` disabled where FR-TONIGHT-4 says, and `tonight` with no night
  * to land in. What each tap lands on
  * is `lib/tonightJump.ts`'s (its own test) wired by `Live.tsx` (`Live.test.tsx`).
@@ -38,7 +38,7 @@ describe('<TimeTaps> (FR-TONIGHT-4)', () => {
     expect(row).toHaveAttribute('role', 'group');
     expect(row).toHaveAttribute('aria-label', m.live.taps);
     const buttons = within(row).getAllByRole('button');
-    expect(buttons.map((b) => b.textContent)).toEqual([m.live.playShort, m.live.tap.tonight, m.live.tap.next, m.live.tap.now]);
+    expect(buttons.map((b) => b.textContent)).toEqual([m.live.playButton, m.live.tap.tonight, m.live.tap.next, m.live.tap.now]);
     expect(buttons.map((b) => b.getAttribute('data-testid'))).toEqual(['live-play', 'live-tap-tonight', 'live-tap-next', 'live-tap-now']);
     for (const b of buttons) expect(b.classList.contains('target'), b.textContent ?? '').toBe(true);
     // The glyph's accessible name is the word (FR-X-5: the state in the characters, the name in words).
@@ -46,10 +46,10 @@ describe('<TimeTaps> (FR-TONIGHT-4)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('is ▶ named Play while paused and ‖ named Pause while playing, each calling its handler', () => {
+  it('is one button, `▶ play` named Play and `❚❚ pause` named Pause, each calling its handler (FR-STRIP-6)', () => {
     const paused = mount('en');
     const play = screen.getByTestId('live-play');
-    expect(play).toHaveTextContent('▶');
+    expect(play).toHaveTextContent(/^▶ play$/);
     expect(play).toHaveAttribute('data-playing', 'false');
     fireEvent.click(play);
     expect(paused.onPlay).toHaveBeenCalledTimes(1);
@@ -57,7 +57,8 @@ describe('<TimeTaps> (FR-TONIGHT-4)', () => {
     cleanup();
     const playing = mount('en', { playing: true });
     const pause = screen.getByRole('button', { name: en.live.pause });
-    expect(pause).toHaveTextContent('‖');
+    expect(pause).toHaveTextContent(/^❚❚ pause$/);
+    expect(screen.queryByRole('button', { name: en.live.play })).toBeNull();
     expect(pause).toHaveAttribute('data-playing', 'true');
     fireEvent.click(pause);
     expect(playing.onPause).toHaveBeenCalledTimes(1);
