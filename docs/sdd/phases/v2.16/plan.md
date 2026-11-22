@@ -253,6 +253,9 @@ Repo tooling made before v3.0's unattended run (D-86's precedent), not tasks.
   While a PR shows no checks, `watchChecks` reads its `mergeable`: `CONFLICTING` answers `conflicting` at once, the driver refreshes the branch and watches again, at most 3 times; otherwise the D-98 wait for the checks to register stands, and only its deadline is red.
   When nothing is ready, `--until-done` reruns once each open-phase task whose PR is open, not labelled `needs-owner` and with no blocked note: the run skips the session, brings the branch up to date, then CI, review (with `--fix`) and merge as usual, and keeps the PR body. A limit does not spend the retry; the D-1317 skips still apply.
   It then stops with exit 0 only when every unmerged task of the phase waits on the owner (a `needs-owner` PR, `Model: interactive`, a missing `Precondition:`, or blocked only on those); otherwise exit 1, listing each task and what holds it.
+- **D-1321 — `docs/sdd/gotchas.md` is a shared file the resolver unions.**
+  (D-1315, D-1316.) Parallel tasks append gotchas, and a conflict there stopped the driver with "conflicted outside the shared files": main added an indented continuation line to a bullet while the branch added a new bullet at the same spot.
+  `sharedKind` now treats `gotchas.md` like a phase `plan.md`: every hunk keeps both sides, main's first (`mainSide` as for the plan), with no markers left, and the file is staged.
 
 ### 9.18 v2.16 additions *(FR-OPEN)*
 
