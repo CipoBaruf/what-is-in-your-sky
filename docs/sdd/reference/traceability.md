@@ -490,6 +490,7 @@
 | FR-KEEP-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-4 | `src/data/localPrefs.test.ts`, `src/ui/components/common/Footer.test.tsx` |
+| FR-LAND-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-LEG-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
 | FR-LEG-3 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
@@ -504,7 +505,7 @@
 | FR-LIVE-6 | `src/data/localPrefs.test.ts`, `src/lib/legend.test.ts`, `src/physics/now.test.ts`, `src/state/slices/prefs.test.ts`, `src/state/workerClient.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx`, `src/worker/handlers.test.ts`, `tests/e2e/live-playback.spec.ts` |
 | FR-LIVE-7 | `src/ui/components/live/useWakeLock.test.tsx`, `tests/e2e/live-landscape.spec.ts`, `tests/e2e/shapes.spec.ts` |
 | FR-LIVE-8 | `src/ui/components/guide/skychart/window/useDeviceOrientation.test.tsx` |
-| FR-LIVE-9 | `src/lib/shareLinks.test.ts`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live-states.spec.ts`, `tests/e2e/live.spec.ts` |
+| FR-LIVE-9 | `src/lib/shareLinks.test.ts`, `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live-states.spec.ts`, `tests/e2e/live.spec.ts` |
 | FR-LIVE-10 | `src/ui/screens/Live.test.tsx` |
 | FR-LIVE-11 | `src/state/effects.test.ts` |
 | FR-LOC-2 | `src/ui/components/location/PlacePicker.test.tsx` |
@@ -674,6 +675,8 @@
 | FR-STAR-11 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
 | FR-STAR-13 | `src/lib/landmark.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-STAR-14 | `src/ui/components/guide/skychart/window/starLabels.test.ts` |
+| FR-STRIP-3 | `src/ui/screens/Live.test.tsx` |
+| FR-STRIP-4 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-TAB-1 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-2 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-3 | `tests/docs/captures.test.ts` |

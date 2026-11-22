@@ -1,7 +1,7 @@
 /**
  * v2.14.1 (FR-WIDE-1, FR-CLEAN-14, FR-WIDE-3 as amended; D-1134..D-1137): the wide pass page from the owner's desk
  * review — a header page with `[ ← ]` and `[ satellites ]`, its rail tonight's passes opened in place and never wider
- * than the page, and its arc the whole path, faced at open, paused at the rise. Every *Verification* line of the three
+ * than the page, and its arc the whole path, faced at open, playing from the rise (R208, FR-STRIP-4). Every *Verification* line of the three
  * amended requirements, at 1024 × 640, 1280 × 800 and 1920 × 1080, in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -195,12 +195,15 @@ for (const [width, height] of SIZES) {
           }
         });
 
-        test('FR-WIDE-3: opens paused at the rise, the whole arc drawn on the near side; Play moves the marker along it (D-1137)', async ({ page }, info) => {
+        test('FR-WIDE-3, FR-STRIP-4: opens playing past the rise; the rise holds it, the whole arc drawn on the near side; Play moves the marker along it (D-1137, D-1233)', async ({ page }, info) => {
           test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
           await home(page, locale);
           const layout = await openFromHeader(page);
           const id = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
-          // The readout is the rise, held: the overview's instant and the time control's state.
+          await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
+          await expect.poll(() => shownInstant(layout), { timeout: 10_000 }).toBeGreaterThan(startOf(id));
+          // The rise's button is a move, so the loop ends there (D-1254): the overview's instant and the time control's state.
+          await layout.locator('[data-set="rise"]').click();
           await expect.poll(() => shownInstant(layout)).toBe(startOf(id));
           await expect(layout.getByTestId('time-control')).toHaveAttribute('data-state', 'scrubbing');
           await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');

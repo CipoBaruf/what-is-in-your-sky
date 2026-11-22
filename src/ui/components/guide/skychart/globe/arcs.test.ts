@@ -155,7 +155,7 @@ describe('globe/arcs on the pass page, whole (D-1137)', () => {
     const marker = altAz(sky, live?.marker ?? [0, 0, 0]);
     expect(Math.abs(marker.altDeg - at.elDeg)).toBeLessThan(0.05);
     expect(Math.abs(marker.azDeg - at.azDeg)).toBeLessThan(0.1);
-    // At the rise the marker is the first point: the page opens there (paused at the rise).
+    // At the rise the marker is the first point: the page opens there (at the rise).
     const [rising] = globeArcs(globeSky(PLACE, START), [p], START, true);
     close(rising?.marker, rising?.points[0] ?? [0, 0, 0]);
     for (const t of [START - 60_000, START + DURATION_MS + 3_600_000]) {
