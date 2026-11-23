@@ -4,7 +4,7 @@
  * `[ Open the live sky ]` — and the phone's first-card form; the one-line
  * statement with no pass, with and without the live link.
  */
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import run from '../../../../tests/fixtures/stored-run-neuquen.json';
@@ -216,5 +216,35 @@ describe('<NextEventBlock onSee> (FR-JUMP-1)', () => {
       vi.advanceTimersByTime(2 * NEXT_EVENT_TICK_MS);
     });
     expect(see()).toBeNull();
+  });
+});
+
+/** R202 (FR-OPEN-12, FR-OPEN-13), kept here by R212 when the example band and its test went with the home. */
+describe('FR-OPEN-12: what a pass looks like, on the example’s card and block', () => {
+  const block = (durationS: number, props: Partial<Parameters<typeof NextEventBlock>[0]> = {}) => (
+    <NextEventBlock passes={[{ ...FIRST, durationS }]} timeZone={null} now={FIRST.start.t - 60_000} hours={72} {...props} />
+  );
+
+  it.each([
+    ['5 min 40 s', 340, 6],
+    ['40 s', 40, 1],
+  ] as const)('a %s pass crosses in about its whole minutes, the card’s and the block’s last line', (_name, durationS, minutes) => {
+    const first = render(block(durationS, { form: 'card', plain: true }));
+    const card = screen.getByTestId('next-event');
+    expect(within(card).getByTestId('example-looks')).toHaveTextContent(`A steady moving dot, no blinking, crosses in about ${String(minutes)} min.`);
+    expect(card.lastElementChild).toBe(within(card).getByTestId('example-looks'));
+    first.unmount();
+    render(<I18nProvider locale="es">{block(durationS, { plain: true, liveLink: false })}</I18nProvider>);
+    const wide = screen.getByTestId('next-event');
+    expect(wide.lastElementChild).toHaveTextContent(`Un punto que se mueve parejo, sin parpadear, cruza en unos ${String(minutes)} min.`);
+    expect(wide.textContent).not.toMatch(/°|mag/);
+  });
+
+  it('is not drawn for a set place (FR-OPEN-13)', () => {
+    const first = render(block(340, { form: 'card' }));
+    expect(screen.queryByTestId('example-looks')).toBeNull();
+    first.unmount();
+    render(block(340));
+    expect(screen.queryByTestId('example-looks')).toBeNull();
   });
 });

@@ -18,6 +18,7 @@ import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
+import { resetNavigation } from './navigation';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -41,6 +42,8 @@ const cursor = (): string | null => (document.activeElement as HTMLElement | nul
 describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   beforeEach(() => {
     media = stubMatchMedia(WIDE_PX);
+    resetNavigation();
+    window.history.replaceState(null, '', '#pass');
   });
   afterEach(() => {
     media.restore();
@@ -52,7 +55,7 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     withPasses();
     render(<App />);
     // The hero card holds the ISS pass; the other object is the one card in the list.
-    await userEvent.keyboard('j');
+    await userEvent.keyboard('k');
     expect(cursor()).toBe(pass.id);
     await userEvent.keyboard('j');
     expect(cursor()).toBe(other.id);
@@ -68,19 +71,18 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   it('opens the pass the cursor is on with Enter, and closes it with Esc', async () => {
     withPasses();
     render(<App />);
-    await userEvent.keyboard('jj{Enter}');
+    await userEvent.keyboard('j{Enter}');
     expect(screen.getByRole('region', { name: en.guide.panelLabel({ name: other.name }) })).toBeInTheDocument();
     expect(window.location.hash).toBe(`#pass=${other.id}`);
 
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('region', { name: en.guide.panelLabel({ name: other.name }) })).toBeNull();
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
   });
 
   it('keeps moving from the open pass once focus has gone into the guide (FR-DESK-3)', async () => {
     withPasses();
     render(<App />);
-    await userEvent.keyboard('j{Enter}');
     expect(screen.getByRole('region', { name: panelName })).toBeInTheDocument();
     // The guide took focus; j picks up from the card of the pass it is showing.
     await userEvent.keyboard('j');
@@ -144,7 +146,7 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   it('closes the overlay before the guide when both are up', async () => {
     withPasses();
     render(<App />);
-    await userEvent.keyboard('j{Enter}?');
+    await userEvent.keyboard('?');
     expect(screen.getByRole('dialog', { name: en.shortcuts.title })).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
@@ -160,16 +162,19 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   it('fires nothing while the location field has focus: the letters are typed (FR-DESK-4)', async () => {
     withPasses();
     render(<App />);
-    // R76 (FR-FIRST-4): with a place set the field is under the location line's `[ change ]`.
-    await userEvent.click(screen.getByTestId('location-summary-change'));
-    const field = screen.getByLabelText(en.location.placeLabel);
+    // R212 (D-1230): the place group is the settings page's.
+    window.history.replaceState(null, '', '#settings');
+    act(() => {
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    const field = await screen.findByLabelText(en.location.placeLabel);
     await userEvent.click(field);
     await userEvent.keyboard('jknvl');
 
     expect(field).toHaveValue('jknvl');
     expect(appStore.getState().chartView).toBeUndefined();
     expect(appStore.getState().theme).toBe('dark');
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#settings');
     expect(screen.queryByRole('dialog', { name: en.shortcuts.title })).toBeNull();
   });
 
@@ -204,7 +209,7 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     withPasses();
     render(<App />);
     await userEvent.keyboard('j');
-    expect(cursor()).toBe(pass.id);
+    expect(cursor()).toBe(other.id);
 
     await userEvent.keyboard('?');
     for (const card of screen.getAllByRole('article', { hidden: true })) card.focus = () => undefined;
@@ -224,6 +229,8 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
 describe('<App> s on the stars page (FR-DESK-4 as amended v2.4)', () => {
   beforeEach(() => {
     media = stubMatchMedia(WIDE_PX);
+    resetNavigation();
+    window.history.replaceState(null, '', '#pass');
   });
   afterEach(() => {
     media.restore();
@@ -258,6 +265,8 @@ describe('<App> s on the stars page (FR-DESK-4 as amended v2.4)', () => {
 describe('<App> the shortcuts overlay over the compact sheet (F-45)', () => {
   beforeEach(() => {
     media = stubMatchMedia(COMPACT_PX);
+    resetNavigation();
+    window.history.replaceState(null, '', '#pass');
   });
   afterEach(() => {
     media.restore();

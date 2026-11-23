@@ -130,7 +130,8 @@ test('the header switch turns the page red on black, and the choice survives a r
 
 test('night mode reaches the pass list and the guide sheet, in both languages', async ({ page }) => {
   await withFixtures(page);
-  await page.goto('/');
+  // R212 (FR-LAND-6): the list is the satellites page, `#pass`.
+  await page.goto('/#pass');
   const html = page.locator('html');
 
   await withSettings(page, async () => {

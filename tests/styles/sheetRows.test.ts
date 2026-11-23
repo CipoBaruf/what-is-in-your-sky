@@ -131,19 +131,18 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     }
   });
 
-  it('the sheet’s head row: a ten-letter place, the settings link and the ×, inside 360 px', () => {
+  it('the sheet’s head row: the place cut as it must be, the satellites and settings links and the ×, inside 360 px', () => {
     inLocale(locale, createElement(ControlsSheet, { open: true, onOpenChange: () => undefined, place: 'Cipolletti' }));
     const head = screen.getByTestId('sheet-head');
     const cells = rowCells(head, table);
     // R150 (FR-GYRO-8): the `×` is one character drawn in a `--tap` box (48 px), wider than its cell: count the box.
-    expect(rowParts(head, table)).toEqual(['Cipolletti', t.settings.open, '×']);
+    expect(rowParts(head, table)).toEqual(['Cipolletti', t.header.pages.pass, t.settings.open, '×']);
     const tapCells = Math.ceil(48 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    const fixed = t.settings.open.length + 1 + tapCells;
-    expect(cells - 'Cipolletti'.length - 1 - 1).toBe(t.settings.open.length + 1);
-    expect('Cipolletti'.length + 1 + fixed).toBeLessThanOrEqual(rowCellsAt(360));
-    // The fixed part is 14 cells in English and 13 in Spanish (`settings ×`, `ajustes ×`, the `×` as its five
-    // cells of box), so a place has 21 or 22 cells at 390 px before its ellipsis (R206: the brackets' four more).
+    const fixed = t.header.pages.pass.length + 1 + t.settings.open.length + 1 + tapCells;
+    expect(cells - 'Cipolletti'.length - 1 - 1).toBe(t.header.pages.pass.length + 1 + t.settings.open.length + 1);
+    // R212 (D-1231): `satellites` took eleven of the place's cells: a place ellipsises after them, and some is left.
+    expect(rowCellsAt(360) - fixed - 1).toBeGreaterThanOrEqual(5);
     expect(tapCells).toBe(5);
-    expect(fixed).toBe(locale === 'en' ? 14 : 13);
+    expect(fixed).toBe(locale === 'en' ? 25 : 23);
   });
 });

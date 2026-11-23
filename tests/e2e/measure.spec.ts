@@ -7,10 +7,14 @@
  * R202 (FR-OPEN-10, US-61 AC4; D-1182, D-1183): the first run is counted from the example — `open`, `example_shown`,
  * `where_shown` with its detail, `place_set` — in the example's zone, on the fallback (the suite's UTC) and wide, and
  * no event carries the example's city, zone or coordinates.
+ *
+ * R212 (FR-LAND-1, D-1242): the visit opens on the live page, so `open` is `live`; `door` left with the home's doors,
+ * and `example_shown` is sent from the live page. `where_shown` has no sender until R215's place dialog, and the
+ * example's control opens the settings page's place group (D-1230).
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { isMeasureEvent, type MeasureEvent } from '../../src/model/measure';
-import { LABEL, NINE_DAYS_ON, openSettings, stubNetwork } from './liveHelpers';
+import { LABEL, NINE_DAYS_ON, stubNetwork } from './liveHelpers';
 import { NEUQUEN } from './observers';
 
 const GEOCODE = 'tests/fixtures/open-meteo/2026-09-02-cipolletti-geocode.json';
@@ -20,7 +24,7 @@ const DEVICE = { latitude: -38.94, longitude: -68.0, accuracy: 30 };
 /** FR-OPEN-11: the zone whose city is the example every example spec runs on. */
 const EXAMPLE_ZONE = 'America/Argentina/Buenos_Aires';
 /** FR-MEAS-2 as amended v2.16: the first run's facts, in the order a reader reaches them. */
-const WALK = ['open', 'example_shown', 'where_shown', 'place_set', 'door', 'pass_open'] as const;
+const WALK = ['open', 'example_shown', 'where_shown', 'place_set', 'pass_open'] as const;
 /**
  * FR-OPEN-10, FR-MEAS-5: what no event may carry — the place a reader typed and the example's city, zone and
  * coordinates (Buenos Aires, −34.60, −58.45; whole and in parts, any digit being refused besides).
@@ -97,24 +101,22 @@ for (const language of [
     test.describe('from the example, at 390 × 844', () => {
       test.use({ viewport: { width: 390, height: 844 }, timezoneId: EXAMPLE_ZONE });
 
-      test('FR-OPEN-10, US-61 AC4: open, example_shown, where_shown, place_set — once each, in order, under one id, and no word of the example', async ({ page }) => {
+      test('FR-OPEN-10, D-1242: open:live, example_shown on the live page, place_set — once each, in order, under one id, and no word of the example', async ({ page }) => {
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
-        const band = page.getByTestId('example-band');
-        await expect(band).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
-        await painted(page);
-        // Nothing about the place question is counted while the example is all there is.
-        expect(walked(bodies)).toEqual(['open:home', 'example_shown:pass']);
-        await band.getByTestId('example-set-place').click();
-        await expect(page.getByTestId('cold-open')).toBeVisible();
+        await expect(page).toHaveURL(/#live$/);
+        await expect(page.getByTestId('example-notice')).toBeVisible({ timeout: 60_000 });
+        await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
+        await page.getByTestId('example-notice-set').click();
+        await expect(page).toHaveURL(/#settings$/);
         await pickCipolletti(page);
-        await expect(page.getByTestId('location-summary')).toBeVisible();
-        await expect.poll(() => walked(bodies).length).toBe(4);
+        await expect(page.getByTestId('place-confirmation')).toBeVisible();
+        await expect.poll(() => walked(bodies).length).toBe(3);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies)).toEqual(['open:home', 'example_shown:pass', 'where_shown:example', 'place_set:search']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'place_set:search']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'compact', lang: language.lang });
         // V215-7: once per pair per load.
@@ -126,19 +128,18 @@ for (const language of [
     test.describe('with no example, at 390 × 844', () => {
       test.use({ viewport: { width: 390, height: 844 } });
 
-      test('FR-OPEN-10: the fallback walk — example_shown:no_city, where_shown:fallback, the place, a door', async ({ page }) => {
+      test('FR-OPEN-10: the fallback walk — example_shown:no_city on the live page, then the place', async ({ page }) => {
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
-        await expect(page.getByTestId('cold-open')).toBeVisible();
+        await page.getByTestId('live-set-place').click({ timeout: 60_000 });
+        await expect(page).toHaveURL(/#settings$/);
         await pickCipolletti(page);
-        // FR-OPEN-5: no when or what step between the place and the stacked page.
-        await page.getByTestId('door-satellites').click();
-        await expect.poll(() => pairs(bodies).filter((pair) => pair.startsWith('door')).length).toBe(1);
+        await expect.poll(() => walked(bodies).length).toBe(3);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies).filter((pair) => pair !== 'pass_open')).toEqual(['open:home', 'example_shown:no_city', 'where_shown:fallback', 'place_set:search', 'door:satellites']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:no_city', 'place_set:search']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'compact', lang: language.lang });
         expect(new Set(pairs(bodies)).size).toBe(bodies.length);
@@ -149,24 +150,24 @@ for (const language of [
     test.describe('from the example, at 1280 × 800', () => {
       test.use({ viewport: { width: 1280, height: 800 }, timezoneId: EXAMPLE_ZONE });
 
-      test('FR-OPEN-10: the wide walk — the example, the place set in the Where pane, a door, a pass', async ({ page }) => {
+      test('FR-OPEN-10: the wide walk — the example on the live page, a place by coordinates, the satellites page on a pass', async ({ page }) => {
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
-        const where = page.getByTestId('reading-where');
-        await expect(page.getByTestId('reading-when').getByTestId('next-event')).toBeVisible({ timeout: 60_000 });
-        await where.getByTestId('where-set-place').click();
+        await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
+        await page.getByTestId('example-notice-set').click();
+        await expect(page).toHaveURL(/#settings$/);
+        const disclosure = page.getByTestId('coords-disclosure');
+        if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
         await page.getByLabel(LABEL[language.lang].coords).fill(PAIR);
-        await expect(page.getByTestId('location-summary')).toBeVisible();
-        const door = page.getByTestId('door-satellites');
-        await expect(door).toHaveAttribute('href', /^#pass=/, { timeout: 60_000 });
-        await expect(page.getByTestId('where-example')).toHaveCount(0);
-        await door.click();
+        await expect.poll(() => walked(bodies).length).toBe(3);
+        await page.getByTestId('pass-link').click();
+        await expect(page).toHaveURL(/#pass=/, { timeout: 60_000 });
         await expect.poll(() => pairs(bodies).includes('pass_open')).toBe(true);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies)).toEqual(['open:home', 'example_shown:pass', 'where_shown:example', 'place_set:coords', 'door:satellites', 'pass_open']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'place_set:coords', 'pass_open']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'wide', lang: language.lang });
         expectNoPlace(bodies);
@@ -208,28 +209,31 @@ async function kept(page: Page, context: BrowserContext): Promise<unknown> {
   return { cookies, ...stores };
 }
 
-/** D-1177: the example's outcome has latched `pass` — the compact band says so, or the wide When pane draws the next event. */
-const examplePass = (page: Page) => page.locator('[data-testid="example-band"][data-state="pass"], [data-testid="reading-when"] [data-testid="next-event"]').first();
-
 /** US-59 AC1's visit: a place typed and picked, a coordinate pair entered, the device location used — on the settings page, where all three are. */
-async function fullVisit(page: Page, context: BrowserContext): Promise<{ before: unknown; after: unknown }> {
+async function fullVisit(page: Page, context: BrowserContext, bodies: readonly string[] | null): Promise<{ before: unknown; after: unknown }> {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation(DEVICE);
   await serve(page);
   await page.goto('/');
   // FR-OPEN-10: the visit starts on the example, so its city, zone and coordinates are in reach of every count.
   // Its run is in before the reader moves on: a place set during the wait leaves the outcome `pending` (D-1191).
-  // The door's `#pass=` href is not that signal: the first streamed chunk writes it while the 72 h run goes on, and
-  // `slow` never comes under a fixed clock, so a slow worker left the outcome unlatched. What the page draws for the
-  // latched `pass` is: the band's state on compact, the When pane's next event on wide.
-  await expect(examplePass(page)).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId('door-satellites')).toHaveAttribute('href', /^#pass=/);
+  // R212: the live page draws the example's line from the first paint, so the latch is read where it is sent — the
+  // `example_shown` count — on the measured visit; the visit without the measurement waits for the elements below.
+  await expect(page.getByTestId('example-notice')).toBeVisible({ timeout: 60_000 });
+  if (bodies) await expect.poll(() => pairs(bodies), { timeout: 60_000 }).toContain('example_shown:pass');
   // The elements are cached as they arrive; "before" is the page once both groups are in, with and without the measurement.
   await expect.poll(async () => ((await kept(page, context)) as { idb: Record<string, string[]> }).idb['wiys/elementGroups']).toEqual(['stations', 'visual']);
   const before = await kept(page, context);
-  await openSettings(page);
+  // R212: the phone's live page has no header, so the settings page is reached by its address.
+  await page.evaluate(() => {
+    location.hash = '#settings';
+  });
+  await expect(page.getByTestId('location-actions')).toBeVisible({ timeout: 30_000 });
   await pickCipolletti(page);
   await expect(page.getByTestId('place-confirmation')).toBeVisible();
+  // The coordinates are behind their disclosure on the settings page.
+  const disclosure = page.getByTestId('coords-disclosure');
+  if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
   await page.getByLabel(LABEL.en.coords).fill(PAIR);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
@@ -246,7 +250,7 @@ for (const viewport of [
 
     test('FR-MEAS-5, FR-OPEN-10, US-59 AC1, AC2: nothing typed, named or placed — nor the example’s city, zone or coordinates — leaves with a count, and the count keeps nothing on the device', async ({ page, context, browser }) => {
       const bodies = await recordBeacons(page);
-      const on = await fullVisit(page, context);
+      const on = await fullVisit(page, context, bodies);
       await expect.poll(() => pairs(bodies).filter((pair) => pair.startsWith('place_set:')).sort()).toEqual(['place_set:coords', 'place_set:device', 'place_set:search']);
       expect(pairs(bodies)).toContain('example_shown:pass');
       expectNoPlace(bodies);
@@ -255,7 +259,7 @@ for (const viewport of [
       const offContext = await browser.newContext({ viewport, locale: 'en-GB', timezoneId: EXAMPLE_ZONE, serviceWorkers: 'block' });
       const offPage = await offContext.newPage();
       const offBodies = await recordBeacons(offPage, false);
-      const off = await fullVisit(offPage, offContext);
+      const off = await fullVisit(offPage, offContext, null);
       expect(offBodies).toEqual([]);
       await offContext.close();
       expect(on.before).toEqual(off.before);
@@ -274,26 +278,32 @@ test.describe('offline', () => {
     const bodies = await recordBeacons(page);
     await serve(page);
     await page.goto('/');
-    const band = page.getByTestId('example-band');
-    await expect(band).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
-    await expect(page.getByTestId('door-stars').getByTestId('door-stars-line').nth(1)).not.toHaveAttribute('data-pending', '');
-    await expect.poll(() => walked(bodies)).toEqual(['open:home', 'example_shown:pass']);
+    await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
+    // The settings chunk in hand before the connection goes (the service worker that would serve it is blocked here).
+    const chunk = page.waitForResponse((response) => /\/Settings-[^/]*\.js$/.test(response.url()), { timeout: 5_000 }).catch(() => undefined);
+    await page.getByTestId('example-notice-set').click();
+    await chunk;
+    await expect(page.getByTestId('location-actions')).toBeVisible();
 
     await context.setOffline(true);
-    await band.getByTestId('example-set-place').click();
+    const disclosure = page.getByTestId('coords-disclosure');
+    if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
     await page.getByLabel(LABEL.en.coords).fill(PAIR);
     await page.getByLabel(LABEL.en.coords).press('Enter');
-    await expect(page.getByTestId('location-summary')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { observer?: unknown }).observer ?? null)).not.toBeNull();
     await painted(page);
     await context.setOffline(false);
 
-    await page.getByTestId('door-stars').click();
-    await expect.poll(() => pairs(bodies)).toContain('door:stars');
+    // Back online, a count the reader makes now is sent: the satellites page, a card's pass opened.
+    await page.evaluate(() => {
+      location.hash = '#pass';
+    });
+    await page.locator('article[data-pass-id]').first().getByRole('button', { name: /Open guide/ }).click({ timeout: 60_000 });
+    await expect.poll(() => pairs(bodies)).toContain('pass_open');
     await painted(page);
     // A forecast refused while offline or after is the store's `failure`, whichever side it lands; it is not the walk.
     const sent = walked(bodies);
-    expect(sent).not.toContain('where_shown:example');
     expect(sent).not.toContain('place_set:coords');
-    expect(sent).toEqual(['open:home', 'example_shown:pass', 'door:stars']);
+    expect(sent).toEqual(['open:live', 'example_shown:pass', 'pass_open']);
   });
 });

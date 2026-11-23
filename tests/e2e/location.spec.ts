@@ -44,10 +44,10 @@ test.beforeEach(async ({ page }) => {
 test('coordinates with altitude → pass list; reload restores it without re-typing; clear empties wiys:prefs:v1', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
-  await page.goto('/');
+  await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
-  const cold = page.getByTestId('cold-open');
+  // R212 (FR-LAND-6): with no place the satellites page asks for one, and the list waits for it.
+  const cold = page.getByTestId('pass-set-place');
   await expect(cold).toBeVisible();
   await expect(status).toHaveCount(0);
   expect(await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)).toBeNull();
@@ -104,7 +104,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
 test('the device button uses the browser position: coordinates, accuracy above 1 km, and the list (US-3)', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 2000 });
-  await page.goto('/');
+  await page.goto('/#pass');
   const compact = await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device (accurate to about 2 km).');
@@ -114,10 +114,7 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toHaveCount(1);
-  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11) — on compact at
-  // the top of the group `[ change ]` opens (D-1024).
-  if (compact) await page.getByTestId('location-summary-change').click();
-  await expect(page.getByTestId('where-sentence')).toContainText("Using your device's location (±2000 m).");
+  // R212: the home's Where sentence, which repeated the accuracy, went with the home; the settings line above says it.
   await page.screenshot({ path: 'test-results/r10-device-390.png' });
 
   // A precise fix hides the accuracy (US-3 AC3).
@@ -138,12 +135,13 @@ test('a device location is named after the nearest town, from the app\'s own ori
   });
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -38.94, longitude: -68.0, accuracy: 12_000 });
-  await page.goto('/');
+  await page.goto('/#pass');
   const compact = await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
   if (compact) await leaveSettings(page);
-  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+  // The town is named once the places file is in (R212: the home's place line, which waited for it, went with the home).
+  await expect.poll(() => page.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? '{}') as { observer?: { label?: string } }).observer?.label, PREFS_KEY)).toBe('Cipolletti, Argentina');
   const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; label: string } } | null;
   expect(saved?.observer).toMatchObject({ source: 'device', label: 'Cipolletti, Argentina' });
   // The list is the app's own static file, fetched once; no request carries the position anywhere else.
@@ -157,13 +155,14 @@ test('a device location is named after the nearest town, from the app\'s own ori
     localStorage.setItem(k, JSON.stringify({ ...prefs, locale: 'es' }));
   }, PREFS_KEY);
   await page.reload();
-  await expect(page.getByTestId('location-summary')).toHaveText('Cipolletti');
+  // R212: the home's place line went with the home; what is saved still names the town.
+  await expect.poll(() => page.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? '{}') as { observer?: { label?: string } }).observer?.label, PREFS_KEY)).toMatch(/^Cipolletti/);
   expect(elsewhere).toEqual([]);
 });
 
 test('a denied permission shows the message and leaves the inputs usable (US-3 AC2)', async ({ page, context }) => {
   await context.clearPermissions();
-  await page.goto('/');
+  await page.goto('/#pass');
   await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   // Scoped to the location section: the elements banners (R11) can add a page-level alert when the fixture elements are old.

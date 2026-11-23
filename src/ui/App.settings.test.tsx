@@ -46,6 +46,8 @@ const goTo = (hash: string): void => {
 beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(NOW);
   media = stubMatchMedia(COMPACT_PX);
+  // R212 (FR-LAND-6): the page with the compact header's links is the satellites page.
+  window.history.replaceState(null, '', '#pass');
 });
 
 afterEach(() => {
@@ -69,8 +71,8 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     goTo('#settings');
     expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: en.location.heading })).toBeInTheDocument();
-    // Nothing of the home screen is left underneath it.
-    expect(screen.queryByTestId('location-summary')).toBeNull();
+    // Nothing of the page it was opened from is left underneath it.
+    expect(screen.queryByTestId('pass-tonight')).toBeNull();
     expect(screen.queryByRole('region', { name: en.passes.heading })).toBeNull();
   });
 
@@ -81,7 +83,7 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
   });
 
-  it('returns to the home screen through the back control, and clears the hash in place (US-20 AC4)', async () => {
+  it('leaves to the live page through the back control when it was not the app that opened it, in place (US-20 AC4, FR-LAND-1)', async () => {
     withSky();
     render(<App />);
     goTo('#settings');
@@ -90,12 +92,12 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
       screen.getByTestId('settings-back').click();
       await Promise.resolve();
     });
-    expect(window.location.hash).toBe('');
-    expect(screen.getByTestId('location-summary')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#live');
+    expect(await screen.findByTestId('live-page')).toBeInTheDocument();
     expect(screen.queryByTestId('settings-back')).toBeNull();
   });
 
-  it('returns to the home screen on Esc, with the observer and the list intact (US-20 AC4)', async () => {
+  it('leaves to the live page on Esc, with the observer intact (US-20 AC4)', async () => {
     withSky();
     render(<App />);
     goTo('#settings');
@@ -105,7 +107,7 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     });
     expect(screen.queryByTestId('settings-back')).toBeNull();
     expect(appStore.getState().observer).toBe(observer);
-    expect(screen.getByTestId('next-tag')).toBeInTheDocument();
+    expect(await screen.findByTestId('live-page')).toBeInTheDocument();
   });
 
   it('leaves an Esc pressed inside one of the page’s own fields to that field (D-73)', async () => {
@@ -127,13 +129,6 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     const { container } = render(<App />);
     // R129 (FR-FLOW-3, V26-10): `[ settings ]` ends the wide header's row, since the switches are the page's alone.
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
-    expect(container.querySelectorAll('a[href="#settings"]')).toHaveLength(1);
-    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, and its
-    // `[ change ]` opens the whole form in place; nothing else on the page links to #settings.
-    act(() => {
-      screen.getByTestId('location-summary-change').click();
-    });
-    expect(screen.getByRole('region', { name: en.location.heading })).toBeInTheDocument();
     expect(container.querySelectorAll('a[href="#settings"]')).toHaveLength(1);
     goTo('#settings');
     expect(await screen.findByTestId('settings-back')).toBeInTheDocument();

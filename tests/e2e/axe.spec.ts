@@ -71,17 +71,19 @@ async function toLive(page: Page, theme: Theme): Promise<void> {
 /** R170: a screen only the wide layout has (`wideOnly`) is skipped at the phone's width. */
 const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: Theme) => Promise<void> }[] = [
   {
-    name: 'home, cold',
+    // R212 (FR-LAND-1): `/` is the live page; in UTC there is no example, so it asks for a place.
+    name: 'live, no place',
     open: async (page, theme) => {
       await page.clock.setFixedTime(NINE_DAYS_ON);
       await stubNetwork(page);
       await page.addInitScript(([key, value]: [string, string]) => localStorage.setItem(key, value), [PREFS_KEY, JSON.stringify({ locale: 'en', theme })] as [string, string]);
       await page.goto('/');
-      await expect(page.getByTestId('cold-open')).toBeVisible();
+      await expect(page.getByTestId('live-set-place')).toBeVisible({ timeout: 30_000 });
     },
   },
   {
-    name: 'home, populated',
+    // R212 (FR-LAND-6): the seed leaves the page on the satellites page.
+    name: 'satellites, populated',
     open: async (page, theme) => {
       await seedStoredRun(page, { prefs: { theme }, settled: true });
     },

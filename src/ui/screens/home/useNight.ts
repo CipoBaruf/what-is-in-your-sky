@@ -8,7 +8,7 @@ import { useTonight } from '../../components/now/useTonight';
 import { nightWindow } from './tonight';
 
 /**
- * R82 (FR-FIRST-4 as amended v2.0.2), kept by R202 for the home's doors: tonight — the bands the stripe draws
+ * R82 (FR-FIRST-4 as amended v2.0.2), read by the satellites' list since R212: tonight — the bands the stripe draws
  * (`useTonight`, the stacked page's own), tonight's dark band, the stretch of night the cloud word is about, and
  * the cloud for it: the forecast hour by hour across that stretch (`nightClouds`, D-1028).
  */

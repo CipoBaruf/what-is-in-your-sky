@@ -366,20 +366,18 @@ for (const locale of LOCALES) {
       await page.reload();
       await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
       await expect(page.getByTestId('stars-view-row').getByRole('button')).toHaveText(DESK_LABELS[locale]);
-      await page.goto('/');
+      await page.goto('/#pass');
       await page.reload();
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
       await expect(page.getByTestId('pass-layout').getByTestId('sky-chart')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
     });
 
-    test('FR-WIDE-1: Esc on the pass detail returns to the home with the card in view', async ({ page }) => {
+    test('FR-WIDE-1, FR-LAND-1: Esc on the pass detail returns to the live page', async ({ page }) => {
       await openDetail(page, locale);
-      const id = await page.getByTestId('guide-panel').getAttribute('data-pass-id');
       await page.keyboard.press('Escape');
       await expect(page.getByTestId('pass-layout')).toHaveCount(0);
-      const card = page.locator(`article[data-pass-id="${id ?? ''}"]`);
-      await expect(card).toBeInViewport();
-      await expect(card).toBeFocused();
+      await expect(page).toHaveURL(/#live$/);
+      await expect(page.getByTestId('live-layout')).toBeVisible();
     });
   });
 }
@@ -482,35 +480,13 @@ for (const viewport of TURNED) {
 }
 
 /**
- * R156 (FR-PHONE-12, FR-PHONE-14; US-48 AC1, AC3): the phone's pages answer first. At 390 × 844 the home opens on
- * its three doors, the Where reading folded under them, the third door's bottom edge at or above `DOORS_BOTTOM_PX`;
- * at 390 × 667, the smaller phone, the pass detail's times are one row (R164: in its sheet; the drawing is the
- * viewport, so `DETAIL_DRAWING_TOP_PX` binds no more). Both languages.
+ * R156 (FR-PHONE-14; US-48 AC3): at 390 × 667, the smaller phone, the pass detail's times are one row (R164: in its
+ * sheet; the drawing is the viewport, so `DETAIL_DRAWING_TOP_PX` binds no more). Both languages. R212 (FR-LAND-1): the
+ * home's doors and FR-PHONE-12's test went with the home.
  */
-const DOORS_BOTTOM_PX = 420;
 const SMALL_PHONE = { width: 390, height: 667 };
 
 for (const locale of LOCALES) {
-  test.describe(`FR-PHONE-12 at 390 × 844, ${locale}`, () => {
-    test.use({ viewport: PHONE, hasTouch: false });
-
-    test('the home: the three doors first under the header, the Where reading after them, the doors’ bottom edge at or above 420 px', async ({ page }) => {
-      await seedStoredRun(page, { locale, settled: true, prefs: FRESH });
-      const doors = ['door-satellites', 'door-stars', 'door-live'].map((id) => page.getByTestId(id));
-      for (const door of doors) await expect(door).toBeVisible();
-      const boxes = await Promise.all(doors.map(box));
-      const header = await box(page.getByTestId('header'));
-      const where = await box(page.getByTestId('reading-where'));
-      // The status line is drawn (in this seed a fault — no forecast stored — which is never folded, FR-FLOW-2): the edge holds with it.
-      await expect(page.getByTestId('where-status')).toBeVisible();
-      const bottom = Math.max(...boxes.map((door) => door.y + door.height));
-      console.log(`R156: the doors' bottom edge at 390 × 844 in ${locale}: ${String(Math.round(bottom))} px`);
-      expect(bottom).toBeLessThanOrEqual(DOORS_BOTTOM_PX);
-      expect(boxes[0]?.y ?? 0).toBeGreaterThanOrEqual(header.y + header.height - 1);
-      expect(where.y).toBeGreaterThanOrEqual(bottom - 1);
-    });
-  });
-
   test.describe(`FR-PHONE-14 at 390 × 667, ${locale}`, () => {
     test.use({ viewport: SMALL_PHONE, hasTouch: false });
 

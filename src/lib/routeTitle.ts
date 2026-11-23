@@ -2,7 +2,7 @@ import type { Messages } from '../i18n/messages';
 
 /**
  * R92 (FR-A11Y-3, D-531): the document title of each route, in the active
- * language. Home is the bare app title; every other route is its own name, then
+ * language. Every route is its own name, then
  * the app's — "Live sky · …", "Settings · …", and for an open pass the
  * satellite and its start time, already formatted by the caller in the
  * observer's zone and the active language.
@@ -11,7 +11,7 @@ import type { Messages } from '../i18n/messages';
  * announcer reads the same string, so what is said on a route change is what
  * the tab says.
  */
-export type RouteName = 'home' | 'live' | 'settings' | 'stars' | 'pass';
+export type RouteName = 'live' | 'settings' | 'stars' | 'pass';
 
 export interface TitledPass {
   name: string;
@@ -22,8 +22,6 @@ export interface TitledPass {
 export function routeTitle(route: RouteName, t: Messages, pass?: TitledPass | null): string {
   const app = t.app.title;
   switch (route) {
-    case 'home':
-      return app;
     case 'live':
       return t.a11y.title({ route: t.live.open, app });
     case 'settings':

@@ -62,8 +62,6 @@ const built = templates(source);
 describe('FR-FLOW-16: the capture specs wait for what the pages draw', () => {
   it('finds the capture specs, v1-captures among them', () => {
     expect(captureSpecs).toContain('v1-captures.spec.ts');
-    expect(captureSpecs).toContain('r76-captures.spec.ts');
-    expect(captureSpecs).toContain('r84-captures.spec.ts');
   });
 
   it('reads both forms of a test id, and only literal ones', () => {

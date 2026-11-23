@@ -27,7 +27,6 @@ describe('the capture manifest', () => {
 
   it('covers every file a route imports, under src/, by its route list or `all`', () => {
     const entries: Record<string, string[]> = {
-      home: ['src/ui/screens/Home.tsx'],
       settings: ['src/ui/screens/Settings.tsx', 'src/ui/screens/SettingsRoute.tsx'],
       detail: ['src/ui/screens/PassDetail.tsx'],
       live: ['src/ui/screens/Live.tsx', 'src/ui/screens/LiveRoute.ts'],
@@ -118,6 +117,6 @@ describe('capturesReached', () => {
   });
 
   it('counts a deleted file as a change to the screens that drew it', () => {
-    expect(capturesReached([{ path: 'src/ui/screens/home/HomeDoors.tsx', deleted: true }], manifest)).toContain('home-up-now');
+    expect(capturesReached([{ path: 'src/ui/screens/sky/pass/Empty.tsx', deleted: true }], manifest)).toContain('shortcuts');
   });
 });

@@ -1,6 +1,6 @@
 /**
  * R134 (FR-FLOW-10, FR-FLOW-11; D-851): the five pages `rhythm.spec.ts` and `targets.spec.ts` measure at 390 × 844 —
- * the home, the live page, the stars page, the pass detail and the settings page — each opened
+ * the satellites' list (R212: in the home's place), the live page, the stars page, the pass detail and the settings page — each opened
  * the way R132's `sky-layout.spec.ts` opens them and returned as the root to measure under.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -13,8 +13,8 @@ export const PHONE = { width: 390, height: 844 };
 export const TURNED = { width: 844, height: 390 };
 export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
-export type FlowPage = 'home' | 'live' | 'stars' | 'detail' | 'settings';
-const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail', 'settings'];
+export type FlowPage = 'list' | 'live' | 'stars' | 'detail' | 'settings';
+const FLOW_PAGES: readonly FlowPage[] = ['list', 'live', 'stars', 'detail', 'settings'];
 /**
  * R139 (FR-FLOW-10, FR-FLOW-11 as amended; D-885): the two views a phone opens the live page and the pass detail on —
  * the window, a fresh profile's (FR-FLOW-14: no `chartView` saved), and the dome, a saved `chartView`.
@@ -31,7 +31,7 @@ export const FLOW_CASES: readonly FlowCase[] = FLOW_PAGES.flatMap((page): FlowCa
 export const SHEET_CASES: readonly FlowCase[] = FLOW_CASES.filter(({ page }) => page === 'stars' || page === 'detail');
 /** Whether `openFlowPage` opens the page's sheet (the default) or leaves the sky with the sheet closed. */
 export type SheetState = 'open' | 'closed';
-/** A case's name in a test title: `live (window)`, `home`. */
+/** A case's name in a test title: `live (window)`, `list`. */
 export const caseName = ({ page, view }: FlowCase): string => (view === null ? page : `${page} (${view})`);
 
 /** `seedStoredRun`'s prefs for a view: the window seeds no `chartView` (a fresh profile), the dome the saved one. */
@@ -60,11 +60,11 @@ async function seedReader(page: Page, locale: Locale): Promise<void> {
 export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, view: FlowView | null = 'dome', sheet: SheetState = 'open'): Promise<Locator> {
   const drawn = view ?? 'dome';
   switch (which) {
-    case 'home': {
+    case 'list': {
       await seedStoredRun(page, { locale, settled: true });
-      await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
-      await expect(page.getByTestId('reading-when')).toBeVisible();
-      await expect(page.getByTestId('list-column')).toBeVisible();
+      const tonight = page.getByTestId('pass-tonight');
+      await expect(tonight.getByTestId('tonight-stripe')).toBeVisible({ timeout: 30_000 });
+      await expect(tonight.getByTestId('conditions')).toBeVisible();
       return page.locator('main');
     }
     case 'live': {
@@ -98,7 +98,7 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       // R164: the full form's root holds a box fixed to the viewport and has no box of its own, so it is attached, not visible.
       await expect(layout).toBeAttached();
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
-      // The compact guide stands over the home, which it makes inert: the dialog is the page. R164 (FR-CLEAN-5,
+      // The compact guide stands over the list, which it makes inert: the dialog is the page. R164 (FR-CLEAN-5,
       // FR-CLEAN-8): it is measured with its sheet open, as the live page and the stars page are — its rows are the sheet's.
       // R165: or closed, the sky and what stands over it.
       if (sheet === 'open') await openSheet(page);

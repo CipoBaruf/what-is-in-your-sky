@@ -1,15 +1,15 @@
-import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createRef, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
-import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
-import { isPassPageRoute, observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
+import { isPassPageRoute, LIVE_HASH, observerFromLink, PASS_PAGE_HASH, passIdHash, resolvePassLink, routeOfHash, STARS_HASH } from '../lib/shareLinks';
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { catalogName, isFeatured, useAppStore } from '../state';
 import { count } from '../state/measure';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
+import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
 import { PageNotices } from './components/common/VisitNotice';
@@ -18,91 +18,46 @@ import { useLayoutMode } from './hooks/useLayoutMode';
 import { useOwnObserver, usePageObserver } from './hooks/useOwnObserver';
 import { PassList } from './components/passes/PassList';
 import { useShortcuts } from './hooks/useShortcuts';
-import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
+import { moveCursor, passIdAtCursor } from './components/passes/passCursor';
 import { nextView } from './screens/chartViewDefault';
-import { Home } from './screens/Home';
-import { usePlaceOpen } from './screens/home/usePlaceOpen';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
 import { settingsShell } from './screens/SettingsRoute';
 import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
 import { StarsPage, useStarsRoute } from './screens/StarsRoute';
-import { clearRoute, open as openRoute, useHash } from './navigation';
-import { PassEmpty } from './screens/sky/pass/Empty';
+import { close as closeRoute, landRoute, open as openRoute, useHash } from './navigation';
+import { PassEmpty, PassTonight } from './screens/sky/pass/Empty';
 import { Shell } from './Shell';
 import { useVisitHand } from './components/guide/skychart/useChartHand';
 
 /**
  * R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the
- * first time `#live` is opened, so the home page pays nothing for it. The
+ * first time it is shown; since R212 (FR-LAND-1) that is the first page. The
  * route is read from the hash beside the pass selection (D-13).
  */
 const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default: module.LivePage })));
 
-/**
- * FR-FLAG-1 (D-183): the import lives inside the `if`, not just the render,
- * so with `MOON_LORE` statically `false` Rollup never registers the dynamic
- * import as a chunk boundary — `lore.json` and its component ship in no file
- * of the build, not merely one the app declines to fetch.
- */
-const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').then((module) => ({ default: module.MoonLore }))) : undefined;
-
 /** R186: the live page's link notes (FR-VISIT-3), under the app's header on wide as the page's top row held them. */
 const LIVE_NOTES = ['past', 'far'] as const;
 
-/** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
-const HOME_NOTES = ['unreadable'] as const;
-/** R203 (D-1205): the stars page's strip holds the example's line alone, on wide; on a phone the box covers it and the page draws its own. */
+/** R203 (D-1205): the pages with none of the moment's notes; the stars page's strip holds the example's line alone, on wide. */
 const NO_NOTES = [] as const;
 
 /** R129 (D-845): the settings header's `[ ← ]`, which the settings chunk focuses when it arrives. One app, one ref. */
 const SETTINGS_BACK = createRef<HTMLButtonElement>();
 
 /**
- * R5: the screen only writes the observer to the store; the effects started
- * by `main.tsx` load the elements and drive the worker (PLAN §3: `src/ui`
- * imports `src/state`, never `src/data` or `src/physics`). R7: the Now panel
- * sits between the input and the pass list. R6: the selected pass lives in
- * the URL hash (D-13) and opens the detail sheet over the list; header, main
- * and footer are made inert while the sheet is up. R9/R10: the location
- * section holds the place picker, the coordinates, the device button and the
- * clear action. R11: the elements banners (epoch age, stale, not cached,
- * objects without elements) sit between the location and the Now panel.
- * R12: the frame is header (title and tagline), main, and the footer with
- * the attributions (FR-X-2). R17: the header also carries the language
- * switch (US-13), and `AppRoot` is what `main.tsx` renders — the store's
- * locale wrapped around the screen, so switching re-renders everything
- * without touching the URL or the state (FR-I18N-5). R20 puts the theme
- * switch beside it (US-19) and `AppRoot` writes `data-theme` from the store.
- * R23 (FR-DESK-2/3): the same elements in two columns from 100 cells up —
- * location, banners and the Now panel in the left one, the passes in the
- * right one, the header spanning both. The guide is rendered inside the
- * right column, where the wide shell wants it; the compact sheet portals
- * itself out to the body from there (D-117), which is why the page can still
- * be made inert around it. With a pass open the wide page is one viewport
- * high and every pane scrolls itself (D-119), which is why the left column
- * carries a class of its own — it is the one that has to stretch to the
- * footer and, on a short screen, scroll. R30 fills the last slot FR-DESK-2
- * names for that column: the Moon's tradition line, below the Now panel whose
- * last line is the Moon's observing facts (FR-MOON-3/4, D-122). R27 puts the
- * readiness line directly under the location, above the elements banners, which
- * is where FR-OFF-4 asks for it and where the other statements about what the
- * app is running on already are. R32: the header's controls gain the link to
- * the live page (FR-LIVE-1), and under `#live` the whole screen is that page
- * instead of this one. R28 puts the update offer and the install hint at the
- * head of the left column (FR-OFF-1, FR-OFF-6): they are page-level statements
- * like the elements banners, and being inside the shell is what keeps them out
- * of reach under an open pass and off the live page altogether (D-154). R35
- * (FR-DESK-4, D-73): this is also where the app's one `keydown` listener is
- * mounted, because this is the component that has the selection, the guide,
- * the route and the preferences in scope at once — every handler in the
- * shortcut table is a line of it. R76 (FR-FIRST-1..6, D-443): what the main
- * holds is `screens/Home.tsx`'s — the cold open with no observer, and the three
- * readings, Where, When and What, once there is one; the columns above are the
- * readings' wrappers now, and from `HOME_THREE_PANE_MIN_PX` they are three panes.
+ * The app's four routes, each one `Shell` (R92): live, the first page (R212, FR-LAND-1, D-1230), the satellites
+ * (`#pass`: a desk's pass page, a phone's list of tonight with the pass's sheet over it, D-1231), settings and, until
+ * R222, the stars. The screens only write the observer to the store; the effects `main.tsx` starts load the elements
+ * and drive the worker (PLAN §3: `src/ui` imports `src/state`, never `src/data` or `src/physics`). The route is the
+ * hash (D-13). R35 (FR-DESK-4, D-73): the app's one `keydown` listener is mounted here, where the selection, the
+ * route and the preferences are in scope at once.
  */
 export function App() {
+  // FR-LAND-1 (D-1230): before the first render reads it, the hash that names no route is `#live`.
+  useState(landRoute);
   const t = useT();
   // R203 (FR-OPEN-6, D-1205): the example opens the pages while it is drawn, never after the fallback replaced it.
   const observer = usePageObserver();
@@ -110,7 +65,17 @@ export function App() {
   const passes = useAppStore((s) => s.passes.passes);
   const locale = useLocale();
   const passesStatus = useAppStore((s) => s.passes.status);
-  const { selectedId, link, open, close } = usePassSelection();
+  const { selectedId, link } = usePassSelection();
+  const hash = useHash();
+  const mode = useLayoutMode();
+  const barePass = isPassPageRoute(hash);
+  // D-1231: on a phone a pass is a sheet over the list, so it stacks on it and closes to it.
+  const openPass = (passId: string): void => {
+    openRoute(passIdHash(passId), undefined, { stack: mode === 'compact' && barePass });
+  };
+  const closePass = (): void => {
+    closeRoute(mode === 'compact' ? PASS_PAGE_HASH : LIVE_HASH);
+  };
   // R31 (FR-SHARE-3): a shared pass is resolved against this device's own
   // recompute — the same pass, the nearest pass of that object, or none — and
   // a local selection is still just an id (D-33).
@@ -172,7 +137,7 @@ export function App() {
    * to somebody else's sky, with no way out but editing the URL. Once the
    * observer is no longer the one the link named, the link has been consumed:
    * it is cleared from the hash in place, which closes the guide and leaves
-   * the reader on their own list. The comparison is the coordinates alone, as
+   * the reader on their own satellites page. The comparison is the coordinates alone, as
    * R39's `#live` effect makes it — the label and the zone are filled in later
    * from the forecast and are not what identifies a place.
    */
@@ -180,70 +145,17 @@ export function App() {
     if (link === null || observer === null) return;
     const linked = observerFromLink(link);
     if (observer.lat === linked.lat && observer.lon === linked.lon && observer.altM === linked.altM) return;
-    close();
-  }, [link, observer, close]);
-  const mode = useLayoutMode();
+    closeRoute(PASS_PAGE_HASH);
+  }, [link, observer]);
   const live = useLiveRoute();
-  /*
-   * R87 (FR-VISIT-4, F-93): a hash that starts as one of the app's routes and
-   * does not parse opens the reader's own home with a note, and one that is no
-   * route at all is simply dropped; either way it leaves the URL before the
-   * paint, in place, so Back is not spent on it. `#live?lat=999` is the one
-   * that would otherwise draw a page: it is the live route with no link, which
-   * is what a bare `#live` is, so it is told apart here and not shown.
-   */
-  const linkResult = useAppStore((s) => s.linkResult);
-  useLayoutEffect(() => {
-    if (linkResult?.kind === 'unreadable' || linkResult?.kind === 'unknown') clearRoute();
-  }, [linkResult]);
-  const liveUnreadable = live.active && live.link === null && window.location.hash !== '#live';
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
   const settings = useSettingsRoute();
   // R115 (FR-STAR-3, D-756): the fourth, the stars page.
   const stars = useStarsRoute();
-  // v2.14.1 (FR-CLEAN-14 as amended, D-1134): `#pass` with no id, the wide pass page with no pass in the span.
-  const passPageEmpty = isPassPageRoute(useHash()) && mode === 'wide' && observer !== null;
-  /*
-   * R87 (FR-FIRST-1 as amended v2.1, D-548), R202 (D-1178): the first visit's state is held here rather than in
-   * `Home`, because the footer is this component's and takes its `line` form while the place question is the
-   * phone's one screen (F-74). Nothing unmounts here, so the route is passed in and `usePlaceOpen` closes the
-   * question when the reader leaves the home.
-   */
-  const place = usePlaceOpen((live.active && !liveUnreadable) || settings.active || stars.active);
-  const stepping = mode === 'compact' && place.asking;
-  /*
-   * R186 (FR-WIDE-1, D-1098; amends FR-DESK-3): on wide a selected pass is the desk's shell in the home's place, so
-   * the right column's tracks (D-253's split, R76's `pane`) are gone; only the compact sheet stands over the home.
-   */
-  const guide = selected === null ? 'closed' : 'open';
-  const openPass = (passId: string): void => {
-    open(passId);
-  };
-  /*
-   * FR-WIDE-1: `Esc`, `[ × ]` and `[ home ]` return to the home with the list at the card. The home mounts again on the
-   * close, so its card is a new element: once it is there it is scrolled into view and takes the focus, its folded
-   * night unfolded first (`passCursor`: `focus()` on a hidden card does nothing).
-   */
-  const returnTo = useRef<string | null>(null);
-  useEffect(() => {
-    if (selected !== null) {
-      if (mode === 'wide') returnTo.current = selected.id;
-      return;
-    }
-    const id = returnTo.current;
-    if (id === null) return;
-    returnTo.current = null;
-    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-pass-id="${CSS.escape(id)}"]`);
-    if (!card) return;
-    const night = card.closest<HTMLElement>('[data-night-group][hidden]');
-    if (night) {
-      document.querySelector<HTMLButtonElement>(`[aria-controls="${night.id}"]`)?.click();
-      night.hidden = false;
-    }
-    // As `passCursor`: jsdom has no `scrollIntoView`.
-    card.scrollIntoView?.({ block: 'center' });
-    card.focus({ preventScroll: true });
-  }, [selected, mode]);
+  // FR-LAND-1: a hash that arrives naming no route draws live; the shell's listener writes `#live` over it.
+  const route: RouteName = routeOfHash(hash) ?? 'live';
+  // FR-LAND-6, FR-CLEAN-14: on wide the satellites are the pass page; with no place there is no sky for it to draw.
+  const passDesk = route === 'pass' && mode === 'wide' && observer !== null;
   /*
    * R39 (F-34): `startApp` reads a link's observer once, before the first
    * render (D-135), which covers the arrival — a pasted URL, a reload. A
@@ -315,15 +227,15 @@ export function App() {
         stars.leave();
         return true;
       }
-      if (selected === null && !passPageEmpty) return false;
-      close();
+      if (selected === null && !passDesk) return false;
+      closePass();
       return true;
     },
     live: () => {
       setHelpOpen(false);
       // R189: on the live page itself (a desk runs these keys there now) it is the page already, and a held instant stays.
       if (live.active) return helpOpen;
-      openRoute('#live');
+      openRoute(LIVE_HASH);
       return true;
     },
     // R115 (FR-DESK-4 as amended v2.4): `s` opens the stars page; on the page itself it is the page already, and
@@ -362,22 +274,11 @@ export function App() {
   // separately (`inert` on `PassDetail` below).
   const inert = helpOpen || (selected !== null && mode === 'compact');
   /*
-   * R49 (F-30): the two offers are under a stricter rule than the rest of the
-   * page. D-154 says a reload button cannot be reached while a pass is open,
-   * because applying an update swaps the shell under a reader who is in the
-   * middle of something; on wide the guide is a panel beside a list that stays
-   * live (FR-DESK-3), so `inert` above never reaches them there and the button
-   * was one Tab away from a reader following a pass. The rule is the pass, not
-   * the width — and the help sheet, as for everything else.
-   */
-  const offersInert = helpOpen || selected !== null;
-  /*
    * R92 (FR-A11Y-1, FR-A11Y-3; D-529, D-531): every route is one `Shell`, the same element in every branch
    * below, so the announcer and the focus that follows the route live across the change rather than being
-   * remounted with it. Which route is on screen, and what the tab calls it: a pass is a route once it has
-   * resolved to a pass of the run.
+   * remounted with it. What the tab calls it: a pass is named once it has resolved to a pass of the run.
    */
-  const liveShown = live.active && !liveUnreadable;
+  const liveShown = route === 'live';
   // R190 (R186's note): the live page is mounted in a different shell either side of the wide breakpoint; its hand camera is the visit's.
   const liveHand = useVisitHand(liveShown);
   // FR-MEAS-2 (D-1147): a page opening is counted from the route hooks, once per load each (the sender drops a repeat).
@@ -388,7 +289,7 @@ export function App() {
     if (stars.active) count('stars_open');
     if (settings.active) count('settings_open');
   }, [passShown, liveShown, stars.active, settings.active]);
-  // The shortcuts overlay, over home and over the stars page alike.
+  // The shortcuts overlay, over every page the keys run on.
   const overlay = helpOpen && (
     <ShortcutsOverlay
       onClose={() => {
@@ -396,22 +297,22 @@ export function App() {
       }}
     />
   );
-  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : stars.active ? 'stars' : selected !== null || passPageEmpty ? 'pass' : 'home';
   const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
   const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
   if (liveShown) {
     // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
     // D-1023 (FR-X-2 as amended 2026-11-02): on a desk the footer's one row follows the page's one viewport, under the
     // fold (`Live.module.css`); on a phone the row is the controls sheet's last (`ControlsSheet`).
-    // R186 (FR-WIDE-1, D-1098): on wide the live page is a page like the stars page — the app's header (`live` current,
-    // `[ ← ]` and the place), the page in the shell's `main`, the footer under it; on a phone it is its own screen (D-529).
+    // R186 (FR-WIDE-1, D-1098): on wide the live page is a page like the stars page — the app's header (`live` current
+    // and the place; R212: no Back, it is the first page), the page in the shell's `main`, the footer under it; on a phone it is its own screen (D-529).
     if (mode === 'wide') {
       return (
         <Shell
           chrome="stars"
           routeKey={routeKey}
           title={title}
-          banner={<Header page="live" context={observer?.label ?? null} onBack={live.leave} inert={helpOpen} />}
+          banner={<Header page="live" context={observer?.label ?? null} inert={helpOpen} />}
+          barInert={helpOpen}
           beforeMain={<PageNotices kinds={LIVE_NOTES} inert={helpOpen} />}
           mainProps={{ inert: helpOpen, className: styles.stars }}
           footer={<Footer inert={helpOpen} />}
@@ -459,6 +360,7 @@ export function App() {
         routeKey={routeKey}
         title={title}
         banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
+        barInert={helpOpen}
         beforeMain={<PageNotices kinds={NO_NOTES} visit={false} example={mode === 'wide'} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
         {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
@@ -470,68 +372,58 @@ export function App() {
       </Shell>
     );
   }
+  const notice =
+    shareNotice === null ? null : (
+      <Banner variant="info" testId="share-fallback">
+        {shareNotice}
+      </Banner>
+    );
   /*
-   * R186 (FR-WIDE-1, D-1098): on wide a selected pass is a page of its own in the home's place — the app's header, the
-   * desk's shell with the pass list in its rail, the footer — and the home's doors and panes are not mounted. The hash
-   * is still `#pass=<id>` (D-13).
-   *
-   * v2.14.1 (FR-WIDE-1, FR-CLEAN-14 as amended; D-1134): it is a header page — `page="pass"`, so `[ ← ]` before the
-   * title and `[ satellites ]` the current link — and `[ ← ]` is the page's close (`Esc`, `[ × ]`): home with the card
-   * scrolled into view. A bare `#pass` is the same page with no pass (`PassEmpty`).
+   * R186 (FR-WIDE-1, D-1098), v2.14.1 (FR-WIDE-1, FR-CLEAN-14 as amended; D-1134): on wide the satellites are a page
+   * of the app's header — `page="pass"`, so `[ satellites ]` is the current link — the desk's shell with the pass list
+   * in its rail, the footer. `[ ← ]` is the page's close (`Esc`, `[ × ]`): back, or the live page where the pass was
+   * the load's. A bare `#pass` is the same page with no pass (`PassEmpty`). The hash is still `#pass=<id>` (D-13).
    */
-  if (mode === 'wide' && observer !== null && (selected !== null || passPageEmpty)) {
+  if (passDesk) {
     // D-1135 (FR-WIDE-1 as amended): the rail's list is tonight's passes, the open one `aria-current`; a row opens its pass in place.
-    const passList = <PassList onOpenPass={openPass} selectedPassId={selected?.id ?? null} onlyTonight />;
+    const passList = (
+      <>
+        {notice}
+        <PassList onOpenPass={openPass} selectedPassId={selected?.id ?? null} onlyTonight />
+      </>
+    );
     return (
       <Shell
-        chrome="home"
+        chrome="pass"
         routeKey={routeKey}
         title={title}
-        banner={<Header page="pass" context={observer.label} onBack={close} inert={helpOpen} />}
-        beforeMain={<PageNotices kinds={HOME_NOTES} inert={helpOpen} />}
+        banner={<Header page="pass" context={observer.label} onBack={closePass} inert={helpOpen} />}
+        barInert={helpOpen}
+        beforeMain={<PageNotices kinds={NO_NOTES} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars, 'data-sky': 'pass' }}
         footer={<Footer inert={helpOpen} />}
         after={overlay}
       >
-        {selected !== null ? <PassDetail key={selected.id} pass={selected} observer={observer} onClose={close} inert={helpOpen} passList={passList} /> : <PassEmpty observer={observer} passList={passList} />}
+        {selected !== null ? <PassDetail key={selected.id} pass={selected} observer={observer} onClose={closePass} inert={helpOpen} passList={passList} /> : <PassEmpty observer={observer} passList={passList} settle={barePass} />}
       </Shell>
     );
   }
+  // D-1231: the phone's satellites page, and either width's with no place to look from. Its Back is the tabs'.
   return (
     <Shell
-      chrome="home"
+      chrome="pass"
       routeKey={routeKey}
       title={title}
-      banner={<Header inert={inert} />}
-      beforeMain={<PageNotices kinds={HOME_NOTES} example={false} inert={inert} />}
-      mainProps={{ inert, className: styles.main, 'data-home': place.fallback ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
-      footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
+      banner={<Header page="pass" inert={inert} />}
+      barInert={inert}
+      beforeMain={<PageNotices kinds={NO_NOTES} inert={inert} />}
+      mainProps={{ inert, className: styles.main }}
+      footer={<Footer inert={inert} />}
       after={overlay}
     >
-        <Home
-            offersInert={offersInert}
-            guide={guide}
-            shareNotice={shareNotice}
-            selectedPassId={selected ? selected.id : null}
-            onOpenPass={openPass}
-            MoonLore={MoonLore}
-            place={place}
-            passDetail={
-              /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
-                 is a new guide — its heading takes focus, and closing it returns to the card that
-                 opened it rather than to the first one's. */
-              selected &&
-              observer && (
-                <PassDetail
-                  key={selected.id}
-                  pass={selected}
-                  observer={observer}
-                  onClose={close}
-                  inert={helpOpen}
-                />
-              )
-            }
-          />
+      <PassTonight observer={observer} notice={notice} selectedPassId={selected?.id ?? null} onOpenPass={openPass} />
+      {/* R50 (F-8): keyed by the pass, so opening a second one is a new guide — its heading takes focus. */}
+      {selected && observer && <PassDetail key={selected.id} pass={selected} observer={observer} onClose={closePass} inert={helpOpen} />}
     </Shell>
   );
 }

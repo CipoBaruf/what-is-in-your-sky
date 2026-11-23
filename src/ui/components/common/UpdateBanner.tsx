@@ -14,15 +14,9 @@ import { Banner } from './Banner';
  * `SKIP_WAITING` is spelled in one module, and the only path to it is this
  * button, so an update cannot swap the shell under a reader.
  *
- * Where it renders is the other half of that promise (D-154). It sits at the
- * top of the home screen, which is made `inert` while a pass guide is open and
- * which is not rendered at all under `#live`, so on both of the screens the
- * task names the button cannot be reached, no timer hides it, and it comes
- * back by itself the moment the reader closes the guide or leaves the live
- * page. R49 (F-30): on wide the guide is a panel beside a list that stays live,
- * so the page around it is not made inert and the caller has to say so here —
- * a reload offer under an open guide is exactly what D-154 rules out, at either
- * width.
+ * R212 (FR-UPD-2, D-1237, in place of D-154's home): it is the shell's, under
+ * the header on every page, and no timer hides it. It is `inert` only while a
+ * layer stands over the page — the shortcuts, the phone's pass sheet.
  *
  * R104 (D-704): the control is an inline `TextButton`; the banner has no
  * stylesheet of its own any more.

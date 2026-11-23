@@ -55,7 +55,7 @@ async function openNightOf(page: Page, card: Locator): Promise<void> {
 
 /** Enter the observer and wait for the finished list (D-105: the 72 h search takes three nights). */
 async function listed(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(PARIS);
   });

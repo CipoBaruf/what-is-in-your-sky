@@ -1,18 +1,20 @@
 /**
- * R32 (FR-LIVE-1): the `#live` route in the app. Under it the whole screen is
- * the live page and nothing of the home page is mounted; the header and the
- * Now panel carry the control that opens it; leaving it puts the home page
- * back with the same store.
+ * R32 (FR-LIVE-1), R212 (FR-LAND-1, D-1230): the live route in the app, which
+ * is the first page. The route with no hash, or with one that names none, is
+ * `#live` at both widths with no history entry; under it the whole screen is
+ * the live page, and the satellites page's header links to it.
  */
 import { act, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import { MOON_FIXTURE } from '../../tests/support/moonFixtures';
+import { COMPACT_PX, stubMatchMedia, WIDE_PX } from '../../tests/support/matchMedia';
 import { liveLinkHash } from '../lib/shareLinks';
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
+import { resetNavigation } from './navigation';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -44,29 +46,58 @@ describe('<App> and the live route', () => {
   afterEach(() => {
     appStore.setState(initial, true);
     window.history.replaceState(null, '', window.location.pathname);
+    resetNavigation();
     window.localStorage.clear();
   });
 
-  it('links to the live page from the header and from the Both door (FR-LIVE-1, FR-FLOW-1)', () => {
+  for (const [width, px] of [['compact', COMPACT_PX], ['wide', WIDE_PX]] as const) {
+    it.each(['', '#', '#nope', '#what', '#live?lat=999', '#pass?lat=999'])(`FR-LAND-1: %j opens #live on ${width}, with no history entry`, async (hash) => {
+      const media = stubMatchMedia(px);
+      try {
+        withSky();
+        window.history.replaceState(null, '', `${window.location.pathname}${hash}`);
+        const entries = window.history.length;
+        render(<App />);
+        expect(window.location.hash).toBe('#live');
+        expect(await screen.findByTestId('live-page')).toBeInTheDocument();
+        expect(window.history.length).toBe(entries);
+        // D-1230: the first page has nowhere to go back to.
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+      } finally {
+        media.restore();
+      }
+    });
+  }
+
+  it('FR-LAND-1: a hash typed over a page that names no route becomes #live in that entry', async () => {
     withSky();
+    window.history.replaceState(null, '', '#settings');
     render(<App />);
-    expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
-    // R52 (FR-COMP-1): the header's control is `[ live ]` on compact, which is what jsdom is without a `matchMedia` stub; `App.wide.test.tsx` has the wide name.
-    expect(screen.getByTestId('live-link')).toHaveTextContent('live');
-    // R130: the next-event block and its `[ Open the live sky ]` left the home; the Both door opens #live.
-    expect(screen.queryByTestId('now-live-link')).toBeNull();
-    expect(screen.getByTestId('door-live')).toHaveAttribute('href', '#live');
-    expect(screen.getByTestId('door-live')).toHaveTextContent(/^Live skysatellites and stars, now/);
+    go('#nope');
+    expect(window.location.hash).toBe('#live');
+    expect(await screen.findByTestId('live-page')).toBeInTheDocument();
   });
 
-  it('mounts the live page, and nothing of the home page, under #live; leaving restores the home page', async () => {
+  it('links to the live page from the satellites page’s header (FR-LIVE-1, FR-LAND-6)', () => {
     withSky();
+    window.history.replaceState(null, '', '#pass');
+    render(<App />);
+    expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
+    // R52 (FR-COMP-1): the header's control is `live` on compact, which is what jsdom is without a `matchMedia` stub; `App.wide.test.tsx` has the wide one.
+    expect(screen.getByTestId('live-link')).toHaveTextContent('live');
+  });
+
+  it('mounts the live page, and nothing of the satellites page, under #live; its Back returns to what opened it', async () => {
+    withSky();
+    window.history.replaceState(null, '', '#pass');
     render(<App />);
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    go('#live');
+    act(() => {
+      screen.getByTestId('live-link').click();
+    });
     const page = await screen.findByTestId('live-page');
     expect(page).toHaveAttribute('data-state', 'live');
-    // R92 (FR-A11Y-1, F-71): nothing of the home page, and the live page's own landmarks — its top row the
+    // R92 (FR-A11Y-1, F-71): nothing of another page, and the live page's own landmarks — its top row the
     // banner, the rest the main, no footer on compact (D-1023: the footer's row is the sheet's last, a `div`).
     // R129 (D-845): the header is the live page's own, told its page, inside the page's banner.
     // R148 (FR-FULL-2, D-920): on compact the banner is the head over the sky, and the `h1` the page's name with the place.
@@ -77,14 +108,17 @@ describe('<App> and the live route', () => {
     expect(screen.queryByRole('contentinfo')).toBeNull();
     // R144 (FR-TONIGHT-6): on compact the conditions are the context line under the shown time.
     expect(await screen.findByTestId('live-context')).toBeInTheDocument();
+    // FR-LAND-6: the phone's way to the list is the sheet's head.
+    expect(screen.getByTestId('sheet-satellites')).toHaveAttribute('href', '#pass');
     act(() => {
-      // R85 (FR-COMP-7): the compact return control is `[ ← ]`, named "Back".
+      // R85 (FR-COMP-7): the compact return control is `[ ← ]`, named "Back"; opened from a page, it goes back to it.
       screen.getByRole('button', { name: 'Back' }).click();
     });
-    expect(window.location.hash).toBe('');
+    await vi.waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
+    });
+    expect(window.location.hash).toBe('#pass');
     expect(screen.queryByTestId('live-page')).toBeNull();
-    expect(screen.getByRole('banner')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
   });
 
   /**
@@ -145,13 +179,12 @@ describe('<App> and the live route', () => {
   });
 
   // R87 (FR-VISIT-4, F-93): a `#live?…` link that does not parse is no longer the inert live page but the
-  // reader's own home, with one line saying so and the hash out of the URL.
-  it('opens home with "That link could not be read." for a #live?… link that does not parse, and clears the hash', async () => {
+  // reader's first page (R212, FR-LAND-1), with one line saying so and the link out of the URL.
+  it('opens #live with "That link could not be read." for a #live?… link that does not parse', async () => {
     render(<App />);
     go('#live?lat=-99&lon=0');
     expect(await screen.findByTestId('link-note')).toHaveTextContent('That link could not be read.');
-    expect(screen.queryByTestId('live-inert')).toBeNull();
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
   });
 });

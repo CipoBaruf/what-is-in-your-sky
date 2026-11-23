@@ -54,7 +54,7 @@ export function VisitNotice({ inert = false }: { inert?: boolean }) {
   );
 }
 
-/** The notes a page draws: the live page the moment's two (FR-VISIT-3), home the unreadable link's (FR-VISIT-4). */
+/** The notes a link leaves: the moment's two (FR-VISIT-3) and the unreadable link's (FR-VISIT-4). */
 export type LinkNoteKind = 'past' | 'far' | 'unreadable';
 
 function noteOf(result: OpenLinkResult | null): LinkNoteKind | null {
@@ -70,8 +70,8 @@ function noteOf(result: OpenLinkResult | null): LinkNoteKind | null {
  * stripe's span, or a hash that did not parse. It reads `openLink()`'s last
  * result from the ui slice, which is session state and never stored, and
  * dismissing it takes the note off that result: the visit, if there is one,
- * stays. `kinds` is what the page it sits on can be showing; a note about a
- * live link's moment says nothing on home.
+ * stays. `kinds` is which of the moment's notes the page it sits on shows; the
+ * unreadable link's is every page's, since such a link opens the first one (R212, FR-LAND-1).
  */
 export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKind[]; inert?: boolean }) {
   const t = useT();
@@ -80,7 +80,7 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
   const setLinkResult = useAppStore((s) => s.setLinkResult);
   const timeZone = useActiveObserver()?.timeZone ?? null;
   const kind = noteOf(result);
-  if (result === null || kind === null || !kinds.includes(kind)) return null;
+  if (result === null || kind === null || (kind !== 'unreadable' && !kinds.includes(kind))) return null;
   const dismiss = (): void => {
     if ('link' in result) setLinkResult({ kind: result.kind, link: result.link });
     else setLinkResult(null);
@@ -105,7 +105,7 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
  * wide shell's grid, which gives it a row only while it holds something.
  *
  * R203 (FR-OPEN-7, D-1180, D-1205): and the example's page line, on every page
- * but the home (`example` false there); the stars page, which had no strip,
+ * that does not draw its own (`example`); the stars page, which had no strip,
  * takes one with the example's line alone (`visit` false), so a returning
  * visit draws there what it drew (FR-OPEN-9).
  */

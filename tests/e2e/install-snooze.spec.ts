@@ -19,8 +19,11 @@ const T0 = Date.UTC(2026, 8, 6, 21, 0);
 
 async function home(page: Page, at: number): Promise<void> {
   await page.clock.setFixedTime(at);
-  await page.goto('/');
-  await expect(page.getByTestId('location-summary').or(page.getByRole('region', { name: 'Location' })).first()).toBeVisible({ timeout: 60_000 });
+  // R212 (FR-LAND-6): the install offer is the phone's satellites page's.
+  await page.goto('/#pass');
+  // A goto to the address already open is a hash navigation; the reload is the next visit this spec means.
+  await page.reload();
+  await expect(page.getByTestId('pass-tonight')).toBeVisible({ timeout: 60_000 });
 }
 
 /** The event Chromium fires when it has decided the page is installable. */

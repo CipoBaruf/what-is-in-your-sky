@@ -281,6 +281,21 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1279 — The compact sheet renders `SLOT_ORDER`'s groups; the strip itself stays over the sky.** *(R216)*
   (FR-NOW-1, FR-CTRL-10, D-1232.) `ControlsSheet` takes `groups`, keyed by the rail's slots and rendered in `SLOT_ORDER`, each a `data-group` wrapper, before any `children` (the stars page and the pass detail keep theirs until they move). The live page's `strip` group is the context line, since the strip is the box's foot on compact.
   R71's two-row legend panel goes: the sheet's body is the one scroll. `[ Compartir ]` is wider than `[x] estrellas`, so at 390 px in Spanish it takes the line under the views, at the row's right.
+- **D-1265 — What went with the home beyond the task's list.** *(R212)*
+  (D-1230, D-1245, D-1246.) `screens/home/usePlaceOpen.ts` goes although D-1230 keeps it: only `App.tsx` and `Home.tsx` read it, and the dead-code job fails on it.
+  `useDoorSky.ts`, `tests/styles/doorRows.test.ts` and `tests/support/doorFixtures.ts` went with the doors, and six capture specs of the home (`r76`, `r84`, `r87`, `r93`, `r96`, `r130`) and `first-step-screen.spec.ts` with the screens they shot.
+  `scripts/bundle-budget.ts` has no `home` row to remove: the home was never a chunk of its own. The v2.15 and v2.16 release records are marked history, as R213 marked v2.14.2's, since their lists name deleted home specs.
+  A capture route that reached its page through the home's settled list goes through `#pass` (the phone's list, the desk's pass page); the example's three pages are opened by address.
+- **D-1266 — The phone's satellites page is the home's list and the lines beside it.** *(R212)*
+  (FR-LAND-6, D-1231.) Compact `#pass` draws the full `PassList` with tonight open, and the lines no requirement removed follow it there: the install offer, the conditions with the Moon's line, the readiness and the elements lines. A desk shows none of these now (a follow-up).
+  The compact controls sheet gains a `satellites` link beside `[ settings ]`, since a phone's live page has no header to reach the list from; it takes 11 cells of the place's. The compact live header keeps the place on a line under its tab row.
+  The update bar stands on the wide pass page too: FR-UPD-2's every page wins over D-154's "no reload under an open pass".
+  Each of the page's blocks is a group (`data-rhythm="group"`, FR-FLOW-10), the page's grid gap `--space-3` apart. The 72 h list, its faint toggle and its keyboard walk are the phone's; the specs that read them run at 390 × 844, and a desk's `j`/`k` walk the pass page's rail from its open pass.
+- **D-1267 — Live as the first page.** *(R212)*
+  (FR-LAND-1, D-1230, D-1242.) Live has no header Back. `Esc` on live at history depth 0 does nothing; above it, it goes back, until R222 removes `live.leave`.
+  After a route change the focus falls back to the page's `h1` when one is drawn, never to `main`: a lazy page not yet drawn keeps the body, so the stars page's globe and the live page's Back still take the focus themselves.
+  A desk's live page draws no Back at all, so F-100's ring is proved at 390 × 844 and 844 × 390 only. The unreadable-link note (`LinkNote`) shows on every page. The three-pane, guide-pane and header-fold layout constants are deleted with the layouts.
+  `example_shown` is sent on `#live`; `where_shown` has no sender until R215's place dialog, and the example's control opens `#settings` (`requestPlace`) until then.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,

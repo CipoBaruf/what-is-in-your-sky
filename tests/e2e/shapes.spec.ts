@@ -612,28 +612,28 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
     }
   });
 
-  test('the home page: no element over another and no sideways scroll at the compact-portrait and desktop rows', async ({ page }) => {
+  // R212 (FR-LAND-6, D-1231): the home went; its list is the phone's satellites page, and a desk's `#pass` is the pass page (below).
+  test('the satellites page: no element over another and no sideways scroll at the compact-portrait rows', async ({ page }) => {
+    const [first] = MATRIX.compactPortrait;
+    if (!first) throw new Error('no compact-portrait row');
+    await page.setViewportSize({ width: first[0], height: first[1] });
     await seedStoredRun(page, { settled: true });
-    for (const size of [...MATRIX.compactPortrait, ...MATRIX.desktop]) {
+    for (const size of MATRIX.compactPortrait) {
       const [width, height] = size;
       const at = label(size);
       await page.setViewportSize({ width, height });
       await expect(page.getByRole('banner'), at).toBeVisible();
-      // On wide both columns scroll inside themselves (FR-DESK-2), so each column is the box its content is drawn in.
       const found = await settledRects([
         ['header', page.getByRole('banner')],
-        ['left column', page.getByTestId('col-left')],
-        ['conditions', page.getByTestId('conditions')],
-        ['list column', page.getByTestId('list-column')],
+        ['stripe', page.getByTestId('tonight-stripe')],
         ['passes', page.getByRole('region', { name: 'Upcoming passes' })],
+        ['conditions', page.getByTestId('conditions')],
         ['footer', page.getByRole('contentinfo')],
       ]);
-      dropParts(found, 'left column', ['conditions']);
-      dropParts(found, 'list column', ['passes']);
       expect(found.size, at).toBeGreaterThanOrEqual(3);
       expectNoOverlap(found, at);
       const scrolled = await scroll(page);
-      expect(scrolled.scrollWidth, `${at}: the home page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
+      expect(scrolled.scrollWidth, `${at}: the satellites page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
     }
   });
 
@@ -678,19 +678,20 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
    * in this browser's own cell (`1ch` of the font it has, F-10) rather than derived from a px assumption. The
    * live page is reached by one fresh load per row, since leaving it is a route of its own.
    */
-  test('the tablet rows: the column is 60 cells and centred on home and settings, the live page and the pass detail all sky, and the live page does not scroll (FR-TAB-1, FR-TAB-2, US-35)', async ({ page }) => {
+  test('the tablet rows: the column is 60 cells and centred on the satellites page and settings, the live page and the pass detail all sky, and the live page does not scroll (FR-TAB-1, FR-TAB-2, US-35)', async ({ page }) => {
     test.setTimeout(180_000);
     for (const size of TABLET) {
       const [width, height] = size;
       const at = label(size);
-      await seedStoredRun(page, { settled: true });
+      // R212 (FR-LAND-6): sized first, so the seed lands on the compact satellites page rather than a desk's pass page.
       await page.setViewportSize({ width, height });
+      await seedStoredRun(page, { settled: true });
       const column = await columnPx(page);
       expect(column, `${at}: the cap binds — the column is narrower than the viewport`).toBeLessThan(width);
       await expect(page.getByRole('banner'), at).toBeVisible();
 
-      // The home: its three landmarks.
-      for (const [name, locator] of landmarks(page)) expectColumn(await settledBox(locator), column, width, `${at} home ${name}`);
+      // The satellites page: its three landmarks.
+      for (const [name, locator] of landmarks(page)) expectColumn(await settledBox(locator), column, width, `${at} satellites ${name}`);
 
       // The pass detail: R164 (FR-CLEAN-1, V211-1) — the full form on the tablet too, as the live page is: the box is
       // the viewport, not the column (the column of R99 was the sheet form's).

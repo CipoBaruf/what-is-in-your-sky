@@ -9,6 +9,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { listSettled, seedStoredRun, STORED_RUN } from './liveHelpers';
 
 const DESK = { width: 1280, height: 720 };
+// R212 (FR-LAND-6, D-1135): the 72 h list is the phone's satellites page; a desk's pass page lists the next 24 h.
+const PHONE = { width: 390, height: 844 };
 // Five of the run are fainter than +3.5; the first, SL-16 R/B at +3.55, is the next event at the seed's instant and is kept.
 const FAINT_COUNT = 4;
 // Titan 4B R/B at +4.46 on the second night: faint, not the ISS, and not the next event.
@@ -21,6 +23,7 @@ test.use({ viewport: DESK });
 
 test('the control shows the faint passes in place and hides them, and the choice holds across a reload (US-34 AC2, AC3)', async ({ page }) => {
   expect(STORED_RUN.passes.some((pass) => (pass as { id: string }).id === FAINT_PASS)).toBe(true);
+  await page.setViewportSize(PHONE);
   await seedStoredRun(page, { settled: true });
   const toggle = page.getByTestId('faint-toggle');
   await expect(toggle).toHaveText(`show ${String(FAINT_COUNT)} faint`);
@@ -51,7 +54,6 @@ test('the control shows the faint passes in place and hides them, and the choice
 
 test('a faint pass’s #pass link opens that pass with faint passes hidden (FR-FAINT-3)', async ({ page }) => {
   await seedStoredRun(page, { settled: true });
-  await expect(page.getByTestId('faint-toggle')).toHaveText(`show ${String(FAINT_COUNT)} faint`);
   await page.goto(`/#pass=${FAINT_PASS}`);
   await page.reload();
   const card = page.locator(`article[data-pass-id="${FAINT_PASS}"]`);

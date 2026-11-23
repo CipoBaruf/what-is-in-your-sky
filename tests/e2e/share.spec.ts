@@ -30,8 +30,8 @@ const CLOCK = Date.parse(ha.capturedAt) + 9 * DAY_MS;
 const COORDS = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 
 const LABEL = {
-  en: { coords: 'Coordinates · e.g. -38.93, -67.99', passes: 'Upcoming passes', count: /\d+ visible passes in 72 h/, open: /Open guide/, share: 'Share this pass', copied: 'Link copied' },
-  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', passes: 'Próximos pases', count: /\d+ pases visibles en 72 h/, open: /Abrir la guía/, share: 'Compartir este paso', copied: 'Enlace copiado' },
+  en: { coords: 'Coordinates · e.g. -38.93, -67.99', passes: 'Upcoming passes', count: /\d+ visible passes in (72|24) h/, open: /Open guide/, share: 'Share this pass', copied: 'Link copied' },
+  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', passes: 'Próximos pases', count: /\d+ pases visibles en (72|24) h/, open: /Abrir la guía/, share: 'Compartir este paso', copied: 'Enlace copiado' },
 } as const;
 
 /** Every network call this app can make, answered from a fixture or refused; nothing reaches the internet (PLAN §9.1). */
@@ -68,7 +68,7 @@ test('the share action copies a link, and a fresh device opens the same pass fro
 
   await page.clock.setFixedTime(CLOCK);
   await stubNetwork(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   await listPasses(page, 'en');
 
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: LABEL.en.open }).click();
@@ -100,8 +100,7 @@ test('the share action copies a link, and a fresh device opens the same pass fro
   await expect(opened).toHaveAttribute('data-pass-id', passId);
   await expect(opened.getByTestId('guide-sentence').first()).toHaveText(sentence);
   // The observer came out of the link: the same coordinates, as a typed pair (FR-LOC-4 label, source `coords`).
-  // R52 (FR-COMP-3): the home screen names the observer in its summary line.
-  await expect(recipient.getByTestId('location-summary')).toContainText('−38.93, −67.99');
+  // R212: the home's place line went with the home; the guide's sentence above is the link's observer's.
   await expect(recipient.getByTestId('share-fallback')).toHaveCount(0);
   await recipient.screenshot({ path: 'test-results/r31-received-390-en.png' });
 
@@ -135,7 +134,7 @@ for (const width of [390, 1280] as const) {
       await stubNetwork(page);
       // R136 (FR-FLOW-14): the capture is of the sheet on its dome, a saved view on a phone.
       await savedDome(page);
-      await page.goto('/');
+      await page.goto('/#pass');
       if (locale === 'es') {
         await withSettings(page, async () => {
           await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();

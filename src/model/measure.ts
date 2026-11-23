@@ -4,13 +4,12 @@
  * added only by amending FR-MEAS-2's table, and every value here but `id` comes from a list below (FR-MEAS-5).
  */
 export const EVENTS = {
-  open: ['home', 'pass', 'live', 'stars', 'settings'],
+  open: ['pass', 'live', 'stars', 'settings'],
   example_shown: ['pass', 'none', 'no_city', 'failed', 'slow'],
   where_shown: ['example', 'fallback'],
   place_set: ['search', 'coords', 'device', 'favourite', 'link'],
   device_refused: ['denied', 'unavailable', 'timeout'],
   search_empty: [],
-  door: ['satellites', 'stars', 'live'],
   watch: [],
   pass_open: [],
   live_open: [],

@@ -36,7 +36,6 @@ export { selectOrbitHeight } from './slices/elements';
 export { toFailure, type Failure } from './failure';
 export type { PassesState } from './slices/passes';
 export type { WeatherSliceState } from './slices/weather';
-export { NIGHT_MS, SEARCH_WINDOW_HOURS } from './passWindow';
 /** R25 (FR-OFF-1): the app shell's service worker; `main.tsx` registers it, the store carries the waiting version (D-79, D-126). */
 export { registerServiceWorker } from './serviceWorker';
 /** R33 (FR-LIVE-6): the live page's request for the dimmed set at the shown instant (D-169). */

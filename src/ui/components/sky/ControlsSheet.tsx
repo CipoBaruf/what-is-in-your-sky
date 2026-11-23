@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type RefObject } from 'react';
 import { useT } from '../../../i18n/useT';
 import { SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../../lib/layout';
-import { SETTINGS_HASH } from '../../../lib/shareLinks';
+import { PASS_PAGE_HASH, SETTINGS_HASH } from '../../../lib/shareLinks';
 import { Footer } from '../common/Footer';
 import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
@@ -15,7 +15,8 @@ import styles from './ControlsSheet.module.css';
  * R147 (FR-FULL-3, FR-FULL-4, FR-FULL-5; D-921): the compact live page's one button over the sky and the sheet it
  * opens. `[ controls ]` is a `TextButton` and a toggle (`aria-expanded`, `aria-controls` naming the sheet), placed by
  * the page through `className`. The sheet is a non-modal `<section role="region">` named "Sky controls": a head —
- * the place in the dim ink, cut with an ellipsis, `[ settings ]` (the header's key and route) and the `×` — over
+ * the place in the dim ink, cut with an ellipsis, `satellites` (R212, FR-LAND-6: the phone's way to the list) and
+ * `[ settings ]` (the header's keys and routes) and the `×` — over
  * a body that renders the page's rows (`children`) and scrolls inside the sheet while the head stays.
  *
  * R150 (FR-GYRO-7, D-947): one form, a bottom sheet the full width of the box in both shapes, as tall as its content
@@ -220,6 +221,7 @@ export function ControlsSheet({ open, onOpenChange, place, groups, children, bes
           <span className={styles.place} data-testid="sheet-place">
             {place ?? ''}
           </span>
+          <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
           <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />
           <button type="button" ref={closeRef} className={`target ${styles.close}`} aria-label={t.sheet.close} onClick={() => onOpenChange(false)} data-testid="sheet-close">
             ×

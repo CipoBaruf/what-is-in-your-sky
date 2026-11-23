@@ -1,8 +1,4 @@
 {
-  "src/ui/App.module.css": {
-    "count": 20,
-    "reason": "R110 (D-736): 18 the sheet names — five 0.75rem gaps, margins and a padding (--space-2), five 1.2rem of the home's block gap (--space-block), the cold heading's 1.375/1.75rem pair (--text-question), two 1.25/1.625rem pairs (--text-pane), the ghost stripe's 1.125rem row (--text-stripe-row), the cold box's 1px border (--border); 2 off the scale — two 0.5rem margins (OQ-37)."
-  },
   "src/ui/components/common/Countdown.module.css": {
     "count": 1,
     "reason": "R110 (D-736): 1 the sheet names — the headline's 1.5rem (--text-countdown)."

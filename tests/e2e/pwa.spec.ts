@@ -135,10 +135,11 @@ test('with the network down the shell still loads', async ({ page }) => {
   for (const pattern of ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**']) {
     await page.route(pattern, (route) => route.abort('failed'));
   }
-  const heading = page.getByRole('banner').getByRole('heading', { level: 1 });
+  // R212 (FR-LAND-1): `/` is the live page, whose banner holds no title: the shell is its banner and the tab's name.
+  const banner = page.getByRole('banner');
 
   await page.goto('/');
-  await expect(heading).toBeVisible();
+  await expect(banner).toBeVisible();
   // `clientsClaim` is off (D-79), so this page is never controlled; what the
   // reload needs is only that the worker finished installing its precache and
   // reached `activated`. `ready` resolves a tick earlier than that — while the
@@ -148,7 +149,8 @@ test('with the network down the shell still loads', async ({ page }) => {
   await page.context().setOffline(true);
   try {
     await page.reload();
-    await expect(heading).toHaveText('What is in your sky right now');
+    await expect(banner).toBeVisible();
+    await expect(page).toHaveTitle(/What is in your sky right now$/);
     // Served by the worker, not by a browser cache that happened to hold it.
     expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
   } finally {

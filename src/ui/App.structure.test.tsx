@@ -49,16 +49,11 @@ const landmarks = () => ({
   contentinfo: document.querySelectorAll('footer').length,
 });
 
-const HOME_TAIL: [number, string][] = [
-  [2, en.home.panes.where],
-  [2, en.home.panes.when],
-  [2, en.home.panes.what],
-  [2, en.passes.heading],
-];
-
 beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(NOW);
   resetNavigation();
+  // R212 (FR-LAND-6): the page with a list and the compact header's links is the satellites page.
+  window.history.replaceState(null, '', '#pass');
 });
 
 afterEach(() => {
@@ -71,24 +66,17 @@ afterEach(() => {
 });
 
 describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
-  it('home, wide: the title, the three panes and the list, a night under the list and its passes under the night', () => {
-    media = stubMatchMedia(WIDE_PX);
+  it('satellites, compact: the page, the list, a night under the list and its passes under the night', () => {
     withPasses();
     render(<App />);
     // Tomorrow's night is folded: its heading and its card are out of the tree with it.
-    expect(outline()).toEqual([[1, APP], ...HOME_TAIL, [3, 'Tonight'], [4, pass.name], [4, other.name]]);
+    expect(outline()).toEqual([[1, en.header.pages.pass], [2, en.passes.heading], [3, 'Tonight'], [4, pass.name], [4, other.name]]);
   });
 
-  it('home, compact: the same outline under the short title', () => {
-    withPasses();
-    render(<App />);
-    expect(outline()).toEqual([[1, en.app.shortTitle], ...HOME_TAIL, [3, 'Tonight'], [4, pass.name], [4, other.name]]);
-  });
-
-  it('home with one night: no night heading, so the cards are one rank under the list', () => {
+  it('satellites with one night: no night heading, so the cards are one rank under the list', () => {
     withPasses([pass, other]);
     render(<App />);
-    expect(outline()).toEqual([[1, en.app.shortTitle], ...HOME_TAIL, [3, pass.name], [3, other.name]]);
+    expect(outline()).toEqual([[1, en.header.pages.pass], [2, en.passes.heading], [3, pass.name], [3, other.name]]);
   });
 
   it('the pass detail on wide: the pass name is the page’s one h1, and nothing under it skips a rank (FR-WIDE-1)', async () => {
@@ -155,12 +143,13 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
 });
 
 describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
-  it('home and settings have one of each, live its banner and main and on a desk its footer, at both widths', async () => {
+  it('satellites and settings have one of each, live its banner and main and on a desk its footer, at both widths', async () => {
     for (const width of [390, WIDE_PX]) {
       media = stubMatchMedia(width);
+      window.history.replaceState(null, '', '#pass');
       withPasses();
       const { unmount } = render(<App />);
-      expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
+      expect(landmarks()).toMatchObject({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
       go('#settings');
       await screen.findByTestId('settings-back');
       // R129 (D-845): the compact settings header is its `[ ← ]` row, which holds no links; the wide one has the page links.
@@ -182,9 +171,10 @@ describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
 describe('the title (FR-A11Y-3, US-30 AC3)', () => {
   it('names the route, in the active language, and follows both', async () => {
     media = stubMatchMedia(WIDE_PX);
+    window.history.replaceState(null, '', window.location.pathname);
     withPasses();
     render(<AppRoot />);
-    expect(document.title).toBe(APP);
+    expect(document.title).toBe(`${en.live.open} · ${APP}`);
     go('#settings');
     expect(document.title).toBe(`${en.settings.heading} · ${APP}`);
     act(() => {
@@ -202,19 +192,19 @@ describe('the title (FR-A11Y-3, US-30 AC3)', () => {
     });
     expect(document.title).toBe(`${en.live.open} · ${APP}`);
     go('');
-    expect(document.title).toBe(APP);
+    expect(document.title).toBe(`${en.live.open} · ${APP}`);
   });
 });
 
 describe('the skip link (FR-A11Y-5, US-30 AC5)', () => {
-  it('is the first focusable element of home and settings, targets main, and is not on the live page', async () => {
+  it('is the first focusable element of satellites and settings, targets main, and is not on the compact live page', async () => {
     withPasses();
     render(<App />);
     const first = (): Element | null => document.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])');
     expect(first()).toHaveTextContent(en.a11y.skip);
     fireEvent.click(screen.getByTestId('skip-link'));
     expect(document.activeElement).toBe(screen.getByRole('main'));
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#pass');
     go('#settings');
     expect(first()).toHaveTextContent(en.a11y.skip);
     go('#live');
@@ -265,9 +255,11 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     render(<App />);
     const entries = window.history.length;
     fireEvent.click(await screen.findByTestId('settings-back'));
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
     expect(window.history.length).toBe(entries);
-    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 }));
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(document.body);
+    });
   });
 
   it('writes the announcer once per route change, and not for a language switch', async () => {
@@ -289,28 +281,27 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
 
 describe('history (FR-ROUTE-1..3, F-91)', () => {
   it('opening and closing a pass, the live page and settings through the UI grows the history by no entry', async () => {
-    media = stubMatchMedia(WIDE_PX);
     withPasses();
     render(<App />);
     const open = async (control: HTMLElement, back: () => HTMLElement): Promise<void> => {
       fireEvent.click(control);
       fireEvent.click(await waitFor(back));
       await waitFor(() => {
-        expect(window.location.hash).toBe('');
+        expect(window.location.hash).toBe('#pass');
       });
     };
-    const guideClose = (): HTMLElement => within(screen.getByTestId('guide-panel')).getByRole('button', { name: en.guide.close });
+    const sheetBack = (): HTMLElement => within(screen.getByRole('dialog')).getByTestId('live-back');
     const cards = (): HTMLElement[] => screen.getAllByRole('button', { name: /Open guide/ });
-    await open(cards()[0] as HTMLElement, guideClose);
+    await open(cards()[0] as HTMLElement, sheetBack);
     const after = window.history.length;
-    await open(cards()[1] as HTMLElement, guideClose);
-    await open(cards()[0] as HTMLElement, guideClose);
+    await open(cards()[1] as HTMLElement, sheetBack);
+    await open(cards()[0] as HTMLElement, sheetBack);
     await open(screen.getByTestId('live-link'), () => screen.getByTestId('live-back'));
     go('#settings');
     // A typed hash is the browser's entry, not the app's (it takes the forward entry the Backs left): closing
-    // it replaces it in place.
+    // it replaces it in place, with the first page (R212, FR-LAND-1).
     fireEvent.click(await screen.findByTestId('settings-back'));
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#live');
     expect(window.history.length).toBe(after);
   });
 

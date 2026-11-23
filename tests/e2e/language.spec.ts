@@ -26,9 +26,9 @@ const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 
 const EN_TITLE = 'What is in your sky right now';
 const ES_TITLE = 'Qué hay en el cielo ahora mismo';
-/* R52 (FR-COMP-1): at 390 px the header's heading is the short title; the *document* title is still the full one. */
-const EN_HEADING = 'Your sky';
-const ES_HEADING = 'Tu cielo';
+/* R212 (FR-LAND-6): the satellites page's heading is its name; the *document* title is still the full one. */
+const EN_HEADING = 'satellites';
+const ES_HEADING = 'satélites';
 
 // FR-I18N-1: the browser reports `es-AR`, so the first visit is Spanish without any saved preference.
 test.use({ locale: 'es-AR', viewport: { width: 390, height: 844 } });
@@ -58,23 +58,18 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   if (!pass) throw new Error('reference-values.json has no firstGoldenPass');
   const passId = `25544-${String(pass.start.t)}`;
   await withFixtures(page);
-  await page.goto('/');
+  await page.goto('/#pass');
 
   // FR-I18N-5: the document follows the language, from the first render.
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await expect(page).toHaveTitle(ES_TITLE);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
-  // R76 (FR-FIRST-1), R202 (FR-OPEN-6): the empty screen is the place question, in Spanish from its tagline to its foot notes.
-  await expect(page.getByRole('heading', { level: 2, name: '¿Desde dónde se va a mirar?' })).toBeVisible();
-  await expect(page.getByTestId('cold-open').getByTestId('home-tagline')).toHaveText('Qué satélites se ven esta noche, cuándo y hacia dónde mirar.');
-  await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
-  // D-1150: no privacy line under the place search.
-  await expect(page.locator('body')).not.toContainText('Guardada solo en este navegador');
-  // R87 (D-548): the first step's footer is the one-row `line` form, in Spanish too; no privacy sentence stands on this screen.
-  await expect(page.getByRole('contentinfo')).toContainText('Datos: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
+  // R212 (FR-LAND-6): with no place the satellites page asks for one, in Spanish.
+  await expect(page.getByTestId('pass-tonight')).toContainText('El cielo en vivo necesita un lugar.');
+  await expect(page.getByTestId('pass-set-place')).toHaveText(/elegir un lugar/);
   // No English left anywhere on the empty screen.
-  await expect(page.locator('body')).not.toContainText('Enter a place name');
-  await expect(page.locator('body')).not.toContainText('Where will you be looking from');
+  await expect(page.locator('body')).not.toContainText('needs a place');
+  await expect(page.locator('body')).not.toContainText('set a place');
   await page.screenshot({ path: 'test-results/r17-home-390-es.png', fullPage: true });
 
   // FR-CI-3 (R37): the language is not the pass search. The page reopens on a stored 72 h run —
@@ -144,8 +139,8 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
 
   // Back on the list, the observer is the one the page opened with and the screen is English throughout.
   await dialog.getByRole('button', { name: 'Back', exact: true }).click();
-  // R52: the field that holds the observer is on `#settings` now; the home screen names it in the summary line.
-  await expect(page.getByTestId('location-summary')).toBeVisible();
+  // R52: the field that holds the observer is on `#settings` now; R212: back on the satellites page.
+  await expect(page.getByTestId('pass-tonight')).toBeVisible();
   await withSettings(page, async () => {
     await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toHaveValue(NEUQUEN);
   });
@@ -155,7 +150,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
 
 test('the chosen language survives a reload, browser preference notwithstanding', async ({ page }) => {
   await withFixtures(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
   });

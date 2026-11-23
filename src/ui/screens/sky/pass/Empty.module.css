@@ -1,0 +1,15 @@
+/* R212 (FR-LAND-6, D-1231): the phone's satellites page, its blocks a group apart. */
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.page > button {
+  justify-self: start;
+}
+
+.line {
+  margin: 0;
+}

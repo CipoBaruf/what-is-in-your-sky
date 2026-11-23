@@ -29,7 +29,7 @@ import { useInstallOffer, type InstallEnv } from './installEnv';
  * settings row does not have. So the copy exists once and the two places cannot
  * drift, while the snooze stays here, where the answer is.
  *
- * The clock is read once, at mount: this is a banner on the home screen, and a
+ * The clock is read once, at mount: this is a banner on a page, and a
  * snooze that runs out while the reader is looking at the page can wait for the
  * next load. What the browser is offering still gates the Chromium shape, so a
  * returning hint only appears where `beforeinstallprompt` has fired on this
