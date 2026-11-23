@@ -3,7 +3,7 @@
  * link. The observer comes out of the hash (that part is `startApp`'s, tested
  * in `state`), and the screen resolves the pass against its own recompute:
  * the same pass, the nearest pass of that object with a message, or no pass
- * with a message. A hash that means nothing leaves the app on the home screen.
+ * with a message. A hash that means nothing leaves the app on the first page, live (FR-LAND-1).
  */
 import { act, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -131,18 +131,20 @@ describe('landing on a shared pass link', () => {
     act(() => {
       appStore.setState({ observer: { ...observer, lat: 51.48, lon: -0.13, altM: 11, label: '51.48, −0.13' } });
     });
-    expect(window.location.hash).toBe('');
+    // D-1231: the phone's list is what the pass's sheet stood over.
+    expect(window.location.hash).toBe('#pass');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByTestId('share-fallback')).toBeNull();
   });
 
-  it('leaves a malformed or partial link on the home screen', () => {
+  it('FR-LAND-1: leaves a malformed or partial link on the live page', async () => {
     for (const hash of ['#pass?lat=-38.93', '#pass?lat=&lon=&norad=&start=', '#pass?lat=-38.93&lon=-67.99&alt=270&norad=25544&start=never', '#%%%']) {
       landOn(hash, [other, pass]);
       const { unmount } = render(<App />);
       expect(screen.queryByRole('dialog'), hash).toBeNull();
       expect(screen.queryByTestId('share-fallback'), hash).toBeNull();
-      expect(screen.getByRole('region', { name: 'Upcoming passes' }), hash).toBeInTheDocument();
+      expect(window.location.hash, hash).toBe('#live');
+      expect(await screen.findByTestId('live-page'), hash).toBeInTheDocument();
       unmount();
     }
   });

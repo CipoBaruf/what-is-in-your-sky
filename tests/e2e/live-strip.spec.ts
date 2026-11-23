@@ -117,8 +117,9 @@ for (const viewport of SIZES) {
 
     test('US-63 AC3: leaving and coming back shows the strip again, and the second time asks nothing either', async ({ page }) => {
       await openLive(page);
+      // R212 (FR-LAND-1): an empty hash is the live page itself, so the visit leaves by the satellites page.
       await page.evaluate(() => {
-        window.location.hash = '';
+        window.location.hash = '#pass';
       });
       await expect(page.getByTestId('live-page')).toHaveCount(0);
       await page.evaluate(() => {

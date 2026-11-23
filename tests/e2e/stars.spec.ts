@@ -283,13 +283,10 @@ test.describe('the stars page’s time on a desk (FR-WIDE-4 as amended)', () => 
 test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('opens from the home’s Stars door as the sky: the box the screen, the head and the bottom row over it, the rows in the sheet (FR-CLEAN-1..4)', async ({ page }) => {
+  test('opens by its address as the sky: the box the screen, the head and the bottom row over it, the rows in the sheet (FR-CLEAN-1..4)', async ({ page }) => {
     await asReader(page);
-    await page.goto('/');
-    // R130 (FR-FLOW-1): the When pane's "Stars tonight · [ look up ]" gave way to the Stars door.
-    await expect(page.getByTestId('stars-line')).toHaveCount(0);
-    await expect(page.getByTestId('stars-link')).toHaveCount(0);
-    await page.getByTestId('door-stars').click();
+    // R212 (FR-LAND-1): the home's Stars door went with the home; R222 folds the page into the live page's rail.
+    await page.goto('/#stars');
     await expect(page).toHaveURL(/#stars$/);
     // R163 (FR-CLEAN-1, D-997): the full form — the drawing is the viewport; over it `[ ← ]` with the door's line and the bottom row.
     await expect(page.getByTestId('stars-layout')).toHaveAttribute('data-shape', 'full');

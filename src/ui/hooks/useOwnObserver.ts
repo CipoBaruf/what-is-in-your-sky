@@ -12,7 +12,7 @@ export function useOwnObserver(): Observer | null {
 }
 
 /** D-1178: the outcomes under which the example is drawn; every other one is FR-OPEN-6's fallback. */
-export const EXAMPLE_SHOWN: readonly ExampleOutcome[] = ['pending', 'pass'];
+const EXAMPLE_SHOWN: readonly ExampleOutcome[] = ['pending', 'pass'];
 
 /**
  * R203 (FR-OPEN-6, FR-OPEN-7; D-1205): the observer the pages open for — the active one, but never an example the

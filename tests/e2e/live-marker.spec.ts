@@ -56,7 +56,7 @@ async function openGoldenPassAt(page: Page, t: number): Promise<{ passId: string
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   // R136 (FR-FLOW-14): a phone with nothing saved opens on the window; this spec draws the dome and the polar chart.
   await savedDome(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });

@@ -94,12 +94,3 @@ export function useListedPasses(keep: string | null = null): ListedPasses {
 export function faintIds(listed: ListedPasses): ReadonlySet<string> {
   return new Set(listed.faint.map((pass) => pass.id));
 }
-
-/** Why the next-event block may have nothing to count to: how many elements there are, or null while they load. */
-export function usePassContext(): { elementCount: number | null; hasDarkness: boolean | null; pending: boolean } {
-  const elements = useAppStore((s) => s.elements);
-  const passes = useAppStore((s) => s.passes);
-  const elementCount = elements.status === 'ready' ? elements.records.length : elements.status === 'error' ? 0 : null;
-  const pending = elements.status === 'idle' || elements.status === 'loading' || (elementCount !== 0 && passes.status !== 'done' && passes.status !== 'error');
-  return { elementCount, hasDarkness: passes.hasDarkness, pending };
-}

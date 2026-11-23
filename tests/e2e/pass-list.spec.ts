@@ -27,6 +27,9 @@ const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
 const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 const compass = (az: number): string => COMPASS[Math.round((((az % 360) + 360) % 360) / 22.5) % 16] ?? 'N';
 
+/* R212 (FR-LAND-6, D-1231): the whole list, with its conditions and readiness, is the phone's satellites page. */
+test.use({ viewport: { width: 390, height: 844 } });
+
 test('typing the Neuquén coordinates shows the pass list with the golden ISS pass among the cards', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
@@ -47,9 +50,9 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   // R8: without a forecast the zone stays unknown and times stay in UTC, which is what this spec asserts (weather.spec.ts covers the forecast).
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 
-  await page.goto('/');
-  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
-  await expect(page.getByTestId('cold-open')).toBeVisible();
+  await page.goto('/#pass');
+  // R212 (FR-LAND-6): with no place the satellites page asks for one, and the list waits for it.
+  await expect(page.getByTestId('pass-set-place')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Upcoming passes' })).toHaveCount(0);
 
   await withSettings(page, async () => {

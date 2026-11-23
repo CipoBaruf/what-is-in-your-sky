@@ -44,15 +44,15 @@ describe('FR-MEAS-3: sending', () => {
     let online = false;
     const env = envWith({ online: () => online });
     const count = createMeasure(env, context);
-    count('open', 'home');
+    count('open', 'live');
     online = true;
-    count('open', 'home');
+    count('open', 'live');
     expect(env.beacon).not.toHaveBeenCalled();
   });
 
   it('with no sendBeacon nothing is sent and nothing throws', () => {
     const count = createMeasure(envWith({ beacon: undefined }), context);
-    expect(() => count('open', 'home')).not.toThrow();
+    expect(() => count('open', 'live')).not.toThrow();
   });
 
   it('a throwing sendBeacon is silent: no throw, no console line', () => {
@@ -63,7 +63,7 @@ describe('FR-MEAS-3: sending', () => {
       },
     });
     const count = createMeasure(env, context);
-    expect(() => count('open', 'home')).not.toThrow();
+    expect(() => count('open', 'live')).not.toThrow();
     expect(error).not.toHaveBeenCalled();
     error.mockRestore();
   });
@@ -71,25 +71,25 @@ describe('FR-MEAS-3: sending', () => {
   it('a foreign origin sends nothing: a preview, a local build, the test server', () => {
     for (const origin of ['https://r193-preview.example.dev', 'http://localhost:4173', 'http://inyoursky.app', 'https://inyoursky.app.evil.example']) {
       const env = envWith({ origin });
-      createMeasure(env, context)('open', 'home');
+      createMeasure(env, context)('open', 'live');
       expect(env.beacon, origin).not.toHaveBeenCalled();
     }
   });
 
   it('an automated browser on the public address sends nothing', () => {
     const env = envWith({ webdriver: true });
-    createMeasure(env, context)('open', 'home');
+    createMeasure(env, context)('open', 'live');
     expect(env.beacon).not.toHaveBeenCalled();
   });
 
   it('forced lifts the origin and webdriver gates, and nothing else', () => {
     const env = envWith({ origin: 'http://localhost:4173', webdriver: true, forced: true });
     const count = createMeasure(env, context);
-    count('open', 'home');
-    count('open', 'home');
-    expect(bodies(env.beacon)).toEqual([{ name: 'open', detail: 'home', ...context }]);
+    count('open', 'live');
+    count('open', 'live');
+    expect(bodies(env.beacon)).toEqual([{ name: 'open', detail: 'live', ...context }]);
     const offline = envWith({ forced: true, online: () => false });
-    createMeasure(offline, context)('open', 'home');
+    createMeasure(offline, context)('open', 'live');
     expect(offline.beacon).not.toHaveBeenCalled();
   });
 
@@ -98,13 +98,13 @@ describe('FR-MEAS-3: sending', () => {
     let online = true;
     const env = envWith({ defer: (run) => void queued.push(run), online: () => online });
     const count = createMeasure(env, context);
-    count('open', 'home');
+    count('open', 'live');
     count('where_shown');
     expect(env.beacon).not.toHaveBeenCalled();
     queued[0]?.();
     online = false;
     queued[1]?.();
-    expect(bodies(env.beacon)).toEqual([{ name: 'open', detail: 'home', ...context }]);
+    expect(bodies(env.beacon)).toEqual([{ name: 'open', detail: 'live', ...context }]);
   });
 
   it('FR-MEAS-2: watch leaves once, with no detail', () => {

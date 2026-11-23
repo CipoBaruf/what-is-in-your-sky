@@ -8,7 +8,6 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { ExampleOutcome } from '../../../lib/exampleOutcome';
 import type { Locale, Observer } from '../../../model';
 import { appStore, type AppState } from '../../../state';
-import { clearPlaceRequest, placeRequested } from '../../screens/home/placeRequest';
 import { ExampleNotice } from './ExampleNotice';
 import { PageNotices } from './VisitNotice';
 
@@ -31,13 +30,12 @@ beforeEach(() => {
 
 afterEach(() => {
   media.restore();
-  clearPlaceRequest();
   appStore.setState(initial, true);
   window.history.replaceState(null, '', window.location.pathname);
 });
 
 describe('ExampleNotice (FR-OPEN-7)', () => {
-  it('names the example and its zone, and its control asks the home for the place question', async () => {
+  it('names the example and its zone, and its control opens the place group on settings (D-1230)', async () => {
     set({ example, exampleOutcome: 'pass' });
     window.history.replaceState(null, '', '#live');
     const { container } = show(<ExampleNotice />);
@@ -47,8 +45,7 @@ describe('ExampleNotice (FR-OPEN-7)', () => {
     expect(line).toContainElement(screen.getByRole('button', { name: en.example.pageLine }));
     expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(screen.getByRole('button', { name: en.example.pageLine }));
-    expect(placeRequested()).toBe(true);
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe('#settings');
   });
 
   it('reads in Spanish', () => {
@@ -77,7 +74,7 @@ describe('ExampleNotice (FR-OPEN-7)', () => {
     });
   }
 
-  it('is in the page strip on every page but the home (D-1180)', () => {
+  it('is in the page strip, unless the page draws its own (D-1180)', () => {
     set({ example, exampleOutcome: 'pass' });
     const { unmount } = show(<PageNotices kinds={[]} />);
     expect(screen.getByTestId('example-notice')).toBeInTheDocument();

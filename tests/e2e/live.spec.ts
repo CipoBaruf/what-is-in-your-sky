@@ -15,7 +15,6 @@
  *     Spanish at the phone width.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { formatClockDuration } from '../../src/lib/format';
 import { clearArcPoint, legendIds, openLiveThreePasses } from './factsHelpers';
 import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, hhmmss, homeAt, LABEL, leaveLive, openLegend, openSheet, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubNetwork, T } from './liveHelpers';
 
@@ -71,19 +70,19 @@ test.describe('the live page', () => {
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 
-    // Esc returns to the home page, with the same observer and no hash (R148: the sheet closes first, D-927).
+    // Esc returns to the page it was opened from, the satellites page, with the same observer (R148: the sheet closes
+    // first, D-927; R212: FR-LAND-6).
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('banner')).toBeVisible();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/#pass$/);
     await expect(page.getByTestId('live-page')).toHaveCount(0);
-
-    // …and the Both door (R130, FR-FLOW-1; the next-event block's `[ Open the live sky ]` before it) opens it again; the return control closes it.
-    await page.getByTestId('door-live').click();
-    await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
-    await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
     await expect(page.getByTestId('conditions')).toBeVisible();
+
+    // …and the header's live link opens it again.
+    await page.getByTestId('live-link').click();
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
   });
 
   test('a #live?… URL sets the observer and the shown instant, and a bad t falls back to real time (FR-LIVE-9)', async ({ page }) => {
@@ -107,10 +106,9 @@ test.describe('the live page', () => {
     await stripFilled(page);
     // Real time was not touched by the link.
     await leaveLive(page);
-    // R81: the Now panel's `as of` is gone with it; the Satellites door (R130) counts from real time, ten seconds into the pass.
-    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(`Up now · peaks in ${formatClockDuration((golden().peak - T) / 1000)}`, { timeout: 60_000 });
-    // R52 (FR-COMP-3): the home screen names the observer in its summary line; the form that holds it is on `#settings`.
-    await expect(page.getByTestId('location-summary')).toContainText('−38.93, −67.99');
+    // R212: the home's Satellites door, which counted from real time, and its place line went with the home; the
+    // satellites page lists from real time.
+    await expect(page.getByTestId('pass-tonight')).toBeVisible();
 
     // A t that names no instant: the place is kept and the instant is real time. (A hash-only
     // navigation stays in the document; the reload is what makes it a fresh arrival on the link.)
@@ -123,7 +121,7 @@ test.describe('the live page', () => {
   });
 
   // R89 (FR-LIVE-1 as amended v2.1): the states are told apart — `live-failures.spec.ts` follows each one's control.
-  test('is inert with its state and the return control without an observer, and without elements (FR-LIVE-1)', async ({ page }) => {
+  test('is inert with its state without an observer, and without elements (FR-LIVE-1)', async ({ page }) => {
     await page.clock.setFixedTime(T);
     await stubNetwork(page, 'down');
     await page.goto('/#live');
@@ -132,8 +130,8 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
     await expect(page.getByTestId('status-strip')).toHaveCount(0);
-    await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
-    await expect(page.getByRole('banner')).toBeVisible();
+    // R212 (FR-LAND-1): the load's own page has nothing to go back to, so it draws no Back.
+    await expect(page.getByTestId('live-back')).toHaveCount(0);
 
     // An observer from a link, and CelesTrak down with nothing cached: no elements, so nothing to draw.
     // A hash-only navigation stays in the document, so the page is reloaded for `startApp` to read the link.

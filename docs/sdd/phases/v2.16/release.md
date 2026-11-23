@@ -1,5 +1,7 @@
 ## 30. v2.16 (spec §Phase 2y)
 
+> *History (marked 2026-11-23, FR-SHOW-1, R212): the v2.16 release’s list as it was run; R212 deleted `r76-captures.spec.ts` and the other home specs with the home (FR-LAND-1).*
+
 Everything in `docs/RELEASE.md` and §29 still applies.
 v2.16 is "an answer first" (V216-1..V216-18): a first visit opens on tonight's next pass over its time zone's city, labelled as an example, with one action to set a place, and the place question only where there is no example (FR-OPEN-1..14, US-60, US-61).
 Every page opens for the example with one line under the header (FR-OPEN-7), and a load with a stored place draws what 2.15.0 drew but for the header's tagline (FR-OPEN-9).

@@ -60,7 +60,7 @@ async function openGoldenPass(page: Page, violations: string[]): Promise<{ passI
   page.on('console', (message) => {
     if (/Content Security Policy/i.test(message.text())) violations.push(message.text().slice(0, 200));
   });
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });

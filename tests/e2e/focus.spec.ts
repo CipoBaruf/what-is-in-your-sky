@@ -5,7 +5,7 @@
  * reached the same way keeps the ring (D-704). The colours are read as Chromium computes them.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
+import { NINE_DAYS_ON, stubNetwork } from './liveHelpers';
 import { openStarsPage } from './globeHelpers';
 
 test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
@@ -80,19 +80,13 @@ function oneLineOnEachField(seen: readonly Seen[], min: number): void {
   }
 }
 
-test('FR-WIDE-14: the cold home’s place step — one line on the place field', async ({ page }) => {
+/* R212: the home's place step and its opened place field went with the home; the settings page holds the field. */
+test('FR-WIDE-14: the settings page with no place — one line on the place field', async ({ page }) => {
   await page.clock.setFixedTime(NINE_DAYS_ON);
   await stubNetwork(page);
-  await page.goto('/');
+  await page.goto('/#settings');
   await expect(page.getByRole('combobox', { name: 'Place name' })).toBeVisible({ timeout: 30_000 });
   oneLineOnEachField(await tabThrough(page, 12), 1);
-});
-
-test('FR-WIDE-14: a set place’s home, its place field opened — one line on the field', async ({ page }) => {
-  await seedStoredRun(page, { settled: true });
-  await page.getByTestId('location-summary-change').first().click();
-  await expect(page.getByRole('combobox', { name: 'Place name' })).toBeVisible();
-  oneLineOnEachField(await tabThrough(page, 40), 1);
 });
 
 test('FR-WIDE-14: the settings page, the coordinates opened — one line on every field', async ({ page }) => {

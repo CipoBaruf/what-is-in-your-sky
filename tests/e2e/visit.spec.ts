@@ -10,6 +10,9 @@
  * The saved place is written into storage directly rather than typed: a
  * geocoded place with a zone is what F-89 loses, and the offline stubs below
  * would never produce one.
+ *
+ * R212 (FR-LAND-1): the home's place line is gone, so the place shown is read off the desk header's place, at
+ * 1280 × 800; a hash the app clears now lands on `#live`, the page with no hash.
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
@@ -28,7 +31,12 @@ const SAVED_PREFS = JSON.stringify({ observer: SAVED, locale: 'en' });
 const START = new Date(CLOCK + 3_600_000).toISOString().replace('.000Z', 'Z');
 const PASS_LINK = `/#pass?lat=48.86&lon=2.35&alt=35&norad=25544&start=${START}`;
 
-test.use({ viewport: { width: 390, height: 844 } });
+test.use({ viewport: { width: 1280, height: 800 } });
+
+/** The place the page looks from, as the desk header names it (`<page>-place`). */
+const shownPlace = (page: Page) => page.getByTestId('header').locator('[data-testid$="-place"]');
+/** R212 (FR-LAND-1): what a cleared hash reads now: `#live`, or nothing in the moment before the reader replaces it. */
+const CLEARED = /^(#live)?$/;
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(CLOCK);
@@ -53,15 +61,15 @@ test("a pass link over a saved, named place is a visit: storage is untouched and
   // A fresh document on the link, so `startApp` reads it as an arrival (a hash-only goto would not reload).
   await page.goto('about:blank');
   await page.goto(PASS_LINK);
-  await expect(page.getByTestId('location-summary')).toContainText('48.86, 2.35');
+  await expect(shownPlace(page)).toContainText('48.86, 2.35');
   const status = page.getByRole('region', { name: 'Upcoming passes', includeHidden: true }).getByRole('status', { includeHidden: true });
-  await expect(status).toHaveText(/\d+ visible passes? in 72 h|No visible passes/, { timeout: 60_000 });
+  await expect(status).toHaveText(/\d+ visible passes? in (72|24) h|No visible passes?/, { timeout: 60_000 });
   expect(await page.evaluate((key) => localStorage.getItem(key), PREFS_KEY)).toBe(SAVED_PREFS);
 
   // The reload, with no hash: the reader's own place, by its own name, in its own zone.
   await page.goto('about:blank');
   await page.goto('/');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
+  await expect(shownPlace(page)).toContainText('Neuquén');
   const stored = JSON.parse((await page.evaluate((key) => localStorage.getItem(key), PREFS_KEY)) ?? 'null') as { observer?: typeof SAVED } | null;
   expect(stored?.observer).toEqual(SAVED);
   expect(stored?.observer?.timeZone).toBe('America/Argentina/Salta');
@@ -80,7 +88,7 @@ const arriveOnTheLink = async (page: Page): Promise<void> => {
   }, [PREFS_KEY, SAVED_PREFS] as const);
   await page.goto('about:blank');
   await page.goto(PASS_LINK);
-  await expect(page.getByTestId('location-summary')).toContainText('48.86, 2.35');
+  await expect(shownPlace(page)).toContainText('48.86, 2.35');
 };
 
 const storedPrefs = (page: Page): Promise<string | null> => page.evaluate((key) => localStorage.getItem(key), PREFS_KEY);
@@ -94,8 +102,8 @@ test('a pass link shows the visit notice, and [ back to my place ] restores the 
 
   await notice.getByRole('button', { name: 'back to my place' }).click();
   await expect(page.getByTestId('visit-notice')).toHaveCount(0);
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
-  expect(new URL(page.url()).hash).toBe('');
+  await expect(shownPlace(page)).toContainText('Neuquén');
+  expect(new URL(page.url()).hash).toMatch(CLEARED);
   expect(await storedPrefs(page)).toBe(SAVED_PREFS);
 });
 
@@ -103,18 +111,18 @@ test('[ keep this place ] stores the visited place and removes the notice (FR-VI
   await arriveOnTheLink(page);
   await page.getByTestId('visit-notice').getByRole('button', { name: 'keep this place' }).click();
   await expect(page.getByTestId('visit-notice')).toHaveCount(0);
-  await expect(page.getByTestId('location-summary')).toContainText('48.86, 2.35');
+  await expect(shownPlace(page)).toContainText('48.86, 2.35');
   const stored = JSON.parse((await storedPrefs(page)) ?? 'null') as { observer?: { lat: number; lon: number } } | null;
   expect(stored?.observer).toMatchObject({ lat: 48.86, lon: 2.35 });
 });
 
 /**
  * R87 (FR-VISIT-4, US-32 AC3, F-93): a hash that starts as a route and does
- * not parse lands on the reader's own home with one line saying so, and leaves
+ * not parse lands on the reader's own live page (R212) with one line saying so, and leaves
  * the URL; one that is no route at all leaves it with nothing said. Neither
  * touches the saved place.
  */
-test('#live?lat=999 lands on home with "That link could not be read." and the hash cleared; #nonsense is cleared silently (FR-VISIT-4)', async ({ page }) => {
+test('#live?lat=999 lands on the live page with "That link could not be read." and the hash cleared; #nonsense is cleared silently (FR-VISIT-4)', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(([key, value]) => {
     localStorage.setItem(key, value);
@@ -123,16 +131,16 @@ test('#live?lat=999 lands on home with "That link could not be read." and the ha
   await page.goto('about:blank');
   await page.goto('/#live?lat=999');
   await expect(page.getByTestId('link-note')).toContainText('That link could not be read.');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
-  expect(new URL(page.url()).hash).toBe('');
+  await expect(shownPlace(page)).toContainText('Neuquén');
+  expect(new URL(page.url()).hash).toMatch(CLEARED);
   await expect(page.getByTestId('visit-notice')).toHaveCount(0);
   await page.getByTestId('link-note-dismiss').click();
   await expect(page.getByTestId('link-note')).toHaveCount(0);
 
   await page.goto('about:blank');
   await page.goto('/#nonsense');
-  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén');
-  await expect.poll(() => new URL(page.url()).hash).toBe('');
+  await expect(shownPlace(page)).toContainText('Neuquén');
+  await expect.poll(() => new URL(page.url()).hash).toBe('#live');
   await expect(page.getByTestId('link-note')).toHaveCount(0);
   expect(await storedPrefs(page)).toBe(SAVED_PREFS);
 });

@@ -121,9 +121,12 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     expect(close).toHaveAttribute('data-testid', 'sheet-close');
     expect(close).toHaveTextContent(/^×$/);
     expect(m.sheet.close).toBe(locale === 'en' ? 'Close controls' : 'Cerrar controles');
-    // The head's order: the place, `[ settings ]`, then the `×` at the row's end.
-    expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-settings', 'sheet-close']);
-    for (const control of [settings, close]) expect(control.classList.contains('target')).toBe(true);
+    // The head's order: the place, `satellites`, `settings`, then the `×` at the row's end.
+    expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-satellites', 'sheet-settings', 'sheet-close']);
+    // R212 (FR-LAND-6, D-1231): the phone's way to tonight's list.
+    const list = within(head).getByTestId('sheet-satellites');
+    expect(list).toHaveAttribute('href', '#pass');
+    for (const control of [list, settings, close]) expect(control.classList.contains('target')).toBe(true);
     // The body holds the page's rows, after the head.
     const body = within(region).getByTestId('sheet-body');
     expect(within(body).getByTestId('row-first')).toBeInTheDocument();

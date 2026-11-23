@@ -55,7 +55,7 @@ async function open(page: Page, viewport: { width: number; height: number }, pre
 
 /** The glare pass's guide, open, at the shown instant. */
 async function openDetail(page: Page, locale: CaptureLocale): Promise<Locator> {
-  await page.goto('/');
+  await page.goto('/#pass');
   const card = page.locator(`article[data-pass-id="${GLARE_PASS}"]`);
   await expect(card).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
@@ -77,7 +77,7 @@ const rectOf = async (locator: Locator): Promise<{ x: number; y: number; width: 
 
 /** The live page from the home page the fixtures filled, on whatever view is saved. */
 async function openLive(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/#pass');
   await expect(page.locator(`article[data-pass-id="${GLARE_PASS}"]`)).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
@@ -331,7 +331,7 @@ async function openShowcase(page: Page, viewport: { width: number; height: numbe
   for (const pattern of ['https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**']) await page.route(pattern, (route) => route.abort('failed'));
   await page.clock.install({ time: ORION_CLOCK });
   await page.clock.pauseAt(ORION_CLOCK);
-  await page.goto('/');
+  await page.goto('/#pass');
   const card = page.locator(`article[data-pass-id^="${ORION_NORAD}-"]`).first();
   await expect(card).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });

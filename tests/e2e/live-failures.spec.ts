@@ -123,17 +123,16 @@ test('with the elements failing, the page says so, and [ retry ] shows loading a
   await domeDrawn(page);
 });
 
-test('with no place, [ set a place ] lands on the where step with the focus in the input group (FR-FIRST-1, F-75)', async ({ page }) => {
+test('with no place, [ set a place ] opens the settings page (FR-FIRST-1, F-75, D-1230)', async ({ page }) => {
   await page.clock.setFixedTime(T);
   await stubNetwork(page);
   await page.goto('/#live');
   await expect(page.getByTestId('live-inert')).toHaveAttribute('data-inert', 'no-place');
   await expect(page.getByTestId('live-inert')).toContainText('The live sky needs a place.');
   await page.getByRole('button', { name: 'set a place' }).click();
-  await expect(page).not.toHaveURL(/#live/);
-  const group = page.getByTestId('cold-open');
-  await expect(group).toHaveAttribute('data-step', 'where');
-  await expect(group.getByRole('button', { name: 'Use my location' })).toBeFocused();
+  // R212: the home's where step went with the home; the place is set on the settings page.
+  await expect(page).toHaveURL(/#settings$/);
+  await expect(page.getByRole('button', { name: 'Use my location' })).toBeVisible();
 });
 
 test.describe('a live link’s moment (FR-VISIT-3)', () => {

@@ -3,16 +3,13 @@
  * of the header, and what each one does and does not carry.
  *
  * R129 (FR-FLOW-3, FR-COMP-7 as amended v2.6, D-845; F7, D3, D4): the header is
- * told its page. The five pages in both languages at both widths: the home's
- * row, a sub-page's `[ ← ]`, name and context on compact, and on wide one row
- * with the page links, the current one marked, and `[ settings ]` last — and no
- * language or theme switch anywhere.
+ * told its page, in both languages at both widths — and no language or theme switch anywhere.
  *
- * R166 (FR-CLEAN-14): on wide the page links are `[ home ] [ live ] [ stars ]`, the current one dimmed.
+ * R212 (FR-LAND-1, FR-LAND-6, D-1230, D-1231): no home. The links are `live satellites stars`; live, the first page,
+ * has no Back; on compact live and the satellites' list are tab rows, and stars and settings the sub row.
  *
- * v2.14.1 (FR-CLEAN-14, FR-WIDE-1 as amended; D-1134): four links, `[ home ] [ live ] [ satellites ] [ stars ]`, and
- * the pass page is a sub-page like the others — `[ ← ]` first, `satellites` the current form. `[ satellites ]` opens
- * the pass up now, else the span's next, else the bare `#pass`.
+ * R166, v2.14.1 (FR-CLEAN-14; D-1134): the current link dimmed; `satellites` opens the pass up now, else the span's
+ * next, else the bare `#pass`.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -28,7 +25,6 @@ import { LIVE_WINDOW_MS } from '../../../lib/livePasses';
 import type { Pass } from '../../../model';
 import { appStore } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
-import { open, resetNavigation, subscribe } from '../../navigation';
 import { Header, type HeaderProps } from './Header';
 
 let media: MatchMediaStub;
@@ -38,12 +34,13 @@ afterEach(() => {
   window.history.replaceState(null, '', window.location.pathname);
 });
 
-// D-1134: the pass page is a sub-page, `[ ← ]` and its name, as the live and stars pages are.
-const SUB_PAGES = ['live', 'pass', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
-const NAV = ['home', 'live', 'pass', 'stars'] as const;
+const PAGES = ['live', 'pass', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
+const SUB_PAGES = ['stars', 'settings'] as const satisfies readonly HeaderPage[];
+const TABS = [['live', 'pass-link', '#pass'], ['pass', 'live-link', '#live']] as const;
+const NAV = ['live', 'pass', 'stars'] as const;
 const PLACE = '−38.93, −67.99';
 
-const renderIn = (locale: Locale, props: HeaderProps = {}) => render(<I18nProvider locale={locale}>{<Header {...props} />}</I18nProvider>);
+const renderIn = (locale: Locale, props: HeaderProps) => render(<I18nProvider locale={locale}>{<Header {...props} />}</I18nProvider>);
 
 /** Neither switch is on any header: they are the settings page's alone (FR-COMP-2, V26-10). */
 const expectNoSwitches = (locale: Locale): void => {
@@ -55,19 +52,23 @@ const expectNoSwitches = (locale: Locale): void => {
 describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
-  it('home: one row of the short title, [ live ] and [ settings ], with no tagline and no switch (US-20 AC1)', async () => {
+  it.each(TABS)('%s: one row of the short title, the other tab and settings, with no Back, no tagline and no switch (US-20 AC1)', async (page, testId, href) => {
     media = stubMatchMedia(COMPACT_PX);
-    const { container } = renderIn(locale);
+    const { container } = renderIn(locale, { page });
     const banner = screen.getByRole('banner');
-    expect(within(banner).getByRole('heading', { level: 1, name: t.app.shortTitle })).toBeInTheDocument();
+    expect(banner).toHaveTextContent(t.app.shortTitle);
+    // The pages carry their own h1 (FR-A11Y-1).
+    expect(within(banner).queryByRole('heading')).toBeNull();
     expect(banner).not.toHaveTextContent(t.app.tagline);
-    expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
-    expect(screen.getByTestId('live-link')).toHaveTextContent(t.live.openShort);
+    const tab = screen.getByTestId(testId);
+    expect(tab).toHaveAttribute('href', href);
+    expect(tab).toHaveTextContent(page === 'live' ? t.header.pages.pass : t.live.openShort);
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
     expect(screen.getByTestId('settings-link')).toHaveTextContent(t.settings.open);
     expect(screen.queryByTestId('stars-link')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
     // One name for the header's navigation on both widths.
-    expect(screen.getByRole('navigation', { name: t.header.nav })).toContainElement(screen.getByTestId('live-link'));
+    expect(screen.getByRole('navigation', { name: t.header.nav })).toContainElement(tab);
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -97,11 +98,14 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('draws the live page’s name and no context when there is none (the inert page, R149)', () => {
+  it('live takes no Back, and draws its context under the row only where there is one (the inert page, R149)', () => {
     media = stubMatchMedia(COMPACT_PX);
-    renderIn(locale, { page: 'live', onBack: vi.fn() });
-    expect(screen.getByTestId('header-page')).toHaveTextContent(t.header.pages.live);
+    const { unmount } = renderIn(locale, { page: 'live', onBack: vi.fn() });
+    expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
     expect(screen.queryByTestId('live-place')).toBeNull();
+    unmount();
+    renderIn(locale, { page: 'live', context: PLACE, onBack: vi.fn() });
+    expect(screen.getByTestId('header').lastElementChild).toBe(screen.getByTestId('live-place'));
   });
 
   it('is a div when the page holds it inside a landmark of its own, so there is one banner', () => {
@@ -136,25 +140,24 @@ function expectBracketedLinks(page: HeaderPage): void {
 describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.6)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
-  it('home: the full title as the h1, the page links with home current, [ settings ] last, the tagline under the row', async () => {
+  it('live: the title, the page links with live current, settings last, and no Back (FR-LAND-1)', async () => {
     media = stubMatchMedia(WIDE_PX);
-    const { container } = renderIn(locale);
+    const { container } = renderIn(locale, { page: 'live', onBack: vi.fn() });
     const banner = screen.getByRole('banner');
-    expect(within(banner).getByRole('heading', { level: 1, name: t.app.title })).toBeInTheDocument();
-    expect(banner).toHaveTextContent(t.app.tagline);
+    expect(banner).toHaveTextContent(t.app.title);
+    expect(banner).not.toHaveTextContent(t.app.tagline);
     const nav = screen.getByRole('navigation', { name: t.header.nav });
-    // D-1134: four forms, `satellites` / `satélites` between `live` and `stars`.
     expect(within(nav).getAllByTestId(/-link$/).map((link) => link.textContent)).toEqual(NAV.map((page) => t.header.pages[page]));
     expect(t.header.pages.pass).toBe(locale === 'es' ? 'satélites' : 'satellites');
-    expect(screen.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('home-link')).not.toHaveAttribute('href');
-    expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
+    expect(screen.getByTestId('live-link')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByTestId('live-link')).not.toHaveAttribute('href');
     // No pass in the store: the pass page with no id (D-1134).
     expect(screen.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
     expect(screen.getByTestId('stars-link')).toHaveAttribute('href', '#stars');
-    expectBracketedLinks('home');
+    expect(screen.queryByTestId('home-link')).toBeNull();
+    expectBracketedLinks('live');
     expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
-    // `[ settings ]` is the row's last item, after the navigation.
+    // `settings` is the row's last item, after the navigation.
     const settings = screen.getByTestId('settings-link');
     expect(settings).toHaveAttribute('href', '#settings');
     expect(settings.parentElement?.lastElementChild).toBe(settings);
@@ -162,7 +165,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it.each(SUB_PAGES)('%s: [ ← ] first, the title, the links, the context and [ settings ] on one row, no tagline', async (page) => {
+  it.each(PAGES.filter((page) => page !== 'live'))('%s: [ ← ] first, the title, the links, the context and [ settings ] on one row, no tagline', async (page) => {
     media = stubMatchMedia(WIDE_PX);
     const onBack = vi.fn();
     const { container } = renderIn(locale, { page, context: PLACE, onBack });
@@ -216,59 +219,16 @@ describe('<Header> wide links', () => {
     }
   });
 
-  it('home leaves every entry this session pushed, in one step', () => {
-    media = stubMatchMedia(WIDE_PX);
-    const go = vi.spyOn(window.history, 'go').mockImplementation(() => undefined);
-    window.history.pushState({ wiys: 1 }, '', '#stars');
-    window.history.pushState({ wiys: 2 }, '', '#live');
-    render(<Header page="live" onBack={vi.fn()} />);
-    fireEvent.click(screen.getByTestId('home-link'));
-    expect(go).toHaveBeenCalledWith(-2);
-    go.mockRestore();
-  });
-
   it('swaps shape when the width crosses the breakpoint', () => {
     media = stubMatchMedia(WIDE_PX);
-    render(<Header />);
+    render(<Header page="pass" />);
     expect(screen.getByTestId('live-link')).toHaveTextContent(en.header.pages.live);
+    expect(screen.getByTestId('stars-link')).toBeInTheDocument();
     act(() => {
       media.setWidth(COMPACT_PX);
     });
     expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
+    expect(screen.queryByTestId('stars-link')).toBeNull();
     expect(screen.getByTestId('settings-link')).toBeInTheDocument();
-  });
-});
-
-/**
- * R129 (D-857): the wide `home` link leaves every route the session pushed in one step, and lands on home even when
- * the page the app loaded on was a route; a modified click is the browser's (a new tab), as on `live` and `stars`.
- */
-describe('<Header> wide: the home link', () => {
-  it('lands on home from the live page opened from a bookmarked #stars', async () => {
-    media = stubMatchMedia(WIDE_PX);
-    resetNavigation();
-    const off = subscribe(() => undefined);
-    window.history.replaceState(null, '', '#stars');
-    open('#live');
-    renderIn('en', { page: 'live', onBack: vi.fn() });
-    fireEvent.click(screen.getByTestId('home-link'));
-    await vi.waitFor(() => {
-      expect(window.location.hash).toBe('');
-    });
-    off();
-  });
-
-  it('leaves a modified or middle click to the browser', () => {
-    media = stubMatchMedia(WIDE_PX);
-    window.history.replaceState(null, '', '#stars');
-    renderIn('en', { page: 'stars', onBack: vi.fn() });
-    const link = screen.getByTestId('home-link');
-    for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
-      // `fireEvent` returns false when a handler called `preventDefault`.
-      expect(fireEvent.click(link, init), JSON.stringify(init)).toBe(true);
-    }
-    expect(window.location.hash).toBe('#stars');
-    expect(fireEvent.click(link)).toBe(false);
-    expect(window.location.hash).toBe('');
   });
 });

@@ -1,12 +1,16 @@
 import { useSyncExternalStore } from 'react';
-import { isLiveRoute, isPassPageRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
+import { isLiveRoute, isPassPageRoute, isSettingsRoute, isStarsRoute, LIVE_HASH, parseHash, routeOfHash } from '../lib/shareLinks';
 
 /**
  * R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app
  * writes the history. There is still no router (D-13) — the hash is the route —
  * but opening and closing a route used to be two different history operations:
- * opening pushed an entry, closing replaced it with home, so every visit left a
- * second home entry behind and the browser's Back did nothing once per visit.
+ * opening pushed an entry, closing replaced it, so every visit left a
+ * second entry behind and the browser's Back did nothing once per visit.
+ *
+ * **Live is the first page** (R212, FR-LAND-1, D-1230). A hash that names no
+ * route becomes `#live` in its own entry, and a route that was the load's
+ * closes to `#live`: the live page is where there is nothing further back.
  *
  * **What the app pushed, it pops.** `open` pushes with `history.state =
  * { wiys: depth }`, one more than the entry it was opened from. `close` calls
@@ -42,8 +46,6 @@ interface Opener {
 const openers: Opener[] = [];
 /** Where the focus goes after the route the reader just left; `undefined` when nothing was left. */
 let pending: Opener | 'h1' | undefined;
-/** `home` went back to the load's entry, which `emit` clears in place if it is a route. */
-let homing = false;
 
 const listeners = new Set<(event: Event) => void>();
 
@@ -74,13 +76,6 @@ function emit(event: Event): void {
   if (openers.length > d) {
     pending = openers[d];
     openers.length = d;
-  }
-  if (homing && event.type === 'popstate') {
-    homing = false;
-    if (window.location.hash !== '') {
-      window.history.replaceState(window.history.state, '', path());
-      pending = 'h1';
-    }
   }
   for (const listener of listeners) listener(event);
 }
@@ -120,10 +115,11 @@ export function useHash(): string {
  * A pass opened while another is open — a card in the list beside the wide guide, `j` and `Enter` — takes the
  * open pass's entry rather than stacking on it: closing the guide is leaving the pass route, and it would
  * otherwise go back to the pass before, and the one before that, before it reached the list.
+ * `stack` is the phone's list at `#pass` (D-1231): its pass is a sheet over it, which closes to the list.
  */
-export function open(hash: string, opener: HTMLElement | null = focusedElement()): void {
+export function open(hash: string, opener: HTMLElement | null = focusedElement(), { stack = false }: { stack?: boolean } = {}): void {
   if (window.location.hash === hash) return;
-  if (isPassHash(window.location.hash) && isPassHash(hash)) {
+  if (!stack && isPassHash(window.location.hash) && isPassHash(hash)) {
     // The entry is the new pass's now, and so is what the focus goes back to (F-8).
     const d = depth();
     if (d > 0 && openers.length >= d) openers[d - 1] = { element: opener, key: opener ? keyOf(opener) : null };
@@ -148,40 +144,35 @@ export function replace(hash: string): void {
   announce();
 }
 
-/** Leaves the current route: back to the entry it was opened from, or home in place when it was the load's. */
-export function close(): void {
-  if (window.location.hash === '') return;
+/**
+ * Leaves the current route: back to the entry it was opened from, or `to` in place when it was the load's — the
+ * live page, or the phone's list under a pass's sheet (D-1231). The live page as the load's has nowhere to go.
+ */
+export function close(to: string = LIVE_HASH): void {
   if (depth() > 0) {
     window.history.back();
     return;
   }
+  const hash = window.location.hash;
+  if (hash === to || hash === '' || routeOfHash(hash) === 'live') return;
   pending = 'h1';
-  clearRoute();
+  replace(to);
 }
 
 /**
- * R129 (FR-FLOW-3, D-845): the wide header's `home` link. Every entry this session pushed since home is left at
- * once, back to the entry the first was opened from — `close` would leave only the last, and a reader who went from
- * the stars to the live page would land on the stars — or home in place when the route was the load's. The entry
- * that traversal lands on is the load's, and the load can have been a route (a bookmark on `#stars`, a reload on a
- * pushed entry), so `homing` asks `emit` to clear it in place once there (D-857).
+ * R212 (FR-LAND-1, D-1230): an empty, unknown or unreadable hash becomes `#live` in its entry. It tells nobody: it
+ * runs before the first render, which then reads the hash it left.
  */
-export function home(): void {
-  if (window.location.hash === '') return;
-  const d = depth();
-  if (d > 0) {
-    homing = true;
-    window.history.go(-d);
-    return;
-  }
-  pending = 'h1';
-  clearRoute();
+export function landRoute(): void {
+  if (routeOfHash(window.location.hash) === null) window.history.replaceState(window.history.state, '', `${path()}${LIVE_HASH}`);
 }
 
-/** Home, in place: no history entry, the state kept. For a hash that names no route the app can draw (FR-VISIT-4). */
-export function clearRoute(): void {
-  if (window.location.hash !== '') window.history.replaceState(window.history.state, '', path());
-  announce();
+const atStart = (): boolean => depth() === 0 && routeOfHash(window.location.hash) === 'live';
+const notAtStart = (): boolean => false;
+
+/** The live page as the visit's first entry: there is nothing to go back to, so it offers no Back (D-1230). */
+export function useAtStart(): boolean {
+  return useSyncExternalStore(subscribe, atStart, notAtStart);
 }
 
 /** Where the focus goes now that a route was left, once; `null` when no route was left since the last ask. */
@@ -216,5 +207,4 @@ function isPassHash(hash: string): boolean {
 export function resetNavigation(): void {
   openers.length = 0;
   pending = undefined;
-  homing = false;
 }

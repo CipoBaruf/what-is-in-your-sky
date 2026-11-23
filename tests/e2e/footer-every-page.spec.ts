@@ -1,18 +1,17 @@
 /**
  * D-1023 (FR-X-2 as amended 2026-11-02, the owner's call): the footer is the same on every page. On a desk (1280 × 800)
- * the home, the pass detail, settings, live and stars all end in D-120's one row (the live page's under the fold of its
- * one-viewport sky); on a phone (390 × 844) the home and
- * settings end in the full credits, and live, stars and the pass detail carry the one row as
+ * the pass detail, settings, live and stars all end in D-120's one row (the live page's under the fold of its
+ * one-viewport sky); on a phone (390 × 844) the satellites list
+ * (R212, FR-LAND-6) and settings end in the full credits, and live, stars and the pass detail carry the one row as
  * the last group of the controls sheet's body. Every form stands a group gap (`--space-3`) under what is above it.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openFlowPage, PHONE, type FlowPage, type Locale } from './flowPages';
 
 const DESK = { width: 1280, height: 800 };
-const PAGES: readonly FlowPage[] = ['home', 'detail', 'settings', 'live', 'stars'];
+const PAGES: readonly FlowPage[] = ['detail', 'settings', 'live', 'stars'];
 /** D-1150 (FR-MEAS-7): no privacy sentence or word stands in any footer. */
 const PRIVACY = { en: /No tracking|No analytics/, es: /Sin rastreo|Sin analítica/ } as const;
-const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
 /** `--space-3` in px, read from the page's own tokens. */
 async function space3(page: Page): Promise<number> {
@@ -46,16 +45,8 @@ async function gapAbove(footer: Locator): Promise<{ gap: number; own: number }> 
   });
 }
 
-async function open(page: Page, which: FlowPage, locale: Locale): Promise<void> {
-  if (which === 'detail' && page.viewportSize()?.width === DESK.width) {
-    // On a desk the pass detail is the shell's layout in the home's place (FR-WIDE-1): opened from the list, the footer stays.
-    await openFlowPage(page, 'home', locale);
-    await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
-    await expect(page.getByTestId('guide-panel')).toBeVisible({ timeout: 30_000 });
-    return;
-  }
-  await openFlowPage(page, which, locale);
-}
+/** R212 (FR-LAND-1): with no home, every page opens as `openFlowPage` opens it; on a desk the pass detail is the satellites page. */
+const open = (page: Page, which: FlowPage, locale: Locale) => openFlowPage(page, which, locale);
 
 for (const locale of ['en', 'es'] as const) {
   test.describe(`the footer on a desk, 1280 × 800, ${locale} (D-1023)`, () => {
@@ -84,7 +75,7 @@ for (const locale of ['en', 'es'] as const) {
 
   test.describe(`the footer on a phone, 390 × 844, ${locale} (D-1023)`, () => {
     test.use({ viewport: PHONE });
-    for (const which of ['home', 'settings'] as const) {
+    for (const which of ['list', 'settings'] as const) {
       test(`${which} ends in the full credits, a group gap under the page`, async ({ page }) => {
         await open(page, which, locale);
         const footer = page.getByRole('contentinfo');
@@ -120,7 +111,7 @@ for (const locale of ['en', 'es'] as const) {
         // The row stays inside the body's width: the sheet never scrolls sideways.
         expect(await body.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
         if (which !== 'detail') {
-          // The sky pages have no footer of their own on a phone: no `contentinfo` (the pass detail stands over the home's).
+          // The sky pages have no footer of their own on a phone: no `contentinfo` (the pass detail stands over the list's).
           await expect(page.getByRole('contentinfo')).toHaveCount(0);
         }
       });

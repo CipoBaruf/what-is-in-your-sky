@@ -224,6 +224,13 @@
  * R191 (FR-WIDE-12): the set re-shot whole for 2.14.0. The pass the globe screens draw is on the far side of
  * FR-GLOBE-5's opening view at the set's instant, so `globeDrawn` turns the globe to it by its own key. `polar` keeps 360 and 390: a desk offers no polar chart since
  * R186 (FR-WIDE-2), so its 1280 file would be `sky-pass-globe`'s. The set is 464 files.
+ *
+ * R212 (FR-LAND-1, D-1230, D-1245): v3.0 removes the home, so its screens leave the set — `location` and its short
+ * twin, `first-example`, `first-wait`, `first-place` and `first-noon` with their short twins, `home` and its `-view`
+ * twins, `home-up-now`, `home-no-pass`, `home-daylight` and `where-opened`. `first-pass`, `first-live` and
+ * `first-stars` stay: the example's pages, opened by address now that no door opens them, and `shortcuts` is the
+ * overlay over the satellites page. The files themselves go when the owner's `captures.yml` run re-shoots the set
+ * after R227 (D-1245); `main` keeps none.
  */
 
 import { FIRST_VISIT } from './captureFirst';
@@ -310,28 +317,17 @@ export interface CaptureScreen {
 /**
  * Every screen the app has. "Screen" is a place a reader can be, not a state a
  * screen can be in: the install hint, the update banner, the offline message
- * and the not-ready readiness line are transient states of the home screen, and
- * their captures are R27's and R28's.
+ * and the not-ready readiness line are transient states of the pages that show
+ * them, and their captures are R27's and R28's.
  */
 export const SCREENS: readonly CaptureScreen[] = [
-  {
-    name: 'location',
-    widths: [360, 390, 1024, 1280],
-    what: 'The place question with no example (FR-OPEN-6, FR-FIRST-1 as amended v2.16; the set runs in UTC, which has no city): the first screen where there is nothing to show. On the phone the tagline, the question, its sentence and the boxed group — the device button, the place field and the coordinates — with no step line and no `[ back ]`, the footer in its one-line form; at 1024 and 1280 the cold open, Where active and When and What dimmed, the tagline in the header.',
-  },
   ...FIRST_VISIT,
-  {
-    name: 'home',
-    widths: [360, 390, 768, 1024, 1280, 1920],
-    view: true,
-    what: "Home with passes, as board 1B draws it (FR-FIRST-8..11) and v2.6 orders it (FR-FLOW-1, FR-FLOW-2): the Where reading — on compact folded to the place, `[ change ]` and one status line ending in `[ details ]` — then the three doors at the instant's first state, a later pass (the Satellites door's next pass and its countdown, the Stars door's dark window and cloud word and the brightest star or planet up, the Both door's next rise), then tonight's stripe with a tick per pass, the conditions table, the next-event block counting down on a clock and the one-line cards with their cloud badges read off the recorded forecast. The `Next ISS` tag is absent: the showcase night has no ISS pass — its visible season over northern Patagonia starts on the 11th, past the elements' five days (FR-SHOW-9) — and the tag is on the per-task captures that showed it. 360 and 390 are the phone, 768 the tablet's capped column (FR-TAB-1), 1024 the mid-width laptop with two columns, 1280 the three panes and 1920 × 1080 the desk (FR-CAP-3). The full-page file is not the home as it opens (FR-CAP-1): every night is closed, so the whole document fits one reviewable picture — D-179 closed them because Paris in September had fifty visible passes a night and the open default made the phone capture 20 000 px tall; Bariloche's night has five, and the route is kept so the set's shape does not change (D-684). The `-view` twin is the true state cropped to the viewport, tonight open; at 360, 390, 1280 and 1920 it is FR-FLOW-12's `a later pass` file of the doors, beside `home-up-now`, `home-no-pass` and `home-daylight`. The Where pane's dome R94 shot from 1024 up is gone with `WhereDome` (FR-FLOW-2).",
-  },
   { name: 'settings', widths: [360, 390, 768, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it. 768 is the tablet, where the column is capped and centred (FR-TAB-3).' },
   { name: 'guide', widths: [360, 390, 768, 844, 1024, 1280], what: 'The night\'s brightest pass (Tiangong at 07:20 local, peak −2.1) open on the dome view, three minutes in, with the Sun and the Moon on the chart. The Moon-glare state D-179\'s Paris pass carried is absent: no pass on the showcase night is flagged with glare (D-684). Since v2.6 the head is the name, the countdown, the landmark line and the three times (FR-FLOW-7), above the view row, the drawing and its hint (FR-FLOW-4, FR-FLOW-6). At 768 it is the sheet inside the tablet\'s capped column (FR-TAB-3); at 844 × 390 the phone turned, the drawing left at full height and the rail beside it (FR-FLOW-15, R135); at 1024 it has the right column to itself (F-6). Since v2.11 (FR-CLEAN-1, FR-CLEAN-5, R164) the pass detail on a phone, upright (360, 390, 768) and turned (844), is the sky in the full form with its sheet closed: the countdown head with the name chip, the corner readout with the landmark, and `[ follow ] [ controls ]` at the foot; the times, the view row and the prose are the sheet\'s (`guide-sheet`).' },
   { name: 'polar', widths: [360, 390], what: 'The same pass on the polar view: the live marker and the flown arc as elements. Since v2.11 at 360 and 390 the full form\'s sky with the sheet closed (FR-CLEAN-1, R164). Since v2.14 a phone\'s screen alone: a desk offers `[ Globe ] Window Dome` and opens a saved `polar` on the globe (FR-WIDE-2, D-1095), so its 1280 file was `sky-pass-globe` under a second name (R191).' },
   { name: 'legend', touch: true, widths: [360, 390, 1280], what: 'The legend (FR-LEG-3): the live page with the hidden objects shown and one row activated so its arc is highlighted and the others dim (FR-LEG-4). At 360 and 390 the satellites open at the end of the controls sheet on a touch phone (FR-GYRO-10, R150, R153), in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have. On the showcase night the one drawn row is `up` beside the Sun and the Moon: the night\'s passes do not overlap, so no instant holds `soon` or `gone` beside it, and nothing hidden is above the horizon in the morning twilight, so the FR-LIVE-6 rows are absent too (FR-SHOW-9); the per-task captures that showed them keep pointing at them.' },
   { name: 'favourites', widths: [360, 390, 1280], what: 'The saved places, with the one in use marked.' },
-  { name: 'shortcuts', widths: [360, 390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
+  { name: 'shortcuts', widths: [360, 390, 1280], what: 'The keyboard shortcuts overlay over an inert page: the satellites page (R212, FR-LAND-6) — on a phone tonight\'s list, on a desk the pass page of the pass next up.' },
   {
     name: 'live-watching',
     touch: true,
@@ -496,26 +492,6 @@ export const SCREENS: readonly CaptureScreen[] = [
     touch: true,
     widths: [390, 1280],
     what: "The live page's window at civil twilight (FR-DARK-1, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the horizon in the east, and the surface is the deep sky with every rung, the band at the horizon as at every hour. At 390 the touch phone's live page, which opens on the window; at 1280 the view control turned to `Window`, the box beside the rail. Nothing visible is up at that instant, so the phone's card is answered `[ see now ]`, as every live capture of its own instant is.",
-  },
-  {
-    name: 'home-up-now',
-    widths: [360, 390, 1280, 1920],
-    what: "The home as it opens three minutes into the night's brightest pass (FR-FLOW-1, R130): the Satellites door reads `Up now` with what the pass does next and when, the Both door counts what is up and names the landmark star by the pass where it fits, and the Stars door keeps its dark window and brightest star. Cropped to the viewport, as the home's `-view` twin is.",
-  },
-  {
-    name: 'home-no-pass',
-    widths: [360, 390, 1280, 1920],
-    what: "The home at the set's instant over a catalogue with nothing that rises visibly over Bariloche in 72 h — the fixtures' elements cut to the orbits under 32° of inclination, the state a reader where the catalogue never reaches is in (FR-FLOW-1): the Satellites door reads `No visible pass in 72 h` and opens the What reading in place, and the Both door says nothing is up. The forecast, the zone and the elements' age are the night's.",
-  },
-  {
-    name: 'home-daylight',
-    widths: [360, 390, 1280, 1920],
-    what: "The home at 13:00 local on the 6th, the Sun up (FR-FLOW-1): the Stars door names when the stars come out instead of a star, and the Satellites and Both doors the evening's first pass.",
-  },
-  {
-    name: 'where-opened',
-    widths: [360, 390],
-    what: "The compact Where opened by its `[ details ]` (FR-FLOW-2, D-844, R130): the place and `[ change ]`, the status line with its button pressed, and the panel in FR-FIRST-11's order under it. The folded Where is the top of the home's own 360 and 390 files. A phone's screen: on wide the Where reading is never folded, so there is nothing to open.",
   },
 ];
 

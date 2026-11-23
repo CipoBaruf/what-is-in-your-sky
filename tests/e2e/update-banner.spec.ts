@@ -12,6 +12,9 @@
  *
  * `tests/e2e/pwa.spec.ts` holds the real worker, from the real build; this
  * holds the part of the lifecycle a build cannot show.
+ *
+ * R212 (D-1237, FR-UPD-2): the bar is the shell's, drawn under the header on every page; it moved here from the
+ * home to `#live`, the first page. R220 proves it on `#live`, `#pass` and `#settings`.
  */
 /// <reference lib="dom" />
 import { expect, test } from '@playwright/test';
@@ -54,10 +57,13 @@ test.beforeEach(async ({ page }) => {
   await fakeWaitingWorker(page);
 });
 
-test('a waiting version is offered, and the reload happens only on the click', async ({ page }) => {
+test('a waiting version is offered on the live page, under the header, and the reload happens only on the click', async ({ page }) => {
   await page.goto('/');
+  await expect(page).toHaveURL(/#live$/);
   const banner = page.getByTestId('update-banner');
   await expect(banner).toContainText('A new version is ready.');
+  const [header, bar] = await Promise.all([page.getByRole('banner').boundingBox(), banner.boundingBox()]);
+  expect(bar?.y ?? 0).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0) - 1);
   // Offered, not taken: nothing was posted to the waiting worker by rendering it.
   expect(await page.evaluate((key) => sessionStorage.getItem(key), APPLIED_KEY)).toBeNull();
   await page.screenshot({ path: 'test-results/r28-update-banner.png' });
@@ -71,14 +77,6 @@ test('a waiting version is offered, and the reload happens only on the click', a
   await expect(banner).toHaveCount(0);
   expect(await page.evaluate((key) => sessionStorage.getItem(key), APPLIED_KEY)).toBe(JSON.stringify({ type: 'SKIP_WAITING' }));
   expect(await page.evaluate(() => (window as unknown as { __beforeReload?: boolean }).__beforeReload)).toBeUndefined();
-  await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('What is in your sky right now');
-});
-
-/** D-154: the live page replaces the shell, so the offer is not on it at all and cannot be taken from it. */
-test('the live page carries no update offer', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByTestId('update-banner')).toBeVisible();
-  await page.getByTestId('live-link').click();
-  await expect(page.getByTestId('update-banner')).toHaveCount(0);
-  expect(await page.evaluate((key) => sessionStorage.getItem(key), APPLIED_KEY)).toBeNull();
+  await expect(page).toHaveURL(/#live$/);
+  await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'live');
 });

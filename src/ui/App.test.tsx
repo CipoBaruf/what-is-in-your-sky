@@ -42,54 +42,32 @@ describe('<App> frame (R12)', () => {
   });
 
   /*
-   * R52 (FR-COMP-1, FR-COMP-3): jsdom without a `matchMedia` stub is the
-   * compact layout, and this is the compact frame — the one-row header with
-   * the short title. R76 (FR-FIRST-1): with no observer the main is the cold
-   * open, whose own inventory is `screens/Home.test.tsx`'s; once there is one,
-   * the three readings with the titled regions they hold. The wide frame, with
-   * the full title and the tagline, is `App.wide.test.tsx`.
+   * R52 (FR-COMP-1): jsdom without a `matchMedia` stub is the compact layout. R212 (FR-LAND-6, D-1231): the compact
+   * frame is the satellites page's — the tab's one-row header, the list's regions and the full footer.
    */
-  it('has the compact header, the cold open, the titled regions once there is a place, and the footer, with no axe violations while empty', async () => {
-    // FR-OPEN-6: with no city for the zone the first visit is the place question.
+  it('FR-LAND-6: the compact satellites page has the tab header, asks for a place, then lists tonight, with no axe violations', async () => {
     act(() => {
       appStore.setState({ exampleOutcome: 'no_city' });
     });
-    const first = render(<App />);
+    window.history.replaceState(null, '', '#pass');
+    const { container } = render(<App />);
     const banner = screen.getByRole('banner');
-    expect(within(banner).getByRole('heading', { level: 1, name: en.app.shortTitle })).toBeInTheDocument();
+    expect(banner).toHaveTextContent(en.app.shortTitle);
     expect(banner).not.toHaveTextContent(en.app.tagline);
-    expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
+    expect(screen.getByRole('heading', { level: 1, name: en.header.pages.pass })).toBeInTheDocument();
+    expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
-    // FR-FIRST-1: the place is asked for on the home screen itself, and nothing else is there yet.
-    expect(within(screen.getByRole('main')).getByTestId('cold-open')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
-    expect(screen.queryByTestId('location-summary')).toBeNull();
-    // R87 (FR-FIRST-1 as amended v2.1, D-548): the question's footer is the one-line form, with no privacy word.
-    expect(screen.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
-    expect(screen.getByRole('contentinfo')).toHaveTextContent('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
-    expect(screen.getByRole('contentinfo')).not.toHaveTextContent('No tracking');
-    expect(await axe(first.container)).toHaveNoViolations();
+    expect(screen.getByTestId('pass-set-place')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
 
-    // R202 (FR-OPEN-5, FR-FIRST-4 as amended v2.16): a place lands on the three readings stacked, with no step between…
     act(() => {
       appStore.setState({ observer });
     });
-    expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
-    expect(screen.getByRole('contentinfo')).not.toHaveAttribute('data-form', 'line');
-    expect(await axe(first.container)).toHaveNoViolations();
-
-    // …and so does the next visit, with the place saved.
-    first.unmount();
-    const { container } = render(<App />);
-    expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
-    // Every later visit keeps the full compact footer.
+    expect(screen.queryByTestId('pass-set-place')).toBeNull();
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
-    // R81 (FR-FIRST-5 as amended): the list keeps its named region; the Now panel is the When reading's table now.
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
     expect(within(list).getByRole('heading', { level: 2, name: 'Upcoming passes' })).toBeInTheDocument();
-    expect(within(screen.getByTestId('reading-when')).getByTestId('conditions')).toBeInTheDocument();
+    expect(within(screen.getByRole('main')).getByTestId('conditions')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -97,11 +75,11 @@ describe('<App> frame (R12)', () => {
     act(() => {
       appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass, other], hasDarkness: true } });
     });
+    window.history.replaceState(null, '', '#pass');
     const { container } = render(<App />);
     // R81 (§8 rank 1 as amended): the next ISS pass stays in the list, tagged.
     expect(screen.getByTestId('next-tag').closest('article')).toHaveAttribute('data-pass-id', pass.id);
     expect(screen.getByRole('group', { name: 'Sort passes' })).toBeInTheDocument();
-    // R130: the home's doors are a list too; the passes' is the one in the list region.
     expect(within(within(screen.getByRole('region', { name: 'Upcoming passes' })).getByRole('list')).getAllByRole('listitem')).toHaveLength(2);
     expect(await axe(container)).toHaveNoViolations();
 
@@ -136,37 +114,38 @@ describe('<App> frame (R12)', () => {
     expect(screen.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeInTheDocument();
   });
 
-  /**
-   * R28 (FR-OFF-1, FR-OFF-6, D-154): "nothing swaps under an open pass or the
-   * live page" is a fact about where the two offers are rendered, not a rule
-   * either of them enforces. Both sit inside `main`, which the compact sheet
-   * makes inert and which the live route replaces outright, so this is the
-   * test that keeps that placement — moving either one outside the shell would
-   * break it here and nowhere else.
-   */
-  it('the update offer and the install hint sit inside the shell, so a pass makes them inert and the live page has neither', () => {
+  it('FR-UPD-2: the update bar is the shell’s on every route, under the header, and out of reach only under a layer', async () => {
     act(() => {
       appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true }, updateReady: true, applyUpdate: () => undefined });
     });
     render(<App />);
-    act(() => {
-      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
-    });
-    const main = screen.getByRole('main');
-    expect(main).toContainElement(screen.getByTestId('update-banner'));
-    expect(main).toContainElement(screen.getByTestId('install-hint'));
-
+    for (const hash of ['#live', '#settings', '#stars', '#pass']) {
+      act(() => {
+        window.location.hash = hash;
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      });
+      const bar = await screen.findByTestId('update-banner');
+      expect(bar.closest('main'), hash).toBeNull();
+      expect(bar, hash).not.toHaveAttribute('inert');
+      // The compact live page's header is in its own grid, which follows the bar.
+      if (hash === '#settings' || hash === '#pass') expect(bar.parentElement?.previousElementSibling, hash).toBe(screen.getByTestId('header'));
+    }
     act(() => {
       window.location.hash = `#pass=${pass.id}`;
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
-    expect(screen.getByRole('main', { hidden: true })).toHaveAttribute('inert');
+    expect(screen.getByTestId('update-banner')).toHaveAttribute('inert');
+  });
 
+  it('FR-OFF-6: the install offer stands on the phone’s satellites page, inside the main a pass makes inert', () => {
     act(() => {
-      window.location.hash = '#live';
-      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      appStore.setState({ observer });
     });
-    expect(screen.queryByTestId('update-banner')).toBeNull();
-    expect(screen.queryByTestId('install-hint')).toBeNull();
+    window.history.replaceState(null, '', '#pass');
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+    });
+    expect(screen.getByRole('main')).toContainElement(screen.getByTestId('install-hint'));
   });
 });
