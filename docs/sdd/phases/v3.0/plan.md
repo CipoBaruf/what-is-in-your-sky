@@ -332,6 +332,14 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1285 — A saved place's row is `PickRow`'s, with no frame; the dialog's frame is a control's box.** *(R218)*
   (FR-CTRL-8, FR-CTRL-17, FR-CTRL-4.) The picked row is `PickRow` with `current` (`aria-current`); the `×` is `Close`'s `danger` form. `UseMyLocation`'s label is fixed and its progress and failure are `StatusLine`s under it; the place search's searching, empty and offline words are one dim `StatusLine`.
   The place dialog's frame is `--border-control` with `--radius-2`. The settings spec that read the saved row's frame now reads the picked row's line and ground.
+- **D-1292 — A pass card is an article over a `PickRow`; the control carries `aria-current`.** *(R221)*
+  (FR-CTRL-15, FR-A11Y-2, D-1258.) A button may not hold the card's `h3`/`h4`, so the card stays an `article` with no frame and `OpenGuide` becomes a `PickRow` stretched under its lines, which let the pointer through; the row's grounds are opaque, so it cannot lie over them.
+  The phone's first card (`NextEventBlock`) shares it and keeps its accent frame (FR-FIRST-4).
+  The picked card's control is `aria-current` (`current`); the article keeps `data-card` for the ring and `data-selected` for the pass cursor and the specs, and no longer says `aria-current` itself. `Card` loses `selected` and its `picked` state; `Tag` writes a string word as one text node, since the cells counter joins text nodes with a space.
+- **D-1293 — The nights' disclosures stay under the cards, one line each.** *(R221)*
+  (FR-CTRL-16, US-16 AC5.) `▾ Tonight · 5` / `▸ Tomorrow night · 2`, the `Nights` group where the toggles' row was, so a night opens above its line as before. A night with only hidden faint passes reads `▸ Tomorrow night · 0 · 3 faint` (`nights.onlyFaint`); `nights.count` is gone.
+- **D-1294 — The times row's times are `PickRow`s that show none picked.** *(R221)*
+  (FR-CTRL-15, FR-WIDE-4.) Each time picks the page's instant, so it is a row you pick, `current` so it is never `aria-pressed`; the page's `t` is not handed to `TimesRow`, so no time shows picked. The row is as wide as its time and padding, the time in the accent.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
