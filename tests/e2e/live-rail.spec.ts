@@ -308,9 +308,9 @@ test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
 
 /**
  * R219 (FR-NOW-2, FR-NOW-3, US-65 AC9; D-1239): `Up now` is the legend's up-only form — the satellites up, then the
- * Moon and the Sun, each row starting at the column's left edge (the heading's) — and then `Clouds` and `Moon` rows.
+ * Moon and the Sun on one edge, `No satellite up` at the column's — and then `Clouds` and `Moon` rows.
  */
-async function expectUpNow(page: Page, label: string): Promise<void> {
+async function expectUpNow(page: Page, label: string, bodies: readonly string[] | 'any' = 'any'): Promise<void> {
   const upNow = page.getByTestId('live-layout').locator('[data-slot="upNow"]');
   const legend = upNow.locator('[data-testid="chart-legend"][data-up-only="true"]');
   await expect(legend, label).toBeVisible();
@@ -320,14 +320,24 @@ async function expectUpNow(page: Page, label: string): Promise<void> {
   const starts = await legend.locator(':scope > li').evaluateAll((items) =>
     items.map((li) => {
       const swatch = li.querySelector('[data-color]');
-      if (swatch) return { body: li.getAttribute('data-body'), x: swatch.getBoundingClientRect().x };
+      if (swatch) return { body: li.getAttribute('data-body'), none: false, x: swatch.getBoundingClientRect().x };
       const range = document.createRange();
       range.selectNodeContents(li);
-      return { body: li.getAttribute('data-body'), x: range.getBoundingClientRect().x };
+      return { body: li.getAttribute('data-body'), none: true, x: range.getBoundingClientRect().x };
     }),
   );
-  expect(starts.map((row) => row.body).filter(Boolean), `${label}: the Moon, then the Sun`).toEqual(['moon', 'sun']);
-  for (const row of starts) expect(Math.abs(row.x - heading.x), `${label}: ${row.body ?? 'a row'} at the column's left edge`).toBeLessThanOrEqual(1);
+  // The bodies are listed while the drawing carries them (D-1281): the Moon above the horizon, the Sun above −18°.
+  const listed = starts.map((row) => row.body).filter(Boolean);
+  if (bodies === 'any') expect(['moon', 'sun'].filter((body) => listed.includes(body)), `${label}: the Moon before the Sun`).toEqual(listed);
+  else expect(listed, `${label}: the bodies`).toEqual(bodies);
+  // `No satellite up` at the column's left edge, the heading's (FR-NOW-2); the satellites', the Moon's and the Sun's
+  // swatches on one edge, a pickable row's padding in, which the body lines indent by (US-65 AC9, D-1282).
+  for (const row of starts.filter((start) => start.none)) expect(Math.abs(row.x - heading.x), `${label}: No satellite up at the column's left edge`).toBeLessThanOrEqual(1);
+  const rows = starts.filter((start) => !start.none);
+  const edge = rows[0]?.x ?? heading.x;
+  expect(edge - heading.x, `${label}: the rows' edge, one cell in`).toBeGreaterThanOrEqual(0);
+  expect(edge - heading.x, `${label}: the rows' edge, one cell in`).toBeLessThanOrEqual(12);
+  for (const row of rows) expect(Math.abs(row.x - edge), `${label}: ${row.body ?? 'a satellite'} on the rows' edge`).toBeLessThanOrEqual(1);
   // The two rows after the legend, `Clouds` then `Moon`, and no status line.
   const legendBottom = await legend.evaluate((el) => el.getBoundingClientRect().bottom);
   const cloud = await upNow.getByTestId('live-cloud').boundingBox();
@@ -377,13 +387,24 @@ test.describe('R219: what is up now, as rows (FR-NOW-2, FR-NOW-3, FR-LAND-4)', (
       await expect(legend.getByTestId('legend-up-none')).toHaveText('No satellite up');
       await expect(legend.locator('[data-pass-id]')).toHaveCount(0);
       await expectUpNow(page, 'nothing up');
+      // An hour at a time into the day, until the Moon and the Sun are both listed: their rows at the edge too. The
+      // bodies are worked out at most once a second of wall time (FR-LIVE-5), so each hour waits for them.
+      const both = async (): Promise<boolean> => (await legend.locator('[data-body="moon"]').count()) + (await legend.locator('[data-body="sun"]').count()) === 2;
+      for (let hour = 0; hour < 24 && !(await both()); hour += 1) {
+        for (let step = 0; step < 6; step += 1) await page.keyboard.press('Shift+ArrowRight');
+        await page.waitForTimeout(1_200);
+      }
+      await expectUpNow(page, 'the Moon and the Sun up', ['moon', 'sun']);
     });
   });
 
   test.describe('at 390 × 844', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-    test('FR-LAND-4: the sheet opens on the place line with the example', async ({ page }) => {
+    test('FR-LAND-4: the sheet opens on the place line with the example', async ({ browser }) => {
+      // The example is the zone's city (FR-OPEN-1), so the context has `examplePages.spec.ts`'s zone.
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, timezoneId: 'America/Argentina/Buenos_Aires', serviceWorkers: 'block' });
+      const page = await context.newPage();
       await page.addInitScript(() => {
         sessionStorage.setItem('wiys:followAsked:v1', '1');
       });
@@ -391,9 +412,10 @@ test.describe('R219: what is up now, as rows (FR-NOW-2, FR-NOW-3, FR-LAND-4)', (
       await stubNetwork(page);
       await page.route('**/e', (route) => route.fulfill({ status: 204 }));
       await page.goto('/');
-      await domeDrawn(page);
+      await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live', { timeout: 60_000 });
       await expectPlaceFirst(page, 'example');
-      await expect(page.getByTestId('sheet-place')).toContainText('example');
+      await expect(page.getByTestId('sheet-place')).toContainText('Buenos Aires · example');
+      await context.close();
     });
 
     test('FR-LAND-4: the sheet opens on the place line with a place', async ({ page }) => {
