@@ -44,9 +44,9 @@ describe('the v1 capture set', () => {
     // R94 (FR-CAP-1): a screen with `view` has every file twice, the second cropped to the viewport.
     expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * (screen.themes ?? THEMES).length * (screen.locales ?? LOCALES).length * (screen.view ? 2 : 1), 0));
     // R202 (FR-OPEN-11): the first visit's states are shot in both languages and the dark theme, the example alone in both themes.
-    // R203 (FR-OPEN-7): the pages the example opens, the same way.
+    // R203 (FR-OPEN-7): the pages the example opens, the same way. R212 (D-1245): the first visit's home states left.
     expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => [screen.name, screen.themes, screen.locales])).toEqual(
-      ['location-short', 'first-wait', 'first-wait-short', 'first-place', 'first-place-short', 'first-noon', 'first-pass', 'first-live', 'first-stars'].map((name) => [name, ['dark'], undefined]),
+      ['first-pass', 'first-live', 'first-stars'].map((name) => [name, ['dark'], undefined]),
     );
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
@@ -86,7 +86,8 @@ describe('the v1 capture set', () => {
     // R145 (FR-TONIGHT-1): the jumped live page was a phone's screen too, at 360 and 390 — wide never jumps; R149
     // turned it into the card and gave it the turned phone, below.
     // R191 (FR-WIDE-2, D-1095): and the polar chart, which a desk no longer offers; a saved `polar` opens the globe there.
-    const PHONE_ONLY = new Set(['where-opened', 'polar']);
+    // R212 (FR-LAND-1): `where-opened` left with the home.
+    const PHONE_ONLY = new Set(['polar']);
     // R149 (FR-FULL-9, FR-FULL-10, D-937): the sheet open and the sheet with the list are the phone's two sizes
     // FR-FULL-9 names, upright and turned, and the card is the day's opening state upright (with the 360 beside the
     // 390) and turned; wide has no sheet and never asks, so a 1280 px file would be `live-watching`'s.
@@ -119,29 +120,14 @@ describe('the v1 capture set', () => {
     const NAMED_PAIR = new Set(['live-twilight', 'stars-zoom']);
     // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
     const SHORT = new Set(['guide-short']);
-    // R202 (FR-OPEN-11): the first visit at the sizes the fold rule names — 390 × 844, and 360 × 640 as a screen of
-    // its own (`-short`, D-993's way), with the example also at 1024 and 1280. The fallback is `location`.
+    // R203 (FR-OPEN-7, D-1205): the pages the example opens, at the phone's and the desk's size. R212 (FR-LAND-1,
+    // D-1245): R202's first-visit screens of the home left with it.
     const FIRST: ReadonlyMap<string, readonly number[]> = new Map([
-      ['first-example', [390, 1024, 1280]],
-      ['first-wait', [390]],
-      ['first-place', [390]],
-      ['first-noon', [390]],
-      // R203 (FR-OPEN-7, D-1205): the pages the example opens, at the phone's and the desk's size.
       ['first-pass', [390, 1280]],
       ['first-live', [390, 1280]],
       ['first-stars', [390, 1280]],
-      ['location-short', [360]],
-      ['first-example-short', [360]],
-      ['first-wait-short', [360]],
-      ['first-place-short', [360]],
     ]);
-    expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([
-      ['location-short', 640],
-      ['first-example-short', 640],
-      ['first-wait-short', 640],
-      ['first-place-short', 640],
-      ['guide-short', 667],
-    ]);
+    expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
@@ -194,24 +180,12 @@ describe('the v1 capture set', () => {
     }
   });
 
-  it('R94: the `-view` twin, the 768 column and the home at 1920 (FR-CAP-1, FR-CAP-3, FR-TAB-3)', () => {
-    // FR-CAP-1: the home is the one screen whose capture differs from what the reader opens (every night closed).
-    expect(SCREENS.filter((screen) => screen.view).map((screen) => screen.name)).toEqual(['home']);
-    const home = SCREENS.find((screen) => screen.name === 'home');
-    expect(home?.what).toMatch(/closed/);
-    // FR-CAP-3: the home at 1920 × 1080, all four variants, and its `-view` twin there too (OQ-32's evidence).
-    expect(captureSet().filter((capture) => capture.screen.name === 'home' && capture.width === 1920).map((capture) => capture.file)).toEqual([
-      'v1-home-1920-dark-en.png',
-      'v1-home-1920-dark-es.png',
-      'v1-home-1920-night-en.png',
-      'v1-home-1920-night-es.png',
-      'v1-home-1920-view-dark-en.png',
-      'v1-home-1920-view-dark-es.png',
-      'v1-home-1920-view-night-en.png',
-      'v1-home-1920-view-night-es.png',
-    ]);
-    // FR-TAB-3: the 768 px column for the home, the guide, the live page (both states since R80) and settings.
-    expect(SCREENS.filter((screen) => screen.widths.includes(768)).map((screen) => screen.name)).toEqual(['home', 'settings', 'guide', 'live-watching', 'live-scrubbing']);
+  it('R94: the `-view` twin and the 768 column (FR-CAP-1, FR-TAB-3)', () => {
+    // FR-CAP-1: the home was the one screen whose capture differed from what the reader opens; R212 (FR-LAND-1) removed
+    // it, so no screen carries a `-view` twin now.
+    expect(SCREENS.filter((screen) => screen.view).map((screen) => screen.name)).toEqual([]);
+    // FR-TAB-3: the 768 px column for the guide, the live page (both states since R80) and settings.
+    expect(SCREENS.filter((screen) => screen.widths.includes(768)).map((screen) => screen.name)).toEqual(['settings', 'guide', 'live-watching', 'live-scrubbing']);
     // D-626's arithmetic, as it came out: 161 + 45 (the 360 column) + 4 (home at 1920) + 20 (the 768 column) + 24 (the `-view` twins).
     // R118 (D-786): + 16 for the `stars` page (360, 390, 1280, 1920) and + 4 for `stars-screen` (844).
     // R128 (FR-SKY-9, D-829): + 16 `live-window` and + 16 `guide-window` (360, 390, 1280, 1920), + 12 `stars-passes`
@@ -237,7 +211,10 @@ describe('the v1 capture set', () => {
     // R202 (FR-OPEN-11): + 4 `location` at 1024 and + 2 `location-short`; + 12 `first-example` (390, 1024, 1280) and + 4
     // `first-example-short`; + 2 each for `first-wait`, `first-wait-short`, `first-place`, `first-place-short` and `first-noon`.
     // R203 (FR-OPEN-7, D-1205): + 4 each for `first-pass`, `first-live` and `first-stars` (390, 1280; dark, both languages).
-    expect(captureSet()).toHaveLength(508);
+    // R212 (FR-LAND-1, D-1245): − 16 `location`, − 2 `location-short`, − 12 `first-example`, − 4 `first-example-short`,
+    // − 2 each for `first-wait`, `first-wait-short`, `first-place`, `first-place-short` and `first-noon`, − 48 `home`
+    // with its `-view` twins, − 16 each for `home-up-now`, `home-no-pass` and `home-daylight`, − 8 `where-opened`.
+    expect(captureSet()).toHaveLength(360);
   });
 
   it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {
