@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Stack.module.css';
 
 /**
@@ -25,7 +25,7 @@ export interface StackOwnProps {
   className?: string | undefined;
 }
 
-export type StackProps = StackOwnProps & Omit<ComponentProps<'div'>, keyof StackOwnProps | 'style' | 'ref'>;
+export type StackProps = StackOwnProps & Omit<HTMLAttributes<HTMLElement>, keyof StackOwnProps | 'style'>;
 
 export function Stack({ gap, as: Tag = 'div', children, className, ...rest }: StackProps) {
   const classes = [styles.stack, styles[`gap${String(gap)}`], Tag === 'ul' ? styles.list : undefined, className].filter(Boolean).join(' ');
