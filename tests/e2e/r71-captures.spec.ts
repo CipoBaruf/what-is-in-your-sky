@@ -114,8 +114,8 @@ for (const [width, height] of [
   test(`the wide live page at ${String(width)} × ${String(height)}: the rail beside the box`, async ({ page }) => {
     await openLive(page, width, height, 'dark', 'en');
     const box = await page.getByTestId('chart-box').boundingBox();
-    // R132 (D-864): the rail is the layout's; the legend is its `list` slot.
-    const rail = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
+    // R132 (D-864) → R216 (FR-NOW-1): the rail is the layout's; the legend is its `upNow` slot.
+    const rail = await page.getByTestId('live-layout').locator('[data-slot="upNow"]').boundingBox();
     if (!box || !rail) throw new Error('the page is not laid out');
     expect(rail.x, 'the rail is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
     // …with the legend over it in the same column, as on every page since R150.

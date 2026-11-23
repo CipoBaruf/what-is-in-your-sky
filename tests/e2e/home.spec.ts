@@ -247,7 +247,7 @@ test.describe('an open pass at 1280 × 800 (FR-WIDE-1, amends FR-FIRST-5 and FR-
     const layout = page.getByTestId('pass-layout');
     await expect(layout).toBeVisible();
     for (const id of ['reading-where', 'reading-when']) await expect(page.getByTestId(id)).toHaveCount(0);
-    await expect(layout.locator('[data-slot="list"] article[data-pass-id][data-selected="true"]')).toHaveCount(1);
+    await expect(layout.locator('[data-slot="upFrom"] article[data-pass-id][data-selected="true"]')).toHaveCount(1);
     await expect(page.getByTestId('guide-to-list')).toHaveCount(0);
 
     await page.keyboard.press('Escape');

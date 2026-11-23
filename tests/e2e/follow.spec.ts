@@ -155,12 +155,12 @@ async function expectPlaced(page: Page, root: Locator, which: Which, locale: Loc
   await expect(toggle).toHaveText(TOGGLE[locale]);
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   if (inSheet(which)) {
-    const rows = await page.getByTestId('sheet-body').locator(':scope > *').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
+    const rows = await page.getByTestId('sheet-body').locator(':scope > *, :scope > [data-group] > *').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
     const [view, follow, facing] = which === 'live' ? ['live-view-row', 'live-follow', 'live-facing'] : which === 'stars' ? ['stars-view-row', 'stars-follow', 'stars-facing'] : ['pass-view-row', 'pass-follow', 'pass-facing'];
     expect(rows.indexOf(follow)).toBe(rows.indexOf(view) + 1);
     expect(rows.indexOf(facing)).toBe(rows.indexOf(follow) + 1);
   } else {
-    await expect(root.locator('[data-slot="action"]').getByTestId('follow-toggle')).toBeVisible();
+    await expect(root.locator('[data-rail]').getByTestId('follow-toggle')).toBeVisible();
   }
   // FR-GYRO-6: nothing of the screen is on any page.
   await expect(page.getByTestId('window-hold-up')).toHaveCount(0);

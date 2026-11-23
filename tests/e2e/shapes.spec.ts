@@ -277,6 +277,7 @@ function liveRows(page: Page): (readonly [string, Locator])[] {
     ['track', page.getByTestId('live-track')],
     ['taps', page.getByTestId('live-taps')],
     ['actions', page.getByTestId('live-actions')],
+    ['layers', page.getByTestId('live-layers')],
     // The legend itself, not its slot: in two columns the slot is the whole rail, with the strip and the actions inside it.
     ['legend', page.getByTestId('chart-legend')],
   ];
@@ -469,10 +470,10 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // R148 (FR-FULL-1, FR-FULL-4): on compact the box is the screen and every row stands over it, in the sheet
       // (hidden while the sheet is closed, `rects` skips it) — so the rows are held clear of one another, not of the box.
       if (width < WIDE_MIN_PX) found.delete('chart box');
-      // R132 (D-842, D-864): on wide the rail's list is the row that gives, scrolling inside its slot (FR-DESK-2), so
-      // the strip's and the legend's own boxes can reach past the slot's edge: what counts is the part the slot shows.
+      // R132 (D-842, D-864) → R216 (FR-CTRL-10): on wide the rail is the column's one scroll, so the strip's and the
+      // legend's own boxes can reach past its edge: what counts is the part the rail shows.
       if (width >= WIDE_MIN_PX) {
-        const slot = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
+        const slot = await page.getByTestId('live-layout').locator('[data-rail]').boundingBox();
         for (const name of ['strip', 'legend']) {
           const rect = found.get(name);
           if (!rect || !slot) continue;

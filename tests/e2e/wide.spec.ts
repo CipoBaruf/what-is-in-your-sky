@@ -101,7 +101,7 @@ test("an open pass is the desk shell in the home's place, the list in its rail (
   const layout = page.getByTestId('pass-layout');
   await expect(layout).toBeVisible({ timeout: 30_000 });
   for (const id of ['col-left', 'col-right', 'reading-where', 'reading-when']) await expect(page.getByTestId(id)).toHaveCount(0);
-  const list = layout.locator('[data-slot="list"]');
+  const list = layout.locator('[data-slot="upFrom"]');
   await expect(list.locator('article[data-pass-id][data-selected="true"]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with a pass open').toBeLessThanOrEqual(1);
 });

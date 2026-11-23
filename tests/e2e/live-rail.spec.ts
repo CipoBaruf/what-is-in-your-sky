@@ -41,10 +41,13 @@
  *
  * R186 (FR-WIDE-1, FR-WIDE-4, D-1098, D-1133): the shell's grid cuts the box beside the rail and the stripe block is the
  * rail's `Time` row, so the box is the same in both states and the rail is hard against the page's right edge.
+ *
+ * R216 (FR-NOW-1, FR-CTRL-10; D-1239): the rail reads strip, `View` with `[ Share ]`, `Time`, `Layers`, `Up now` (`Turn` and
+ * `Up from` are empty until R222) and is the column's one scroll; the phone's sheet holds the same groups in that order.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
-import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, openSheet, seedStoredRun, sheetOrder, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -116,9 +119,9 @@ for (const [width, height] of [
       expect(Math.abs(watching.height - box.height), 'the box does not change between the states').toBeLessThanOrEqual(1);
       expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
 
-      // D-312 → R186 (FR-WIDE-1): the rail is the layout's column beside the box — the head, the view row, `Time` with
-      // the stripe block, the page group with the actions, and the legend with the conditions — top to bottom.
-      const rail = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
+      // D-312 → R216 (FR-NOW-1, D-1239): the rail is the layout's column beside the box — the strip, `View`, `Time`
+      // with the stripe block, `Layers`, and `Up now` with the legend and the conditions — top to bottom.
+      const rail = await page.getByTestId('live-layout').locator('[data-slot="strip"]').boundingBox();
       if (!rail) throw new Error('no rail');
       expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
       // FR-LEG-6 / FR-LEG-2 as amended v1.4: the legend shares that column.
@@ -126,7 +129,7 @@ for (const [width, height] of [
       if (!legend) throw new Error('no legend');
       expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
       let above = 0;
-      for (const id of ['live-indicator', 'stripe-block', 'live-actions', 'chart-legend-slot', 'status-strip']) {
+      for (const id of ['live-indicator', 'live-share', 'stripe-block', 'live-layers', 'chart-legend-slot', 'status-strip']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
@@ -145,11 +148,11 @@ for (const [width, height] of [
       // where twelve labels fit — eleven or twelve, one slot being the date at midnight — and every three
       // hours in a narrower box, eight or nine — six where `keepLabels` drops the ones that would touch, in the
       // short one-column window's 40-cell box. `live.spec.ts` holds that none overlap.
-      // R186 (FR-WIDE-1): the block is the rail's `Time` row, beside the box and above the actions.
+      // R186 (FR-WIDE-1): the block is the rail's `Time` row, beside the box and above `Layers` (R216).
       expect(block.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-      const actionsRow = await page.getByTestId('live-actions').boundingBox();
-      if (!actionsRow) throw new Error('no actions');
-      expect(actionsRow.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
+      const layersRow = await page.getByTestId('live-layers').boundingBox();
+      if (!layersRow) throw new Error('no layers');
+      expect(layersRow.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
       /*
        * Never narrower than the box: the box's width, or the 44-cell floor of `.stripe`'s `max()` over a box
        * the window has cut smaller than that. R71 (D-386) brings the narrow wide widths here, where the second
@@ -204,3 +207,101 @@ for (const [width, height] of [
     });
   });
 }
+
+/**
+ * FR-CTRL-10's check: every element under `root` whose `overflow-y` is `auto` or `scroll` and whose content is taller than
+ * its box, and that has an ancestor (`root` included) with the same — a scroll inside a scroll. Named for the message.
+ */
+async function nestedScrolls(page: Page, root: string): Promise<string[]> {
+  return page.locator(root).first().evaluate((top) => {
+    const scrolls = (el: Element): boolean => {
+      const y = getComputedStyle(el).overflowY;
+      return (y === 'auto' || y === 'scroll') && el.scrollHeight > el.clientHeight + 1;
+    };
+    const found: string[] = [];
+    for (const el of top.querySelectorAll('*')) {
+      if (!scrolls(el)) continue;
+      for (let up = el.parentElement; up !== null; up = up.parentElement) {
+        if (scrolls(up)) {
+          found.push(`${el.tagName.toLowerCase()}[${el.getAttribute('data-testid') ?? el.getAttribute('data-slot') ?? String(el.className)}] ${String(el.scrollHeight)} > ${String(el.clientHeight)}`);
+          break;
+        }
+        if (up === top) break;
+      }
+    }
+    return found;
+  });
+}
+
+/** Every element inside `root` (not `root`) that scrolls down: `overflow-y` `auto` or `scroll` with content taller than its box. */
+async function scrollersInside(page: Page, root: string): Promise<string[]> {
+  return page.locator(root).first().evaluate((top) =>
+    [...top.querySelectorAll('*')]
+      .filter((el) => {
+        const y = getComputedStyle(el).overflowY;
+        return (y === 'auto' || y === 'scroll') && el.scrollHeight > el.clientHeight + 1;
+      })
+      .map((el) => `${el.tagName.toLowerCase()}[${el.getAttribute('data-testid') ?? el.getAttribute('data-slot') ?? String(el.className)}] ${String(el.scrollHeight)} > ${String(el.clientHeight)}`),
+  );
+}
+
+test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
+  test.describe('at 1280 × 800', () => {
+    test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+    test('FR-NOW-1: the rail reads strip, View with Share, Time, Layers, Up now, and nothing inside it scrolls (FR-CTRL-10)', async ({ page }) => {
+      await openLive(page);
+      const layout = page.getByTestId('live-layout');
+      for (const held of [false, true]) {
+        if (held) await enterScrubbing(page);
+        const order = await layout.locator('[data-rail] > [data-slot]').evaluateAll((els) => els.map((el) => el.getAttribute('data-slot')));
+        expect(order, `held ${String(held)}`).toEqual(['strip', 'view', 'time', 'layers', 'upNow']);
+        // The groups top to bottom, each under the one before it.
+        let above = 0;
+        for (const name of order) {
+          const box = await layout.locator(`[data-rail] > [data-slot="${name ?? ''}"]`).boundingBox();
+          if (!box) throw new Error(`${name ?? ''} is not laid out`);
+          expect(box.y, `${name ?? ''} is under the group before it`).toBeGreaterThanOrEqual(above - 1);
+          above = box.y + box.height;
+        }
+        // `View`: the views, `[ Share ]` at the group's right; `Layers`: `[x] stars` and `Hidden objects`; `Up now`: the legend.
+        const view = layout.locator('[data-slot="view"]');
+        await expect(view.getByRole('heading', { name: 'View' })).toBeVisible();
+        const share = await view.getByTestId('live-share').boundingBox();
+        const control = await view.getByRole('group', { name: 'Chart view' }).boundingBox();
+        const rail = await layout.locator('[data-rail]').boundingBox();
+        if (!share || !control || !rail) throw new Error('the view row is not laid out');
+        expect(share.x, 'Share is right of the views').toBeGreaterThan(control.x + control.width);
+        expect(rail.x + rail.width - (share.x + share.width), 'Share is at the group’s right').toBeLessThanOrEqual(24);
+        const layers = layout.locator('[data-slot="layers"]');
+        await expect(layers.getByRole('heading', { name: 'Layers' })).toBeVisible();
+        await expect(layers.getByTestId('stars-toggle')).toBeVisible();
+        await expect(layers.getByTestId('live-hidden-toggle')).toBeVisible();
+        await expect(layout.locator('[data-slot="upNow"]').getByTestId('chart-legend-slot')).toBeAttached();
+        if (!held) await expect(layout.locator('[data-slot="time"]').getByTestId('live-scrub')).toBeVisible();
+        // FR-CTRL-10: the rail is the column's one scroll; no element inside it scrolls, and none sits in another scroll.
+        expect(await scrollersInside(page, '[data-testid="live-layout"] [data-rail]'), `held ${String(held)}: scrolling elements inside the rail`).toEqual([]);
+        expect(await nestedScrolls(page, 'body'), `held ${String(held)}: a scroll inside a scroll`).toEqual([]);
+      }
+    });
+  });
+
+  test.describe('at 390 × 844', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+    test('FR-NOW-1: the sheet holds the same groups in the same order, and the sheet’s body is its one scroll (FR-CTRL-10)', async ({ page }) => {
+      await seedStoredRun(page, { settled: true });
+      await page.getByTestId('live-link').click();
+      await domeDrawn(page);
+      await openSheet(page);
+      const groups = await page.getByTestId('sheet-body').locator(':scope > [data-group]').evaluateAll((els) => els.map((el) => el.getAttribute('data-group')));
+      expect(groups).toEqual(['strip', 'view', 'time', 'layers', 'upNow']);
+      const rows = (await sheetOrder(page)).filter((id) => id !== 'live-follow');
+      expect(rows).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
+      await expect(page.getByTestId('live-view-row').getByTestId('live-share')).toBeVisible();
+      await expect(page.getByTestId('live-layers').getByTestId('live-hidden-toggle')).toBeAttached();
+      expect(await scrollersInside(page, '[data-testid="sheet-body"]'), 'scrolling elements inside the sheet').toEqual([]);
+      expect(await nestedScrolls(page, 'body'), 'a scroll inside a scroll').toEqual([]);
+    });
+  });
+});

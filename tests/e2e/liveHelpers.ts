@@ -512,6 +512,11 @@ export async function openLegend(page: Page): Promise<void> {
  * context line, the track, the taps, the view row, the facing row, Share and the satellites stand. A no-op on a
  * page with no `[ controls ]` (wide, the stars page, the pass detail) and on a sheet already open.
  */
+/** R216 (FR-NOW-1, D-1239): the sheet's rows in order — each group's rows, then the footer — by their test ids. */
+export async function sheetOrder(page: Page): Promise<(string | null)[]> {
+  return page.getByTestId('sheet-body').evaluate((el) => [...el.children].flatMap((child) => (child.hasAttribute('data-group') ? [...child.children] : [child]).map((row) => row.getAttribute('data-testid'))));
+}
+
 export async function openSheet(page: Page): Promise<void> {
   const control = page.getByTestId('live-controls');
   if ((await control.count()) === 0) return;

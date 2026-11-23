@@ -79,7 +79,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     const sky = drawing(page);
     await expect.poll(async () => (await box(sky)).width).toBeGreaterThan(400);
     // R132 (FR-FLOW-4, D-842): the rail is the layout's — its first slot, the `h1` block, stands where the rail does.
-    const [drawn, rail, readout] = await Promise.all([box(sky), box(page.getByTestId('stars-layout').locator('[data-slot="answer"]')), box(page.getByTestId('window-readout'))]);
+    const [drawn, rail, readout] = await Promise.all([box(sky), box(page.getByTestId('stars-layout').locator('[data-slot="strip"]')), box(page.getByTestId('window-readout'))]);
     // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line — no band taller than a group gap under it
     // (it was the browser window's shape, `windowBox`); the rail stands beside it at 44 cells or more.
     expect(await bandUnderBox(page, drawn, 'stars-layout')).toBeLessThanOrEqual(SPACE_3_PX);
