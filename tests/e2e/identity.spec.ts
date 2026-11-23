@@ -72,7 +72,7 @@ async function expectIdentity(page: Page, screenshot: string, { fullPage = true 
 }
 
 async function homeWithPasses(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
@@ -85,7 +85,7 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   // R136 (FR-FLOW-14): with nothing saved the sheet opens on the window, whose compass points and plain `Dome`
   // are under 44 px wide; the targets are R134's (FR-FLOW-11), so this spec keeps the sheet it was written about.
   await savedDome(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   // R52 (FR-COMP-1): at 390 px the header's heading is the short title; the document title keeps the full one.
   await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('Your sky');
   // R87 (FR-FIRST-4 as amended v2.1, D-548): the first step shares its screen with the footer, so the footer

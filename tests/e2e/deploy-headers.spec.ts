@@ -86,7 +86,7 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
     await route.fulfill({ path: 'tests/fixtures/open-meteo/2026-09-02-neuquen-forecast.json', contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
   });
 
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });

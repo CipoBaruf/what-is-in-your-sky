@@ -364,7 +364,7 @@ for (const locale of LOCALES) {
       await page.reload();
       await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
       await expect(page.getByTestId('stars-view-row').getByRole('button')).toHaveText(DESK_LABELS[locale]);
-      await page.goto('/');
+      await page.goto('/#pass');
       await page.reload();
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
       await expect(page.getByTestId('pass-layout').getByTestId('sky-chart')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });

@@ -55,7 +55,7 @@ async function expectListFor(page: Page, status: Locator, timeout: number): Prom
 test('save two places, switch between them, remove one, and the other survives a reload', async ({ page }) => {
   // Four recomputes over 72 h of the catalog, one per observer change.
   test.slow();
-  await page.goto('/');
+  await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   // R52 (FR-COMP-2): the saved places live with the form, on `#settings` at this
   // width. The whole of this test is that panel, so it stays on the page and

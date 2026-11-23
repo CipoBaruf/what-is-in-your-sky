@@ -64,7 +64,7 @@ async function abortEverything(page: Page): Promise<void> {
 
 /** Types the coordinates and waits for the finished list; returns the status text. */
 async function firstVisit(page: Page): Promise<string> {
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
@@ -139,7 +139,7 @@ test('five days after the newest epoch the epoch-age warning shows, and the age 
   const celestrakRequests: string[] = [];
   await serveCelestrak(page, celestrakRequests);
   await page.clock.setFixedTime(T0 + 5 * DAY + 60_000);
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });

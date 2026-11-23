@@ -68,7 +68,7 @@ test('the share action copies a link, and a fresh device opens the same pass fro
 
   await page.clock.setFixedTime(CLOCK);
   await stubNetwork(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   await listPasses(page, 'en');
 
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: LABEL.en.open }).click();
@@ -135,7 +135,7 @@ for (const width of [390, 1280] as const) {
       await stubNetwork(page);
       // R136 (FR-FLOW-14): the capture is of the sheet on its dome, a saved view on a phone.
       await savedDome(page);
-      await page.goto('/');
+      await page.goto('/#pass');
       if (locale === 'es') {
         await withSettings(page, async () => {
           await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();

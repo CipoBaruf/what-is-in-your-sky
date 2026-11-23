@@ -61,7 +61,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
     await route.continue();
   });
 
-  await page.goto('/');
+  await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   const input = page.getByLabel('Coordinates · e.g. -38.93, -67.99');
   await input.fill(NEUQUEN);

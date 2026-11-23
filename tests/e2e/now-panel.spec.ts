@@ -48,7 +48,7 @@ test.beforeEach(async ({ page }) => {
 test('at the R3 clock nothing is above 10°, so the table has no Up now row', async ({ page }) => {
   const t = Date.parse(ha.capturedAt) + 9 * DAY_MS;
   await page.clock.setFixedTime(t);
-  await page.goto('/');
+  await page.goto('/#pass');
   const table = page.getByTestId('conditions');
   // R76 (FR-FIRST-1): with no place the page is the cold open, and the table waits for one.
   await expect(page.getByTestId('cold-open')).toBeVisible();
@@ -71,7 +71,7 @@ test('ten seconds into the golden ISS pass the Up now row names the ISS with its
   const t = golden.start.t + 10_000;
   await page.clock.install({ time: t });
   await page.clock.pauseAt(t);
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });

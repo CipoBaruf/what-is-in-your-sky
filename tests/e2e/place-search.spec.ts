@@ -73,7 +73,7 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
   const requests: URL[] = [];
   await routeGeocoding(page, requests);
 
-  await page.goto('/');
+  await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
   await expect(page.getByTestId('cold-open')).toBeVisible();
@@ -118,7 +118,7 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
 test('an ambiguous name shows a pick list readable at arm\'s length: eight rows, name and region, ≥ 16 px, ≥ 44 px tall, inside 390 px', async ({ page }) => {
   const requests: URL[] = [];
   await routeGeocoding(page, requests);
-  await page.goto('/');
+  await page.goto('/#pass');
   await openSettings(page);
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.fill('Rosario');
@@ -155,7 +155,7 @@ test('no match points at the coordinates input; a failed search leaves the field
     }
     await route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } });
   });
-  await page.goto('/');
+  await page.goto('/#pass');
   await openSettings(page);
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.fill('Cipolletti');

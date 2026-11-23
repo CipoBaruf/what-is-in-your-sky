@@ -49,7 +49,7 @@ for (const width of [390, 1280]) {
       },
       [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
     );
-    await page.goto('/');
+    await page.goto('/#pass');
 
     const list = page.getByRole('region', { name: 'Upcoming passes' });
     const line = list.getByTestId('failure-line');

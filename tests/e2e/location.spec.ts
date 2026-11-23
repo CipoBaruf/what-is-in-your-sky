@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
 test('coordinates with altitude → pass list; reload restores it without re-typing; clear empties wiys:prefs:v1', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
-  await page.goto('/');
+  await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
   const cold = page.getByTestId('cold-open');
@@ -104,7 +104,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
 test('the device button uses the browser position: coordinates, accuracy above 1 km, and the list (US-3)', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 2000 });
-  await page.goto('/');
+  await page.goto('/#pass');
   const compact = await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device (accurate to about 2 km).');
@@ -138,7 +138,7 @@ test('a device location is named after the nearest town, from the app\'s own ori
   });
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -38.94, longitude: -68.0, accuracy: 12_000 });
-  await page.goto('/');
+  await page.goto('/#pass');
   const compact = await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
@@ -163,7 +163,7 @@ test('a device location is named after the nearest town, from the app\'s own ori
 
 test('a denied permission shows the message and leaves the inputs usable (US-3 AC2)', async ({ page, context }) => {
   await context.clearPermissions();
-  await page.goto('/');
+  await page.goto('/#pass');
   await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   // Scoped to the location section: the elements banners (R11) can add a page-level alert when the fixture elements are old.

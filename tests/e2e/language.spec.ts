@@ -58,7 +58,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   if (!pass) throw new Error('reference-values.json has no firstGoldenPass');
   const passId = `25544-${String(pass.start.t)}`;
   await withFixtures(page);
-  await page.goto('/');
+  await page.goto('/#pass');
 
   // FR-I18N-5: the document follows the language, from the first render.
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
@@ -155,7 +155,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
 
 test('the chosen language survives a reload, browser preference notwithstanding', async ({ page }) => {
   await withFixtures(page);
-  await page.goto('/');
+  await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
   });

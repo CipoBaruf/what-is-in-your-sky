@@ -50,7 +50,7 @@ async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView
   for (const pattern of EXTERNAL.slice(1)) await page.route(pattern, (route) => route.abort('failed'));
   await page.clock.install({ time: CLOCK });
   await page.clock.pauseAt(CLOCK);
-  await page.goto('/');
+  await page.goto('/#pass');
   await expect(page.locator(`article[data-pass-id="${GLARE_PASS}"]`)).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
