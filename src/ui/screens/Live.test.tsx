@@ -1387,7 +1387,7 @@ describe('<LivePage>', () => {
     const open = (link: LiveLink | null = null) => render(<LivePage link={link} onLeave={() => undefined} />);
     const stripeAt = (): number => Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
 
-    it.each(SIZES)('opens on real time on %s with the strip offering the pass, and no card or dialog (FR-STRIP-5, US-62 AC4)', (shell, w, h) => {
+    it.each(SIZES)('opens on real time on %s with the strip offering the pass, and no card or dialog (FR-STRIP-5 removes FR-FULL-10 and FR-WIDE-13; US-62 AC4)', (shell, w, h) => {
       withSky([later, tomorrow]);
       media = stubMatchMedia(w, h);
       open();

@@ -211,7 +211,7 @@
 | FR-FLOW-15 *(v2.6)* | `components/sky/SkyViewLayout.tsx` (the landscape arrangement), `lib/layout.ts`, `tests/e2e/sky-layout.spec.ts` (D-877) |
 | FR-FLOW-16 *(v2.6.1)* | `tests/docs/captureIds.test.ts`, `tests/e2e/{r76,r84}-captures.spec.ts` (D-886) |
 | FR-FLOW-17 *(v2.6.1)* | `src/i18n/{en,es}/{stars,starsPage}.ts`, `components/common/LanguageToggle.tsx`, `skychart/Legend.tsx`, `screens/Live.tsx`, the comments FR-FLOW-17 names (D-887) |
-| FR-TONIGHT-1 *(v2.7)* | removed by FR-STRIP-5 *(v3.0)*: the page opens at real time; `lib/tonightJump.ts` keeps the taps' targets (D-1232) |
+| FR-TONIGHT-1 *(v2.7)* | `lib/tonightJump.ts` (`openingJump`), `screens/Live.tsx` (the jump effect), `state/slices/ui.ts` (`stayOnNow`), `components/live/usePlayback.ts` (the reader-wrote ref) (D-897, D-898) |
 | FR-TONIGHT-2 *(v2.7)* | `screens/Live.tsx` (the reduced-motion check) (D-898) |
 | FR-TONIGHT-3 *(v2.7)* | `components/live/TimeTrack.{tsx,module.css}`, `lib/layout.ts` (`TRACK_HEIGHT_PX`) (D-896, D-900) |
 | FR-TONIGHT-4 *(v2.7)* | `components/live/TimeTaps.{tsx,module.css}`, `lib/tonightJump.ts` (`tonightTarget`, `nextTarget`) (D-897, D-901) |
@@ -230,7 +230,7 @@
 | FR-FULL-7 *(v2.8)* | `screens/Live.tsx`, `tests/e2e/live-tonight.spec.ts` (D-925) |
 | FR-FULL-8 *(v2.8)* | `src/i18n/{en,es}/{live,sheet}.ts`, `npm run check:dead` |
 | FR-FULL-9 *(v2.8)* | `scripts/bundle-budget.ts`, `tests/e2e/{captureSet.ts,v1-captures.spec.ts}` |
-| FR-FULL-10 *(v2.8)* | removed by FR-STRIP-5 *(v3.0)*: the next-pass strip stands in the card's place (D-1232) |
+| FR-FULL-10 *(v2.8)* | `lib/tonightJump.ts` (`openingChoice`), `components/live/OpeningCard.{tsx,module.css}`, `screens/Live.tsx` (the card's effect), `state/slices/ui.ts` (`stayOnNow` removed) (D-925, D-926) |
 | FR-GYRO-1 *(v2.9)* | `components/sky/FollowToggle.{tsx,module.css}`, `screens/{Live,Stars,PassDetail}.tsx` (D-943, D-944) |
 | FR-GYRO-2 *(v2.9)* | `skychart/window/SkyWindow.tsx` (`follow`), `skychart/window/useViewRotation.ts`, `skychart/SkyChart.tsx` (D-941) |
 | FR-GYRO-3 *(v2.9)* | `components/sky/FollowToggle.tsx`, `skychart/window/orientationAccess.ts` (D-943) |
@@ -322,9 +322,6 @@
 | FR-SDD-25 *(v2.13)* | `.github/workflows/ci.yml` (D-1067) |
 | FR-SDD-26, FR-SDD-27 *(v2.13)* | `docs/sdd/archive.json`, the `archive` branch (R181), `scripts/prune-merged-branches.ts`, `scripts/sdd/cli.ts` (R180) (D-1070, D-1071) |
 | FR-SDD-28 *(v2.13)* | the phase's diff: no `src/` or `public/` path |
-| FR-STRIP-1, FR-STRIP-2, FR-STRIP-3, FR-STRIP-5 *(v3.0)* | `lib/nextPassStrip.ts`, `components/live/NextPassStrip.{tsx,module.css}`, `screens/Live.tsx`, `screens/liveRows.ts` (D-1232, D-1268) |
-| FR-STRIP-6 *(v3.0)* | `components/sky/time/PlaybackControls.tsx`, `components/live/{TimeTaps,ShownTime,StateIndicator}.tsx` (D-1269, D-1270) |
-| FR-DARK-3 *(v3.0)* | `components/live/ShownTime.tsx` (`DaytimeLine`), `screens/Live.tsx` (D-1270) |
 
 ---
 
@@ -456,6 +453,7 @@
 | FR-FULL-5 | `src/ui/components/sky/ControlsSheet.test.tsx` |
 | FR-FULL-6 | `tests/e2e/live-compact.spec.ts`, `tests/e2e/live-states.spec.ts` |
 | FR-FULL-7 | `tests/e2e/live-tonight.spec.ts` |
+| FR-FULL-10 | `src/ui/screens/Live.test.tsx` |
 | FR-GLOBE-1 | `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/globe.spec.ts` |
 | FR-GLOBE-2 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/projection.test.ts` |
 | FR-GLOBE-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/projection.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts` |
@@ -737,6 +735,7 @@
 | FR-WIDE-10 | `src/lib/fullscreen.test.ts`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/fullscreen.spec.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-12 | `tests/docs/captures.test.ts` |
+| FR-WIDE-13 | `src/ui/screens/Live.test.tsx` |
 | FR-WIDE-14 | `tests/e2e/focus.spec.ts`, `tests/styles/focus.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
