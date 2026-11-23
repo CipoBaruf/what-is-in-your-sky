@@ -210,7 +210,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the globe's keys (R217).
   - **Done when:** `npm run check` green; a window test at +40° Sun with the Sun's dot; an e2e presses `+`, `−` and `⟲` and reads the field of view each time, and sees the hint gone after one drag and after a reload; `npm run check:sdd` green.
 
-- [ ] **R215 — The place is one line in the header**
+- [x] **R215 — The place is one line in the header** — the compact live header keeps its place under the tab row until R219 (D-1274).
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 300

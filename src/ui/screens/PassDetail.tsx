@@ -12,7 +12,6 @@ import { BODIES_EVERY_MS } from '../../lib/playback';
 import type { Span } from '../../lib/timeStripe';
 import type { ChartView, EpochMs, Observer, Pass } from '../../model';
 import { countdownState } from '../components/common/Countdown';
-import { ExampleNotice } from '../components/common/ExampleNotice';
 import { ShareButton } from '../components/common/ShareButton';
 import { GuideText } from '../components/guide/GuideText';
 import { TimesRow } from '../components/guide/TimesRow';
@@ -580,8 +579,6 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
         onBack={onClose}
         className={styles.head}
       />
-      {/* R203 (FR-OPEN-7, D-1205): the sheet stands over the home's strip, so the example's line is drawn under the head. */}
-      <ExampleNotice className={styles.example} />
       {/* R159 (D-987): while the refusal's line stands it takes the hint's row, so the hint steps aside until the next press. */}
       {hintLine !== null && !follow.refused && (
         <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>

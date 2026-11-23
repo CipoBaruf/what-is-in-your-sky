@@ -32,7 +32,7 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
-import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer, TonightCloud } from '../../src/model';
@@ -500,8 +500,8 @@ describe.each(LOCALES)('FR-FLOW-3: the three compact sub-page rows in %s', (loca
    * off compact and R149 `Header`'s `status` with it), so 14 → 10 and 17 → 13.
    */
   const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
-    en: { stars: 11, settings: 14 },
-    es: { stars: 15, settings: 13 },
+    en: { stars: 12, settings: 15 },
+    es: { stars: 18, settings: 16 },
   };
 
   it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {
@@ -706,7 +706,10 @@ describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %
   const CITY = 'Ciudad de México';
 
   it.each([
-    ['[ set your place ] on the page line', () => control(t.example.pageLine)],
+    // R215 (FR-LAND-4, D-1238): the satellites list's head on a phone — `<city> · example  change` — keeps a ten-letter
+    // city whole (`Montevideo`); a longer name is cut with an ellipsis (`PlaceLine.module.css`).
+    ['place line with the example', () => `Montevideo · ${t.header.place.example}`.length + 2 + control(t.header.place.change)],
+    ['place line with no place', () => control(t.header.place.set)],
     // R97 (FR-FAINT-2): the faint control, in its longer state.
     ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
   ] as const)('the %s row, in 36 cells and inside 360 px', (_name, cells) => {
@@ -798,27 +801,23 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
 });
 
 /**
- * R74 (FR-COMP-1 as amended, D-441): the row's arithmetic, not merely the
- * budget it fits inside. The mark is three cells — a 24 px box needs three of
- * the 9.6 px cells and would spill out of two — and the row is
- * `mark + 'Your sky' + live + settings` with a cell of gap between each
- * pair: 3 + 8 + 5 + 8 and three gaps, **27** of the 36 since R206 took the
- * links' brackets (FR-CTRL-11; `live` keeps `--target`'s five cells). It was
- * 34 with them: 3 + 8 + 8 + 12 and the gaps.
- *
- * FR-COMP-1 and D-441 both say 33. The difference is the gap after the mark:
- * the row without it was 8 + 8 + 12 and two gaps = 30, and adding a three-cell
- * mark makes 33 only if the mark touches the title. It does not — `.brand` puts
- * a cell between them, which is the same cell the wide tagline's indent is
- * built from — so the row measures 34, still three inside FR-COMP-4's 36. The
- * number is pinned here so a mark that quietly grew a cell fails at the
- * arithmetic rather than at the far edge of the budget.
+ * R74 (FR-COMP-1 as amended, D-441), R215 (FR-LAND-6, FR-COMP-1 as amended v3.0): the row's arithmetic, not merely the
+ * budget it fits inside. The mark is three cells — a 24 px box needs three of the 9.6 px cells — and the row is the
+ * mark and the three tabs, `live satellites settings`: on the satellites page 3 + 5 (`live` keeps `--target`'s five
+ * cells) + 10 + 8, two cells after the mark and one between the tabs, **29** of the 36. The short title left the row
+ * (FR-LAND-6: "the mark and the three links"); every tab row in both languages stays inside FR-COMP-1's 36 cells.
  */
-it('counts the compact header with the mark at 27 cells (FR-COMP-1, FR-CTRL-11, D-441)', () => {
+it('counts the compact header with the mark and the three tabs at 29 cells (FR-COMP-1, FR-LAND-6, D-441)', () => {
   render(createElement(I18nProvider, { locale: 'en', children: createElement(Header, { page: 'pass' }) }));
   const header = screen.getByTestId('header');
   expect(screen.getByTestId('mark').getAttribute('data-mark-cells')).toBe('3');
-  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(27);
+  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(29);
+});
+
+it.each(LOCALES.flatMap((locale) => (['live', 'pass', 'settings'] as const).map((page) => [locale, page] as const)))('FR-LAND-6: the %s compact tab row on %s holds the mark and the three links in 36 cells', (locale, page) => {
+  render(createElement(I18nProvider, { locale, children: createElement(Header, { page: page === 'settings' ? 'live' : page }) }));
+  const header = screen.getByTestId('header');
+  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBeLessThanOrEqual(36);
 });
 
 /**
@@ -842,9 +841,6 @@ function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): nu
 
 describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, D-845)', (locale: Locale) => {
   const t = CATALOGS[locale];
-  // R206: a link is its words (FR-CTRL-11); `←` in its box is the five cells of `--target` (D-1226).
-  const link = (text: string): number => text.length;
-  const backCells = Math.ceil(44 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
   const rowGap = cellsOf(HEADER_CSS, '.row', 'gap');
   const navGap = cellsOf(HEADER_CSS, '.nav', 'gap');
   let markCells = 0;
@@ -864,51 +860,40 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, 
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('fits a sub-page’s row — [ ← ], the mark and title, the three links, the context, [ settings ] — at the wide breakpoint with the controls whole, the title whole from its own width', () => {
-    // R129 (D-845): with the switches gone the title has no short form on wide; the context is what ellipsises.
-    // R166 (FR-CLEAN-14, D-1007): the links are one cell apart; R212 (D-1230): three of
-    // them, `live satellites stars`. R206 (FR-CTRL-11): without their brackets the row
-    // is 20 cells shorter, so the title is whole at the wide breakpoint (964 px, `WIDE_CELLS`) in both languages,
-    // and the English context keeps its cells there.
-    const nav = [t.header.pages.live, t.header.pages.pass, t.header.pages.stars].reduce((sum, word) => sum + link(word), 0) + 2 * navGap;
-    expect(navGap).toBe(1);
-    const fixed = 2 * SHELL_PADDING_CELLS + backCells + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + link(t.settings.open);
-    expect(fixed).toBe(locale === 'es' ? 86 : 79);
-    expect(WIDE_MIN_PX).toBe(964);
-    expect(fixed, 'the whole row, its title too, at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
-    if (locale === 'en') expect(fixed + 10, 'ten cells of context at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
-    expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(locale === 'es' ? 1024 : WIDE_MIN_PX);
-  });
-
-  it('draws a sub-page’s row with [ ← ] and a long place as counted above, and at 1024 px the place gives first, then the title, never the links', () => {
-    // The finding this answers: on a full Spanish row near 1024 px every item shrank by its share and the title drew
-    // over `inicio`. The rendered row — not only the arithmetic — is measured here, `[ ← ]` and the place on it.
-    const place = 'San Carlos de Bariloche, Río Negro, Argentina';
-    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', context: place, onBack: noop }) }));
+  it('fits a sub-page’s row — ← back, the mark and the title, the example’s place line, the three tabs — at the wide breakpoint in both languages', () => {
+    // R215 (FR-LAND-4, FR-LAND-6, D-1238): `settings` is one of the three tabs, and the place line stands between the
+    // title and the tabs. With a five-letter city the whole row is 94 cells in English and 100 in Spanish, so it fits
+    // the wide breakpoint (964 px, `WIDE_CELLS`) whole; a longer name is cut (below).
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', place: { label: 'Salta', example: true }, onBack: noop }) }));
     const row = within(container).getByTestId('header');
     const parts = rowParts(row, table);
-    // R206 (FR-CTRL-11): each link is its words; D-1230: three links.
-    const nav = [t.header.pages.live, t.header.pages.pass, t.header.pages.stars].map((word) => word);
-    expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
-    expect(parts[0]).toContain(t.header.back);
-    // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
-    const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
-    const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 2 * navGap;
-    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 86 : 79);
-    const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    // R206 (FR-CTRL-11): the brackets' 20 cells are the place's again: with the home link's, 27 of them at 1024 px in English, 20 in Spanish.
-    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBe(locale === 'es' ? 20 : 27);
-    expect(at1024 - measured).toBeLessThan(place.length + rowGap);
-    // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
-    // `←`, the links and `settings` never shrink.
-    const rule = (selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(HEADER_CSS)?.[1] ?? '';
-    expect(rule('.wide .context')).toMatch(/flex:\s*0 1000 auto;/);
-    expect(rule('.context')).toMatch(/text-overflow:\s*ellipsis;/);
-    expect(rule('.title')).toMatch(/min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;/);
-    expect(rule('.brand')).toMatch(/min-width:\s*0;/);
-    for (const fixed of ['.back', '.nav', '.settings']) expect(rule(fixed), fixed).toMatch(/flex:\s*0 0 auto;/);
+    expect(parts).toEqual([t.header.backWords, '#'.repeat(markCells), t.app.title, 'Salta', `· ${t.header.place.example}`, expect.stringContaining(t.header.place.change), t.header.pages.live, t.header.pages.pass, t.header.pages.settings]);
+    expect(rowGap).toBe(2);
+    expect(navGap).toBe(1);
+    const fixed = 2 * SHELL_PADDING_CELLS + rowCells(row, table);
+    expect(fixed, parts.join(' | ')).toBe(locale === 'es' ? 100 : 94);
+    expect(WIDE_MIN_PX).toBe(964);
+    expect(fixed, 'the whole row at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
   });
 
+  it('with a long place, the place line gives — its name cut with an ellipsis — never the title, back or the tabs', () => {
+    const place = 'San Carlos de Bariloche, Río Negro, Argentina';
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', place: { label: place, example: false }, onBack: noop }) }));
+    const parts = rowParts(within(container).getByTestId('header'), table);
+    expect(parts).toEqual([t.header.backWords, '#'.repeat(markCells), t.app.title, place, expect.stringContaining(t.header.place.change), t.header.pages.live, t.header.pages.pass, t.header.pages.settings]);
+    const rule = (css: string, selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+    const LINE_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/PlaceLine.module.css'), 'utf8');
+    // The two ends share what the line leaves and never shrink under their words; the line shrinks, and in it the name.
+    for (const end of ['.start', '.end']) {
+      expect(rule(HEADER_CSS, end), end).toMatch(/flex:\s*1 1 0;/);
+      expect(rule(HEADER_CSS, end), end).toMatch(/min-width:\s*max-content;/);
+    }
+    expect(rule(HEADER_CSS, '.place')).toMatch(/flex:\s*0 1 auto;/);
+    expect(rule(HEADER_CSS, '.nav')).toMatch(/flex:\s*0 0 auto;/);
+    expect(rule(LINE_CSS, '.line')).toMatch(/min-width:\s*0;/);
+    expect(rule(LINE_CSS, '.name')).toMatch(/min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;/);
+    expect(rule(LINE_CSS, '.change')).toMatch(/flex:\s*0 0 auto;/);
+  });
 });
 
 /**

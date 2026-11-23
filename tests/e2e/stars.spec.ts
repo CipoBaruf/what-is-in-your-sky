@@ -23,8 +23,8 @@ const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
 
 const WORDS = {
-  en: { app: 'What is in your sky right now', heading: 'Stars tonight', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', layerNames: ['stars', 'figures', 'planets', 'names'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
-  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
+  en: { app: 'What is in your sky right now', heading: 'Stars tonight', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', layerNames: ['stars', 'figures', 'planets', 'names'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
+  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
 } as const;
 
 /** A reader with a saved place and a language, every provider refused, at the fixture's instant. */
@@ -46,29 +46,24 @@ const drawing = (page: Page) => page.getByTestId('stars-sky').locator('[data-tes
 test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test.use({ viewport: DESK });
 
-  test('opens from the header’s [ stars ], with its title, its one h1 and the box focused; Esc goes back', async ({ page }) => {
+  test('opens by its key, with its title, its one h1 and the box focused; Esc goes back', async ({ page }) => {
     await asReader(page);
     await page.goto('/');
-    const link = page.getByTestId('stars-link');
-    await expect(link).toHaveText(WORDS.en.link);
-    // Beside [ Live sky ] on the title's line (FR-STAR-3).
-    const [live, stars] = await Promise.all([box(page.getByTestId('live-link')), box(link)]);
-    expect(stars.x).toBeGreaterThan(live.x + live.width - 1);
-    expect(Math.abs(stars.y + stars.height / 2 - (live.y + live.height / 2))).toBeLessThanOrEqual(1);
-    await link.click();
+    // R215 (FR-LAND-6): the header's tabs are live, satellites and settings; the stars page is `s` until R222 folds it in.
+    await expect(page.getByTestId('stars-link')).toHaveCount(0);
+    await expect(page.getByTestId('live-link')).toBeVisible();
+    await page.keyboard.press('s');
     await expect(page).toHaveURL(/#stars$/);
     await expect(page).toHaveTitle(`Stars · ${WORDS.en.app}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(WORDS.en.heading);
     expect(await page.locator('h1').count()).toBe(1);
     expect(await page.locator('main').count()).toBe(1);
     expect(await page.getByRole('banner').count()).toBe(1);
-    await expect(page.getByTestId('stars-link')).toHaveAttribute('aria-current', 'page');
     // The focus target is the drawing's box, which takes the arrow keys: on a desk the globe's (V212-11, D-1054).
     await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
     await expect(page.getByTestId('globe-box')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page).not.toHaveURL(/#stars/);
-    await expect(page.getByTestId('stars-link')).toBeFocused();
   });
 
   test('is the box at the left, the rail beside it, the readout in the box’s corner, and no scroll', async ({ page }) => {
@@ -200,7 +195,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
   test('s opens the page from home, and the ? overlay lists s and the page’s four keys (FR-DESK-4 as amended v2.4)', async ({ page }) => {
     await asReader(page);
     await page.goto('/');
-    await expect(page.getByTestId('stars-link')).toBeVisible();
+    await expect(page.getByTestId('live-link')).toBeVisible();
     await page.keyboard.press('?');
     const overlay = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
     await expect(overlay.locator('[data-shortcut="stars"] kbd')).toHaveText('s');
@@ -315,11 +310,11 @@ test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
 test.describe('both languages (FR-STAR-10, FR-A11Y-3)', () => {
   test.use({ viewport: DESK });
 
-  test('is all Spanish in Spanish: the link, the title, the blocks, the picker, the layers and the list', async ({ page }) => {
+  test('is all Spanish in Spanish: the title, the blocks, the picker, the layers and the list', async ({ page }) => {
     await asReader(page, 'es');
     await page.goto('/');
-    await expect(page.getByTestId('stars-link')).toHaveText(WORDS.es.link);
-    await page.getByTestId('stars-link').click();
+    await expect(page.getByTestId('live-link')).toBeVisible();
+    await page.keyboard.press('s');
     await onWindow(page);
     await expect(page).toHaveTitle(`Estrellas · ${WORDS.es.app}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(WORDS.es.heading);
@@ -366,7 +361,9 @@ test.describe('offline (FR-STAR-8, US-38 AC7)', () => {
     await expect(page.getByTestId('stars-inert')).toContainText('The stars need a place.');
     // FR-A11Y-1..3: the page's focus is its one control.
     await expect(page.getByTestId('stars-set-place')).toBeFocused();
+    // R215 (D-1238): it opens the place dialog over the page.
     await page.getByTestId('stars-set-place').click();
-    await expect(page).not.toHaveURL(/#stars/);
+    await expect(page.getByTestId('place-dialog')).toBeVisible();
+    await expect(page).toHaveURL(/#stars/);
   });
 });

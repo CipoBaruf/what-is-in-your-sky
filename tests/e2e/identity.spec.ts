@@ -86,9 +86,8 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   // are under 44 px wide; the targets are R134's (FR-FLOW-11), so this spec keeps the sheet it was written about.
   await savedDome(page);
   await page.goto('/#pass');
-  // R52 (FR-COMP-1): at 390 px the header's title is the short one; the document title keeps the full one. R212: the
-  // satellites page's header names the app in a line, the page's own heading being its name.
-  await expect(page.getByRole('banner')).toContainText('Your sky');
+  // R215 (FR-LAND-6, FR-COMP-1 as amended): at 390 px the header is the mark and the three tabs, satellites current.
+  await expect(page.getByRole('banner').getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
   await expect(page.getByTestId('pass-set-place')).toBeVisible();
   await expectIdentity(page, 'r12-home-390.png');
 
@@ -162,10 +161,10 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   expect(expected).toContain('a:CelesTrak');
   expect(expected.filter((c) => c.startsWith('button:Open guide')).length).toBeGreaterThanOrEqual(2);
 
-  // Start from the top: a click on the title moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
+  // Start from the top: a click on the mark (R215: the row has no title) moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
   // R92 (FR-A11Y-5): the skip link is before the title, so this walk begins after it and meets it on the wrap.
   const walk = expected.slice(1);
-  await page.getByRole('banner').getByText('Your sky', { exact: true }).click();
+  await page.getByRole('banner').getByTestId('mark').click();
   const reached: { control: string; ring: boolean }[] = [];
   for (const _step of walk) {
     await page.keyboard.press('Tab');

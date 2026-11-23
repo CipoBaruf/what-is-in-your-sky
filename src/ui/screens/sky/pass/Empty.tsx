@@ -7,6 +7,7 @@ import { passIdHash } from '../../../../lib/shareLinks';
 import type { ChartView, Observer } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { InstallHint } from '../../../components/common/InstallHint';
+import { PlaceLine, useHeaderPlace } from '../../../components/common/PlaceLine';
 import { ReadinessLine } from '../../../components/common/ReadinessLine';
 import { ElementsLine } from '../../../components/elements/ElementsLine';
 import { SkyChart } from '../../../components/guide/skychart/SkyChart';
@@ -22,6 +23,7 @@ import { PassList } from '../../../components/passes/PassList';
 import { TextButton } from '../../../components/primitives/TextButton';
 import { VisuallyHidden } from '../../../components/primitives/VisuallyHidden';
 import { SkyViewChartSlot, SkyViewLayout } from '../../../components/sky/SkyViewLayout';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useNow } from '../../../hooks/useNow';
 import { replace } from '../../../navigation';
 import { requestPlace } from '../../home/placeRequest';
@@ -107,12 +109,16 @@ export interface PassTonightProps {
  * night open, a card opening its pass's sheet over it. The lines that stood beside them and that no requirement removed
  * follow: the conditions with the Moon's line (FR-FIRST-9, FR-MOON-4), the readiness and the elements (FR-OFF-4), and
  * over them the install offer (FR-OFF-6). With no place and no example it asks for one, as the live page does.
+ * R215 (FR-LAND-4, V30-32, D-1238): on a phone the list's head is the place line, which the one-row header has no room for.
  */
 export function PassTonight({ observer, ...list }: PassTonightProps) {
   const t = useT();
+  const compact = useLayoutMode() === 'compact';
+  const place = useHeaderPlace();
   return (
     <div className={tonightStyles.page} data-testid="pass-tonight">
       <VisuallyHidden as="h1">{t.header.pages.pass}</VisuallyHidden>
+      {compact && observer !== null && <PlaceLine place={place} />}
       <InstallHint />
       {list.notice}
       {observer === null ? (

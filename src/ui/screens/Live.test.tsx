@@ -38,6 +38,8 @@ import { LEGEND_OPEN_ROWS } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
 import { LivePage, TICK_MS, visibleCount } from './Live';
+import { PlaceDialogHost } from '../components/location/PlaceDialog';
+import { closePlaceRequest } from './home/placeRequest';
 import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS } from './liveRows';
 
 const pass = goldenPassFixture();
@@ -171,7 +173,7 @@ describe('<LivePage>', () => {
   describe('before it can draw (R89)', () => {
     const failure = { kind: 'offline', detail: 'TypeError: Failed to fetch' } as const;
 
-    it('says no place with [ set a place ], which opens the place group on settings (D-1230, F-75)', async () => {
+    it('says no place with [ set a place ], which opens the place dialog (R215, D-1238, F-75)', async () => {
       const onLeave = vi.fn();
       const hashes: string[] = [];
       const onHash = (): void => {
@@ -190,9 +192,12 @@ describe('<LivePage>', () => {
       expect(screen.queryByTestId('sky-chart')).toBeNull();
       expect(screen.queryByTestId('status-strip')).toBeNull();
       expect(await axe(container)).toHaveNoViolations();
+      render(<PlaceDialogHost />);
       fireEvent.click(screen.getByRole('button', { name: en.live.setPlace }));
       window.removeEventListener('hashchange', onHash);
-      expect(hashes).toEqual(['#settings']);
+      expect(hashes).toEqual([]);
+      expect(screen.getByTestId('place-dialog')).toBeInTheDocument();
+      act(closePlaceRequest);
       // R212 (D-1230, FR-LAND-6): the first page has no Back; its header links to the list and settings.
       expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
       expect(screen.getByTestId('pass-link')).toHaveAttribute('href', '#pass');

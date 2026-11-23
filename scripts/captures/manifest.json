@@ -10,6 +10,7 @@
     "src/ui/hooks/**",
     "src/ui/components/{common,primitives,mark}/**",
     "src/ui/screens/home/shownPasses.ts",
+    "src/ui/screens/home/placeRequest.ts",
     "src/i18n/**",
     "src/state/**",
     "src/model/**",

@@ -3,7 +3,6 @@ import { coordsLabel } from '../../../lib/place';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { ExampleNotice } from './ExampleNotice';
 import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
 import styles from './VisitNotice.module.css';
@@ -104,15 +103,12 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
  * nothing to say, which the stylesheet takes out of the page — and out of the
  * wide shell's grid, which gives it a row only while it holds something.
  *
- * R203 (FR-OPEN-7, D-1180, D-1205): and the example's page line, on every page
- * that does not draw its own (`example`); the stars page, which had no strip,
- * takes one with the example's line alone (`visit` false), so a returning
- * visit draws there what it drew (FR-OPEN-9).
+ * R215 (FR-LAND-4, FR-OPEN-7 as amended; D-1238): the example's line went to the header's place line; the stars
+ * page's strip draws no visit (`visit` false), so a returning visit draws there what it drew (FR-OPEN-9).
  */
-export function PageNotices({ kinds, inert = false, example = true, visit = true }: { kinds: readonly LinkNoteKind[]; inert?: boolean; example?: boolean; visit?: boolean }) {
+export function PageNotices({ kinds, inert = false, visit = true }: { kinds: readonly LinkNoteKind[]; inert?: boolean; visit?: boolean }) {
   return (
     <div className={styles.notices} data-page-notices="">
-      {example && <ExampleNotice inert={inert} />}
       {visit && <VisitNotice inert={inert} />}
       <LinkNote kinds={kinds} inert={inert} />
     </div>

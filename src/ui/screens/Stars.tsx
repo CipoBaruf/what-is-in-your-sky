@@ -40,7 +40,6 @@ import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { ControlsSheet } from '../components/sky/ControlsSheet';
 import { FollowToggle } from '../components/sky/FollowToggle';
 import { SkyHead } from '../components/sky/SkyHead';
-import { ExampleNotice } from '../components/common/ExampleNotice';
 import { SkyHint, useSkyHintLine, useSkyHintShown } from '../components/sky/SkyHint';
 import { skyKeys } from '../components/sky/skyKeys';
 import { PICK_SELECTOR, SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
@@ -697,8 +696,6 @@ function StarsSky({ observer }: { observer: Observer }) {
         {/* v2.14.2 (FR-PHONE-17, D-1144): the follow question, a portal while asking. */}
         <FollowAsk follow={follow} />
         <SkyHead line={<StarsHeadLine observer={observer} now={now} sunUp={sunUp} />} onBack={close} className={styles.head} />
-        {/* R203 (FR-OPEN-7, D-1205): the box covers the shell's strip on a phone, so the example's line is drawn under the head. */}
-        <ExampleNotice className={styles.example} />
         {hintLine !== null && !follow.refused && (
           <div className={styles.hintArea} data-beside={hintBeside ? 'true' : 'false'}>
             <SkyHint view={chartView} fit />

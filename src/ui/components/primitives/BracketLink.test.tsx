@@ -44,7 +44,10 @@ describe.each(THEMES)('<BracketLink> under data-theme=%s', (theme) => {
 describe('<BracketLink> in its stylesheet (R206)', () => {
   it('FR-CTRL-11: leaves the underline and the accent to the global a, and draws no bracket', () => {
     const css = readFileSync('src/ui/components/primitives/BracketLink.module.css', 'utf8');
-    expect(css).not.toMatch(/content:|text-decoration:/);
+    expect(css).not.toMatch(/content:/);
+    // R215 (FR-CTRL-5): only the header tab's form draws its own decoration — none at rest, the current page's rule.
+    const outsideTab = css.replace(/\.tab[^{]*\{[^}]*\}/g, '');
+    expect(outsideTab).not.toMatch(/text-decoration/);
     expect(/\.bracketLink \{([^}]*)\}/.exec(css)?.[1]).not.toMatch(/color/);
     expect(readFileSync('src/ui/styles/global.css', 'utf8')).toMatch(/\na \{\n {2}color: var\(--accent\);\n {2}text-decoration: underline;/);
   });

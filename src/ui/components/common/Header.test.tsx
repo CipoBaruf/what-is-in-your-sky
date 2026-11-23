@@ -1,16 +1,16 @@
 /**
- * R52 (FR-COMP-1, FR-DESK-2 as amended, US-20 AC1/AC5, D-184): the two shapes
- * of the header, and what each one does and does not carry.
+ * R52 (FR-COMP-1, FR-DESK-2 as amended, US-20 AC1/AC5, D-184): the two shapes of the header, and what each one does
+ * and does not carry — no language or theme switch anywhere (V26-10).
  *
- * R129 (FR-FLOW-3, FR-COMP-7 as amended v2.6, D-845; F7, D3, D4): the header is
- * told its page, in both languages at both widths — and no language or theme switch anywhere.
+ * R215 (FR-LAND-4, FR-LAND-6, FR-CTRL-5, US-62 AC2; D-1238): the links are `live satellites settings` at both widths,
+ * as tabs — the current page a span over a 2 px accent rule 6 px under its words; `← back` is bare words; the wide
+ * row carries the place line in its three readings — `Salta · example  change`, the place's name with `change`, and
+ * `Set your place` — and `change` opens the place dialog. On compact the tab row is the mark and the three links.
  *
- * R212 (FR-LAND-1, FR-LAND-6, D-1230, D-1231): no home. The links are `live satellites stars`; live, the first page,
- * has no Back; on compact live and the satellites' list are tab rows, and stars and settings the sub row.
- *
- * R166, v2.14.1 (FR-CLEAN-14; D-1134): the current link dimmed; `satellites` opens the pass up now, else the span's
- * next, else the bare `#pass`.
+ * v2.14.1 (FR-CLEAN-14 as amended; D-1134): `satellites` opens the pass up now, else the span's next, else `#pass`.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,17 +27,17 @@ import { appStore } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import { Header, type HeaderProps } from './Header';
 
-let media: MatchMediaStub;
+let media: MatchMediaStub | undefined;
 
 afterEach(() => {
-  media.restore();
+  media?.restore();
+  media = undefined;
   window.history.replaceState(null, '', window.location.pathname);
 });
 
-const PAGES = ['live', 'pass', 'stars', 'settings'] as const satisfies readonly HeaderPage[];
 const SUB_PAGES = ['stars', 'settings'] as const satisfies readonly HeaderPage[];
-const TABS = [['live', 'pass-link', '#pass'], ['pass', 'live-link', '#live']] as const;
-const NAV = ['live', 'pass', 'stars'] as const;
+const TABS = ['live', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
+const HREF: Record<(typeof TABS)[number], string> = { live: '#live', pass: '#pass', settings: '#settings' };
 const PLACE = '−38.93, −67.99';
 
 const renderIn = (locale: Locale, props: HeaderProps) => render(<I18nProvider locale={locale}>{<Header {...props} />}</I18nProvider>);
@@ -49,38 +49,86 @@ const expectNoSwitches = (locale: Locale): void => {
   expect(screen.queryByRole('group', { name: t.app.theme })).toBeNull();
 };
 
-describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale: Locale) => {
+/** FR-LAND-6, FR-CTRL-5: the three tabs in order, the current one a span (no `href`, `aria-current`), the others links. */
+function expectTabs(locale: Locale, page: HeaderPage): void {
+  const t = CATALOGS[locale];
+  const nav = screen.getByRole('navigation', { name: t.header.nav });
+  const links = within(nav).getAllByTestId(/-link$/);
+  expect(links.map((link) => link.textContent)).toEqual(TABS.map((tab) => t.header.pages[tab]));
+  for (const [i, tab] of TABS.entries()) {
+    const link = links[i] as HTMLElement;
+    expect(link).toHaveAttribute('data-testid', `${tab}-link`);
+    expect(link.className, tab).toMatch(/tab/);
+    if (tab === page) {
+      expect(link.tagName).toBe('SPAN');
+      expect(link).toHaveAttribute('aria-current', 'page');
+      expect(link.className).toMatch(/current/);
+      expect(link).not.toHaveAttribute('href');
+    } else {
+      expect(link.tagName).toBe('A');
+      expect(link).not.toHaveAttribute('aria-current');
+      expect(link).toHaveAttribute('href', HREF[tab]);
+    }
+  }
+  expect(screen.queryByTestId('stars-link')).toBeNull();
+}
+
+describe('FR-CTRL-5: the tab form and the back form', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/components/primitives/BracketLink.module.css'), 'utf8');
+  const rule = (selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+
+  it('a tab is its words in --fg-dim, --fg on hover; the current one --fg over a 2 px accent rule 6 px under', () => {
+    expect(rule('.tab')).toMatch(/color:\s*var\(--fg-dim\);[^}]*text-decoration:\s*none;/);
+    expect(rule('.tab:hover')).toMatch(/color:\s*var\(--fg\);/);
+    const current = rule('.tab.current');
+    expect(current).toMatch(/color:\s*var\(--fg\);/);
+    expect(current).toMatch(/text-decoration-color:\s*var\(--accent\);/);
+    // 2 px: two hairlines; 6 px: `--space-1`, a quarter row of 24 px.
+    expect(current).toMatch(/text-decoration-thickness:\s*calc\(2 \* var\(--hairline\)\);/);
+    expect(current).toMatch(/text-underline-offset:\s*var\(--space-1\);/);
+  });
+
+  it.each(LOCALES)('← back, in %s, is bare dim words named Back, with no box', (locale) => {
+    media = stubMatchMedia(WIDE_PX);
+    const t = CATALOGS[locale];
+    const onBack = vi.fn();
+    renderIn(locale, { page: 'stars', place: null, onBack });
+    const back = screen.getByRole('button', { name: t.header.backName });
+    expect(back).toHaveTextContent(locale === 'es' ? '← volver' : '← back');
+    expect(back.className).toMatch(/bare/);
+    expect(back.className).toMatch(/dim/);
+    expect(back.querySelector('span')).toBeNull();
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+});
+
+describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-LAND-6)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
-  it.each(TABS)('%s: one row of the short title, the other tab and settings, with no Back, no tagline and no switch (US-20 AC1)', async (page, testId, href) => {
+  it.each(['live', 'pass'] as const)('%s: one row of the mark and the three tabs, with no Back, no title, no place line and no switch', async (page) => {
     media = stubMatchMedia(COMPACT_PX);
-    const { container } = renderIn(locale, { page });
+    const { container } = renderIn(locale, { page, place: { label: 'Salta', example: true }, onBack: vi.fn() });
     const banner = screen.getByRole('banner');
-    expect(banner).toHaveTextContent(t.app.shortTitle);
-    // The pages carry their own h1 (FR-A11Y-1).
-    expect(within(banner).queryByRole('heading')).toBeNull();
+    expect(screen.getByTestId('mark')).toBeInTheDocument();
+    expect(banner).not.toHaveTextContent(t.app.shortTitle);
     expect(banner).not.toHaveTextContent(t.app.tagline);
-    const tab = screen.getByTestId(testId);
-    expect(tab).toHaveAttribute('href', href);
-    expect(tab).toHaveTextContent(page === 'live' ? t.header.pages.pass : t.live.openShort);
-    expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
-    expect(screen.getByTestId('settings-link')).toHaveTextContent(t.settings.open);
-    expect(screen.queryByTestId('stars-link')).toBeNull();
+    expect(within(banner).queryByRole('heading')).toBeNull();
+    expectTabs(locale, page);
     expect(screen.queryByRole('button')).toBeNull();
-    // One name for the header's navigation on both widths.
-    expect(screen.getByRole('navigation', { name: t.header.nav })).toContainElement(tab);
+    expect(screen.queryByTestId('place-line')).toBeNull();
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it.each(SUB_PAGES)('%s: [ ← ] named Back, the page name in the accent, then the context', async (page) => {
+  it.each(SUB_PAGES)('%s: ← back named Back, the page name in the accent, then the context', async (page) => {
     media = stubMatchMedia(COMPACT_PX);
     const onBack = vi.fn();
     const { container } = renderIn(locale, { page, context: PLACE, onBack });
     const header = screen.getByTestId('header');
     expect(header).toHaveAttribute('data-page', page);
     const back = screen.getByRole('button', { name: t.header.backName });
-    expect(back).toHaveTextContent(t.header.back);
+    expect(back).toHaveTextContent(t.header.backWords);
     expect(back).toHaveAttribute('data-testid', `${page}-back`);
     fireEvent.click(back);
     expect(onBack).toHaveBeenCalledOnce();
@@ -90,22 +138,11 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
     expect(context).toHaveTextContent(PLACE);
     // In that order, and nothing else on the row: no title, no links, no switch.
     expect([...header.children]).toEqual([back, name, context]);
-    expect(header).not.toHaveTextContent(t.app.shortTitle);
     expect(screen.queryByRole('link')).toBeNull();
     expectNoSwitches(locale);
     // Settings has no h1 of its own: its name is the page's. The others' are the pages' own (FR-A11Y-1).
     expect(screen.queryAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(page === 'settings' ? [t.header.pages.settings] : []);
     expect(await axe(container)).toHaveNoViolations();
-  });
-
-  it('live takes no Back, and draws its context under the row only where there is one (the inert page, R149)', () => {
-    media = stubMatchMedia(COMPACT_PX);
-    const { unmount } = renderIn(locale, { page: 'live', onBack: vi.fn() });
-    expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
-    expect(screen.queryByTestId('live-place')).toBeNull();
-    unmount();
-    renderIn(locale, { page: 'live', context: PLACE, onBack: vi.fn() });
-    expect(screen.getByTestId('header').lastElementChild).toBe(screen.getByTestId('live-place'));
   });
 
   it('is a div when the page holds it inside a landmark of its own, so there is one banner', () => {
@@ -116,81 +153,70 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
   });
 });
 
-/**
- * R166 (FR-CLEAN-14, D-1007): the wide page links are `BracketLink`s, `[ home ] [ live ] [ stars ]` — the brackets are
- * the primitive's stylesheet, so its class is what is asserted — the current page the primitive's dim `aria-current`
- * span (no `href`), the other two links in the accent; no accent rule under the current one.
- */
-function expectBracketedLinks(page: HeaderPage): void {
-  for (const target of NAV) {
-    const link = screen.getByTestId(`${target}-link`);
-    expect(link.className, target).toMatch(/bracketLink/);
-    expect(link.className, target).not.toMatch(/navCurrent|navLink/);
-    if (target === page) {
-      expect(link.tagName).toBe('SPAN');
-      expect(link.className).toMatch(/current/);
-      expect(link).not.toHaveAttribute('href');
-    } else {
-      expect(link.tagName).toBe('A');
-      expect(link.className).not.toMatch(/current/);
-    }
-  }
-}
-
-describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.6)', (locale: Locale) => {
+describe.each(LOCALES)('<Header> wide in %s (FR-LAND-4, FR-LAND-6)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
-  it('live: the title, the page links with live current, settings last, and no Back (FR-LAND-1)', async () => {
+  it('live: the title, the place line, the three tabs with live current, and no Back (FR-LAND-1)', async () => {
     media = stubMatchMedia(WIDE_PX);
-    const { container } = renderIn(locale, { page: 'live', onBack: vi.fn() });
+    const { container } = renderIn(locale, { page: 'live', place: { label: 'Salta', example: true }, onBack: vi.fn() });
     const banner = screen.getByRole('banner');
     expect(banner).toHaveTextContent(t.app.title);
     expect(banner).not.toHaveTextContent(t.app.tagline);
-    const nav = screen.getByRole('navigation', { name: t.header.nav });
-    expect(within(nav).getAllByTestId(/-link$/).map((link) => link.textContent)).toEqual(NAV.map((page) => t.header.pages[page]));
+    expectTabs(locale, 'live');
     expect(t.header.pages.pass).toBe(locale === 'es' ? 'satélites' : 'satellites');
-    expect(screen.getByTestId('live-link')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('live-link')).not.toHaveAttribute('href');
-    // No pass in the store: the pass page with no id (D-1134).
-    expect(screen.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
-    expect(screen.getByTestId('stars-link')).toHaveAttribute('href', '#stars');
-    expect(screen.queryByTestId('home-link')).toBeNull();
-    expectBracketedLinks('live');
+    expect(t.header.pages.settings).toBe(locale === 'es' ? 'ajustes' : 'settings');
     expect(screen.queryByRole('button', { name: t.header.backName })).toBeNull();
-    // `settings` is the row's last item, after the navigation.
-    const settings = screen.getByTestId('settings-link');
-    expect(settings).toHaveAttribute('href', '#settings');
-    expect(settings.parentElement?.lastElementChild).toBe(settings);
+    // The row: the title's end, the place line, the tabs' end — the line between the two.
+    const line = screen.getByTestId('place-line');
+    const row = line.parentElement as HTMLElement;
+    expect([...row.children].indexOf(line)).toBe(1);
+    expect(row.lastElementChild).toContainElement(screen.getByTestId('settings-link'));
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it.each(PAGES.filter((page) => page !== 'live'))('%s: [ ← ] first, the title, the links, the context and [ settings ] on one row, no tagline', async (page) => {
+  it('the place line’s three readings: the example, a place, and none (US-62 AC2, FR-LAND-5)', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const change = vi.fn();
+    const { unmount } = renderIn(locale, { page: 'live', place: { label: 'Salta', example: true }, onChangePlace: change });
+    const example = screen.getByTestId('place-line');
+    expect(example).toHaveAttribute('data-place', 'example');
+    expect(example).toHaveTextContent(`Salta · ${t.header.place.example}${t.header.place.change}`);
+    fireEvent.click(within(example).getByRole('button', { name: t.header.place.change }));
+    expect(change).toHaveBeenCalledOnce();
+    unmount();
+
+    const set = renderIn(locale, { page: 'pass', place: { label: 'Cipolletti, Rio Negro, Argentina', example: false }, onChangePlace: change, onBack: vi.fn() });
+    const placed = screen.getByTestId('place-line');
+    expect(placed).toHaveAttribute('data-place', 'set');
+    expect(screen.getByTestId('place-name')).toHaveTextContent('Cipolletti, Rio Negro, Argentina');
+    expect(placed).not.toHaveTextContent(t.header.place.example);
+    fireEvent.click(within(placed).getByRole('button', { name: t.header.place.change }));
+    expect(change).toHaveBeenCalledTimes(2);
+    set.unmount();
+
+    renderIn(locale, { page: 'settings', place: null, onChangePlace: change, onBack: vi.fn() });
+    const none = screen.getByTestId('place-line');
+    expect(none).toHaveAttribute('data-place', 'none');
+    expect(none).toHaveTextContent(locale === 'es' ? 'Elegí tu lugar' : 'Set your place');
+    fireEvent.click(within(none).getByRole('button', { name: t.header.place.set }));
+    expect(change).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['pass', 'stars', 'settings'] as const)('%s: ← back first, the title, the place line, the tabs; no tagline', async (page) => {
     media = stubMatchMedia(WIDE_PX);
     const onBack = vi.fn();
-    const { container } = renderIn(locale, { page, context: PLACE, onBack });
+    const { container } = renderIn(locale, { page, place: { label: PLACE, example: false }, onBack });
     const banner = screen.getByRole('banner');
     expect(banner).not.toHaveTextContent(t.app.tagline);
     const back = screen.getByRole('button', { name: t.header.backName });
-    const row = back.parentElement as HTMLElement;
-    expect(row.firstElementChild).toBe(back);
-    expect(row.lastElementChild).toBe(screen.getByTestId('settings-link'));
-    expect(row).toHaveTextContent(t.app.title);
-    expect(within(row).getByTestId(`${page}-place`)).toHaveTextContent(PLACE);
+    const start = back.parentElement as HTMLElement;
+    expect(start.firstElementChild).toBe(back);
+    expect(start).toHaveTextContent(t.app.title);
+    expect(screen.getByTestId('place-name')).toHaveTextContent(PLACE);
     fireEvent.click(back);
     expect(onBack).toHaveBeenCalledOnce();
-    // The current page is marked where it is one of the links; the others are links in the accent.
-    for (const target of NAV) {
-      const link = screen.getByTestId(`${target}-link`);
-      if (target === page) {
-        expect(link).toHaveAttribute('aria-current', 'page');
-      } else {
-        expect(link).not.toHaveAttribute('aria-current');
-        expect(link).toHaveAttribute('href');
-      }
-    }
-    expect(screen.getByTestId('settings-link').hasAttribute('aria-current')).toBe(page === 'settings');
-    expectBracketedLinks(page);
+    expectTabs(locale, page);
     // The live, stars and pass pages carry their own h1 (the pass's name, D-1134); settings has the title as its h1.
     expect(screen.queryAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(page === 'settings' ? [t.app.title] : []);
     expectNoSwitches(locale);
@@ -198,12 +224,12 @@ describe.each(LOCALES)('<Header> wide in %s (FR-FLOW-3, FR-DESK-2 as amended v2.
   });
 });
 
-describe('<Header> wide links', () => {
+describe('<Header> links', () => {
   it.each([
     ['a pass up', ['up', 'next'], '#pass=up'],
     ['one ahead', ['gone', 'next', 'later'], '#pass=next'],
     ['none in the span', ['gone', 'tomorrow'], '#pass'],
-  ] as const)('[ satellites ] with %s opens the pass it names (D-1134)', (_case, ids, href) => {
+  ] as const)('satellites with %s opens the pass it names (D-1134)', (_case, ids, href) => {
     media = stubMatchMedia(WIDE_PX);
     const T0 = Date.UTC(2026, 10, 5, 0, 0);
     const MIN = 60_000;
@@ -219,16 +245,32 @@ describe('<Header> wide links', () => {
     }
   });
 
-  it('swaps shape when the width crosses the breakpoint', () => {
+  it('swaps shape when the width crosses the breakpoint, the same three tabs on both', () => {
     media = stubMatchMedia(WIDE_PX);
     render(<Header page="pass" />);
     expect(screen.getByTestId('live-link')).toHaveTextContent(en.header.pages.live);
-    expect(screen.getByTestId('stars-link')).toBeInTheDocument();
+    expect(screen.getByTestId('place-line')).toBeInTheDocument();
     act(() => {
-      media.setWidth(COMPACT_PX);
+      media?.setWidth(COMPACT_PX);
     });
-    expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
-    expect(screen.queryByTestId('stars-link')).toBeNull();
+    expect(screen.getByTestId('live-link')).toHaveTextContent(en.header.pages.live);
     expect(screen.getByTestId('settings-link')).toBeInTheDocument();
+    expect(screen.queryByTestId('place-line')).toBeNull();
+  });
+
+  it('reads the place the pages open for when the page gives none: the example, then none (FR-LAND-5)', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const initial = appStore.getInitialState();
+    appStore.setState({ example: { lat: -24.79, lon: -65.41, altM: 0, label: 'Salta', source: 'example', timeZone: null }, exampleOutcome: 'pending' });
+    try {
+      const { unmount } = render(<Header page="live" />);
+      expect(screen.getByTestId('place-line')).toHaveTextContent(`Salta · ${en.header.place.example}`);
+      unmount();
+      appStore.setState({ exampleOutcome: 'no_city' });
+      render(<Header page="live" />);
+      expect(screen.getByTestId('place-line')).toHaveAttribute('data-place', 'none');
+    } finally {
+      appStore.setState(initial, true);
+    }
   });
 });

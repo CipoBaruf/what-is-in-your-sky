@@ -1,7 +1,8 @@
 /**
  * R202 (FR-OPEN-2..6; US-60, US-61; D-1183): the example first run where only a browser can answer. R212 (FR-LAND-1,
  * FR-LAND-7; D-1230): the home and its band are gone, so the example is the live page's — `/` opens `#live` over the
- * zone's city with FR-OPEN-7's line under the header — and the line's control opens the settings page's place group.
+ * zone's city. R215 (FR-LAND-4, D-1238): the line under the header gave way to the header's place line on a desk
+ * (`Buenos Aires · example  change`; a phone's is the controls sheet's, R219's) and `change` opens the place dialog.
  * Every example case names the zone, a fixed clock and the elements fixture, so the example is the same on every run.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -12,8 +13,8 @@ const ZONE = 'America/Argentina/Buenos_Aires';
 const GEOCODE = 'tests/fixtures/open-meteo/2026-09-02-cipolletti-geocode.json';
 const PAIR = `${String(NEUQUEN.lat)}, ${String(NEUQUEN.lon)}`;
 const WORDS = {
-  en: { locale: 'en-GB', label: 'Example: Buenos Aires, from your time zone', set: 'set your place' },
-  es: { locale: 'es-AR', label: 'Ejemplo: Buenos Aires, según tu zona horaria', set: 'elegí tu lugar' },
+  en: { locale: 'en-GB', example: 'example', change: 'change' },
+  es: { locale: 'es-AR', example: 'ejemplo', change: 'cambiar' },
 } as const;
 const LANGS = ['en', 'es'] as const;
 const SIZES = [
@@ -38,6 +39,16 @@ async function open(page: Page): Promise<{ hosts: Set<string>; forecasts: URL[] 
   await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ path: GEOCODE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }));
   await page.goto('/');
   return seen;
+}
+
+/** The example is the page's: on a desk the header's place line reads it; on a phone the live page draws the sky. */
+async function exampleShown(page: Page, wide: boolean, word: string): Promise<void> {
+  await expect(page.getByTestId('live-layout')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('live-set-place')).toHaveCount(0);
+  if (!wide) return;
+  const line = page.getByTestId('header').getByTestId('place-line');
+  await expect(line).toHaveAttribute('data-place', 'example', { timeout: 60_000 });
+  await expect(line).toContainText(`Buenos Aires · ${word}`);
 }
 
 /** Where the bottom of `testId` is. */
@@ -82,17 +93,16 @@ for (const lang of LANGS) {
       test.describe(`at ${size(viewport)}`, () => {
         test.use({ viewport });
 
-        test('US-60 AC1, AC2, AC5 (FR-OPEN-2, FR-OPEN-3 and FR-OPEN-14 as amended, FR-LAND-1, FR-LAND-7): `/` is the live page for the zone\'s city, its line under the header, nothing kept', async ({ page }) => {
+        test('US-60 AC1, AC2, AC5 (FR-OPEN-2, FR-OPEN-3 and FR-OPEN-14 as amended, FR-LAND-1, FR-LAND-7): `/` is the live page for the zone\'s city, its place line, nothing kept', async ({ page }) => {
           const seen = await open(page);
           await expect(page).toHaveURL(/#live$/);
-          const notice = page.getByTestId('example-notice');
-          await expect(notice).toContainText(w.label, { timeout: 60_000 });
-          await expect(notice.getByTestId('example-notice-set')).toHaveText(w.set);
-          await expect(page.getByTestId('live-layout')).toBeVisible();
+          const wide = viewport.width >= 964;
+          await exampleShown(page, wide, w.example);
+          if (wide) await expect(page.getByTestId('header').getByTestId('place-change')).toHaveText(w.change);
           // FR-LAND-7: the example has no other first-visit text — the home's band, its tagline and its doors are gone.
           for (const id of ['example-band', 'home-tagline', 'home-doors', 'cold-open', 'example-after-dusk']) await expect(page.getByTestId(id)).toHaveCount(0);
-          // On a desk the line stands under the header; the phone's live page is all sky and has none (FR-FULL-*).
-          if (viewport.width >= 964) expect((await box(page, 'example-notice')).top).toBeGreaterThanOrEqual((await box(page, 'header')).bottom - 1);
+          // On a desk the place line stands inside the header's row (FR-LAND-4).
+          if (wide) expect((await box(page, 'place-line')).bottom).toBeLessThanOrEqual((await box(page, 'header')).bottom + 1);
           expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 
           // US-60 AC2 (FR-OPEN-2): no host but CelesTrak, Open-Meteo and the page's own; the forecast is the zone city's.
@@ -109,36 +119,42 @@ for (const lang of LANGS) {
 
           // US-60 AC5: a reload with no place set shows the example again.
           await page.reload();
-          await expect(page.getByTestId('example-notice')).toContainText(w.label, { timeout: 60_000 });
+          await exampleShown(page, wide, w.example);
         });
       });
     }
   });
 }
 
-test.describe('from the example to a place (US-61, FR-OPEN-5, D-1230)', () => {
+test.describe('from the example to a place (US-61, FR-OPEN-5, FR-LAND-4, D-1238)', () => {
   test.use({ timezoneId: ZONE, locale: 'en-GB' });
 
   for (const viewport of SIZES) {
-    test(`at ${size(viewport)} the line's control opens the place group on the settings page, and a place set there is kept`, async ({ page }) => {
+    test(`at ${size(viewport)} change opens the place dialog, and a place set there closes it and is kept`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await open(page);
-      await page.getByTestId('example-notice-set').click({ timeout: 60_000 });
-      await expect(page).toHaveURL(/#settings$/);
-      const disclosure = page.getByTestId('coords-disclosure');
-      if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
-      await page.getByLabel(LABEL.en.coords).fill(PAIR);
-      const go = page.getByRole('button', { name: 'continue' });
-      if (await go.isVisible()) await go.click();
+      // A desk's change is the header's; a phone's live page has none until R219's sheet, so its list's head (#pass).
+      if (viewport.width < 964) {
+        await page.evaluate(() => {
+          location.hash = '#pass';
+        });
+      }
+      await page.getByTestId('place-change').first().click({ timeout: 60_000 });
+      const dialog = page.getByTestId('place-dialog');
+      await expect(dialog).toBeVisible();
+      // The dialog's coordinates are open, and a typed pair waits for its continue (D-1275).
+      await dialog.getByLabel(LABEL.en.coords).fill(PAIR);
+      await dialog.getByTestId('place-dialog-continue').click();
       await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { observer?: unknown }).observer ?? null), { timeout: 30_000 }).not.toBeNull();
-      await expect(page.getByTestId('example-notice')).toHaveCount(0);
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByTestId('place-line').first()).toHaveAttribute('data-place', 'set');
     });
   }
 });
 
 /**
  * FR-OPEN-6 (US-60 AC4) as R212 leaves it: with no city for the zone the live page asks for a place in place of
- * the sky, and its control opens the settings page's place group (D-1230); R215 makes that the place dialog.
+ * the sky, and its control opens the place dialog (R215, D-1238).
  */
 test.describe('when there is no example (FR-OPEN-6)', () => {
   for (const viewport of SIZES) {
@@ -150,9 +166,9 @@ test.describe('when there is no example (FR-OPEN-6)', () => {
         await expect(page).toHaveURL(/#live$/);
         const ask = page.getByTestId('live-set-place');
         await expect(ask).toBeVisible({ timeout: 60_000 });
-        await expect(page.getByTestId('example-notice')).toHaveCount(0);
         await ask.click();
-        await expect(page).toHaveURL(/#settings$/);
+        await expect(page.getByTestId('place-dialog')).toBeVisible();
+        await expect(page).toHaveURL(/#live$/);
       });
     });
   }

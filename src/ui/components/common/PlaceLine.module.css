@@ -1,0 +1,26 @@
+/* R215 (FR-LAND-4, D-1238): one line, never wrapped; the name gives (an ellipsis), `· example` and `change` do not.
+   Two cells before `change` (`Salta · example  change`). */
+.line {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.example {
+  flex: 0 0 auto;
+  color: var(--fg-dim);
+}
+
+.change {
+  flex: 0 0 auto;
+  margin-inline-start: calc(2 * var(--cell));
+}

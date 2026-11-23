@@ -75,12 +75,12 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
   });
 
-  test('the title and the two controls are drawn on one line (FR-COMP-1, D-501)', async ({ page }) => {
+  test('the three tabs are drawn on one line (FR-COMP-1 as amended, FR-LAND-6, D-501)', async ({ page }) => {
     await seedStoredRun(page);
-    const header = page.getByTestId('header');
-    const [title, live, settings] = await Promise.all([textLine(header.getByText('Your sky', { exact: true })), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
-    expect(live).toEqual(title);
-    expect(settings).toEqual(title);
+    // R215: the compact row is the mark and the three tabs; the short title left it.
+    const [current, live, settings] = await Promise.all([textLine(page.getByTestId('pass-link')), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
+    expect(live).toEqual(current);
+    expect(settings).toEqual(current);
   });
 
   test('the settings page has the one-line [ ← ] row: its name and the place (FR-FLOW-3, D-845)', async ({ page }) => {
@@ -100,8 +100,8 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await page.getByTestId('settings-link').click();
     await page.getByRole('button', { name: 'Español' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
-    // R129 (FR-COMP-7, D-845): the header's `[ ← ]`, named Volver.
-    await expect(page.getByTestId('settings-back')).toHaveText('←');
+    // R215 (FR-CTRL-5): the header's `← volver`, named Volver.
+    await expect(page.getByTestId('settings-back')).toHaveText('← volver');
     await expect(page.getByTestId('settings-back')).toHaveAccessibleName('Volver');
     await page.getByTestId('settings-back').click();
     // Back to the page settings was opened from: the satellites page (R212).
@@ -362,14 +362,18 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     }
     expect(live.left).toBeGreaterThan(title.right);
     expect(settings.left).toBeGreaterThan(live.right);
-    // R166 (FR-CLEAN-14, D-1007): the current page is `BracketLink`'s dim `aria-current` span, as `[ settings ]` is on
-    // its own page, and the accent rule under it is gone.
-    const current = await page.getByTestId('pass-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, before: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
+    // R215 (FR-CTRL-5): the current page is an `aria-current` span in `--fg` over a 2 px accent rule 6 px under its
+    // words; the other tabs are dim words with no rule.
+    const current = await page.getByTestId('pass-link').evaluate((el: HTMLElement) => {
+      const style = getComputedStyle(el);
+      const other = getComputedStyle(el.nextElementSibling as HTMLElement);
+      return { tag: el.tagName, color: style.color, line: style.textDecorationLine, thickness: style.textDecorationThickness, offset: style.textUnderlineOffset, before: getComputedStyle(el, '::before').content, other: other.color, otherLine: other.textDecorationLine };
+    });
     expect(current.tag).toBe('SPAN');
-    expect(current.line).toBe('none');
+    expect(current).toMatchObject({ line: 'underline', thickness: '2px', offset: '6px', otherLine: 'none' });
     // R206 (FR-CTRL-6, D-1226): a link is its word, with nothing written before it.
     expect(current.before).toBe('none');
-    expect(current.color).not.toBe(current.accent);
+    expect(current.color).not.toBe(current.other);
     await expect(page.locator('a[href="#settings"]')).toHaveCount(1);
   });
 
