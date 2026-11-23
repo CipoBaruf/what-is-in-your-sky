@@ -14,7 +14,7 @@
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { isMeasureEvent, type MeasureEvent } from '../../src/model/measure';
-import { LABEL, NINE_DAYS_ON, openSettings, stubNetwork } from './liveHelpers';
+import { LABEL, NINE_DAYS_ON, stubNetwork } from './liveHelpers';
 import { NEUQUEN } from './observers';
 
 const GEOCODE = 'tests/fixtures/open-meteo/2026-09-02-cipolletti-geocode.json';
@@ -226,9 +226,16 @@ async function fullVisit(page: Page, context: BrowserContext, bodies: readonly s
   // The elements are cached as they arrive; "before" is the page once both groups are in, with and without the measurement.
   await expect.poll(async () => ((await kept(page, context)) as { idb: Record<string, string[]> }).idb['wiys/elementGroups']).toEqual(['stations', 'visual']);
   const before = await kept(page, context);
-  await openSettings(page);
+  // R212: the phone's live page has no header, so the settings page is reached by its address.
+  await page.evaluate(() => {
+    location.hash = '#settings';
+  });
+  await expect(page.getByTestId('location-actions')).toBeVisible({ timeout: 30_000 });
   await pickCipolletti(page);
   await expect(page.getByTestId('place-confirmation')).toBeVisible();
+  // The coordinates are behind their disclosure on the settings page.
+  const disclosure = page.getByTestId('coords-disclosure');
+  if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
   await page.getByLabel(LABEL.en.coords).fill(PAIR);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');

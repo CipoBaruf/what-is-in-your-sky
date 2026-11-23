@@ -44,11 +44,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 /**
- * R81 (FR-FIRST-10): the count line no longer names the place; the Where reading does, and the count line
- * says the search for it has finished.
+ * R81 (FR-FIRST-10): the count line no longer names the place, and says the search for it has finished. R212: the
+ * home's place line went with the home, so the place in use is read from what is saved.
  */
 async function expectListFor(page: Page, status: Locator, timeout: number): Promise<void> {
-  await expect(page.getByTestId('location-summary')).toHaveText(NEUQUEN_LABEL);
+  await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { observer?: { label?: string } }).observer?.label)).toBe(NEUQUEN_LABEL);
   await expect(status).toHaveText(/^\d+ visible passes in 72 h$/, { timeout });
 }
 

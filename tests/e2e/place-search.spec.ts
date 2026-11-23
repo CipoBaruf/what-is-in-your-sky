@@ -75,8 +75,8 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
 
   await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
-  await expect(page.getByTestId('cold-open')).toBeVisible();
+  // R212 (FR-LAND-6): with no place the satellites page asks for one, and the list waits for it.
+  await expect(page.getByTestId('pass-set-place')).toBeVisible();
   await expect(status).toHaveCount(0);
 
   // R52 (FR-COMP-2): the place field is on `#settings` at this width; the list it fills is back on the home screen.

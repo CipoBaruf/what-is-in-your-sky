@@ -86,12 +86,10 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   // are under 44 px wide; the targets are R134's (FR-FLOW-11), so this spec keeps the sheet it was written about.
   await savedDome(page);
   await page.goto('/#pass');
-  // R52 (FR-COMP-1): at 390 px the header's heading is the short title; the document title keeps the full one.
-  await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('Your sky');
-  // R87 (FR-FIRST-4 as amended v2.1, D-548): the first step shares its screen with the footer, so the footer
-  // there is the one-row `line` form. The attribution sentences are the stacked page's, asserted below.
-  await expect(page.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
-  await expect(page.getByRole('contentinfo')).toContainText('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
+  // R52 (FR-COMP-1): at 390 px the header's title is the short one; the document title keeps the full one. R212: the
+  // satellites page's header names the app in a line, the page's own heading being its name.
+  await expect(page.getByRole('banner')).toContainText('Your sky');
+  await expect(page.getByTestId('pass-set-place')).toBeVisible();
   await expectIdentity(page, 'r12-home-390.png');
 
   await homeWithPasses(page);
@@ -150,22 +148,13 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
     // controls are not — `checkVisibility` drops them, exactly as sequential focus does.
     Array.from(document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, summary, [tabindex="0"]')).filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
   );
-  // R52 (FR-COMP-1, FR-COMP-3): the compact home no longer holds the form. Its
-  // controls are the header's two links, the summary's `[ change ]`, the
-  // Now-panel badge and live link, the hero (open guide, cloud badge), two sort
-  // buttons, three night headings, ≥ 1 card × (open guide, badge) and 4 footer
-  // links (R102, FR-SHOW-8: glyphcss joined the three sources and the maker).
-  // The ones that moved are one tap away, and reached below.
-  expect(expected.length).toBeGreaterThanOrEqual(16);
+  // R212 (FR-LAND-6): the phone's satellites page holds no form. Its controls are the header's two links, the
+  // stripe, two sort buttons, the night headings, ≥ 1 card × (open guide, badge), the conditions and the footer's
+  // links. The ones that moved are one tap away, and reached below.
+  expect(expected.length).toBeGreaterThanOrEqual(10);
   // R32/R52: the header's two links open the order, and no preference control is on this screen.
-  // R76 (FR-FIRST-4): `[ change ]` is a button now — it opens the form in place rather than linking to #settings.
   // R92 (FR-A11Y-5): the skip link is the first stop, before the header.
-  // R156 (FR-PHONE-12): the three doors come before the Where reading on compact, so they follow the header and `[ change ]` follows them.
   expect(expected.slice(0, 3)).toEqual(['a:Skip to content', 'a:live', 'a:settings']);
-  expect(expected.slice(3, 6).map((c) => c.split(':')[0])).toEqual(['a', 'a', 'a']);
-  expect(expected[4]).toMatch(/^a:Stars/);
-  expect(expected[5]).toMatch(/^a:Live sky/);
-  expect(expected[6]).toBe('button:change');
   expect(expected).not.toContain('input:place');
   expect(expected).not.toContain('button:English');
   expect(expected).toContain('button:Soonest');
@@ -176,7 +165,7 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // Start from the top: a click on the title moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
   // R92 (FR-A11Y-5): the skip link is before the title, so this walk begins after it and meets it on the wrap.
   const walk = expected.slice(1);
-  await page.getByRole('banner').getByRole('heading', { level: 1 }).click();
+  await page.getByRole('banner').getByText('Your sky', { exact: true }).click();
   const reached: { control: string; ring: boolean }[] = [];
   for (const _step of walk) {
     await page.keyboard.press('Tab');
@@ -207,9 +196,8 @@ test('the Next ISS tag marks the next ISS pass; "best first" reorders the list a
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   await homeWithPasses(page);
   const hero = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
-  // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card, and its countdown is the Satellites door's (R130).
+  // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card. R212: the Satellites door's countdown went with the home.
   await expect(hero.getByTestId('next-tag')).toHaveText('Next ISS');
-  await expect(page.getByTestId('door-satellites-line').first()).toHaveText(/^Next \d\d:\d\d( \S+)? · in (\d+:)?\d\d?:\d\d$/);
   const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
   expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 

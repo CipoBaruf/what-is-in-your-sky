@@ -32,6 +32,9 @@ const DAY_MS = 86_400_000;
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 const mmss = (ms: number): string => `${String(Math.floor(ms / 60_000))}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}`;
 
+/* R212 (FR-LAND-6, D-1231): the whole list, with its conditions and readiness, is the phone's satellites page. */
+test.use({ viewport: { width: 390, height: 844 } });
+
 test.beforeEach(async ({ page }) => {
   await page.route('https://celestrak.org/**', async (route) => {
     const url = new URL(route.request().url());
@@ -50,8 +53,8 @@ test('at the R3 clock nothing is above 10°, so the table has no Up now row', as
   await page.clock.setFixedTime(t);
   await page.goto('/#pass');
   const table = page.getByTestId('conditions');
-  // R76 (FR-FIRST-1): with no place the page is the cold open, and the table waits for one.
-  await expect(page.getByTestId('cold-open')).toBeVisible();
+  // R212 (FR-LAND-6): with no place the satellites page asks for one, and the table waits for it.
+  await expect(page.getByTestId('pass-set-place')).toBeVisible();
   await expect(table).toHaveCount(0);
 
   await withSettings(page, async () => {
