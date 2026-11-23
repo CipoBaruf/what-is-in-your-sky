@@ -60,7 +60,7 @@
 | FR-CI-1..3 | `.github/workflows/ci.yml`, `captures.yml`, `tests/e2e/v1-captures.spec.ts` gate, `playwright.config.ts` workers, `e2e/liveHelpers.ts` `seedStoredRun` (D-195) |
 | FR-DESK-2 amended | `Header.tsx` wide row (D-184) |
 | FR-DESK-3 / FR-DESK-5 amended | `lib/layout.ts` `WIDE_SPLIT_MIN_CELLS`, `App.module.css`, `GuidePanel.tsx` `[ list ]`, `playwright.config.ts` `desktop-1024` (D-192) |
-| FR-WIN-3 / FR-LIVE-8 amended (true north) | `lib/declination.ts`, `components/live/compassHeading.ts`, `StatusStrip.tsx` (D-185; deleted by R219) |
+| FR-WIN-3 / FR-LIVE-8 amended (true north) | `lib/declination.ts`, `components/live/compassHeading.ts`, `StatusStrip.tsx` (D-185) |
 | FR-DOME-1 amended (fill) | `dome/camera.ts` (D-187) |
 | FR-LIVE-7 / FR-LEG-2 / FR-TRAJ-4 amended (the rail and the cut box, v1.2.1) | `screens/Live.tsx` and `Live.module.css` (the rail, the time row), `skychart/ChartFrame.tsx` + module (the measurement), `SkyChart.types.ts` `aside`, `stripe`, `boxAspect` and `stacked`, `dome/camera.ts` `DOME_BOX_ASPECT`, `lib/layout.ts` `fitBox` and `LIVE_TWO_COLUMN_MIN_PX`, `hooks/useMediaQuery.ts`, `lib/timeStripe.ts` (`labelEveryHours`, `keepLabels`); `tests/e2e/live-rail.spec.ts` (D-312..D-315, D-318, D-319, D-320); F-59 |
 | FR-DOME-1 amended (after a resize, v1.2.1) | `dome/SkyDome.tsx` layer keys, `tests/e2e/dome-resize.spec.ts` (D-316); F-60 |
@@ -73,7 +73,7 @@
 | FR-MOON-4 amended | `App.tsx` behind `MOON_LORE` (D-183) |
 | FR-FOL-1..3 (v1.2) | `screens/Live.tsx`, `components/live/FollowPhone.tsx`, `useFollowPhone.ts`, `state/slices/prefs.ts` `viewOverride` (D-276, D-277) |
 | FR-FOL-4/5 (v1.2) | `skychart/window/projection.ts` `groundState`, `SkyWindow.tsx`, `SkyWindow.module.css`, `i18n/{en,es}/window.ts` (D-278) |
-| FR-LIVE-8 amended (v1.2) | `useFollowPhone.ts` (heading path removed), `StatusStrip.tsx` declination on window mode (D-276; deleted by R219) |
+| FR-LIVE-8 amended (v1.2) | `useFollowPhone.ts` (heading path removed), `StatusStrip.tsx` declination on window mode (D-276) |
 | FR-WIN-4 / FR-WIN-5 amended (v1.2) | `window/orientationAccess.ts` request from the control, `state/slices/prefs.ts` `savedChartView` (D-277) |
 | FR-DOME-1 amended (ceiling at every size, v1.2) | `dome/camera.ts` `layoutFor` cell growth, `zoomWithinRaster`, `fitLayout`'s column count and `fitLayers`' one zoom, `camera.test.ts` size table, `tests/e2e/dome-fit.spec.ts` (D-279, D-290..D-294); F-54 |
 | FR-LIVE-7 amended (compact spacing, v1.2) | `screens/Live.module.css` `--live-row-gap`, `tests/e2e/live-compact.spec.ts` (D-281); F-55 |
@@ -135,7 +135,7 @@
 | FR-MARK-4 | `ui/components/common/Header.tsx` + `Header.module.css` (both rows, the tagline's padding), `ui/screens/Home.tsx` (the hero), `public/icon-192.png`, `public/icon-512.png`, `public/favicon.png`, `index.html`, `scripts/readme-hero.ts` (the lockup) (D-440, D-441) |
 | FR-MARK-7 / FR-X-6, FR-OFF-6 amended | `public/manifest.webmanifest` (unchanged bytes), `tests/deploy/manifest.test.ts`, `scripts/build-icons.ts` deleted (D-440) |
 | FR-WATCH-1, FR-WATCH-2 | `ui/screens/Live.tsx`, `state/slices/live.ts` (read, unchanged), `ui/components/passes/NextEventBlock.tsx`, `ui/components/mark/Mark.tsx`, `i18n/{en,es}/live.ts` (D-446) |
-| FR-WATCH-3 | `ui/components/live/StatusStrip.tsx` + module (deleted by R219: `screens/sky/live/Group.tsx`'s `LiveSkyRows`), `tests/styles/controlRows.test.ts` (FR-MOON-3 amended) |
+| FR-WATCH-3 | `ui/components/live/StatusStrip.tsx` + module, `tests/styles/controlRows.test.ts` (FR-MOON-3 amended) |
 | FR-WATCH-4, FR-WATCH-7 | `ui/screens/liveRows.ts`, `ui/screens/Live.tsx`, `ui/screens/Live.module.css` (D-447) |
 | FR-WATCH-5, FR-WATCH-6 | `lib/layout.ts` `scrubPlacement`, `LIVE_KEPT_ROWS_PX` re-derived, `ui/screens/Live.module.css`, `skychart/ChartFrame.tsx` + module (the `bottomOverlay` slot) (D-448, D-449) |
 | FR-WATCH-8 | `i18n/{en,es}/live.ts`, `i18n/{en,es}/ui.ts` |
