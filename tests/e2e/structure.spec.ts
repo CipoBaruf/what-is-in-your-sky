@@ -316,7 +316,8 @@ async function expectRingOutsideBox(back: Locator): Promise<void> {
   expect(covered, 'the ring covers none of the box').toBeLessThanOrEqual(0.1);
 }
 
-test("the header's Back keeps its box inside the ring, Settings at 360 px (FR-CTRL-17)", async ({ page }) => {
+// R215 (FR-CTRL-5): the header's `← back` has no box, so FR-CTRL-17's rule is the live page's Back's alone (below).
+test("the header's back draws no box, Settings at 360 px (FR-CTRL-5)", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await seedStoredRun(page, { settled: true });
   await page.evaluate(() => {
@@ -324,7 +325,9 @@ test("the header's Back keeps its box inside the ring, Settings at 360 px (FR-CT
   });
   const back = page.getByTestId('settings-back');
   await expect(back).toBeFocused();
-  await expectRingOutsideBox(back);
+  await expect(back).toHaveText('← back');
+  const borders = await back.evaluate((element) => [element, ...Array.from(element.querySelectorAll('*'))].map((el) => getComputedStyle(el).borderTopWidth));
+  for (const width of borders) expect(width).toBe('0px');
 });
 
 /**
