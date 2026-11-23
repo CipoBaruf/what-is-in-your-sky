@@ -58,7 +58,8 @@ test('FR-CTRL-15: a pressed row is picked — aria-pressed, the 2 px accent line
       const fg = getComputedStyle(probe).color;
       probe.remove();
       const line = getComputedStyle(el, '::before');
-      const name = el.querySelector('[class*="nameText"]');
+      // R219: the wide live legend is `Up now`'s up-only form, whose name is its `.name` cell.
+      const name = el.querySelector('[class*="nameText"]') ?? el.querySelector('[class*="name"]');
       return { width: line.borderLeftWidth, colour: line.borderLeftColor, content: line.content, accent, fg, name: name ? getComputedStyle(name).color : '' };
     });
   expect((await look()).content).toBe('none');
