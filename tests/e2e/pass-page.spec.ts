@@ -118,16 +118,16 @@ for (const [width, height] of SIZES) {
             await play.scrollIntoViewIfNeeded();
             await expect(play).toBeInViewport({ ratio: 1 });
           }
-          await rail.locator('article[aria-current]').scrollIntoViewIfNeeded();
-          await expect(rail.locator('article[aria-current]')).toBeInViewport();
+          await rail.locator('article[data-selected]').scrollIntoViewIfNeeded();
+          await expect(rail.locator('article[data-selected]')).toBeInViewport();
           const rows = rail.locator('article[data-pass-id]');
           const first = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
           const ids = await rows.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
           expect(ids.length).toBeGreaterThan(1);
           // Tonight's: every row inside the 24 h from now (D-1135), the open pass the marked one.
           for (const id of ids) expect(startOf(id), id).toBeLessThanOrEqual(NINE_DAYS_ON + LIVE_WINDOW_MS);
-          await expect(rail.locator('article[aria-current]')).toHaveCount(1);
-          await expect(rail.locator(`article[data-pass-id="${first}"]`)).toHaveAttribute('aria-current', 'true');
+          await expect(rail.locator('article[data-selected]')).toHaveCount(1);
+          await expect(rail.locator(`article[data-pass-id="${first}"]`)).toHaveAttribute('data-selected', 'true');
           // No home in between: every hash the page passes through, and whether the home's main was ever mounted.
           await page.evaluate(() => {
             const w = window as unknown as { hashes: string[]; homeSeen: boolean };
@@ -147,7 +147,7 @@ for (const [width, height] of SIZES) {
           }
           await expect(page).toHaveURL(new RegExp(`#pass=${second}$`));
           await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', second);
-          await expect(rail.locator(`article[data-pass-id="${second}"]`)).toHaveAttribute('aria-current', 'true');
+          await expect(rail.locator(`article[data-pass-id="${second}"]`)).toHaveAttribute('data-selected', 'true');
           const seen = await page.evaluate(() => {
             const w = window as unknown as { hashes: string[]; homeSeen: boolean };
             return { hashes: w.hashes, homeSeen: w.homeSeen };
