@@ -6,14 +6,9 @@
  * test here reads its own viewport and asserts the layout that width is meant
  * to have, so the pair is one file and not two.
  *
- * R76 (FR-FIRST-5, D-444): from `HOME_THREE_PANE_MIN_PX` (1118) the wide home
- * is three panes, and an open pass takes the first two with the list kept in
- * the third — so at 1280 px, and at the split literal itself, what used to be
- * D-253's split is the pane layout, and those branches ask for that instead.
- * The 1024 px project runs every branch it ran before, unchanged.
- *
- * R186 (FR-WIDE-1, D-1098): an open pass on wide is the desk shell in the home's place at every desk width, so the
- * split, the `[ list ]` swap and the panes' guide are gone from here; `sky-layout.spec.ts` measures the shell.
+ * R186 (FR-WIDE-1, D-1098): an open pass on wide is the desk shell at every desk width. R212 (FR-LAND-1,
+ * FR-LAND-6): the home is gone, so the page these read is the satellites page, `#pass`, which settles on the pass
+ * up now or next; `sky-layout.spec.ts` measures the shell.
  *
  * What only a browser can answer is why these are here at all: what `1ch`
  * really measures (F-10), how tall a list is against a real viewport (F-9),
@@ -21,7 +16,7 @@
  * implements none of the three.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { listSettled, seedStoredRun } from './liveHelpers';
 
 /** A describe whose tests seed the page themselves (in their own language) and skip the file's English seed. */
@@ -39,19 +34,17 @@ async function cellPx(page: Page): Promise<number> {
   });
 }
 
-/** The width this project runs at, and whether the three panes (D-444) are meant to be on at it — which, since they start under D-253's split, is what the split's widths are now too. */
-function viewport(page: Page): { width: number; height: number; panes: boolean } {
+/** The height this project runs at. */
+function viewportHeight(page: Page): number {
   const size = page.viewportSize();
   if (!size) throw new Error('this project has no viewport');
-  return { ...size, panes: size.width >= HOME_THREE_PANE_MIN_PX };
+  return size.height;
 }
 
-async function openTheGuide(page: Page): Promise<void> {
-  await page
-    .getByRole('button', { name: /Open guide/ })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/#pass=/);
+/** R212 (FR-LAND-6, D-1134): the satellites page on wide settles on the pass up now or next. */
+async function onThePassPage(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/#pass=/, { timeout: 30_000 });
+  await expect(page.getByTestId('pass-layout')).toBeVisible({ timeout: 30_000 });
 }
 
 test.beforeEach(async ({ page }, info) => {
@@ -75,33 +68,22 @@ test('the cell is measured, not assumed: the breakpoint is at least its cells at
   const advanceEm = cell / BASE_FONT_PX;
   expect(Object.values(CELL_ADVANCE_EM).some((known) => Math.abs(known - advanceEm) < 0.005), `${String(advanceEm)} em is a font the advance table does not know`).toBe(true);
 
-  // The two literals, in this browser's own cells (R186 retired the split's).
+  // The literal, in this browser's own cells (R186 retired the split's, R212 the three panes').
   expect(WIDE_MIN_PX / cell).toBeGreaterThanOrEqual(WIDE_CELLS);
-  expect(HOME_THREE_PANE_MIN_PX / cell).toBeGreaterThanOrEqual(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS);
-  // And the page really is in the wide shell at this project's width: two columns, or from the
-  // three-pane literal three panes (R76), each to the right of the one before.
-  const { width, panes } = viewport(page);
-  expect(width).toBeGreaterThanOrEqual(WIDE_MIN_PX);
-  const ids = panes ? ['reading-where', 'reading-when', 'list-column'] : ['col-left', 'col-right'];
-  const boxes = await Promise.all(ids.map((id) => page.getByTestId(id).boundingBox()));
-  for (const [i, box] of boxes.entries()) {
-    if (!box) throw new Error(`${ids[i] ?? ''} is not laid out`);
-    const before = boxes[i - 1];
-    if (before) expect(box.x).toBeGreaterThan(before.x + before.width - 1);
-  }
+  // And the page really is in the wide shell at this project's width: the desk shell with its rail.
+  expect(page.viewportSize()?.width ?? 0).toBeGreaterThanOrEqual(WIDE_MIN_PX);
+  await onThePassPage(page);
+  await expect(page.getByTestId('pass-layout').locator('[data-slot="list"]')).toBeVisible();
 });
 
 /**
  * R186 (FR-WIDE-1, D-1098; amends FR-DESK-3, retires F-6's split and D-444's panes for an open pass): on wide an
- * open pass is the desk shell in the home's place — the home's columns and panes unmounted, the pass list in the
- * rail with the card highlighted — at every desk width, and the page does not scroll sideways.
+ * open pass is the desk shell — the pass list in the rail with the card highlighted — at every desk width, and the
+ * page does not scroll sideways.
  */
-test("an open pass is the desk shell in the home's place, the list in its rail (FR-WIDE-1)", async ({ page }) => {
-  await openTheGuide(page);
-  const layout = page.getByTestId('pass-layout');
-  await expect(layout).toBeVisible({ timeout: 30_000 });
-  for (const id of ['col-left', 'col-right', 'reading-where', 'reading-when']) await expect(page.getByTestId(id)).toHaveCount(0);
-  const list = layout.locator('[data-slot="list"]');
+test('an open pass is the desk shell, the list in its rail (FR-WIDE-1)', async ({ page }) => {
+  await onThePassPage(page);
+  const list = page.getByTestId('pass-layout').locator('[data-slot="list"]');
   await expect(list.locator('article[data-pass-id][data-selected="true"]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with a pass open').toBeLessThanOrEqual(1);
 });
@@ -112,33 +94,15 @@ test("an open pass is the desk shell in the home's place, the list in its rail (
  * scrolling. It is the shell's height now (D-119), which is a fact about a
  * viewport and exists nowhere in the DOM.
  */
-test('the list is as tall as the shell and no taller, with a pass open and without (F-9)', async ({ page }) => {
-  const { height } = viewport(page);
-  const list = page.getByTestId('list-column');
-
-  const listFitsTheScreen = async (state: string): Promise<void> => {
-    const box = await list.boundingBox();
-    if (!box) throw new Error(`the list is not laid out ${state}`);
-    expect(box.y + box.height, `the list overflows the viewport ${state}`).toBeLessThanOrEqual(height + 1);
-    // The page itself does not scroll: the list does (D-119).
-    expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), `the page scrolls ${state}`).toBeLessThanOrEqual(1);
-    expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight), `the list is not the one scrolling ${state}`).toBe(true);
-  };
-
-  // The recompute replaces the stored list as it streams in, and would fold the nights opened below.
+test('the list is as tall as the shell and no taller (F-9)', async ({ page }) => {
+  const height = viewportHeight(page);
+  await onThePassPage(page);
   await listSettled(page);
-  // FR-FIRST-11 as amended v2.6 (R130): the Where pane has no dome at any width; the Both door does its job.
-  await expect(page.getByTestId('reading-where').getByTestId('where-dome')).toHaveCount(0);
-  await expect(page.getByTestId('door-live')).toHaveAttribute('href', '#live');
-  // The one-line cards (FR-FIRST-10) leave tonight alone shorter than a laptop's list: every night open, as a
-  // reader planning the three would have them, is the list this is about.
-  const closed = page.locator('[data-testid="night-toggle"][aria-expanded="false"]');
-  while ((await closed.count()) > 0) await closed.first().click();
-  await listFitsTheScreen('with no pass open');
-  // R186 (FR-WIDE-1): with a pass open the list is the desk shell's rail, and the page still does not scroll.
-  await openTheGuide(page);
-  await expect(page.getByTestId('pass-layout')).toBeVisible({ timeout: 30_000 });
-  expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), 'the page scrolls with a pass open').toBeLessThanOrEqual(1);
+  const box = await page.getByTestId('pass-layout').locator('[data-slot="list"]').boundingBox();
+  if (!box) throw new Error('the list is not laid out');
+  expect(box.y + box.height, 'the list overflows the viewport').toBeLessThanOrEqual(height + 1);
+  // The page itself does not scroll (D-119).
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), 'the page scrolls').toBeLessThanOrEqual(1);
 });
 
 /**
@@ -177,7 +141,7 @@ test('the shortcuts overlay gives focus back to the card, and leaves j to the br
 
 /**
  * R166 (FR-CLEAN-12, FR-HOME-4 as amended v2.11; D-1003): one width on a desk. At 1920 and 2560 px every page — the
- * live page, the stars page, the pass detail and the settings page, as the home — holds `HOME_MAX_CELLS` and is
+ * live page, the stars page, the pass detail and the settings page — holds `HOME_MAX_CELLS` and is
  * centred: each of its rows (the header, `main`, the footer where it has one; the live page's grid, which holds its
  * own landmarks) is 160 cells wide and stands in the middle of the viewport, and the sky's box stands inside it. At
  * 1280 px, under the cap, nothing moves: every row is the viewport's width. Both languages; the 1280 project only
@@ -188,12 +152,9 @@ const DESK_PAGES: readonly DeskPage[] = ['live', 'stars', 'pass', 'settings'];
 
 async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): Promise<void> {
   await seedStoredRun(page, { locale, settled: true });
+  // R212 (FR-LAND-6, D-1134): the seed leaves the page on the satellites page, which settles on the next pass.
   if (target === 'pass') {
-    await page
-      .getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ })
-      .first()
-      .click();
-    await expect(page.getByTestId('guide-panel')).toBeVisible();
+    await expect(page).toHaveURL(/#pass=/, { timeout: 30_000 });
     await expect(page.getByTestId('pass-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
     return;
   }
@@ -270,72 +231,3 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
   }
 });
 
-/**
- * R166 (FR-CLEAN-16, D-1017): on a desk the three doors are the home's main navigation and look it. Each title is
- * a pane heading's size (`--text-pane`, 20 px), its lines the body's (`--text-body`, 16 px), the frame a control's
- * edge (`--border-control`); on hover the frame and the title take the accent. The 1280 project only.
- */
-test.describe('FR-CLEAN-16: the doors stand out on a desk', { tag: SEEDS_ITSELF }, () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
-  test('pane-sized titles, body-sized lines, a control frame, the accent on hover', async ({ page }, info) => {
-    test.skip(info.project.name !== 'chromium', 'the size is this test’s own: the 1024 project has nothing to add');
-    await seedStoredRun(page, { settled: true });
-    /** A token resolved to the colour the browser computes, so it compares with a computed style. */
-    const token = (name: string) =>
-      page.evaluate((property) => {
-        const probe = document.createElement('span');
-        probe.style.color = `var(${property})`;
-        document.body.append(probe);
-        const value = getComputedStyle(probe).color;
-        probe.remove();
-        return value;
-      }, name);
-    const [edge, accent, fg] = await Promise.all([token('--edge'), token('--accent'), token('--fg')]);
-    for (const id of ['door-satellites', 'door-stars', 'door-live']) {
-      const door = page.getByTestId(id);
-      await expect(door).toBeVisible();
-      const title = door.locator('span').first();
-      const look = () =>
-        door.evaluate((el) => {
-          const [first, second] = [el.children[0], el.children[1]];
-          if (!first || !second) throw new Error('the door has no title and line');
-          const box = getComputedStyle(el);
-          return { frame: box.borderTopColor, width: box.borderTopWidth, title: getComputedStyle(first).fontSize, titleColour: getComputedStyle(first).color, line: getComputedStyle(second).fontSize };
-        });
-      const rest = await look();
-      expect(rest.title, `${id}'s title`).toBe('20px');
-      expect(rest.line, `${id}'s line`).toBe('16px');
-      expect(rest.frame, `${id}'s frame at rest`).toBe(edge);
-      expect(rest.titleColour, `${id}'s title at rest`).toBe(fg);
-      await title.hover();
-      await expect.poll(async () => (await look()).frame, `${id}'s frame on hover`).toBe(accent);
-      expect((await look()).titleColour, `${id}'s title on hover`).toBe(accent);
-    }
-  });
-
-  // D-1017: a body-sized line does not fit a third of a narrow desk, so it wraps rather than being cut, and the
-  // three boxes stay as tall as the tallest.
-  for (const width of [964, 1024, 1118, 1280]) {
-    for (const locale of ['en', 'es'] as const) {
-      test(`at ${String(width)} px in ${locale} no door line is cut and the three boxes are one height`, async ({ page }, info) => {
-        test.skip(info.project.name !== 'chromium', 'the sizes are this test’s own');
-        await page.setViewportSize({ width, height: 800 });
-        await seedStoredRun(page, { locale, settled: true });
-        await expect(page.getByTestId('door-stars-line')).toHaveCount(3);
-        await expect(page.locator('[data-testid^="door-"][data-pending]')).toHaveCount(0);
-        const doors = await page.evaluate(() =>
-          ['door-satellites', 'door-stars', 'door-live'].map((id) => {
-            const door = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
-            if (!door) throw new Error(`${id} is not on the page`);
-            const cut = [...door.querySelectorAll<HTMLElement>(`[data-testid="${id}-line"]`)].filter((line) => line.scrollWidth > line.clientWidth + 1).map((line) => line.textContent);
-            return { id, cut, height: door.getBoundingClientRect().height };
-          }),
-        );
-        for (const door of doors) expect(door.cut, `${door.id} cuts a line`).toEqual([]);
-        const heights = doors.map((door) => door.height);
-        expect(Math.max(...heights) - Math.min(...heights), 'the three boxes differ in height').toBeLessThanOrEqual(1);
-      });
-    }
-  }
-});
