@@ -362,7 +362,7 @@ export function App() {
         title={title}
         banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
         barInert={helpOpen}
-        beforeMain={<PageNotices kinds={NO_NOTES} visit={false} example={mode === 'wide'} inert={helpOpen} />}
+        beforeMain={<PageNotices kinds={NO_NOTES} visit={false} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
         {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
         after={overlay}

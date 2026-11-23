@@ -124,15 +124,6 @@
   pointer-events: auto;
 }
 
-/* R203 (FR-OPEN-7, D-1205): the example's line, a group gap under the head's target row, across the box. */
-.example {
-  position: absolute;
-  inset-block-start: calc(var(--space-1) + var(--target) + var(--space-1));
-  inset-inline: var(--space-3);
-  pointer-events: auto;
-  color: var(--fg-dim);
-}
-
 /* The door's line in the head: `--small` in the dim ink, one line, which the head cuts with an ellipsis at its end. */
 .headLine {
   margin: 0;

@@ -84,16 +84,6 @@
   pointer-events: auto;
 }
 
-/* R203 (FR-OPEN-7, D-1205): the example's line, across the box under the corner readout's two `--small` lines, which
-   stand under the head's row (below), a `--space-1` apart. */
-.example {
-  position: absolute;
-  inset-block-start: calc(3 * var(--space-1) + var(--target) + 2 * var(--small-row));
-  inset-inline: var(--space-3);
-  pointer-events: auto;
-  color: var(--fg-dim);
-}
-
 /* One line that does not wrap; the head cuts its end — the chip — with an ellipsis. */
 .headLine {
   margin: 0;
