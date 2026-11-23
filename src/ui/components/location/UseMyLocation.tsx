@@ -4,6 +4,7 @@ import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import type { MeasureDetail } from '../../../model/measure';
 import { count } from '../../../state/measure';
+import { StatusLine } from '../primitives/StatusLine';
 import { TextButton } from '../primitives/TextButton';
 import { coordsLabel } from './CoordsInput';
 import styles from './UseMyLocation.module.css';
@@ -12,8 +13,10 @@ import styles from './UseMyLocation.module.css';
  * FR-LOC-1 (c), US-3: one button that asks the Geolocation API once. It is
  * rendered only when the API exists and the page is a secure context (the
  * API refuses otherwise, US-3 AC1); denial and the other failures show a
- * message next to the button and touch nothing else, so the place and
- * coordinate inputs stay usable (AC2). The environment is a prop so tests
+ * message under the button and touch nothing else, so the place and
+ * coordinate inputs stay usable (AC2). R218 (FR-CTRL-4, FR-CTRL-17): the
+ * button keeps its label and box while the device answers (`busy`), and the
+ * progress and the failure are one `StatusLine` under it. The environment is a prop so tests
  * can supply a fake API; the app uses the browser's.
  */
 export interface GeolocationEnv {
@@ -104,7 +107,8 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
     );
   };
 
-  const label = locating ? t.location.locating : t.location.useMyLocation;
+  // R218 (FR-CTRL-4, US-65 AC3): the label never changes, so the box keeps its width before, during and after.
+  const label = t.location.useMyLocation;
   return (
     <div className={primary ? `${styles.field} ${styles.primary}` : styles.field} data-testid={primary ? 'use-my-location-primary' : undefined}>
       {primary ? (
@@ -112,17 +116,13 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
         // are one control, so the note is as much a place to tap as the words. The name stays the label alone
         // and the note is its description, as they were when the note sat under the button. R104 (D-704): the
         // box, the note and the two looks are `TextButton`'s.
-        <TextButton box="accent" fill note={t.location.useMyLocationNote} look={look} label={label} aria-label={label} onClick={locate} disabled={locating} aria-busy={locating} />
+        <TextButton box="accent" fill note={t.location.useMyLocationNote} look={look} label={label} aria-label={label} onClick={locate} busy={locating} />
       ) : (
-        // R104: the plain `[ label ]` control. Its bordered form was reachable only through the settings page's
-        // device row, which restyled it to this; the primitive renders the text control and that override is gone.
-        <TextButton label={label} className={styles.device} onClick={locate} disabled={locating} aria-busy={locating} />
+        <TextButton label={label} className={styles.device} onClick={locate} busy={locating} />
       )}
-      {error && (
-        <p role="alert" className={styles.error}>
-          {error}
-        </p>
-      )}
+      {/* FR-CTRL-4: the progress words go under the control, never into its label; FR-CTRL-17: a failure in the same place. */}
+      {locating && <StatusLine tone="progress">{t.location.locating}</StatusLine>}
+      {error !== null && <StatusLine tone="failure">{error}</StatusLine>}
     </div>
   );
 }

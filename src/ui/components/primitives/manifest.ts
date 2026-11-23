@@ -161,6 +161,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
   entry<CloseOwnProps>('Close', 'The one close or dismiss, a bare × the host places at the top-right corner of what it closes; a declined offer is a TextButton.', ['rest', 'hover', 'focus'], {
     onClose: { type: '() => void', text: 'What closes.' },
     label: { type: 'string', text: 'The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”.' },
+    danger: { type: 'boolean', text: 'A removal (a saved place’s ×): the glyph in --danger on hover.' },
     className: PLACEMENT,
   }),
   entry<PickRowOwnProps>('PickRow', 'A row or card that opens or picks something from a set: no frame, the raised ground under the pointer, the accent line at the picked one’s left.', ['rest', 'hover', 'focus', 'picked', 'disabled'], {

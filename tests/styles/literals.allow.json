@@ -43,10 +43,6 @@
     "count": 2,
     "reason": "R110 (D-736): 2 the sheet names — the readout's 1.25rem (--text-heading), the offset's 1rem (--text-body)."
   },
-  "src/ui/components/location/UseMyLocation.module.css": {
-    "count": 1,
-    "reason": "R110 (D-736): 1 off the scale — the row's 0.5rem gap (OQ-37)."
-  },
   "src/ui/components/mark/Mark.module.css": {
     "count": 2,
     "reason": "R110 (D-736): 2 stay — 'WIYS Braille', the generated braille face the mark's @font-face declares and its stack leads with (D-737)."
