@@ -269,7 +269,7 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   `ZOOM_WHEEL_RATE` is ln 1.25 / 100, so a notch is `ZOOM_KEY_FACTOR` and one event moves a notch at most, as the globe's wheel; the keys keep 1.25 and three `+` still read 30°. The pinch stays the fingers' own ratio, clamped to the same range.
 - **D-1273 — The row is reserved on every wide view, and the hint's key is the zooming views'.** *(R214)*
   (FR-CTRL-9, D-1241, FR-WIDE-1, FR-WIDE-10.) The box is a `--target` shorter on every view, so a change of view moves no edge of it; the row hangs inside the drawing's element, so full screen keeps the keys, there over the box's foot with the hint a row higher.
-  Under 440 px of window (27.5rem; the matrix's 964 × 420) the reserved row would leave the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`, so there the box keeps its height and the row stands over its foot as when full.
+  At 964 × 420 the reserved row left the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`; so at `SIDEWAYS_MAX_HEIGHT_PX` (500) and below, the short-wide rows and the landscape phone, the box keeps its height and the row stands over its foot as when full, the one existing height fold rather than a fourth (FR-DS-3).
   `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,

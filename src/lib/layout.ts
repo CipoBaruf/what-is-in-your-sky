@@ -171,7 +171,8 @@ export const HEADER_FOLD_PX = { en: { tagline: 675 }, es: { tagline: 656 } } as 
  * - `SIDEWAYS_MAX_HEIGHT_PX`, 500: the landscape phone (FR-SHP-1, FR-WATCH-5,
  *   D-173), below as `LANDSCAPE_PHONE_QUERY` with its orientation.
  *   `global.css` lifts the compact column's cap from the live page and
- *   `Live.module.css` lays the page out as two panes.
+ *   `Live.module.css` lays the page out as two panes. R214 (D-1273):
+ *   `SkyViewLayout.module.css` stands the zoom's row over the box's foot.
  */
 export const SHORT_MAX_HEIGHT_PX = 700;
 export const WIDE_SHORT_MAX_HEIGHT_PX = 720;

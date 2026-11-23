@@ -364,9 +364,9 @@
   inset-block-end: var(--target);
 }
 
-/* R214 (D-1273, FR-SHP-3): under 440 px of window the reserved row would cut the box under
+/* R214 (D-1273, FR-SHP-3): in a short window (`SIDEWAYS_MAX_HEIGHT_PX`) the reserved row would cut the box under
    `LIVE_BOX_MIN_PX` (170 px at 964 × 420), so there the box keeps its height and the row stands over its foot, as full. */
-@media (max-height: 27.5rem) {
+@media (height <= 500px) {
   .layout[data-shape='rail'] .drawing {
     height: 100%;
   }
