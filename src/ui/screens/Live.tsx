@@ -1068,7 +1068,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       <ControlsSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        place={observer.label}
         beside={followControl}
         className={styles.controls}
         // R216 (FR-NOW-1, D-1239): the wide rail's groups in its order; the strip itself stands over the sky.

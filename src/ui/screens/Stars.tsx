@@ -704,7 +704,7 @@ function StarsSky({ observer }: { observer: Observer }) {
       </>
     );
     const sheet = (
-      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
+      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
         {viewRow}
         {sensor && (
           <div className={styles.follow} data-testid="stars-follow" data-rhythm="group">
