@@ -105,6 +105,26 @@ describe('<PlaceDialog> (FR-LAND-4, D-1238)', () => {
     expect(appStore.getState().observer).toBeNull();
     page.remove();
   });
+
+  it('Esc with the suggestions open closes the list, not the dialog; a second Esc leaves (F-7)', async () => {
+    const user = userEvent.setup();
+    const onDocument = vi.fn();
+    document.addEventListener('keydown', onDocument);
+    const { onClose, page } = open();
+    const box = screen.getByRole('combobox', { name: 'Place name' });
+    await user.type(box, 'Cipolletti{Enter}');
+    await screen.findByRole('option');
+    expect(box).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(box).toHaveAttribute('aria-expanded', 'false');
+    expect(box).toHaveValue('Cipolletti');
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onDocument).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', onDocument);
+    page.remove();
+  });
 });
 
 describe('requestPlace() (D-1238)', () => {

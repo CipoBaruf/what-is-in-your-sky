@@ -70,8 +70,12 @@ export function PlaceDialog({ onClose, search = searchPlaces, geolocation }: Pla
       made.push(child);
     }
     // `Esc` leaves, before any page's own `Esc` (the window's capture phase); the page's keys do not act behind it.
+    // With a field's own list open in the dialog (the search's suggestions, F-7) the key is that field's: it goes on to
+    // the field, which closes the list and stops it, and `onKey` below keeps it from the page either way.
     const onEscape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      const target = event.target;
+      if (target instanceof Element && root?.contains(target) && target.getAttribute('aria-expanded') === 'true') return;
       event.preventDefault();
       event.stopImmediatePropagation();
       closeRef.current();
