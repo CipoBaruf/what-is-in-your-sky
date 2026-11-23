@@ -269,8 +269,9 @@ function liveRows(page: Page): (readonly [string, Locator])[] {
     ['time readout', page.getByTestId('time-readout')],
     ['time stripe', page.getByTestId('time-stripe')],
     ['stepping row', page.getByTestId('step-controls')],
-    ['strip', page.getByTestId('status-strip')],
-    ...(['time', 'sky', 'cloud', 'count', 'moon'] as const).map((field) => [`strip ${field}`, page.getByTestId(`live-${field}`)] as const),
+    // R219 (FR-NOW-3): the status line is the `Clouds` and `Moon` rows.
+    ['strip', page.getByTestId('live-sky-rows')],
+    ...(['cloud', 'moon'] as const).map((field) => [`strip ${field}`, page.getByTestId(`live-${field}`)] as const),
     // R144 (FR-TONIGHT-6): the compact page's rows — the headline, the context line, the track and the taps.
     ['headline', page.getByTestId('live-headline')],
     ['context', page.getByTestId('live-context')],
@@ -306,7 +307,7 @@ function dropParts(found: Map<string, Rect>, container: string, parts: readonly 
   if (!found.has(container)) return;
   for (const part of parts) found.delete(part);
 }
-const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', 'strip moon'] as const;
+const STRIP_FIELDS = ['strip cloud', 'strip moon'] as const;
 
 /**
  * R101 (FR-JUMP-1, D-624): the rows where `[ see this pass ]` costs a text line, by row and language, with the

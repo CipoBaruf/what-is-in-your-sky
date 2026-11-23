@@ -31,7 +31,7 @@ test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-
 const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
-  const strip = await page.getByTestId('status-strip').boundingBox();
+  const strip = await page.getByTestId('live-sky-rows').boundingBox();
   const layers = await page.getByTestId('live-layers').boundingBox();
   if (!box || !strip || !layers) throw new Error('the page is not laid out');
   // R132 (D-864): the rail is the layout's, its first row the answer.

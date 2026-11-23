@@ -55,7 +55,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
     await expect(page.getByTestId('context-line')).toHaveText(/^ISS \(Zarya\) · peaks [NESW]{1,3} \d+:\d\d$/);
     // No conditions line and no clock field on this page any more; the Moon's phase is the list panel's Moon line.
-    await expect(page.getByTestId('status-strip')).toHaveCount(0);
+    await expect(page.getByTestId('live-sky-rows')).toHaveCount(0);
     await expect(page.getByTestId('live-moon')).toHaveCount(0);
     // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise. (The search
     // window starts at now, so the pass under way is listed from this instant and its id is not the golden one.)
@@ -129,7 +129,7 @@ test.describe('the live page', () => {
     await expect(inert).toHaveText('The live sky needs a place.set a place');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
-    await expect(page.getByTestId('status-strip')).toHaveCount(0);
+    await expect(page.getByTestId('live-sky-rows')).toHaveCount(0);
     // R212 (FR-LAND-1): the load's own page has nothing to go back to, so it draws no Back.
     await expect(page.getByTestId('live-back')).toHaveCount(0);
 
@@ -249,7 +249,7 @@ test.describe('the wide live page (R61)', () => {
    * stripe under that; the actions are the page group under it, and the conditions follow the legend in the list.
    */
   const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
-    const strip = await page.getByTestId('status-strip').boundingBox();
+    const strip = await page.getByTestId('live-sky-rows').boundingBox();
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
     // R216 (FR-NOW-1): `Layers` under `Time`, the conditions in `Up now` under it.
