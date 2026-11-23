@@ -183,7 +183,7 @@ export const ui = {
   location: {
     heading: 'Location',
     placeLabel: 'Place name',
-    placePlaceholder: 'e.g. Cipolletti',
+    placePlaceholder: 'e.g. Buenos Aires', // R218 (FR-CTRL-7)
     placeList: 'Matching places',
     searching: (query: string) => `Searching for “${query}”…`,
     noMatch: (query: string): LinkedText => ({ before: `No place matches “${query}”. Try another spelling, or `, link: coordsInstead, after: '.' }),

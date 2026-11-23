@@ -15,10 +15,6 @@
     "count": 1,
     "reason": "R209 (D-1229): the times row's cells; R221."
   },
-  "src/ui/components/location/PlacePicker.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the link to the coordinates in its sentence; R218."
-  },
   "src/ui/components/passes/OpenGuide.tsx": {
     "count": 1,
     "reason": "R209 (D-1229): the pass card's stretched button; R221 makes the card a PickRow."

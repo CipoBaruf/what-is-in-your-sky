@@ -6,25 +6,12 @@
   margin-bottom: var(--row);
 }
 
-/* The pick list flows under the field (never absolutely positioned, so it
-   cannot overflow a 390 px screen): the panel's 48 cells at most, the home
-   group's the field's whole width. Its rules are a listbox's row rules — not
-   dividers (R105, D-720) — written from the sheet. */
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: var(--border);
-  max-width: calc(48 * var(--cell));
-}
-
-.listFull {
-  width: 100%;
+/* R218 (FR-CTRL-7, US-65 AC4): the list is exactly the input's width at its left edge. The anchor is the field's row
+   under the input and takes the input's width: the column's in the home group, the panel's 32 cells (PlacePicker's
+   `PANEL_CELLS`) narrowed with the column there, as `Field`'s `.sized` narrows the input. The list fills the anchor. */
+.anchorPanel {
+  width: calc(32 * var(--cell));
   max-width: 100%;
-}
-
-.list[hidden] {
-  display: none;
 }
 
 /* D-1033: the list's anchor is a row of the field's grid only while the list shows; hidden, it takes no row and no gap. */
@@ -32,11 +19,28 @@
   display: none;
 }
 
+/* FR-CTRL-7: the list on the raised ground in a control's box, its corners `--radius-2`; it flows under the field on a
+   phone (never absolutely positioned, so it cannot overflow a 390 px screen). */
+.list {
+  box-sizing: border-box;
+  width: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: var(--border-control);
+  border-radius: var(--radius-2);
+  background: var(--bg-raised);
+  overflow: hidden;
+}
+
+.list[hidden] {
+  display: none;
+}
+
 /* D-1033 (the owner's call 2026-11-02, on a desk): on wide the pick list floats over what follows it, at its static
    place under the field, and scrolls inside itself past five rows, so a long answer never makes the page scroll.
-   On a phone it stays in the flow, as before. The field is a grid, and a grid's absolutely positioned child takes the
-   grid's top corner as its static place — over the input — so the list hangs from an anchor of no height, the
-   field's row under the input. */
+   The field is a grid, and a grid's absolutely positioned child takes the grid's top corner as its static place —
+   over the input — so the list hangs from an anchor of no height, the field's row under the input. */
 @media (width >= 964px) {
   .anchor {
     position: relative;
@@ -48,51 +52,57 @@
     top: 0;
     left: 0;
     z-index: var(--z-raised-2);
-    width: calc(48 * var(--cell));
-    max-height: calc(5 * (var(--tap) + var(--hairline)) + var(--tap) / 2);
+    max-height: calc(5.5 * var(--control-h));
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: var(--bg);
   }
 }
 
-/* G6: a row is two text rows (48 px at the 16 px base), above the 44 px tap target. */
+/* FR-CTRL-7: a row is the name in `--fg` and the region in `--fg-dim` on one line, no marker and no rule between
+   rows, at least `--target` tall on compact and a control's height where a pointer picks it; the active row is
+   FR-CTRL-2's block, `--on-ink` on `--on-ground`. */
 .option,
 .optionActive {
-  display: grid;
-  gap: 0;
-  min-height: var(--tap);
-  padding: 0 var(--cell);
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+  min-height: var(--target);
+  padding: 0 var(--control-pad);
+  white-space: nowrap;
   cursor: pointer;
-  border-bottom: var(--border);
 }
 
-.option:last-child,
-.optionActive:last-child {
-  border-bottom: 0;
+@media (width >= 964px) {
+  .option,
+  .optionActive {
+    min-height: var(--control-h);
+  }
 }
 
 .optionActive {
-  background: var(--bg-raised);
+  background: var(--on-ground);
+  color: var(--on-ink);
 }
 
-.name::before {
-  content: '> ';
-  color: var(--fg-dim);
+.name {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .region {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--fg-dim);
-  padding-left: calc(2 * var(--cell));
 }
 
-/* The status line is one of the field's rows; empty, it takes no row. */
-.status {
-  margin: 0;
+.optionActive .region {
+  color: var(--on-ink);
 }
 
-.status:empty {
+/* The status line is one of the field's rows; with no words (its one text span empty), it takes no row. */
+.status:has(> :only-child:empty) {
   display: none;
 }
-
-/* R91 (FR-FAIL-1): the failure line looks the same wherever it stands, so the search's is not coloured apart. */
