@@ -11,6 +11,7 @@
 /// <reference lib="dom" />
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { leaveSettings, openSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -26,6 +27,9 @@ declare global {
 const FIXTURE_DATE = '2026-09-02';
 const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const DAY_MS = 86_400_000;
+// R212 (FR-LAND-6, D-1230): the list is the phone's satellites page and the place is typed on the settings page.
+test.use({ viewport: { width: 390, height: 844 } });
+
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 const PARIS = '48.86, 2.35';
 const WORKER_DELAY_MS = 1_500;
@@ -64,7 +68,9 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   await page.goto('/#pass');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   const input = page.getByLabel('Coordinates · e.g. -38.93, -67.99');
+  await openSettings(page);
   await input.fill(NEUQUEN);
+  await leaveSettings(page);
 
   // Main thread free while the worker is still loading: status says computing, no cards yet, input still editable.
   await expect(status).toHaveText(/Computing passes…/);
@@ -79,9 +85,11 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toBeVisible();
 
   // Change the location while the first job is streaming.
+  await openSettings(page);
   await input.fill(PARIS);
   const neuquenIds = new Set((await page.evaluate(() => window.__cardLog ?? [])).flat());
   expect(neuquenIds.size).toBeGreaterThan(0);
+  await leaveSettings(page);
 
   await expect(status).toHaveText(new RegExp(`\\d+ visible passes in 72 h`), { timeout: 30_000 });
   const finalIds = await page.locator('article[data-pass-id]').evaluateAll((els) => els.map((el) => el.getAttribute('data-pass-id')));

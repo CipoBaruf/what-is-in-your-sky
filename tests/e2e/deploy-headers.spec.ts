@@ -86,6 +86,8 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
     await route.fulfill({ path: 'tests/fixtures/open-meteo/2026-09-02-neuquen-forecast.json', contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
   });
 
+  // R212 (FR-LAND-6, D-1135): the 72 h list is the phone's satellites page; a desk's pass page lists the next 24 h.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);

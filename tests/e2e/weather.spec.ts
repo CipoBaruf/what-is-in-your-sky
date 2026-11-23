@@ -60,6 +60,8 @@ test('cloud words from the recorded forecast on every card and the conditions ta
     await route.fulfill({ path: `tests/fixtures/open-meteo/${FORECAST}.json`, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
   });
 
+  // R212 (FR-LAND-6, D-1135): the 72 h list is the phone's satellites page; a desk's pass page lists the next 24 h.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
@@ -131,6 +133,8 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
   await page.clock.setFixedTime(t);
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 
+  // R212 (FR-LAND-6, D-1135): the 72 h list is the phone's satellites page; a desk's pass page lists the next 24 h.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#pass');
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
