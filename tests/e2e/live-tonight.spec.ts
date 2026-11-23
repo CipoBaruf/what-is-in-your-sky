@@ -205,8 +205,9 @@ for (const locale of ['en', 'es'] as const) {
       await page.clock.runFor(600);
       await expect(page).toHaveURL(/#live$/);
       // A fresh visit asks again (FR-FULL-10: never saved); `Esc` is `[ see now ]` and does not leave the page.
+      // R212 (FR-LAND-1): an empty hash is the live page itself, so the visit goes by the satellites page.
       await page.evaluate(() => {
-        window.location.hash = '';
+        window.location.hash = '#pass';
       });
       await expect(page.getByTestId('live-page')).toHaveCount(0);
       await page.evaluate(() => {

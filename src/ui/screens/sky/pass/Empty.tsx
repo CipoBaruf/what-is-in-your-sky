@@ -135,19 +135,34 @@ function Tonight({ observer, selectedPassId, onOpenPass }: Omit<PassTonightProps
   const now = useAppStore((s) => s.now);
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   const example = observer.source === 'example';
+  // FR-FLOW-10: each block is a group (`data-rhythm`), the page's grid gap `--space-3` apart.
   return (
     <>
-      <TonightStripe bands={tonight.bands} passes={passes} observer={observer} now={tonight.now} />
-      <PassList onOpenPass={onOpenPass} selectedPassId={selectedPassId} plain={example} />
-      <ConditionsTable observer={observer} bands={tonight.bands} sampledFrom={tonight.sampledFrom} now={tonight.now} />
+      <div data-rhythm="group">
+        <TonightStripe bands={tonight.bands} passes={passes} observer={observer} now={tonight.now} />
+      </div>
+      <div data-rhythm="group">
+        <PassList onOpenPass={onOpenPass} selectedPassId={selectedPassId} plain={example} />
+      </div>
+      <div data-rhythm="group">
+        <ConditionsTable observer={observer} bands={tonight.bands} sampledFrom={tonight.sampledFrom} now={tonight.now} />
+      </div>
       {MoonLore && moon && (
-        <Suspense fallback={null}>
-          <MoonLore moon={moon} timeZone={observer.timeZone} />
-        </Suspense>
+        <div data-rhythm="group">
+          <Suspense fallback={null}>
+            <MoonLore moon={moon} timeZone={observer.timeZone} />
+          </Suspense>
+        </div>
       )}
       {/* FR-OPEN-4: nothing of the example is saved, so it has no readiness. */}
-      {!example && <ReadinessLine form="line" />}
-      <ElementsLine />
+      {!example && (
+        <div data-rhythm="group">
+          <ReadinessLine form="line" />
+        </div>
+      )}
+      <div data-rhythm="group">
+        <ElementsLine />
+      </div>
     </>
   );
 }

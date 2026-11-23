@@ -134,7 +134,8 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
     if (shownKey.current === routeKey) return;
     shownKey.current = routeKey;
     setAnnounced(title);
-    const target = takeFocusTarget() ?? (document.activeElement === document.body ? (document.querySelector<HTMLElement>('h1') ?? main.current) : null);
+    // A page still loading (a lazy chunk) has no `h1` yet; the focus stays on the body for it to place its own.
+    const target = takeFocusTarget() ?? (document.activeElement === document.body ? document.querySelector<HTMLElement>('h1') : null);
     if (target) focusOn(target);
   }, [routeKey, title]);
 
