@@ -1,7 +1,5 @@
-/* R218 (FR-DS-12, FR-CTRL-17): the button and the one feedback line under it are rows `--gap-row` apart. */
+/* R218 (FR-DS-12, FR-CTRL-17): the button and the one feedback line under it are a `Stack` of rows. */
 .field {
-  display: grid;
-  gap: var(--gap-row);
   margin-bottom: var(--row);
 }
 

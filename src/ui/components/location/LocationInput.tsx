@@ -4,6 +4,7 @@ import type { Observer } from '../../../model';
 import { sameLocation } from '../../../state/slices/location';
 import { Rule } from '../primitives/Rule';
 import { SectionHeading } from '../primitives/SectionHeading';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import { Favourites } from './Favourites';
@@ -149,16 +150,17 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
 
   if (variant === 'group') {
     return (
-      <section {...(labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t.location.heading })} className={`${styles.section} ${styles.group}`} data-testid="location-group" data-look={look}>
+      // R218 (FR-DS-12): the dialog is one group, its rows `Stack`'s `row` apart: the button, the fields, the foot, the saved places.
+      <Stack as="section" gap="row" {...(labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t.location.heading })} className={styles.group} data-testid="location-group" data-look={look}>
         {/* Where US-3 AC1 withholds the device button, the alternatives are the group's only child and take its whole width. */}
-        <div className={styles.inputs}>
+        <Stack gap="row" className={styles.inputs}>
           {device}
           <div className={styles.alternatives} data-testid="location-alternatives">
             {place}
             {coords}
             {afterCoords}
           </div>
-        </div>
+        </Stack>
         {/* D-1150: the boxed foot holds only the clear action, and is gone without it. */}
         {(look !== 'boxed' || clearShown) && (
           <div className={styles.foot} data-testid="location-foot">
@@ -176,7 +178,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           </div>
         )}
         {favourites}
-      </section>
+      </Stack>
     );
   }
 

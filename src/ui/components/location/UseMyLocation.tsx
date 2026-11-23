@@ -4,6 +4,7 @@ import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import type { MeasureDetail } from '../../../model/measure';
 import { count } from '../../../state/measure';
+import { Stack } from '../primitives/Stack';
 import { StatusLine } from '../primitives/StatusLine';
 import { TextButton } from '../primitives/TextButton';
 import { coordsLabel } from './CoordsInput';
@@ -110,7 +111,7 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
   // R218 (FR-CTRL-4, US-65 AC3): the label never changes, so the box keeps its width before, during and after.
   const label = t.location.useMyLocation;
   return (
-    <div className={primary ? `${styles.field} ${styles.primary}` : styles.field} data-testid={primary ? 'use-my-location-primary' : undefined}>
+    <Stack gap="row" className={primary ? `${styles.field} ${styles.primary}` : styles.field} data-testid={primary ? 'use-my-location-primary' : undefined}>
       {primary ? (
         // R76 (FR-FIRST-2, at the owner's gate): the primary action is the whole box — the label and its note
         // are one control, so the note is as much a place to tap as the words. The name stays the label alone
@@ -123,6 +124,6 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
       {/* FR-CTRL-4: the progress words go under the control, never into its label; FR-CTRL-17: a failure in the same place. */}
       {locating && <StatusLine tone="progress">{t.location.locating}</StatusLine>}
       {error !== null && <StatusLine tone="failure">{error}</StatusLine>}
-    </div>
+    </Stack>
   );
 }

@@ -52,36 +52,30 @@
     top: 0;
     left: 0;
     z-index: var(--z-raised-2);
-    max-height: calc(5.5 * var(--control-h));
+    max-height: calc(5.5 * var(--target));
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 }
 
 /* FR-CTRL-7: a row is the name in `--fg` and the region in `--fg-dim` on one line, no marker and no rule between
-   rows, at least `--target` tall on compact and a control's height where a pointer picks it; the active row is
-   FR-CTRL-2's block, `--on-ink` on `--on-ground`. */
+   rows, `--target` tall at every width (the list floats on wide, so its rows cost the page nothing); the active row
+   is FR-CTRL-2's block, `--bg` words on `--fg`, the values `--on-ink` and `--on-ground` alias (FR-DS-10 keeps the
+   aliases to the primitives; D-1283). */
 .option,
 .optionActive {
   display: flex;
   align-items: center;
   gap: var(--cell);
   min-height: var(--target);
-  padding: 0 var(--control-pad);
+  padding: 0 var(--cell);
   white-space: nowrap;
   cursor: pointer;
 }
 
-@media (width >= 964px) {
-  .option,
-  .optionActive {
-    min-height: var(--control-h);
-  }
-}
-
 .optionActive {
-  background: var(--on-ground);
-  color: var(--on-ink);
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .name {
@@ -99,7 +93,7 @@
 }
 
 .optionActive .region {
-  color: var(--on-ink);
+  color: var(--bg);
 }
 
 /* The status line is one of the field's rows; with no words (its one text span empty), it takes no row. */

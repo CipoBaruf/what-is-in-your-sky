@@ -46,15 +46,6 @@
   color: var(--fg-dim);
 }
 
-/* FR-DS-12: the saved places are rows `--gap-row` apart. */
-.list {
-  display: grid;
-  gap: var(--gap-row);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
 /*
  * One saved place per row, and the row is a tap target tall. The location
  * section's `.clear` can be an `inline-control` — a 48 px box hung off a line

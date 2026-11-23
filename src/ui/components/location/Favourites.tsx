@@ -6,6 +6,7 @@ import { useOwnObserver } from '../../hooks/useOwnObserver';
 import { Close } from '../primitives/Close';
 import { PickRow } from '../primitives/PickRow';
 import { SectionHeading } from '../primitives/SectionHeading';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import styles from './Favourites.module.css';
 
@@ -117,7 +118,7 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
             </>
           )}
         </div>
-        {favourites.length > 0 && <ul className={styles.list}>{items}</ul>}
+        {favourites.length > 0 && <Stack gap="row" as="ul">{items}</Stack>}
         {favourites.length >= MAX_FAVOURITES && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
       </div>
     );
@@ -129,7 +130,7 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
       {favourites.length === 0 ? (
         <p className={styles.empty}>{t.favourites.empty}</p>
       ) : (
-        <ul className={styles.list}>{items}</ul>
+        <Stack gap="row" as="ul">{items}</Stack>
       )}
       {observer !== null && (
         <div className={styles.saveRow}>
