@@ -135,7 +135,9 @@ describe('the up-only form (FR-NOW-2, D-1239)', () => {
   it('FR-NOW-2: the height in whole degrees, below the horizon said as such, never negative', () => {
     expect(upNowPlace(45, 30.4)).toEqual({ point: 'NE', degrees: 30, up: true });
     expect(upNowPlace(247.5, -4.2)).toEqual({ point: 'WSW', degrees: 4, up: false });
-    expect(upNowPlace(0, -0.4)).toEqual({ point: 'N', degrees: 0, up: true });
+    expect(upNowPlace(0, -0.4)).toEqual({ point: 'N', degrees: 0, up: false });
+    expect(upNowPlace(0, 0.4)).toEqual({ point: 'N', degrees: 0, up: true });
+    expect(upNowPlace(0, 0)).toEqual({ point: 'N', degrees: 0, up: true });
     expect(upNowPlace(180, -89.6)).toEqual({ point: 'S', degrees: 90, up: false });
   });
 

@@ -178,13 +178,14 @@ export interface UpNowPlace {
   point: CompassPoint;
   /** Whole degrees from the horizon, never negative. */
   degrees: number;
-  /** Above the horizon, or on it: `30° up`; under it: `4° below`. */
+  /** Above the horizon, or exactly on it: `30° up`; under it, even by less than half a degree: `0° below`, `4° below`. */
   up: boolean;
 }
 
 export function upNowPlace(azDeg: number, altDeg: number): UpNowPlace {
   const whole = Math.round(altDeg);
-  return { point: compassPoint(azDeg), degrees: Math.abs(whole), up: whole >= 0 };
+  // The side comes from the altitude itself: rounding -0.4 gives -0, and -0 >= 0 would call it up.
+  return { point: compassPoint(azDeg), degrees: Math.abs(whole), up: altDeg >= 0 };
 }
 
 /**
