@@ -122,11 +122,13 @@ export const ui = {
    * wide row's links are the names of the three pages a reader moves between, under `nav`.
    */
   header: {
-    /** FR-COMP-7: drawn `[ ← ]`; `backName` is its accessible name. */
-    back: '←',
+    /** FR-CTRL-5 (R215): drawn `← back` with no box; `backName` is its accessible name. */
+    back: '← back',
     backName: 'Back',
     nav: 'Pages',
     pages: { live: 'live', pass: 'satellites', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    /** FR-LAND-4 (R215, D-1238): the place line — `Salta · example  change`, `<place>  change`, or `Set your place` with none. */
+    place: { example: 'example', change: 'change', set: 'Set your place' },
   },
 
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */

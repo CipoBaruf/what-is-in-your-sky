@@ -98,10 +98,11 @@ export const ui: typeof EnUi = {
   },
 
   header: {
-    back: '←',
+    back: '← volver',
     backName: 'Volver',
     nav: 'Páginas',
     pages: { live: 'en vivo', pass: 'satélites', stars: 'estrellas', settings: 'ajustes' },
+    place: { example: 'ejemplo', change: 'cambiar', set: 'Elegí tu lugar' },
   },
 
   starsHeading: 'Estrellas esta noche',

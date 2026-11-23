@@ -81,6 +81,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     href: { type: 'string', text: 'Where it goes.' },
     label: { type: 'ReactNode', text: 'The link’s words.' },
     current: { type: 'boolean', text: 'The page this control stands on: a dim `aria-current` span with the same box, not a link.' },
+    tab: { type: 'boolean', text: 'A header tab: dim words, `--fg` on hover; with `current`, `--fg` over a 2 px accent rule.' },
     className: PLACEMENT,
   }),
   entry<OptionToggleOwnProps>('OptionToggle', 'One option, a filled block when on and the dim word when off; alone for a single on/off, or inside a ToggleGroup.', ['rest', 'hover', 'focus', 'on', 'disabled'], {

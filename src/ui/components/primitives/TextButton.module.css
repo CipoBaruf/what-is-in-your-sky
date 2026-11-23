@@ -84,6 +84,11 @@
   color: var(--danger);
 }
 
+/* R215 (FR-CTRL-5): a dim bare control (the header's `← back`) takes `--fg` on hover. */
+.bare.dim:hover:not(:disabled) {
+  color: var(--fg);
+}
+
 .bare:disabled {
   color: var(--fg-dim);
 }

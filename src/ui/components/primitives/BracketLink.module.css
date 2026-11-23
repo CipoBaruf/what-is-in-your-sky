@@ -8,3 +8,22 @@
 .current {
   color: var(--fg-dim);
 }
+
+/* R215 (FR-CTRL-5, V30-16): a header tab is its words, not a link in the accent — `--fg-dim`, `--fg` on hover — and
+   the current page is the words in `--fg` over a 2 px accent rule 6 px under them. */
+.tab {
+  color: var(--fg-dim);
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab.current {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: calc(2 * var(--hairline));
+  text-underline-offset: var(--space-1);
+}

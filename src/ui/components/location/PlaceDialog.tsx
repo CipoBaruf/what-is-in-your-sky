@@ -48,7 +48,7 @@ export function PlaceDialog({ onClose, search = searchPlaces, geolocation }: Pla
 
   // FR-MEAS-2 as amended: the example's dialog, the fallback's (no place, no example), or a set place's (no detail).
   const active = useActiveObserver();
-  const [detail] = useState(() => (active === null || page === null ? 'fallback' : active.source === 'example' ? 'example' : null));
+  const [detail] = useState<'example' | 'fallback' | null>(() => (active === null || page === null ? 'fallback' : active.source === 'example' ? 'example' : null));
   useEffect(() => {
     if (detail === null) count('where_shown');
     else count('where_shown', detail);

@@ -14,14 +14,16 @@ export interface BracketLinkOwnProps {
   label: ReactNode;
   /** The page this control stands on: drawn as a dim `aria-current` span, not a link. */
   current?: boolean;
+  /** R215 (FR-CTRL-5, V30-16): a header tab — the words in `--fg-dim`, `--fg` on hover; `current`, `--fg` over a 2 px `--accent` rule 6 px under the words. */
+  tab?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 export type BracketLinkProps = BracketLinkOwnProps & Omit<ComponentProps<'a'>, keyof BracketLinkOwnProps | 'children' | 'style'>;
 
-export function BracketLink({ href, label, current = false, className, ...rest }: BracketLinkProps) {
-  const classes = [styles.bracketLink, current ? styles.current : undefined, className].filter(Boolean).join(' ');
+export function BracketLink({ href, label, current = false, tab = false, className, ...rest }: BracketLinkProps) {
+  const classes = [styles.bracketLink, tab ? styles.tab : undefined, current ? styles.current : undefined, className].filter(Boolean).join(' ');
   if (current) {
     return (
       <span className={classes} aria-current="page" {...(rest as Omit<ComponentProps<'span'>, 'children'>)}>
