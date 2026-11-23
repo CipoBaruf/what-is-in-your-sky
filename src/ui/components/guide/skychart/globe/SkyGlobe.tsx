@@ -4,7 +4,8 @@ import { loadDeepChunk } from '../../../../../data/stars/deepChunk';
 import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { CATALOGS } from '../../../../../i18n/useT';
-import { TextButton } from '../../../primitives/TextButton';
+import { ZoomKeys } from '../../../primitives/ZoomKeys';
+import { markZoomHintDone } from '../../../sky/SkyHint';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
 import type { ArcColorBy } from './arcLayer';
@@ -346,6 +347,8 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
   const zoomBy = useCallback(
     (factor: number): void => {
       if (!(factor > 0) || !Number.isFinite(factor) || factor === 1) return;
+      // FR-CTRL-9 (R217, D-1241): a zoom, by the keys, the wheel, the pinch or the keyboard, ends the hint on both views.
+      markZoomHintDone();
       writeView({ zoom: viewRef.current.zoom * factor });
     },
     [writeView, viewRef],
@@ -490,6 +493,8 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     drag.y = event.clientY;
     // A press that may still be a tap holds the globe still, so the marks a tap is tested against are the ones under the press.
     if (drag.travel < HIT_RADIUS_PX) return;
+    // FR-CTRL-9 (R217): the first drag ends the hint, as a zoom does; a tap is not a drag.
+    markZoomHintDone();
     scheduleFlush();
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
@@ -517,6 +522,14 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     dropPointer(event.pointerId);
   };
 
+  /*
+   * R217 (FR-CTRL-9; D-1241): the three keys, a press one `GLOBE_ZOOM_STEP` as a notch of the wheel and the `+` and
+   * `-` keys; `⟲` is `Home`, the opening view at zoom 1. The keys show no zoom level.
+   */
+  const resetView = (): void => {
+    markZoomHintDone();
+    writeView(openingView(turn, place, instant, openCentreRef.current));
+  };
   // FR-GLOBE-6: the keys while the box has focus; none of them is a page shortcut (FR-DESK-4's list is letters, Enter and Escape).
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if ((event.ctrlKey || event.metaKey) && ZOOM_KEYS.has(event.key)) return;
@@ -543,9 +556,7 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
       '-': () => {
         zoomBy(1 / GLOBE_ZOOM_STEP);
       },
-      Home: () => {
-        writeView(openingView(turn, place, instant, openCentreRef.current));
-      },
+      Home: resetView,
     };
     const move = moves[event.key];
     if (!move) return;
@@ -574,10 +585,13 @@ export default function SkyGlobe({ place, instant, turn, layers, faint, language
     </p>
   );
   const zoom = (
-    <>
-      <TextButton label="+" aria-label={words.zoomIn} disabled={zoomEnd === 'max'} onClick={() => { zoomBy(GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-in" />
-      <TextButton label="−" aria-label={words.zoomOut} disabled={zoomEnd === 'min'} onClick={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }} data-testid="globe-zoom-out" />
-    </>
+    <ZoomKeys
+      names={{ in: words.zoomIn, out: words.zoomOut, reset: words.zoomReset }}
+      end={zoomEnd === 'max' ? 'in' : zoomEnd === 'min' ? 'out' : null}
+      onIn={() => { zoomBy(GLOBE_ZOOM_STEP); }}
+      onOut={() => { zoomBy(1 / GLOBE_ZOOM_STEP); }}
+      onReset={resetView}
+    />
   );
   return (
     <>

@@ -197,7 +197,7 @@ describe('the kept zoom (FR-KEEP-1, D-1096)', () => {
     expect(num(disc, 'r')).toBeCloseTo(R * 2, 0);
     fireEvent.keyDown(box, { key: 'ArrowRight' });
     expect(onZoom).not.toHaveBeenCalled();
-    fireEvent.click(q('[data-testid="globe-zoom-in"]'));
+    fireEvent.click(q('[data-zoom="in"]'));
     expect(onZoom).toHaveBeenLastCalledWith(2 * GLOBE_ZOOM_STEP);
     fireEvent.keyDown(box, { key: 'Home' });
     expect(onZoom).toHaveBeenLastCalledWith(1);
@@ -207,7 +207,7 @@ describe('the kept zoom (FR-KEEP-1, D-1096)', () => {
     const { q } = mount({ zoom: 99 });
     frames.frame();
     expect(num(q('[data-disc]'), 'r')).toBeCloseTo(R * GLOBE_ZOOM_MAX, 0);
-    expect(q<HTMLButtonElement>('[data-testid="globe-zoom-in"]').disabled).toBe(true);
+    expect(q<HTMLButtonElement>('[data-zoom="in"]').disabled).toBe(true);
   });
 });
 
@@ -215,8 +215,8 @@ describe('the zoom buttons (FR-GLOBE-6 as amended, V212-12, D-1055)', () => {
   it('zoom one GLOBE_ZOOM_STEP a press, named in both languages, disabled at each end of the range', () => {
     const { q, rerender } = mount();
     const disc = q('[data-disc]');
-    const zoomIn = q<HTMLButtonElement>('[data-testid="globe-zoom-in"]');
-    const zoomOut = q<HTMLButtonElement>('[data-testid="globe-zoom-out"]');
+    const zoomIn = q<HTMLButtonElement>('[data-zoom="in"]');
+    const zoomOut = q<HTMLButtonElement>('[data-zoom="out"]');
     expect(zoomIn.getAttribute('aria-label')).toBe('Zoom in');
     expect(zoomOut.getAttribute('aria-label')).toBe('Zoom out');
     expect(zoomIn.disabled).toBe(false);
@@ -239,6 +239,47 @@ describe('the zoom buttons (FR-GLOBE-6 as amended, V212-12, D-1055)', () => {
     rerender({ language: 'es' });
     expect(zoomIn.getAttribute('aria-label')).toBe('Acercar');
     expect(zoomOut.getAttribute('aria-label')).toBe('Alejar');
+  });
+});
+
+describe('the zoom keys and the hint (FR-CTRL-9, D-1241)', () => {
+  const HINT = 'wiys:hint:globe:v1';
+  beforeEach(() => {
+    localStorage.removeItem(HINT);
+  });
+
+  it('FR-CTRL-9: `−`, `+` and `⟲` in that order, `⟲` back to the opening view at zoom 1', () => {
+    const onZoom = vi.fn();
+    const { q, container } = mount({ onZoom });
+    const disc = q('[data-disc]');
+    expect([...container.querySelectorAll('[data-zoom]')].map((key) => key.getAttribute('data-zoom'))).toEqual(['out', 'in', 'reset']);
+    expect(q('[data-zoom="reset"]').getAttribute('aria-label')).toBe('Reset view');
+    fireEvent.click(q('[data-zoom="in"]'));
+    fireEvent.click(q('[data-zoom="in"]'));
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R * GLOBE_ZOOM_STEP ** 2, 0);
+    fireEvent.click(q('[data-zoom="reset"]'));
+    frames.frame();
+    expect(num(disc, 'r')).toBeCloseTo(R, 0);
+    expect(onZoom).toHaveBeenLastCalledWith(1);
+  });
+
+  it('FR-CTRL-9: a zoom key ends the hint', () => {
+    const { q } = mount();
+    expect(localStorage.getItem(HINT)).toBeNull();
+    fireEvent.click(q('[data-zoom="out"]'));
+    expect(localStorage.getItem(HINT)).toBe('1');
+  });
+
+  it('FR-CTRL-9: a drag ends the hint and a tap does not', () => {
+    const { box } = mount();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'mouse', isPrimary: true, clientX: 300, clientY: 300 });
+    fireEvent.pointerMove(box, { pointerId: 1, pointerType: 'mouse', clientX: 300 + HIT_RADIUS_PX / 2, clientY: 300 });
+    fireEvent.pointerUp(box, { pointerId: 1, pointerType: 'mouse', clientX: 300 + HIT_RADIUS_PX / 2, clientY: 300 });
+    expect(localStorage.getItem(HINT)).toBeNull();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'mouse', isPrimary: true, clientX: 300, clientY: 300 });
+    fireEvent.pointerMove(box, { pointerId: 2, pointerType: 'mouse', clientX: 300 + HIT_RADIUS_PX * 3, clientY: 300 });
+    expect(localStorage.getItem(HINT)).toBe('1');
   });
 });
 
