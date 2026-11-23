@@ -80,7 +80,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/data/zones/zoneCity.ts` — exports: ZoneCity, Zones, parseZones, zoneCity, loadZoneCity — FR-OPEN-1 (PLAN D-1174): the city the browser's time zone names, from `zones.txt` (`scripts/build-zones.ts`).
 - `src/i18n/en.ts` — exports: en — FR-I18N-2 (D-69), split per lane (D-199 (2)): `en/ui.ts`, `en/chart.ts`, `en/live.ts` and `en/window.ts` each carry the section their own l…
 - `src/i18n/en/chart.ts` — exports: chart
-- `src/i18n/en/example.ts` — exports: example — R202 (FR-OPEN-8, D-1181, D-1209): the example first run's words — the band, the Where pane's line and the action.
+- `src/i18n/en/example.ts` — exports: example — R202 (FR-OPEN-8, D-1181, D-1209): the example first run's words — the line on the other pages and the card's look line.
 - `src/i18n/en/facts.ts` — exports: facts
 - `src/i18n/en/failure.ts` — exports: failure — R89 (FR-FAIL-1, FR-FAIL-2, D-540): the failure line's words.
 - `src/i18n/en/globe.ts` — exports: globe — R170 (FR-GLOBE-1, FR-GLOBE-5, FR-GLOBE-7..10, FR-GLOBE-12, FR-GLOBE-16; PLAN D-1035, D-1042): the words of the stars page's globe rail — th…
