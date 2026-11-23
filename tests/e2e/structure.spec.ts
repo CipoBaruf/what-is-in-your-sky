@@ -45,8 +45,9 @@ const FORTY: StoredRun = (() => {
 })();
 
 const hash = (page: Page): Promise<string> => page.evaluate(() => window.location.hash);
-const home = async (page: Page): Promise<void> => {
-  await expect.poll(() => hash(page)).toBe('');
+/** R212 (FR-LAND-1, FR-LAND-6): the home went; the satellites page, `#pass`, is where a phone's list is. */
+const list = async (page: Page): Promise<void> => {
+  await expect.poll(() => hash(page)).toBe('#pass');
 };
 const openGuide = (page: Page, nth = 0) => page.getByRole('button', { name: /Open guide|Abrir la guía/ }).nth(nth);
 /** The guide's way out: the sheet's `← Back to the list` on a phone, the panel's `×` on a desk. */
@@ -65,7 +66,7 @@ for (const viewport of [PHONE, DESK]) {
   test.describe(`at ${String(viewport.width)} px`, () => {
     test.use({ viewport });
 
-    test('every route has one main and one h1; home and settings a banner, a navigation and a contentinfo (FR-A11Y-1)', async ({ page }) => {
+    test('every route has one main and one h1; the satellites page and settings a banner, a navigation and a contentinfo (FR-A11Y-1)', async ({ page }) => {
       await seedStoredRun(page);
       expect(await landmarkCounts(page)).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
 
@@ -74,17 +75,14 @@ for (const viewport of [PHONE, DESK]) {
       await expect(closeGuide(page)).toBeVisible();
       expect(await landmarkCounts(page)).toMatchObject({ main: 1, h1: 1 });
       await closeGuide(page).click();
-      await home(page);
+      // R212: a phone's guide closes to the list; a desk's pass page closes to the live page.
+      await expect.poll(() => hash(page)).toBe(viewport === PHONE ? '#pass' : '#live');
+      if (viewport === PHONE) await page.getByTestId('live-link').click();
 
-      await page.evaluate(() => {
-        window.location.hash = 'live';
-      });
       await expect(page.getByTestId('live-page')).toBeVisible();
       // The live page's top row is its banner (FR-A11Y-1); D-1023: on a desk it ends in the footer's row, its
       // contentinfo, and on a phone that row is the controls sheet's last, no landmark.
       expect(await landmarkCounts(page)).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: viewport === PHONE ? 0 : 1 });
-      await page.getByTestId('live-back').click();
-      await home(page);
 
       await page.evaluate(() => {
         window.location.hash = 'settings';
@@ -94,7 +92,9 @@ for (const viewport of [PHONE, DESK]) {
       expect(await landmarkCounts(page)).toEqual({ main: 1, h1: 1, banner: 1, navigation: viewport === PHONE ? 0 : 1, contentinfo: 1 });
     });
 
-    test(`the populated home with 40 passes skips no level and has at most ${String(A11Y_MAX_H2)} h2 (FR-A11Y-2)`, async ({ page }) => {
+    test(`the populated list with 40 passes skips no level and has at most ${String(A11Y_MAX_H2)} h2 (FR-A11Y-2)`, async ({ page }) => {
+      // R212 (FR-LAND-6, D-1135): the 72 h list is the phone's satellites page; a desk's pass page lists the next 24 h.
+      test.skip(viewport !== PHONE, 'the 40-pass list is the phone’s');
       // R97 (FR-FAINT-2): faint passes shown, so all 40 are cards and every name is in the outline.
       await seedStoredRun(page, { run: FORTY, elements: 'down', prefs: { showFaint: true } });
       // Every night open, so every card's heading is in the outline.
@@ -156,7 +156,7 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     await page.keyboard.press('Enter');
     await expect.poll(() => focused(page)).toBe('settings-back');
     await page.keyboard.press('Enter');
-    await home(page);
+    await list(page);
     await expect.poll(() => focused(page)).toBe('settings-link');
 
     await page.getByTestId('live-link').focus();
@@ -167,7 +167,7 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     await page.keyboard.press('Escape');
     await expect.poll(() => focused(page)).toBe('live-controls');
     await page.keyboard.press('Escape');
-    await home(page);
+    await list(page);
     await expect.poll(() => focused(page)).toBe('live-link');
 
     const opener = openGuide(page);
@@ -176,7 +176,7 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     // R132 (FR-FLOW-7, D-866): the name is the phone sheet's `h1` and the desk panel's `h2`.
     await expect.poll(() => focused(page)).toMatch(/^h[12]:/);
     await page.keyboard.press('Escape');
-    await home(page);
+    await list(page);
     await expect(opener).toBeFocused();
 
     // Six changes, six sentences, each the new route's name — the pass by its satellite and time.
@@ -187,14 +187,14 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     expect(heard[5]).toBe(app);
   });
 
-  test('the skip link is the first stop on home and settings and lands on main (FR-A11Y-5)', async ({ page }) => {
+  test('the skip link is the first stop on the satellites page and settings and lands on main (FR-A11Y-5)', async ({ page }) => {
     await seedStoredRun(page);
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('skip-link')).toBeFocused();
     await expect(page.getByTestId('skip-link')).toBeInViewport();
     await page.keyboard.press('Enter');
     await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('MAIN');
-    expect(await hash(page)).toBe('');
+    expect(await hash(page)).toBe('#pass');
     // Settings puts the focus on its Back control on the way in (FR-A11Y-4), so the Tab walk starts past the
     // link; the link is still the first focusable element in the page's order.
     await page.getByTestId('settings-link').click();
@@ -234,7 +234,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     let afterFirst = 0;
     for (const [index, cycle] of cycles.entries()) {
       await cycle();
-      await home(page);
+      await list(page);
       if (index === 0) afterFirst = await length();
     }
     expect(await length()).toBe(afterFirst);
@@ -255,7 +255,8 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     await page.goBack();
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await page.goBack();
-    await home(page);
+    // R212: on a desk the seed's satellites page is the pass page of the next pass.
+    await expect.poll(() => hash(page)).toMatch(/^#pass=\d+-\d+$/);
     await expect(page.getByTestId('settings-back')).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await page.goForward();
@@ -263,11 +264,12 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     await page.goForward();
     await expect(page.getByTestId('live-page')).toBeVisible();
 
-    // The live page was opened from settings: its Back returns there, and settings' to home.
-    await liveBack(page).click();
+    // The live page was opened from settings: the browser's Back returns there (R212, D-1267: a desk's live page is a
+    // tab with no Back of its own), and settings' Back to the pass page.
+    await page.goBack();
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await page.getByTestId('settings-back').click();
-    await home(page);
+    await expect.poll(() => hash(page)).toMatch(/^#pass=\d+-\d+$/);
     await expect(page.getByTestId('header')).toBeVisible();
   });
 
@@ -282,7 +284,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
 
     // R129 (FR-FLOW-3): the phone's settings row is `[ ← ]` and its name; the live page is the home's link.
     await page.getByTestId('settings-back').click();
-    await home(page);
+    await list(page);
     await page.getByTestId('live-link').click();
     await expect(page.getByTestId('live-page')).toBeVisible();
     await page.reload();
@@ -333,13 +335,14 @@ test("the header's Back keeps its box inside the ring, Settings at 360 px (FR-CT
  * off the line under it, and taking the tap box away while it shows moves nothing on the page. A row that grew here
  * once moved `[ scrub ]` between a pointer's down and up, and the click was lost.
  */
-for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 450 }]) {
+// R212 (D-1267): 1200 × 450 left the list: a desk's live page is a tab and draws no Back.
+for (const size of [PHONE, { width: 844, height: 390 }]) {
   test(`Back's focus ring hugs its line and moves nothing, ${String(size.width)} × ${String(size.height)} (F-100)`, async ({ page }) => {
     await page.setViewportSize(size);
     await seedStoredRun(page, { settled: true });
-    await page.evaluate(() => {
-      location.hash = '#live';
-    });
+    // R212 (D-1267): live as the load's own entry has no Back, so it is entered from the satellites page's link, by key.
+    await page.locator('#root > header').getByTestId('live-link').focus();
+    await page.keyboard.press('Enter');
     await domeDrawn(page);
     const back = page.getByTestId('live-back');
     // v2.14.1 (FR-WIDE-13): on wide the first-pass dialog asks instead; `seedStoredRun`'s handler answers it with `Esc`
