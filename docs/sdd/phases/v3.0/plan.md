@@ -272,6 +272,16 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   At 964 × 420 the reserved row left the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`; so under `LANDSCAPE_PHONE_QUERY` (landscape, 500 px tall or less: the short-wide rows and the landscape phone) the box keeps its height and the row stands over its foot as when full, the one existing height fold rather than a fourth (FR-DS-3).
   `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
 
+- **D-1274 — The place line is a component of its own, drawn by the wide header and the phone's list.** *(R215)*
+  (FR-LAND-4, FR-OPEN-7 as amended, D-1238.) `common/PlaceLine.tsx` reads the page's observer (`useHeaderPlace`) and draws the three readings; `Header` centres it in the wide row, and compact `#pass`'s head (`sky/pass/Empty.tsx`) draws it once there is an observer. R219 reuses it for the sheet's head.
+  `Live.tsx` is R216's, so the compact live header keeps R212's place `context`, now a line under the tab row rather than after a name; R219 replaces it with the sheet's place line.
+- **D-1275 — `requestPlace()` is a module flag, and one host draws the dialog.** *(R215)*
+  (FR-LAND-4, D-1238, D-1242.) `placeRequest.ts` keeps an open flag read through `useSyncExternalStore`, so `Live.tsx` and `Stars.tsx` call it unchanged; `PlaceDialogHost`, mounted once by `App`, draws `PlaceDialog` while it is set. A place set by any of the three ways closes it; Esc and × leave with nothing set.
+  `where_shown` is counted as the dialog opens, with detail `example` while the example is the observer.
+- **D-1276 — The tabs are `BracketLink`'s `tab` form, and the compact row drops the short title.** *(R215)*
+  (FR-CTRL-5, FR-LAND-6, FR-COMP-1 as amended.) `BracketLink` gains `tab` (dim words, `--fg` on hover; with `current`, `--fg` over a 2 px accent rule 6 px under), so it gains a `hover` state in the manifest and DESIGN.md. `← back` is a bare `TextButton`.
+  The compact row is the mark and the three tabs, 29 cells in either language, inside FR-COMP-1's 36; FR-LAND-6 names only the mark and the links, so the short title leaves the row.
+
 - **D-1277 — The seven slots replace the old names on all three pages, and the pass page's list is its `upFrom`.** *(R216)*
   (FR-NOW-1, FR-WIDE-1 as amended, FR-CTRL-10, D-1239.) `answer`, `viewRow`, `timeline`, `action` and `list` are gone: the stars page and the pass detail fill `strip`, `view`, `time`, `turn` (their page group until R222 moves the stars' groups) and `upFrom` (the stars' field and the pass list), with no other change, so wave 4's R215 meets one-word edits in `Stars.tsx` and `PassDetail.tsx`.
   `LIST_FIRST_ORDER`, `LIST_FIRST_RHYTHM` and `listFirst` go with V214-33's cap: an uncapped list under the head would push `[ Play ]` off a 1280 × 800 rail, so the pass list takes `SLOT_ORDER`'s last place and the rail scrolls to it.
