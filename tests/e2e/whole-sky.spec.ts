@@ -138,7 +138,7 @@ for (const size of SIZES) {
         expect(Math.abs((left?.y ?? 0) - (right?.y ?? 1))).toBeLessThanOrEqual(1);
         if (size.wide) {
           const slots = await layout.locator('[data-slot]').evaluateAll((els) => els.map((el) => el.getAttribute('data-slot')));
-          expect(slots.indexOf('viewRow')).toBe(slots.indexOf('answer') + 1);
+          expect(slots.indexOf('view')).toBe(slots.indexOf('strip') + 1);
         } else {
           expect((await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid'))))[0]).toBe('stars-view-row');
         }

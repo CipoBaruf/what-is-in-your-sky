@@ -98,35 +98,26 @@ for (const [width, height] of SIZES) {
           await expect(card).toBeFocused();
         });
 
-        test('FR-WIDE-1: the rail’s first group is tonight’s passes, this one aria-current; a second row opens its pass in place (D-1135)', async ({ page }, info) => {
+        test('FR-WIDE-1, FR-CTRL-10: the rail’s last group is tonight’s passes, uncapped, this one aria-current; a second row opens its pass in place (D-1135, D-1239)', async ({ page }, info) => {
           test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
           await home(page, locale);
           const layout = await openFromHeader(page);
-          const rail = layout.locator('[data-slot="list"]');
-          // V214-33: the list is the rail's first group after the head, before `View` and `Time`.
+          const rail = layout.locator('[data-slot="upFrom"]');
+          // R216 (FR-NOW-1, D-1239): the list is the rail's last group, after `View`, `Time` and the pass's own group.
           const order = await layout.locator('[data-rail] > [data-slot]').evaluateAll((slots) => slots.map((el) => el.getAttribute('data-slot')));
-          expect(order.slice(0, 4)).toEqual(['answer', 'list', 'viewRow', 'timeline']);
-          // V214-37, V214-38: one-line rows, three in view and the top of a fourth, the list scrolling inside itself with
-          // the open row in its view. From 800 px tall (1280 × 800 up) `[ Play ]` is in the viewport without scrolling the
-          // rail; at 1024 × 640 the head, the list and `View` already fill the rail, so there the rail only scrolls to it.
-          const listBox = await rail.boundingBox();
-          expect(listBox?.height ?? Infinity).toBeLessThanOrEqual(7.5 * 24 + 1);
-          const whole = await rail.locator('article[data-pass-id]').evaluateAll((cards, box) => {
-            const top = box?.y ?? 0;
-            const bottom = top + (box?.height ?? 0);
-            return cards.filter((card) => {
-              const r = card.getBoundingClientRect();
-              return r.top >= top - 0.5 && r.bottom <= bottom + 0.5;
-            }).length;
-          }, listBox);
-          expect(whole).toBeGreaterThanOrEqual(3);
-          await expect(rail.locator('article[aria-current]')).toBeInViewport();
+          expect(order.slice(0, 3)).toEqual(['strip', 'view', 'time']);
+          expect(order.at(-1)).toBe('upFrom');
+          // FR-CTRL-10: V214-33's cap is gone — the list is as tall as its cards and does not scroll inside itself.
+          const fits = await rail.evaluate((el) => el.scrollHeight <= el.clientHeight + 1);
+          expect(fits, 'the list holds all its cards').toBe(true);
           const play = layout.getByTestId('live-play');
           if (height >= 800) await expect(play).toBeInViewport({ ratio: 1 });
           else {
             await play.scrollIntoViewIfNeeded();
             await expect(play).toBeInViewport({ ratio: 1 });
           }
+          await rail.locator('article[aria-current]').scrollIntoViewIfNeeded();
+          await expect(rail.locator('article[aria-current]')).toBeInViewport();
           const rows = rail.locator('article[data-pass-id]');
           const first = (await page.getByTestId('guide-panel').getAttribute('data-pass-id')) ?? '';
           const ids = await rows.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
@@ -167,7 +158,7 @@ for (const [width, height] of SIZES) {
           test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
           await home(page, locale);
           const layout = await openFromHeader(page);
-          const rail = layout.locator('[data-slot="list"]').locator('xpath=..');
+          const rail = layout.locator('[data-rail]');
           const ids = await rail.locator('article[data-pass-id]').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
           // Every pass of the list in turn: its table, its names and its facts are what widen a rail.
           for (const id of ids) {
@@ -317,8 +308,8 @@ test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, els
     await expect(page.getByTestId('pass-empty')).toBeVisible();
     await expect(page.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
     // D-1135: the rail's list is the span's, and the span holds none: its empty line, over 24 h.
-    await expect(layout.locator('[data-slot="list"] article[data-pass-id]')).toHaveCount(0);
-    await expect(layout.locator('[data-slot="list"]').getByRole('status')).toHaveText(/in the next 24 h/);
+    await expect(layout.locator('[data-slot="upFrom"] article[data-pass-id]')).toHaveCount(0);
+    await expect(layout.locator('[data-slot="upFrom"]').getByRole('status')).toHaveText(/in the next 24 h/);
     await expect(layout.locator('[data-arc-series][data-pass-ids]:not([data-pass-ids=""])')).toHaveCount(0);
   });
 });

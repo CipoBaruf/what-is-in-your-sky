@@ -254,7 +254,8 @@ test.describe('the wide live page (R61)', () => {
     const strip = await page.getByTestId('status-strip').boundingBox();
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
-    const actions = await page.getByTestId('live-actions').boundingBox();
+    // R216 (FR-NOW-1): `Layers` under `Time`, the conditions in `Up now` under it.
+    const actions = await page.getByTestId('live-layers').boundingBox();
     for (const row of [strip, block, playback, actions]) rightOf(row, box);
     band(playback, block);
     const stripeRows = await page.getByTestId('time-stripe').boundingBox();
@@ -291,7 +292,7 @@ test.describe('the wide live page (R61)', () => {
     // The hidden-objects toggle is with the actions in the rail (V12-13). R70 (FR-TRAJ-5 as amended v1.4,
     // V14-6): the stepping row is under the stripe on a pointer too — `pass ▶|` is a control a mouse has no
     // equivalent of — and the overview row is above it, in the block.
-    await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
+    await expect(page.getByTestId('live-layers').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toBeVisible();
     await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
     // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line — no band taller than a group gap under it
@@ -299,9 +300,9 @@ test.describe('the wide live page (R61)', () => {
     // bottom, and the page does not scroll.
     if (!box) throw new Error('no box');
     expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
-    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page: the rail's list ends over it, and
-    // the page is one viewport that does not scroll.
-    const foot = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
+    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page: the rail ends over it, and
+    // the page is one viewport that does not scroll (R216, FR-CTRL-10: the rail is the column's one scroll).
+    const foot = await page.getByTestId('live-layout').locator('[data-rail]').boundingBox();
     const footer = await page.locator('#root > footer').boundingBox();
     if (!foot || !footer) throw new Error('no list or footer');
     expect(foot.y + foot.height).toBeLessThanOrEqual(footer.y + 1);
@@ -329,7 +330,7 @@ test.describe('the wide live page (R61)', () => {
     await inCorner(page, box);
     await expectTheRail(page, box);
     // The legend is in that column too, under the page group (FR-LEG-2 as amended v1.4; R186: the `list` slot, above the conditions).
-    const actions = await page.getByTestId('live-actions').boundingBox();
+    const actions = await page.getByTestId('live-layers').boundingBox();
     const legend = await page.getByTestId('chart-legend-slot').boundingBox();
     rightOf(legend, box);
     below(legend, actions);

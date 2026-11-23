@@ -63,12 +63,12 @@ async function polarStars(page: Page): Promise<void> {
 
 test.describe('the live page', () => {
   for (const locale of ['en', 'es'] as const) {
-    test(`wide, polar, [ stars ] on the actions row, ${locale}`, async ({ page }) => {
+    test(`wide, polar, [ stars ] in Layers, ${locale}`, async ({ page }) => {
       await homeAt(page, { width: 1280, height: 800 }, locale, 'polar');
       await page.getByTestId('live-link').click();
       await settle(page, 'sky-chart');
       await polarStars(page);
-      await expect(page.getByTestId('live-actions').getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('live-layers').getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
       await page.mouse.move(0, 0);
       await page.screenshot({ path: `${CAPTURE_DIR}/r123-live-1280-polar-dark-${locale}.png` });
     });

@@ -303,7 +303,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(within(row).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
       expect(row.previousElementSibling).toHaveAttribute('data-testid', 'pass-view-row');
       expect(screen.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByTestId('pass-layout').querySelector('[data-slot="action"]')).toBeNull();
+      expect(screen.getByTestId('pass-layout').querySelector('[data-slot="turn"]')).toBeNull();
       expect(screen.queryByTestId('window-hold-up')).toBeNull();
       expect(screen.queryByTestId('sky-screen')).toBeNull();
     });
@@ -401,7 +401,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     const media = stubMatchMedia(1280, 800);
     try {
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
-      const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
+      const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="view"]') as HTMLElement;
       expect(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
       // R186 (FR-WIDE-2, D-1095): still nothing saved, and a desk opens on the globe of `[ Globe ] Window Dome`.
       const wideControl = within(wideRow).getByRole('group', { name: en.chart.viewGroup });

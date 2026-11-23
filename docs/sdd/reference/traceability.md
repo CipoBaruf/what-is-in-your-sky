@@ -374,6 +374,7 @@
 | FR-CTRL-6 | `src/ui/components/primitives/SectionHeading.test.tsx` |
 | FR-CTRL-7 | `src/ui/components/primitives/Field.test.tsx`, `tests/styles/focus.test.ts` |
 | FR-CTRL-9 | `src/ui/components/guide/skychart/window/SkyWindow.zoom.test.tsx`, `src/ui/components/primitives/ZoomKeys.test.tsx`, `src/ui/components/sky/SkyHint.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/window-zoom.spec.ts` |
+| FR-CTRL-10 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/live-rail.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
 | FR-CTRL-12 | `src/ui/components/primitives/Close.test.tsx` |
 | FR-CTRL-14 | `src/ui/components/primitives/Tag.test.tsx`, `tests/styles/literals.test.ts` |
@@ -553,6 +554,7 @@
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
 | FR-NIGHT-4 | `src/state/effects.test.ts` |
+| FR-NOW-1 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-rail.spec.ts` |
 | FR-OFF-1 | `src/ui/components/common/UpdateBanner.test.tsx` |
 | FR-OFF-2 | `src/state/effects.test.ts` |
 | FR-OFF-3 | `src/data/weatherCache.test.ts`, `src/lib/cloudVerdict.test.ts` |

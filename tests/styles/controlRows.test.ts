@@ -286,10 +286,11 @@ const rows = (t: Messages): readonly Row[] => [
    */
   // R148 (FR-FULL-2, D-920): the compact live top row is gone — the head over the sky and the sheet's head are `sheetRows.test.ts`'s rows.
   {
-    // R144 (FR-TONIGHT-6): `[ list (1) ] [ Share ]`, 23 cells in English; `[ ver 1 ] [ Compartir ]`, 24 in Spanish — the one actions row, in both states.
-    name: 'the live actions row (FR-WATCH-4, FR-TONIGHT-6, FR-COMP-7)',
+    // R216 (FR-NOW-1, D-1239): the compact actions row is gone — `[ Share ]` is the view row's; `Layers`' one row,
+    // `[x] stars` and `Hidden`, in both states.
+    name: 'the live layers row (FR-NOW-1, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-actions'),
+    find: () => screen.getByTestId('stars-toggle').parentElement as HTMLElement,
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
   },
@@ -532,7 +533,7 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
   ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
     setUp();
     render(createElement(I18nProvider, { locale, children: element() }));
-    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"], [data-testid="pass-view-row"]') as Element;
+    const row = screen.getByTestId(layoutId).querySelector('[data-slot="view"], [data-testid="live-view-row"], [data-testid="pass-view-row"]') as Element;
     const cells = rowCells(row, table);
     expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
     // R150 (FR-GYRO-11, D-950): the window first, every view its block's two cells.

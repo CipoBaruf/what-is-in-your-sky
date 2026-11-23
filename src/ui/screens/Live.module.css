@@ -269,6 +269,24 @@
   gap: 0 var(--cell);
 }
 
+/* R216 (FR-NOW-1): `Time`'s buttons are none while scrubbing; the empty row takes no gap. */
+.actions:empty {
+  display: none;
+}
+
+/* R216 (FR-NOW-1, D-1239): `Layers` — its heading over one row of options, `[x] stars` and `Hidden objects`. */
+.layers {
+  min-width: 0;
+}
+
+.layerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+}
+
 /* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like the toggles beside it, not the boxed
    button. R85 (D-549): bracketed again, `[ Compartir ]`. R144 (FR-TONIGHT-9): the row is one text row — each
    control's 48 px hit box is padding and a matching negative margin (D-246's device, global.css `inline-control`),
@@ -378,14 +396,10 @@
   min-width: 0;
 }
 
-/* R71 (FR-LEG-7, FR-LEG-8; V14-5, D-387): the compact legend panel behind `[ list (n) ]` is exactly two rows of
-   `--tap` — a height, not a maximum — scrolling inside, so it takes the same room whatever it holds. The row count
-   is `LEGEND_OPEN_ROWS` (`ChartFrame.tsx`); the literal is the one the frame's own rule carried. */
+/* R216 (FR-CTRL-10, D-1239): the compact legend in the sheet is not capped and does not scroll inside it (R71's
+   two-row panel is gone); the sheet's body is the one scroll. */
 .page[data-compact='true'] .layout [data-testid='chart-legend-slot'] {
   --legend-row: var(--tap);
-  height: calc(2 * var(--legend-row));
-  overflow-y: auto;
-  min-height: 0;
 }
 
 .indicatorLine {

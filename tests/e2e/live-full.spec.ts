@@ -25,7 +25,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { FULL_OVERLAY_MAX_SHARE, SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../src/lib/layout';
-import { closeSheet, domeDrawn, openSheet, seedStoredRun, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
+import { closeSheet, domeDrawn, openSheet, seedStoredRun, sheetOrder, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
 import { aimedAt, stubOrientation } from './orientation';
 
 /** v2.14.2 (FR-PHONE-17): the phone's follow question answered for the visit (`useFollow.ts`'s `FOLLOW_ASKED_KEY`), so these cases read the page under it; `follow-ask.spec.ts` owns the question. */
@@ -226,8 +226,9 @@ for (const locale of LOCALES) {
           await expect(page.getByTestId('sheet-head')).toBeInViewport({ ratio: 1 });
           await expect(page.getByTestId('sheet-close')).toBeVisible();
           // Every row of FR-GYRO-10 is in the sheet, in order, the satellites last; the satellites' heading in view at the body's end. R152 (FR-GYRO-1): on this touch profile `[ follow the phone ]` is the row after the view row.
-          const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-          expect(order).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
+          // R216 (FR-NOW-1, D-1239): in the rail's group order.
+          const order = await sheetOrder(page);
+          expect(order).toEqual(['live-context', 'live-view-row', 'live-follow', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
           await expect(page.getByTestId('live-satellites-head')).toBeInViewport();
           await closeSheet(page);
           expect(await box(page, 'chart-box')).toEqual(chart);
