@@ -47,12 +47,14 @@ describe('UpdateBanner (R28: FR-OFF-1)', () => {
       appStore.getState().offerUpdate(apply);
     });
     const banner = screen.getByTestId('update-banner');
-    expect(banner).toHaveTextContent('A new version is ready.');
+    // FR-UPD-2: the words, the dot, and `reload` as its own boxed control (FR-CTRL-1, FR-CTRL-16), not a link in the line.
+    expect(banner).toHaveTextContent('New version ready · reload');
+    expect(screen.getByRole('button', { name: 'reload' })).not.toHaveClass('inline-control');
     // Rendering the offer must not take it: `SKIP_WAITING` has one caller and it is the button.
     expect(apply).not.toHaveBeenCalled();
     expect(await axe(container)).toHaveNoViolations();
 
-    await user.click(screen.getByRole('button', { name: 'Reload now' }));
+    await user.click(screen.getByRole('button', { name: 'reload' }));
     expect(apply).toHaveBeenCalledTimes(1);
   });
 
@@ -65,7 +67,7 @@ describe('UpdateBanner (R28: FR-OFF-1)', () => {
   it('reads in Spanish (FR-I18N-2)', () => {
     set({ updateReady: true, applyUpdate: () => undefined });
     show('es');
-    expect(screen.getByTestId('update-banner')).toHaveTextContent('Hay una versión nueva lista.');
-    expect(screen.getByRole('button', { name: 'Recargar ahora' })).toBeInTheDocument();
+    expect(screen.getByTestId('update-banner')).toHaveTextContent('Nueva versión lista · recargar');
+    expect(screen.getByRole('button', { name: 'recargar' })).toBeInTheDocument();
   });
 });

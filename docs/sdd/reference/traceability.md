@@ -713,7 +713,7 @@
 | FR-TRAJ-4 | `src/lib/timeStripe.test.ts` |
 | FR-TRAJ-5 | `src/lib/timeStripe.test.ts`, `src/ui/components/live/touch.test.ts` |
 | FR-UPD-1 | `src/state/serviceWorker.test.ts` |
-| FR-UPD-2 | `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx` |
+| FR-UPD-2 | `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx`, `tests/e2e/update-banner.spec.ts` |
 | FR-VIS-3 | `src/ui/components/guide/PassNumbers.test.tsx` |
 | FR-VIS-5 | `src/state/effects.test.ts`, `src/state/slices/prefs.test.ts` |
 | FR-VIS-7 | `src/ui/components/passes/PassCard.test.tsx` |
@@ -790,3 +790,4 @@
 | US-63 | `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | US-64 | `src/ui/screens/Settings.test.tsx` |
 | US-65 | `tests/e2e/location.spec.ts`, `tests/e2e/place-search.spec.ts` |
+| US-66 | `tests/e2e/update-banner.spec.ts` |

@@ -618,10 +618,11 @@ export const ui = {
    * FR-OFF-1 (OQ-14): the update is offered, never imposed. The line says what
    * is waiting and what the button will do, because the button reloads the
    * page and a reader on a pass or a live sky should be able to say "later".
+   * R220 (FR-UPD-2): `New version ready · reload`, the dot is the bar's (`UpdateBanner`).
    */
   update: {
-    ready: 'A new version is ready.',
-    reload: 'Reload now',
+    ready: 'New version ready',
+    reload: 'reload',
   },
 
   /**

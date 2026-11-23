@@ -291,6 +291,14 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1279 — The compact sheet renders `SLOT_ORDER`'s groups; the strip itself stays over the sky.** *(R216)*
   (FR-NOW-1, FR-CTRL-10, D-1232.) `ControlsSheet` takes `groups`, keyed by the rail's slots and rendered in `SLOT_ORDER`, each a `data-group` wrapper, before any `children` (the stars page and the pass detail keep theirs until they move). The live page's `strip` group is the context line, since the strip is the box's foot on compact.
   R71's two-row legend panel goes: the sheet's body is the one scroll. `[ Compartir ]` is wider than `[x] estrellas`, so at 390 px in Spanish it takes the line under the views, at the row's right.
+- **D-1289 — The bar's words are `New version ready · reload`, and `reload` is FR-CTRL-1's box.** *(R220)*
+  (FR-UPD-2, FR-CTRL-16, D-1237.) `ready` is `New version ready` / `Nueva versión lista`, `reload` is `reload` / `recargar`; the ` · ` is the bar's, not the catalog's. The bar keeps `Banner`'s `[Note]` marker and its boxed line; at 390 px the box puts `reload` on a second line.
+- **D-1290 — On a phone's sky page the box starts under the bar.** *(R220)*
+  (FR-UPD-2.) There the bar is fixed under the head and the box is the screen, so `Shell.tsx` measures the fixed bar's bottom into `--update-bar-end` on the root and `SkyViewLayout.module.css`'s full wrapper takes it as its top padding; the property is removed while the bar is empty or in the flow (the desk and every other page), where the bar already sits above the box.
+- **D-1291 — The spec's release is a `visibilitychange`, and the reload keeps the page.** *(R220)*
+  (US-66 AC1, FR-UPD-1.) `update-banner.spec.ts`'s fake registration finds a waiting worker on `update()` only after `deploy()`; the spec hides the tab, deploys and shows it.
+  It expects the bar within 10 s on `#live`, `#pass` and `#settings` at 390 × 844 and 1280 × 800, under the `banner` landmark, sharing no row with a visible `[data-slot="drawing"]`, topmost at `reload`'s centre.
+  After the reload the address is the same page; a desk's `#pass` carries its pass (`#pass=<id>`).
 - **D-1265 — What went with the home beyond the task's list.** *(R212)*
   (D-1230, D-1245, D-1246.) `screens/home/usePlaceOpen.ts` goes although D-1230 keeps it: only `App.tsx` and `Home.tsx` read it, and the dead-code job fails on it.
   `useDoorSky.ts`, `tests/styles/doorRows.test.ts` and `tests/support/doorFixtures.ts` went with the doors, and six capture specs of the home (`r76`, `r84`, `r87`, `r93`, `r96`, `r130`) and `first-step-screen.spec.ts` with the screens they shot.
