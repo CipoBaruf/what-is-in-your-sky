@@ -54,18 +54,14 @@ async function textLine(locator: Locator): Promise<{ top: number; bottom: number
 }
 
 test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
-  test('the header, the summary and the sort row are each one line, and [ settings ] opens the page', async ({ page }) => {
+  test('the header and the sort row are each one line, and [ settings ] opens the page', async ({ page }) => {
+    // R212 (FR-LAND-6): the seed leaves the page on the satellites page, the phone's list; the home's place line is gone.
     await seedStoredRun(page);
 
     const header = page.getByTestId('header');
-    await expect(header.getByRole('heading', { level: 1 })).toHaveText('Your sky');
+    await expect(header).toHaveAttribute('data-page', 'pass');
     expect(await isOneLine(header)).toBe(true);
     expect(await fitsTheViewport(header)).toBe(true);
-
-    const summary = page.getByTestId('location-summary');
-    await expect(summary).toBeVisible();
-    expect(await isOneLine(summary)).toBe(true);
-    expect(await fitsTheViewport(summary)).toBe(true);
 
     const sort = page.getByRole('group', { name: 'Sort passes' });
     await expect(sort.getByRole('button', { name: 'Soonest' })).toBeVisible();
@@ -82,7 +78,7 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
   test('the title and the two controls are drawn on one line (FR-COMP-1, D-501)', async ({ page }) => {
     await seedStoredRun(page);
     const header = page.getByTestId('header');
-    const [title, live, settings] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
+    const [title, live, settings] = await Promise.all([textLine(header.getByText('Your sky', { exact: true })), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
     expect(live).toEqual(title);
     expect(settings).toEqual(title);
   });
@@ -108,13 +104,15 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await expect(page.getByTestId('settings-back')).toHaveText('←');
     await expect(page.getByTestId('settings-back')).toHaveAccessibleName('Volver');
     await page.getByTestId('settings-back').click();
-    await expect(page).toHaveURL((url) => url.hash === '');
+    // Back to the page settings was opened from: the satellites page (R212).
+    await expect(page).toHaveURL((url) => url.hash === '#pass');
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   });
 
-  test('Escape, the back control and the browser’s Back all return to the home screen (US-20 AC4)', async ({ page }) => {
+  test('Escape, the back control and the browser’s Back all return to the page settings was opened from (US-20 AC4)', async ({ page }) => {
     await seedStoredRun(page);
-    const home = page.getByTestId('location-summary');
+    // R212 (FR-LAND-6): the satellites page, where the seed leaves the page.
+    const home = page.getByTestId('pass-tonight');
     const back = page.getByTestId('settings-back');
     // Each trip waits for the page to be up before leaving it: the click returns
     // as soon as the hash is set, and a key pressed before React has re-rendered
@@ -342,41 +340,40 @@ test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {
   test.use({ viewport: WIDE });
 
-  test('one row: the title, the page links with home current, and [ settings ] at the right end, no switches (FR-FLOW-3, D-845)', async ({ page }) => {
+  test('one row: the title, the page links with satellites current, and [ settings ] at the right end, no switches (FR-FLOW-3, D-845, D-1230)', async ({ page }) => {
+    // R212 (FR-LAND-6): the seed leaves the page on the satellites page, which settles on a pass.
     await seedStoredRun(page);
     const header = page.getByTestId('header');
-    await expect(header.getByRole('heading', { level: 1 })).toHaveText('What is in your sky right now');
+    const titleText = header.getByText('What is in your sky right now', { exact: true });
+    await expect(titleText).toBeVisible();
     await expect(page.getByTestId('live-link')).toHaveText('live');
-    await expect(page.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
+    // D-1230: the header has no home link.
+    await expect(page.getByTestId('home-link')).toHaveCount(0);
     await expect(page.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
     await expect(header.getByRole('group', { name: 'Language' })).toHaveCount(0);
     await expect(header.getByRole('group', { name: 'Theme' })).toHaveCount(0);
     // The links and `[ settings ]` are on the title's line — the boxes overlap it vertically — `[ settings ]` at the right.
     const box = (locator: Locator): Promise<DOMRect> => locator.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-    const [title, live, settings] = await Promise.all([box(header.getByRole('heading', { level: 1 })), box(page.getByTestId('live-link')), box(page.getByTestId('settings-link'))]);
+    const [title, live, settings] = await Promise.all([box(titleText), box(page.getByTestId('live-link')), box(page.getByTestId('settings-link'))]);
     for (const other of [live, settings]) {
       expect(other.top).toBeLessThan(title.bottom);
       expect(title.top).toBeLessThan(other.bottom);
     }
     expect(live.left).toBeGreaterThan(title.right);
     expect(settings.left).toBeGreaterThan(live.right);
-    // R166 (FR-CLEAN-14, D-1007): the page links are `[ home ] [ live ] [ stars ]`; the current page is `BracketLink`'s
-    // dim `aria-current` span, as `[ settings ]` is on its own page, and the accent rule under it is gone.
-    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, before: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
+    // R166 (FR-CLEAN-14, D-1007): the current page is `BracketLink`'s dim `aria-current` span, as `[ settings ]` is on
+    // its own page, and the accent rule under it is gone.
+    const current = await page.getByTestId('pass-link').evaluate((el: HTMLElement) => ({ tag: el.tagName, color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, before: getComputedStyle(el, '::before').content, accent: getComputedStyle(el.nextElementSibling as HTMLElement).color }));
     expect(current.tag).toBe('SPAN');
     expect(current.line).toBe('none');
     // R206 (FR-CTRL-6, D-1226): a link is its word, with nothing written before it.
     expect(current.before).toBe('none');
     expect(current.color).not.toBe(current.accent);
-    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]` opens the
-    // whole form in place; the header's `[ settings ]` is the one link to #settings.
-    await expect(page.getByTestId('location-summary')).toBeVisible();
-    await page.getByTestId('location-summary-change').click();
-    await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
     await expect(page.locator('a[href="#settings"]')).toHaveCount(1);
   });
 
-  test('home reaches home when the page the app loaded on was a route: #settings, then live, then home (D-857)', async ({ page }) => {
+  test('live is reached from a load on a route: #settings, then live, and no home (D-857, FR-LAND-1)', async ({ page }) => {
     await seedStoredRun(page);
     // A bookmark on #settings: the load's own entry is the route.
     await page.goto('/#settings');
@@ -384,32 +381,14 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'settings');
     await page.getByTestId('live-link').click();
     await expect(page).toHaveURL(/#live$/);
-    await page.getByTestId('home-link').click();
-    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'home');
-    expect(new URL(page.url()).hash).toBe('');
-    await expect(page.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('live-link')).toHaveAttribute('aria-current', 'page');
   });
 
   test('the live link is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
     await seedStoredRun(page);
     const header = page.getByTestId('header');
-    const [title, live] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link'))]);
+    const [title, live] = await Promise.all([textLine(header.getByText('What is in your sky right now', { exact: true })), textLine(page.getByTestId('live-link'))]);
     expect(live).toEqual(title);
-  });
-
-  test('the focus ring on the live link clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {
-    await seedStoredRun(page);
-    const live = page.getByTestId('live-link');
-    await live.focus();
-    const ring = await live.evaluate((element: HTMLElement) => {
-      const rect = element.getBoundingClientRect();
-      const style = getComputedStyle(element);
-      const reach = parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth);
-      return { bottom: rect.bottom + reach, height: rect.height };
-    });
-    expect(ring.height).toBeLessThanOrEqual(26);
-    const tagline = await page.getByTestId('header').getByText('Which satellites you can see tonight', { exact: false }).evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-    expect(ring.bottom).toBeLessThanOrEqual(tagline.top);
   });
 
   test('renders #settings when navigated to (FR-COMP-2)', async ({ page }) => {
@@ -424,8 +403,8 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
 
 /**
  * D-1033 (the owner's call 2026-11-02, on a desk): on wide nothing scrolls but the pick list — the list floats over
- * the page and scrolls inside itself, and the home's panes never scroll sideways (the saved place's ruled row once
- * pushed the Where pane wider than itself).
+ * the page and scrolls inside itself. R212: the home's Where pane, whose saved place once pushed it wider than itself,
+ * went with the home.
  */
 test.describe('on a desk only the pick list scrolls (D-1033)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -459,11 +438,5 @@ test.describe('on a desk only the pick list scrolls (D-1033)', () => {
     const box = await list.boundingBox();
     if (!field || !box) throw new Error('the field or the list has no box');
     expect(box.y).toBeGreaterThanOrEqual(field.y + field.height - 1);
-  });
-
-  test('the home’s Where pane with a saved place in use never scrolls sideways', async ({ page }) => {
-    await seedStoredRun(page, { locale: 'es', settled: true, prefs: { favourites: [{ cellKey: '-38.93,-67.99', observer: NEUQUEN_OBSERVER, addedAt: NINE_DAYS_ON - 86_400_000, lastUsedAt: NINE_DAYS_ON - 60_000 }] } });
-    await expect(page.locator('[data-testid="favourite"][data-current="yes"]')).toBeVisible();
-    expect(await scrollers(page, 'x')).toEqual([]);
   });
 });
