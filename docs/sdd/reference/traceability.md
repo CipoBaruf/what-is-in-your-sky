@@ -60,7 +60,7 @@
 | FR-CI-1..3 | `.github/workflows/ci.yml`, `captures.yml`, `tests/e2e/v1-captures.spec.ts` gate, `playwright.config.ts` workers, `e2e/liveHelpers.ts` `seedStoredRun` (D-195) |
 | FR-DESK-2 amended | `Header.tsx` wide row (D-184) |
 | FR-DESK-3 / FR-DESK-5 amended | `lib/layout.ts` `WIDE_SPLIT_MIN_CELLS`, `App.module.css`, `GuidePanel.tsx` `[ list ]`, `playwright.config.ts` `desktop-1024` (D-192) |
-| FR-WIN-3 / FR-LIVE-8 amended (true north) | `lib/declination.ts`, `components/live/compassHeading.ts`, `StatusStrip.tsx` (D-185) |
+| FR-WIN-3 / FR-LIVE-8 amended (true north) | `lib/declination.ts`, `components/live/compassHeading.ts`, `StatusStrip.tsx` (D-185; deleted by R219) |
 | FR-DOME-1 amended (fill) | `dome/camera.ts` (D-187) |
 | FR-LIVE-7 / FR-LEG-2 / FR-TRAJ-4 amended (the rail and the cut box, v1.2.1) | `screens/Live.tsx` and `Live.module.css` (the rail, the time row), `skychart/ChartFrame.tsx` + module (the measurement), `SkyChart.types.ts` `aside`, `stripe`, `boxAspect` and `stacked`, `dome/camera.ts` `DOME_BOX_ASPECT`, `lib/layout.ts` `fitBox` and `LIVE_TWO_COLUMN_MIN_PX`, `hooks/useMediaQuery.ts`, `lib/timeStripe.ts` (`labelEveryHours`, `keepLabels`); `tests/e2e/live-rail.spec.ts` (D-312..D-315, D-318, D-319, D-320); F-59 |
 | FR-DOME-1 amended (after a resize, v1.2.1) | `dome/SkyDome.tsx` layer keys, `tests/e2e/dome-resize.spec.ts` (D-316); F-60 |
@@ -73,7 +73,7 @@
 | FR-MOON-4 amended | `App.tsx` behind `MOON_LORE` (D-183) |
 | FR-FOL-1..3 (v1.2) | `screens/Live.tsx`, `components/live/FollowPhone.tsx`, `useFollowPhone.ts`, `state/slices/prefs.ts` `viewOverride` (D-276, D-277) |
 | FR-FOL-4/5 (v1.2) | `skychart/window/projection.ts` `groundState`, `SkyWindow.tsx`, `SkyWindow.module.css`, `i18n/{en,es}/window.ts` (D-278) |
-| FR-LIVE-8 amended (v1.2) | `useFollowPhone.ts` (heading path removed), `StatusStrip.tsx` declination on window mode (D-276) |
+| FR-LIVE-8 amended (v1.2) | `useFollowPhone.ts` (heading path removed), `StatusStrip.tsx` declination on window mode (D-276; deleted by R219) |
 | FR-WIN-4 / FR-WIN-5 amended (v1.2) | `window/orientationAccess.ts` request from the control, `state/slices/prefs.ts` `savedChartView` (D-277) |
 | FR-DOME-1 amended (ceiling at every size, v1.2) | `dome/camera.ts` `layoutFor` cell growth, `zoomWithinRaster`, `fitLayout`'s column count and `fitLayers`' one zoom, `camera.test.ts` size table, `tests/e2e/dome-fit.spec.ts` (D-279, D-290..D-294); F-54 |
 | FR-LIVE-7 amended (compact spacing, v1.2) | `screens/Live.module.css` `--live-row-gap`, `tests/e2e/live-compact.spec.ts` (D-281); F-55 |
@@ -135,7 +135,7 @@
 | FR-MARK-4 | `ui/components/common/Header.tsx` + `Header.module.css` (both rows, the tagline's padding), `ui/screens/Home.tsx` (the hero), `public/icon-192.png`, `public/icon-512.png`, `public/favicon.png`, `index.html`, `scripts/readme-hero.ts` (the lockup) (D-440, D-441) |
 | FR-MARK-7 / FR-X-6, FR-OFF-6 amended | `public/manifest.webmanifest` (unchanged bytes), `tests/deploy/manifest.test.ts`, `scripts/build-icons.ts` deleted (D-440) |
 | FR-WATCH-1, FR-WATCH-2 | `ui/screens/Live.tsx`, `state/slices/live.ts` (read, unchanged), `ui/components/passes/NextEventBlock.tsx`, `ui/components/mark/Mark.tsx`, `i18n/{en,es}/live.ts` (D-446) |
-| FR-WATCH-3 | `ui/components/live/StatusStrip.tsx` + module, `tests/styles/controlRows.test.ts` (FR-MOON-3 amended) |
+| FR-WATCH-3 | `ui/components/live/StatusStrip.tsx` + module (deleted by R219: `screens/sky/live/Group.tsx`'s `LiveSkyRows`), `tests/styles/controlRows.test.ts` (FR-MOON-3 amended) |
 | FR-WATCH-4, FR-WATCH-7 | `ui/screens/liveRows.ts`, `ui/screens/Live.tsx`, `ui/screens/Live.module.css` (D-447) |
 | FR-WATCH-5, FR-WATCH-6 | `lib/layout.ts` `scrubPlacement`, `LIVE_KEPT_ROWS_PX` re-derived, `ui/screens/Live.module.css`, `skychart/ChartFrame.tsx` + module (the `bottomOverlay` slot) (D-448, D-449) |
 | FR-WATCH-8 | `i18n/{en,es}/live.ts`, `i18n/{en,es}/ui.ts` |
@@ -488,7 +488,7 @@
 | FR-HOME-3 | `tests/styles/breakpoint.test.ts` |
 | FR-HOME-4 | `tests/styles/breakpoint.test.ts` |
 | FR-I18N-1 | `src/state/slices/prefs.test.ts`, `src/ui/screens/Settings.test.tsx` |
-| FR-I18N-2 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/lib/phrases.test.ts`, `src/ui/App.share.test.tsx`, `src/ui/components/common/Countdown.test.tsx`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/common/InstallHint.test.tsx`, `src/ui/components/common/ShareButton.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/common/ThemeToggle.test.tsx`, `src/ui/components/common/UpdateBanner.test.tsx`, `src/ui/components/guide/GuideText.test.tsx`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/components/live/StatusStrip.test.tsx`, `src/ui/components/live/StepControls.test.tsx`, `src/ui/components/live/TimeTrack.test.tsx`, `src/ui/components/location/Favourites.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/moon/MoonAtPeak.test.tsx`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/moon/MoonLore.test.tsx`, `src/ui/components/sky/time/PlaybackControls.test.tsx`, `src/ui/components/sky/time/StripeOverview.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx`, `tests/e2e/live-landscape.spec.ts`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live.spec.ts`, `tests/e2e/narrow.spec.ts`, `tests/e2e/share.spec.ts`, `tests/e2e/shortcuts.spec.ts` |
+| FR-I18N-2 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/lib/phrases.test.ts`, `src/ui/App.share.test.tsx`, `src/ui/components/common/Countdown.test.tsx`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/common/InstallHint.test.tsx`, `src/ui/components/common/ShareButton.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/common/ThemeToggle.test.tsx`, `src/ui/components/common/UpdateBanner.test.tsx`, `src/ui/components/guide/GuideText.test.tsx`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/components/live/StepControls.test.tsx`, `src/ui/components/live/TimeTrack.test.tsx`, `src/ui/components/location/Favourites.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/moon/MoonAtPeak.test.tsx`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/moon/MoonLore.test.tsx`, `src/ui/components/sky/time/PlaybackControls.test.tsx`, `src/ui/components/sky/time/StripeOverview.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx`, `tests/e2e/live-landscape.spec.ts`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live.spec.ts`, `tests/e2e/narrow.spec.ts`, `tests/e2e/share.spec.ts`, `tests/e2e/shortcuts.spec.ts` |
 | FR-I18N-3 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/ui/components/guide/GuideText.test.tsx` |
 | FR-I18N-4 | `src/lib/elementsAge.test.ts`, `src/lib/format.test.ts`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-I18N-6 | `src/ui/components/common/Footer.test.tsx`, `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx` |
@@ -501,7 +501,7 @@
 | FR-KEEP-4 | `src/data/localPrefs.test.ts`, `src/ui/components/common/Footer.test.tsx` |
 | FR-LAND-1 | `src/ui/App.live.test.tsx`, `src/ui/App.measure.test.tsx`, `src/ui/App.settings.test.tsx`, `src/ui/App.share.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/navigation.test.ts`, `src/ui/screens/LiveRoute.test.tsx`, `src/ui/screens/passSelection.test.ts`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/landing.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/e2e/sky-layout.spec.ts` |
 | FR-LAND-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts` |
-| FR-LAND-4 | `src/ui/components/common/Header.test.tsx`, `src/ui/components/location/PlaceDialog.test.tsx`, `tests/e2e/examplePages.spec.ts`, `tests/e2e/firstRun.spec.ts` |
+| FR-LAND-4 | `src/ui/components/common/Header.test.tsx`, `src/ui/components/location/PlaceDialog.test.tsx`, `src/ui/components/sky/ControlsSheet.test.tsx`, `tests/e2e/examplePages.spec.ts`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/live-rail.spec.ts`, `tests/styles/sheetRows.test.ts` |
 | FR-LAND-5 | `src/ui/components/common/Header.test.tsx` |
 | FR-LAND-6 | `src/ui/App.live.test.tsx`, `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-LAND-7 | `tests/e2e/firstRun.spec.ts` |
@@ -556,7 +556,8 @@
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
 | FR-NIGHT-4 | `src/state/effects.test.ts` |
 | FR-NOW-1 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-rail.spec.ts` |
-| FR-NOW-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx` |
+| FR-NOW-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/Legend.test.tsx`, `tests/e2e/live-rail.spec.ts` |
+| FR-NOW-3 | `tests/e2e/live-rail.spec.ts` |
 | FR-OFF-1 | `src/ui/components/common/UpdateBanner.test.tsx` |
 | FR-OFF-2 | `src/state/effects.test.ts` |
 | FR-OFF-3 | `src/data/weatherCache.test.ts`, `src/lib/cloudVerdict.test.ts` |
