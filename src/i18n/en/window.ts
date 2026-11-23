@@ -27,17 +27,15 @@ export const windowMessages = {
     /** R121 (FR-SKY-7, D-790): the pass detail's facing picker's first option — the explained pass's peak, beside the eight points and `up`. */
     peak: 'peak',
     /**
-     * R132 (FR-FLOW-6, D-848): the hand hint under the facing picker (`SkyHint`), one line joined with ` · ` from
-     * these clauses by the pointer — `coarse` a touch screen, `fine` a mouse. The window gets all three; the dome
-     * and the polar chart the drag clause alone; the live page with a highlighted pass ends the coarse line with
-     * `follow` (FR-SKY-13). R121's `handHint` in the box's corner is gone with it. R157 (FR-PHONE-5): the coarse line
-     * is two clauses — `drag`, then `follow` where there is a key and `zoom` otherwise; `star` is the fine line's only.
-     * R161 (FR-FLOW-17's rule): `star.coarse`, "tap a star", is removed with its last reader.
+     * R132 (FR-FLOW-6, D-848): the hint in the box's corner (`SkyHint`), one line joined with ` · ` from these
+     * clauses by the pointer — `coarse` a touch screen, `fine` a mouse. R214 (FR-CTRL-9, D-1241): the window and the
+     * globe, which zoom, read `turn` and `zoom`. The dome reads `drag`, and on the live page with a highlighted
+     * pass its coarse line ends with `follow` (FR-SKY-13).
      */
     skyHint: {
       drag: { coarse: 'Drag to look', fine: 'Drag or use the arrow keys' },
-      zoom: { coarse: 'pinch to zoom', fine: 'ctrl + wheel to zoom' },
-      star: { fine: 'click a star' },
+      turn: 'drag to turn',
+      zoom: { coarse: 'pinch to zoom', fine: 'scroll to zoom' },
       follow: (p: { key: string }) => `tap ${p.key} to follow`,
     },
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Facing NE (53°) · up 10°" — the dome's first word too (FR-FLOW-5, D-847). */

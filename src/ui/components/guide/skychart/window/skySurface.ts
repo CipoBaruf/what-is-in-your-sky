@@ -2,18 +2,11 @@ import { HORIZON_BAND_DEG, HORIZON_STRENGTH } from '../../../../../data/stars/co
 import { groundClipPath, lookDirection, project, ring, type Mat3, type Projected, type View } from './projection';
 
 /**
- * R155 (FR-LOOK-1, FR-LOOK-2; V210-7; PLAN D-974): the sky surface and the
- * horizon band, pure — the window's box fills with a sky tone under
- * everything, and along the horizon a band of `HORIZON_BAND_DEG` in altitude
- * fades from `--chart-horizon-glow` at the horizon to nothing at the band's
- * top, so the sky reads dark at the zenith and lighter at the horizon.
- *
- * **The tint** is FR-STAR-13's three steps on the surface: the Sun above 0°
- * is `--chart-sky-day`, between 0° and `TWILIGHT_SUN_DEG` (−6°, the twilight
- * step's own line) `--chart-sky-twilight`, at or below it `--chart-sky-deep`.
- * The step is read from the Sun's altitude the scene's positions carry at
- * the shown instant, so the surface changes with `t` on the live page as the
- * stars do (FR-SKY-8); a scene without one is drawn as full night.
+ * R155 (FR-LOOK-1; V210-7; PLAN D-974): the horizon band, pure — over the
+ * window's one surface (`--chart-sky-deep` at every Sun altitude since R214:
+ * FR-DARK-1, D-1234) a band of `HORIZON_BAND_DEG` in altitude fades from
+ * `--chart-horizon-glow` at the horizon to nothing at the band's top, so the
+ * sky reads dark at the zenith and lighter at the horizon.
  *
  * **The band** is drawn with no filter, as `HORIZON_BAND_STEPS` strips: each
  * is the region between two altitude rings' closed images under the
@@ -27,24 +20,6 @@ import { groundClipPath, lookDirection, project, ring, type Mat3, type Projected
  * the sky side by construction, so they need no clip, and the ground fill and
  * the hatch sit over them unchanged.
  */
-
-export type TintStep = 'day' | 'twilight' | 'deep';
-
-/**
- * FR-STAR-13, FR-SKY-3: the Sun's altitude at and below which every rung is drawn — `DEFAULT_THRESHOLDS.sunAltMaxDeg`
- * (`physics/constants.ts`), which `src/ui` may not import (PLAN §3); `skySurface.test.ts` holds the two equal.
- */
-export const TWILIGHT_SUN_DEG = -6;
-
-/** FR-LOOK-2: the step for the Sun's altitude; no altitude is full night. */
-export function tintStep(sunAltDeg: number | undefined): TintStep {
-  if (sunAltDeg === undefined || Number.isNaN(sunAltDeg)) return 'deep';
-  if (sunAltDeg > 0) return 'day';
-  return sunAltDeg > TWILIGHT_SUN_DEG ? 'twilight' : 'deep';
-}
-
-/** The surface token each step fills with (FR-LOOK-1, FR-LOOK-2). */
-export const SURFACE_TOKENS: Readonly<Record<TintStep, 'chart-sky-day' | 'chart-sky-twilight' | 'chart-sky-deep'>> = { day: 'chart-sky-day', twilight: 'chart-sky-twilight', deep: 'chart-sky-deep' };
 
 /** How many strips the band's gradient is drawn in: enough that the steps read as a fade at 15° of altitude, few enough to project per frame. */
 export const HORIZON_BAND_STEPS = 5;

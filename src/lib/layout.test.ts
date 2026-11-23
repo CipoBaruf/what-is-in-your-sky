@@ -44,7 +44,7 @@ describe('hintFitsBeside (FR-FULL-3, D-924; FR-PHONE-3, D-964)', () => {
     expect(hintFitsBeside('x'.repeat(roomBoth + 1), both)).toBe(false);
   });
 
-  it('puts the dome’s drag clause beside controls, touch or mouse (R206: the box is two cells, not four), and the window’s three clauses above it', () => {
+  it('puts the dome’s drag clause beside controls, touch or mouse (R206: the box is two cells, not four), and the window’s two clauses above it', () => {
     // The drag clause alone, `SkyHint`'s dome line: 12, 26, 19 and 26 characters before the `controls` /
     // `controles` box and the row's padding cell (D-1026) — 22.5, 34.75, 29.63 and 35.75 cells: all four fit since R206.
     const beside = { en: { coarse: true, fine: true }, es: { coarse: true, fine: true } } as const;
@@ -55,8 +55,8 @@ describe('hintFitsBeside (FR-FULL-3, D-924; FR-PHONE-3, D-964)', () => {
       const words = m.window.skyHint;
       for (const pointer of ['coarse', 'fine'] as const) {
         expect(hintFitsBeside(words.drag[pointer], [m.sheet.controls]), `${locale} ${pointer}: ${words.drag[pointer]}`).toBe(beside[locale][pointer]);
-        // R161: a touch line has no star clause since FR-PHONE-5 (its words left the catalogs), so it is drag and zoom.
-        const window = (pointer === 'fine' ? [words.drag.fine, words.zoom.fine, words.star.fine] : [words.drag.coarse, words.zoom.coarse]).join(' · ');
+        // R214 (FR-CTRL-9): turn and zoom on either pointer; the shortest, the English touch line, is 28 characters.
+        const window = [words.turn, words.zoom[pointer]].join(' · ');
         expect(hintFitsBeside(window, [m.sheet.controls]), window).toBe(false);
       }
     }
@@ -66,7 +66,7 @@ describe('hintFitsBeside (FR-FULL-3, D-924; FR-PHONE-3, D-964)', () => {
     for (const m of [en, es]) {
       const words = m.window.skyHint;
       const labels = [m.sheet.follow, m.sheet.controls];
-      for (const line of [`${words.drag.coarse} · ${words.zoom.coarse}`, `${words.drag.coarse} · ${words.follow({ key: 'A' })}`]) expect(hintFitsBeside(line, labels), line).toBe(false);
+      for (const line of [`${words.turn} · ${words.zoom.coarse}`, `${words.drag.coarse} · ${words.follow({ key: 'A' })}`]) expect(hintFitsBeside(line, labels), line).toBe(false);
       // The dome's touch line, the drag clause alone, fits beside both in English (10.5 + 21 cells) and not in Spanish (16.63 + 22).
       expect(hintFitsBeside(words.drag.coarse, labels)).toBe(m === en);
     }

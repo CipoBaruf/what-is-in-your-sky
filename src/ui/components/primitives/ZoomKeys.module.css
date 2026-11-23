@@ -1,0 +1,44 @@
+/* R214 (FR-CTRL-9, FR-CTRL-1; D-1228): the zoom keys. Each button is a `--target`
+   hit box; its face is a control high, and the three faces meet as one box, the
+   start edge of each the hairline between two. */
+.keys {
+  display: inline-flex;
+}
+
+.key {
+  min-width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+}
+
+.face {
+  display: block;
+  box-sizing: border-box;
+  line-height: calc(var(--control-h) - 2 * var(--hairline));
+  border-block: var(--control-edge);
+  border-inline-start: var(--control-edge);
+  text-align: center;
+}
+
+.key:first-child > .face {
+  border-start-start-radius: var(--control-radius);
+  border-end-start-radius: var(--control-radius);
+}
+
+.key:last-child > .face {
+  border-inline-end: var(--control-edge);
+  border-start-end-radius: var(--control-radius);
+  border-end-end-radius: var(--control-radius);
+}
+
+.key:is(:hover, :active):not(:disabled) > .face {
+  background: var(--hover-ground);
+}
+
+/* FR-CTRL-17: at an end of the range the key keeps its shape. */
+.key:disabled {
+  color: var(--fg-dim);
+}

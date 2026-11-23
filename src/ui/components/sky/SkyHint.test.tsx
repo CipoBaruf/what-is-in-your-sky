@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 /**
- * R132 (FR-FLOW-6, D-848): the hand hint in the reader's terms — worded by the
- * pointer, the follow clause on a coarse pointer with a key (R157: in the zoom clause's place, two clauses on touch), the drag clause
- * alone on the dome and nothing on the polar chart (no drag, D-864), both languages, and gone for good
- * once a first gesture on any view sets `skyHintSeen` through
- * `useChartHand`'s slot.
+ * R132 (FR-FLOW-6, D-848), R214 (FR-CTRL-9, D-1241): the hint in the reader's terms — worded by the pointer, turn and
+ * zoom on the window and the globe until the first drag or zoom sets the device's key; the dome's drag clause, with
+ * the follow clause on a coarse pointer with a key, until a first gesture sets `skyHintSeen` through `useChartHand`'s
+ * slot; nothing on the polar chart (no drag, D-864); both languages.
  */
 import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -16,7 +15,7 @@ import { useChartHand } from '../guide/skychart/useChartHand';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { HINT_TOUCH_CLAUSES } from '../../../lib/layout';
-import { SkyHint, skyHintLine, useSkyHintShown, type SkyHintProps } from './SkyHint';
+import { markZoomHintDone, SkyHint, skyHintLine, useSkyHintShown, type SkyHintProps } from './SkyHint';
 
 let media: MatchMediaStub | null = null;
 const initial = appStore.getInitialState();
@@ -26,6 +25,7 @@ afterEach(() => {
   media?.restore();
   media = null;
   appStore.setState(initial, true);
+  localStorage.clear();
 });
 
 const hint = (props: SkyHintProps, locale: Locale = 'en') =>
@@ -36,28 +36,21 @@ const hint = (props: SkyHintProps, locale: Locale = 'en') =>
   );
 
 describe('<SkyHint> (FR-FLOW-6)', () => {
-  it('words the window’s line for a mouse, and for a touch screen, reading the pointer once', () => {
+  it('FR-CTRL-9: words the window’s and the globe’s line for a mouse, and for a touch screen, reading the pointer once', () => {
     media = stubMatchMedia(1280);
-    hint({ view: 'window' });
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
-    expect(screen.getByTestId('sky-hint')).toHaveAttribute('data-pointer', 'fine');
-    cleanup();
-    media.setCoarsePointer(true);
-    hint({ view: 'window' });
-    // R157 (FR-PHONE-5): two clauses on touch, the star clause dropped.
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag to look · pinch to zoom$/);
-    expect(screen.getByTestId('sky-hint')).toHaveAttribute('data-pointer', 'coarse');
-  });
-
-  it('gives the follow clause the zoom clause’s place where the live page names a key, never three, and leaves the fine line alone (FR-SKY-13, FR-PHONE-5)', () => {
-    media = stubMatchMedia(390);
-    media.setCoarsePointer(true);
-    hint({ view: 'window', followKey: 'A' });
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag to look · tap A to follow$/);
-    cleanup();
-    media.setCoarsePointer(false);
-    hint({ view: 'window', followKey: 'A' });
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
+    for (const view of ['window', 'globe'] as const) {
+      media.setCoarsePointer(false);
+      hint({ view, followKey: 'A' });
+      expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^drag to turn · scroll to zoom$/);
+      expect(screen.getByTestId('sky-hint')).toHaveAttribute('data-pointer', 'fine');
+      cleanup();
+      media.setCoarsePointer(true);
+      // D-1241: the second clause follows the pointer; no follow clause in its place.
+      hint({ view, followKey: 'A' });
+      expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^drag to turn · pinch to zoom$/);
+      expect(screen.getByTestId('sky-hint')).toHaveAttribute('data-pointer', 'coarse');
+      cleanup();
+    }
   });
 
   it('gives the dome the drag clause alone, and the polar chart, which has no drag, no hint (D-864)', () => {
@@ -78,13 +71,16 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
   it('speaks Spanish', () => {
     media = stubMatchMedia(390);
     media.setCoarsePointer(true);
-    hint({ view: 'window', followKey: 'B' }, 'es');
+    hint({ view: 'dome', followKey: 'B' }, 'es');
     expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá para mirar · tocá B para seguir$/);
     cleanup();
     hint({ view: 'window' }, 'es');
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá para mirar · pellizcá para acercar$/);
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^arrastrá para girar · pellizcá para acercar$/);
     cleanup();
     media.setCoarsePointer(false);
+    hint({ view: 'window' }, 'es');
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^arrastrá para girar · rueda para acercar$/);
+    cleanup();
     hint({ view: 'dome' }, 'es');
     expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Arrastrá o usá las flechas$/);
   });
@@ -95,19 +91,36 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
         for (const follow of [null, 'A']) {
           const line = skyHintLine(words, view, 'coarse', { follow });
           expect(line.split(' · ').length, line).toBeLessThanOrEqual(HINT_TOUCH_CLAUSES);
-          expect(line.startsWith(words.drag.coarse)).toBe(true);
+          expect(line.startsWith(view === 'window' ? words.turn : words.drag.coarse)).toBe(true);
           expect(line).not.toMatch(/tap a star|tocá una estrella/);
         }
       }
-      expect(skyHintLine(words, 'window', 'coarse', { follow: null })).toBe(`${words.drag.coarse} · ${words.zoom.coarse}`);
+      expect(skyHintLine(words, 'window', 'coarse', { follow: null })).toBe(`${words.turn} · ${words.zoom.coarse}`);
       expect(skyHintLine(words, 'dome', 'coarse', { follow: null })).toBe(words.drag.coarse);
-      expect(skyHintLine(words, 'window', 'fine', { follow: 'A' })).toBe([words.drag.fine, words.zoom.fine, words.star.fine].join(' · '));
+      expect(skyHintLine(words, 'window', 'fine', { follow: 'A' })).toBe(`${words.turn} · ${words.zoom.fine}`);
     }
   });
 
-  it('is gone for good after the first gesture on any view, which the slot reports and the prefs keep (D-848)', () => {
-    media = stubMatchMedia(390);
+  it('FR-CTRL-9: is gone from the window and the globe, and after a reload, once the device’s key is set', () => {
+    media = stubMatchMedia(1280);
     hint({ view: 'window' });
+    // A tap sets the dome's pref and leaves this line.
+    act(() => {
+      appStore.getState().setSkyHintSeen(true);
+    });
+    expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
+    act(() => {
+      markZoomHintDone();
+    });
+    expect(screen.queryByTestId('sky-hint')).toBeNull();
+    expect(localStorage.getItem('wiys:hint:globe:v1')).toBe('1');
+    cleanup();
+    for (const view of ['window', 'globe'] as const) expect(renderHook(() => useSkyHintShown(view)).result.current).toBe(false);
+  });
+
+  it('leaves the dome for good after the first gesture on any view, which the slot reports and the prefs keep (D-848)', () => {
+    media = stubMatchMedia(390);
+    hint({ view: 'dome' });
     expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
     const { result } = renderHook(() => useChartHand());
     act(() => {

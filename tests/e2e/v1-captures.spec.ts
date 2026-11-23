@@ -1304,14 +1304,14 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R161 (FR-LOOK-2, FR-LOOK-12): the live page at `TWILIGHT` on the window — the phone's opens on it, the desk's
-   * view control is turned to it — with the surface on the twilight step.
+   * R161 (FR-LOOK-12), R214 (FR-DARK-1): the live page at `TWILIGHT` on the window — the phone's opens on it, the desk's
+   * view control is turned to it — with the one surface.
    */
   async 'live-twilight'(page, width, theme, locale) {
     await liveAt(page, width, theme, locale, TWILIGHT);
     const chart = page.getByTestId('sky-chart');
     if ((await chart.getAttribute('data-view')) !== 'window') await windowInTheBox(page, chart, locale, TWILIGHT);
-    await expect(chart.locator('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
+    await expect(chart.locator('[data-sky-surface]')).toBeAttached();
     await page.mouse.move(0, 0);
   },
 

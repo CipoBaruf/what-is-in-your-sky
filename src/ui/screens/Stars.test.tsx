@@ -40,6 +40,8 @@ afterEach(() => {
   media?.restore();
   media = null;
   appStore.setState(initial, true);
+  // R214 (D-1241): a drag's hint key is the device's, not the store's.
+  window.localStorage.removeItem('wiys:hint:globe:v1');
   vi.useRealTimers();
 });
 
@@ -173,11 +175,11 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
     // FR-CLEAN-4: one group of two rows, the row's room is 32 cells, and it holds three toggles: 25.5 in English (D-865, D-1249).
     expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([3, 1]);
-    // FR-CLEAN-1 (D-919): the full form's three slots and nothing else; the hint over the box (a mouse's three clauses here).
+    // FR-CLEAN-1 (D-919): the full form's three slots and nothing else; the hint over the box (a mouse's two clauses here).
     const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
     expect(slots).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
     expect(screen.getByTestId('stars-layout').querySelector('[data-slot="overlay"]')).toContainElement(screen.getByTestId('sky-hint'));
-    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent('drag to turn · scroll to zoom');
   });
 
   it('counts a layer as its word in two cells of box, a quarter cell from the next (D-1226, D-865)', () => {
@@ -187,7 +189,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect([count('es', 30.5), count('es', 30.25)]).toEqual([3, 2]);
   });
 
-  it('puts the hint away for good on the first drag, pinch or tap in the box, and renders no hint after it (FR-FLOW-6)', async () => {
+  it('FR-CTRL-9: keeps the hint through a tap, puts it away for good on the first drag in the box, and renders no hint after it', async () => {
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     await opened();
@@ -195,6 +197,9 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     const box = screen.getByTestId('stars-sky').querySelector<HTMLElement>('[tabindex="0"]');
     fireEvent.pointerDown(box as HTMLElement, { pointerId: 1, button: 0, pointerType: 'touch', clientX: 10, clientY: 10 });
     expect(appStore.getState().skyHintSeen).toBe(true);
+    // The press alone is a tap's: the line waits for the drag.
+    expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
+    fireEvent.pointerMove(box as HTMLElement, { pointerId: 1, pointerType: 'touch', clientX: 90, clientY: 10 });
     expect(screen.queryByTestId('sky-hint')).toBeNull();
     expect(screen.getByTestId('stars-layout').querySelector('[data-slot="hint"]')).toBeNull();
   });

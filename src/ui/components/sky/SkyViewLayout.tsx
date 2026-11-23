@@ -19,9 +19,10 @@ import styles from './SkyViewLayout.module.css';
  *
  * **Wide** (R186, FR-WIDE-1, FR-WIDE-5; D-1098) is the box at the left and the
  * rail at the right on all three pages: the box is the room the grid leaves
- * beside the rail, with its four corners over it (`CORNERS`: the readout
- * top-left, full screen top-right, the hint bottom-left, the zoom
- * bottom-right); the rail is `SLOT_ORDER` — the head, `View`, `Time`, the
+ * beside the rail and over the zoom's row, with its three corners over it
+ * (`CORNERS`: the readout top-left, full screen top-right, the hint
+ * bottom-left) and the zoom keys in the row under it, at its left (R214,
+ * FR-CTRL-9, D-1241); the rail is `SLOT_ORDER` — the head, `View`, `Time`, the
  * page group, the list — and scrolls as one where a short window leaves the
  * list fewer than its minimum rows. The guide's panel (D-849) is gone.
  *
@@ -53,8 +54,8 @@ import styles from './SkyViewLayout.module.css';
 /** R186 (D-1098): the wide rail's rows, in `SLOT_ORDER`. */
 export type SkyViewRailSlot = 'answer' | 'viewRow' | 'timeline' | 'action' | 'layers' | 'list';
 
-/** R186 (FR-WIDE-5, D-1098): the box's four corners on wide — the readout top-left, full screen top-right, the hint bottom-left, the zoom bottom-right. */
-export type SkyViewCorner = 'readout' | 'fullscreen' | 'hint' | 'zoom';
+/** R186 (FR-WIDE-5, D-1098): the box's corners on wide — the readout top-left, full screen top-right, the hint bottom-left. R214: the zoom is no corner. */
+export type SkyViewCorner = 'readout' | 'fullscreen' | 'hint';
 
 export type SkyViewSlotName = SkyViewRailSlot | SkyViewCorner | 'drawing' | 'overlay' | 'sheet';
 
@@ -90,7 +91,7 @@ export const LIST_FIRST_ORDER: readonly SkyViewRailSlot[] = ['answer', 'list', '
 export const LIST_FIRST_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = { ...SLOT_RHYTHM, list: 'row', viewRow: 'row' };
 
 /** R186 (FR-WIDE-5): the corners in the order they are rendered over the box. */
-export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint', 'zoom'];
+export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint'];
 
 /**
  * Where the readout stands — in its slot (the default: on wide, the box's top-left corner), or, R148 (D-923),
@@ -341,8 +342,8 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     );
   };
   /*
-   * R186 (FR-WIDE-5, D-1098): the box's corners. The readout and the zoom are the chart's parts — a view portals them
-   * here (`useChartSlot('readout' | 'zoom')`) unless the page gives a readout of its own; full screen is the layout's
+   * R186 (FR-WIDE-5, D-1098): the box's corners. The readout is the chart's part — a view portals it here
+   * (`useChartSlot('readout')`) unless the page gives a readout of its own; full screen is the layout's
    * own (R189: `[ full screen ]`, and while full the time readout and `[ × ]`); the hint is the page's. The readout
    * and the hint carry `data-slot` as their rows did.
    */
@@ -358,7 +359,6 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   };
   const cornerNode = (name: SkyViewCorner): ReactNode => {
     if (name === 'readout') return given('readout') ? slots.readout : <SkyViewChartSlot name="readout" />;
-    if (name === 'zoom') return <SkyViewChartSlot name="zoom" />;
     if (name === 'fullscreen') return fullscreenNode();
     return given(name) ? slots[name] : null;
   };
@@ -413,10 +413,14 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   return (
     <SkyViewContext.Provider value={context}>
       <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(full ? { 'data-full': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
-        {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners. */}
+        {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners.
+            R214 (FR-CTRL-9, D-1241): the zoom's row hangs under it inside the same element, so full screen takes the keys along. */}
         <div ref={drawingRef} className={[styles.slot, styles.drawing].join(' ')} data-slot="drawing">
           {slots.drawing}
           {CORNERS.map(corner)}
+          <div className={styles.zoomRow} data-zoom-row="">
+            <SkyViewChartSlot name="zoom" />
+          </div>
         </div>
         <div className={styles.rail} data-rail="" {...(listFirst ? { 'data-list-first': '' } : {})}>
           {(listFirst ? LIST_FIRST_ORDER : SLOT_ORDER).map(slot)}

@@ -158,12 +158,13 @@ Persistence:
 | Passes *(v1)* | IndexedDB, DB `wiys` v2, store `passRuns` | `cellKey` | `PassRun`; at most two kept, pruned on write (D-78) |
 | Last observer, sort order, chart view, chart orientation; *(v1)* locale, theme, favourites, hidden-objects toggle, install-hint dismissal | `localStorage` | `wiys:prefs:v1` | JSON; v1 fields are optional, so an existing prefs object stays readable (no key bump) |
 | Weather | in-memory `Map` + `localStorage` `wiys:wx:v1` | `cellKey` | `WeatherSnapshot`; fresh for 30 min, evicted after `FORECAST_DAYS × 24 h` (D-106) |
+| The zoom hint *(v3.0)* | `localStorage` | `wiys:hint:globe:v1` | `'1'` once the window or the globe was dragged or zoomed (FR-CTRL-9, D-1241, D-1273) |
 | Geocode results | in-memory `Map` | normalised query | `Place[]`, session only |
 | App shell *(v1)* | Cache Storage via the service worker | Workbox precache manifest | HTML, JS, CSS, the braille font, manifest, icons (FR-OFF-1); never data responses |
 
 **v2.6 additions** *(FR-FLOW-6)*
 
-- `Prefs.skyHintSeen: boolean`, default `false`, persisted with the other prefs by `localPrefs.ts` and set once by the first gesture on any sky view (D-848).
+- `Prefs.skyHintSeen: boolean`, default `false`, persisted with the other prefs by `localPrefs.ts` and set once by the first gesture on any sky view (D-848); since v3.0 it hides the dome's hint alone, the window's and the globe's being `wiys:hint:globe:v1`'s (D-1273).
   It is not reset by a change of language or theme.
 - `DoorLines` (`screens/home/doorLines.ts`): `{ satellites: { lines: string[]; href: string }, stars: { lines: string[]; pending: boolean }, both: { lines: string[] } }`, built from data the home already holds.
   `pending` means the `stars` chunk has not resolved yet (D-843).

@@ -46,6 +46,7 @@ import { Tag } from '../src/ui/components/primitives/Tag';
 import { TextButton } from '../src/ui/components/primitives/TextButton';
 import { ToggleGroup } from '../src/ui/components/primitives/ToggleGroup';
 import { VisuallyHidden } from '../src/ui/components/primitives/VisuallyHidden';
+import { ZoomKeys } from '../src/ui/components/primitives/ZoomKeys';
 import '../src/ui/styles/tokens.css';
 import '../src/ui/styles/global.css';
 import './primitives.css';
@@ -492,6 +493,21 @@ function DisclosureCases() {
   );
 }
 
+const ZOOM_NAMES = { in: 'Zoom in', out: 'Zoom out', reset: 'Reset view' };
+
+function ZoomKeysCases() {
+  return (
+    <>
+      <Case props="onIn onOut onReset">
+        <ZoomKeys onIn={noop} onOut={noop} onReset={noop} names={ZOOM_NAMES} />
+      </Case>
+      <Case props='end="in"'>
+        <ZoomKeys onIn={noop} onOut={noop} onReset={noop} names={ZOOM_NAMES} end="in" />
+      </Case>
+    </>
+  );
+}
+
 function SettingRowCases() {
   return (
     <Case props="rows of a group">
@@ -654,6 +670,7 @@ const STATE_SPECIMENS: Readonly<Record<string, (state: PrimitiveState, sid: (id:
     </PickRow>
   ),
   Disclosure: (state) => <Disclosure open={state === 'on'} disabled={state === 'disabled'} label="Tonight" count={3} onToggle={noop} />,
+  ZoomKeys: (state) => <ZoomKeys onIn={noop} onOut={noop} onReset={noop} names={ZOOM_NAMES} end={state === 'disabled' ? 'out' : null} />,
   SettingRow: () => (
     <SettingRow label="Theme">
       <OptionToggle label="dark" pressed onPress={noop} />
@@ -711,6 +728,7 @@ const SPECIMENS: Readonly<Record<string, () => ReactNode>> = {
   Close: CloseCases,
   PickRow: PickRowCases,
   Disclosure: DisclosureCases,
+  ZoomKeys: ZoomKeysCases,
   SettingRow: SettingRowCases,
   StatusLine: StatusLineCases,
   Stack: StackCases,

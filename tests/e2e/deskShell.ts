@@ -52,16 +52,17 @@ export async function chooseDeskView(layout: Locator, locale: 'en' | 'es', view:
   await expect(layout.locator(view === 'globe' ? '[data-globe]' : `[data-drawing="${view}"]`).first()).toBeAttached({ timeout: 30_000 });
 }
 
-/** FR-WIDE-5: the readout top-left, the hint bottom-left, the zoom bottom-right on the views that zoom, none on the dome. */
+/** FR-WIDE-5: the readout top-left and the hint bottom-left; FR-CTRL-9: the zoom under the box at its left on the views that zoom, none on the dome. */
 export async function expectCorners(layout: Locator, view: DeskView): Promise<void> {
   const drawing = await box(layout.locator('[data-slot="drawing"]'));
-  const zoom = layout.locator('[data-corner="zoom"]');
+  const zoom = layout.locator('[data-zoom-row]');
   if (view === 'dome') await expect(zoom.getByRole('button')).toHaveCount(0);
   else {
-    await expect(zoom.getByRole('button')).toHaveCount(2);
+    // The window's three keys (R214); the globe's two until R217.
+    await expect(zoom.getByRole('button')).toHaveCount(view === 'window' ? 3 : 2);
     const at = await box(zoom);
-    expect(at.x + at.width, `${view}: zoom at the right`).toBeGreaterThan(drawing.x + drawing.width - 2);
-    expect(at.y + at.height, `${view}: zoom at the foot`).toBeGreaterThan(drawing.y + drawing.height - 2);
+    expect(Math.abs(at.x - drawing.x), `${view}: zoom at the left`).toBeLessThanOrEqual(1);
+    expect(Math.abs(at.y - drawing.y - drawing.height), `${view}: zoom under the box`).toBeLessThanOrEqual(1);
   }
   const readout = layout.locator('[data-corner="readout"]');
   if (await readout.isVisible()) {

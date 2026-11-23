@@ -3,9 +3,10 @@
  * the zoom on the production build, on the two boxes the hand drives — the
  * live page's on wide, where the window is the saved view in the box, and the
  * stars page's. `+` three times narrows the field to 30° and spreads the
- * drawing about its centre; `0` restores it; ctrl + wheel and a synthetic
- * two-pointer pinch move the field the same way; a plain wheel is left to the
- * browser; R190 (FR-KEEP-1, amending R125) the field is kept, so a reload opens at the field left; and the drag at
+ * drawing about its centre; `0` restores it; the wheel, with ctrl or plain
+ * (R214, FR-CTRL-9: a key's step a notch), and a synthetic two-pointer pinch
+ * move the field the same way; R214's three keys under the box and the hint
+ * that the first drag puts away; R190 (FR-KEEP-1, amending R125) the field is kept, so a reload opens at the field left; and the drag at
  * the narrowest field still turns the window at the dome's rate.
  *
  * The readout's suffix (` · field 30°`) is R123's string: the field is read
@@ -119,7 +120,7 @@ const readout = (page: Page): Locator => page.getByTestId('window-readout');
 test.describe('zoom on the live page’s box (wide, the window as the saved view)', () => {
   test.use({ viewport: DESK, hasTouch: false });
 
-  test('+ three times narrows the field to 30° about the centre, 0 restores it, ctrl + wheel and a pinch move it the same way, a plain wheel is the browser’s', async ({ page }) => {
+  test('+ three times narrows the field to 30° about the centre, 0 restores it, the wheel, with ctrl or plain, and a pinch move it the same way', async ({ page }) => {
     const w = await openLiveWindow(page, { observer: PARIS, chartView: 'window' });
     await expect(w).toHaveAttribute('data-fov', '60');
     // R136 (FR-FLOW-14, D-876): the live page's window opens on the next rise (352°, 20° here); the zoom is measured
@@ -159,20 +160,23 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     expect(await placedAt(zenith(w))).toEqual(before);
     expect(await readout(page).textContent()).toBe(line);
 
-    // ctrl + wheel, one notch of 100 px down: exp(0.2) wider, 73°; two up: back under 60°.
+    // ctrl + wheel, one notch of 100 px down: a key's step wider, 75°; two up: back under 60°.
     await page.mouse.move(centre.x + centre.width / 2, centre.y + centre.height / 2);
     await ctrlWheel(page, 100);
     await page.clock.runFor(FRAME_MS);
-    await expect(w).toHaveAttribute('data-fov', '73');
+    await expect(w).toHaveAttribute('data-fov', '75');
     await ctrlWheel(page, -100);
     await ctrlWheel(page, -100);
     await page.clock.runFor(FRAME_MS);
-    await expect(w).toHaveAttribute('data-fov', '49');
-    // A plain wheel is not the window's: the browser keeps its default and the field stands.
-    expect(await wheel(box(w), 100, false)).toBe(true);
+    await expect(w).toHaveAttribute('data-fov', '48');
+    // FR-CTRL-9 (D-1272): a plain wheel is the window's in a sky layout, the same step; the browser's default is prevented.
+    expect(await wheel(box(w), 100, false)).toBe(false);
     await page.clock.runFor(FRAME_MS);
-    await expect(w).toHaveAttribute('data-fov', '49');
-    expect(await wheel(box(w), 100, true)).toBe(false);
+    await expect(w).toHaveAttribute('data-fov', '60');
+    expect(await wheel(box(w), -100, true)).toBe(false);
+    await page.clock.runFor(FRAME_MS);
+    await expect(w).toHaveAttribute('data-fov', '48');
+    expect(await wheel(box(w), 100, false)).toBe(false);
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '60');
 
@@ -272,17 +276,63 @@ test.describe('zoom on the stars page', () => {
     if (!centre) throw new Error('no box');
     await page.mouse.move(centre.x + centre.width / 2, centre.y + centre.height / 2);
     await ctrlWheel(page, -100);
-    await expect(w).toHaveAttribute('data-fov', '25');
+    await expect(w).toHaveAttribute('data-fov', '24');
     await page.getByRole('group', { name: 'Facing' }).locator('[data-option="W"]').click();
     await expect(w).toHaveAttribute('data-look-az', '270');
-    await expect(w).toHaveAttribute('data-fov', '25');
-    expect(await wheel(box(w), 100, false)).toBe(true);
-    await expect(w).toHaveAttribute('data-fov', '25');
+    await expect(w).toHaveAttribute('data-fov', '24');
+    // FR-CTRL-9 (D-1272): the plain wheel zooms here, a key's step a notch.
+    expect(await wheel(box(w), 100, false)).toBe(false);
+    await expect(w).toHaveAttribute('data-fov', '30');
     // R190 (FR-KEEP-1): kept on the device, so the reload opens at the field left, the aim at its opening rule (FR-KEEP-2).
     await page.reload();
     await onWindow(page);
-    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '25');
-    expect(Math.round(Number((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { windowFov?: number }).windowFov))).toBe(25);
+    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '30');
+    expect(Math.round(Number((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { windowFov?: number }).windowFov))).toBe(30);
+  });
+});
+
+test.describe('the zoom keys and the hint (R214, FR-CTRL-9)', () => {
+  test.use({ viewport: DESK, hasTouch: false });
+
+  test('FR-CTRL-9: −, + and ⟲ under the box at its left zoom a step each and back to the opening camera; the hint is gone after one drag and after a reload', async ({ page }) => {
+    const w = await openStars(page);
+    const layout = page.getByTestId('stars-layout');
+    const hint = layout.getByTestId('sky-hint');
+    await expect(hint).toHaveText('drag to turn · scroll to zoom');
+
+    const sky = await layout.locator('[data-slot="drawing"]').boundingBox();
+    const row = layout.locator('[data-zoom-row]');
+    const out = row.getByRole('button', { name: 'Zoom out' });
+    const at = await out.boundingBox();
+    const centre = await box(w).boundingBox();
+    if (!sky || !at || !centre) throw new Error('no box');
+    expect(Math.abs(at.x - sky.x), 'at the left').toBeLessThanOrEqual(1);
+    expect(at.y, 'under the box').toBeGreaterThanOrEqual(sky.y + sky.height - 1);
+    expect(at.y + at.height, 'inside the window').toBeLessThanOrEqual(DESK.height);
+
+    await page.mouse.move(centre.x + centre.width / 2, centre.y + centre.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + centre.width / 2 + 120, centre.y + centre.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect(w).not.toHaveAttribute('data-look-az', '180');
+    await expect(hint).toHaveCount(0);
+
+    await expect(w).toHaveAttribute('data-fov', '60');
+    await row.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(w).toHaveAttribute('data-fov', '48');
+    await out.click();
+    await expect(w).toHaveAttribute('data-fov', '60');
+    await out.click();
+    await expect(w).toHaveAttribute('data-fov', '75');
+    await row.getByRole('button', { name: 'Reset view' }).click();
+    await expect(w).toHaveAttribute('data-fov', '60');
+    await expect(w).toHaveAttribute('data-look-az', '180');
+    await expect(w).toHaveAttribute('data-look-alt', '35');
+
+    await page.reload();
+    await onWindow(page);
+    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    await expect(page.getByTestId('sky-hint')).toHaveCount(0);
   });
 });
 

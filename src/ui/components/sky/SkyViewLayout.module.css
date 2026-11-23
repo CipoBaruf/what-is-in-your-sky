@@ -172,9 +172,10 @@
   min-height: 0;
 }
 
+/* R214 (FR-CTRL-9, D-1273): the box leaves the zoom's row under it on every view, so a change of view moves no edge of it. */
 .layout[data-shape='rail'] .drawing {
   position: relative;
-  height: 100%;
+  height: calc(100% - var(--target));
   min-height: 0;
   margin-top: 0;
 }
@@ -219,7 +220,7 @@
 }
 
 /* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself
-   lets the pointer through to the sky and what stands in it (the zoom, full screen) takes it back. */
+   lets the pointer through to the sky and what stands in it (full screen) takes it back. */
 .corner {
   position: absolute;
   z-index: var(--z-raised);
@@ -258,18 +259,23 @@
 .corner-hint {
   inset-block-end: 0;
   inset-inline-start: 0;
-  max-width: calc(100% - 12 * var(--cell));
   padding: 0 var(--cell);
   background: var(--sky-corner-surface);
 }
 
-.corner-zoom {
-  inset-block-end: 0;
-  inset-inline-end: 0;
-  background: var(--sky-corner-surface);
+/* R214 (FR-CTRL-9, D-1241): the zoom's row, under the box at its left. */
+.zoomRow {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+  height: var(--target);
 }
 
-.corner-zoom:not(:has(button)) {
+.zoomRow:not(:has(button)) {
   display: none;
 }
 
@@ -346,6 +352,33 @@
   z-index: var(--z-screen);
   height: auto;
   background: var(--bg);
+}
+
+/* R214 (D-1273): full, nothing is under the box: the zoom's row stands over its foot and the hint a row higher. */
+.layout[data-full] .zoomRow {
+  inset-block: auto 0;
+  background: var(--sky-corner-surface);
+}
+
+.layout[data-full] .drawing:has(> .zoomRow button) > .corner-hint {
+  inset-block-end: var(--target);
+}
+
+/* R214 (D-1273, FR-SHP-3): in a short window (`LANDSCAPE_PHONE_QUERY`) the reserved row would cut the box under
+   `LIVE_BOX_MIN_PX` (170 px at 964 × 420), so there the box keeps its height and the row stands over its foot, as full. */
+@media (orientation: landscape) and (height <= 500px) {
+  .layout[data-shape='rail'] .drawing {
+    height: 100%;
+  }
+
+  .layout[data-shape='rail'] .zoomRow {
+    inset-block: auto 0;
+    background: var(--sky-corner-surface);
+  }
+
+  .layout[data-shape='rail'] .drawing:has(> .zoomRow button) > .corner-hint {
+    inset-block-end: var(--target);
+  }
 }
 
 .drawing:fullscreen {

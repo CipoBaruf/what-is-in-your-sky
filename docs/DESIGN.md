@@ -143,9 +143,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `--chart-planet` | `#f2c27a` | `#ff9a70` | 11.69 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 9.89 : 1 on `--bg` (reserved for the stars, FR-DS-8) | a planet, gold against the stars' white |
 | `--chart-star-faint` | `#626d7a` | `#a24a40` | 3.65 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 3.51 : 1 on `--bg` (reserved for the stars, FR-DS-8) | the faintest rung, V ≤ 4.5 |
 | `--chart-figure-name` | `#7a8591` | `#c4544a` | 5.12 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | 4.61 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | a constellation's name, text |
-| `--chart-sky-deep` | `#06080d` | `#060101` | 1.04 : 1 on `--bg` | 1.01 : 1 on `--bg` | the sky surface at night, 1.04 : 1 on --bg |
-| `--chart-sky-twilight` | `#111826` | `#120505` | 1.08 : 1 on `--bg` | 1.03 : 1 on `--bg` | the surface with the Sun between 0° and −6° |
-| `--chart-sky-day` | `#1a2230` | `#1e0a08` | 1.20 : 1 on `--bg` | 1.08 : 1 on `--bg` | the surface with the Sun up |
+| `--chart-sky-deep` | `#06080d` | `#060101` | 1.04 : 1 on `--bg` | 1.01 : 1 on `--bg` | the sky surface at every hour, 1.04 : 1 on --bg |
 | `--chart-horizon-glow` | `#1c2535` | `#1e0a08` | 1.25 : 1 on `--bg` | 1.08 : 1 on `--bg` | the horizon band, at HORIZON_STRENGTH × 0.5 |
 | `--chart-haze` | `#7f93b0` | `#8a2e26` | 6.13 : 1 on `--bg` | 2.44 : 1 on `--bg` | the Milky Way's haze, at its bands' alphas |
 | `--chart-star-blue` | `#c9d6f7` | `#ffd6ca` | 13.22 : 1 on `--bg` | 15.38 : 1 on `--bg` | a star of B−V < 0.0, blue-white |
@@ -375,6 +373,21 @@ States: rest, hover, focus, on, disabled.
 | `onToggle` | `() => void` | What a press means. |
 | `label` | `ReactNode` | The line’s words. |
 | `count` | `number` | How many it holds, after a middle dot. |
+| `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
+
+### `ZoomKeys`
+
+`src/ui/components/primitives/ZoomKeys.tsx` — The zoom of a view that zooms, `−`, `+` and `⟲` joined in one box under the view at its left.
+
+States: rest, hover, focus, disabled.
+
+| Prop | Type | What it does |
+|---|---|---|
+| `onIn` | `() => void` | What `+` does: one step nearer. |
+| `onOut` | `() => void` | What `−` does: one step wider. |
+| `onReset` | `() => void` | What `⟲` does: back to the view’s opening camera. |
+| `names` | `{ in, out, reset }` | The three keys’ names, in the host’s language. |
+| `end` | `'in' \| 'out' \| null` | The end of the range the zoom stands at: that key is disabled. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `SettingRow`

@@ -1,14 +1,12 @@
 /**
- * R155 (FR-LOOK-1, FR-LOOK-2; D-974): the tint step at the three altitudes
- * and the band's strips — five, fading from `HORIZON_STRENGTH` × 0.5 at the
+ * R155 (FR-LOOK-1; D-974): the band's strips — five, fading from `HORIZON_STRENGTH` × 0.5 at the
  * horizon, each the region between two altitude rings' images, flipped
  * against the box where the antipode of the look direction falls inside it.
  */
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_THRESHOLDS } from '../../../../../physics/constants';
 import { HORIZON_BAND_DEG, HORIZON_STRENGTH } from '../../../../../data/stars/constants';
 import { project, uprightRotation, WINDOW_FOV, type View } from './projection';
-import { BAND_ALPHA_AT_HORIZON, HORIZON_BAND_STEPS, horizonBand, stripOpacity, SURFACE_TOKENS, tintStep, TWILIGHT_SUN_DEG } from './skySurface';
+import { BAND_ALPHA_AT_HORIZON, HORIZON_BAND_STEPS, horizonBand, stripOpacity } from './skySurface';
 
 const view: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 };
 
@@ -27,25 +25,6 @@ function filled(d: string, x: number, y: number): boolean {
   }
   return inside;
 }
-
-describe('the tint step (FR-LOOK-2)', () => {
-  it('is day above 0°, twilight to −6°, deep at and below it, and deep with no Sun', () => {
-    expect(tintStep(10)).toBe('day');
-    expect(tintStep(0.01)).toBe('day');
-    expect(tintStep(0)).toBe('twilight');
-    expect(tintStep(-3)).toBe('twilight');
-    expect(tintStep(-5.99)).toBe('twilight');
-    expect(tintStep(-6)).toBe('deep');
-    expect(tintStep(-18)).toBe('deep');
-    expect(tintStep(undefined)).toBe('deep');
-    expect(tintStep(Number.NaN)).toBe('deep');
-  });
-
-  it('draws the twilight line where FR-STAR-13 draws every rung, and names a surface token per step', () => {
-    expect(TWILIGHT_SUN_DEG).toBe(DEFAULT_THRESHOLDS.sunAltMaxDeg);
-    expect(SURFACE_TOKENS).toEqual({ day: 'chart-sky-day', twilight: 'chart-sky-twilight', deep: 'chart-sky-deep' });
-  });
-});
 
 describe('the horizon band (FR-LOOK-1)', () => {
   it('is five strips over 15° of altitude, the lowest at HORIZON_STRENGTH × 0.5 and fading to nothing', () => {

@@ -192,7 +192,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the rail's order (R216); `captureSet.ts` (R212).
   - **Done when:** `npm run check` green; `nextPassStrip.test.ts`; `NextPassStrip.test.tsx` (each kind, the `[example] Salta` prefix on compact, the play button's two words, `● live` and the offset); `live-strip.spec.ts` walks US-63 AC1–AC3 and checks US-62 AC4 at 390 × 844 and 1280 × 800; `watch` sent once per visit; the day line at noon, not in twilight or at night; `npm run check:sdd` green.
 
-- [ ] **R214 — The window: dark at noon, zoom keys under the box**
+- [x] **R214 — The window: dark at noon, zoom keys under the box**
   - **Lane:** window
   - **Tier:** standard
   - **Turns:** 300
