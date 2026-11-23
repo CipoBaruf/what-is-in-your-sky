@@ -51,7 +51,7 @@ export const CELL_ADVANCE_EM_MAX = Math.max(...advances);
 export const CELL_ADVANCE_EM_MIN = Math.min(...advances);
 
 /** The pixel literal a threshold of `cells` needs, on every font in the stack (F-10). */
-export function thresholdPx(cells: number): number {
+function thresholdPx(cells: number): number {
   return Math.ceil(cells * CELL_ADVANCE_EM_MAX * BASE_FONT_PX);
 }
 
