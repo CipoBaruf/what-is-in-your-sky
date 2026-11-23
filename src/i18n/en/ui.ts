@@ -122,8 +122,10 @@ export const ui = {
    * wide row's links are the names of the three pages a reader moves between, under `nav`.
    */
   header: {
-    /** FR-CTRL-5 (R215): drawn `← back` with no box; `backName` is its accessible name. */
-    back: '← back',
+    /** FR-COMP-7: the sky head's `[ ← ]`; `backName` is its accessible name and the header's back's. */
+    back: '←',
+    /** FR-CTRL-5 (R215): the header's back, bare words with no box. */
+    backWords: '← back',
     backName: 'Back',
     nav: 'Pages',
     pages: { live: 'live', pass: 'satellites', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
