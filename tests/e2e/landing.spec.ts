@@ -2,12 +2,16 @@
  * R208 (FR-LAND-2, FR-STRIP-4, FR-LIVE-9; D-1233): what each width opens on. A desk opens the live page on the globe
  * with real time running by seconds and a pass page playing from its rise; a phone opens the window, not playing; a
  * stored view wins at both widths, and a link's instant or reduced motion opens paused.
+ *
+ * R212 (FR-LAND-1, FR-LAND-6, US-62 AC1; D-1230, D-1231): the live page is the first page. A load of `/`, `/#` or a
+ * hash that names no route draws the live page and puts `#live` in the address without a history entry, at 390 × 844
+ * and 1280 × 800; and on a phone the satellites page, `#pass`, is tonight's list, a card opening its pass's sheet.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClock } from '../../src/lib/timeFormat';
 import type { ChartView } from '../../src/model';
 import { shownInstant } from './deskPages';
-import { NINE_DAYS_ON, seedStoredRun } from './liveHelpers';
+import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 import { NEUQUEN } from './observers';
 
 /** The stored run at Neuquén with `chartView` saved, or nothing saved, and the live page reached by its hash. */
@@ -80,5 +84,51 @@ test.describe('on a phone', () => {
     await openLive(page, 'dome');
     await expect(drawing(page).locator('[data-look-az]')).toHaveCount(0);
     await expect(page.getByTestId('live-layout')).toBeVisible();
+  });
+});
+
+const SIZES = [
+  { width: 390, height: 844 },
+  { width: 1280, height: 800 },
+] as const;
+
+for (const viewport of SIZES) {
+  test.describe(`at ${String(viewport.width)} × ${String(viewport.height)}`, () => {
+    test.use({ viewport });
+
+    for (const address of ['/', '/#', '/#nope'] as const) {
+      test(`FR-LAND-1: ${address} opens #live with no history entry`, async ({ page }) => {
+        await page.clock.setFixedTime(NINE_DAYS_ON);
+        await stubNetwork(page);
+        await page.route('**/e', (route) => route.fulfill({ status: 204 }));
+        // A page of our own first, so the load under test adds exactly one entry and the replace adds none.
+        await page.goto('about:blank');
+        const before = await page.evaluate(() => history.length);
+        await page.goto(address);
+        await expect(page).toHaveURL(/\/#live$/);
+        await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
+        expect(await page.evaluate(() => history.length)).toBe(before + 1);
+        // The replace happened before the first render: Back leaves the app, not for the address as typed.
+        await page.goBack();
+        await expect(page).toHaveURL('about:blank');
+      });
+    }
+  });
+}
+
+test.describe('the phone’s satellites page (FR-LAND-6, D-1231)', () => {
+  test.use({ viewport: SIZES[0] });
+
+  test('#pass is tonight’s stripe and list, and a card opens its pass’s sheet over it', async ({ page }) => {
+    // The seed leaves the page on `#pass` (`seedStoredRun`).
+    await seedStoredRun(page, { settled: true });
+    await expect(page).toHaveURL(/#pass$/);
+    const tonight = page.getByTestId('pass-tonight');
+    await expect(tonight.getByTestId('tonight-stripe')).toBeVisible();
+    const card = tonight.locator('article[data-pass-id]').first();
+    const id = await card.getAttribute('data-pass-id');
+    await card.getByRole('button', { name: /Open guide/ }).click();
+    await expect(page).toHaveURL(new RegExp(`#pass=${String(id)}$`));
+    await expect(page.getByRole('dialog')).toHaveAttribute('data-pass-id', String(id));
   });
 });
