@@ -440,8 +440,8 @@ export const ui: typeof EnUi = {
   },
 
   update: {
-    ready: 'Hay una versión nueva lista.',
-    reload: 'Recargar ahora',
+    ready: 'Nueva versión lista',
+    reload: 'recargar',
   },
 
   install: {
