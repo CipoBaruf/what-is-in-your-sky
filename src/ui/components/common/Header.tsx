@@ -99,7 +99,7 @@ export function Header({ page, place, onChangePlace, context = null, onBack, bac
   const rootClass = (shape: string | undefined): string => [styles.header, shape, landmark ? styles.landmark : undefined].filter(Boolean).join(' ');
 
   const back = page !== 'live' && onBack !== undefined && (
-    <TextButton bare tone="dim" label={t.header.backWords} aria-label={t.header.backName} className={[styles.back, TARGET, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
+    <TextButton bare inline tone="dim" label={t.header.backWords} aria-label={t.header.backName} className={[styles.back, TARGET, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
   );
 
   const tab = (target: (typeof TABS)[number]) => {
