@@ -51,7 +51,7 @@ export interface HeaderProps {
   place?: HeaderPlace | null;
   /** What the place line's `change` does; left out, the place dialog (`requestPlace`). */
   onChangePlace?: () => void;
-  /** A compact sub-page's context (the place), after its name, cut with an ellipsis; the wide row draws `place` instead. */
+  /** The compact row's context (the place): after a sub-page's name, under a tab's row; the wide row draws `place` instead. */
   context?: string | null;
   /** The page's `← back`, where it has one: leaves the page. */
   onBack?: () => void;
@@ -116,6 +116,13 @@ export function Header({ page, place, onChangePlace, context = null, onBack, bac
     </nav>
   );
 
+  const contextText =
+    context !== null && context !== '' ? (
+      <span className={styles.context} data-testid={`${page}-place`}>
+        {context}
+      </span>
+    ) : null;
+
   if (mode === 'compact') {
     if (page === 'settings' || page === 'stars') {
       const Name = page === 'settings' ? 'h1' : 'span';
@@ -125,19 +132,17 @@ export function Header({ page, place, onChangePlace, context = null, onBack, bac
           <Name className={styles.pageName} data-testid="header-page">
             {t.header.pages[page]}
           </Name>
-          {context !== null && context !== '' && (
-            <span className={styles.context} data-testid={`${page}-place`}>
-              {context}
-            </span>
-          )}
+          {contextText}
         </Root>
       );
     }
-    // A tab's row: the mark and the three links, in FR-COMP-1's cells. The page's `h1` is the page's own.
+    // A tab's row: the mark and the three links, in FR-COMP-1's cells, and under it the context where the page has one
+    // (the live page before it can draw, R212). The page's `h1` is the page's own.
     return (
       <Root inert={inert} className={rootClass(styles.compact)} data-testid="header" data-page={page}>
         <div className={styles.brand}>{mark}</div>
         {nav}
+        {contextText}
       </Root>
     );
   }

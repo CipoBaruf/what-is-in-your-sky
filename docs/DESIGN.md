@@ -198,13 +198,14 @@ States: rest, hover, focus, on, busy, disabled.
 
 `src/ui/components/primitives/BracketLink.tsx` — An underlined link that goes somewhere: a route, never an action.
 
-States: rest, focus, on.
+States: rest, hover, focus, on.
 
 | Prop | Type | What it does |
 |---|---|---|
 | `href` | `string` | Where it goes. |
 | `label` | `ReactNode` | The link’s words. |
 | `current` | `boolean` | The page this control stands on: a dim `aria-current` span with the same box, not a link. |
+| `tab` | `boolean` | A header tab: dim words, `--fg` on hover; with `current`, `--fg` over a 2 px accent rule. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `OptionToggle`

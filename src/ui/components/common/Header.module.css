@@ -60,6 +60,15 @@
   color: var(--fg-dim);
 }
 
+/* R212 (D-1231): a tab's row has no cells for the context, so it is the line under the row. */
+.compact:not(.sub):has(> .context) {
+  flex-wrap: wrap;
+}
+
+.compact:not(.sub) > .context {
+  flex: 1 0 100%;
+}
+
 /* R74 (FR-MARK-4, D-441): the mark and the title are one group, so the row's
    own `space-between` still puts the title at the left and the controls at the
    right, and the tagline below can be aligned to the title's first letter with

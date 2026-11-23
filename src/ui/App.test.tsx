@@ -52,7 +52,8 @@ describe('<App> frame (R12)', () => {
     window.history.replaceState(null, '', '#pass');
     const { container } = render(<App />);
     const banner = screen.getByRole('banner');
-    expect(banner).toHaveTextContent(en.app.shortTitle);
+    // R215 (FR-LAND-6): the mark and the three tabs; the short title left the row.
+    expect(banner).toHaveTextContent(en.header.pages.live);
     expect(banner).not.toHaveTextContent(en.app.tagline);
     expect(screen.getByRole('heading', { level: 1, name: en.header.pages.pass })).toBeInTheDocument();
     expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
@@ -64,6 +65,8 @@ describe('<App> frame (R12)', () => {
       appStore.setState({ observer });
     });
     expect(screen.queryByTestId('pass-set-place')).toBeNull();
+    // R215 (FR-LAND-4, V30-32): on a phone the list's head is the place line.
+    expect(within(screen.getByTestId('pass-tonight')).getByTestId('place-name')).toHaveTextContent(observer.label);
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
     expect(within(list).getByRole('heading', { level: 2, name: 'Upcoming passes' })).toBeInTheDocument();

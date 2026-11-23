@@ -32,7 +32,7 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
-import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer, TonightCloud } from '../../src/model';
@@ -841,9 +841,6 @@ function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): nu
 
 describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, D-845)', (locale: Locale) => {
   const t = CATALOGS[locale];
-  // R206: a link is its words (FR-CTRL-11); `←` in its box is the five cells of `--target` (D-1226).
-  const link = (text: string): number => text.length;
-  const backCells = Math.ceil(44 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
   const rowGap = cellsOf(HEADER_CSS, '.row', 'gap');
   const navGap = cellsOf(HEADER_CSS, '.nav', 'gap');
   let markCells = 0;

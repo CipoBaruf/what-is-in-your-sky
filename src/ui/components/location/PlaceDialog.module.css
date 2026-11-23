@@ -25,10 +25,6 @@
   color: var(--fg);
 }
 
-.frame:focus {
-  outline: none;
-}
-
 .head {
   display: flex;
   align-items: baseline;
