@@ -3,8 +3,9 @@
  * named in its accessible name wherever the legend is drawn; given an inventory, the list is clipped to what
  * `inventoryClip` says fits whole, the header row names the times, and `+n` counts the entries under the clip.
  */
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../../i18n/useT';
 import type { BodyLine, LegendRow } from '../../../../lib/legend';
 import { inventoryClip } from '../../../screens/liveRows';
@@ -90,5 +91,67 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
     legend({ clip: (entryRows) => inventoryClip(entryRows, 21), moreLabel: (n) => `+${String(n)} more` });
     expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '12');
     expect(screen.queryByTestId('legend-more')).toBeNull();
+  });
+});
+
+describe('<Legend>: rows you pick (FR-CTRL-15)', () => {
+  it('FR-CTRL-15: a row is a frameless button, the pinned one aria-pressed, a press pins it', () => {
+    const onActivate = vi.fn();
+    render(
+      <I18nProvider locale="en">
+        <Legend rows={rows.slice(0, 2)} bodies={[]} timeZone={null} highlightedPassId="pass-1" onActivate={onActivate} onFocusRow={noop} />
+      </I18nProvider>,
+    );
+    const [first, second] = within(screen.getByTestId('chart-legend')).getAllByRole('button');
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    if (!first) throw new Error('no row');
+    fireEvent.click(first);
+    expect(onActivate).toHaveBeenCalledWith('pass-0');
+  });
+
+  it('FR-CTRL-15: the pinned name keeps its colour — the stylesheet paints no name in the accent', () => {
+    expect(readFileSync('src/ui/components/guide/skychart/Legend.module.css', 'utf8')).not.toMatch(/--accent/);
+  });
+});
+
+describe('<Legend upOnly> (FR-NOW-2, D-1239)', () => {
+  const up = (i: number, at: { azDeg: number; elDeg: number } | null): LegendRow => ({ ...row(i), state: 'live', at });
+  const upLegend = (listed: LegendRow[], locale: 'en' | 'es' = 'en', lines: BodyLine[] = bodies) =>
+    render(
+      <I18nProvider locale={locale}>
+        <Legend rows={listed} bodies={lines} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} upOnly />
+      </I18nProvider>,
+    );
+  const lineText = (el: Element): string[] => [...el.querySelectorAll('[class*="name"], [class*="point"], [class*="height"]')].map((cell) => cell.textContent);
+
+  it('FR-NOW-2: with no satellite up, says so first, then the Moon and the Sun, in both languages', () => {
+    const { unmount } = upLegend([up(0, { azDeg: 100, elDeg: -3 }), up(1, null)]);
+    const list = screen.getByTestId('chart-legend');
+    const items = within(list).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual(['No satellite up', 'MoonSSW20° up', 'SunE11° below']);
+    expect(within(list).queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getByTestId('legend-up-none')).toBe(items[0]);
+    unmount();
+    upLegend([], 'es');
+    expect(within(screen.getByTestId('chart-legend')).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Ningún satélite arriba', 'LunaSSW20° arriba', 'SolE11° abajo']);
+  });
+
+  it('FR-NOW-2: with one up, lists it as a row you pick with its point and height, the columns as wide as their widest entry', () => {
+    upLegend([up(0, { azDeg: 45, elDeg: 30.2 }), up(1, { azDeg: 300, elDeg: -2 })]);
+    const list = screen.getByTestId('chart-legend');
+    expect(screen.queryByTestId('legend-up-none')).toBeNull();
+    const buttons = within(list).getAllByRole('button');
+    expect(buttons).toHaveLength(1);
+    const [only] = buttons;
+    if (!only) throw new Error('no row');
+    expect(only).toHaveAttribute('data-pass-id', 'pass-0');
+    expect(only).toHaveAttribute('aria-pressed', 'false');
+    expect(lineText(only)).toEqual(['SAT 0', 'NE', '30° up']);
+    const bodiesListed = list.querySelectorAll('[data-body]');
+    expect([...bodiesListed].map((item) => item.getAttribute('data-body'))).toEqual(['moon', 'sun']);
+    // `SSW` and `11° below` are the widest entries.
+    expect(list.style.getPropertyValue('--up-point')).toBe('3ch');
+    expect(list.style.getPropertyValue('--up-height')).toBe('9ch');
   });
 });

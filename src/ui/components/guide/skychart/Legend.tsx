@@ -1,12 +1,13 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { useLocale, useT } from '../../../../i18n/useT';
 import { degrees, formatSignedDegrees } from '../../../../lib/format';
-import type { BodyLine, LegendRow } from '../../../../lib/legend';
+import { upNowBodies, upNowColumns, upNowPlace, upNowRows, type BodyLine, type LegendRow } from '../../../../lib/legend';
 import { formatClock } from '../../../../lib/timeFormat';
 import { moonFacts } from '../../../../lib/moonPhrases';
 import type { Messages } from '../../../../i18n/messages';
 import { moonGlyph } from './bodies';
 import { LegendSwatch } from './LegendSwatch';
+import { PickRow } from '../../primitives/PickRow';
 import styles from './Legend.module.css';
 
 /**
@@ -35,6 +36,11 @@ import styles from './Legend.module.css';
  * `data-lead` says so on the list itself, which is how `ChartFrame` knows to
  * keep this legend under the drawing at every width (D-259): a five-column
  * table does not go in a 24-cell column.
+ *
+ * R217 (FR-CTRL-15, FR-NOW-2; D-1239): a pass's row is a `PickRow` — no frame, the raised ground under the
+ * pointer, the pinned one with the mark down its left edge and `aria-pressed`, its name in its own ink. `upOnly`
+ * is `Up now`: the satellites above the horizon at the shown instant, then the Moon and the Sun, each its swatch,
+ * its name, its compass point and its height in aligned columns, or `No satellite up`. It cannot clip.
  */
 export interface LegendProps {
   rows: readonly LegendRow[];
@@ -63,6 +69,8 @@ export interface LegendProps {
   hoveredPassId?: string | null;
   /** R188 (FR-WIDE-7): the pointer or the focus came onto a row (its id) or left it (`null`); a hover changes no state. */
   onHoverRow?: (passId: string | null) => void;
+  /** R217 (FR-NOW-2, D-1239): the up-only form, `Up now` — mounted by the live page's rail (R219). */
+  upOnly?: boolean;
 }
 
 /**
@@ -96,7 +104,7 @@ const ENTRY_ROWS = { row: 2, line: 1 } as const;
 
 type TimeKey = 'rise' | 'peak' | 'end';
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, moonPhase = false, hoveredPassId = null, onHoverRow }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, moonPhase = false, hoveredPassId = null, onHoverRow, upOnly = false }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -117,6 +125,80 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
       {!last && ' · '}
     </span>
   );
+  /** FR-LEG-4, FR-WIDE-7, FR-CTRL-15: what a pass's row is, in either form — its data, its pin and its hover. */
+  const pickOf = (row: LegendRow) => ({
+    picked: highlightedPassId === row.passId,
+    className: [styles.row, hoveredPassId === row.passId ? styles.hovered : undefined].filter(Boolean).join(' '),
+    'data-pass-id': row.passId,
+    'data-key': row.key,
+    'data-state': row.state,
+    'data-highlighted': row.highlighted,
+    'data-hovered': hoveredPassId === row.passId,
+    onPick: () => {
+      onActivate(row.passId);
+    },
+    onFocus: () => {
+      onFocusRow(row.passId);
+      onHoverRow?.(row.passId);
+    },
+    onBlur: () => {
+      onHoverRow?.(null);
+    },
+    onPointerEnter: (event: { pointerType: string }) => {
+      // A finger has no hover: its tap is the click, which pins the row (FR-LEG-4).
+      if (event.pointerType !== 'touch') onHoverRow?.(row.passId);
+    },
+    onPointerLeave: (event: { pointerType: string }) => {
+      if (event.pointerType !== 'touch') onHoverRow?.(null);
+    },
+  });
+  if (upOnly) {
+    const upRows = upNowRows(rows);
+    const upBodies = upNowBodies(bodies);
+    const placed = (azDeg: number, altDeg: number) => {
+      const place = upNowPlace(azDeg, altDeg);
+      return { point: place.point, height: words.height({ degrees: degrees(place.degrees), up: place.up }) };
+    };
+    const rowCells = upRows.map((row) => placed(row.at?.azDeg ?? 0, row.at?.elDeg ?? 0));
+    const bodyCells = upBodies.map((line) => placed(line.azDeg, line.altDeg));
+    const columns = upNowColumns([...rowCells, ...bodyCells]);
+    const columnStyle = { ['--up-point' as string]: `${String(columns.point)}ch`, ['--up-height' as string]: `${String(columns.height)}ch` } as CSSProperties;
+    const tail = (cell: { point: string; height: string }): ReactNode => (
+      <>
+        <span className={styles.point}>{cell.point}</span>
+        <span className={styles.height}>{cell.height}</span>
+      </>
+    );
+    return (
+      <ol className={[styles.legend, styles.upOnly].join(' ')} aria-label={words.label} data-testid="chart-legend" data-up-only="true" style={columnStyle}>
+        {upRows.length === 0 && (
+          <li className={[styles.item, styles.upNone].join(' ')} data-testid="legend-up-none">
+            {words.upNone}
+          </li>
+        )}
+        {upRows.map((row, index) => (
+          <li key={row.passId} className={styles.item}>
+            <PickRow {...pickOf(row)}>
+              <span className={styles.upCells}>
+                <LegendSwatch color={row.colorToken} />
+                <span className={styles.name}>{row.name}</span>
+                {tail(rowCells[index] ?? { point: '', height: '' })}
+              </span>
+            </PickRow>
+          </li>
+        ))}
+        {upBodies.map((line, index) => (
+          <li key={line.body} className={[styles.item, styles.upBody].join(' ')} data-body={line.body}>
+            <span className={styles.upCells}>
+              <LegendSwatch color={line.body} />
+              <span className={styles.name}>{line.body === 'sun' ? words.sunName : words.moonName}</span>
+              {tail(bodyCells[index] ?? { point: '', height: '' })}
+            </span>
+          </li>
+        ))}
+      </ol>
+    );
+  }
   const stateOf = (row: LegendRow): ReactNode =>
     (row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>;
   const list = (
@@ -143,51 +225,27 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
         const state = stateOf(row);
         return (
           <li key={row.passId} className={styles.item}>
-            <button
-              type="button"
-              className={[styles.row, hoveredPassId === row.passId ? styles.hovered : undefined].filter(Boolean).join(' ')}
-              data-pass-id={row.passId}
-              data-key={row.key}
-              data-state={row.state}
-              data-highlighted={row.highlighted}
-              data-hovered={hoveredPassId === row.passId}
-              aria-pressed={highlightedPassId === row.passId}
-              onClick={() => {
-                onActivate(row.passId);
-              }}
-              onFocus={() => {
-                onFocusRow(row.passId);
-                onHoverRow?.(row.passId);
-              }}
-              onBlur={() => {
-                onHoverRow?.(null);
-              }}
-              onPointerEnter={(event) => {
-                // A finger has no hover: its tap is the click, which pins the row (FR-LEG-4).
-                if (event.pointerType !== 'touch') onHoverRow?.(row.passId);
-              }}
-              onPointerLeave={(event) => {
-                if (event.pointerType !== 'touch') onHoverRow?.(null);
-              }}
-            >
-              <span className={styles.key}>{row.key}</span>
-              <LegendSwatch color={row.colorToken} />
-              {/* FR-FLOW-13: the name and the state are the first line, the named times the second. The state stands
-                  outside the name's text, so a name cut by an ellipsis never takes the state with it (D-863). */}
-              <span className={styles.name}>
-                <span className={styles.nameText}>{row.name}</span>
-                {row.riseMs !== null && state !== false && <> {state}</>}
-              </span>
-              {row.riseMs !== null && (
-                <span className={styles.times}>
-                  {time('rise', row.riseMs, false)}
-                  {/* D-863: the short wide inventory keeps rise and end, as the dim rows do: its line
-                      does not wrap, and three named times with a zone are wider than its rail. */}
-                  {lead === undefined && clip === null && time('peak', row.peakMs, false)}
-                  {time('end', row.endMs, true)}
+            <PickRow {...pickOf(row)}>
+              <span className={styles.cells}>
+                <span className={styles.key}>{row.key}</span>
+                <LegendSwatch color={row.colorToken} />
+                {/* FR-FLOW-13: the name and the state are the first line, the named times the second. The state stands
+                    outside the name's text, so a name cut by an ellipsis never takes the state with it (D-863). */}
+                <span className={styles.name}>
+                  <span className={styles.nameText}>{row.name}</span>
+                  {row.riseMs !== null && state !== false && <> {state}</>}
                 </span>
-              )}
-            </button>
+                {row.riseMs !== null && (
+                  <span className={styles.times}>
+                    {time('rise', row.riseMs, false)}
+                    {/* D-863: the short wide inventory keeps rise and end, as the dim rows do: its line
+                        does not wrap, and three named times with a zone are wider than its rail. */}
+                    {lead === undefined && clip === null && time('peak', row.peakMs, false)}
+                    {time('end', row.endMs, true)}
+                  </span>
+                )}
+              </span>
+            </PickRow>
           </li>
         );
       })}
