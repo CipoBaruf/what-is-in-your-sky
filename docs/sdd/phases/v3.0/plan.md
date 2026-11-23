@@ -272,6 +272,16 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   At 964 × 420 the reserved row left the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`; so under `LANDSCAPE_PHONE_QUERY` (landscape, 500 px tall or less: the short-wide rows and the landscape phone) the box keeps its height and the row stands over its foot as when full, the one existing height fold rather than a fourth (FR-DS-3).
   `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
 
+- **D-1277 — The seven slots replace the old names on all three pages, and the pass page's list is its `upFrom`.** *(R216)*
+  (FR-NOW-1, FR-WIDE-1 as amended, FR-CTRL-10, D-1239.) `answer`, `viewRow`, `timeline`, `action` and `list` are gone: the stars page and the pass detail fill `strip`, `view`, `time`, `turn` (their page group until R222 moves the stars' groups) and `upFrom` (the stars' field and the pass list), with no other change, so wave 4's R215 meets one-word edits in `Stars.tsx` and `PassDetail.tsx`.
+  `LIST_FIRST_ORDER`, `LIST_FIRST_RHYTHM` and `listFirst` go with V214-33's cap: an uncapped list under the head would push `[ Play ]` off a 1280 × 800 rail, so the pass list takes `SLOT_ORDER`'s last place and the rail scrolls to it.
+- **D-1278 — On the live page `Facing` is `View`'s, the facts head `Up now`, and the time buttons are `Time`'s.** *(R216)*
+  (FR-NOW-1, FR-WIDE-1 as amended.) FR-NOW-1 names no place for the window's facing picker or a picked object's facts: `Facing` is a line of its own under the views (it aims the view), and the facts stand at the top of `Up now` until R219 makes it `Legend`'s up-only form.
+  `[ scrub the night ]` and `[ see this pass ]` are buttons under the time control; on compact neither is a row (the taps and the path line hold the instant), so the compact sheet's `Time` is the track and the taps as before. `Layers` is `[x] stars` and `Hidden objects` under a `Layers` / `Capas` heading (`skyView.layers`).
+- **D-1279 — The compact sheet renders `SLOT_ORDER`'s groups; the strip itself stays over the sky.** *(R216)*
+  (FR-NOW-1, FR-CTRL-10, D-1232.) `ControlsSheet` takes `groups`, keyed by the rail's slots and rendered in `SLOT_ORDER`, each a `data-group` wrapper, before any `children` (the stars page and the pass detail keep theirs until they move). The live page's `strip` group is the context line, since the strip is the box's foot on compact.
+  R71's two-row legend panel goes: the sheet's body is the one scroll. `[ Compartir ]` is wider than `[x] estrellas`, so at 390 px in Spanish it takes the line under the views, at the row's right.
+
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
 R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-1306, R226 D-1307..D-1308, R227 D-1309..D-1311.**
