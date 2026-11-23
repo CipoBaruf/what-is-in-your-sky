@@ -364,9 +364,9 @@
   inset-block-end: var(--target);
 }
 
-/* R214 (D-1273, FR-SHP-3): in a short window (`SIDEWAYS_MAX_HEIGHT_PX`) the reserved row would cut the box under
+/* R214 (D-1273, FR-SHP-3): in a short window (`LANDSCAPE_PHONE_QUERY`) the reserved row would cut the box under
    `LIVE_BOX_MIN_PX` (170 px at 964 × 420), so there the box keeps its height and the row stands over its foot, as full. */
-@media (height <= 500px) {
+@media (orientation: landscape) and (height <= 500px) {
   .layout[data-shape='rail'] .drawing {
     height: 100%;
   }
