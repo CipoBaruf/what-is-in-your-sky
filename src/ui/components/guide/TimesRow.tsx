@@ -3,6 +3,7 @@ import { compassPoint } from '../../../lib/compass';
 import { degrees, formatTimesRow } from '../../../lib/format';
 import { formatClock } from '../../../lib/timeFormat';
 import type { EpochMs, Pass } from '../../../model';
+import { PickRow } from '../primitives/PickRow';
 import styles from './TimesRow.module.css';
 
 /**
@@ -13,6 +14,9 @@ import styles from './TimesRow.module.css';
  * `steps`), which read the same three times on one wrapped line; the words
  * are the countdown's own (`t.countdown.rise/peak/set`), so the head and the
  * legend's `rise · peak · set` (R131) say the same thing.
+ *
+ * R221 (FR-CTRL-15, D-1294): on wide each time is a `PickRow` — it picks the page's instant — the row's hover
+ * ground under the time in the accent; none is shown picked, since the page's `t` is not handed here.
  */
 export interface TimesRowProps {
   pass: Pass;
@@ -49,17 +53,18 @@ export function TimesRow({ pass, timeZone, compact = false, onSet }: TimesRowPro
             {onSet === undefined ? (
               <time dateTime={new Date(pass[key].t).toISOString()}>{formatClock(pass[key].t, timeZone, locale)}</time>
             ) : (
-              <button
-                type="button"
-                className={`${styles.set} inline-control`}
+              <PickRow
+                picked={false}
+                current
+                className={styles.set}
                 data-set={WORD[key]}
                 aria-label={t.countdown.showAt({ word: t.countdown[WORD[key]], time: formatClock(pass[key].t, timeZone, locale) })}
-                onClick={() => {
+                onPick={() => {
                   onSet(pass[key].t);
                 }}
               >
                 <time dateTime={new Date(pass[key].t).toISOString()}>{formatClock(pass[key].t, timeZone, locale)}</time>
-              </button>
+              </PickRow>
             )}
             {key === 'peak' && (
               <span className={styles.peak} data-testid="pass-times-peak">

@@ -254,11 +254,6 @@ function CardCases() {
           <CardBody title="A card that is one link" />
         </Card>
       </Case>
-      <Case props="selected">
-        <Card selected>
-          <CardBody title="The pass the guide is open on" />
-        </Card>
-      </Case>
       <Case props='frame="accent"'>
         <Card frame="accent">
           <CardBody title="The phone's first card" />
@@ -638,8 +633,8 @@ const STATE_SPECIMENS: Readonly<Record<string, (state: PrimitiveState, sid: (id:
     </Cluster>
   ),
   ToggleGroup: (state) => <ToggleGroup name={`View, ${state}`} options={VIEWS} value={state === 'on' ? 'polar' : 'dome'} onChange={noop} />,
-  Card: (state) => (
-    <Card as="button" emphasis selected={state === 'picked'} onClick={noop}>
+  Card: () => (
+    <Card as="button" emphasis onClick={noop}>
       <CardBody title="A card" />
     </Card>
   ),

@@ -23,6 +23,8 @@ describe.each(THEMES)('<Tag> under data-theme=%s', (theme) => {
     const tag = screen.getByText('[twilight]');
     expect(tag.tagName).toBe('SPAN');
     expect(tag.textContent).toBe('[twilight]');
+    // R221 (D-1292): one text node, so the cells counter reads `[twilight]` without a gap inside it.
+    expect(tag.childNodes).toHaveLength(1);
     expect(tag.className).toContain(tone);
     expect(tag).not.toHaveAttribute('role');
     expect(tag).not.toHaveAttribute('tabindex');

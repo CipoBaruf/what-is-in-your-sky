@@ -21,6 +21,11 @@ describe('Banner (R11, FR-X-5)', () => {
     const banner = screen.getByRole('alert');
     expect(banner).toHaveTextContent('[Warning] CelesTrak could not be reached.');
     expect(banner).toHaveAttribute('data-variant', 'warning');
+    // R221 (FR-CTRL-14): the prefix is a Tag — a span in the warning's tone with no role, not a control.
+    const tag = screen.getByText('[Warning]');
+    expect(tag.tagName).toBe('SPAN');
+    expect(tag).not.toHaveAttribute('role');
+    expect(tag.className).toMatch(/warn/);
     expect(screen.getByTestId('stale')).toBe(banner);
     expect(await axe(container)).toHaveNoViolations();
   });
