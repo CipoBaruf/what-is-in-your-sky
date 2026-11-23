@@ -309,8 +309,9 @@ describe('the address (FR-ADDR-1, FR-ADDR-4)', () => {
 
   it('and the history marker is on every released version and on nothing current', () => {
     // FR-SHOW-1 marked §6–§9 and §11–§14; R176 moved them, marker and all, to their phase folders.
+    // R213 marked v2.14.2: its list names `live-dialog.spec.ts`, which FR-STRIP-5 deleted.
     // R212 marked v2.15 and v2.16: their lists name home specs FR-LAND-1 deleted.
-    expect(RECORDS.filter((version) => record(version).includes(HISTORY))).toEqual(['v1', 'v1.1', 'v1.2', 'v1.3', 'v1.4', 'v2.0', 'v2.1', 'v2.15', 'v2.16', 'v2.2']);
+    expect(RECORDS.filter((version) => record(version).includes(HISTORY))).toEqual(['v1', 'v1.1', 'v1.2', 'v1.3', 'v1.4', 'v2.0', 'v2.1', 'v2.14.2', 'v2.15', 'v2.16', 'v2.2']);
     expect(release).not.toContain(HISTORY);
   });
 });

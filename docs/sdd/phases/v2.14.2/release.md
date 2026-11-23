@@ -1,5 +1,7 @@
 ## 28. v2.14.2 (spec §Phase 2w.2)
 
+> *History (marked 2026-11-22, FR-SHOW-1, R213): the v2.14.2 release’s list as it was run; R213 deleted `live-dialog.spec.ts` with the wide dialog (FR-STRIP-5).*
+
 Everything in `docs/RELEASE.md` and §27 still applies.
 v2.14.2 is one change asked by the owner on 2026-11-05 (V214-39..V214-44): a phone page asks before it follows the phone.
 

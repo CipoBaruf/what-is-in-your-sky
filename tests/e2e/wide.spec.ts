@@ -73,7 +73,7 @@ test('the cell is measured, not assumed: the breakpoint is at least its cells at
   // And the page really is in the wide shell at this project's width: the desk shell with its rail.
   expect(page.viewportSize()?.width ?? 0).toBeGreaterThanOrEqual(WIDE_MIN_PX);
   await onThePassPage(page);
-  await expect(page.getByTestId('pass-layout').locator('[data-slot="list"]')).toBeVisible();
+  await expect(page.getByTestId('pass-layout').locator('[data-slot="upFrom"]')).toBeVisible();
 });
 
 /**
@@ -83,7 +83,7 @@ test('the cell is measured, not assumed: the breakpoint is at least its cells at
  */
 test('an open pass is the desk shell, the list in its rail (FR-WIDE-1)', async ({ page }) => {
   await onThePassPage(page);
-  const list = page.getByTestId('pass-layout').locator('[data-slot="list"]');
+  const list = page.getByTestId('pass-layout').locator('[data-slot="upFrom"]');
   await expect(list.locator('article[data-pass-id][data-selected="true"]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with a pass open').toBeLessThanOrEqual(1);
 });
@@ -98,7 +98,7 @@ test('the list is as tall as the shell and no taller (F-9)', async ({ page }) =>
   const height = viewportHeight(page);
   await onThePassPage(page);
   await listSettled(page);
-  const box = await page.getByTestId('pass-layout').locator('[data-slot="list"]').boundingBox();
+  const box = await page.getByTestId('pass-layout').locator('[data-slot="upFrom"]').boundingBox();
   if (!box) throw new Error('the list is not laid out');
   expect(box.y + box.height, 'the list overflows the viewport').toBeLessThanOrEqual(height + 1);
   // The page itself does not scroll (D-119).

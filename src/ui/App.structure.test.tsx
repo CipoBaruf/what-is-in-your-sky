@@ -238,13 +238,10 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     liveLink.focus();
     fireEvent.click(liveLink);
     await screen.findByTestId('live-page');
-    // R148 (FR-FULL-10): nothing is up at this instant, so the card asks and takes the focus; answered, the focus is
-    // on `[ controls ]` — the Back control is where the page puts it with no card to answer (FR-A11Y-4).
+    // R213 (FR-STRIP-5): nothing asks on opening, so the focus is where the page puts it, on Back (FR-A11Y-4).
     await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByTestId('live-card-next'));
+      expect(document.activeElement).toBe(screen.getByTestId('live-back'));
     });
-    fireEvent.click(screen.getByTestId('live-card-now'));
-    expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
     expect(announcer).toHaveTextContent(`${en.live.open} · ${APP}`);
     fireEvent.click(screen.getByTestId('live-back'));
     await waitFor(() => {

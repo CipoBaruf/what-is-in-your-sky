@@ -85,7 +85,7 @@ export async function skyUnder(polar: Locator, at: { x: number; y: number }, ori
   return { azDeg: ((az % 360) + 360) % 360, altDeg: 90 - 90 * r };
 }
 
-/** A wheel event on the window's box, with or without ctrl; resolves to whether the page kept the browser's default (a plain wheel scrolls). */
+/** A wheel event on the window's box, with or without ctrl; resolves to whether the page kept the browser's default (in a sky layout it keeps neither, R214). */
 export function wheel(within: Locator, deltaY: number, ctrlKey: boolean): Promise<boolean> {
   return within.evaluate(
     (root, { deltaY, ctrlKey }) => {

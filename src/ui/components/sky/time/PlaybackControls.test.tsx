@@ -1,7 +1,7 @@
 /**
- * R33 (FR-LIVE-5, FR-LIVE-6): the controls row words and wires what the page
+ * R33 (FR-LIVE-5, FR-LIVE-6) → R213 (FR-STRIP-6, one `▶ play` / `❚❚ pause` button): the controls row words and wires what the page
  * owns: the words and the `[x]` speed toggle. R145 (FR-TONIGHT-6): the row,
- * `[ scrub the night ]` and `[ back to live ]` are wide's alone, so R48's
+ * `[ scrub the night ]` are wide's alone, so R48's
  * compact glyphs and R85's short labels left them; the hidden-objects toggle
  * is still one word on compact (jsdom, which has no `matchMedia`), in the list
  * panel's head.
@@ -10,7 +10,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../../i18n/useT';
-import { BackToLive, HiddenToggle, PlaybackControls, ScrubButton, type PlaybackControlsProps } from './PlaybackControls';
+import { HiddenToggle, PlaybackControls, ScrubButton, type PlaybackControlsProps } from './PlaybackControls';
 
 const handlers = () => ({ onPlay: vi.fn(), onPause: vi.fn(), onSpeed: vi.fn() });
 const props = (over: Partial<PlaybackControlsProps> = {}): PlaybackControlsProps => ({ playing: false, speed: 60, ...handlers(), ...over });
@@ -20,7 +20,7 @@ describe('<PlaybackControls>', () => {
     const p = props();
     const { container, rerender } = render(<PlaybackControls {...p} />);
     const play = screen.getByRole('button', { name: 'Play' });
-    expect(play).toHaveTextContent(/^Play$/);
+    expect(play).toHaveTextContent(/^▶ play$/);
     fireEvent.click(play);
     expect(p.onPlay).toHaveBeenCalledTimes(1);
     // R77: `[ back to live ]` is the `now` action, and it stands where FR-WATCH-4 puts it, not on this row.
@@ -37,21 +37,18 @@ describe('<PlaybackControls>', () => {
     const playing = props({ playing: true, speed: 3600 });
     rerender(<PlaybackControls {...playing} />);
     const pause = screen.getByRole('button', { name: 'Pause' });
-    expect(pause).toHaveTextContent(/^Pause$/);
+    expect(pause).toHaveTextContent(/^❚❚ pause$/);
     fireEvent.click(pause);
     expect(playing.onPause).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
     expect(speeds.querySelector('[aria-pressed="true"]')?.textContent).toBe('3600×');
   });
 
-  it('[ scrub the night ] and [ back to live ] are one action each (FR-WATCH-1, FR-WATCH-8)', () => {
+  it('[ scrub the night ] is one action (FR-WATCH-1, FR-WATCH-8)', () => {
     const onScrub = vi.fn();
-    const onNow = vi.fn();
-    render(<><ScrubButton onScrub={onScrub} /><BackToLive onNow={onNow} /></>);
+    render(<ScrubButton onScrub={onScrub} />);
     fireEvent.click(screen.getByRole('button', { name: 'scrub the night' }));
     expect(onScrub).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'back to live' }));
-    expect(onNow).toHaveBeenCalledTimes(1);
   });
 
   it('the hidden-objects toggle is a pressed button under its full name, one word on compact', () => {
@@ -72,13 +69,11 @@ describe('<PlaybackControls>', () => {
         <PlaybackControls {...props()} />
         <HiddenToggle hidden={false} onToggle={vi.fn()} />
         <ScrubButton onScrub={vi.fn()} />
-        <BackToLive onNow={vi.fn()} />
       </I18nProvider>,
     );
     expect(screen.getByRole('group', { name: 'Reproducción' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reproducir' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reproducir' })).toHaveTextContent(/^▶ reproducir$/);
     expect(screen.getByRole('button', { name: 'recorrer la noche' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'ir al vivo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Objetos ocultos' })).toHaveTextContent(/^Ocultos$/);
     expect(screen.getByRole('group', { name: 'Velocidad de reproducción' })).toBeInTheDocument();
   });

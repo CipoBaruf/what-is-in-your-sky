@@ -7,12 +7,11 @@
  * as `tonightRows.ts` does: the shown time and its space at 1.25 rem count 1.25 cells a character, the chip at
  * `--small` 14/16.
  *
- * The rows: the head over the sky at its longest (`│ ← │ 21:47 tonight · in 13 h 55 min`, FR-FULL-2), the
+ * The rows: the head over the sky at its longest (`│ ← │ 21:47 +13 h 55 min`, FR-FULL-2, FR-STRIP-6), the
  * `controls` button (FR-FULL-3), and the sheet's head row — the place, the `settings` link, the `×` (FR-FULL-4, R150's
  * FR-GYRO-8).
  * The place and the chip are the parts that ellipsise, so each row also says how much of it the fixed part takes.
- * R146's card rows are `controlRows.test.ts`'s; this file is R147's own so the two tasks of wave 1 touch no file in
- * common (PLAN §16.27).
+ * This file is R147's own so the two tasks of wave 1 touch no file in common (PLAN §16.27).
  *
  * R157 (FR-PHONE-3, D-964): the overlay's bottom row with its two controls, `follow` and `controls` / `seguir` and
  * `controles` — 19 and 20 cells, following or not since R206 (FR-CTRL-2: an option's block is as wide off as on),
@@ -26,8 +25,6 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
 import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, SHELL_PADDING_CELLS } from '../../src/lib/layout';
-import { tonightBand } from '../../src/lib/shownTime';
-import type { SkyBand } from '../../src/lib/timeStripe';
 import type { Locale } from '../../src/model';
 import { ControlsSheet } from '../../src/ui/components/sky/ControlsSheet';
 import { FollowControl } from '../../src/ui/components/live/FollowControl';
@@ -51,12 +48,7 @@ const H = 3_600_000;
 const MIN = 60_000;
 /** Friday 2026-09-11, 07:52 in Salta (UTC−3); the shown time is 21:47 that night, 13 h 55 min on. */
 const NOW = Date.UTC(2026, 8, 11, 10, 52);
-const BANDS: SkyBand[] = [
-  { from: NOW - H, to: NOW + 11 * H, sky: 'day' },
-  { from: NOW + 11 * H, to: NOW + 22 * H, sky: 'dark' },
-  { from: NOW + 22 * H, to: NOW + 24 * H, sky: 'day' },
-];
-const LONGEST: ShownTimeProps = { t: NOW + 13 * H + 55 * MIN, realTime: false, now: NOW, clock: NOW, night: tonightBand(BANDS, NOW), timeZone: ZONE };
+const LONGEST: ShownTimeProps = { t: NOW + 13 * H + 55 * MIN, realTime: false, now: NOW, clock: NOW, timeZone: ZONE };
 
 let media: MatchMediaStub;
 
@@ -94,25 +86,18 @@ function headRow(locale: Locale): HeadRow {
 describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FULL-4)', (locale: Locale) => {
   const t = CATALOGS[locale];
 
-  it('the head at its longest: the back box, the time at its size, the tonight chip at --small', () => {
+  it('the head at its longest: the back box, the time at its size, the offset at --small (FR-STRIP-6)', () => {
     const row = headRow(locale);
-    expect(row.text).toBe(locale === 'en' ? '│ ← │ 21:47 tonight · in 13 h 55 min' : '│ ← │ 21:47 esta noche · en 13 h 55 min');
-    // What never gives — the back control, the time — takes 13.5 cells; the chip has the rest and is cut first.
+    expect(row.text).toBe('│ ← │ 21:47 +13 h 55 min');
+    // What never gives — the back control, the time — takes 13.5 cells; the offset has the rest.
     expect(row.fixed).toBe(13.5);
-    if (locale === 'en') {
-      // 34.5 cells: within 36, inside 390 px; at 360 px (33) the chip's end is cut by its ellipsis.
-      expect(row.cells).toBe(34.5);
-      expect(row.cells).toBeLessThanOrEqual(BUDGET);
-      expect(row.cells).toBeLessThanOrEqual(rowCellsAt(390));
-      // And inside the head's own room at 390 px: the box less `--space-3` (24 px) each side, less the head's half
-      // cell of padding each side (`SkyHead.module.css`).
-      expect(row.cells + 1).toBeLessThanOrEqual((390 - 2 * 24) / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    } else {
-      // 37.13 cells: over 36 by 1.13, so on every phone the Spanish chip's longest form ends in its ellipsis
-      // ("esta noche · en 13 h 55 m…"), which FR-FULL-2 allows and is what keeps the row one line (D-933).
-      expect(row.cells).toBe(37.13);
-      expect(row.fixed + 'esta noche · en 13 h'.length * SMALL_EM).toBeLessThanOrEqual(rowCellsAt(360));
-    }
+    // 24 cells in both languages, so nothing is cut at 360 px either.
+    expect(row.cells).toBe(24);
+    expect(row.cells).toBeLessThanOrEqual(rowCellsAt(360));
+    expect(row.cells).toBeLessThanOrEqual(BUDGET);
+    // And inside the head's own room at 390 px: the box less `--space-3` (24 px) each side, less the head's half
+    // cell of padding each side (`SkyHead.module.css`).
+    expect(row.cells + 1).toBeLessThanOrEqual((390 - 2 * 24) / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
   });
 
   it('controls: one control, well inside 36 cells', () => {

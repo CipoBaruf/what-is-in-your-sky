@@ -82,7 +82,8 @@ for (const viewport of [PHONE, DESK]) {
       await expect(page.getByTestId('live-page')).toBeVisible();
       // The live page's top row is its banner (FR-A11Y-1); D-1023: on a desk it ends in the footer's row, its
       // contentinfo, and on a phone that row is the controls sheet's last, no landmark.
-      expect(await landmarkCounts(page)).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: viewport === PHONE ? 0 : 1 });
+      // Polled: under load the count can land before the closed guide hands the page back (an inert h1 counts 0).
+      await expect.poll(() => landmarkCounts(page)).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: viewport === PHONE ? 0 : 1 });
 
       await page.evaluate(() => {
         window.location.hash = 'settings';
@@ -161,11 +162,8 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
 
     await page.getByTestId('live-link').focus();
     await page.keyboard.press('Enter');
-    // R148 (FR-FULL-10): nothing is up at the seed's instant, so the card asks and takes the focus; `Esc` answers it
-    // (focus to `[ controls ]`), and the next `Esc` leaves the page to the control that opened it (FR-A11Y-4).
-    await expect.poll(() => focused(page)).toBe('live-card-next');
-    await page.keyboard.press('Escape');
-    await expect.poll(() => focused(page)).toBe('live-controls');
+    // R213 (FR-STRIP-5): nothing asks, so the focus is Back's and one `Esc` leaves the page to the control that opened it (FR-A11Y-4).
+    await expect.poll(() => focused(page)).toBe('live-back');
     await page.keyboard.press('Escape');
     await list(page);
     await expect.poll(() => focused(page)).toBe('live-link');
@@ -345,18 +343,8 @@ for (const size of [PHONE, { width: 844, height: 390 }]) {
     await page.keyboard.press('Enter');
     await domeDrawn(page);
     const back = page.getByTestId('live-back');
-    // v2.14.1 (FR-WIDE-13): on wide the first-pass dialog asks instead; `seedStoredRun`'s handler answers it with `Esc`
-    // and the focus goes back to Back, the keyboard's still.
-    await expect(page.getByTestId('first-pass-dialog')).toHaveCount(0);
-    // R148 (FR-FULL-10): on compact nothing is up at the seed's instant, so the card asks and takes the focus; `Esc`
-    // answers it, and the Back control is reached by the keyboard, so the ring is still the keyboard's (F-100).
-    const card = page.getByTestId('live-card');
-    if ((await card.count()) > 0) {
-      await expect(card.getByTestId('live-card-next')).toBeFocused();
-      await page.keyboard.press('Escape');
-      await expect(page.getByTestId('live-controls')).toBeFocused();
-      await back.focus();
-    }
+    // R213 (FR-STRIP-5): nothing asks at any width, so the focus is where the page put it and the ring the browser's own.
+    await expect(page.locator('[aria-modal="true"]')).toHaveCount(0);
     await expect(back).toBeFocused();
     expect(await back.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
     const boxes = (): Promise<number[][]> =>

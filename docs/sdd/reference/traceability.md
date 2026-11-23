@@ -372,14 +372,17 @@
 | FR-CTRL-4 | `src/ui/components/primitives/TextButton.test.tsx` |
 | FR-CTRL-6 | `src/ui/components/primitives/SectionHeading.test.tsx` |
 | FR-CTRL-7 | `src/ui/components/primitives/Field.test.tsx`, `tests/styles/focus.test.ts` |
+| FR-CTRL-9 | `src/ui/components/guide/skychart/window/SkyWindow.zoom.test.tsx`, `src/ui/components/primitives/ZoomKeys.test.tsx`, `src/ui/components/sky/SkyHint.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/window-zoom.spec.ts` |
+| FR-CTRL-10 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/live-rail.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
 | FR-CTRL-12 | `src/ui/components/primitives/Close.test.tsx` |
 | FR-CTRL-14 | `src/ui/components/primitives/Tag.test.tsx`, `tests/styles/literals.test.ts` |
 | FR-CTRL-15 | `src/ui/components/primitives/PickRow.test.tsx` |
 | FR-CTRL-16 | `src/ui/components/primitives/Disclosure.test.tsx` |
-| FR-CTRL-17 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/PickRow.test.tsx`, `src/ui/components/primitives/StatusLine.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `tests/e2e/structure.spec.ts`, `tests/styles/literals.test.ts` |
+| FR-CTRL-17 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/PickRow.test.tsx`, `src/ui/components/primitives/StatusLine.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/components/primitives/ZoomKeys.test.tsx`, `tests/e2e/structure.spec.ts`, `tests/styles/literals.test.ts` |
 | FR-DARK-1 | `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx` |
 | FR-DARK-2 | `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/bodies.test.ts`, `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx`, `src/ui/components/guide/skychart/useSkyScene.test.ts` |
+| FR-DARK-3 | `src/ui/components/live/ShownTime.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | FR-DARK-4 | `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-DESK-1 | `tests/e2e/desktop.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-DESK-2 | `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts` |
@@ -428,7 +431,7 @@
 | FR-FLOW-3 | `src/ui/App.settings.test.tsx`, `src/ui/App.structure.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-FLOW-4 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/sky-layout.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-FLOW-5 | `src/i18n/messages.test.ts` |
-| FR-FLOW-6 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/SkyHint.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
+| FR-FLOW-6 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/SkyHint.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-FLOW-7 | `src/ui/components/guide/TimesRow.test.tsx`, `tests/e2e/sky-box.spec.ts`, `tests/e2e/sky-layout.spec.ts` |
 | FR-FLOW-9 | `tests/e2e/sky-box.spec.ts` |
 | FR-FLOW-10 | `tests/e2e/rhythm.spec.ts` |
@@ -448,8 +451,7 @@
 | FR-FULL-5 | `src/ui/components/sky/ControlsSheet.test.tsx` |
 | FR-FULL-6 | `tests/e2e/live-compact.spec.ts`, `tests/e2e/live-states.spec.ts` |
 | FR-FULL-7 | `tests/e2e/live-tonight.spec.ts` |
-| FR-FULL-8 | `src/ui/components/live/OpeningCard.test.tsx` |
-| FR-FULL-10 | `src/lib/tonightJump.test.ts`, `src/ui/components/live/OpeningCard.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-tonight.spec.ts`, `tests/styles/controlRows.test.ts` |
+| FR-FULL-10 | `src/ui/screens/Live.test.tsx` |
 | FR-GLOBE-1 | `src/ui/screens/StarsGlobe.test.tsx`, `tests/e2e/globe.spec.ts` |
 | FR-GLOBE-2 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/projection.test.ts` |
 | FR-GLOBE-3 | `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/projection.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts` |
@@ -485,7 +487,7 @@
 | FR-HOME-3 | `tests/styles/breakpoint.test.ts` |
 | FR-HOME-4 | `tests/styles/breakpoint.test.ts` |
 | FR-I18N-1 | `src/state/slices/prefs.test.ts`, `src/ui/screens/Settings.test.tsx` |
-| FR-I18N-2 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/lib/phrases.test.ts`, `src/ui/App.share.test.tsx`, `src/ui/components/common/Countdown.test.tsx`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/common/InstallHint.test.tsx`, `src/ui/components/common/ShareButton.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/common/ThemeToggle.test.tsx`, `src/ui/components/common/UpdateBanner.test.tsx`, `src/ui/components/guide/GuideText.test.tsx`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/live/StatusStrip.test.tsx`, `src/ui/components/live/StepControls.test.tsx`, `src/ui/components/live/TimeTrack.test.tsx`, `src/ui/components/location/Favourites.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/moon/MoonAtPeak.test.tsx`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/moon/MoonLore.test.tsx`, `src/ui/components/sky/time/PlaybackControls.test.tsx`, `src/ui/components/sky/time/StripeOverview.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx`, `tests/e2e/live-landscape.spec.ts`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live.spec.ts`, `tests/e2e/narrow.spec.ts`, `tests/e2e/share.spec.ts`, `tests/e2e/shortcuts.spec.ts` |
+| FR-I18N-2 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/lib/phrases.test.ts`, `src/ui/App.share.test.tsx`, `src/ui/components/common/Countdown.test.tsx`, `src/ui/components/common/Footer.test.tsx`, `src/ui/components/common/InstallHint.test.tsx`, `src/ui/components/common/ShareButton.test.tsx`, `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/common/ThemeToggle.test.tsx`, `src/ui/components/common/UpdateBanner.test.tsx`, `src/ui/components/guide/GuideText.test.tsx`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/components/live/StatusStrip.test.tsx`, `src/ui/components/live/StepControls.test.tsx`, `src/ui/components/live/TimeTrack.test.tsx`, `src/ui/components/location/Favourites.test.tsx`, `src/ui/components/location/UseMyLocation.test.tsx`, `src/ui/components/moon/MoonAtPeak.test.tsx`, `src/ui/components/moon/MoonGlare.test.tsx`, `src/ui/components/moon/MoonLore.test.tsx`, `src/ui/components/sky/time/PlaybackControls.test.tsx`, `src/ui/components/sky/time/StripeOverview.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx`, `tests/e2e/live-landscape.spec.ts`, `tests/e2e/live-playback.spec.ts`, `tests/e2e/live.spec.ts`, `tests/e2e/narrow.spec.ts`, `tests/e2e/share.spec.ts`, `tests/e2e/shortcuts.spec.ts` |
 | FR-I18N-3 | `src/data/moon/lore.test.ts`, `src/i18n/messages.test.ts`, `src/ui/components/guide/GuideText.test.tsx` |
 | FR-I18N-4 | `src/lib/elementsAge.test.ts`, `src/lib/format.test.ts`, `src/ui/components/guide/PassNumbers.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-I18N-6 | `src/ui/components/common/Footer.test.tsx`, `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/weather/CloudBadge.test.tsx` |
@@ -521,7 +523,6 @@
 | FR-LOC-3 | `src/lib/timeFormat.test.ts`, `src/state/effects.test.ts` |
 | FR-LOC-5 | `tests/e2e/visit.spec.ts` |
 | FR-LOOK-1 | `src/ui/components/guide/skychart/window/skySurface.test.ts`, `tests/styles/tokens.test.ts` |
-| FR-LOOK-2 | `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-LOOK-3 | `src/ui/components/guide/skychart/window/milkyWay.test.ts` |
 | FR-LOOK-4 | `src/ui/components/guide/skychart/window/starGlyphs.test.ts` |
 | FR-LOOK-5 | `src/ui/components/guide/skychart/window/starGlyphs.test.ts`, `tests/styles/tokens.test.ts` |
@@ -551,6 +552,7 @@
 | FR-NIGHT-2 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/passes/nightGroups.test.ts` |
 | FR-NIGHT-3 | `src/state/effects.test.ts` |
 | FR-NIGHT-4 | `src/state/effects.test.ts` |
+| FR-NOW-1 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-rail.spec.ts` |
 | FR-OFF-1 | `src/ui/components/common/UpdateBanner.test.tsx` |
 | FR-OFF-2 | `src/state/effects.test.ts` |
 | FR-OFF-3 | `src/data/weatherCache.test.ts`, `src/lib/cloudVerdict.test.ts` |
@@ -660,7 +662,7 @@
 | FR-SKY-8 | `src/ui/components/guide/skychart/useSkyScene.test.ts`, `src/ui/screens/PassDetail.inert.test.tsx` |
 | FR-SKY-10 | `src/ui/components/live/useStarSource.test.tsx`, `tests/docs/accuracy.test.ts` |
 | FR-SKY-11 | `src/lib/landmarkLine.test.ts`, `src/ui/components/guide/skychart/layers.test.ts`, `src/ui/components/guide/skychart/useSkyScene.test.ts` |
-| FR-SKY-13 | `src/ui/components/guide/skychart/window/camera.test.ts`, `src/ui/components/sky/SkyHint.test.tsx` |
+| FR-SKY-13 | `src/ui/components/guide/skychart/window/camera.test.ts` |
 | FR-SKY-14 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-SPAN-1 | `src/lib/timeStripe.test.ts`, `src/ui/components/sky/time/TimeStripe.test.tsx` |
 | FR-SPAN-2 | `src/lib/timeStripe.test.ts`, `src/ui/components/sky/time/StripeOverview.test.tsx` |
@@ -680,17 +682,20 @@
 | FR-STAR-9 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/starGlyphs.test.ts`, `tests/docs/accuracy.test.ts`, `tests/e2e/stars-perf.spec.ts` |
 | FR-STAR-10 | `src/ui/screens/Stars.test.tsx`, `src/ui/screens/stars/field.test.ts`, `tests/data/starCatalog.test.ts`, `tests/e2e/stars.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-STAR-11 | `src/ui/components/guide/skychart/window/SkyWindow.stars.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx` |
-| FR-STAR-13 | `src/ui/components/guide/skychart/window/skySurface.test.ts` |
 | FR-STAR-14 | `src/ui/components/guide/skychart/window/starLabels.test.ts` |
-| FR-STRIP-3 | `src/ui/screens/Live.test.tsx` |
+| FR-STRIP-1 | `src/lib/nextPassStrip.test.ts`, `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts`, `tests/styles/controlRows.test.ts` |
+| FR-STRIP-2 | `src/lib/nextPassStrip.test.ts`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts`, `tests/e2e/live-tonight.spec.ts` |
+| FR-STRIP-3 | `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | FR-STRIP-4 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts` |
+| FR-STRIP-5 | `src/ui/screens/Live.test.tsx`, `tests/docs/ci-graph.test.ts`, `tests/e2e/live-strip.spec.ts` |
+| FR-STRIP-6 | `src/ui/components/live/ShownTime.test.tsx`, `src/ui/components/live/TimeTaps.test.tsx`, `tests/e2e/live-tonight.spec.ts`, `tests/styles/controlRows.test.ts`, `tests/styles/sheetRows.test.ts` |
 | FR-TAB-1 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-2 | `tests/e2e/shapes.spec.ts`, `tests/styles/breakpoint.test.ts` |
 | FR-TAB-3 | `tests/docs/captures.test.ts` |
 | FR-THEME-1 | `src/state/slices/prefs.test.ts`, `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/e2e/shortcuts.spec.ts`, `tests/styles/tokens.test.ts` |
 | FR-THEME-2 | `tests/styles/screenOverlay.test.ts` |
 | FR-THEME-3 | `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx`, `tests/styles/tokens.test.ts` |
-| FR-TONIGHT-1 | `src/lib/contextLine.test.ts`, `src/lib/tonightJump.test.ts`, `tests/e2e/live-states.spec.ts` |
+| FR-TONIGHT-1 | `src/lib/contextLine.test.ts`, `tests/e2e/live-states.spec.ts` |
 | FR-TONIGHT-2 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-tonight.spec.ts` |
 | FR-TONIGHT-3 | `src/ui/components/live/TimeTrack.test.tsx` |
 | FR-TONIGHT-4 | `src/lib/contextLine.test.ts`, `src/lib/tonightJump.test.ts`, `src/ui/components/live/TimeTaps.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/styles/controlRows.test.ts` |
@@ -729,7 +734,7 @@
 | FR-WIDE-10 | `src/lib/fullscreen.test.ts`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/fullscreen.spec.ts` |
 | FR-WIDE-11 | `tests/e2e/globe-perf.spec.ts`, `tests/e2e/globe.spec.ts` |
 | FR-WIDE-12 | `tests/docs/captures.test.ts` |
-| FR-WIDE-13 | `src/ui/components/sky/FirstPassDialog.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-dialog.spec.ts` |
+| FR-WIDE-13 | `src/ui/screens/Live.test.tsx` |
 | FR-WIDE-14 | `tests/e2e/focus.spec.ts`, `tests/styles/focus.test.ts` |
 | FR-WIN-3 | `src/ui/components/guide/skychart/window/projection.test.ts` |
 | FR-WIN-4 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.test.tsx`, `src/ui/components/guide/skychart/window/projection.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `tests/e2e/targets.spec.ts`, `tests/e2e/v1-captures.spec.ts` |
@@ -776,4 +781,6 @@
 | US-59 | `tests/e2e/measure.spec.ts` |
 | US-60 | `tests/e2e/firstRun.spec.ts` |
 | US-61 | `tests/e2e/firstRun.spec.ts` |
+| US-62 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
+| US-63 | `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | US-64 | `src/ui/screens/Settings.test.tsx` |

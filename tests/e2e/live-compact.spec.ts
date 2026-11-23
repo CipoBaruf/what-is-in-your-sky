@@ -28,9 +28,9 @@ import { TAP_PX } from '../../src/lib/layout';
 import { closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T, trackBar } from './liveHelpers';
 
 /** FR-FULL-4's rows in the sheet, and the head and the button over the sky: the same list in both states. */
-const ROWS = ['live-head', 'live-controls', 'live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions', 'live-satellites'] as const;
+const ROWS = ['live-head', 'live-controls', 'live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-layers', 'live-satellites'] as const;
 /** The sheet's own rows, which stand clear of one another inside it. */
-const SHEET_ROWS = ['live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions', 'live-satellites'] as const;
+const SHEET_ROWS = ['live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-layers', 'live-satellites'] as const;
 
 interface Box {
   x: number;
@@ -86,9 +86,9 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
         await page.getByTestId('live-link').click();
         await domeDrawn(page);
         await stripFilled(page);
-        // Watching: the ISS is up at T, so the page stays on real time with no card (FR-FULL-10) and the chip says `now`.
+        // Watching: the ISS is up at T, the page is on real time (FR-STRIP-5) and the time line ends `● live`.
         await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-        await expect(page.getByTestId('live-card')).toHaveCount(0);
+        await expect(page.getByTestId('live-strip')).toBeVisible();
         const box = await page.getByTestId('chart-box').boundingBox();
         if (!box) throw new Error('the box is not laid out');
         // FR-FULL-1: the box is the viewport.
@@ -161,18 +161,17 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
       const panel = await page.getByTestId('chart-legend-slot').boundingBox();
       const head = await page.getByTestId('live-satellites-head').boundingBox();
       if (!panel || !head) throw new Error('the panel is not laid out');
-      // Two rows of `--tap` (48 px at the default cell): the panel's height, not its maximum.
-      expect(panel.height, 'the open panel is two tap rows').toBeCloseTo(2 * TAP_PX, 0);
-      // The heading's row over the panel, the toggle at its end, and the toggle still the saved pref (FR-LIVE-6).
+      // R216 (FR-CTRL-10, D-1239): R71's two-row panel is gone — the panel holds its rows and does not scroll inside the sheet.
+      expect(await page.getByTestId('chart-legend-slot').evaluate((el) => el.scrollHeight <= el.clientHeight + 1), 'the panel scrolls inside the sheet').toBe(true);
+      expect(panel.height).toBeGreaterThanOrEqual(TAP_PX - 1);
+      // The heading over the panel; the hidden toggle is `Layers`'s (FR-NOW-1), still the saved pref (FR-LIVE-6).
       expect(head.y + head.height).toBeLessThanOrEqual(panel.y + 0.5);
-      const toggle = page.getByTestId('live-satellites-head').getByRole('button', { name: 'Hidden objects' });
+      const toggle = page.getByTestId('live-layers').getByRole('button', { name: 'Hidden objects' });
       await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-      const toggleBox = await toggle.boundingBox();
-      expect((toggleBox?.x ?? 0) + (toggleBox?.width ?? 0)).toBeGreaterThan(head.x + head.width - 2 * TAP_PX);
-      await expect(page.getByTestId('live-actions').getByRole('button', { name: 'Hidden objects' })).toHaveCount(0);
-      // The panel and its head are inside the sheet, under the actions row; the page still does not scroll; the box is the same.
-      const actions = await page.getByTestId('live-actions').boundingBox();
-      expect(head.y).toBeGreaterThanOrEqual((actions?.y ?? 0) + (actions?.height ?? 0) - 1);
+      await expect(page.getByTestId('live-satellites-head').getByRole('button', { name: 'Hidden objects' })).toHaveCount(0);
+      // The panel and its head are inside the sheet, under `Layers`; the page still does not scroll; the box is the same.
+      const layers = await page.getByTestId('live-layers').boundingBox();
+      expect(head.y).toBeGreaterThanOrEqual((layers?.y ?? 0) + (layers?.height ?? 0) - 1);
       const sheet = await page.getByTestId('live-sheet').boundingBox();
       expect(panel.y + panel.height).toBeLessThanOrEqual((sheet?.y ?? 0) + (sheet?.height ?? 0) + 0.5);
       expect(panel.y + panel.height).toBeLessThanOrEqual(height + 0.5);

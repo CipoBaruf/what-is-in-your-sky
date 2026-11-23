@@ -177,7 +177,7 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     fireEvent.click(screen.getByRole('button', { name: es.globe.stepNames.hourAhead }));
     expect(screen.getByTestId('globe-now')).toHaveTextContent(es.skyView.now);
     // V214-34: the live page's playback row, in Spanish.
-    expect(within(screen.getByTestId('stars-time')).getByTestId('live-play')).toHaveTextContent(es.live.play);
+    expect(within(screen.getByTestId('stars-time')).getByTestId('live-play')).toHaveTextContent(es.live.playButton);
     expect(within(screen.getByRole('group', { name: es.live.speedGroup })).getAllByRole('button').map((b) => b.textContent)).toEqual([1, 60, 600, 3600].map((rate) => es.live.speed(rate)));
     const time = /\d\d:\d\d GMT[−-]3/.exec(skyLabel())?.[0] ?? '';
     expect(skyLabel()).toBe(es.globe.label({ place: 'Buenos Aires', time, turn: 'you' }));
@@ -218,7 +218,7 @@ describe('the globe on the wide stars page (FR-GLOBE-1, FR-GLOBE-7..10, FR-GLOBE
     expect([...time.children].map((el) => el.getAttribute('data-testid') ?? el.tagName)).toEqual(['H2', 'globe-clock', 'globe-steps', 'globe-speeds']);
     for (const id of ['stripe-overview', 'time-stripe', 'time-control', 'overview-row']) expect(within(time).queryByTestId(id)).toBeNull();
     expect(document.querySelector('[data-rail] [data-pass-mark], [data-rail] [data-pass-id]')).toBeNull();
-    expect(within(time).getAllByRole('button').map((b) => b.textContent)).toEqual(['−1 d', '−1 h', '+1 h', '+1 d', en.skyView.now, en.live.play, '1×', '60×', '600×', '3600×']);
+    expect(within(time).getAllByRole('button').map((b) => b.textContent)).toEqual(['−1 d', '−1 h', '+1 h', '+1 d', en.skyView.now, en.live.playButton, '1×', '60×', '600×', '3600×']);
     // `[ now ]` then the playback row, on one line.
     expect([...screen.getByTestId('globe-speeds').children].map((el) => el.getAttribute('data-testid'))).toEqual(['globe-now', 'playback-controls']);
     // A day step past the 24 h moves the span with it (R187's `shiftDays`), two days on, and `[ now ]` comes back.

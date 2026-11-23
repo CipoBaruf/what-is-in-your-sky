@@ -61,7 +61,7 @@ for (const which of DESK_PAGES) {
 
     test('Space on a focused button is the button, and ? lists every key', async ({ page }) => {
       const layout = await openDeskPage(page, which);
-      await layout.locator('[data-slot="viewRow"]').getByRole('button', { name: 'Window', exact: true }).focus();
+      await layout.locator('[data-slot="view"]').getByRole('button', { name: 'Window', exact: true }).focus();
       await page.keyboard.press(' ');
       await expect.poll(() => shownView(layout), { timeout: 30_000 }).toBe('window');
       // The key was the button's alone: the instant is still real time (no playback row; the stars page's window has no

@@ -19,11 +19,12 @@ import styles from './SkyViewLayout.module.css';
  *
  * **Wide** (R186, FR-WIDE-1, FR-WIDE-5; D-1098) is the box at the left and the
  * rail at the right on all three pages: the box is the room the grid leaves
- * beside the rail, with its four corners over it (`CORNERS`: the readout
- * top-left, full screen top-right, the hint bottom-left, the zoom
- * bottom-right); the rail is `SLOT_ORDER` — the head, `View`, `Time`, the
- * page group, the list — and scrolls as one where a short window leaves the
- * list fewer than its minimum rows. The guide's panel (D-849) is gone.
+ * beside the rail and over the zoom's row, with its three corners over it
+ * (`CORNERS`: the readout top-left, full screen top-right, the hint
+ * bottom-left) and the zoom keys in the row under it, at its left (R214,
+ * FR-CTRL-9, D-1241); the rail is `SLOT_ORDER` (R216, FR-NOW-1, D-1239) — the
+ * strip, `View`, `Time`, `Turn`, `Layers`, `Up now`, `Up from` — and is the
+ * column's one scroll (FR-CTRL-10). The guide's panel (D-849) is gone.
  *
  * **Compact** is the `full` form on all three pages, upright and turned (R148,
  * R163, R164): the drawing in a wrapper fixed to the viewport, the `overlay` and
@@ -41,7 +42,7 @@ import styles from './SkyViewLayout.module.css';
  * **The chart's parts.** The view control, the facing readout, the facing
  * picker and the legend are drawn by `SkyChart` and its views, which know
  * nothing of the page. A page puts `<SkyViewChartSlot name="…" />` where it
- * wants each (in `viewRow`, `readout`, `picker`, `list`), and the chart, which
+ * wants each (in `view`, `readout`, the page's group, `upNow`), and the chart, which
  * reads this layout's context (`useChartSlot`), portals the part there and
  * draws nothing in its frame's own row. The frame's emptied rows are hidden by
  * `SkyViewLayout.module.css` (`ChartFrame.tsx` itself is unchanged, R132).
@@ -50,11 +51,11 @@ import styles from './SkyViewLayout.module.css';
  * the action, a group away from each, for the time track and the taps; a page
  * that passes nothing renders no row.
  */
-/** R186 (D-1098): the wide rail's rows, in `SLOT_ORDER`. */
-export type SkyViewRailSlot = 'answer' | 'viewRow' | 'timeline' | 'action' | 'layers' | 'list';
+/** R216 (FR-NOW-1, D-1239): the wide rail's groups, in `SLOT_ORDER`. */
+export type SkyViewRailSlot = 'strip' | 'view' | 'time' | 'turn' | 'layers' | 'upNow' | 'upFrom';
 
-/** R186 (FR-WIDE-5, D-1098): the box's four corners on wide — the readout top-left, full screen top-right, the hint bottom-left, the zoom bottom-right. */
-export type SkyViewCorner = 'readout' | 'fullscreen' | 'hint' | 'zoom';
+/** R186 (FR-WIDE-5, D-1098): the box's corners on wide — the readout top-left, full screen top-right, the hint bottom-left. R214: the zoom is no corner. */
+export type SkyViewCorner = 'readout' | 'fullscreen' | 'hint';
 
 export type SkyViewSlotName = SkyViewRailSlot | SkyViewCorner | 'drawing' | 'overlay' | 'sheet';
 
@@ -62,35 +63,25 @@ export type SkyViewSlotName = SkyViewRailSlot | SkyViewCorner | 'drawing' | 'ove
 export type SkyViewRhythm = 'row' | 'group' | 'section';
 
 export const SLOT_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = {
-  answer: 'section',
-  viewRow: 'group',
-  timeline: 'group',
-  action: 'group',
+  strip: 'section',
+  view: 'group',
+  time: 'group',
+  turn: 'group',
   layers: 'group',
-  list: 'section',
+  upNow: 'section',
+  upFrom: 'section',
 };
 
 /**
- * R186 (FR-WIDE-1, D-1098): the wide rail's order on every page — the head (`answer`), `View`, `Time` (`timeline`),
- * the page group (`action`, then `layers`) and the list — which is also the DOM order the rows are rendered in, so
- * the three pages cannot drift. The corners and the full form's `overlay` and `sheet` are not rows and are not in it.
+ * R216 (FR-NOW-1, FR-WIDE-1 as amended; D-1239): the wide rail's one order on every page — the strip (the head),
+ * `View`, `Time`, `Turn`, `Layers`, `Up now` and `Up from <place>` — which is also the DOM order the groups are rendered
+ * in, so the pages cannot drift, and the compact `ControlsSheet`'s order. The corners and the full form's `overlay` and
+ * `sheet` are not groups and are not in it. v2.14.1's list-first order and its 7.5-row cap (V214-33) are gone.
  */
-export const SLOT_ORDER: readonly SkyViewRailSlot[] = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
-
-/**
- * v2.14.1 (FR-WIDE-1 as amended, V214-33; D-1135): the pass page's rail — the list right under the head, before `View`
- * and `Time`, so another satellite is one look away. It takes its own height there and the rail scrolls as a whole.
- */
-export const LIST_FIRST_ORDER: readonly SkyViewRailSlot[] = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
-
-/**
- * v2.14.1 (V214-38, D-1135): the pass page's rail closes up round its list — the count line a row under the head's date
- * and `View` a row under the list — so `[ Play ]` is in view at 1280 × 800; the live and stars pages keep `SLOT_RHYTHM`.
- */
-export const LIST_FIRST_RHYTHM: Readonly<Record<SkyViewRailSlot, SkyViewRhythm>> = { ...SLOT_RHYTHM, list: 'row', viewRow: 'row' };
+export const SLOT_ORDER: readonly SkyViewRailSlot[] = ['strip', 'view', 'time', 'turn', 'layers', 'upNow', 'upFrom'];
 
 /** R186 (FR-WIDE-5): the corners in the order they are rendered over the box. */
-export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint', 'zoom'];
+export const CORNERS: readonly SkyViewCorner[] = ['readout', 'fullscreen', 'hint'];
 
 /**
  * Where the readout stands — in its slot (the default: on wide, the box's top-left corner), or, R148 (D-923),
@@ -136,8 +127,6 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   keys?: SkyKeyActions | undefined;
   /** R189 (FR-WIDE-10): the instant the full screen's time readout (FR-TRAJ-4) shows over the box's top edge. */
   clock?: { t: EpochMs; now: EpochMs; timeZone: string | null } | undefined;
-  /** v2.14.1 (V214-33, D-1135): the rail in `LIST_FIRST_ORDER` — the pass page's; written as `data-list-first` on the rail. */
-  listFirst?: boolean | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -154,7 +143,7 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, keys, clock, listFirst = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn = 'row', readoutLines = 1, onFirstTouch, keys, clock, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   // R165 (D-1000): compact is the full form, in both shapes; R186 (D-1098): wide is the rail on every page.
@@ -328,21 +317,19 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     const node = slots[name];
     if (node === undefined || node === null || node === false) return null;
     // D-846: the rail labels the view row; the page group names its own groups (`Facing`, `Turn`, …).
-    const label = name === 'viewRow' ? { id: viewId, text: t.skyView.view } : null;
+    const label = name === 'view' ? { id: viewId, text: t.skyView.view } : null;
     // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`).
-    // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
-    // First (D-1135, V214-37, V214-38) it is capped at about three one-line rows and scrolls inside itself too.
-    const scrolls = name === 'list';
+    // R216 (FR-CTRL-10, D-1239): no group scrolls inside itself; the rail is the column's one scroll.
     return (
-      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={(listFirst ? LIST_FIRST_RHYTHM : SLOT_RHYTHM)[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]}>
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
         {node}
       </div>
     );
   };
   /*
-   * R186 (FR-WIDE-5, D-1098): the box's corners. The readout and the zoom are the chart's parts — a view portals them
-   * here (`useChartSlot('readout' | 'zoom')`) unless the page gives a readout of its own; full screen is the layout's
+   * R186 (FR-WIDE-5, D-1098): the box's corners. The readout is the chart's part — a view portals it here
+   * (`useChartSlot('readout')`) unless the page gives a readout of its own; full screen is the layout's
    * own (R189: `[ full screen ]`, and while full the time readout and `[ × ]`); the hint is the page's. The readout
    * and the hint carry `data-slot` as their rows did.
    */
@@ -358,7 +345,6 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   };
   const cornerNode = (name: SkyViewCorner): ReactNode => {
     if (name === 'readout') return given('readout') ? slots.readout : <SkyViewChartSlot name="readout" />;
-    if (name === 'zoom') return <SkyViewChartSlot name="zoom" />;
     if (name === 'fullscreen') return fullscreenNode();
     return given(name) ? slots[name] : null;
   };
@@ -413,13 +399,17 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
   return (
     <SkyViewContext.Provider value={context}>
       <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(full ? { 'data-full': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
-        {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners. */}
+        {/* R186 (FR-WIDE-1): the box at the left, cut from the room beside the rail by the grid, its extras on its corners.
+            R214 (FR-CTRL-9, D-1241): the zoom's row hangs under it inside the same element, so full screen takes the keys along. */}
         <div ref={drawingRef} className={[styles.slot, styles.drawing].join(' ')} data-slot="drawing">
           {slots.drawing}
           {CORNERS.map(corner)}
+          <div className={styles.zoomRow} data-zoom-row="">
+            <SkyViewChartSlot name="zoom" />
+          </div>
         </div>
-        <div className={styles.rail} data-rail="" {...(listFirst ? { 'data-list-first': '' } : {})}>
-          {(listFirst ? LIST_FIRST_ORDER : SLOT_ORDER).map(slot)}
+        <div className={styles.rail} data-rail="">
+          {SLOT_ORDER.map(slot)}
         </div>
       </div>
     </SkyViewContext.Provider>
@@ -428,8 +418,8 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
 
 /**
  * The place in a slot where the chart's part lands. A page renders one per part it wants from the chart — the view
- * control in `viewRow`, the readout in `readout`, the facing picker (or the polar chart's orientation control) in
- * `picker`, the legend in `list` — and the chart portals the part into it (`useChartSlot`).
+ * control in `view`, the readout in `readout`, the facing picker (or the polar chart's orientation control) where the
+ * page groups it, the legend in `upNow` — and the chart portals the part into it (`useChartSlot`).
  */
 export function SkyViewChartSlot({ name }: { name: ChartSlotName }) {
   const layout = useContext(SkyViewContext);

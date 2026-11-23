@@ -123,7 +123,8 @@ export const FOOTER_ONE_LINE_MIN_PX = { en: 1176, es: 1195 } as const;
  * - `SIDEWAYS_MAX_HEIGHT_PX`, 500: the landscape phone (FR-SHP-1, FR-WATCH-5,
  *   D-173), below as `LANDSCAPE_PHONE_QUERY` with its orientation.
  *   `global.css` lifts the compact column's cap from the live page and
- *   `Live.module.css` lays the page out as two panes.
+ *   `Live.module.css` lays the page out as two panes. R214 (D-1273):
+ *   `SkyViewLayout.module.css` stands the zoom's row over the box's foot.
  */
 export const SHORT_MAX_HEIGHT_PX = 700;
 export const WIDE_SHORT_MAX_HEIGHT_PX = 720;
@@ -405,8 +406,8 @@ export const DETAIL_DRAWING_MIN_SHARE = 0.6;
  * R147 (FR-FULL-3, D-918): with the sheet closed, the head, the `[ controls ]` button and the hint together cover at
  * most this share of the compact live page's box. The head row and the button row are about 44 px each; at
  * 390 × 844 that is about a tenth of the box with the hint, so the sky keeps nearly nine tenths of the screen.
- * The card (FR-FULL-10), which goes on the reader's first pick, is not counted. `live-full.spec.ts` sums the three's
- * bounding boxes against it.
+ * The next-pass strip (R213, FR-STRIP-1) is one text row of its own at the foot and is not one of the three.
+ * `live-full.spec.ts` sums the three's bounding boxes against it.
  */
 export const FULL_OVERLAY_MAX_SHARE = 0.12;
 

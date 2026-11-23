@@ -32,8 +32,8 @@ test('the legend beside the drawing scrolls inside the box; every row is a keybo
    * a `+n` line under it, and the list itself is what scrolls to the entries under the clip.
    */
   const clipped = page.locator('[data-testid="chart-legend"][data-clip-rows]');
-  // R132 (D-864): the legend is the layout's `list` slot, which is what scrolls in the rail.
-  const listSlot = page.getByTestId('live-layout').locator('[data-slot="list"]');
+  // R216 (FR-CTRL-10): the legend is in `Up now` and the rail itself is what scrolls.
+  const listSlot = page.getByTestId('live-layout').locator('[data-rail]');
   const scroller = (await clipped.count()) > 0 ? clipped : (await listSlot.count()) > 0 ? listSlot : slot;
   const rows = slot.locator('button[data-pass-id]');
   const ids = await rows.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-pass-id')));

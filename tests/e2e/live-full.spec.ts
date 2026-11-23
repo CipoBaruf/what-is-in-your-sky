@@ -25,7 +25,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { FULL_OVERLAY_MAX_SHARE, SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../src/lib/layout';
-import { closeSheet, domeDrawn, openSheet, seedStoredRun, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
+import { closeSheet, domeDrawn, openSheet, seedStoredRun, sheetOrder, STORED_RUN, stripFilled, type StoredRun } from './liveHelpers';
 import { aimedAt, stubOrientation } from './orientation';
 
 /** v2.14.2 (FR-PHONE-17): the phone's follow question answered for the visit (`useFollow.ts`'s `FOLLOW_ASKED_KEY`), so these cases read the page under it; `follow-ask.spec.ts` owns the question. */
@@ -159,12 +159,13 @@ for (const locale of LOCALES) {
           expect(await scrolls(page), 'the page scrolls').toBe(false);
           test.info().annotations.push({ type: 'chart-box', description: `${locale} ${view} ${String(width)}×${String(height)}: ${String(Math.round(chart.x))},${String(Math.round(chart.y))} ${String(Math.round(chart.width))}×${String(Math.round(chart.height))}` });
 
-          // FR-FULL-10: nothing visible is up at the seed's instant, so the card asks; it is not the overlay's share.
-          const card = page.getByTestId('live-card');
-          await expect(card).toHaveAttribute('data-kind', 'ask');
-          const cardBox = await box(page, 'live-card');
-          expect(cardBox.x).toBeGreaterThanOrEqual(0);
-          expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(width + 0.5);
+          // FR-STRIP-1: nothing visible is up at the seed's instant, so the strip offers the pass, one text row at the box's foot.
+          await expect(page.getByTestId('live-strip')).toHaveAttribute('data-kind', 'next');
+          const strip = await box(page, 'live-strip');
+          expect(strip.x).toBeGreaterThanOrEqual(0);
+          expect(strip.x + strip.width).toBeLessThanOrEqual(width + 0.5);
+          expect(strip.y + strip.height).toBeLessThanOrEqual(height + 0.5);
+          expect(strip.height, 'one text row').toBeLessThanOrEqual(25);
           // FR-FULL-3: with the sheet closed, the head, the button and the hint cover at most FULL_OVERLAY_MAX_SHARE.
           await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
           const parts = [await box(page, 'live-head'), await box(page, 'live-controls')];
@@ -199,13 +200,9 @@ for (const locale of LOCALES) {
             expect(hintBox.y).toBeGreaterThan(height / 2);
             expect(hintBox.x + hintBox.width).toBeLessThanOrEqual(width + 0.5);
           }
-          // Every line of the head and the card fits: nothing is cut past the box.
+          expect(controls.y + controls.height, 'the button above the strip').toBeLessThanOrEqual(strip.y + 0.5);
+          // Every line of the head fits: nothing is cut past the box.
           expect(head.x + head.width).toBeLessThanOrEqual(width + 0.5);
-
-          // `[ see now ]`: the card goes, the sky stays, the box is the same.
-          await card.getByTestId('live-card-now').click();
-          await expect(card).toHaveCount(0);
-          expect(await box(page, 'chart-box')).toEqual(chart);
 
           // FR-FULL-4: the sheet, open with the list open, at or under SHEET_MAX_SHARE of the height; its body scrolls
           // where the rows are taller than that; the page does not scroll; the box is unchanged (FR-FULL-6).
@@ -229,8 +226,9 @@ for (const locale of LOCALES) {
           await expect(page.getByTestId('sheet-head')).toBeInViewport({ ratio: 1 });
           await expect(page.getByTestId('sheet-close')).toBeVisible();
           // Every row of FR-GYRO-10 is in the sheet, in order, the satellites last; the satellites' heading in view at the body's end. R152 (FR-GYRO-1): on this touch profile `[ follow the phone ]` is the row after the view row.
-          const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-          expect(order).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
+          // R216 (FR-NOW-1, D-1239): in the rail's group order.
+          const order = await sheetOrder(page);
+          expect(order).toEqual(['live-context', 'live-view-row', 'live-follow', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
           await expect(page.getByTestId('live-satellites-head')).toBeInViewport();
           await closeSheet(page);
           expect(await box(page, 'chart-box')).toEqual(chart);
@@ -250,19 +248,20 @@ for (const locale of LOCALES) {
         // The specs' own motion permission (D-946): granted on the tap, a reading where the window already looks.
         await stubOrientation(page, { answer: 'granted', readings: [aimedAt(0, 30)] });
         await openLive(page, locale, 'window');
-        await page.getByTestId('live-card-now').click();
-        // FR-PHONE-3: `[ follow ]` then `[ controls ]`, one row at the box's bottom-right, each at least 44 × 44.
+        // FR-PHONE-3: `[ follow ]` then `[ controls ]`, one row at the box's bottom-right over the strip (R213, FR-STRIP-1), each at least 44 × 44.
         const row = page.getByTestId('live-bottom-row');
         expect(await row.evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')))).toEqual(['live-follow-control', 'live-controls']);
         const follow = await box(page, 'live-follow-control');
         const controls = await box(page, 'live-controls');
+        const strip = await box(page, 'live-strip');
         await expect(page.getByTestId('live-follow-control')).toHaveText(locale === 'en' ? 'follow' : 'seguir');
         await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
         for (const part of [follow, controls]) {
           expect(part.width).toBeGreaterThanOrEqual(43.5);
           expect(part.height).toBeGreaterThanOrEqual(43.5);
           expect(part.y + part.height).toBeLessThanOrEqual(height + 0.5);
-          expect(part.y + part.height).toBeGreaterThan(height - 60);
+          expect(part.y + part.height, 'over the strip').toBeLessThanOrEqual(strip.y + 0.5);
+          expect(part.y + part.height, 'right over it').toBeGreaterThan(strip.y - 60);
         }
         expect(Math.abs(follow.y - controls.y), 'one row').toBeLessThanOrEqual(1);
         expect(follow.x + follow.width, 'follow before controls').toBeLessThanOrEqual(controls.x + 0.5);
@@ -283,7 +282,7 @@ for (const locale of LOCALES) {
         // FR-PHONE-5: the touch hint, two clauses, drawn whole above the two controls.
         const hint = page.getByTestId('sky-hint');
         await expect(hint).toHaveAttribute('data-pointer', 'coarse');
-        await expect(hint).toHaveText(locale === 'en' ? 'Drag to look · pinch to zoom' : 'Arrastrá para mirar · pellizcá para acercar');
+        await expect(hint).toHaveText(locale === 'en' ? 'drag to turn · pinch to zoom' : 'arrastrá para girar · pellizcá para acercar');
         const fits = await hint.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflow: getComputedStyle(el).textOverflow }));
         expect(fits.scrollWidth, 'no clause cut').toBe(fits.clientWidth);
         expect(fits.overflow).not.toBe('ellipsis');
@@ -312,7 +311,6 @@ for (const locale of LOCALES) {
       expect(Math.abs(chart.x + chart.width - 844)).toBeLessThanOrEqual(1);
       expect(Math.abs(chart.y + chart.height - 390)).toBeLessThanOrEqual(1);
       expect(await scrolls(page)).toBe(false);
-      await page.getByTestId('live-card-now').click();
       await openSheet(page);
       await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
       const sheet = await box(page, 'live-sheet');
@@ -352,7 +350,6 @@ for (const locale of LOCALES) {
       // Slow: 4 px every 30 ms is about 0.13 px/ms, well under the flick's speed.
       expect(4 / 30).toBeLessThan(SHEET_FLICK_PX_PER_MS);
       await openLive(page, locale, 'polar');
-      await page.getByTestId('live-card-now').click();
       const sheet = page.getByTestId('live-sheet');
       // The `×` first: a tap right after the protocol's instant flick is swallowed by the browser's own tap
       // suppression after a fling, which is the browser's and not the page's.

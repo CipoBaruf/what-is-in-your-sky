@@ -299,7 +299,7 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
     expect(container.querySelectorAll('[data-planet-marks] > text')).toHaveLength(3);
     // The ground still has its floor: the scene carries stars whatever the layers say. R155: so do the surface and the band; the haze and the pool go with the stars.
     expect(container.querySelector('[data-ground-fill]')?.getAttribute('d')).not.toBe('');
-    expect(container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'deep');
+    expect(container.querySelector('[data-sky-surface]')).not.toBeNull();
     expect(container.querySelector('[data-horizon-band]')).not.toHaveAttribute('display');
     expect(container.querySelector('[data-milky-way]')).toHaveAttribute('display', 'none');
     expect(container.querySelector('[data-deep-pool]')).toHaveAttribute('display', 'none');
@@ -323,13 +323,13 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
 
   });
 
-  /** R155 (FR-LOOK-1, FR-LOOK-2): the surface in the step's tone at the three altitudes, and the band's five strips written per rotation. */
-  it('fills the box with the sky surface in the Sun’s step and draws the horizon band in five strips', () => {
+  /** R155 (FR-LOOK-1), R214 (FR-DARK-1): the one surface, and the band's five strips written per rotation. */
+  it('fills the box with the sky surface and draws the horizon band in five strips', () => {
     const { container, box } = mount();
     const surface = container.querySelector('[data-sky-surface]') as SVGRectElement;
     expect(surface).toHaveAttribute('width', '390');
     expect(surface).toHaveAttribute('height', '390');
-    expect(surface).toHaveAttribute('data-tint', 'deep');
+    expect(surface).not.toHaveAttribute('data-tint');
     expect(surface.compareDocumentPosition(container.querySelector('[data-ground-fill]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const strips = [...container.querySelectorAll<SVGPathElement>('[data-horizon-band] > path')];
     expect(strips).toHaveLength(5);
@@ -341,15 +341,6 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
     for (let i = 0; i < 3; i += 1) fireEvent.keyDown(box, { key: 'ArrowDown' });
     expect(strips.map((node) => node.getAttribute('d'))).not.toEqual(before);
     expect(encloses((strips[0]?.getAttribute('d') ?? '').split('Z')[0] ?? '', 195, at(180, 1, 180, 20).y)).not.toBe(encloses((strips[0]?.getAttribute('d') ?? '').split('Z')[1] ?? '', 195, at(180, 1, 180, 20).y));
-
-    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
-    const tinted = (sunAltDeg: number) => <SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: { ...field, positions: { ...field.positions, sunAltDeg } } }} />;
-    const twilight = render(tinted(-3));
-    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
-    twilight.rerender(tinted(2));
-    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'day');
-    twilight.rerender(tinted(-6));
-    expect(twilight.container.querySelector('[data-sky-surface]')).toHaveAttribute('data-tint', 'deep');
   });
 
   /** R155 (FR-LOOK-3): the haze's three bands, from the outline the catalogue carries, clipped to the sky side; none without an outline. */

@@ -174,7 +174,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Live.tsx` and `Stars.tsx` (never edited here); the header's place line and tabs (R215); the strip (R213).
   - **Done when:** `npm run check` and `npm run check:dead` green; `landing.spec.ts` covers `/`, `/#`, `/#nope` at 390 × 844 and 1280 × 800 with `history.length` unchanged; the compact `#pass` e2e opens a card's sheet; `update-banner.spec.ts` green on `#live`; a test that `example_shown` is sent on `#live`; `npm run check:sdd` green.
 
-- [ ] **R213 — The next pass is a strip, not a question**
+- [x] **R213 — The next pass is a strip, not a question**
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 300
@@ -192,7 +192,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the rail's order (R216); `captureSet.ts` (R212).
   - **Done when:** `npm run check` green; `nextPassStrip.test.ts`; `NextPassStrip.test.tsx` (each kind, the `[example] Salta` prefix on compact, the play button's two words, `● live` and the offset); `live-strip.spec.ts` walks US-63 AC1–AC3 and checks US-62 AC4 at 390 × 844 and 1280 × 800; `watch` sent once per visit; the day line at noon, not in twilight or at night; `npm run check:sdd` green.
 
-- [ ] **R214 — The window: dark at noon, zoom keys under the box**
+- [x] **R214 — The window: dark at noon, zoom keys under the box**
   - **Lane:** window
   - **Tier:** standard
   - **Turns:** 300
@@ -228,7 +228,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Live.tsx` (R216 holds it); the place group's controls (R218); the sheet's head (R219); the bar (R220).
   - **Done when:** `npm run check` green; `Header.test.tsx` covers the three readings, the current tab's 2 px underline and `← back`; `PlaceDialog.test.tsx` sets a place each of three ways and sees it close; the compact header holds the mark and three links in 36 cells; `npm run check:sdd` green.
 
-- [ ] **R216 — The live rail, in order**
+- [x] **R216 — The live rail, in order** — the stars page and the pass detail renamed onto the seven slots too, the pass list as `upFrom` (D-1277).
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 500

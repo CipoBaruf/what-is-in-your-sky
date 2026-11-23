@@ -26,9 +26,8 @@ export interface Shell {
   order: string[];
 }
 
-export const SHELL_ORDER = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
-/** v2.14.1 (V214-33, D-1135): the pass page's rail, the list under the head. */
-export const LIST_FIRST_ORDER = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
+/** R216 (FR-NOW-1, D-1239): `SLOT_ORDER`, one order on every page; the list-first order is gone. */
+export const SHELL_ORDER = ['strip', 'view', 'time', 'turn', 'layers', 'upNow', 'upFrom'];
 export const SHELL_DESKS = [
   { width: 1024, height: 640 },
   { width: 1280, height: 800 },
@@ -48,20 +47,21 @@ export async function shellOf(layout: Locator): Promise<Shell> {
 export async function chooseDeskView(layout: Locator, locale: 'en' | 'es', view: DeskView): Promise<void> {
   const label = DESK_LABELS[locale][DESK_VIEWS.indexOf(view)] ?? '';
   // R206 (FR-CTRL-2): an option's name is its word, pressed or not.
-  await layout.locator('[data-slot="viewRow"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: label, exact: true }).click();
+  await layout.locator('[data-slot="view"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: label, exact: true }).click();
   await expect(layout.locator(view === 'globe' ? '[data-globe]' : `[data-drawing="${view}"]`).first()).toBeAttached({ timeout: 30_000 });
 }
 
-/** FR-WIDE-5: the readout top-left, the hint bottom-left, the zoom bottom-right on the views that zoom, none on the dome. */
+/** FR-WIDE-5: the readout top-left and the hint bottom-left; FR-CTRL-9: the zoom under the box at its left on the views that zoom, none on the dome. */
 export async function expectCorners(layout: Locator, view: DeskView): Promise<void> {
   const drawing = await box(layout.locator('[data-slot="drawing"]'));
-  const zoom = layout.locator('[data-corner="zoom"]');
+  const zoom = layout.locator('[data-zoom-row]');
   if (view === 'dome') await expect(zoom.getByRole('button')).toHaveCount(0);
   else {
-    await expect(zoom.getByRole('button')).toHaveCount(2);
+    // The window's three keys (R214); the globe's two until R217.
+    await expect(zoom.getByRole('button')).toHaveCount(view === 'window' ? 3 : 2);
     const at = await box(zoom);
-    expect(at.x + at.width, `${view}: zoom at the right`).toBeGreaterThan(drawing.x + drawing.width - 2);
-    expect(at.y + at.height, `${view}: zoom at the foot`).toBeGreaterThan(drawing.y + drawing.height - 2);
+    expect(Math.abs(at.x - drawing.x), `${view}: zoom at the left`).toBeLessThanOrEqual(1);
+    expect(Math.abs(at.y - drawing.y - drawing.height), `${view}: zoom under the box`).toBeLessThanOrEqual(1);
   }
   const readout = layout.locator('[data-corner="readout"]');
   if (await readout.isVisible()) {

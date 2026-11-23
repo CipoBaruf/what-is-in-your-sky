@@ -264,18 +264,6 @@ export async function savedDome(page: Page): Promise<void> {
   }, PREFS_KEY);
 }
 
-/**
- * v2.14.1 (FR-WIDE-13, D-1140): the wide live page asks once per visit, at the seed's instant (nothing up), whether to
- * go to the first pass. A spec about something else answers `stay here` — the page as it was before the dialog — by a
- * locator handler, which Playwright runs before any action or visibility check the dialog would block.
- */
-export async function stayOnFirstPass(page: Page): Promise<void> {
-  // `Esc` is `stay here`, and a key rather than a click keeps the focus the keyboard's (the opener's ring, F-100).
-  await page.addLocatorHandler(page.getByTestId('first-pass-dialog'), async () => {
-    await page.keyboard.press('Escape');
-  });
-}
-
 export async function seedStoredRun(
   page: Page,
   {
@@ -284,7 +272,6 @@ export async function seedStoredRun(
     settled = false,
     run = STORED_RUN,
     elements = 'fixtures',
-    firstPass = 'stay',
   }: {
     locale?: 'en' | 'es';
     prefs?: Record<string, unknown>;
@@ -292,11 +279,8 @@ export async function seedStoredRun(
     /** R92: a run of the spec's own making (the 40-pass list); with `elements: 'down'` no recompute replaces it. */
     run?: StoredRun;
     elements?: 'fixtures' | 'down';
-    /** v2.14.1 (FR-WIDE-13): `stay` answers the wide live page's first-pass dialog whenever it stands in the way (`stayOnFirstPass`); `ask` leaves it to the spec. */
-    firstPass?: 'stay' | 'ask';
   } = {},
 ): Promise<void> {
-  if (firstPass === 'stay') await stayOnFirstPass(page);
   await page.clock.setFixedTime(NINE_DAYS_ON);
   await stubNetwork(page, elements);
   await page.goto('/');
@@ -504,13 +488,11 @@ export async function setThemeByKey(page: Page, theme: 'dark' | 'night'): Promis
 }
 
 /**
- * R148 (FR-FULL-5, FR-FULL-10, D-927): leaves the live page with `Esc`. On compact `Esc` answers the card first and
- * closes the sheet second, so the page is left as a reader leaves it: the card answered, the sheet closed, then `Esc`.
+ * R148 (FR-FULL-5, D-927) → R213 (FR-STRIP-5): leaves the live page with `Esc`. On compact `Esc` closes the sheet
+ * first, so the page is left as a reader leaves it: the sheet closed, then `Esc`.
  * R212 (FR-LAND-1): live as the load's entry has nowhere to go back to, so there it is left for the list.
  */
 export async function leaveLive(page: Page): Promise<void> {
-  const card = page.getByTestId('live-card');
-  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
   await closeSheet(page);
   if (await page.evaluate(() => ((history.state as { wiys?: number } | null)?.wiys ?? 0) > 0)) await page.keyboard.press('Escape');
   else await page.evaluate(() => location.replace('#pass'));
@@ -542,6 +524,11 @@ export async function openLegend(page: Page): Promise<void> {
  * context line, the track, the taps, the view row, the facing row, Share and the satellites stand. A no-op on a
  * page with no `[ controls ]` (wide, the stars page, the pass detail) and on a sheet already open.
  */
+/** R216 (FR-NOW-1, D-1239): the sheet's rows in order — each group's rows, then the footer — by their test ids. */
+export async function sheetOrder(page: Page): Promise<(string | null)[]> {
+  return page.getByTestId('sheet-body').evaluate((el) => [...el.children].flatMap((child) => (child.hasAttribute('data-group') ? [...child.children] : [child]).map((row) => row.getAttribute('data-testid'))));
+}
+
 export async function openSheet(page: Page): Promise<void> {
   const control = page.getByTestId('live-controls');
   if ((await control.count()) === 0) return;
@@ -665,7 +652,8 @@ async function railToTop(page: Page): Promise<void> {
 
 /** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. R144: on compact, the taps row's `[ now ]`. */
 export async function backToLive(page: Page): Promise<void> {
-  if ((await page.getByTestId('live-now').count()) === 0) {
+  // R213 (FR-STRIP-3): compact has a `live-now` too, the strip's, under the sheet while it is open: the shell decides.
+  if ((await page.getByTestId('live-tap-now').count()) > 0) {
     // R148 (FR-FULL-4): `[ now ]` is the sheet's.
     await openSheet(page);
     await page.getByTestId('live-tap-now').click();

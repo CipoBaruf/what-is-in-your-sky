@@ -74,10 +74,7 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       const layout = page.getByTestId('live-layout');
       await expect(layout).toBeVisible({ timeout: 30_000 });
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
-      // R148 (FR-FULL-4): the compact live page is measured with the sheet open — its rows are the sheet's; the card
-      // over the sky is answered first, so the page is the reader's.
-      const card = page.getByTestId('live-card');
-      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+      // R148 (FR-FULL-4): the compact live page is measured with the sheet open — its rows are the sheet's.
       await openSheet(page);
       return page.locator('body');
     }

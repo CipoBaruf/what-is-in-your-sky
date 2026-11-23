@@ -20,7 +20,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { bandUnderBox, openSheet, SPACE_3_PX, stayOnFirstPass } from './liveHelpers';
+import { bandUnderBox, openSheet, SPACE_3_PX } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -150,7 +150,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
     expect(readout.y).toBeGreaterThanOrEqual(boxRect.y - 1);
     expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
-    await expect(guide(page).getByTestId('sky-hint')).toHaveText('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
+    await expect(guide(page).getByTestId('sky-hint')).toHaveText('drag to turn · scroll to zoom');
     // The picker: `peak` first and pressed, the eight points, `up`; no `[ follow the phone ]` without a sensor (FR-GYRO-1).
     const picker = guide(page).getByRole('group', { name: 'Facing' });
     await expect(picker.getByRole('button')).toHaveText(['peak', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
@@ -222,8 +222,8 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
         expect(await bandUnderBox(page, boxRect)).toBeLessThanOrEqual(SPACE_3_PX);
         expect(rail.x).toBeGreaterThanOrEqual(boxRect.x + boxRect.width - 1);
         // The facing picker in the rail (FR-SKY-2) — R186 (FR-WIDE-1): the live page's group — the readout in the box's corner.
-        await expect(page.getByTestId('live-group').getByTestId('window-facing')).toBeVisible();
-        await expect(page.getByTestId('live-group').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
+        await expect(page.getByTestId('live-facing-group').getByTestId('window-facing')).toBeVisible();
+        await expect(page.getByTestId('live-facing-group').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
         const readout = await rectOf(page.getByTestId('window-readout'));
         expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
         expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
@@ -285,9 +285,7 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     await openLive(page);
     const chart = page.getByTestId('sky-chart');
-    // R148 (FR-FULL-4): the view control is the sheet's; the card over the sky is answered first.
-    const card = page.getByTestId('live-card');
-    if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+    // R148 (FR-FULL-4): the view control is the sheet's.
     await openSheet(page);
     await page.getByTestId('live-layout').getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
@@ -319,7 +317,6 @@ const ORION_CLOCK = ORION_RISE - 5 * 60_000;
 
 /** The showcase night's home page, the passes computed. */
 async function openShowcase(page: Page, viewport: { width: number; height: number }, locale: CaptureLocale, chartView: 'dome' | 'window'): Promise<string> {
-  await stayOnFirstPass(page);
   await page.setViewportSize(viewport);
   await page.addInitScript(
     ([key, value]: [string, string]) => {
@@ -371,8 +368,8 @@ test.describe('the landmark and the facing key (R127)', () => {
       const starName = linePattern.exec((await line.textContent()) ?? '')?.[1] ?? '';
       expect(starName).not.toBe('');
       // FR-SKY-13: the picker ends with the pass's key, after `up` — one capital, the legend's (the arc itself is not drawn yet five minutes out).
-      // R186 (FR-WIDE-1): the picker is the live page's rail group.
-      const picker = page.getByTestId('live-group').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
+      // R186 (FR-WIDE-1) → R216 (FR-NOW-1): the picker is the rail's `View` group's.
+      const picker = page.getByTestId('live-facing-group').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
       const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', locale === 'es' ? 'arriba' : 'up'];
       await expect(picker.getByRole('button')).toHaveText([...points, /^[A-Z]$/]);
       const key = (await picker.getByRole('button').last().textContent()) ?? '';

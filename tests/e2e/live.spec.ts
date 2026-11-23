@@ -49,7 +49,7 @@ test.describe('the live page', () => {
     // FR-LIVE-3 → R144 (FR-TONIGHT-7): the headline is the shown time with its `now` chip, ticking with the clock, and the
     // context line names the pass up — the ISS, which the `Up now` row counts — and what it does next.
     await stripFilled(page);
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     expect(panelCount).toBe(1);
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
@@ -98,7 +98,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's: the headline is the held `HH:MM` with its offset (FR-TONIGHT-7), and FR-TONIGHT-1 never jumps from a link's `t`.
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC (tonight · )?in (<1|\\d+) min$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC \\+(\\d+ h )?\\d+ min$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
     // At the peak the ISS is up: the context line names it, once the passes are in.
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up', { timeout: 60_000 });
@@ -117,7 +117,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     // Real time: the installed clock, not the link — and the ISS up at it, so FR-TONIGHT-1's jump stays on now.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
   });
 
   // R89 (FR-LIVE-1 as amended v2.1): the states are told apart — `live-failures.spec.ts` follows each one's control.
@@ -191,14 +191,14 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await stripFilled(page);
   await expect(page.getByRole('button', { name: LABEL.es.backCompact, exact: true })).toBeVisible();
   // R144 (FR-TONIGHT-7, FR-I18N-2): the headline's spoken name, the chip, the context line and the taps in Spanish.
-  await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ahora$/);
+  await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ● en vivo$/);
   await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
   await expect(page.getByTestId('context-line')).not.toContainText(/peaks|sets|fades/);
   // R148 (FR-FULL-2, FR-FULL-4): the taps and the share action are the sheet's; the page's name is the hidden `h1`.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^en vivo · /);
   await expect(page.getByRole('button', { name: 'controles', exact: true })).toBeVisible();
   await openSheet(page);
-  await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶', 'noche', 'próximo', 'ahora']);
+  await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶ reproducir', 'noche', 'próximo', 'ahora']);
   // R150 (FR-GYRO-8, FR-GYRO-10): the `×` named in Spanish, and the satellites' heading.
   await expect(page.getByRole('button', { name: 'Cerrar controles', exact: true })).toHaveText('×');
   await expect(page.getByTestId('live-satellites').getByRole('heading', { level: 2 })).toHaveText(/^Satélites \(\d+\)$/);
@@ -252,7 +252,8 @@ test.describe('the wide live page (R61)', () => {
     const strip = await page.getByTestId('status-strip').boundingBox();
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
-    const actions = await page.getByTestId('live-actions').boundingBox();
+    // R216 (FR-NOW-1): `Layers` under `Time`, the conditions in `Up now` under it.
+    const actions = await page.getByTestId('live-layers').boundingBox();
     for (const row of [strip, block, playback, actions]) rightOf(row, box);
     band(playback, block);
     const stripeRows = await page.getByTestId('time-stripe').boundingBox();
@@ -289,7 +290,7 @@ test.describe('the wide live page (R61)', () => {
     // The hidden-objects toggle is with the actions in the rail (V12-13). R70 (FR-TRAJ-5 as amended v1.4,
     // V14-6): the stepping row is under the stripe on a pointer too — `pass ▶|` is a control a mouse has no
     // equivalent of — and the overview row is above it, in the block.
-    await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
+    await expect(page.getByTestId('live-layers').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toBeVisible();
     await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
     // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line — no band taller than a group gap under it
@@ -297,9 +298,9 @@ test.describe('the wide live page (R61)', () => {
     // bottom, and the page does not scroll.
     if (!box) throw new Error('no box');
     expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
-    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page: the rail's list ends over it, and
-    // the page is one viewport that does not scroll.
-    const foot = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
+    // R186 (FR-WIDE-1): the app's footer is under the layout, as on the stars page: the rail ends over it, and
+    // the page is one viewport that does not scroll (R216, FR-CTRL-10: the rail is the column's one scroll).
+    const foot = await page.getByTestId('live-layout').locator('[data-rail]').boundingBox();
     const footer = await page.locator('#root > footer').boundingBox();
     if (!foot || !footer) throw new Error('no list or footer');
     expect(foot.y + foot.height).toBeLessThanOrEqual(footer.y + 1);
@@ -327,7 +328,7 @@ test.describe('the wide live page (R61)', () => {
     await inCorner(page, box);
     await expectTheRail(page, box);
     // The legend is in that column too, under the page group (FR-LEG-2 as amended v1.4; R186: the `list` slot, above the conditions).
-    const actions = await page.getByTestId('live-actions').boundingBox();
+    const actions = await page.getByTestId('live-layers').boundingBox();
     const legend = await page.getByTestId('chart-legend-slot').boundingBox();
     rightOf(legend, box);
     below(legend, actions);

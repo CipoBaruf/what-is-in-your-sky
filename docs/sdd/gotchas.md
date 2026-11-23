@@ -69,6 +69,9 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   `--on-ground: var(--fg)` in `:root` is already the root theme's colour when a nested themed element inherits it, so an element that sets a theme below the root restates every alias (`dev/primitives.css`'s `.theme`).
   The app sets its theme on the root and needs nothing.
   *Why:* R206; the gallery's night column had the dark theme's borders.
+- **The zoom hint is a key of its own, outside the store.**
+  Resetting `appStore` does not bring the window's hint back: a test that drags or zooms clears `wiys:hint:globe:v1` after itself, and `skyHintSeen` seeds hide only the dome's line (D-1273).
+  *Why:* R214, 2026-11-22; a later test in the same file found the hint gone.
 - **An option's accessible name is its word.**
   There is no `[x]` or `[ … ]` to match since R206: name it with `exact: true` (`60×` is a substring of `600×`) or by `data-option`, and read its state from `aria-pressed`.
 

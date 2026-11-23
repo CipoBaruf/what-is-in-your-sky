@@ -72,14 +72,14 @@ export const CHART_TEXT_TOKENS = ['chart-figure-name'] as const;
 export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-figure', 'chart-planet'] as const;
 /**
  * FR-DS-8 as amended v2.10 (R155; FR-LOOK-1, FR-LOOK-2, FR-LOOK-3): the window's
- * sky surfaces — the night sky, the twilight and the day tints, the horizon
- * band's glow — and the Milky Way's haze. Surfaces, not marks: the sky sits
+ * sky surfaces — the one sky (FR-DARK-1) and the horizon band's glow — and
+ * the Milky Way's haze. Surfaces, not marks: the sky sits
  * barely under the page ground (FR-LOOK-1: `chart-sky-deep` ≤ 1.1 : 1 on
  * `--bg`) and the rest are drawn at a fraction of their alpha. Listed apart
  * from the dome's two surfaces, which the dome's palette test ties to its
  * meanings.
  */
-export const CHART_SKY_TOKENS = ['chart-sky-deep', 'chart-sky-twilight', 'chart-sky-day', 'chart-horizon-glow', 'chart-haze'] as const;
+export const CHART_SKY_TOKENS = ['chart-sky-deep', 'chart-horizon-glow', 'chart-haze'] as const;
 /**
  * FR-DS-8 as amended v2.10 (R155; FR-LOOK-5): the three star tones beside
  * `--chart-star`'s white, from the B−V index. Marks on the sky surface: each

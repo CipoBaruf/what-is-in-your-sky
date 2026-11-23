@@ -317,7 +317,8 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     expect(SHORT_MAX_HEIGHT_PX).toBe(700);
     expect(WIDE_SHORT_MAX_HEIGHT_PX).toBe(720);
     expect(SHORT_MAX_HEIGHT_PX).toBeLessThan(WIDE_SHORT_MAX_HEIGHT_PX);
-    expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css'].sort());
+    // R214 (D-1273): the sky layout stands the zoom's row over the box's foot in the same short window.
+    expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css', 'src/ui/components/sky/SkyViewLayout.module.css'].sort());
     // R106 (D-722): the boxed field's tighter padding on a short screen is the `Field`'s own rule.
     expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual(['src/ui/components/location/LocationInput.module.css', 'src/ui/components/primitives/Field.module.css'].sort());
     expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([SHELL_PATH]);

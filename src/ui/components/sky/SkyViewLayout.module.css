@@ -34,12 +34,13 @@
   margin-top: 0;
 }
 
-.answer {
-  grid-area: answer;
+/* R216 (FR-NOW-1, D-1239): the rail's seven groups, in `SLOT_ORDER`. */
+.strip {
+  grid-area: strip;
 }
 
-.viewRow {
-  grid-area: viewRow;
+.view {
+  grid-area: view;
 }
 
 
@@ -50,21 +51,24 @@
 
 
 
-/* R144 (FR-TONIGHT-6): the compact live page's time track and taps, between the hint and the action; no other page fills it. */
-.timeline {
-  grid-area: timeline;
+.time {
+  grid-area: time;
 }
 
-.action {
-  grid-area: action;
+.turn {
+  grid-area: turn;
 }
 
 .layers {
   grid-area: layers;
 }
 
-.list {
-  grid-area: list;
+.upNow {
+  grid-area: upNow;
+}
+
+.upFrom {
+  grid-area: upFrom;
 }
 
 
@@ -161,7 +165,7 @@
 
 /* --- R186 (FR-WIDE-1, FR-WIDE-5; D-1098): the rail on all three wide pages. Two columns: the box, the room the grid
    leaves beside the rail (44 to 60 cells, two cells between), from the layout's top to its foot; and the rail, one
-   column in `SLOT_ORDER` that scrolls as a whole only where a short window leaves the list under its minimum. The
+   column in `SLOT_ORDER` that is the column's one scroll (R216, FR-CTRL-10, D-1239). The
    layout is the page's height (each page's main is one viewport less the header and the footer, D-119). --- */
 .layout[data-shape='rail'] {
   grid-template-columns: minmax(0, 1fr) minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
@@ -172,9 +176,10 @@
   min-height: 0;
 }
 
+/* R214 (FR-CTRL-9, D-1273): the box leaves the zoom's row under it on every view, so a change of view moves no edge of it. */
 .layout[data-shape='rail'] .drawing {
   position: relative;
-  height: 100%;
+  height: calc(100% - var(--target));
   min-height: 0;
   margin-top: 0;
 }
@@ -199,27 +204,16 @@
   flex: none;
 }
 
-/* The list takes what the rows above leave and scrolls inside itself, down to six rows; under that the rail scrolls. */
-.rail > .list {
-  flex: 1 1 0;
-  min-height: calc(6 * var(--row));
-  overflow-x: hidden;
-  overflow-y: auto;
-  /* The containing block of what the list places absolutely (the cards' stretched buttons, the hidden headings), so
-     its scroll clips them: without it they ran the page 358 px past a 1280 × 800 window on the pass detail. */
+/* R216 (FR-CTRL-10, D-1239): no group scrolls inside the rail and no list is capped (V214-33's 7.5 rows are gone).
+   A list's group is the containing block of what it places absolutely (the cards' stretched buttons, the hidden
+   headings), so the rail's scroll clips them: without it they ran the page 358 px past a 1280 × 800 window. */
+.rail > .upNow,
+.rail > .upFrom {
   position: relative;
 }
 
-/* v2.14.1 (V214-33, V214-37, V214-38, D-1135): first, on the pass page, the list shows its count line, three one-line
-   passes and the top of a fourth, and scrolls inside itself, so `View`, `Time` and `[ Play ]` stay in view under it. */
-.rail[data-list-first] > .list {
-  flex: none;
-  min-height: 0;
-  max-height: calc(7.5 * var(--row));
-}
-
 /* The box's corners (FR-WIDE-5): each extra over the box, inside it, on the screen's overlay surface; the corner itself
-   lets the pointer through to the sky and what stands in it (the zoom, full screen) takes it back. */
+   lets the pointer through to the sky and what stands in it (full screen) takes it back. */
 .corner {
   position: absolute;
   z-index: var(--z-raised);
@@ -258,18 +252,23 @@
 .corner-hint {
   inset-block-end: 0;
   inset-inline-start: 0;
-  max-width: calc(100% - 12 * var(--cell));
   padding: 0 var(--cell);
   background: var(--sky-corner-surface);
 }
 
-.corner-zoom {
-  inset-block-end: 0;
-  inset-inline-end: 0;
-  background: var(--sky-corner-surface);
+/* R214 (FR-CTRL-9, D-1241): the zoom's row, under the box at its left. */
+.zoomRow {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+  height: var(--target);
 }
 
-.corner-zoom:not(:has(button)) {
+.zoomRow:not(:has(button)) {
   display: none;
 }
 
@@ -280,11 +279,11 @@
 /* The view row: the view control at the left and `[x] stars` at the row's right end, one line (FR-FLOW-4). R166
    (FR-CLEAN-13, D-1008): a row whose one control follows the rail's label (the stars page's `[ Window ] Whole sky`)
    has no `[x] stars` to push, and sits at the rail's left like `Facing` and `Layers`. */
-.viewRow > :global(*:last-child:not(:first-child, h2 + *)) {
+.view > :global(*:last-child:not(:first-child, h2 + *)) {
   margin-left: auto;
 }
 
-.viewRow {
+.view {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -293,7 +292,7 @@
 }
 
 /* The rail's label stands above its row, not beside it. */
-.viewRow > :global(h2) {
+.view > :global(h2) {
   flex: 0 0 100%;
 }
 
@@ -346,6 +345,33 @@
   z-index: var(--z-screen);
   height: auto;
   background: var(--bg);
+}
+
+/* R214 (D-1273): full, nothing is under the box: the zoom's row stands over its foot and the hint a row higher. */
+.layout[data-full] .zoomRow {
+  inset-block: auto 0;
+  background: var(--sky-corner-surface);
+}
+
+.layout[data-full] .drawing:has(> .zoomRow button) > .corner-hint {
+  inset-block-end: var(--target);
+}
+
+/* R214 (D-1273, FR-SHP-3): in a short window (`LANDSCAPE_PHONE_QUERY`) the reserved row would cut the box under
+   `LIVE_BOX_MIN_PX` (170 px at 964 × 420), so there the box keeps its height and the row stands over its foot, as full. */
+@media (orientation: landscape) and (height <= 500px) {
+  .layout[data-shape='rail'] .drawing {
+    height: 100%;
+  }
+
+  .layout[data-shape='rail'] .zoomRow {
+    inset-block: auto 0;
+    background: var(--sky-corner-surface);
+  }
+
+  .layout[data-shape='rail'] .drawing:has(> .zoomRow button) > .corner-hint {
+    inset-block-end: var(--target);
+  }
 }
 
 .drawing:fullscreen {

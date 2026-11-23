@@ -1,0 +1,91 @@
+/* R213 (FR-STRIP-1): the strip. `row` is one text row on the overlay's surface, centred in a tap's height so the
+   buttons' hit boxes stay on the screen; the pointer goes through it to the sky but for the buttons. */
+.row {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc((var(--tap) - var(--row)) / 2);
+  display: flex;
+  align-items: baseline;
+  gap: 0 var(--cell);
+  box-sizing: border-box;
+  block-size: var(--row);
+  padding-inline: calc(var(--cell) / 2);
+  background: var(--screen-overlay);
+  font-size: var(--small);
+  line-height: var(--row);
+  pointer-events: none;
+}
+
+/* Who gives first: the name, then the times, then the lead and the city. The tag never does (G70). */
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  margin: 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+
+.tag {
+  flex: none;
+}
+
+.name,
+.tail,
+.lead,
+.separator,
+.city {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name {
+  flex-shrink: 10000;
+}
+
+.tail {
+  flex-shrink: 1000;
+}
+
+.lead {
+  flex-shrink: 100;
+}
+
+.separator {
+  flex-shrink: 10;
+}
+
+.city {
+  flex-shrink: 1;
+}
+
+.row .buttons {
+  display: flex;
+  flex: none;
+  gap: 0 var(--cell);
+  pointer-events: auto;
+}
+
+/* `head`: the block, then the buttons under it, each a tap tall. */
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.upLine {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+.head .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-block-size: var(--tap);
+}

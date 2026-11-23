@@ -246,6 +246,41 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1260 — The data model gains the event list.** *(R210)*
   (D-1242, D-1243.) R210 names an event list in `docs/sdd/reference/data-model.md` and that page had none, so it is written there whole, from `EVENTS`.
   A task that adds or removes a name or a detail (R212, R222) edits that table with it, as D-1243 asks.
+- **D-1268 — One row on the phone, a block on the desk.** *(R213)*
+  (FR-STRIP-1, FR-STRIP-2, FR-STRIP-3, D-1232, V30-30, V30-32.) On compact the strip is one text row, and while the instant is held `● back to live` takes `▶ watch`'s place in it: the row cannot hold both beside `[example] <city>`; the rail shows both.
+  The row's text gives from the name first, then the times, the lead and the city; the tag never. The countdown and the direction are read at the shown instant, and a time says `UTC` where the place has no zone.
+  On wide `none` and `up` keep the block's own words and reasons (V30-30); `up` adds the `sets · look` line under it.
+  `[ follow ]`, `[ controls ]` and the hint stand a tap higher, over the strip. `▶ watch` lands paused under reduced motion (FR-TONIGHT-2).
+- **D-1269 — Compact's play button has a row of its own; watch's speed is the run's.** *(R213)*
+  (FR-STRIP-2, FR-STRIP-6, FR-TONIGHT-4.) The button stands over `tonight`, `next` and `now`, so its two faces never move them and the Spanish words fit at 360 px.
+  `▶ watch`'s 60× on a desk is never saved: `● back to live` and the next visit have the saved rate.
+- **D-1270 — The time line is the head's on a phone and the clock's on a desk.** *(R213)*
+  (FR-STRIP-6, FR-DARK-3, FR-TONIGHT-7.) On compact the head's line ends `● live` or the offset, so the chip's `tonight` and weekday words leave it; the stars page's clock keeps the chip.
+  On wide the clock's line ends `● live` and the held readout carries the offset, so the indicator's word `live` is only spoken.
+  The daytime line wraps as a line of its own at the context line's end; the rail, which has no context line, draws it under the strip.
+  `● en vivo` is about 25 px wider than `ahora`, so the follow refusal at 844 × 390 in Spanish covers 0.123 of the box; `follow.spec.ts` reads that transient state against `FULL_OVERLAY_MAX_SHARE` + 0.005, and the closed-sheet budget is unchanged.
+
+- **D-1271 — The keys are named by their host, and `⟲` is the opening rule at 60°.** *(R214)*
+  (FR-CTRL-9, D-1228, D-1241, D-703.) `ZoomKeys` imports no catalog, so beside D-1228's three presses it takes `names`, and `end` for the key that FR-GLOBE-6 disables at its end of the range.
+  `⟲` runs the window's opening rule again at the shown instant (the peak, the followed pass or the next rise, the pole side) at `WINDOW_FOV`, as the globe's `Home` does at zoom 1; the saved field would make it a key that does nothing after a reload.
+  It ends following the phone as a drag does; `−` and `+` keep it, as a pinch does.
+- **D-1272 — In a sky layout the plain wheel zooms the window, a key's step a notch.** *(R214)*
+  (FR-CTRL-9, D-1241; FR-SKY-14's "a plain wheel scrolls" and its 0.002 a pixel superseded.) The hint says "scroll to zoom" and no sky layout scrolls under its box, so the plain wheel zooms there; outside a layout it is left to the page, and ctrl + wheel zooms everywhere.
+  `ZOOM_WHEEL_RATE` is ln 1.25 / 100, so a notch is `ZOOM_KEY_FACTOR` and one event moves a notch at most, as the globe's wheel; the keys keep 1.25 and three `+` still read 30°. The pinch stays the fingers' own ratio, clamped to the same range.
+- **D-1273 — The row is reserved on every wide view, and the hint's key is the zooming views'.** *(R214)*
+  (FR-CTRL-9, D-1241, FR-WIDE-1, FR-WIDE-10.) The box is a `--target` shorter on every view, so a change of view moves no edge of it; the row hangs inside the drawing's element, so full screen keeps the keys, there over the box's foot with the hint a row higher.
+  At 964 × 420 the reserved row left the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`; so under `LANDSCAPE_PHONE_QUERY` (landscape, 500 px tall or less: the short-wide rows and the landscape phone) the box keeps its height and the row stands over its foot as when full, the one existing height fold rather than a fourth (FR-DS-3).
+  `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
+
+- **D-1277 — The seven slots replace the old names on all three pages, and the pass page's list is its `upFrom`.** *(R216)*
+  (FR-NOW-1, FR-WIDE-1 as amended, FR-CTRL-10, D-1239.) `answer`, `viewRow`, `timeline`, `action` and `list` are gone: the stars page and the pass detail fill `strip`, `view`, `time`, `turn` (their page group until R222 moves the stars' groups) and `upFrom` (the stars' field and the pass list), with no other change, so wave 4's R215 meets one-word edits in `Stars.tsx` and `PassDetail.tsx`.
+  `LIST_FIRST_ORDER`, `LIST_FIRST_RHYTHM` and `listFirst` go with V214-33's cap: an uncapped list under the head would push `[ Play ]` off a 1280 × 800 rail, so the pass list takes `SLOT_ORDER`'s last place and the rail scrolls to it.
+- **D-1278 — On the live page `Facing` is `View`'s, the facts head `Up now`, and the time buttons are `Time`'s.** *(R216)*
+  (FR-NOW-1, FR-WIDE-1 as amended.) FR-NOW-1 names no place for the window's facing picker or a picked object's facts: `Facing` is a line of its own under the views (it aims the view), and the facts stand at the top of `Up now` until R219 makes it `Legend`'s up-only form.
+  `[ scrub the night ]` and `[ see this pass ]` are buttons under the time control; on compact neither is a row (the taps and the path line hold the instant), so the compact sheet's `Time` is the track and the taps as before. `Layers` is `[x] stars` and `Hidden objects` under a `Layers` / `Capas` heading (`skyView.layers`).
+- **D-1279 — The compact sheet renders `SLOT_ORDER`'s groups; the strip itself stays over the sky.** *(R216)*
+  (FR-NOW-1, FR-CTRL-10, D-1232.) `ControlsSheet` takes `groups`, keyed by the rail's slots and rendered in `SLOT_ORDER`, each a `data-group` wrapper, before any `children` (the stars page and the pass detail keep theirs until they move). The live page's `strip` group is the context line, since the strip is the box's foot on compact.
+  R71's two-row legend panel goes: the sheet's body is the one scroll. `[ Compartir ]` is wider than `[x] estrellas`, so at 390 px in Spanish it takes the line under the views, at the row's right.
 - **D-1265 — What went with the home beyond the task's list.** *(R212)*
   (D-1230, D-1245, D-1246.) `screens/home/usePlaceOpen.ts` goes although D-1230 keeps it: only `App.tsx` and `Home.tsx` read it, and the dead-code job fails on it.
   `useDoorSky.ts`, `tests/styles/doorRows.test.ts` and `tests/support/doorFixtures.ts` went with the doors, and six capture specs of the home (`r76`, `r84`, `r87`, `r93`, `r96`, `r130`) and `first-step-screen.spec.ts` with the screens they shot.

@@ -5,8 +5,8 @@ import { TextButton } from '../primitives/TextButton';
 import styles from './AskDialog.module.css';
 
 /**
- * v2.14.2 (FR-PHONE-17, FR-WIDE-13; D-1142, D-1140): a page's yes-or-no question as a modal dialog — the wide live
- * page's first-pass question and a phone page's follow question. A portal to the body, focus on the first button on
+ * v2.14.2 (FR-PHONE-17; D-1142): a page's yes-or-no question as a modal dialog — a phone page's follow question
+ * (the wide live page's first-pass question went with R213, FR-STRIP-5). A portal to the body, focus on the first button on
  * open and back to the opener on close (`useOpenerFocus`), and the rest of the document `inert` while it is up, so
  * nothing behind it is reachable.
  *

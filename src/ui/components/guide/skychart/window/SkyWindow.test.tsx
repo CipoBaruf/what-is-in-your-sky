@@ -653,8 +653,8 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(camera.get()).toEqual({ azDeg: 160, altDeg: 35, fovDeg: 30 });
   });
 
-  /** R125 (FR-SKY-14): ctrl + wheel at `ZOOM_WHEEL_RATE`, taken from the browser; a plain wheel left to it. */
-  it('ctrl + wheel scales the field by exp(deltaY × 0.002) and is prevented; a plain wheel is neither', () => {
+  /** R125 (FR-SKY-14), R214 (D-1272): ctrl + wheel at a key's step a notch, taken from the browser; outside a sky layout a plain wheel is left to it. */
+  it('ctrl + wheel scales the field by 1.25 a notch and is prevented; outside a layout a plain wheel is neither', () => {
     const frame = scriptedFrames();
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
@@ -664,17 +664,17 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(fireEvent.wheel(box, { deltaY: 100 })).toBe(true);
     frame();
     expect(camera.get().fovDeg).toBe(60);
-    // One mouse notch down with ctrl: about a fifth wider, prevented, applied on the frame.
+    // One mouse notch down with ctrl: a key’s step wider, prevented, applied on the frame.
     expect(fireEvent.wheel(box, { deltaY: 100, ctrlKey: true })).toBe(false);
     expect(camera.get().fovDeg).toBe(60);
     frame();
-    expect(camera.get().fovDeg).toBeCloseTo(60 * Math.exp(0.2), 6);
-    expect(w).toHaveAttribute('data-fov', '73');
-    // Two notches up in one frame fold into one zoom: exp(−0.4) of that.
+    expect(camera.get().fovDeg).toBeCloseTo(75, 6);
+    expect(w).toHaveAttribute('data-fov', '75');
+    // Two notches up in one frame fold into one zoom: 1 / 1.25² of that.
     fireEvent.wheel(box, { deltaY: -100, ctrlKey: true });
     fireEvent.wheel(box, { deltaY: -100, ctrlKey: true });
     frame();
-    expect(camera.get().fovDeg).toBeCloseTo(60 * Math.exp(-0.2), 6);
+    expect(camera.get().fovDeg).toBeCloseTo(48, 6);
     // The aim is untouched by any of it.
     expectLook(w, 180, 35);
   });

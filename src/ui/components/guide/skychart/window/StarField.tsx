@@ -18,7 +18,7 @@ import { hazeOpacity, hazePaths, prepareHaze, type PreparedHaze } from './milkyW
 import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, skyVector, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import { skyFrameOf } from './skyFrame';
-import { HORIZON_BAND_STEPS, horizonBand, stripOpacity, tintStep, type TintStep } from './skySurface';
+import { HORIZON_BAND_STEPS, horizonBand, stripOpacity } from './skySurface';
 import styles from './SkyWindow.module.css';
 import { bloomed, collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, markFor, planetMarkFor, SIZE_PX, type CharMark, type Mark, type Point, type StarGlyph } from './starGlyphs';
 import glyphStyles from './starGlyphs.module.css';
@@ -732,8 +732,6 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const planetKey = planetDiscs ? field.positions.planets.map((planet) => p.planets[planet.body]).join('|') : null;
   const planetNames = useMemo(() => (planetKey === null ? null : planetKey.split('|')), [planetKey]);
   const gradientId = `${useId().replaceAll(':', '')}`;
-  // FR-LOOK-2: the surface's step from the Sun's altitude the positions carry; the deep stars draw at full night only (FR-STAR-13).
-  const tint: TintStep = tintStep(field.positions.sunAltDeg);
 
   // FR-LOOK-8 as amended (D-983): the deep chunk, once, on idle, the first time the field draws stars at 75° or under.
   const [fetched, setDeep] = useState<DeepCatalog | null>(() => deepLoaded ?? null);
@@ -790,8 +788,8 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       if (frame.state !== 'buried') {
         drawBand(nodes, rotation, view);
         drawHaze(nodes, rotation, view, field.layers.stars ? prepared.haze : null);
-        // FR-LOOK-9, FR-STAR-13: the deep stars to the row's magnitude, at full night, after the bright marks in the collision walk.
-        const deepDrawn = preparedDeep !== null && field.layers.stars && tint === 'deep' ? deepFrame(rotation, view, preparedDeep, detail.magLimit, frame.drawn.filter((q): q is Point => q !== null)) : [];
+        // FR-LOOK-9, FR-DARK-2: the deep stars to the row's magnitude, at every hour, after the bright marks in the collision walk.
+        const deepDrawn = preparedDeep !== null && field.layers.stars ? deepFrame(rotation, view, preparedDeep, detail.magLimit, frame.drawn.filter((q): q is Point => q !== null)) : [];
         drawDeep(nodes, holds, deepDrawn, preparedDeep);
       } else {
         drawDeep(nodes, holds, [], preparedDeep);
@@ -804,7 +802,7 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       placedSet = drawnSet;
       drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale, detail.nameMag, planetNames));
     });
-  }, [subscribe, view, field, prepared, preparedDeep, tint, labelled, label, hits, lineHits, landmark, locale, planetNames]);
+  }, [subscribe, view, field, prepared, preparedDeep, labelled, label, hits, lineHits, landmark, locale, planetNames]);
 
   // D-752: the offsets are measured once, after the fonts are ready. Nodes made before that carry 0 and are
   // written once when the measurement lands; nodes made after it carry the measured values from their render.
@@ -824,7 +822,7 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   const hidden = (on: boolean): { visibility?: 'hidden'; display?: 'none' } => (on ? {} : { visibility: 'hidden', display: 'none' });
   const n = catalog.mag.length;
   return (
-    <g ref={group} className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars" data-stars={n} data-planets={positions.planets.length} data-tint={tint} data-deep={preparedDeep === null ? 0 : preparedDeep.size}>
+    <g ref={group} className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars" data-stars={n} data-planets={positions.planets.length} data-deep={preparedDeep === null ? 0 : preparedDeep.size}>
       <defs>
         <clipPath id={clipId}>
           <path data-sky-clip clipRule="evenodd" d="" />
@@ -838,8 +836,8 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
           </radialGradient>
         ))}
       </defs>
-      {/* FR-LOOK-1, FR-LOOK-2: the surface under everything, in the step's tone. */}
-      <rect className={styles.surface} data-sky-surface data-tint={tint} x="0" y="0" width={view.width} height={view.height} />
+      {/* FR-DARK-1: the one sky surface under everything, at every hour. */}
+      <rect className={styles.surface} data-sky-surface x="0" y="0" width={view.width} height={view.height} />
       <path className={styles.ground} data-ground-fill fillRule="evenodd" d="" />
       {/* FR-LOOK-1: the band, five strips written per rotation, each at its own alpha. */}
       <g className={styles.band} data-horizon-band>

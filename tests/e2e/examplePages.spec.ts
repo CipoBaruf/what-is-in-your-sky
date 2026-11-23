@@ -29,8 +29,6 @@ async function openExample(page: Page): Promise<void> {
   await page.clock.setFixedTime(NINE_DAYS_ON);
   await stubNetwork(page);
   await page.route('**/e', (route) => route.fulfill({ status: 204 }));
-  // Until R213 lands the wide live page asks about its first pass; the reader stays (`Esc`).
-  await page.addLocatorHandler(page.getByTestId('first-pass-dialog-overlay'), () => page.keyboard.press('Escape'));
   await page.goto('/');
   await expect(page.getByTestId('example-notice')).toBeVisible({ timeout: 60_000 });
 }

@@ -1,9 +1,9 @@
 /**
- * R211 (FR-DARK-1, FR-DARK-2; US-64 AC1): the dome, the polar chart and the
- * globe with the Sun 40° up, on the app's own catalogue and scene source —
+ * R211, R214 (FR-DARK-1, FR-DARK-2; US-64 AC1): the dome, the polar chart, the
+ * globe and the window with the Sun 40° up, on the app's own catalogue and scene source —
  * the deep surface, the faintest rung each one draws, and the Sun's dot.
  */
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readTokens, TOKENS_PATH } from '../../../../../scripts/contrast';
@@ -20,6 +20,8 @@ import { GlobeRenderer } from './globe/GlobeRenderer';
 import { globeSky } from './globe/scene';
 import { DOME_STAR_MAG, POLAR_STAR_MAG } from './layers';
 import { SkyPolar } from './polar/SkyPolar';
+import { createHandCamera } from './window/camera';
+import { SkyWindow } from './window/SkyWindow';
 
 const observer: Observer = { lat: -34.6, lon: -58.38, altM: 0, label: 'Buenos Aires', source: 'coords', timeZone: null };
 /** The first minute of 2026-11-04's morning with the Sun at +40°. */
@@ -109,5 +111,30 @@ describe('the sky at a Sun altitude of +40° (FR-DARK-1, FR-DARK-2)', () => {
     expect(sky.sun.altDeg).toBeCloseTo(40, 0);
     expect(svg.querySelector('[data-body="sun"]')).toHaveAttribute('visibility', 'visible');
     globe.dispose();
+  });
+
+  it('the window: the deep surface, the deep stars past the last rung, and the Sun’s dot', async () => {
+    // At the Sun, zoomed to the narrowest field, where FR-LOOK-9's row reaches into the deep catalogue.
+    const camera = createHandCamera({ azDeg: sun.azDeg, altDeg: sun.altDeg, fovDeg: 20 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={scene} sun={sun} />);
+    expect(container.querySelector('[data-sky-surface]')).not.toHaveAttribute('data-tint');
+    expect(css('window/SkyWindow.module.css')).toMatch(/\.surface \{[^}]*fill: var\(--chart-sky-deep\);/);
+
+    expect(container.querySelector('[data-marks] > [data-star]:not([visibility="hidden"])')).not.toBeNull();
+    await waitFor(
+      () => {
+        expect(container.querySelector('[data-deep-pool] > circle:not([visibility="hidden"])')).not.toBeNull();
+      },
+      { timeout: 5000 },
+    );
+
+    const dot = container.querySelector('[data-body="sun"]');
+    expect(dot).toHaveAttribute('data-in-view', 'true');
+    expect(dot?.querySelector('circle[data-marker="sun"]')).not.toBeNull();
+  });
+
+  it('FR-DARK-2: the window draws no dot for a Sun that is down', () => {
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={createHandCamera({ azDeg: sun.azDeg, altDeg: 5 })} sun={{ ...sun, altDeg: -1 }} />);
+    expect(container.querySelector('[data-body="sun"]')).toBeNull();
   });
 });

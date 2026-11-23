@@ -73,22 +73,21 @@ export function PassEmpty({ observer, passList, settle = true }: { observer: Obs
         labelledBy={headingId}
         data-testid="pass-layout"
         className={styles.layout}
-        answer={
+        strip={
           <div className={styles.deskHead} data-testid="pass-head">
             <h1 id={headingId} tabIndex={-1} className={styles.deskName}>
               {t.header.pages.pass}
             </h1>
           </div>
         }
-        viewRow={
+        view={
           <>
             <SkyViewChartSlot name="control" />
             <StarsToggle />
           </>
         }
         drawing={<SkyChart passes={NO_PASSES} observer={observer} highlightedPassId={null} now={now} sun={bodies.sun} moon={bodies.moon} scene={scene} fill chartHand={chartHand} page="pass" view={view} onViewChange={onChartView} />}
-        list={passList}
-        listFirst
+        upFrom={passList}
       />
     </div>
   );

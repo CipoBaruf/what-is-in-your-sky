@@ -12,14 +12,16 @@ import type { PassPoint } from '../../../../../model';
 import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
-import { moonVisible } from '../bodies';
+import { moonVisible, sunVisible } from '../bodies';
+import { MOON_DISC_PX } from '../../../../../data/stars/constants';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
+import { markZoomHintDone } from '../../../sky/SkyHint';
 import { useChartSlot } from '../../../sky/SkyViewLayout';
-import { TextButton } from '../../../primitives/TextButton';
+import { ZoomKeys } from '../../../primitives/ZoomKeys';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type FieldAim, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type HandState, type SkyCamera } from './camera';
+import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, wheelFactor, ZOOM_KEY_FACTOR, type HandCamera, type HandState, type SkyCamera } from './camera';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
 import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, followAimShiftPx, followFovDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, WINDOW_FOV_MIN_DEG, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
@@ -46,7 +48,7 @@ import { nearestPass } from '../globe/arcs';
  * dome and the polar use (FR-GUIDE-2b: one geometry), clipped to the
  * drawable field, with its rise, peak, end and shadow markers, the arrowhead,
  * the flown part and the live marker (FR-DOME-5), the Moon's disc
- * (FR-DOME-6), and the legend key at each peak (FR-LEG-1). Each
+ * (FR-DOME-6), the Sun's dot while it is up (FR-DARK-2), and the legend key at each peak (FR-LEG-1). Each
  * pass is drawn in its `arc` state as the polar draws it (FR-TRAJ-1, D-189).
  * Colours are the `--chart-*` tokens of `SkyPolar.module.css` (FR-DOME-2,
  * FR-LIVE-2).
@@ -98,9 +100,10 @@ import { nearestPass } from '../globe/arcs';
  * pointers: one is FR-STAR-4's drag (under the hand), two are the pinch, which
  * scales the field by the inverse of the change in their distance, folded
  * into one move per animation frame like the drag; a native `wheel` listener
- * (`passive: false`, since React's own is passive) takes ctrl + wheel at
- * `ZOOM_WHEEL_RATE` and lets a plain wheel scroll the page; `+`/`=`/`-` and
- * `0` are the box's keys beside the arrows. Glyphs, line weights and hit
+ * (`passive: false`, since React's own is passive) takes ctrl + wheel and, in
+ * a sky layout, the plain wheel (R214, FR-CTRL-9, D-1272) at a key's step a
+ * notch; `+`/`=`/`-` and `0` are the box's keys beside the arrows, and
+ * `ZoomKeys` the row's under the box. Glyphs, line weights and hit
  * distances are px and stay so: zooming in spreads the same marks apart.
  *
  * R151 (FR-GYRO-2..5; D-941, D-942, D-955): `follow` — the page's own window
@@ -587,7 +590,7 @@ export function SkyWindow(props: SkyWindowProps) {
    * FR-SKY-14 (D-798, D-821): the zoom's pointers. Every active pointer on the box is tracked; the first is the
    * drag's (under the hand), the second makes the two a pinch — the drag ends there, its pending move dropped —
    * and a third is nothing. The pinch's factor is the product of the change in the two pointers' distance since
-   * the last frame, inverted (fingers apart narrow the field), and ctrl + wheel and the keys multiply into the
+   * the last frame, inverted (fingers apart narrow the field), and the wheel and the keys multiply into the
    * same pending factor, so one frame applies one zoom whatever drove it. After a pinch the finger left on the
    * box does not take up the drag: a jump to where it now is would be the first thing the reader saw.
    */
@@ -603,6 +606,7 @@ export function SkyWindow(props: SkyWindowProps) {
   const zoomBy = useCallback(
     (factor: number) => {
       if (!(factor > 0) || !Number.isFinite(factor) || factor === 1) return;
+      markZoomHintDone();
       if (handCamera) {
         handCamera.zoomBy(factor);
         // R190 (FR-KEEP-1): the reader zoomed, so the field is told back to be saved; the sensor's own field is not (FR-KEEP-2).
@@ -620,7 +624,7 @@ export function SkyWindow(props: SkyWindowProps) {
     pendingZoomRef.current = 1;
     zoomBy(zoom);
   }, [handCamera, zoomBy]);
-  // The one way a pinch or a ctrl + wheel asks for a zoom: into the pending factor, applied on the next frame.
+  // The one way a pinch or the wheel asks for a zoom: into the pending factor, applied on the next frame.
   const scheduleZoom = useCallback(
     (factor: number): void => {
       pendingZoomRef.current *= factor;
@@ -786,7 +790,10 @@ export function SkyWindow(props: SkyWindowProps) {
     if (dx === 0 && dy === 0) return;
     active.x = event.clientX;
     active.y = event.clientY;
+    const before = active.travel;
     active.travel += Math.hypot(dx, dy);
+    // FR-CTRL-9: the press became a drag here, once, past the tap's slop; a tap leaves the hint.
+    if (handCamera !== null && before < HIT_RADIUS_PX && active.travel >= HIT_RADIUS_PX) markZoomHintDone();
     const pending = pendingRef.current ?? { dx: 0, dy: 0 };
     pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
     // R151 (D-955): following, a press is the finger's drag once it is past the tap's slop — short of it, it may
@@ -857,25 +864,28 @@ export function SkyWindow(props: SkyWindowProps) {
     setDragging(false);
   };
   /*
-   * FR-SKY-14 (D-798): ctrl + wheel — what a trackpad pinch sends, and ctrl + wheel on a mouse — scales the field
-   * by `exp(deltaY × ZOOM_WHEEL_RATE)`. A native listener with `passive: false`, because React registers `wheel`
-   * passive and a passive listener cannot keep the browser from zooming the page; `preventDefault` only with
-   * `ctrlKey`, so a plain wheel scrolls the page as it did. On every window, under the sensor too.
+   * FR-SKY-14 (D-798), FR-CTRL-9 (R214, D-1272): the wheel scales the field by a key's step a notch. With ctrl —
+   * what a trackpad pinch sends — on every window; plain in a sky layout, where the page has nothing to scroll under
+   * the box and the hint says "scroll to zoom", and left to the page outside one; cmd + wheel is the browser's. A
+   * native listener with `passive: false`, because React registers `wheel` passive and a passive listener cannot
+   * keep the browser from zooming or scrolling the page.
    */
+  const zoomSlot = useChartSlot('zoom');
+  const plainWheelZooms = zoomSlot.inLayout;
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     const onWheel = (event: WheelEvent): void => {
-      if (!event.ctrlKey) return;
+      if (!event.ctrlKey && (event.metaKey || !plainWheelZooms)) return;
       event.preventDefault();
       if (event.deltaY === 0) return;
-      scheduleZoom(Math.exp(event.deltaY * ZOOM_WHEEL_RATE));
+      scheduleZoom(wheelFactor(event, box.clientHeight));
     };
     box.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       box.removeEventListener('wheel', onWheel);
     };
-  }, [scheduleZoom]);
+  }, [scheduleZoom, plainWheelZooms]);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (!handCamera) return;
     // FR-SKY-14: box keys, not page shortcuts — ctrl or cmd with `+`/`=`/`-`/`0` is the browser's own zoom, left to it; the arrows turn with any modifier, as before.
@@ -905,6 +915,7 @@ export function SkyWindow(props: SkyWindowProps) {
       },
       '0': () => {
         handCamera.resetZoom();
+        markZoomHintDone();
         onFieldChoice?.(handCamera.get().fovDeg);
       },
     };
@@ -1085,17 +1096,28 @@ export function SkyWindow(props: SkyWindowProps) {
   const readoutSlot = useChartSlot('readout');
   const pickerSlot = useChartSlot('picker');
   /*
-   * R186 (FR-WIDE-5, FR-SKY-14): on a desk the window zooms by `[ + ] [ − ]` too, in the box's bottom-right corner (the
-   * layout's `zoom` slot, which only the wide shell renders), one `ZOOM_KEY_FACTOR` a press as the `+` and `-` keys.
-   * Under the sensor or outside a layout there is no corner, and nothing is drawn.
+   * R214 (FR-CTRL-9; D-1241, D-1271): the three keys in the row under the box (the layout's `zoom` slot, which only
+   * the wide shell renders), a press one `ZOOM_KEY_FACTOR` as the `+` and `-` keys and a notch of the wheel. `⟲` is
+   * the opening camera: the aim by the page's opening rule at the shown instant, at `WINDOW_FOV`, and it takes the
+   * sky back from the phone as a drag does. Under the sensor or outside a layout nothing is drawn.
    */
-  const zoomSlot = useChartSlot('zoom');
-  const zoomButtons =
+  const resetView = (): void => {
+    if (handCamera === null) return;
+    endFollow();
+    const scene = { latDeg: observer.lat, now, fovDeg: WINDOW_FOV };
+    handCamera.open(peak === null ? openingFacing(scene, facingPass, nextRising(passes, now)) : facePeak(peak, WINDOW_FOV));
+    markZoomHintDone();
+    onFieldChoice?.(WINDOW_FOV);
+  };
+  const zoomKeys =
     handCamera === null ? null : (
-      <>
-        <TextButton label="+" aria-label={t.chart.globe.zoomIn} disabled={fovDeg <= WINDOW_FOV_MIN_DEG + 0.01} onClick={() => { zoomBy(1 / ZOOM_KEY_FACTOR); }} data-testid="window-zoom-in" />
-        <TextButton label="−" aria-label={t.chart.globe.zoomOut} disabled={fovDeg >= WINDOW_FOV_MAX_DEG - 0.01} onClick={() => { zoomBy(ZOOM_KEY_FACTOR); }} data-testid="window-zoom-out" />
-      </>
+      <ZoomKeys
+        names={{ in: t.chart.globe.zoomIn, out: t.chart.globe.zoomOut, reset: t.chart.globe.zoomReset }}
+        end={fovDeg <= WINDOW_FOV_MIN_DEG + 0.01 ? 'in' : fovDeg >= WINDOW_FOV_MAX_DEG - 0.01 ? 'out' : null}
+        onIn={() => { zoomBy(1 / ZOOM_KEY_FACTOR); }}
+        onOut={() => { zoomBy(ZOOM_KEY_FACTOR); }}
+        onReset={resetView}
+      />
     );
   const facingRow =
     inBox && handCamera ? (
@@ -1115,7 +1137,7 @@ export function SkyWindow(props: SkyWindowProps) {
     >
       {readoutSlot.place(shown)}
       {pickerSlot.place(facingRow)}
-      {zoomSlot.place(zoomButtons)}
+      {zoomSlot.place(zoomKeys)}
       <ChartFrame
         fill={fill}
         legend={legend}
@@ -1242,6 +1264,12 @@ export function SkyWindow(props: SkyWindowProps) {
                 {hidden.map((marker) => (
                   <HiddenPoint key={marker.id} marker={marker} m={m} view={view} legendKey={legendKeys[marker.id]} />
                 ))}
+                {/* FR-DARK-2 (R214, D-1262): the Sun's dot while it is up, under the Moon and the Moon's size. */}
+                {sun && sunVisible(sun) && (
+                  <g data-body="sun" {...placed(at({ azDeg: sun.azDeg, elDeg: sun.altDeg }), view)}>
+                    <circle className={styles.sun} data-marker="sun" r={MOON_DISC_PX / 2} />
+                  </g>
+                )}
                 {/* FR-LOOK-7 (R155): the Moon's disc with its phase, the lit limb toward the Sun; its name is a legend line (R45). */}
                 {moon && moonVisible(moon) && <MoonDisc moon={moon} limb={sun ? brightLimbPoint(moon, sun) : null} m={m} view={view} />}
               </>
@@ -1268,7 +1296,7 @@ export function SkyWindow(props: SkyWindowProps) {
               </p>
             )}
           </div>
-          {/* R132 (FR-FLOW-6, D-848): R121's hand hint in the box's corner is the layout's `SkyHint` under the picker now. */}
+          {/* R132 (FR-FLOW-6, D-848): R121's hand hint in the box is the layout's `SkyHint`, in its corner (FR-CTRL-9). */}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The tap that turns following on
               is the tap that asked (FR-WIN-4, FR-GYRO-2), so the gate has nothing to guard; `useDeviceOrientation`
               keeps `start` for the state machine. */}

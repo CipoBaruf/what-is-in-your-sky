@@ -135,7 +135,8 @@ export const ui = {
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
   // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
   /** R189 (FR-WIDE-10): `fullscreen` is the box's top-right control, `exitFullscreen` the accessible name of its `[ × ]`. */
-  skyView: { view: 'View', time: 'Time', now: 'now', facing: 'Facing', fullscreen: 'full screen', exitFullscreen: 'Leave full screen' },
+  /** R216 (FR-NOW-1): `layers` heads the live rail's `Layers` group. */
+  skyView: { view: 'View', time: 'Time', layers: 'Layers', now: 'now', facing: 'Facing', fullscreen: 'full screen', exitFullscreen: 'Leave full screen' },
 
   banner: { info: 'Note', warning: 'Warning' },
 

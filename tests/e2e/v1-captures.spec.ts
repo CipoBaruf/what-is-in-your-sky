@@ -59,7 +59,7 @@ import { GLOBE_KEY_STEP_DEG } from '../../src/ui/components/guide/skychart/globe
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, stayHere, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
@@ -384,23 +384,8 @@ async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, 
  */
 async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
   const view = await liveOpened(page, width, theme, locale, shown, prefs);
-  /*
-   * R149 (FR-FULL-10, D-937): with nothing visible up at `shown` the compact page asks with the card once the stored
-   * run's passes are known. Every capture here is of its own instant, so the reader's `[ see now ]` answers it and
-   * keeps real time — which is how the sky screen's chip is still the one 2.7.0 drew, as R145's `[ now ]` was. The
-   * card is asked on every visit and never saved, so it cannot be seeded away: `liveOpened` waits for the decision
-   * (the track's pass ticks), the clock ticks once more, and the answer comes after it, never in a race with it.
-   */
+  // R213 (FR-STRIP-5): the page opens at real time and asks nothing, so there is nothing to answer before the shot.
   await page.clock.runFor(200);
-  const card = page.getByTestId('live-card');
-  if ((await card.count()) > 0) {
-    await card.getByTestId('live-card-now').click();
-    await expect(card).toHaveCount(0);
-    await blurFocus(page);
-  }
-  // R204 (FR-CI-6, D-1213): the wide page's question, where the instant has nothing up (`live-twilight`), answered the
-  // same way — the reader stays on the instant the capture is of — before the route's first click.
-  if (await stayHere(page)) await blurFocus(page);
   const chip = page.getByTestId('shown-chip');
   if ((await chip.count()) > 0) await expect(chip).toHaveAttribute('data-kind', 'now');
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
@@ -421,33 +406,32 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   await page.mouse.move(0, 0);
 }
 
-/** R149 (FR-FULL-10): the card's pass line, in both languages (`i18n/{en,es}/live.ts`'s card words): the name, the rise and the chip. */
-const CARD_PASS = / · \d\d:\d\d · (in|en) \d+ h \d\d min$/;
+/** R213 (FR-STRIP-1): the strip's line while a pass is ahead, in both languages. */
+const STRIP_NEXT = /^(Next|Próximo) +.+ · \d\d:\d\d( UTC)? · (in|en) (\d+ h \d\d|\d+ min)$/;
 
 /**
- * R149 (FR-FULL-10, US-43 AC5): v2.8's opening state on the phone — `#live` opened at `DAYLIGHT`, with nothing up and
- * the evening's first pass ahead, so the page stays on real time and asks with the card over the sky: "Nothing
- * visible up now", the pass line, `[ see next pass ]` and `[ see now ]`. Nothing plays and nothing has moved, so the
- * picture is the instant the reader opened; the real clock is put back on `DAYLIGHT` so the card's chip reads the
- * same minute in every run. The focus is where the card put it, on `[ see next pass ]`, as the reader finds it.
+ * R149 (US-43 AC5) → R213 (FR-STRIP-1, FR-STRIP-5): the phone's opening state by day — `#live` opened at `DAYLIGHT`,
+ * with nothing up and the evening's first pass ahead, so the page stays on real time with the strip offering the pass.
+ * Nothing plays and nothing has moved, so the picture is the instant the reader opened; the real clock is put back on
+ * `DAYLIGHT` so the countdown reads the same minute in every run.
  */
-async function liveCard(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+async function liveOpening(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
   const view = await liveOpened(page, width, theme, locale, DAYLIGHT);
-  const card = page.getByTestId('live-card');
+  const strip = page.getByTestId('live-strip');
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      return (await card.count()) > 0 ? card.getAttribute('data-kind') : null;
+      return (await strip.count()) > 0 ? strip.getAttribute('data-kind') : null;
     }, { timeout: 30_000 })
-    .toBe('ask');
-  await expect(card.getByTestId('live-card-pass')).toHaveText(CARD_PASS);
+    .toBe('next');
+  await expect(strip.getByTestId('strip-text')).toHaveText(STRIP_NEXT);
   await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
   await stripFilled(page);
   if (view === 'window') await expect(page.getByTestId('sky-chart').locator('[data-look-az]').first()).toBeAttached({ timeout: 30_000 });
   await page.clock.runFor(1000);
   await pinnedAt(page, DAYLIGHT);
-  await expect(card).toHaveAttribute('data-kind', 'ask');
-  await expect(card.getByTestId('live-card-pass')).toHaveText(CARD_PASS);
+  await expect(strip).toHaveAttribute('data-kind', 'next');
+  await expect(strip.getByTestId('strip-text')).toHaveText(STRIP_NEXT);
   await expect(page.getByTestId('shown-time')).toContainText(localHhmmss(DAYLIGHT));
   await page.mouse.move(0, 0);
 }
@@ -719,8 +703,8 @@ async function firstVisit(page: Page, width: CaptureWidth, theme: CaptureTheme, 
 type ExamplePage = '#pass' | '#live' | '#stars';
 
 /**
- * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), its line under the header — the live page's
- * card and the wide page's question answered as `liveAt` answers them — at the set's instant on the dot.
+ * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), its line under the header, at the set's
+ * instant on the dot.
  */
 async function fromExample(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, hash: ExamplePage): Promise<void> {
   await firstVisit(page, width, theme, locale, CLOCK, hash);
@@ -729,12 +713,9 @@ async function fromExample(page: Page, width: CaptureWidth, theme: CaptureTheme,
   // The page's chunk and its drawing are lazy, and the paused clock holds their reveals (R32).
   await ticked(page, page.locator('svg[data-globe][viewBox], svg[data-drawing], [data-testid="sky-chart"] [data-star]'));
   await page.clock.runFor(1000);
-  // The live page asks once its passes are known: the phone with its card, the desk with its question.
-  const card = page.getByTestId('live-card');
-  const question = page.getByTestId('first-pass-dialog');
-  for (let tick = 0; hash === '#live' && tick < 25 && (await card.count()) + (await question.count()) === 0; tick++) await page.clock.runFor(200);
-  if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
-  await stayHere(page);
+  // R213 (FR-STRIP-5): the live page asks nothing; it is settled once its strip has the passes.
+  const strip = page.getByTestId('live-strip');
+  for (let tick = 0; hash === '#live' && tick < 25 && (await strip.getAttribute('data-kind')) === 'none'; tick++) await page.clock.runFor(200);
   await page.clock.runFor(1000);
   await pinnedAt(page, CLOCK);
   await blurFocus(page);
@@ -883,9 +864,9 @@ const REACH: Record<string, Reach> = {
     await liveAt(page, width, theme, locale);
   },
 
-  /** R149 (FR-FULL-10): the phone's live page as it opens in the day — the sky at real time and the card asking. */
+  /** R149 → R213 (FR-STRIP-1): the phone's live page as it opens in the day — the sky at real time and the strip. */
   async 'live-tonight'(page, width, theme, locale) {
-    await liveCard(page, width, theme, locale);
+    await liveOpening(page, width, theme, locale);
   },
 
   /** R149 (FR-FULL-9): the sheet open over the sky, and the sheet with the list open. */
@@ -1107,14 +1088,14 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R161 (FR-LOOK-2, FR-LOOK-12): the live page at `TWILIGHT` on the window — the phone's opens on it, the desk's
-   * view control is turned to it — with the surface on the twilight step.
+   * R161 (FR-LOOK-12), R214 (FR-DARK-1): the live page at `TWILIGHT` on the window — the phone's opens on it, the desk's
+   * view control is turned to it — with the one surface.
    */
   async 'live-twilight'(page, width, theme, locale) {
     await liveAt(page, width, theme, locale, TWILIGHT);
     const chart = page.getByTestId('sky-chart');
     if ((await chart.getAttribute('data-view')) !== 'window') await windowInTheBox(page, chart, locale, TWILIGHT);
-    await expect(chart.locator('[data-sky-surface]')).toHaveAttribute('data-tint', 'twilight');
+    await expect(chart.locator('[data-sky-surface]')).toBeAttached();
     await page.mouse.move(0, 0);
   },
 

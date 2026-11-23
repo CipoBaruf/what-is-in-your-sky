@@ -34,7 +34,7 @@ import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
  * R148 (FR-FULL-3, FR-FULL-4, FR-WATCH-4 as amended v2.8; D-928): the one
  * compact inventory is split in two. `COMPACT_OVERLAY` is what stands over the
  * sky with the sheet closed — the box, the head (`[ ← ]` and the shown time),
- * `[ controls ]`, and the hint and the card, each on its own condition —
+ * `[ controls ]`, the next-pass strip (R213, FR-STRIP-1), and the hint on its own condition —
  * and `COMPACT_SHEET` what the sheet holds, in FR-FULL-4's order: the context
  * line, the track, the taps, the view row, the facing row, `[ Share ]` (and, R150,
  * the satellites, open, at the end).
@@ -61,7 +61,7 @@ export type LiveRow =
   | 'follow'
   | 'readout'
   | 'hint'
-  | 'card'
+  | 'strip'
   | 'indicator'
   | 'clock'
   | 'next-event'
@@ -93,7 +93,7 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   follow: 'live-follow-control',
   readout: 'sky-corner-readout',
   hint: 'sky-hint',
-  card: 'live-card',
+  strip: 'live-strip',
   indicator: 'live-indicator',
   clock: 'live-clock',
   'next-event': 'next-event',
@@ -122,17 +122,17 @@ export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
 
 /**
  * R148 (FR-FULL-1..3, D-928): what stands with the sheet closed — the box (the screen), and over it the head and
- * `[ controls ]` always, the hint until `skyHintSeen` and the card while it asks (`COMPACT_CONDITIONAL`: the test
- * checks those two by their own conditions).
+ * `[ controls ]` and the strip always, the hint until `skyHintSeen` and the strip's `● back to live` while the
+ * instant is held (`COMPACT_CONDITIONAL`: the test checks those by their own conditions).
  */
-export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', 'follow', 'readout', 'hint', 'card'];
+export const COMPACT_OVERLAY: readonly LiveRow[] = ['box', 'head', 'controls', 'follow', 'readout', 'hint', 'strip', 'back-to-live'];
 
 /**
- * The overlay rows that are there on their own condition, not in every render: the hint and the card; R157
+ * The overlay rows that are there on their own condition, not in every render: the hint and, R213, `● back to live`; R157
  * (FR-PHONE-3, FR-PHONE-4; D-964, D-965) `[ follow ]` where the phone has the sensor, and the corner readout while
  * not following, with the sheet closed, on a view with a facing.
  */
-export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hint', 'card'];
+export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hint', 'back-to-live'];
 
 /**
  * R186 (FR-WIDE-5, D-1098): on wide the facing readout and the hint are two of the box's corners (`SkyViewLayout`'s
@@ -142,12 +142,12 @@ export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hi
 export const WIDE_CORNERS: readonly LiveRow[] = ['readout', 'hint'];
 
 /**
- * R148 (FR-FULL-4, D-923, D-928) and R150 (FR-GYRO-10, D-949): the sheet's rows, in FR-GYRO-10's order — the
- * context line, the time track and the taps, the view row, the facing row, the actions with `[ Share ]`, and the
- * satellites: "Satellites (n)" with the hidden toggle at its end and the list open under it. v2.8's `[ list (n) ]`
- * is gone.
+ * R148 (FR-FULL-4, D-923, D-928) → R216 (FR-NOW-1, D-1239): the sheet's rows, in the wide rail's group order — the
+ * context line (the strip's place: the strip itself stands over the sky); `View`: the view row with `[ Share ]` at
+ * its right, then the facing row; `Time`: the track and the taps; `Layers`: `[x] stars` and the hidden toggle (no row of its own on compact, as before);
+ * `Up now`: "Satellites (n)" with the list open under it.
  */
-export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites'];
+export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'view-row', 'share', 'facing', 'track', 'taps', 'satellites'];
 
 /**
  * FR-WATCH-4's inventory, in reading order.
@@ -157,19 +157,19 @@ export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'v
  *   row in both states and asks with the default; a test asks for the reachable rows with `false`.
  * - **Wide** (R186, FR-WIDE-1, D-1098): the page's one-row top row is gone — the app's header is the page's.
  * - **Wide, watching:** the box, and the rail — the indicator with the clock,
- *   the next-event block, the conditions line, the overview and
+ *   the strip round the next-event block (R213, FR-STRIP-1: in both states), the conditions line, the overview and
  *   `[ scrub the night ] [ Hidden ] [ Share this sky ]`.
  * - **Wide, scrubbing:** the box with the scrub block under it — the time row
  *   with the playback controls, the overview, the stripe and the step row —
- *   and the rail: the indicator with `[ back to live ]`, the conditions line and
+ *   and the rail: the indicator, the strip with `● back to live`, the conditions line and
  *   `[ Hidden ] [ Share this moment ]`.
  */
 export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape, sheetOpen = true): readonly LiveRow[] {
   if (mode === 'compact') return sheetOpen ? [...COMPACT_OVERLAY, ...COMPACT_SHEET] : COMPACT_OVERLAY;
   if (shape === 'short') return shortRowsFor(state);
   return state === 'watching'
-    ? ['box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
-    : ['box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
+    ? ['box', 'indicator', 'clock', 'strip', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
+    : ['box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'strip', 'next-event', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
 }
 
 /**
@@ -251,6 +251,6 @@ export function inventoryClip(entryRows: readonly number[], budgetRows: number):
 
 function shortRowsFor(state: LiveState): readonly LiveRow[] {
   return state === 'watching'
-    ? ['box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
-    : ['box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
+    ? ['box', 'indicator', 'clock', 'strip', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
+    : ['box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'strip', 'next-event', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
 }

@@ -41,6 +41,7 @@ import {
   unfollow,
   up,
   ZOOM_KEY_FACTOR,
+  wheelFactor,
   ZOOM_WHEEL_RATE,
   zoomBy,
 } from './camera';
@@ -76,7 +77,7 @@ describe('the hand camera (FR-STAR-4)', () => {
   it('zooms the field by a factor inside [20°, 90°] about the centre, keeps it through every other move, and `0` restores it', () => {
     expect(WINDOW_FOV_MIN_DEG).toBe(20);
     expect(WINDOW_FOV_MAX_DEG).toBe(90);
-    expect(ZOOM_WHEEL_RATE).toBe(0.002);
+    expect(Math.exp(100 * ZOOM_WHEEL_RATE)).toBeCloseTo(ZOOM_KEY_FACTOR, 12);
     expect(ZOOM_KEY_FACTOR).toBe(1.25);
     expect(clampWindowFov(10)).toBe(20);
     expect(clampWindowFov(95)).toBe(90);
@@ -93,9 +94,13 @@ describe('the hand camera (FR-STAR-4)', () => {
     expect(zoomBy(hand, 0.1).fovDeg).toBe(WINDOW_FOV_MIN_DEG);
     const atMin = { ...hand, fovDeg: WINDOW_FOV_MIN_DEG };
     expect(zoomBy(atMin, 0.5)).toEqual(atMin);
-    // One mouse notch of ctrl + wheel, about 100 px down, widens by about a fifth: exp(0.2).
-    expect(zoomBy(hand, Math.exp(100 * ZOOM_WHEEL_RATE)).fovDeg).toBeCloseTo(73.28, 2);
-    expect(zoomBy(hand, Math.exp(-100 * ZOOM_WHEEL_RATE)).fovDeg).toBeCloseTo(49.12, 2);
+    // FR-CTRL-9 (D-1272): one notch of the wheel, 100 px or three lines, is a key's step, and the most an event moves.
+    expect(zoomBy(hand, wheelFactor({ deltaY: 100, deltaMode: 0 }, 800)).fovDeg).toBeCloseTo(75, 6);
+    expect(zoomBy(hand, wheelFactor({ deltaY: -100, deltaMode: 0 }, 800)).fovDeg).toBeCloseTo(48, 6);
+    expect(wheelFactor({ deltaY: 3, deltaMode: 1 }, 800)).toBeCloseTo(ZOOM_KEY_FACTOR, 12);
+    expect(wheelFactor({ deltaY: 1, deltaMode: 2 }, 800)).toBeCloseTo(ZOOM_KEY_FACTOR, 12);
+    expect(wheelFactor({ deltaY: 900, deltaMode: 0 }, 800)).toBeCloseTo(ZOOM_KEY_FACTOR, 12);
+    expect(wheelFactor({ deltaY: 10, deltaMode: 0 }, 800)).toBeCloseTo(ZOOM_KEY_FACTOR ** 0.1, 12);
     // A factor that is not a positive number is no zoom at all.
     expect(zoomBy(hand, 0)).toBe(hand);
     expect(zoomBy(hand, -2)).toBe(hand);

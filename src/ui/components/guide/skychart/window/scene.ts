@@ -87,9 +87,8 @@ interface StarPositions {
   azDeg: ArrayLike<number>;
   planets: readonly PlanetPosition[];
   /**
-   * R155 (FR-LOOK-2, FR-STAR-13): the Sun's geometric altitude at the same instant, degrees — what `starsAt`
-   * already carries beside the positions and what the twilight tint and the deep stars' step read. Optional: a
-   * field without it is drawn as full night.
+   * R155: the Sun's geometric altitude at the same instant, degrees, as `starsAt` carries it beside the positions.
+   * The window draws one surface and every rung whatever it is (R214: FR-DARK-1, FR-DARK-2).
    */
   sunAltDeg?: number;
 }

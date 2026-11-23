@@ -76,7 +76,7 @@ describe('captures.yml shoots on four runners and gathers once (FR-CI-6, D-1214)
   });
 });
 
-describe('the capture routes answer the two questions (FR-CI-6, D-1213)', () => {
+describe('the capture routes answer the one question left (FR-CI-6, D-1213, FR-STRIP-5)', () => {
   const seeds = read('tests/e2e/captureSeeds.ts');
   const spec = read('tests/e2e/v1-captures.spec.ts');
 
@@ -87,10 +87,8 @@ describe('the capture routes answer the two questions (FR-CI-6, D-1213)', () => 
     expect(seeds).toContain("sessionStorage.setItem(asked, '1');");
   });
 
-  it("the live route answers the first-pass dialog through the seeds' one helper, with `[ stay here ]`'s Esc", () => {
-    expect(seeds).toMatch(/export async function stayHere\(page: Page\)[^]*?page\.keyboard\.press\('Escape'\)/);
-    expect(spec).toMatch(/import \{[^}]*\bstayHere\b[^}]*\} from '\.\/captureSeeds'/);
-    expect(spec).toContain('if (await stayHere(page)) await blurFocus(page);');
+  it('FR-STRIP-5: the live route has no card or dialog to answer', () => {
+    expect(`${seeds}${spec}`).not.toMatch(/first-pass-dialog|live-card|stayHere/);
   });
 });
 

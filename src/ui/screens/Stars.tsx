@@ -769,12 +769,12 @@ function StarsSky({ observer }: { observer: Observer }) {
           clock={globeShown ? { t: globeClock.t, now, timeZone: shownPlace.timeZone } : { t: now, now, timeZone: observer.timeZone }}
           className={styles.skyLayout}
           data-testid="stars-layout"
-          answer={<StarsHeading observer={observer} now={now} />}
-          viewRow={viewRow}
+          strip={<StarsHeading observer={observer} now={now} />}
+          view={viewRow}
           drawing={drawing}
           hint={hintShown && <SkyHint view={chartView} />}
-          {...(globeShown ? { timeline: <StarsTime playback={globeClock} zone={shownPlace.timeZone} /> } : {})}
-          action={
+          {...(globeShown ? { time: <StarsTime playback={globeClock} zone={shownPlace.timeZone} /> } : {})}
+          turn={
             <StarsGroup globe={globeChoices}>
               {facingGroup}
               {followToggle}
@@ -784,7 +784,7 @@ function StarsSky({ observer }: { observer: Observer }) {
             </StarsGroup>
           }
           layers={layerRows}
-          list={globeShown ? globeField : field}
+          upFrom={globeShown ? globeField : field}
         />
       </div>
     </div>

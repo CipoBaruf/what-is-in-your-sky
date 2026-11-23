@@ -26,10 +26,10 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { SHEET_MAX_SHARE } from '../../src/lib/layout';
-import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
+import { closeSheet, openSheet, seedStoredRun, sheetOrder } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { onWindow } from './globeHelpers';
-import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, LIST_FIRST_ORDER, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
+import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -72,15 +72,22 @@ async function slotBoxes(layout: Locator): Promise<{ name: string; box: Box }[]>
   return out;
 }
 
+/** The view row's end control: `[ Share ]`'s block on the live page (R216, FR-NOW-1; its status line ends it), `[x] stars` elsewhere. */
+const endOfViewRow = (row: Locator, locale: Locale): Locator => row.getByTestId('live-share').or(row.getByRole('button', { name: WORDS[locale].stars }));
+
 const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack;
 
-/** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
+/** The view row is one line, its end control (`endOfViewRow`) at its right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
-  const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="viewRow"]');
+  const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="view"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
-  const stars = await box(row.getByRole('button', { name: WORDS[locale].stars }));
-  expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
-  expect(stars.x).toBeGreaterThan(control.x + control.width);
+  const stars = await box(endOfViewRow(row, locale));
+  // R216 (D-1279): the live row's `[ Compartir ]` takes the line under the views at 390 px, still at the row's right.
+  const wraps = locale === 'es' && (await row.getByTestId('live-share').count()) > 0 && stars.y >= control.y + control.height - 1;
+  if (!wraps) {
+    expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
+    expect(stars.x).toBeGreaterThan(control.x + control.width);
+  }
   const rowBox = await box(row);
   expect(stars.x + stars.width).toBeGreaterThan(rowBox.x + rowBox.width - 4);
 }
@@ -185,8 +192,6 @@ for (const locale of LOCALES) {
       const layout = await openLive(page, locale);
       await expect(layout).toHaveAttribute('data-shape', 'full');
       await expect(layout).toHaveAttribute('data-readout', 'sheet');
-      const card = page.getByTestId('live-card');
-      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
       await openSheet(page);
       for (const view of VIEWS) {
         await chooseView(page, layout, locale, view);
@@ -206,8 +211,9 @@ for (const locale of LOCALES) {
           expect(hintBox.x).toBeLessThan(drawing.box.x + drawing.box.width / 4);
         }
         // The sheet's rows in FR-GYRO-10's order (R150: the satellites last), the view row one line.
-        const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-        expect(order, view).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
+        // R216 (FR-NOW-1, D-1239): in the rail's group order.
+        const order = await sheetOrder(page);
+        expect(order, view).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
         await expectViewRowOneLine(page.getByTestId('live-view-row'), locale);
         // The facing row: the readout as a button on the window and the polar chart, which have a picker — a tap opens
         // it directly under the readout, a second tap closes it; the dome's readout stands alone.
@@ -310,14 +316,10 @@ for (const locale of LOCALES) {
       for (const [name, shell] of Object.entries(measured)) {
         expect(shell.box, `${name}'s box`).toEqual(live.box);
         expect(shell.rail, `${name}'s rail`).toEqual(live.rail);
-        // The rows a page fills are SLOT_ORDER's, in that order; the pass page's list comes right under the head (V214-33, D-1135).
-        const order = name === 'pass' ? LIST_FIRST_ORDER : SHELL_ORDER;
-        expect(shell.order, name).toEqual(order.filter((slot) => shell.order.includes(slot)));
-        if (name === 'pass') expect(shell.order.slice(0, 5), name).toEqual(['answer', 'list', 'viewRow', 'timeline', 'action']);
-        else {
-          expect(shell.order.slice(0, 4), name).toEqual(['answer', 'viewRow', 'timeline', 'action']);
-          expect(shell.order.at(-1), name).toBe('list');
-        }
+        // R216 (FR-NOW-1, D-1239): the groups a page fills are SLOT_ORDER's, in that order, on every page; the list last.
+        expect(shell.order, name).toEqual(SHELL_ORDER.filter((slot) => shell.order.includes(slot)));
+        expect(shell.order.slice(0, 3), name).toEqual(['strip', 'view', 'time']);
+        expect(shell.order.at(-1), name).toBe(name === 'live' ? 'upNow' : 'upFrom');
       }
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });
@@ -357,7 +359,7 @@ for (const locale of LOCALES) {
 
     test('FR-WIDE-2: the View row reads Globe Window Dome on the three pages, and a view chosen on the live page is the others’ after a reload', async ({ page }) => {
       const layout = await openLive(page, locale);
-      const row = layout.locator('[data-slot="viewRow"]').getByRole('group', { name: WORDS[locale].viewGroup });
+      const row = layout.locator('[data-slot="view"]').getByRole('group', { name: WORDS[locale].viewGroup });
       await expect(row.getByRole('button')).toHaveText(DESK_LABELS[locale]);
       await chooseDeskView(layout, locale, 'window');
       await page.goto('/#stars');
@@ -414,8 +416,6 @@ for (const viewport of TURNED) {
         expect(Math.round(drawing.width)).toBe(viewport.width);
         expect(Math.round(drawing.height)).toBe(viewport.height);
         expect(await pageScrolls(layout)).toEqual([]);
-        const card = page.getByTestId('live-card');
-        if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
         await openSheet(page);
         await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
         const sheet = await box(page.getByTestId('live-sheet'));
@@ -426,7 +426,7 @@ for (const viewport of TURNED) {
         const row = page.getByTestId('live-view-row');
         const rowBox = await box(row);
         const sheetBody = await box(page.getByTestId('sheet-body'));
-        for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
+        for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), endOfViewRow(row, locale)]) {
           await expect(part).toBeVisible();
           // The sheet's body scrolls on the shortest phone (667 × 375): the part is read where the body shows it.
           await part.scrollIntoViewIfNeeded();
@@ -529,10 +529,9 @@ test.describe('FR-FLOW-15: the turn', () => {
   test('turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera and the shown instant and opens no screen', async ({ page }) => {
     const layout = await openLive(page, 'en');
     await expect(layout).toHaveAttribute('data-shape', 'full');
-    // R148 (FR-FULL-10): nothing visible is up at the seed's instant, so the card asks; `[ see next pass ]` lands on the
+    // R213 (FR-STRIP-2): nothing visible is up at the seed's instant, so the strip offers the pass; `▶ watch` lands on the
     // next rise and plays; the pause holds the instant the turn must keep, and the turn keeps it paused (FR-FLOW-15).
-    await expect.poll(() => page.getByTestId('live-card').count(), { timeout: 15_000 }).toBe(1);
-    await page.getByTestId('live-card-next').click();
+    await page.getByTestId('live-watch').click({ timeout: 15_000 });
     const play = page.getByTestId('live-play');
     await expect.poll(() => play.getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
     await openSheet(page);
