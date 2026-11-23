@@ -82,9 +82,9 @@ for (const locale of ['en', 'es'] as const) {
       for (const group of ['[data-stars]', '[data-dots]', '[data-figure-lines]']) expect(await globe.locator(group).first().getAttribute('opacity'), group).toBeNull();
       expect(await globe.locator('[data-star][visibility="visible"]').count()).toBeGreaterThan(10);
       expect(await globe.locator('[data-figures]').evaluateAll((paths) => paths.map((p) => p.getAttribute('d') ?? '').join('').length)).toBeGreaterThan(0);
-      // Home and back by the hash: the same visit.
+      // Settings and back by the hash: the same visit (R212: an empty hash is the live page itself).
       await page.evaluate(() => {
-        window.location.hash = '';
+        window.location.hash = '#settings';
       });
       await expect(page.getByTestId('live-layout')).toHaveCount(0);
       await page.evaluate(() => {

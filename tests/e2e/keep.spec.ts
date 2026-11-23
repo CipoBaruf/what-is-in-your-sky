@@ -171,7 +171,7 @@ for (const viewport of VIEWPORTS) {
       ['en', ['No tracking', 'No analytics', 'No account, no tracking'], 'Close the privacy note'],
       ['es', ['Sin rastreo', 'Sin analítica', 'Sin cuenta, sin rastreo'], 'Cerrar la nota de privacidad'],
     ] as const) {
-      test(`FR-MEAS-7: the home, the stars page and settings carry no privacy note in ${locale}, and a stored flag changes nothing`, async ({ page }) => {
+      test(`FR-MEAS-7: the live page, the stars page and settings carry no privacy note in ${locale}, and a stored flag changes nothing`, async ({ page }) => {
         await page.clock.setFixedTime(NINE_DAYS_ON);
         for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
         await page.addInitScript(
@@ -186,8 +186,9 @@ for (const viewport of VIEWPORTS) {
           await expect(page.getByRole('button', { name: close })).toHaveCount(0);
           for (const word of words) await expect(page.getByText(word)).toHaveCount(0);
         };
+        // R212 (FR-LAND-1): `/` is the live page, whose phone footer is the controls sheet's last row.
         await page.goto('/');
-        await expect(page.getByTestId('app-footer').first()).toBeAttached({ timeout: 30_000 });
+        await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
         await expectNone();
         await page.goto('/#stars');
         await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
