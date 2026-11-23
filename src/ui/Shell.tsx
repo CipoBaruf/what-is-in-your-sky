@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type HTMLAttributes, type RefObject, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useT } from '../i18n/useT';
 import { LIVE_HASH, routeOfHash } from '../lib/shareLinks';
 import { followHash } from '../state';
@@ -63,6 +63,37 @@ export interface ShellProps {
   children: ReactNode;
 }
 
+/** R220 (FR-UPD-2): the viewport offset where the bar ends while it stands fixed over a phone's sky page; the full sky starts there. */
+const BAR_END = '--update-bar-end';
+
+/**
+ * R220 (FR-UPD-2, D-1237): the bar is never drawn over the sky's box. On a phone's sky page the bar is fixed under the
+ * head and the box is the screen, so the bar's measured bottom goes on the root as `BAR_END` and the full sky's wrapper
+ * starts under it (`Shell.module.css`); anywhere else the bar is in the flow and the property is taken off. It cannot
+ * see a bar that changes height without changing size, which a one-line bar does not do.
+ */
+function useBarEnd(bar: RefObject<HTMLDivElement | null>, chrome: Chrome): void {
+  useEffect(() => {
+    const slot = bar.current;
+    if (slot === null) return;
+    const root = document.documentElement.style;
+    const measure = (): void => {
+      if (slot.childElementCount > 0 && getComputedStyle(slot).position === 'fixed') root.setProperty(BAR_END, `${String(slot.getBoundingClientRect().bottom)}px`);
+      else root.removeProperty(BAR_END);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(slot);
+    // The media query moves the bar into the flow and back without resizing it.
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+      root.removeProperty(BAR_END);
+    };
+  }, [bar, chrome]);
+}
+
 function takeRouteLink(event: MouseEvent): void {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   if (!(event.target instanceof Element)) return;
@@ -90,6 +121,8 @@ function focusOn(target: HTMLElement): void {
 export function Shell({ chrome, routeKey, title, banner, footer, mainProps, beforeMain, after, barInert = false, children }: ShellProps) {
   const t = useT();
   const main = useRef<HTMLElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  useBarEnd(bar, chrome);
 
   // R156 (FR-PHONE-15, D-972): the theme on the saved preference, and with Auto on the Sun at the saved place, every tick.
   useThemeTick();
@@ -158,8 +191,8 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
     <>
       {skip}
       {banner}
-      {/* FR-UPD-2 (D-1237). The phone's sky pages are fixed over the flow, so there the bar is fixed under their head. */}
-      <div className={styles.update} data-update-bar="" data-chrome={chrome}>
+      {/* FR-UPD-2 (D-1237). The phone's sky pages are fixed over the flow, so there the bar is fixed under their head and the sky starts under it (R220). */}
+      <div ref={bar} className={styles.update} data-update-bar="" data-chrome={chrome}>
         <UpdateBanner inert={barInert} />
       </div>
       {beforeMain}

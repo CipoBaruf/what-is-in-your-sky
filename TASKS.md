@@ -298,7 +298,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the stars' groups (R222).
   - **Done when:** `npm run check` green; `live-rail.spec.ts` at 1280 × 800 with nothing up and with a pass up, the Moon's and the Sun's rows at the column's left edge, the two rows after them; the sheet's first line at 390 × 844 with the example and with a place; `npm run check:sdd` green.
 
-- [ ] **R220 — The update bar on every page**
+- [x] **R220 — The update bar on every page** — the phone sky box starts under the bar through `SkyViewLayout.module.css` too (D-1290).
   - **Lane:** data
   - **Tier:** standard
   - **Turns:** 300

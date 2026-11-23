@@ -18,8 +18,11 @@ import { Banner } from './Banner';
  * the header on every page, and no timer hides it. It is `inert` only while a
  * layer stands over the page — the shortcuts, the phone's pass sheet.
  *
- * R104 (D-704): the control is an inline `TextButton`; the banner has no
- * stylesheet of its own any more.
+ * R104 (D-704): the banner has no stylesheet of its own any more.
+ *
+ * R220 (FR-UPD-2, FR-CTRL-16, D-1237): `New version ready · reload`, and
+ * `reload` stands on its own as FR-CTRL-1's box, not a link in the line. Where
+ * the bar stands against the sky's box is the shell's (`Shell.module.css`).
  */
 export interface UpdateBannerProps {
   inert?: boolean;
@@ -32,7 +35,9 @@ export function UpdateBanner({ inert = false }: UpdateBannerProps) {
   if (!updateReady || applyUpdate === null) return null;
   return (
     <Banner variant="info" testId="update-banner" inert={inert}>
-      {t.update.ready} <TextButton inline label={t.update.reload} onClick={applyUpdate} />
+      {t.update.ready}
+      {' · '}
+      <TextButton label={t.update.reload} onClick={applyUpdate} />
     </Banner>
   );
 }
