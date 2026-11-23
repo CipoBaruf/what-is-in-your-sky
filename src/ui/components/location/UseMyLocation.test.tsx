@@ -88,7 +88,7 @@ describe('<UseMyLocation>', () => {
     expect(alert.tagName).toBe('P');
     expect(alert.className).toMatch(/failure.*toned/);
     expect(alert.className).toMatch(/statusLine/);
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent(/^$/);
     expect(onObserver).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeEnabled();
@@ -100,13 +100,16 @@ describe('<UseMyLocation>', () => {
     const geolocation = fakeGeolocation((success) => (answer = success));
     const env: GeolocationEnv = { geolocation, secure: true };
     render(<UseMyLocation onObserver={vi.fn()} env={env} primary={primary} />);
-    expect(screen.queryByRole('status')).toBeNull();
+    // FR-CTRL-17: the status line is mounted before its words arrive, so a reader announces them.
+    const idle = screen.getByRole('status');
+    expect(idle).toHaveTextContent(/^$/);
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
     const busy = screen.getByRole('button', { name: 'Use my location' });
     expect(busy).toHaveAttribute('aria-busy', 'true');
     expect(busy).not.toBeDisabled();
     expect(busy).toHaveTextContent(/^Use my location/);
     const status = screen.getByRole('status');
+    expect(status).toBe(idle);
     expect(status).toHaveTextContent(/^Finding your location…$/);
     expect(status.className).toMatch(/status.*dim/);
     // A second press while it runs asks nothing.
@@ -117,7 +120,8 @@ describe('<UseMyLocation>', () => {
     });
     const after = screen.getByRole('button', { name: 'Use my location' });
     expect(after).not.toHaveAttribute('aria-busy');
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status')).toBe(idle);
+    expect(idle).toHaveTextContent(/^$/);
   });
 
   it('labels the button and words a denial in Spanish under a Spanish provider (FR-I18N-2)', async () => {

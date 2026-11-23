@@ -3,6 +3,13 @@
   margin-bottom: var(--row);
 }
 
+/* FR-CTRL-17: the progress line stays mounted so its words are announced; empty, it
+   leaves the Stack's flow (no row, no gap) but stays in the accessibility tree,
+   which `display: none` would take it out of. */
+.status:has(> :only-child:empty) {
+  position: absolute;
+}
+
 /* R104 (D-704): the button is a `TextButton`; what is left here places it in
    the field's grid — its own width, never the column's, and never wider than
    the field. */

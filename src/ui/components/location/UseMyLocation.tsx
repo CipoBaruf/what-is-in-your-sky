@@ -122,7 +122,11 @@ export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed'
         <TextButton label={label} className={styles.device} onClick={locate} busy={locating} />
       )}
       {/* FR-CTRL-4: the progress words go under the control, never into its label; FR-CTRL-17: a failure in the same place. */}
-      {locating && <StatusLine tone="progress">{t.location.locating}</StatusLine>}
+      {/* FR-CTRL-17: the status line is mounted before its words arrive, so a reader announces them; empty, it
+          stands out of the Stack's flow (`.status`) and takes no row. */}
+      <StatusLine tone="progress" className={styles.status}>
+        {locating && t.location.locating}
+      </StatusLine>
       {error !== null && <StatusLine tone="failure">{error}</StatusLine>}
     </Stack>
   );
