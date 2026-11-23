@@ -12,8 +12,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
-import { tonightBand } from '../../../lib/shownTime';
-import type { SkyBand } from '../../../lib/timeStripe';
 import type { Locale } from '../../../model';
 import { ShownTime, type ShownTimeProps } from '../live/ShownTime';
 import { SkyHead } from './SkyHead';
@@ -25,12 +23,7 @@ const H = 3_600_000;
 const MIN = 60_000;
 /** Friday 2026-09-11, 12:00:07 local. */
 const NOW = Date.UTC(2026, 8, 11, 15, 0, 7);
-const BANDS: SkyBand[] = [
-  { from: NOW, to: NOW + 7 * H, sky: 'day' },
-  { from: NOW + 7 * H, to: NOW + 18 * H, sky: 'dark' },
-  { from: NOW + 18 * H, to: NOW + 24 * H, sky: 'day' },
-];
-const LIVE: ShownTimeProps = { t: NOW, realTime: true, now: NOW, clock: NOW, night: tonightBand(BANDS, NOW), timeZone: ZONE };
+const LIVE: ShownTimeProps = { t: NOW, realTime: true, now: NOW, clock: NOW, timeZone: ZONE };
 /** 21:47 tonight, 9 h 47 min ahead of the real clock. */
 const HELD: ShownTimeProps = { ...LIVE, t: NOW + 9 * H + 47 * MIN - 7_000, realTime: false };
 
@@ -56,14 +49,14 @@ describe('<SkyHead> (FR-FULL-2)', () => {
     expect(back?.classList.contains('target')).toBe(true);
     expect(time).toContainElement(screen.getByTestId('shown-time'));
     expect(screen.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-    expect(screen.getByTestId('shown-chip')).toHaveTextContent(m.live.chip({ kind: 'now' }));
+    expect(screen.getByTestId('shown-chip')).toHaveTextContent(`● ${m.live.state.live}`);
     expect(screen.getByTestId('shown-time').querySelector('time')?.firstChild?.textContent).toBe('12:00:07');
     expect(await axe(container)).toHaveNoViolations();
   });
 
   it.each([
-    ['en', 'tonight · in 9 h 47 min'],
-    ['es', 'esta noche · en 9 h 47 min'],
+    ['en', '\\+9 h 47 min'],
+    ['es', '\\+9 h 47 min'],
   ] as const)('shows a held time without its seconds and the offset chip in %s', (locale, chip) => {
     mount(locale, HELD);
     expect(screen.getByTestId('shown-time').querySelector('time')?.firstChild?.textContent).toBe('21:47');

@@ -246,6 +246,19 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1260 — The data model gains the event list.** *(R210)*
   (D-1242, D-1243.) R210 names an event list in `docs/sdd/reference/data-model.md` and that page had none, so it is written there whole, from `EVENTS`.
   A task that adds or removes a name or a detail (R212, R222) edits that table with it, as D-1243 asks.
+- **D-1268 — One row on the phone, a block on the desk.** *(R213)*
+  (FR-STRIP-1, FR-STRIP-2, FR-STRIP-3, D-1232, V30-30, V30-32.) On compact the strip is one text row, and while the instant is held `● back to live` takes `▶ watch`'s place in it: the row cannot hold both beside `[example] <city>`; the rail shows both.
+  The row's text gives from the name first, then the times, the lead and the city; the tag never. The countdown and the direction are read at the shown instant, and a time says `UTC` where the place has no zone.
+  On wide `none` and `up` keep the block's own words and reasons (V30-30); `up` adds the `sets · look` line under it.
+  `[ follow ]`, `[ controls ]` and the hint stand a tap higher, over the strip. `▶ watch` lands paused under reduced motion (FR-TONIGHT-2).
+- **D-1269 — Compact's play button has a row of its own; watch's speed is the run's.** *(R213)*
+  (FR-STRIP-2, FR-STRIP-6, FR-TONIGHT-4.) The button stands over `tonight`, `next` and `now`, so its two faces never move them and the Spanish words fit at 360 px.
+  `▶ watch`'s 60× on a desk is never saved: `● back to live` and the next visit have the saved rate.
+- **D-1270 — The time line is the head's on a phone and the clock's on a desk.** *(R213)*
+  (FR-STRIP-6, FR-DARK-3, FR-TONIGHT-7.) On compact the head's line ends `● live` or the offset, so the chip's `tonight` and weekday words leave it; the stars page's clock keeps the chip.
+  On wide the clock's line ends `● live` and the held readout carries the offset, so the indicator's word `live` is only spoken.
+  The daytime line wraps as a line of its own at the context line's end; the rail, which has no context line, draws it under the strip.
+  `● en vivo` is about 25 px wider than `ahora`, so the follow refusal at 844 × 390 in Spanish covers 0.123 of the box; `follow.spec.ts` reads that transient state against `FULL_OVERLAY_MAX_SHARE` + 0.005, and the closed-sheet budget is unchanged.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,

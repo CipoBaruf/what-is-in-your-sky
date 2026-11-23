@@ -159,12 +159,13 @@ for (const locale of LOCALES) {
           expect(await scrolls(page), 'the page scrolls').toBe(false);
           test.info().annotations.push({ type: 'chart-box', description: `${locale} ${view} ${String(width)}×${String(height)}: ${String(Math.round(chart.x))},${String(Math.round(chart.y))} ${String(Math.round(chart.width))}×${String(Math.round(chart.height))}` });
 
-          // FR-FULL-10: nothing visible is up at the seed's instant, so the card asks; it is not the overlay's share.
-          const card = page.getByTestId('live-card');
-          await expect(card).toHaveAttribute('data-kind', 'ask');
-          const cardBox = await box(page, 'live-card');
-          expect(cardBox.x).toBeGreaterThanOrEqual(0);
-          expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(width + 0.5);
+          // FR-STRIP-1: nothing visible is up at the seed's instant, so the strip offers the pass, one text row at the box's foot.
+          await expect(page.getByTestId('live-strip')).toHaveAttribute('data-kind', 'next');
+          const strip = await box(page, 'live-strip');
+          expect(strip.x).toBeGreaterThanOrEqual(0);
+          expect(strip.x + strip.width).toBeLessThanOrEqual(width + 0.5);
+          expect(strip.y + strip.height).toBeLessThanOrEqual(height + 0.5);
+          expect(strip.height, 'one text row').toBeLessThanOrEqual(25);
           // FR-FULL-3: with the sheet closed, the head, the button and the hint cover at most FULL_OVERLAY_MAX_SHARE.
           await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
           const parts = [await box(page, 'live-head'), await box(page, 'live-controls')];
@@ -199,13 +200,9 @@ for (const locale of LOCALES) {
             expect(hintBox.y).toBeGreaterThan(height / 2);
             expect(hintBox.x + hintBox.width).toBeLessThanOrEqual(width + 0.5);
           }
-          // Every line of the head and the card fits: nothing is cut past the box.
+          expect(controls.y + controls.height, 'the button above the strip').toBeLessThanOrEqual(strip.y + 0.5);
+          // Every line of the head fits: nothing is cut past the box.
           expect(head.x + head.width).toBeLessThanOrEqual(width + 0.5);
-
-          // `[ see now ]`: the card goes, the sky stays, the box is the same.
-          await card.getByTestId('live-card-now').click();
-          await expect(card).toHaveCount(0);
-          expect(await box(page, 'chart-box')).toEqual(chart);
 
           // FR-FULL-4: the sheet, open with the list open, at or under SHEET_MAX_SHARE of the height; its body scrolls
           // where the rows are taller than that; the page does not scroll; the box is unchanged (FR-FULL-6).
@@ -250,19 +247,20 @@ for (const locale of LOCALES) {
         // The specs' own motion permission (D-946): granted on the tap, a reading where the window already looks.
         await stubOrientation(page, { answer: 'granted', readings: [aimedAt(0, 30)] });
         await openLive(page, locale, 'window');
-        await page.getByTestId('live-card-now').click();
-        // FR-PHONE-3: `[ follow ]` then `[ controls ]`, one row at the box's bottom-right, each at least 44 × 44.
+        // FR-PHONE-3: `[ follow ]` then `[ controls ]`, one row at the box's bottom-right over the strip (R213, FR-STRIP-1), each at least 44 × 44.
         const row = page.getByTestId('live-bottom-row');
         expect(await row.evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')))).toEqual(['live-follow-control', 'live-controls']);
         const follow = await box(page, 'live-follow-control');
         const controls = await box(page, 'live-controls');
+        const strip = await box(page, 'live-strip');
         await expect(page.getByTestId('live-follow-control')).toHaveText(locale === 'en' ? 'follow' : 'seguir');
         await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'false');
         for (const part of [follow, controls]) {
           expect(part.width).toBeGreaterThanOrEqual(43.5);
           expect(part.height).toBeGreaterThanOrEqual(43.5);
           expect(part.y + part.height).toBeLessThanOrEqual(height + 0.5);
-          expect(part.y + part.height).toBeGreaterThan(height - 60);
+          expect(part.y + part.height, 'over the strip').toBeLessThanOrEqual(strip.y + 0.5);
+          expect(part.y + part.height, 'right over it').toBeGreaterThan(strip.y - 60);
         }
         expect(Math.abs(follow.y - controls.y), 'one row').toBeLessThanOrEqual(1);
         expect(follow.x + follow.width, 'follow before controls').toBeLessThanOrEqual(controls.x + 0.5);
@@ -312,7 +310,6 @@ for (const locale of LOCALES) {
       expect(Math.abs(chart.x + chart.width - 844)).toBeLessThanOrEqual(1);
       expect(Math.abs(chart.y + chart.height - 390)).toBeLessThanOrEqual(1);
       expect(await scrolls(page)).toBe(false);
-      await page.getByTestId('live-card-now').click();
       await openSheet(page);
       await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
       const sheet = await box(page, 'live-sheet');
@@ -352,7 +349,6 @@ for (const locale of LOCALES) {
       // Slow: 4 px every 30 ms is about 0.13 px/ms, well under the flick's speed.
       expect(4 / 30).toBeLessThan(SHEET_FLICK_PX_PER_MS);
       await openLive(page, locale, 'polar');
-      await page.getByTestId('live-card-now').click();
       const sheet = page.getByTestId('live-sheet');
       // The `×` first: a tap right after the protocol's instant flick is swallowed by the browser's own tap
       // suppression after a fling, which is the browser's and not the page's.

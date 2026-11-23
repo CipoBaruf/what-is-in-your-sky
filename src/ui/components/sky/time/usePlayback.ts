@@ -60,7 +60,8 @@ export interface Playback {
    * continues from there.
    */
   stepTo: (t: EpochMs, origin?: WriteOrigin) => void;
-  play: (origin?: WriteOrigin) => void;
+  /** `speed` is this run's own, never saved (R213, FR-STRIP-2: `▶ watch` at 60×). */
+  play: (origin?: WriteOrigin, speed?: Speed) => void;
   pause: (origin?: WriteOrigin) => void;
   setSpeed: (speed: Speed) => void;
   /** FR-LIVE-5's `now` action: back to real time, stopped. */
@@ -305,8 +306,9 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
     [span, setHeld, mark, anchorStop],
   );
   const play = useCallback(
-    (origin?: WriteOrigin) => {
+    (origin?: WriteOrigin, at?: Speed) => {
       mark(origin);
+      if (at !== undefined) setChosen(at);
       // From real time, playback starts where the tick is (or the clock `realFrom` reads, R144); from the end of
       // the span there is nowhere to go. R39 (F-36): the held instant is clamped here, not only on the way out. It is set unclamped — a link's
       // `t` before the span, or one real time has walked past — and the frame loop reads the held value itself,
@@ -344,7 +346,10 @@ export function usePlayback({ span: base, realNow, initial, speed: speedOption, 
       setPlaying(false);
       setHeld(null);
       setAnchor(null);
-      if (followsClock) setClock(readClock());
+      if (!followsClock) return;
+      setClock(readClock());
+      // FR-KEEP-1: a run's own speed (FR-STRIP-2) ends with it; the next play is at the saved one.
+      setChosen(appStore.getState().playSpeed);
     },
     [setHeld, mark, followsClock, readClock],
   );

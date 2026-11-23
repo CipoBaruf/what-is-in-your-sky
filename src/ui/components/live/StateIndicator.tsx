@@ -1,5 +1,6 @@
 import { useT } from '../../../i18n/useT';
 import { Mark } from '../mark/Mark';
+import { VisuallyHidden } from '../primitives/VisuallyHidden';
 import styles from './StateIndicator.module.css';
 
 /** FR-WATCH-2: the mark at the `header32` tier, one text row tall. */
@@ -16,6 +17,8 @@ export const INDICATOR_MARK_PX = 24;
  *
  * R149 (FR-FULL-2, FR-FLOW-17's rule): wide's alone since v2.8 — the compact page's mark-only form (R144's
  * `word={false}`) left with its top row.
+ *
+ * R213 (FR-STRIP-6): live, the word drawn is the time line's `● live` beside this mark, so here it is only said.
  */
 export function StateIndicator({ held }: { held: boolean }) {
   const t = useT();
@@ -23,7 +26,7 @@ export function StateIndicator({ held }: { held: boolean }) {
     <span className={styles.indicator} data-testid="live-indicator" data-state={held ? 'held' : 'live'}>
       <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running={!held} tone={held ? 'warn' : 'accent'} />
       <span role="status" className={styles.word} data-testid="live-state-word">
-        {held ? t.live.state.held : t.live.state.live}
+        {held ? t.live.state.held : <VisuallyHidden>{t.live.state.live}</VisuallyHidden>}
       </span>
     </span>
   );

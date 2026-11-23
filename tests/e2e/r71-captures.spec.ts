@@ -91,14 +91,13 @@ test('the compact live page at 390 × 844: the empty list', async ({ page }) => 
     window.location.hash = '#live';
   });
   await domeDrawn(page);
-  const card = page.getByTestId('live-card');
+  const strip = page.getByTestId('live-strip');
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      return card.count();
+      return strip.getAttribute('data-kind');
     }, { timeout: 30_000 })
-    .toBe(1);
-  await card.getByTestId('live-card-now').click();
+    .toBe('next');
   await satellitesOpen(page);
   await expect(page.getByTestId('legend-empty')).toHaveText('nothing up right now');
   const panel = await page.getByTestId('chart-legend-slot').boundingBox();

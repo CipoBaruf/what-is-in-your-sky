@@ -49,8 +49,6 @@ for (const lang of ['en', 'es'] as const) {
           await page.getByTestId(way).first().click();
           const line = page.getByTestId('example-notice');
           await expect(line, way).toBeVisible({ timeout: 30_000 });
-          // The wide live page asks about the first pass once per visit (FR-WIDE-13), its first opening; staying keeps the page.
-          if (wide && way === 'door-live') await page.getByTestId('first-pass-stay').click();
           await expect(line, way).toContainText(w.label);
           // Under the header: nothing of the page above it.
           const [header, box] = await Promise.all([page.locator('header').first().boundingBox(), line.boundingBox()]);

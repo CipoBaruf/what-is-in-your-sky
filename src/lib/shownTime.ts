@@ -4,7 +4,8 @@ import { formatDate } from './timeFormat';
 import type { SkyBand } from './timeStripe';
 
 /**
- * R143 (FR-TONIGHT-7, D-903): the chip beside the compact live page's shown time — `now` while `t` is real time,
+ * R143 (FR-TONIGHT-7, D-903): the chip beside a shown time, the stars page's clock's since R213
+ * (FR-STRIP-6: the live page's time line ends with `● live` or the offset alone) — `now` while `t` is real time,
  * otherwise how far `t` is from it, with `tonight` when `t` is inside tonight's night band and the weekday when `t`
  * is not today (FR-WATCH-2's rule). Pure: the words are the catalog's, the weekday's spelling the component's.
  *
@@ -51,7 +52,7 @@ export function isTonight(t: EpochMs, night: Interval | null): boolean {
 }
 
 /**
- * The chip for `t`. `night` is `tonightBand(bands, now)`, which `ShownTime` works out once per tick and not on
+ * The chip for `t`. `night` is `tonightBand(bands, now)`, which the caller works out once per tick and not on
  * every frame of playback. "Tonight" names the night already, so a `t` past midnight inside it carries `tonight` and not the weekday
  * as well: the headline keeps its 36 cells and says one thing about the day.
  */

@@ -1,12 +1,12 @@
 import type { EpochMs } from '../model';
 // D-896 keeps the lead in `physics/constants.ts` beside FR-TRAJ-2's thresholds (`eslint.config.js` allows this one import, D-907).
 import { TONIGHT_LEAD_MIN } from '../physics/constants';
-import { nightAt, passUp, type PassTimes } from './playback';
+import { nightAt, type PassTimes } from './playback';
 import type { SkyBand, Span } from './timeStripe';
 
 /**
- * R141 (FR-TONIGHT-1, FR-TONIGHT-4, D-897): where the compact live page's
- * jump, `tonight` and `next` land. Pure over the stored run, no React and no
+ * R141 (FR-TONIGHT-4, D-897): where the compact live page's `tonight` and
+ * `next` land (R213, D-1232: the landing on opening went with FR-STRIP-5). Pure over the stored run, no React and no
  * clock (D-15). `passes` are the visible passes — the list's own, the ones the
  * page draws — so a target is never a pass the page then hides; the caller
  * filters, these functions never widen. A landing is `start − TONIGHT_LEAD_MIN`
@@ -29,34 +29,6 @@ function firstStart(passes: readonly PassTimes[], keep: (start: EpochMs) => bool
     if (keep(start) && (best === null || start < best)) best = start;
   }
   return best;
-}
-
-/**
- * FR-TONIGHT-1: the instant the page jumps to on opening, or `null` to stay on
- * real time — a visible pass is up at `now` (`start ≤ now ≤ end`), or none
- * rises inside the span.
- */
-export function openingJump(passes: readonly PassTimes[], now: EpochMs, span: Span): EpochMs | null {
-  if (passes.some((pass) => passUp(pass, now))) return null;
-  const start = firstStart(passes, (s) => s > now && s <= span.end);
-  return start === null ? null : lead(start, now);
-}
-
-/**
- * R146 (FR-FULL-10, D-925): what the compact live page does on opening, now that it asks before it jumps. `up`: a
- * visible pass is up at `now`, so no card and real time; `ask`: the card, naming `pass` — the first visible pass
- * rising later in the span — and `at`, the instant `[ see next pass ]` lands on, which is `openingJump`'s so the
- * two cannot differ; `advise`: no visible pass in the span, the card's one-button form. Generic over the pass so
- * the card gets the caller's own pass back, name and all; the caller filters the hidden ones, as for `openingJump`.
- */
-export type OpeningChoice<P extends PassTimes = PassTimes> = { kind: 'up' } | { kind: 'ask'; pass: P; at: EpochMs } | { kind: 'advise' };
-
-export function openingChoice<P extends PassTimes>(passes: readonly P[], now: EpochMs, span: Span): OpeningChoice<P> {
-  const at = openingJump(passes, now, span);
-  if (at === null) return passes.some((pass) => passUp(pass, now)) ? { kind: 'up' } : { kind: 'advise' };
-  const start = firstStart(passes, (s) => s > now && s <= span.end);
-  const pass = passes.find((p) => p.start.t === start);
-  return pass === undefined ? { kind: 'advise' } : { kind: 'ask', pass, at };
 }
 
 export interface TonightTarget {

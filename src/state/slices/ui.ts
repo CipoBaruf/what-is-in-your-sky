@@ -9,8 +9,8 @@ import type { OpenLinkResult } from '../openLink';
  *
  * R148 (FR-TONIGHT-4 as amended v2.8, D-926): `stayOnNow`, the visit's flag the
  * compact live page's `now` tap set so the opening jump never ran again, is
- * gone with the jump — the page asks with a card on every visit (FR-FULL-10)
- * and there is nothing for the flag to suppress.
+ * gone with the jump — the page opens on real time with the next-pass strip
+ * (R213, FR-STRIP-5) and there is nothing for the flag to suppress.
  */
 export interface UiSlice {
   linkResult: OpenLinkResult | null;

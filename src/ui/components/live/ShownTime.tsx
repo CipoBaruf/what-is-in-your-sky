@@ -1,8 +1,7 @@
 import { useLocale, useT } from '../../../i18n/useT';
 import type { ContextParts } from '../../../lib/contextLine';
-import { chipFor, type Interval, type ShownChip } from '../../../lib/shownTime';
+import { heldOffset } from '../../../lib/playback';
 import { formatClock, formatCountdown, formatShortClock } from '../../../lib/timeFormat';
-import { shortWeekday } from '../../../lib/timeStripe';
 import type { Messages } from '../../../i18n/messages';
 import type { EpochMs, Locale } from '../../../model';
 import { VisuallyHidden } from '../primitives/VisuallyHidden';
@@ -11,9 +10,8 @@ import styles from './ShownTime.module.css';
 /**
  * R143 (FR-TONIGHT-7, D-903): the compact live page's headline — the shown time at the headline size, `HH:MM` in
  * the observer's zone (`HH:MM:SS` while `t` is real time, the zone spoken and not drawn, as the conditions line
- * did), then the chip: `now` in the accent, or the offset from real time with `tonight` or the weekday in front.
- * The chip's facts are `chipFor`'s, the words the catalog's. R144 mounts it; `StatusStrip` and the next-event
- * block stay for wide.
+ * did). R213 (FR-STRIP-6): the time line ends with `● live` in the accent on real time, otherwise with the offset
+ * from it, `+2 h 10 min` or `−35 min`.
  *
  * Not a live region: at 600× it changes every frame.
  */
@@ -29,40 +27,47 @@ export interface ShownTimeProps {
    * second and not in `realNow`'s 10 s steps. Off real time the time is `t`'s.
    */
   clock: EpochMs;
-  /** Tonight's night band, `tonightBand(bands, now)`, worked out once per tick by the page (D-911). */
-  night: Interval | null;
   timeZone: string | null;
 }
 
-/** The time as drawn (with its zone after a space, which the component speaks and does not draw) and the chip. */
-function headline(m: Messages, locale: Locale, { t, realTime, now, clock, night, timeZone }: ShownTimeProps): { time: string; chip: ShownChip; words: string } {
-  const chip = chipFor(t, now, realTime, night, timeZone);
-  const time = chip.kind === 'now' ? formatClock(clock, timeZone, locale) : formatShortClock(t, timeZone, locale, true);
-  const words = m.live.chip(chip.kind === 'now' ? chip : { ...chip, weekday: chip.weekday ? shortWeekday(t, timeZone, locale) : null });
-  return { time, chip, words };
+/** The time as drawn (with its zone after a space, which the component speaks and does not draw) and the line's end. */
+function headline(m: Messages, locale: Locale, { t, realTime, now, clock, timeZone }: ShownTimeProps): { time: string; end: string } {
+  return realTime
+    ? { time: formatClock(clock, timeZone, locale), end: m.live.state.live }
+    : { time: formatShortClock(t, timeZone, locale, true), end: m.live.heldOffset(heldOffset(t, now)) };
 }
 
-/** The headline as one string — the time and the chip — for the time track's value text (FR-TONIGHT-3, D-900). */
+/** The headline as one string — the time and the line's end — for the time track's value text (FR-TONIGHT-3, D-900). */
 export function shownTimeText(m: Messages, locale: Locale, props: ShownTimeProps): string {
-  const { time, words } = headline(m, locale, props);
-  return `${time} ${words}`;
+  const { time, end } = headline(m, locale, props);
+  return `${time} ${end}`;
 }
 
 export function ShownTime(props: ShownTimeProps) {
   const m = useT();
   const locale = useLocale();
-  const { time, chip, words } = headline(m, locale, props);
+  const { time, end } = headline(m, locale, props);
+  const kind = props.realTime ? 'now' : props.t < props.now ? 'behind' : 'ahead';
   const split = time.indexOf(' ');
   return (
     <p className={styles.headline} data-testid="shown-time">
       <VisuallyHidden>{`${m.live.shownTime}: `}</VisuallyHidden>
-      <time className={styles.clock} dateTime={new Date(chip.kind === 'now' ? props.clock : props.t).toISOString()}>
+      <time className={styles.clock} dateTime={new Date(props.realTime ? props.clock : props.t).toISOString()}>
         {time.slice(0, split)}
         <VisuallyHidden>{time.slice(split)}</VisuallyHidden>
       </time>{' '}
-      <span className={styles.chip} data-kind={chip.kind} data-testid="shown-chip">
-        {words}
+      <span className={styles.chip} data-kind={kind} data-testid="shown-chip">
+        {props.realTime ? `● ${end}` : end}
       </span>
+    </p>
+  );
+}
+
+/** R213 (FR-DARK-3): the context line's end while the Sun is above 0°; it wraps, since neither language's words fit beside the line's. */
+export function DaytimeLine() {
+  return (
+    <p className={styles.daytime} data-testid="daytime-line">
+      {useT().live.daytime}
     </p>
   );
 }

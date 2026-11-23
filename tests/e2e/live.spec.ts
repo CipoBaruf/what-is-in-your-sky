@@ -50,7 +50,7 @@ test.describe('the live page', () => {
     // FR-LIVE-3 → R144 (FR-TONIGHT-7): the headline is the shown time with its `now` chip, ticking with the clock, and the
     // context line names the pass up — the ISS, which the `Up now` row counts — and what it does next.
     await stripFilled(page);
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     expect(panelCount).toBe(1);
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
@@ -99,7 +99,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's: the headline is the held `HH:MM` with its offset (FR-TONIGHT-7), and FR-TONIGHT-1 never jumps from a link's `t`.
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC (tonight · )?in (<1|\\d+) min$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC \\+(\\d+ h )?\\d+ min$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
     // At the peak the ISS is up: the context line names it, once the passes are in.
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up', { timeout: 60_000 });
@@ -119,7 +119,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     // Real time: the installed clock, not the link — and the ISS up at it, so FR-TONIGHT-1's jump stays on now.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
   });
 
   // R89 (FR-LIVE-1 as amended v2.1): the states are told apart — `live-failures.spec.ts` follows each one's control.
@@ -193,14 +193,14 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await stripFilled(page);
   await expect(page.getByRole('button', { name: LABEL.es.backCompact, exact: true })).toBeVisible();
   // R144 (FR-TONIGHT-7, FR-I18N-2): the headline's spoken name, the chip, the context line and the taps in Spanish.
-  await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ahora$/);
+  await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ● en vivo$/);
   await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
   await expect(page.getByTestId('context-line')).not.toContainText(/peaks|sets|fades/);
   // R148 (FR-FULL-2, FR-FULL-4): the taps and the share action are the sheet's; the page's name is the hidden `h1`.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^en vivo · /);
   await expect(page.getByRole('button', { name: 'controles', exact: true })).toBeVisible();
   await openSheet(page);
-  await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶', 'noche', 'próximo', 'ahora']);
+  await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶ reproducir', 'noche', 'próximo', 'ahora']);
   // R150 (FR-GYRO-8, FR-GYRO-10): the `×` named in Spanish, and the satellites' heading.
   await expect(page.getByRole('button', { name: 'Cerrar controles', exact: true })).toHaveText('×');
   await expect(page.getByTestId('live-satellites').getByRole('heading', { level: 2 })).toHaveText(/^Satélites \(\d+\)$/);

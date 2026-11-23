@@ -212,6 +212,11 @@ export function offsetSpan({ hours, minutes }: Pick<HeldOffset, 'hours' | 'minut
   return `${String(hours)} h ${String(minutes).padStart(2, '0')} min`;
 }
 
+/** R213 (US-63 AC1): the strip's countdown — `1 h 10`, `12 min`, `<1 min` — in both languages, as `offsetSpan`'s. */
+export function stripSpan(span: Pick<HeldOffset, 'hours' | 'minutes'>): string {
+  return span.hours === 0 ? offsetSpan(span, true) : `${String(span.hours)} h ${String(span.minutes).padStart(2, '0')}`;
+}
+
 /**
  * R89 (FR-VISIT-3): the instant a live link opens on. A `t` behind the clock
  * is a moment that has passed, so the page opens at real time — watching, not

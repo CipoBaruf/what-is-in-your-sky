@@ -1,14 +1,12 @@
 /**
- * R144 (FR-TONIGHT-1, FR-TONIGHT-2, FR-TONIGHT-4, FR-TONIGHT-9; US-42 AC1..AC5) → R148 (FR-FULL-7, FR-FULL-10 and
- * FR-TONIGHT-1, FR-TONIGHT-2, FR-TONIGHT-9 as amended v2.8; US-43 AC5): tonight on the phone, by day under a fixed
- * clock. At 390 × 844, in both languages, a phone opens `#live` at local midday on the fixture night with nothing
- * visible up and tonight's passes ahead: the page waits for the stored run and asks with the card — "Nothing visible
- * up now.", the first pass's name, its rise time and the chip, over `[ see next pass ]` `[ see now ]` — with `t` on
- * real time and nothing playing; `[ see next pass ]` lands one minute before the first visible rise, playing at the
- * automatic rate with the sheet closed (the time track's thumb moves, the hash is not written), and the head's chip
- * says how far that is from now; the sheet opened, a drag on the track to 03:00 pauses it there, with the hash
- * carrying `t`; `[ next ]` lands a minute before the next rise; `[ now ]` returns to real time and the bare route.
- * Under reduced motion `[ see next pass ]` lands paused. `[ see now ]` leaves real time alone and the card goes.
+ * R144 (FR-TONIGHT-2, FR-TONIGHT-4, FR-TONIGHT-9; US-42 AC1..AC5) → R148 (FR-FULL-7) → R213 (FR-STRIP-1..3,
+ * FR-STRIP-5, FR-STRIP-6; US-63): tonight on the phone, by day under a fixed clock. At 390 × 844, in both languages,
+ * a phone opens `#live` at local midday on the fixture night with nothing visible up and tonight's passes ahead: `t`
+ * is real time and nothing plays, and the strip offers the pass; `▶ watch` lands one minute before the first visible
+ * rise, playing at the automatic rate with the sheet closed (the time track's thumb moves, the hash is not written),
+ * and the time line ends with the offset; the sheet opened, a drag on the track to 03:00 pauses it there, with the
+ * hash carrying `t`; `[ next ]` lands a minute before the next rise; `[ now ]` returns to real time and the bare
+ * route. Under reduced motion `▶ watch` lands paused.
  *
  * The seed is `live-jump.spec.ts`'s: the stored run at Neuquén, the clock twelve hours after the run's instant
  * (15:51 UTC, 12:51 at Neuquén), the recompute let end on the home so the live page opens on the whole list.
@@ -24,8 +22,8 @@ const MIDDAY = NINE_DAYS_ON + 12 * HOUR;
 const THREE_AM = Date.UTC(2026, 8, 12, 6, 0, 0);
 const PHONE = { width: 390, height: 844 };
 const WORDS = {
-  en: { tonight: 'tonight', next: 'next', now: 'now', play: 'Play', pause: 'Pause', nothingUp: 'Nothing visible up now.', seeNext: 'see next pass', seeNow: 'see now' },
-  es: { tonight: 'noche', next: 'próximo', now: 'ahora', play: 'Reproducir', pause: 'Pausa', nothingUp: 'Nada visible ahora.', seeNext: 'ver próximo pase', seeNow: 'ver ahora' },
+  en: { tonight: 'tonight', next: 'next', now: 'now', pause: 'Pause', pauseButton: '❚❚ pause', live: '● live', back: '● back to live', daytime: 'Daytime · satellites show after dusk' },
+  es: { tonight: 'noche', next: 'próximo', now: 'ahora', pause: 'Pausa', pauseButton: '❚❚ pausa', live: '● en vivo', back: '● volver a en vivo', daytime: 'De día · los satélites se ven al anochecer' },
 } as const;
 
 async function openLiveAtMidday(page: Page, locale: 'en' | 'es'): Promise<void> {
@@ -69,51 +67,42 @@ async function firstRise(page: Page): Promise<number> {
   return first;
 }
 
-/** The card, asked once the stored run's passes are known (FR-FULL-10); the clock is ticked until it stands. */
-async function cardAsked(page: Page): Promise<void> {
+/** The strip with the pass to watch, once the stored run's passes are known (FR-STRIP-1); the clock is ticked until it is. */
+async function passOffered(page: Page): Promise<void> {
   await expect
     .poll(async () => {
       await page.clock.runFor(100);
-      return page.getByTestId('live-card').getAttribute('data-kind');
+      return page.getByTestId('live-strip').getAttribute('data-kind');
     }, { timeout: 15_000 })
-    .toBe('ask');
+    .toBe('next');
 }
 
 for (const locale of ['en', 'es'] as const) {
-  test.describe(`FR-FULL-7, FR-FULL-10 at 390 × 844, ${locale}`, () => {
+  test.describe(`FR-FULL-7, FR-STRIP-2, FR-STRIP-6 at 390 × 844, ${locale}`, () => {
     test.use({ viewport: PHONE, hasTouch: true });
 
-    test('opens by day on real time with the card; [ see next pass ] lands on the first visible rise less a minute and plays; a drag to 03:00 pauses; next and now land where the spec says', async ({ page }) => {
+    test('opens by day on real time with the strip; ▶ watch lands on the first visible rise less a minute and plays; a drag to 03:00 pauses; next and now land where the spec says', async ({ page }) => {
       await openLiveAtMidday(page, locale);
       const words = WORDS[locale];
-      await cardAsked(page);
+      await passOffered(page);
       const rise = await firstRise(page);
       const landing = rise - TONIGHT_LEAD_MS;
       test.info().annotations.push({ type: 'landing', description: `${locale}: the clock ${new Date(MIDDAY).toISOString()}, the first visible rise ${new Date(rise).toISOString()}, the landing ${new Date(landing).toISOString()}` });
 
-      // FR-FULL-10 (US-43 AC5): the card over the sky — the sentence, the pass line, the two buttons — with `t` on real
-      // time, nothing playing, the sheet closed, and focus on `[ see next pass ]`.
-      const card = page.getByTestId('live-card');
-      await expect(card).toContainText(words.nothingUp);
-      await expect(card.getByTestId('live-card-pass')).toHaveText(/ · \d\d:\d\d · (in|en) \d+ h \d\d min$/);
-      await expect(card.getByRole('button', { name: words.seeNext, exact: true })).toBeFocused();
-      await expect(card.getByRole('button', { name: words.seeNow, exact: true })).toBeVisible();
-      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+      // FR-STRIP-1, FR-STRIP-5: the strip over the foot of the sky and nothing else — `t` on real time, nothing playing,
+      // the sheet closed, the time line ending `● live` (FR-STRIP-6).
+      await expect(page.getByTestId('strip-text')).toHaveText(/ · \d\d:\d\d( UTC)? · (in|en) \d+ h \d\d$/);
+      await expect(page.locator('[aria-modal="true"]')).toHaveCount(0);
+      await expect(page.getByTestId('shown-chip')).toHaveText(words.live);
       expect(Math.abs((await shownOnTrack(page)) - MIDDAY), 'real time, a few seconds of the clock on').toBeLessThan(10_000);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
       await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
       await expect(page).toHaveURL(/#live$/);
-      // The card stands above `[ controls ]`, centred across the box.
-      const cardBox = await card.boundingBox();
-      const controls = await page.getByTestId('live-controls').boundingBox();
-      if (!cardBox || !controls) throw new Error('the card is not laid out');
-      expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(controls.y + 0.5);
-      expect(Math.abs(cardBox.x + cardBox.width / 2 - PHONE.width / 2)).toBeLessThanOrEqual(1);
 
-      // FR-FULL-7 (US-43 AC5): `[ see next pass ]` — `t` one minute before the first visible rise, playing, the chip ahead,
-      // the sheet still closed, and the focus on `[ controls ]` once the card is gone.
-      await card.getByTestId('live-card-next').click();
-      await expect(card).toHaveCount(0);
+      // FR-STRIP-2: `▶ watch` — `t` one minute before the first visible rise, playing, the offset ahead, the sheet still
+      // closed, and the focus on the button that took its place (D-1268).
+      await page.getByTestId('live-watch').click();
+      await expect(page.getByTestId('live-watch')).toHaveCount(0);
       await expect
         .poll(async () => {
           await page.clock.runFor(100);
@@ -126,7 +115,9 @@ for (const locale of ['en', 'es'] as const) {
       expect(shown - landing).toBeLessThan(5 * 60_000);
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
       await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
-      await expect(page.getByTestId('live-controls')).toBeFocused();
+      await expect(page.getByTestId('live-now')).toHaveText(words.back);
+      await expect(page.getByTestId('live-now')).toBeFocused();
+      await expect(page.getByTestId('shown-chip')).toHaveText(/^\+(\d+ h )?\d+ min$/);
       // While playing the hash is not written (D-171).
       await expect(page).toHaveURL(/#live$/);
       // FR-TONIGHT-5 (US-42 AC4): a second of wall time near the pass is a minute of shown time.
@@ -139,9 +130,9 @@ for (const locale of ['en', 'es'] as const) {
       // FR-FULL-4: the sheet, for the track and the taps. `[ now ]` is enabled while held; the play control reads Pause.
       await openSheet(page);
       await expect(page.getByTestId('live-tap-now')).toBeEnabled();
-      await expect(page.getByRole('button', { name: words.pause })).toBeVisible();
+      await expect(page.getByRole('button', { name: words.pause })).toHaveText(words.pauseButton);
       for (const id of ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions']) await expect(page.getByTestId(id)).toBeVisible();
-      for (const id of ['time-stripe', 'step-controls', 'playback-row', 'status-strip', 'next-event', 'live-scrub', 'live-now', 'live-headline', 'live-top-row']) await expect(page.getByTestId(id)).toHaveCount(0);
+      for (const id of ['time-stripe', 'step-controls', 'playback-row', 'status-strip', 'next-event', 'live-scrub', 'live-headline', 'live-top-row']) await expect(page.getByTestId(id)).toHaveCount(0);
 
       // FR-TONIGHT-3 (US-42 AC3): a drag on the track to 03:00 pauses there, within the track's pixel, and the hash
       // carries `t`. A drag, not a press: 03:00 is inside the first pass's tick zone (44 px is three hours of the
@@ -185,39 +176,13 @@ for (const locale of ['en', 'es'] as const) {
       await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
       await page.clock.runFor(600);
       await expect(page).toHaveURL(/#live$/);
-      // Nothing asks again: two ticks of real time on, the page is still on now with no card (the card is asked once per visit).
+      // Nothing moves it: two ticks of real time on, the page is still on now with the strip offering the pass.
       await page.clock.runFor(21_000);
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-      await expect(page.getByTestId('live-card')).toHaveCount(0);
+      await expect(page.getByTestId('live-strip')).toHaveAttribute('data-kind', 'next');
       // The context line by day with nothing up: the sky, the clouds and the next rise (FR-TONIGHT-7), in the sheet.
       await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'sky');
-    });
-
-    test('[ see now ] leaves real time alone and the card goes; Esc is the same answer', async ({ page }) => {
-      await openLiveAtMidday(page, locale);
-      const words = WORDS[locale];
-      await cardAsked(page);
-      await page.getByRole('button', { name: words.seeNow, exact: true }).click();
-      await expect(page.getByTestId('live-card')).toHaveCount(0);
-      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-      await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
-      await expect(page.getByTestId('live-controls')).toBeFocused();
-      await page.clock.runFor(600);
-      await expect(page).toHaveURL(/#live$/);
-      // A fresh visit asks again (FR-FULL-10: never saved); `Esc` is `[ see now ]` and does not leave the page.
-      await page.evaluate(() => {
-        window.location.hash = '';
-      });
-      await expect(page.getByTestId('live-page')).toHaveCount(0);
-      await page.evaluate(() => {
-        window.location.hash = '#live';
-      });
-      await domeDrawn(page);
-      await cardAsked(page);
-      await page.keyboard.press('Escape');
-      await expect(page.getByTestId('live-card')).toHaveCount(0);
-      await expect(page.getByTestId('live-page')).toBeVisible();
-      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+      await expect(page.getByTestId('daytime-line')).toHaveText(words.daytime);
     });
   });
 }
@@ -225,12 +190,12 @@ for (const locale of ['en', 'es'] as const) {
 test.describe('FR-TONIGHT-2 as amended: reduced motion', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('[ see next pass ] still sets t, and the page lands paused', async ({ page }) => {
+  test('▶ watch still sets t, and the page lands paused', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openLiveAtMidday(page, 'en');
-    await cardAsked(page);
+    await passOffered(page);
     const rise = await firstRise(page);
-    await page.getByTestId('live-card-next').click();
+    await page.getByTestId('live-watch').click();
     await expect
       .poll(async () => {
         await page.clock.runFor(100);
@@ -243,6 +208,6 @@ test.describe('FR-TONIGHT-2 as amended: reduced motion', () => {
     // Paused, the hash carries the instant (FR-TONIGHT-1).
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=/);
     await openSheet(page);
-    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Play' })).toHaveText('▶ play');
   });
 });

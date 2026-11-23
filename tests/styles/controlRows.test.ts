@@ -68,8 +68,7 @@ import { DOOR_CELLS } from '../../src/ui/screens/home/doorLines';
 import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
 import { chipRows, contextRows, tapsRows } from './tonightRows';
-import { openingChoice } from '../../src/lib/tonightJump';
-import { OpeningCard } from '../../src/ui/components/live/OpeningCard';
+import { NextPassStrip } from '../../src/ui/components/live/NextPassStrip';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
 const BUDGET = 36;
@@ -295,10 +294,18 @@ const rows = (t: Messages): readonly Row[] => [
     budget: LIVE_ROW_BUDGET,
   },
   {
-    // R144 (FR-TONIGHT-4, D-901): the taps row as the page renders it — `▶ [ tonight ] [ next ] [ now ]`, 30 cells; `▶ [ noche ] [ próximo ] [ ahora ]`, 33.
+    // R213 (FR-STRIP-6, D-1269): the one play button has a row of its own over the three taps.
+    name: 'the live play row (FR-STRIP-6)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('live-play').parentElement as HTMLElement,
+    setUp: withLiveSky,
+    budget: LIVE_ROW_BUDGET,
+  },
+  {
+    // R144 (FR-TONIGHT-4, D-901) → R213: the taps row as the page renders it.
     name: 'the live taps row (FR-TONIGHT-4)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-taps'),
+    find: () => screen.getByTestId('live-jumps'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
   },
@@ -944,15 +951,15 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
 });
 
 /**
- * R143 (FR-TONIGHT-4, FR-TONIGHT-7, FR-COMP-4): the compact live page's new rows — the taps row
- * (`▶ │tonight│ │next│ │now│`, R206's boxes), every chip form of the headline and every form of the context line — in both
+ * R143 (FR-TONIGHT-4, FR-TONIGHT-7, FR-COMP-4) → R213 (FR-STRIP-6, D-1269): the compact live page's rows — the play
+ * button's and the taps' (R206's boxes), the time line's ends and every form of the context line — in both
  * languages, from the catalogs (`tonightRows.ts` words them at their longest). Each is at most 36 characters
  * (FR-COMP-4, FR-TONIGHT-7's "at most 36 cells in both languages") and inside what 390 and 360 px hold on the widest
  * font, the headline and the context line counted at their own sizes (1.25 rem and `--small`). The snapshot is the
  * strings' snapshot FR-TONIGHT-7 asks for, with the counts the task's Done note lists. No row is exempt: the play
- * control is one glyph each way (`▶`, `‖`), so the Spanish taps row is 27 cells, six inside what 360 px holds (D-911).
+ * button has a row of its own, so neither its words nor its two faces touch the taps' row.
  */
-describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and the context line in %s', (locale: Locale) => {
+describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the play and taps rows, the time line and the context line in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
   const t = CATALOGS[locale];
   const all = [...tapsRows(t), ...chipRows(t, locale), ...contextRows(t)];
@@ -963,8 +970,8 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
     expect(row.cells, `${row.text} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
   });
 
-  it('the taps row: 24 cells in English, 27 in Spanish, playing or not (FR-CTRL-1)', () => {
-    expect(tapsRows(t).map((row) => row.cells)).toEqual(locale === 'en' ? [24, 24] : [27, 27]);
+  it('the play button then the taps: 8 and 10 over 22 cells in English, 14 and 9 over 25 in Spanish (FR-STRIP-6, FR-CTRL-1)', () => {
+    expect(tapsRows(t).map((row) => row.cells)).toEqual(locale === 'en' ? [8, 10, 22] : [14, 10, 25]);
   });
 
   it('the strings, with their cells', () => {
@@ -973,77 +980,19 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
 });
 
 /**
- * R146 (FR-FULL-10, FR-FULL-8, PLAN §9.10): the opening card's lines and button rows, rendered from `OpeningCard` in
- * both languages and both forms — the sentence at the body size, the pass line and the no-pass sentence at `--small`
- * (0.875 a character, as `tonightRows.ts` counts the context line), the button rows by `cells.ts` with the box
- * `TextButton` draws. The pass line is at its longest: a rise 23 h 59 min away, `Tiangong` for the name, which is
- * the part that ellipsises. Every line is within 36 cells and inside 390 px on the widest font. At 360 px two
- * Spanish row is past the 33 cells that width has — the no-pass sentence, 41 characters in the spec's words
- * (35.88 cells at `--small`) — so there it wraps (D-930); this pins it so it cannot grow unnoticed. R206: the two
- * buttons' boxes are 30 cells and stand on one line there now.
+ * R213 (FR-STRIP-1, FR-STRIP-3, G70, V30-32): what never gives on the strip's one row. The row is the box's width
+ * less its half cell each side, the text at `--small`: the tag, its city and either button fit, so a phone never
+ * shows the example unnamed.
  */
-describe.each(LOCALES)('FR-FULL-10: the opening card’s lines and buttons in %s', (locale: Locale) => {
-  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  const atSmall = (text: string): number => Math.round(text.length * (14 / 16) * 100) / 100;
-  const NOW = Date.UTC(2026, 9, 30, 17, 35);
-  const span = { start: NOW, end: NOW + 24 * 3_600_000 };
-  const rise = NOW + (23 * 60 + 59) * 60_000;
-  const tiangong = { name: 'Tiangong', start: { t: rise }, end: { t: rise + 5 * 60_000 } };
+describe.each(LOCALES)('FR-STRIP-1: the strip’s row in %s', (locale: Locale) => {
+  const stripCells = (px: number): number => px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX) - 1;
 
-  type Counted = [name: string, text: string, cells: number];
-
-  /** Each line and row the card draws, rendered: the ask form, then the advice. */
-  const measured = (): Counted[] => {
-    const out: Counted[] = [];
-    for (const passes of [[tiangong], []]) {
-      const choice = openingChoice(passes, NOW, span);
-      if (choice.kind === 'up') throw new Error('nothing is up: the card is drawn');
-      const view = render(createElement(I18nProvider, { locale, children: createElement(OpeningCard, { choice, now: NOW, timeZone: 'UTC', onNext: noop, onNow: noop }) }));
-      const card = screen.getByTestId('live-card');
-      const labels = within(card).getAllByRole('button');
-      const actions = labels[0]?.parentElement as Element;
-      // Written as drawn; the count is `cells.ts`'s, the boxes read off `TextButton.module.css`.
-      const buttons = (name: string): Counted => [name, labels.map((b) => `│${b.textContent ?? ''}│`).join(' '), rowCells(actions, table)];
-      const sentence = card.querySelector('p')?.textContent ?? '';
-      if (choice.kind === 'ask') {
-        const line = screen.getByTestId('live-card-pass').textContent ?? '';
-        out.push(['ask: the sentence', sentence, sentence.length], ['ask: the pass line', line, atSmall(line)], buttons('ask: the buttons'));
-      } else {
-        out.push(['advise: the sentence', sentence, atSmall(sentence)], buttons('advise: the button'));
-      }
-      view.unmount();
-    }
-    return out;
-  };
-
-  /** The Done note's numbers. */
-  const EXPECTED: Record<Locale, Counted[]> = {
-    en: [
-      ['ask: the sentence', 'Nothing visible up now.', 23],
-      ['ask: the pass line', 'Tiangong · 17:34 · in 23 h 59 min', 28.88],
-      ['ask: the buttons', '│see next pass│ │see now│', 25],
-      ['advise: the sentence', 'No visible pass in the next 24 h.', 28.88],
-      ['advise: the button', '│see the sky now│', 17],
-    ],
-    es: [
-      ['ask: the sentence', 'Nada visible ahora.', 19],
-      ['ask: the pass line', 'Tiangong · 17:34 · en 23 h 59 min', 28.88],
-      ['ask: the buttons', '│ver próximo pase│ │ver ahora│', 30],
-      ['advise: the sentence', 'Ningún pase visible en las próximas 24 h.', 35.88],
-      ['advise: the button', '│ver el cielo ahora│', 20],
-    ],
-  };
-  /** The one Spanish row past 360 px (D-930). */
-  const PAST_360 = new Set(['advise: the sentence']);
-
-  it('every line and button row, rendered, with its cells', () => {
-    expect(measured()).toEqual(EXPECTED[locale]);
-  });
-
-  it.each(EXPECTED[locale].map((row) => [row[0], row] as const))('%s: within 36 cells, inside 390 px, and 360 px but for the one pinned', (name, [, text, cells]) => {
-    expect(cells, text).toBeLessThanOrEqual(BUDGET);
-    expect(cells, `${text} at 390 px`).toBeLessThanOrEqual(rowCellsAt(390));
-    if (locale === 'es' && PAST_360.has(name)) expect(cells, `${text} at 360 px`).toBeGreaterThan(rowCellsAt(360));
-    else expect(cells, `${text} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
+  it.each([true, false])('the tag, the city and the button fit at 390 px (live: %s)', (live) => {
+    const strip = createElement(NextPassStrip, { strip: { kind: 'next', pass }, t: pass.start.t - 3_600_000, timeZone: 'UTC', form: 'row', exampleCity: 'Salta', live, onWatch: noop, onLive: noop });
+    render(createElement(I18nProvider, { locale, children: strip }));
+    const named = `[${CATALOGS[locale].live.nextPass.example}] Salta`;
+    expect(screen.getByTestId('strip-text').textContent?.startsWith(named)).toBe(true);
+    const button = within(screen.getByTestId('live-strip')).getByRole('button');
+    expect(named.length * (14 / 16) + 1 + rowCells(button, table)).toBeLessThanOrEqual(stripCells(390));
   });
 });

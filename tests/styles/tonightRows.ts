@@ -1,16 +1,14 @@
 /**
- * R143 (FR-TONIGHT-4, FR-TONIGHT-7, FR-COMP-4): the compact live page's new rows as the catalogs word them — the
- * taps row, every chip form in the headline and every context-line form — each with its cell count, for
+ * R143 (FR-TONIGHT-4, FR-TONIGHT-7, FR-COMP-4) → R213 (FR-STRIP-6): the compact live page's rows as the catalogs
+ * word them — the play button's row and the taps', the time line's ends and every context-line form — each with its cell count, for
  * `controlRows.test.ts` and the task's Done note. Counted in body cells (16 px): the headline's time and its space
  * are at 1.25 rem and count 1.25 each, the chip and the context line at `--small` (14 px) count 0.875.
  *
- * The forms are their longest: the offset at 23 h 59 min (the span is 24 h), the weekday as `shortWeekday` spells
- * it (three letters every day in both languages), the countdown of an up pass at `12:05` and the compass point at
- * three letters. An up pass's name ellipsises (`ShownTime.module.css`), so its rows carry `Tiangong` and the fixed
+ * The forms are their longest: the offset at 23 h 59 min (the span is 24 h), the countdown of an up pass at
+ * `12:05` and the compass point at three letters. An up pass's name ellipsises (`ShownTime.module.css`), so its rows carry `Tiangong` and the fixed
  * part's cells say how much room a name has.
  */
 import { formatClock, formatShortClock } from '../../src/lib/timeFormat';
-import { shortWeekday } from '../../src/lib/timeStripe';
 import type { Messages } from '../../src/i18n/messages';
 import type { CloudState, Locale, SkyState } from '../../src/model';
 
@@ -26,7 +24,7 @@ export interface CountedRow {
 
 const round = (n: number): number => Math.round(n * 100) / 100;
 
-/** 2026-09-12 00:14:32 UTC: Friday 2026-09-11, 21:14:32 in Salta (UTC−3), so the weekday is `Fri` / `vie`. */
+/** 2026-09-12 00:14:32 UTC: 21:14:32 in Salta (UTC−3). */
 const T = Date.UTC(2026, 8, 12, 0, 14, 32);
 const ZONE = 'America/Argentina/Salta';
 /** 23 h 59 min, `heldOffset`'s hours and minutes. */
@@ -34,34 +32,26 @@ const LONGEST = { hours: 23, minutes: 59 };
 
 export function tapsRows(m: Messages): CountedRow[] {
   // R206 (FR-CTRL-1): a button is its words and the cell each side that holds its edge, drawn here as `│`.
-  const taps = (glyph: string): string => `${glyph} │${m.live.tap.tonight}│ │${m.live.tap.next}│ │${m.live.tap.now}│`;
-  return [
-    { name: 'taps, paused (▶)', text: taps(m.live.playShort), cells: taps(m.live.playShort).length },
-    { name: 'taps, playing (‖)', text: taps(m.live.pauseShort), cells: taps(m.live.pauseShort).length },
-  ];
+  const row = (name: string, ...labels: string[]): CountedRow => {
+    const text = labels.map((label) => `│${label}│`).join(' ');
+    return { name, text, cells: text.length };
+  };
+  return [row('play, paused', m.live.playButton), row('play, playing', m.live.pauseButton), row('taps', m.live.tap.tonight, m.live.tap.next, m.live.tap.now)];
 }
 
 export function chipRows(m: Messages, locale: Locale): CountedRow[] {
-  const weekday = shortWeekday(T, ZONE, locale);
   const clock = formatClock(T, ZONE, locale);
   const seconds = clock.slice(0, clock.indexOf(' '));
   const minutes = formatShortClock(T, ZONE, locale);
-  const row = (name: string, time: string, chip: string): CountedRow => ({
+  const row = (name: string, time: string, end: string): CountedRow => ({
     name,
-    text: `${time} ${chip}`,
-    cells: round((time.length + 1) * HEADLINE_EM + chip.length * SMALL_EM),
+    text: `${time} ${end}`,
+    cells: round((time.length + 1) * HEADLINE_EM + end.length * SMALL_EM),
   });
-  const forms = [
-    ['ahead', 'ahead', false, null],
-    ['behind', 'behind', false, null],
-    ['ahead, tonight', 'ahead', true, null],
-    ['behind, tonight', 'behind', true, null],
-    ['ahead, weekday', 'ahead', false, weekday],
-    ['behind, weekday', 'behind', false, weekday],
-  ] as const;
   return [
-    row('chip: now', seconds, m.live.chip({ kind: 'now' })),
-    ...forms.map(([name, kind, tonight, day]) => row(`chip: ${name}`, minutes, m.live.chip({ kind, ...LONGEST, tonight, weekday: day }))),
+    row('time line: live', seconds, `● ${m.live.state.live}`),
+    row('time line: ahead', minutes, m.live.heldOffset({ sign: '+', ...LONGEST })),
+    row('time line: behind', minutes, m.live.heldOffset({ sign: '−', ...LONGEST })),
   ];
 }
 

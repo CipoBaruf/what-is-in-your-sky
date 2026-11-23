@@ -2,7 +2,7 @@ import type { CompassPoint } from '../../lib/compass';
 import type { UpEvent } from '../../lib/contextLine';
 import type { Landmark } from '../../lib/landmark';
 import type { MoonFacts } from '../../lib/moonPhrases';
-import { offsetSpan } from '../../lib/playback';
+import { offsetSpan, stripSpan } from '../../lib/playback';
 import type { CloudState, MoonPhaseName, SkyState } from '../../model';
 import type { HiddenReason } from '../messages';
 
@@ -163,15 +163,10 @@ export const live = {
       forwardChunk: 'Forward four hours',
       nextRise: 'Next pass',
     },
-    /**
-     * R48 (FR-LIVE-7 as amended, FR-COMP-4): the compact page's two control
-     * rows, each within 36 cells (D-245). Play and pause are glyphs whose
-     * accessible names are still the words; the toggles and the share action
-     * keep one word of their wide labels. Labels may differ between the
-     * shells; meaning may not (US-5 AC2).
-     */
-    playShort: '▶',
-    pauseShort: '‖',
+    /** R213 (FR-STRIP-6): the one play button's two faces, at both widths; `play` and `pause` are its names. */
+    playButton: '▶ play',
+    pauseButton: '❚❚ pause',
+    /** R48 (FR-COMP-4): the toggle and the share action keep one word of their wide labels on compact (US-5 AC2). */
     hiddenShort: 'Hidden',
     shareShort: 'Share',
     /**
@@ -188,15 +183,12 @@ export const live = {
      */
     landmarkLine: (p: { degrees: string; word: LandmarkWord; star: string; constellation: string }) => `passes ${p.degrees} ${landmarkWord[p.word]} ${p.star}, in ${p.constellation}`,
     landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
-    /**
-     * R143 (FR-TONIGHT-4, FR-TONIGHT-8): the three taps under the time track, `▶ [ tonight ] [ next ] [ now ]`,
-     * 30 cells either way: the play control is `playShort` or `pauseShort`, one glyph and one cell (D-911), named
-     * by `play` and `pause`.
-     */
+    /** R143 (FR-TONIGHT-4, FR-TONIGHT-8): the three jumps under the time track, after the play button's row. */
     taps: 'Jump in time',
     tap: { tonight: 'tonight', next: 'next', now: 'now' },
     /**
-     * R143 (FR-TONIGHT-7): the chip after the shown time — `now`; `in 6 h 12 min`, `12 min ago`; `tonight · in 6 h
+     * R143 (FR-TONIGHT-7): the chip after the shown time, the stars page's clock's
+     * alone since R213 (FR-STRIP-6) — `now`; `in 6 h 12 min`, `12 min ago`; `tonight · in 6 h
      * 12 min` inside tonight's night band; `Sat · in 20 h 00 min` when the instant is not today; `in <1 min`,
      * `<1 min ago` under half a minute off real time (D-911).
      */
@@ -223,27 +215,23 @@ export const live = {
       noneSpan: 'No visible pass in 24 h',
       noneTonight: 'No visible pass tonight',
     },
+    /** R213 (FR-DARK-3): the context line's end while the Sun is up. */
+    daytime: 'Daytime · satellites show after dusk',
     /**
-     * R146 (FR-FULL-10, FR-FULL-8): the card over the sky when nothing visible is up as the compact live page opens.
-     * With a visible pass in the span: `nothingUp`, then at `--small` the pass line — the name (drawn apart, as the
-     * part that gives way), `separator` and `passWhen`, `Tiangong · 21:47 · in 4 h 12 min`: the rise time and the
-     * chip's offset to the rise — over `[ see next pass ] [ see now ]`. With none: `noPass`, at `--small` (D-930),
-     * over `[ see the sky now ]`. Every line and the button row within 36 cells (`controlRows.test.ts`).
+     * R213 (FR-STRIP-1..3): the next-pass strip, `[example] Salta · Next  ISS · 20:50 · in 1 h 10`. Its countdown
+     * leaves `min` off after hours, as US-63 writes it. The glyphs are the component's, the words are here.
      */
-    opening: {
-      nothingUp: 'Nothing visible up now.',
-      noPass: 'No visible pass in the next 24 h.',
+    nextPass: {
+      region: 'Next pass',
+      example: 'example',
       separator: ' · ',
-      passWhen: (p: { time: string; chip: string }) => `${p.time} · ${p.chip}`,
-      seeNext: 'see next pass',
-      seeNow: 'see now',
-      seeSkyNow: 'see the sky now',
-    },
-    /** v2.14.1 (FR-WIDE-13, D-1140): the wide page's dialog when nothing is up as it opens. */
-    firstPass: {
-      question: 'Nothing is up right now. Go to the first pass and play?',
-      go: 'go and play',
-      stay: 'stay here',
+      next: 'Next',
+      upNow: 'Up now',
+      ahead: (p: { time: string; hours: number; minutes: number }) => `${p.time} · in ${stripSpan(p)}`,
+      up: (p: { time: string; point: CompassPoint }) => `sets ${p.time} · look ${p.point}`,
+      none: 'No visible pass in the next 24 h',
+      watch: 'watch',
+      watchName: (name: string) => `watch: ${name}, from a minute before its rise`,
     },
   },
 };

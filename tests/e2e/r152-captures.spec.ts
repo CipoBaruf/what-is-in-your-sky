@@ -52,8 +52,6 @@ for (const locale of ['en', 'es'] as const) {
     await page.goto('/#live');
     await page.reload();
     await expect(page.getByTestId('live-layout').locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
-    const card = page.getByTestId('live-card');
-    if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
     await openSheet(page);
     await following(page);
     await page.screenshot({ path: `${CAPTURE_DIR}/r152-live-390-sheet-dark-${locale}.png` });

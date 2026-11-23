@@ -34,10 +34,10 @@ async function landedAtMidday(page: Page, size: { width: number; height: number 
   await expect
     .poll(async () => {
       await page.clock.runFor(100);
-      return page.getByTestId('live-card').getAttribute('data-kind');
+      return page.getByTestId('live-strip').getAttribute('data-kind');
     }, { timeout: 15_000 })
-    .toBe('ask');
-  await page.getByTestId('live-card-next').click();
+    .toBe('next');
+  await page.getByTestId('live-watch').click();
   const play = page.getByTestId('live-play');
   await expect
     .poll(async () => {

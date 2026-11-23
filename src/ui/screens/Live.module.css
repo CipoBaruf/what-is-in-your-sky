@@ -66,7 +66,7 @@
   --chart-floor-on: 0;
 }
 
-/* --- R148 (FR-FULL-1..4, FR-FULL-10; D-919, D-920, D-923, D-924, D-934): the compact sky page is the full form. --- */
+/* --- R148 (FR-FULL-1..4; D-919, D-920, D-923, D-924, D-934): the compact sky page is the full form. --- */
 
 /* The head over the sky (FR-FULL-2): the page's banner, fixed at the box's top-left inside the safe area at
    `--z-raised`, as wide as the box; `[ ← ]` and the shown time stand `--space-3` in from the left edge, and the
@@ -95,30 +95,15 @@
   padding: 0;
 }
 
-/* The card (FR-FULL-10): centred across the box, above `[ controls ]`'s row (a target's height and a group gap). */
-.cardArea {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: calc(var(--target) + var(--space-3));
-  display: flex;
-  justify-content: center;
-  padding-inline: var(--space-3);
-  pointer-events: none;
-}
-
-.cardArea > * {
-  pointer-events: auto;
-}
-
-/* The hint (FR-FULL-3, D-924): one line at the box's bottom-left, on the bottom row — a target tall, the line
-   centred in it — where it and the row's controls fit in 36 cells, and in the row above it otherwise. Not a control:
+/* The hint (FR-FULL-3, D-924): one line at the box's bottom-left, on the bottom row — above the strip's
+   (R213), a target tall, the line centred in it — where it and the row's controls fit in 36 cells, and in the row above it otherwise. Not a control:
    the pointer goes through it to the sky. R157 (FR-PHONE-5, D-981): drawn whole, never cut — a line wider than the
    box less its margins (the Spanish touch line, 43 characters, at 360 and 390 px) takes a second row, balanced,
    rather than an ellipsis. */
 .hintArea {
   position: absolute;
   inset-inline-start: var(--space-3);
-  inset-block-end: 0;
+  inset-block-end: var(--tap);
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -129,7 +114,7 @@
 
 .hintArea[data-beside='false'] {
   /* R157: the row's controls are `--tap` tall (`.target`'s box), so the row above starts there and not at `--target`. */
-  inset-block-end: var(--tap);
+  inset-block-end: calc(2 * var(--tap));
 }
 
 .hintArea > p {
@@ -139,13 +124,13 @@
   text-wrap: balance;
 }
 
-/* `[ controls ]` (FR-FULL-3): the box's bottom-right, inside the safe area, on the overlay surface. R157 (FR-PHONE-3,
+/* `[ controls ]` (FR-FULL-3): the box's bottom-right, inside the safe area, above the strip (R213), on the overlay surface. R157 (FR-PHONE-3,
    D-964): the bottom row — `[ follow ]` before it where the phone has the sensor, a cell between them, one surface. */
 .controls {
   --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
   position: absolute;
   inset-inline-end: var(--space-3);
-  inset-block-end: 0;
+  inset-block-end: var(--tap);
   display: flex;
   align-items: center;
   gap: 0 var(--cell);
@@ -382,8 +367,8 @@
   line-height: var(--row);
 }
 
-/* R77 (FR-WATCH-4, FR-WATCH-5) → R132: the rail's head is the layout's `answer` — the indicator with the clock or
-   `[ back to live ]`, the next-event block, on compact the time row — and its foot the layout's `foot`: the
+/* R77 (FR-WATCH-4, FR-WATCH-5) → R132: the rail's head is the layout's `answer` — the indicator with the clock, the
+   strip round the next-event block, on compact the time row — and its foot the layout's `foot`: the
    overview while watching, the scrub block while scrubbing, the actions. Their rows a row's quarter apart. */
 .railHead,
 .railFoot {
@@ -414,6 +399,15 @@
 .clock {
   color: var(--fg-dim);
   font-variant-numeric: tabular-nums;
+}
+
+/* R213 (FR-STRIP-6): the time line ends with `● live`. */
+.timeLine {
+  white-space: nowrap;
+}
+
+.liveMark {
+  color: var(--accent);
 }
 
 .share {
