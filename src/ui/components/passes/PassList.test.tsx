@@ -328,9 +328,9 @@ describe('<PassList>', () => {
     const groups = () => screen.getAllByTestId('night-group');
     const toggles = () => screen.getAllByTestId('night-toggle');
     const opened = () => groups().map((group) => !group.hidden);
-    const names = () => toggles().map((toggle) => toggle.querySelector('span')?.textContent ?? '');
+    const names = () => toggles().map((toggle) => (toggle.textContent ?? '').replace(/^[▸▾] /, '').replace(/ · .*$/, ''));
 
-    it('groups the list by night, the first open and the rest closed, with the toggles on one row under the cards', async () => {
+    it('groups the list by night, the first open and the rest closed, with the disclosures under the cards, `▸ Tonight · 3` (FR-CTRL-16)', async () => {
       threeNights();
       const { container } = render(<PassList />);
       expect(groups()).toHaveLength(3);
@@ -344,7 +344,7 @@ describe('<PassList>', () => {
         const group = groups()[i] as HTMLElement;
         // `hidden: true`: a closed night's cards are still in the document, which is what the collapse is.
         expect(within(group).getByRole('article', { hidden: true })).toHaveAccessibleName(name);
-        expect(toggles()[i]).toHaveTextContent('1 pass');
+        expect(toggles()[i]).toHaveTextContent(/ · 1$/);
         expect(toggles()[i]).toHaveAttribute('aria-controls', group.id);
       }
       expect(await axe(container)).toHaveNoViolations();
@@ -384,7 +384,7 @@ describe('<PassList>', () => {
       expect(groups()).toHaveLength(2);
       expect(within(groups()[0] as HTMLElement).getByTestId('next-tag')).toBeInTheDocument();
       expect(within(groups()[0] as HTMLElement).getAllByRole('article', { hidden: true })).toHaveLength(3);
-      expect(toggles()[0]).toHaveTextContent('3 passes');
+      expect(toggles()[0]).toHaveTextContent(/ · 3$/);
     });
 
     it('F-24: a location change forgets which nights the reader closed, so the new list opens on one', async () => {
@@ -459,7 +459,7 @@ describe('<PassList>', () => {
         expect(within(card).queryByText('Weather unknown')).toBeNull();
         expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
         expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in 72 h');
-        expect(toggles()[0]).toHaveTextContent('1 pass');
+        expect(toggles()[0]).toHaveTextContent(/ · 1$/);
 
         clockAt(first.end.t + 61_000);
         // Its night held nothing else, so the night is gone with it and the next one is tonight.
@@ -467,7 +467,7 @@ describe('<PassList>', () => {
         expect(names()).toEqual(['Tonight', 'Tomorrow night']);
         expect(screen.queryByRole('article', { name: 'First night', hidden: true })).toBeNull();
         expect(screen.getByRole('status')).toHaveTextContent('2 visible passes in 72 h');
-        expect(toggles().map((toggle) => toggle.textContent)).toEqual(['Tonight 1 pass', 'Tomorrow night 1 pass']);
+        expect(toggles().map((toggle) => toggle.textContent)).toEqual(['▾ Tonight · 1', '▸ Tomorrow night · 1']);
         // The passes themselves were not recomputed: the store still holds all three.
         expect(appStore.getState().passes.passes).toHaveLength(3);
       });
@@ -478,7 +478,7 @@ describe('<PassList>', () => {
         render(<PassList selectedPassId={first.id} />);
         expect(groups()).toHaveLength(3);
         const card = screen.getByRole('article', { name: 'First night', hidden: true });
-        expect(card).toHaveAttribute('aria-current', 'true');
+        expect(card).toHaveAttribute('data-selected', 'true');
         expect(within(card).getByTestId('card-ended')).toHaveTextContent('ended');
         expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in 72 h');
       });
@@ -541,14 +541,14 @@ describe('<PassList>', () => {
     expect(container.querySelectorAll('article[data-pass-id]')).toHaveLength(2);
     expect([...container.querySelectorAll('article[data-pass-id]')].map((card) => card.getAttribute('data-pass-id'))).toEqual(['later', 'average']);
     expect(screen.getByRole('status')).toHaveTextContent(/^2 visible passes in 24 h$/);
-    expect(container.querySelector('article[data-pass-id="average"]')).toHaveAttribute('aria-current', 'true');
-    expect(container.querySelector('article[data-pass-id="later"]')).not.toHaveAttribute('aria-current');
+    expect(container.querySelector('article[data-pass-id="average"] > button')).toHaveAttribute('aria-current', 'true');
+    expect(container.querySelector('article[data-pass-id="later"] > button')).not.toHaveAttribute('aria-current');
     await userEvent.click(within(container.querySelector('article[data-pass-id="later"]') as HTMLElement).getByRole('button'));
     expect(onOpenPass).toHaveBeenCalledWith('later');
     // A pass opened past the span (from the home's list) stays the marked row.
     rerender(<PassList onOpenPass={onOpenPass} selectedPassId="far" onlyTonight />);
     expect([...container.querySelectorAll('article[data-pass-id]')].map((card) => card.getAttribute('data-pass-id'))).toEqual(['later', 'average', 'far']);
-    expect(container.querySelector('article[data-pass-id="far"]')).toHaveAttribute('aria-current', 'true');
+    expect(container.querySelector('article[data-pass-id="far"] > button')).toHaveAttribute('aria-current', 'true');
     // Without the flag the list is the home's 72 h.
     rerender(<PassList onOpenPass={onOpenPass} />);
     expect(container.querySelectorAll('article[data-pass-id]')).toHaveLength(4);
