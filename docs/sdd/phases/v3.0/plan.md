@@ -247,7 +247,8 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   (D-1242, D-1243.) R210 names an event list in `docs/sdd/reference/data-model.md` and that page had none, so it is written there whole, from `EVENTS`.
   A task that adds or removes a name or a detail (R212, R222) edits that table with it, as D-1243 asks.
 - **D-1265 — What went with the home beyond the task's list.** *(R212)*
-  (D-1230, D-1245, D-1246.) `screens/home/usePlaceOpen.ts` goes although D-1230 keeps it: only `App.tsx` and `Home.tsx` read it, and the dead-code job fails on it. `useDoorSky.ts`, `tests/styles/doorRows.test.ts` and `tests/support/doorFixtures.ts` went with the doors, and six capture specs of the home (`r76`, `r84`, `r87`, `r93`, `r96`, `r130`) and `first-step-screen.spec.ts` with the screens they shot.
+  (D-1230, D-1245, D-1246.) `screens/home/usePlaceOpen.ts` goes although D-1230 keeps it: only `App.tsx` and `Home.tsx` read it, and the dead-code job fails on it.
+  `useDoorSky.ts`, `tests/styles/doorRows.test.ts` and `tests/support/doorFixtures.ts` went with the doors, and six capture specs of the home (`r76`, `r84`, `r87`, `r93`, `r96`, `r130`) and `first-step-screen.spec.ts` with the screens they shot.
   `scripts/bundle-budget.ts` has no `home` row to remove: the home was never a chunk of its own. The v2.15 and v2.16 release records are marked history, as R213 marked v2.14.2's, since their lists name deleted home specs.
   A capture route that reached its page through the home's settled list goes through `#pass` (the phone's list, the desk's pass page); the example's three pages are opened by address.
 - **D-1266 — The phone's satellites page is the home's list and the lines beside it.** *(R212)*

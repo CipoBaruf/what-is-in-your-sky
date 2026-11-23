@@ -561,6 +561,7 @@
 | FR-OFF-8 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-failures.spec.ts`, `tests/e2e/offline.spec.ts` |
 | FR-OPEN-1 | `src/data/zones/zoneCity.test.ts`, `tests/data/build-zones.test.ts` |
 | FR-OPEN-2 | `src/state/effects.test.ts`, `src/state/slices/location.test.ts`, `tests/e2e/firstRun.spec.ts` |
+| FR-OPEN-3 | `tests/e2e/firstRun.spec.ts` |
 | FR-OPEN-4 | `src/lib/exampleOutcome.test.ts` |
 | FR-OPEN-5 | `tests/e2e/firstRun.spec.ts` |
 | FR-OPEN-6 | `src/lib/exampleOutcome.test.ts`, `src/state/effects.test.ts`, `src/state/slices/location.test.ts`, `tests/e2e/firstRun.spec.ts` |
@@ -569,7 +570,8 @@
 | FR-OPEN-9 | `src/state/effects.test.ts` |
 | FR-OPEN-10 | `src/state/measureEffects.test.ts`, `tests/e2e/measure.spec.ts` |
 | FR-OPEN-11 | `tests/e2e/v1-captures.spec.ts` |
-| FR-OPEN-13 | `src/ui/components/passes/PassCard.test.tsx`, `tests/styles/controlRows.test.ts` |
+| FR-OPEN-12 | `src/ui/components/passes/NextEventBlock.test.tsx` |
+| FR-OPEN-13 | `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `tests/styles/controlRows.test.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-3 | `src/lib/layout.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/live-full.spec.ts`, `tests/styles/sheetRows.test.ts` |
