@@ -77,16 +77,12 @@ const endOfViewRow = (row: Locator, locale: Locale): Locator => row.getByTestId(
 
 const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack;
 
-/**
- * The view row is one line: the control and its end control share it, the end control at the row's right end — `[x] stars`,
- * or on the live page `[ Share ]` (R216, FR-NOW-1: `[x] stars` is `Layers`'s there). R148: the live page's row is the sheet's, given as itself.
- */
+/** The view row is one line, its end control (`endOfViewRow`) at its right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
   const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="view"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
   const stars = await box(endOfViewRow(row, locale));
-  // R216 (FR-NOW-1): the live row's `[ Compartir ]` is wider than `[x] estrellas` was, so at 390 px in Spanish it takes
-  // the line under the views, still at the row's right; every other row and language keeps one line.
+  // R216 (D-1279): the live row's `[ Compartir ]` takes the line under the views at 390 px, still at the row's right.
   const wraps = locale === 'es' && (await row.getByTestId('live-share').count()) > 0 && stars.y >= control.y + control.height - 1;
   if (!wraps) {
     expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
