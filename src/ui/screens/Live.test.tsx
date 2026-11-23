@@ -723,7 +723,7 @@ describe('<LivePage>', () => {
     // R132 → R186 (FR-WIDE-1, D-1098): the head is the answer — the indicator line and the headline; the conditions follow
     // the legend in the list; the scrub block is the `Time` row and the actions the page group.
     expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'strip');
-    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
+    expect(screen.getByTestId('live-sky-rows').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
     // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
     expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'time');
@@ -782,7 +782,7 @@ describe('<LivePage>', () => {
     scrub();
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     // R216 (FR-NOW-1): the conditions after the legend in `Up now`, the time buttons in `Time`, the toggle in `Layers`.
-    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
+    expect(screen.getByTestId('live-sky-rows').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
     expect(within(screen.getByTestId('live-time')).getByTestId('live-actions')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-layers')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     expect(screen.getByTestId('live-layers').closest('[data-slot]')).toHaveAttribute('data-slot', 'layers');
@@ -854,7 +854,8 @@ describe('<LivePage>', () => {
     // A minute before the rise: the whole arc faint and dotted, the rise marked, no marker.
     fireEvent.click(screen.getByRole('button', { name: 'Back one minute' }));
     expect(arc()).toBe('ahead');
-    expect(legendState()).toBe('ahead');
+    // R219 (FR-NOW-2): the wide legend is `Up now`, above the horizon only — a pass not yet risen is not listed.
+    expect(legendState()).toBeNull();
     expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="ahead"]')).not.toBeNull();
     expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="now"]')).toBeNull();
     // Ten minutes at a time past its end: the arc lingers, faint, without a marker…
@@ -863,7 +864,7 @@ describe('<LivePage>', () => {
     }
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBeGreaterThan(later.end.t);
     expect(arc()).toBe('linger');
-    expect(legendState()).toBe('linger');
+    expect(legendState()).toBeNull();
     expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="now"]')).toBeNull();
     // …and ten minutes on it is gone from the drawing and the legend.
     fireEvent.keyDown(stripe, { key: 'ArrowRight', shiftKey: true });
@@ -1035,7 +1036,8 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('stripe-overview').getAttribute('data-chunk-start')).toBe(stripe.getAttribute('data-drawn-start'));
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Up 1$/);
+    // R219 (FR-NOW-2): the count went with the status line; `Up now` lists the pass.
+    expect(screen.getByTestId('chart-legend').querySelector('[data-pass-id="later"]')).not.toBeNull();
     expect(screen.getByTestId('time-readout')).toHaveTextContent(/^12:48 · \+3 h 0[01] min$/);
     expect(container.querySelector('[data-pass-segment="later"]')).toHaveAttribute('data-current', 'true');
     // The arrow keys step from there (FR-LIVE-4), and the share link now carries the instant (FR-LIVE-9).
@@ -1549,7 +1551,7 @@ describe('<LivePage>', () => {
         const page = open({ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t });
         // The Sun arrives with the astronomy chunk, and the night is judged only once it has.
         await waitFor(() => {
-          expect(screen.getByTestId('live-page').querySelector(shell === 'compact' ? '[data-testid="context-line"]' : '[data-testid="status-strip"]')).not.toHaveTextContent('…');
+          expect(screen.getByTestId('live-page').querySelector(shell === 'compact' ? '[data-testid="context-line"]' : '[data-testid="live-moon"]')).not.toHaveTextContent('…');
           expect(screen.queryByTestId('daytime-line') !== null, when).toBe(drawn);
         });
         if (drawn && shell === 'compact') expect(screen.getByTestId('live-context')).toContainElement(screen.getByTestId('daytime-line'));
@@ -1791,7 +1793,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('step-controls')).toBeInTheDocument();
     expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(pass.start.t)}`);
     // The marker is on the dome at the rise.
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^(Satellites 1 up|Up 1)$/);
+    expect(screen.getByTestId('chart-legend').querySelector(`[data-pass-id="${pass.id}"]`)).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
     expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
     expect(screen.queryByTestId('time-stripe')).toBeNull();

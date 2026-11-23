@@ -195,7 +195,7 @@ for (const locale of LOCALES) {
         // FR-CLEAN-4: the sheet, its rows in order, `In this field` open at its end, the box unmoved (FR-CLEAN-6).
         await openSheet(page);
         expect(await sheetOrder(page)).toEqual(['stars-view-row', 'stars-follow', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
-        await expect(page.getByTestId('sheet-place')).toHaveText(NEUQUEN.label);
+        await expect(page.getByTestId('sheet-place').getByTestId('place-name')).toHaveText(NEUQUEN.label);
         await expect(viewRow(page).getByRole('button')).toHaveText([words.window, words.wholeSky]);
         await expect(page.getByTestId('stars-layers-row')).toHaveCount(2);
         await expect(page.getByTestId('stars-layers').getByRole('button')).toHaveCount(4);

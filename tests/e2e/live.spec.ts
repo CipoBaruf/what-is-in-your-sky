@@ -95,7 +95,7 @@ test.describe('the live page', () => {
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=${new Date(peak).toISOString().replace('.000Z', 'Z')}`);
 
     // The observer came out of the link: rounded label, no saved location involved (a fresh context has none). R148: the place is the sheet's head's.
-    await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
+    await expect(page.getByTestId('sheet-place').getByTestId('place-name')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's: the headline is the held `HH:MM` with its offset (FR-TONIGHT-7), and FR-TONIGHT-1 never jumps from a link's `t`.
     await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC \\+(\\d+ h )?\\d+ min$`));
@@ -114,7 +114,7 @@ test.describe('the live page', () => {
     // navigation stays in the document; the reload is what makes it a fresh arrival on the link.)
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=soon`);
     await page.reload();
-    await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
+    await expect(page.getByTestId('sheet-place').getByTestId('place-name')).toHaveText('−38.93, −67.99');
     // Real time: the installed clock, not the link — and the ISS up at it, so FR-TONIGHT-1's jump stays on now.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
