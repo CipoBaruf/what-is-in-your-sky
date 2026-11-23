@@ -90,6 +90,10 @@ test.describe('the live page on a landscape phone', () => {
     // R148 (FR-FULL-1, FR-FULL-4): the box is the whole viewport; the head stands over its top-left and the sheet
     // (opened by `enterScrubbing`) is — R150 (FR-GYRO-7) — the bottom sheet, at most SHEET_MAX_SHARE of the height,
     // under the head, with the context line and the track in it, in order.
+    // R216 (FR-NOW-1): the track is `Time`'s, after `View`, so the key on it scrolled the body; read the rows from its top.
+    await page.getByTestId('sheet-body').evaluate((el) => {
+      el.scrollTop = 0;
+    });
     const dome = await page.getByTestId('live-dome').boundingBox();
     const side = await page.getByTestId('live-sheet').boundingBox();
     const head = await page.getByTestId('live-head').boundingBox();

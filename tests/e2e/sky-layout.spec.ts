@@ -72,15 +72,26 @@ async function slotBoxes(layout: Locator): Promise<{ name: string; box: Box }[]>
   return out;
 }
 
+/** The view row's end control: `[ Share ]`'s block on the live page (R216, FR-NOW-1; its status line ends it), `[x] stars` elsewhere. */
+const endOfViewRow = (row: Locator, locale: Locale): Locator => row.getByTestId('live-share').or(row.getByRole('button', { name: WORDS[locale].stars }));
+
 const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack;
 
-/** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
+/**
+ * The view row is one line: the control and its end control share it, the end control at the row's right end — `[x] stars`,
+ * or on the live page `[ Share ]` (R216, FR-NOW-1: `[x] stars` is `Layers`'s there). R148: the live page's row is the sheet's, given as itself.
+ */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
   const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="view"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
-  const stars = await box(row.getByRole('button', { name: WORDS[locale].stars }));
-  expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
-  expect(stars.x).toBeGreaterThan(control.x + control.width);
+  const stars = await box(endOfViewRow(row, locale));
+  // R216 (FR-NOW-1): the live row's `[ Compartir ]` is wider than `[x] estrellas` was, so at 390 px in Spanish it takes
+  // the line under the views, still at the row's right; every other row and language keeps one line.
+  const wraps = locale === 'es' && (await row.getByTestId('live-share').count()) > 0 && stars.y >= control.y + control.height - 1;
+  if (!wraps) {
+    expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
+    expect(stars.x).toBeGreaterThan(control.x + control.width);
+  }
   const rowBox = await box(row);
   expect(stars.x + stars.width).toBeGreaterThan(rowBox.x + rowBox.width - 4);
 }
@@ -421,7 +432,7 @@ for (const viewport of TURNED) {
         const row = page.getByTestId('live-view-row');
         const rowBox = await box(row);
         const sheetBody = await box(page.getByTestId('sheet-body'));
-        for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
+        for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), endOfViewRow(row, locale)]) {
           await expect(part).toBeVisible();
           // The sheet's body scrolls on the shortest phone (667 × 375): the part is read where the body shows it.
           await part.scrollIntoViewIfNeeded();
