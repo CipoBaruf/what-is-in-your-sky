@@ -82,7 +82,7 @@ for (const lang of LANGS) {
       test.describe(`at ${size(viewport)}`, () => {
         test.use({ viewport });
 
-        test('US-60 AC1, AC2, AC5 (FR-OPEN-2, FR-OPEN-3 as amended, FR-LAND-1, FR-LAND-7): `/` is the live page for the zone\'s city, its line under the header, nothing kept', async ({ page }) => {
+        test('US-60 AC1, AC2, AC5 (FR-OPEN-2, FR-OPEN-3 and FR-OPEN-14 as amended, FR-LAND-1, FR-LAND-7): `/` is the live page for the zone\'s city, its line under the header, nothing kept', async ({ page }) => {
           const seen = await open(page);
           await expect(page).toHaveURL(/#live$/);
           const notice = page.getByTestId('example-notice');

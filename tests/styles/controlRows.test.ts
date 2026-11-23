@@ -698,8 +698,6 @@ describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %
   const CITY = 'Ciudad de México';
 
   it.each([
-    ['[ Not there? Set your place ] in the band', () => control(t.example.setPlace) + BAND_CELLS],
-    ['[ back ]', () => control(t.example.back)],
     ['[ set your place ] on the page line', () => control(t.example.pageLine)],
     // R97 (FR-FAINT-2): the faint control, in its longer state.
     ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
@@ -711,8 +709,6 @@ describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %
   it.each([
     ['the tagline, at body size', () => t.app.tagline, (row: number) => row, 2, 2],
     ['the label, in the band', () => t.example.label(CITY), (row: number) => small(row - BAND_CELLS), 2, 2],
-    ['the wait, in the band', () => t.example.finding(CITY), (row: number) => small(row - BAND_CELLS), 2, 2],
-    ['the day line, in the band', () => t.example.afterDusk, (row: number) => small(row - BAND_CELLS), 2, 2],
     ['the look line, in the card', () => t.example.looks(11), (row: number) => small(row - BAND_CELLS - CARD_CELLS), 2, 3],
   ] as const)('%s: its lines at 390 and 360 px', (_name, text, width, at390, at360) => {
     expect(lines(text(), width(rowCellsAt(390))), 'at 390 px').toBeLessThanOrEqual(at390);

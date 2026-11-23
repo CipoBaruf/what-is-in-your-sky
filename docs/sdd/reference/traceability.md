@@ -496,9 +496,9 @@
 | FR-KEEP-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-3 | `src/model/prefs.test.ts`, `src/state/slices/prefs.test.ts`, `tests/e2e/keep.spec.ts` |
 | FR-KEEP-4 | `src/data/localPrefs.test.ts`, `src/ui/components/common/Footer.test.tsx` |
-| FR-LAND-1 | `src/ui/App.live.test.tsx`, `src/ui/App.measure.test.tsx`, `src/ui/App.settings.test.tsx`, `src/ui/App.share.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/navigation.test.ts`, `src/ui/screens/LiveRoute.test.tsx`, `src/ui/screens/passSelection.test.ts`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/landing.spec.ts`, `tests/e2e/settings.spec.ts` |
+| FR-LAND-1 | `src/ui/App.live.test.tsx`, `src/ui/App.measure.test.tsx`, `src/ui/App.settings.test.tsx`, `src/ui/App.share.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/navigation.test.ts`, `src/ui/screens/LiveRoute.test.tsx`, `src/ui/screens/passSelection.test.ts`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/landing.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/e2e/sky-layout.spec.ts` |
 | FR-LAND-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts` |
-| FR-LAND-6 | `src/ui/App.live.test.tsx`, `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx`, `tests/e2e/landing.spec.ts` |
+| FR-LAND-6 | `src/ui/App.live.test.tsx`, `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-LAND-7 | `tests/e2e/firstRun.spec.ts` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |
 | FR-LEG-2 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/SkyChart.contract.test.tsx` |
@@ -572,6 +572,7 @@
 | FR-OPEN-11 | `tests/e2e/v1-captures.spec.ts` |
 | FR-OPEN-12 | `src/ui/components/passes/NextEventBlock.test.tsx` |
 | FR-OPEN-13 | `src/ui/components/passes/NextEventBlock.test.tsx`, `src/ui/components/passes/PassCard.test.tsx`, `tests/styles/controlRows.test.ts` |
+| FR-OPEN-14 | `tests/e2e/firstRun.spec.ts` |
 | FR-PHONE-1 | `src/ui/components/sky/FollowToggle.test.tsx`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-2 | `src/data/localPrefs.test.ts`, `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/follow.spec.ts` |
 | FR-PHONE-3 | `src/lib/layout.test.ts`, `src/ui/components/live/FollowControl.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/live-full.spec.ts`, `tests/styles/sheetRows.test.ts` |
@@ -583,7 +584,6 @@
 | FR-PHONE-9 | `src/ui/components/guide/skychart/polar/SkyPolar.handoff.test.tsx`, `src/ui/components/guide/skychart/polar/fieldOutline.test.ts`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/whole-sky.spec.ts` |
 | FR-PHONE-10 | `src/ui/components/guide/skychart/polar/SkyPolar.handoff.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.handoff.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/whole-sky.spec.ts` |
 | FR-PHONE-11 | `src/ui/components/guide/skychart/layers.test.ts` |
-| FR-PHONE-12 | `tests/e2e/sky-layout.spec.ts` |
 | FR-PHONE-14 | `src/ui/components/guide/TimesRow.test.tsx`, `tests/e2e/sky-layout.spec.ts` |
 | FR-PHONE-17 | `src/ui/components/sky/useFollow.test.tsx`, `src/ui/screens/Live.test.tsx`, `src/ui/screens/PassDetail.test.tsx`, `src/ui/screens/Stars.test.tsx`, `tests/e2e/follow-ask.spec.ts`, `tests/e2e/follow.spec.ts` |
 | FR-PUB-1 | `tests/docs/public.test.ts` |
