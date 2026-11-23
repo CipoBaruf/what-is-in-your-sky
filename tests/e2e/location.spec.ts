@@ -160,6 +160,48 @@ test('a device location is named after the nearest town, from the app\'s own ori
   expect(elsewhere).toEqual([]);
 });
 
+test('FR-CTRL-4, US-65 AC3: Use my location keeps its box before, during and after; progress and the error are one line under it', async ({ page }) => {
+  // The browser's answer waits for the test, so the button is caught mid-search; then it is a denial.
+  await page.addInitScript(() => {
+    const held: (() => void)[] = [];
+    (window as unknown as { releaseFix: () => void }).releaseFix = () => {
+      for (const go of held.splice(0)) go();
+    };
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_ok: PositionCallback, fail?: PositionErrorCallback) => {
+          held.push(() => fail?.({ code: 1, message: 'denied', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError));
+        },
+        watchPosition: () => 0,
+        clearWatch: () => undefined,
+      },
+    });
+  });
+  await page.goto('/#pass');
+  await openSettings(page);
+  const button = page.getByRole('button', { name: 'Use my location' });
+  const width = async () => (await button.boundingBox())?.width ?? 0;
+  const before = await width();
+  expect(before).toBeGreaterThan(0);
+  await button.click();
+  await expect(button).toHaveAttribute('aria-busy', 'true');
+  await expect(button).toHaveText('Use my location');
+  expect(await width()).toBe(before);
+  const section = page.getByRole('region', { name: 'Location' });
+  await expect(section.getByRole('status').filter({ hasText: 'Finding your location' })).toBeVisible();
+  await page.evaluate(() => {
+    (window as unknown as { releaseFix: () => void }).releaseFix();
+  });
+  await expect(section.getByRole('alert')).toContainText('Location permission was denied');
+  await expect(button).not.toHaveAttribute('aria-busy', 'true');
+  expect(await width()).toBe(before);
+  // FR-CTRL-17: the error is the one failure line, in `--danger`, under the button.
+  const alert = section.getByRole('alert');
+  const [buttonBox, alertBox] = [await button.boundingBox(), await alert.boundingBox()];
+  expect(alertBox?.y ?? 0).toBeGreaterThan(buttonBox?.y ?? 0);
+});
+
 test('a denied permission shows the message and leaves the inputs usable (US-3 AC2)', async ({ page, context }) => {
   await context.clearPermissions();
   await page.goto('/#pass');

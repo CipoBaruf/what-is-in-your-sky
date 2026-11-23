@@ -12,9 +12,6 @@
     "@container (width >= 62ch)",
     "@media (orientation : portrait)"
   ],
-  "src/ui/components/location/LocationInput.module.css": [
-    "@media (height <= 700px)"
-  ],
   "src/ui/components/location/PlacePicker.module.css": [
     "@media (width >= 964px)"
   ],

@@ -22,3 +22,8 @@
   background: var(--hover-ground);
   color: var(--fg);
 }
+
+/* R218 (FR-CTRL-8): `danger`, a removal — the `×` in `--danger` under the pointer. */
+.danger:is(:hover, :active):not(:disabled) > .glyph {
+  color: var(--danger);
+}

@@ -3,11 +3,9 @@ import styles from './Card.module.css';
 
 /**
  * R105 (FR-DS-4 item 4; D-703, D-719): the card — a box ruled in `--rule`
- * with `--space-2` inside, the one thing board 1B draws a pass, the next event
- * and nothing else in. `selected` is the card the guide is open on (FR-DESK-3):
- * ruled in the accent on the raised ground and `aria-current`, so the state is
- * told to anyone who is not looking at it. `frame="accent"` is the phone's
- * first card (FR-FIRST-4): ruled in the accent without being the selected one.
+ * with `--space-2` inside, the one thing board 1B draws the next event in.
+ * `frame="accent"` is the phone's first card (FR-FIRST-4). R221 (FR-CTRL-15,
+ * D-1292): `selected` is gone — a pass you pick is a `PickRow`, with no frame.
  *
  * `as` is the element: an `article` (a pass), a `section` (the next event,
  * named by its `aria-label`), or the card as one control — a `button` or an
@@ -25,8 +23,6 @@ import styles from './Card.module.css';
 export interface CardOwnProps {
   /** The element: a pass's `article`, the next event's `section`, or the card as one `button` or `a`. */
   as?: 'article' | 'section' | 'button' | 'a';
-  /** The card the guide is open on: ruled in the accent on the raised ground, `aria-current` (FR-DESK-3). */
-  selected?: boolean;
   /** The frame's ink: the rule (a card among cards), or the accent (the phone's first card, FR-FIRST-4). */
   frame?: 'rule' | 'accent';
   /** A link or button card that is a page's main navigation (FR-CLEAN-16, the home's doors on wide): framed as a control, padded a row by two cells, the frame in the accent on hover and focus. */
@@ -38,10 +34,10 @@ export interface CardOwnProps {
 
 export type CardProps = CardOwnProps & Omit<ComponentPropsWithoutRef<'article'>, keyof CardOwnProps | 'style'> & { href?: string };
 
-export function Card({ as = 'article', selected = false, frame = 'rule', emphasis = false, children, className, href, ...rest }: CardProps) {
+export function Card({ as = 'article', frame = 'rule', emphasis = false, children, className, href, ...rest }: CardProps) {
   const control = as === 'button' || as === 'a';
   const classes = [styles.card, control ? styles.control : undefined, frame === 'accent' ? styles.accent : undefined, control && emphasis ? styles.emphasis : undefined, className].filter(Boolean).join(' ');
-  const state = { 'data-card': '', ...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {}) };
+  const state = { 'data-card': '' };
   if (as === 'button') {
     return (
       <button type="button" className={classes} {...state} {...(rest as ComponentPropsWithoutRef<'button'>)}>

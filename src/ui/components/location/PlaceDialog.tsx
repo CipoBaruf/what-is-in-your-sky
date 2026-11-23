@@ -9,6 +9,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useOwnObserver, usePageObserver } from '../../hooks/useOwnObserver';
 import { closePlaceRequest, usePlaceRequested } from '../../screens/home/placeRequest';
 import { Close } from '../primitives/Close';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import { LocationInput, type LocationInputProps } from './LocationInput';
 import { type PlaceSearchFn } from './PlacePicker';
@@ -115,6 +116,8 @@ export function PlaceDialog({ onClose, search = searchPlaces, geolocation }: Pla
   return createPortal(
     <div className={styles.overlay} data-testid="place-dialog-overlay">
       <div ref={frame} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.frame} data-testid="place-dialog" tabIndex={-1}>
+        {/* R218 (FR-DS-12): the dialog is one group under its heading, its rows `Stack`'s `row` apart. */}
+        <Stack gap="row">
         <div className={styles.head}>
           <h2 id={headingId} className={styles.heading}>
             {t.home.coldHeading}
@@ -133,6 +136,7 @@ export function PlaceDialog({ onClose, search = searchPlaces, geolocation }: Pla
           labelledBy={headingId}
           afterCoords={<TextButton label={t.location.continue} disabled={typed === null} data-testid="place-dialog-continue" onClick={commitTyped} />}
         />
+        </Stack>
       </div>
     </div>,
     document.body,

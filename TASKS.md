@@ -263,7 +263,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** any live screen; the window (R214).
   - **Done when:** `npm run check` green; `globe.spec.ts` presses the three keys; `legend.test.ts` covers the 16 compass boundaries and below-horizon rows; `Legend.test.tsx` covers `upOnly` with none up and with one up; `legend-hover.spec.ts` sees the picked row's line and `aria-pressed`; `npm run check:sdd` green.
 
-- [ ] **R218 — The place group's controls**
+- [x] **R218 — The place group's controls** (Stack gained the rhythm gaps and ul/section forms, D-1284)
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 300
@@ -316,7 +316,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the check itself (R207).
   - **Done when:** `npm run check` green; `update-banner.spec.ts` sees the bar within 10 s on the three pages at 390 × 844 and 1280 × 800, outside the sky's box; `npm run check:sdd` green.
 
-- [ ] **R221 — Rows you pick, tags and disclosures in the pass lists**
+- [x] **R221 — Rows you pick, tags and disclosures in the pass lists**
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 300
@@ -332,6 +332,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Captures:** none
   - **Out of scope:** `Card`'s callers in `Live.tsx` and the stars' screens (R222); closes and inline actions (R224).
   - **Done when:** `npm run check` green; `pass-list.spec.ts` sees the picked row's line and `aria-current`; a `Tag` has no role and no hover; no allow entry left for the modules named; `npm run check:sdd` green.
+  - **Done note:** the card stays an `article` (its heading) over a stretched `PickRow`, which carries `aria-current` (D-1292); the times row also became `PickRow`s (D-1294).
 
 - [ ] **R222 — The stars fold into live**
   - **Lane:** live

@@ -7,6 +7,7 @@ import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { faintIds, hasEnded, useListedPasses, useShownClock } from '../../screens/home/shownPasses';
+import { Disclosure } from '../primitives/Disclosure';
 import { SectionHeading } from '../primitives/SectionHeading';
 import { VisuallyHidden } from '../primitives/VisuallyHidden';
 import { FaintToggle } from './FaintToggle';
@@ -39,7 +40,9 @@ import { SortToggle } from './SortToggle';
  * place, and its card carries the `Next ISS` tag. The nights' toggles stand
  * on one row under the cards (`[−] Tonight 5 passes   [+] Tomorrow night 2
  * passes`), each a button that opens or closes its night's cards above it,
- * which keep their document order under their night (US-16 AC5).
+ * which keep their document order under their night (US-16 AC5). R221
+ * (FR-CTRL-16, D-1293): each toggle is a `Disclosure`, `▾ Tonight · 5` /
+ * `▸ Tomorrow night · 2`, the whole line the control, one line a night.
  *
  * R88 (FR-NIGHT-1, FR-NIGHT-2, US-31): the list is about the nights ahead. The
  * nights are cut on local noon (`nightGroups`), so a pass before dawn sits
@@ -54,7 +57,7 @@ import { SortToggle } from './SortToggle';
  * in 72 h · [ show 12 faint ]` — and the control is a third piece of the
  * line, wrapping at its own separator like the sort. The nights are cut from
  * the window before the faint filter, so a night left with only faint passes
- * keeps its toggle, reading `0 passes · 3 faint`; a shown faint card is
+ * keeps its toggle, reading `▸ Tomorrow night · 0 · 3 faint`; a shown faint card is
  * dimmed and tagged `[faint]`, in its place in the order.
  */
 function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages, faint = 0): string {
@@ -242,9 +245,11 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
       </ol>
     );
   const listOf = (group: NightGroup) => sortPasses(hidden === null ? group.passes : group.passes.filter((pass) => !hidden.has(pass.id)), sort);
-  const nightCount = (group: NightGroup): string => {
+  // A night with only hidden faint passes says so after its 0 (FR-FAINT-2); every other night is its name and its count.
+  const nightLine = (group: NightGroup): { label: string; count?: number } => {
     const count = listOf(group).length;
-    return count === 0 ? t.passes.nights.onlyFaint(group.passes.length) : t.passes.nights.count(count);
+    const name = nightLabel(group, tonight, t);
+    return count === 0 ? { label: `${name} · ${t.passes.nights.onlyFaint(group.passes.length)}` } : { label: name, count };
   };
   const isOpen = (group: NightGroup): boolean => overrides[group.key] ?? group.key === openDefault;
   const toggle = (group: NightGroup): void => {
@@ -322,20 +327,17 @@ export function PassList({ onOpenPass, selectedPassId = null, onlyTonight = fals
       {showList && groups.length > 1 && (
         <div role="group" aria-label={t.passes.nights.toggles} className={styles.toggles} data-testid="night-toggles">
           {groups.map((group) => (
-            <button
+            <Disclosure
               key={group.key}
-              type="button"
-              className={`inline-control ${styles.toggle}`}
-              aria-expanded={isOpen(group)}
+              open={isOpen(group)}
+              {...nightLine(group)}
               aria-controls={`${nightsId}-${group.key}`}
               data-testid="night-toggle"
               data-night={group.key}
-              onClick={() => {
+              onToggle={() => {
                 toggle(group);
               }}
-            >
-              <span className={styles.nightName}>{nightLabel(group, tonight, t)}</span> <span className={styles.nightCount}>{nightCount(group)}</span>
-            </button>
+            />
           ))}
         </div>
       )}

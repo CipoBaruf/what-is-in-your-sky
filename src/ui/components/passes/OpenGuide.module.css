@@ -1,19 +1,27 @@
 /* R84 (FR-FIRST-10 as amended v2.1, D-548, F-85): the button is the
-   accessible control and draws nothing of its own. It is the hit area,
-   stretched over the whole positioned host — the tags and the cloud line
-   included — above everything in it, with the pointer over all of it. The
-   button's own box is stretched rather than a zero-size button's `::after`, so
-   the control a pointer, a screen reader and a test find is the card's size. */
-.open {
+   accessible control and the hit area, stretched over the whole positioned
+   host — the tags and the cloud line included. The button's own box is
+   stretched rather than a zero-size button's `::after`, so the control a
+   pointer, a screen reader and a test find is the card's size.
+
+   R221 (FR-CTRL-15, D-1292): the button is a `PickRow`, whose hover and picked
+   grounds are opaque, so it lies under what the host draws: every other child
+   of the host stands above it and lets the pointer through to it. The host's `data-card`
+   in the selector outranks the row's own box (its width, height and padding)
+   whatever order the modules load in. */
+[data-card] > .open {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 0;
+  width: auto;
   min-height: 0;
-  margin: 0;
   padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
+}
+
+[data-card]:has(> .open) > :not(.open) {
+  position: relative;
+  z-index: var(--z-raised);
+  pointer-events: none;
 }
 
 /* R107 (D-704): the button draws no ring of its own — the card wears it in the

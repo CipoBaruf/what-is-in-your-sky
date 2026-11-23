@@ -3,7 +3,10 @@ import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
 import { favouriteCellKey, useAppStore } from '../../../state';
 import { useOwnObserver } from '../../hooks/useOwnObserver';
+import { Close } from '../primitives/Close';
+import { PickRow } from '../primitives/PickRow';
 import { SectionHeading } from '../primitives/SectionHeading';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import styles from './Favourites.module.css';
 
@@ -72,22 +75,24 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
   const items = favourites.map((favourite) => {
     const current = favourite.cellKey === activeCell;
     return (
+      // R218 (FR-CTRL-8, FR-CTRL-15): the place is a `PickRow`, the one in use the picked row (`aria-current`); the
+      // remove beside it is the one `×`, in `--danger` under the pointer.
       <li key={favourite.cellKey} className={styles.item} data-testid="favourite" data-current={current ? 'yes' : 'no'}>
-        <TextButton
-          wrap
-          label={favourite.observer.label}
+        <PickRow
+          picked={current}
+          current
+          className={styles.pick}
           aria-label={t.favourites.use(favourite.observer.label)}
-          {...(current ? { 'aria-current': true as const } : {})}
-          onClick={() => {
+          onPick={() => {
             select(favourite.cellKey);
           }}
-        />
-        <TextButton
-          tone="dim"
-          label="×"
-          className={styles.remove}
-          aria-label={t.favourites.remove(favourite.observer.label)}
-          onClick={() => {
+        >
+          <span className={styles.name}>{favourite.observer.label}</span>
+        </PickRow>
+        <Close
+          danger
+          label={t.favourites.remove(favourite.observer.label)}
+          onClose={() => {
             remove(favourite.cellKey);
           }}
         />
@@ -113,7 +118,7 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
             </>
           )}
         </div>
-        {favourites.length > 0 && <ul className={styles.list}>{items}</ul>}
+        {favourites.length > 0 && <Stack gap="row" as="ul">{items}</Stack>}
         {favourites.length >= MAX_FAVOURITES && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
       </div>
     );
@@ -125,7 +130,7 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
       {favourites.length === 0 ? (
         <p className={styles.empty}>{t.favourites.empty}</p>
       ) : (
-        <ul className={styles.list}>{items}</ul>
+        <Stack gap="row" as="ul">{items}</Stack>
       )}
       {observer !== null && (
         <div className={styles.saveRow}>

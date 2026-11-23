@@ -14,14 +14,6 @@
   border-color: var(--accent);
 }
 
-/* `selected`: the pass the guide is open on, ruled in the accent on the raised
-   ground (R23, FR-DESK-3), on top of `aria-current` for anyone who is not
-   looking at it. */
-.card[data-selected] {
-  border-color: var(--accent);
-  background: var(--bg-raised);
-}
-
 /* `as="button"` / `as="a"`: the card as one control. The sheet's `<button>`
    is a bordered `--tap` box in the ground colour and its `<a>` an underlined
    inline box (global.css); the card keeps its own frame and padding and takes

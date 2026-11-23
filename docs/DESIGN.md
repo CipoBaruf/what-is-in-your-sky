@@ -247,14 +247,13 @@ States: rest, hover, focus, on.
 
 ### `Card`
 
-`src/ui/components/primitives/Card.tsx` — A box ruled in the rule colour that holds one thing — a pass, the next event — and, as a button or a link, is one control.
+`src/ui/components/primitives/Card.tsx` — A box ruled in the rule colour that holds one thing — the next event — and, as a button or a link, is one control.
 
-States: rest, hover, focus, picked.
+States: rest, hover, focus.
 
 | Prop | Type | What it does |
 |---|---|---|
 | `as` | `'article' \| 'section' \| 'button' \| 'a'` | The element: a pass’s article, the next event’s named section, or the card as one button or link with the sheet’s control chrome taken off. |
-| `selected` | `boolean` | The card the guide is open on: ruled in the accent on the raised ground and `aria-current`. |
 | `frame` | `'rule' \| 'accent'` | The frame’s ink: the rule (a card among cards), or the accent (the phone’s first card). |
 | `emphasis` | `boolean` | A link or button card that is a page’s main navigation (the home’s doors on a desk): a control’s frame, a row and two cells inside, the frame in the accent on hover and focus. |
 | `children` | `ReactNode` | What the card holds. |
@@ -345,6 +344,7 @@ States: rest, hover, focus.
 |---|---|---|
 | `onClose` | `() => void` | What closes. |
 | `label` | `string` | The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”. |
+| `danger` | `boolean` | A removal (a saved place’s ×): the glyph in --danger on hover. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `PickRow`
@@ -423,7 +423,8 @@ States: rest.
 
 | Prop | Type | What it does |
 |---|---|---|
-| `gap` | `1 \| 2 \| 3 \| 4 \| 5` | The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`). |
+| `gap` | `1 \| 2 \| 3 \| 4 \| 5 \| 'row' \| 'group'` | The space between the blocks: a step of the space scale, `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`), or the rhythm, `row` (`--gap-row`) between a group’s rows and `group` (`--gap-group`) between groups. |
+| `as` | `'div' \| 'ul' \| 'section'` | A `div`, a `ul` whose items are the rows (no marker, no indent), or a `section`, a group with its name. |
 | `children` | `ReactNode` | The blocks, in order. |
 | `className` | `string` | Placement only: a grid area, a margin from the space scale, a `min-width` (D-704). |
 

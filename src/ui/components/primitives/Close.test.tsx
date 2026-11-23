@@ -58,4 +58,12 @@ describe('<Close> in its stylesheet', () => {
     expect(css).toMatch(/\.close \{[^}]*color: var\(--fg-dim\)/);
     expect(css).toMatch(/:hover[^{]*\{\s*background: var\(--hover-ground\);\s*color: var\(--fg\)/);
   });
+
+  it('FR-CTRL-8: `danger` turns the × --danger on hover, and a plain close carries no such class', () => {
+    expect(css).toMatch(/\.danger:is\(:hover, :active\)[^{]*> \.glyph \{\s*color: var\(--danger\)/);
+    const { rerender } = render(<Close onClose={vi.fn()} danger label="Remove Bariloche" />);
+    expect(screen.getByRole('button', { name: 'Remove Bariloche' }).className).toMatch(/danger/);
+    rerender(<Close onClose={vi.fn()} label="Remove Bariloche" />);
+    expect(screen.getByRole('button', { name: 'Remove Bariloche' }).className).not.toMatch(/danger/);
+  });
 });

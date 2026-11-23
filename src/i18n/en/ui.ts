@@ -183,7 +183,7 @@ export const ui = {
   location: {
     heading: 'Location',
     placeLabel: 'Place name',
-    placePlaceholder: 'e.g. Cipolletti',
+    placePlaceholder: 'e.g. Buenos Aires', // R218 (FR-CTRL-7)
     placeList: 'Matching places',
     searching: (query: string) => `Searching for “${query}”…`,
     noMatch: (query: string): LinkedText => ({ before: `No place matches “${query}”. Try another spelling, or `, link: coordsInstead, after: '.' }),
@@ -425,11 +425,10 @@ export const ui = {
       tonight: 'Tonight',
       tomorrow: 'Tomorrow night',
       dated: (date: string) => `Night of ${date}`,
-      count: (count: number) => (count === 1 ? '1 pass' : `${String(count)} passes`),
-      /** FR-FAINT-2: a night left with only faint passes while they are hidden — `0 passes · 3 faint`. */
-      onlyFaint: (faint: number) => `0 passes · ${String(faint)} faint`,
+      /** FR-FAINT-2, R221 (FR-CTRL-16): a night left with only faint passes while they are hidden — `▸ Tomorrow night · 0 · 3 faint`. */
+      onlyFaint: (faint: number) => `0 · ${String(faint)} faint`,
       empty: 'No visible passes.',
-      /** FR-FIRST-10: the row of the nights' toggles under the cards, as a group. */
+      /** FR-FIRST-10: the nights' disclosures under the cards, as a group. */
       toggles: 'Nights',
     },
   },

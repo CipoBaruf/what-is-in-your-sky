@@ -31,3 +31,19 @@
 .gap5 {
   gap: var(--space-5);
 }
+
+/* R218 (FR-DS-12): the rhythm's two gaps, between two rows of a group and between two groups. */
+.gaprow {
+  gap: var(--gap-row);
+}
+
+.gapgroup {
+  gap: var(--gap-group);
+}
+
+/* A `ul` stack is a list of rows: no marker and no indent of its own. */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

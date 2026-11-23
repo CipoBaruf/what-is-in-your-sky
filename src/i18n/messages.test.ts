@@ -142,8 +142,6 @@ function render(t: Messages): string[] {
     t.passes.nights.tonight,
     t.passes.nights.tomorrow,
     t.passes.nights.dated('2026-09-13'),
-    t.passes.nights.count(1),
-    t.passes.nights.count(4),
     t.passes.nights.empty,
     t.passes.nights.toggles,
     ...PHASES.flatMap((phase) => (['horizon', 'shadow', 'twilight'] as const).map((reason) => t.countdown.headline({ phase, reason, clock: '12:34' }))),

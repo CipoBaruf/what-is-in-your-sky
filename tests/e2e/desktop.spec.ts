@@ -110,15 +110,15 @@ test('wide: the breakpoint is 100 cells, and a pass from the rail replaces the o
   await expect(panel).toHaveAttribute('data-pass-id', passId);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(panel.getByTestId('pass-layout')).toBeVisible();
-  await expect(panel.locator(`article[data-pass-id="${passId}"]`)).toHaveAttribute('aria-current', 'true');
+  await expect(panel.locator(`article[data-pass-id="${passId}"]`)).toHaveAttribute('data-selected', 'true');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   // A second pass from the rail's list replaces the detail in place, and the highlight moves with it.
-  const others = panel.locator('article[data-pass-id]:not([aria-current="true"])');
+  const others = panel.locator('article[data-pass-id]:not([data-selected])');
   const secondId = await others.first().getAttribute('data-pass-id');
   await others.first().getByRole('button', { name: /Open guide/ }).click();
   await expect(panel).toHaveAttribute('data-pass-id', String(secondId));
-  await expect(panel.locator(`article[data-pass-id="${passId}"]`)).not.toHaveAttribute('aria-current', 'true');
+  await expect(panel.locator(`article[data-pass-id="${passId}"]`)).not.toHaveAttribute('data-selected');
   expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
 });
 

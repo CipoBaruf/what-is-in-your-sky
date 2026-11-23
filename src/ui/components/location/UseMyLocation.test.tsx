@@ -82,23 +82,46 @@ describe('<UseMyLocation>', () => {
       </>,
     );
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Location permission was denied. You can still enter a place name or coordinates.');
+    // FR-CTRL-17 (R218): the failure is the one `StatusLine` — a `Line` `failure` in `--danger` — not a style of its own.
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Location permission was denied. You can still enter a place name or coordinates.');
+    expect(alert.tagName).toBe('P');
+    expect(alert.className).toMatch(/failure.*toned/);
+    expect(alert.className).toMatch(/statusLine/);
+    expect(screen.getByRole('status')).toHaveTextContent(/^$/);
     expect(onObserver).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeEnabled();
   });
 
-  it('shows the busy state while the device answers', async () => {
+  it.each([false, true])('FR-CTRL-4: busy keeps the label and says the progress on one status line under it (primary %s)', async (primary) => {
     const user = userEvent.setup();
     let answer: Success | null = null;
-    const env: GeolocationEnv = { geolocation: fakeGeolocation((success) => (answer = success)), secure: true };
-    render(<UseMyLocation onObserver={vi.fn()} env={env} />);
+    const geolocation = fakeGeolocation((success) => (answer = success));
+    const env: GeolocationEnv = { geolocation, secure: true };
+    render(<UseMyLocation onObserver={vi.fn()} env={env} primary={primary} />);
+    // FR-CTRL-17: the status line is mounted before its words arrive, so a reader announces them.
+    const idle = screen.getByRole('status');
+    expect(idle).toHaveTextContent(/^$/);
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
-    const busy = screen.getByRole('button', { name: 'Finding your location…' });
-    expect(busy).toBeDisabled();
+    const busy = screen.getByRole('button', { name: 'Use my location' });
     expect(busy).toHaveAttribute('aria-busy', 'true');
-    (answer as unknown as Success)({ coords: { latitude: 1, longitude: 2, altitude: null, accuracy: 10 } });
-    expect(await screen.findByRole('button', { name: 'Use my location' })).toBeEnabled();
+    expect(busy).not.toBeDisabled();
+    expect(busy).toHaveTextContent(/^Use my location/);
+    const status = screen.getByRole('status');
+    expect(status).toBe(idle);
+    expect(status).toHaveTextContent(/^Finding your location…$/);
+    expect(status.className).toMatch(/status.*dim/);
+    // A second press while it runs asks nothing.
+    await user.click(busy);
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+    act(() => {
+      (answer as unknown as Success)({ coords: { latitude: 1, longitude: 2, altitude: null, accuracy: 10 } });
+    });
+    const after = screen.getByRole('button', { name: 'Use my location' });
+    expect(after).not.toHaveAttribute('aria-busy');
+    expect(screen.getByRole('status')).toBe(idle);
+    expect(idle).toHaveTextContent(/^$/);
   });
 
   it('labels the button and words a denial in Spanish under a Spanish provider (FR-I18N-2)', async () => {
