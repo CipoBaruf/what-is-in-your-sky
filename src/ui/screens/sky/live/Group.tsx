@@ -6,23 +6,35 @@ import { SkyViewChartSlot } from '../../../components/sky/SkyViewLayout';
 import styles from '../sky.module.css';
 
 /**
- * R186 (FR-WIDE-1, D-1098): the wide live page's group — `Facing` while the window is the view (the chart's picker,
- * placed here), then the page's actions: `[ scrub here ]`, the next event's jump, `[ hidden ]` and `[ Share ]`.
- * R188 (FR-FACT-2, FR-FACT-3): a picked pass's or sky object's facts under `Facing` (`facts`, the lazy group).
+ * R216 (FR-NOW-1, D-1239): the wide live page's `View` group — the page's view row (the views, `[ Share ]` at its
+ * right, `[ follow the phone ]`) and, while the window is the view, `Facing` (the chart's picker, placed here) on a
+ * line of its own. A fragment, so every part is an item of the layout's view row.
  */
-export function LiveGroup({ view, actions, facts = null }: { view: ChartView; actions: ReactNode; facts?: ReactNode }) {
+export function LiveView({ view, children }: { view: ChartView; children: ReactNode }) {
   const t = useT();
   const facingId = useId();
   return (
-    <div className={styles.group} data-testid="live-group">
+    <>
+      {children}
       {view === 'window' && (
-        <section aria-labelledby={facingId} data-testid="live-facing-group">
+        <section className={styles.wholeRow} aria-labelledby={facingId} data-testid="live-facing-group">
           <SectionHeading id={facingId}>{t.skyView.facing}</SectionHeading>
           <SkyViewChartSlot name="picker" />
         </section>
       )}
+    </>
+  );
+}
+
+/**
+ * R216 (FR-NOW-1, D-1239): the wide live page's `Up now` slot until R219 gives it `Legend`'s up-only form — a picked
+ * pass's or sky object's facts (R188, FR-FACT-2, FR-FACT-3), then the legend and the conditions line.
+ */
+export function LiveUpNow({ facts = null, children }: { facts?: ReactNode; children: ReactNode }) {
+  return (
+    <div className={styles.group} data-testid="live-group">
       {facts}
-      {actions}
+      {children}
     </div>
   );
 }

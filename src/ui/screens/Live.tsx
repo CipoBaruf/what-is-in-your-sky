@@ -26,7 +26,7 @@ import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
 import type { ChartHand } from '../components/guide/skychart/SkyChart.types';
 import { viewFor } from './chartViewDefault';
-import { LiveGroup } from './sky/live/Group';
+import { LiveUpNow, LiveView } from './sky/live/Group';
 import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
 import { fromKeyboard } from '../components/sky/facts/keyboardIntent';
 import type { FactsStars, FactsSubject, SkyPick } from '../components/sky/facts/subject';
@@ -834,17 +834,32 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       )}
     </div>
   );
-  const actions = (
-    <div className={styles.actions} data-testid="live-actions" {...(compact ? { 'data-rhythm': 'group' } : {})}>
+  /*
+   * R216 (FR-NOW-1, D-1239): the rail's groups. `[ scrub the night ]` and `[ see this pass ]` are buttons in `Time`
+   * (`actions`, empty while scrubbing and hidden by its stylesheet then); `[ Share ]` is at `View`'s right; `[x] stars`
+   * and `Hidden objects` are `Layers`.
+   */
+  const actions = has('actions') ? (
+    <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
-      {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
-      {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
-      {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
-      <div className={styles.share} data-testid="live-share">
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} />
-      </div>
     </div>
+  ) : null;
+  // R85 (FR-COMP-7, D-549): bracketed on compact, as every other action.
+  const share = (
+    <div className={styles.viewEnd} data-testid="live-share">
+      <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} />
+    </div>
+  );
+  const layersId = useId();
+  const layers = (
+    <section className={styles.layers} aria-labelledby={layersId} data-testid="live-layers" {...(compact ? { 'data-rhythm': 'group' } : {})}>
+      <SectionHeading id={layersId}>{t.skyView.layers}</SectionHeading>
+      <div className={styles.layerRow}>
+        <StarsToggle />
+        {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+      </div>
+    </section>
   );
 
   /*
@@ -984,18 +999,13 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       {daytime}
     </div>
   );
-  // R152 (FR-GYRO-1, D-944): on wide `[ follow the phone ]` is the rail's `View` group's second line, after `[x] stars`.
+  // R152 (FR-GYRO-1, D-944): on wide `[ follow the phone ]` is the rail's `View` group's second line. R216 (FR-NOW-1):
+  // `[ Share ]` at the views' right; `[x] stars` moved to `Layers`.
   const viewRow = (
     <>
       <SkyViewChartSlot name="control" />
-      <StarsToggle {...(compact ? {} : { className: styles.viewEnd })} />
+      {share}
       {!compact && sensor && <FollowToggle follow={follow} className={styles.followWide} />}
-    </>
-  );
-  const list = (
-    <>
-      <SkyViewChartSlot name="list" />
-      {conditions}
     </>
   );
   const timeline =
@@ -1061,29 +1071,42 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       </>
     );
     const sheet = (
-      <ControlsSheet open={sheetOpen} onOpenChange={setSheetOpen} place={observer.label} beside={followControl} className={styles.controls}>
-        {context}
-        {timeline}
-        <div className={styles.viewRow} data-testid="live-view-row" data-rhythm="group">
-          {viewRow}
-        </div>
-        {followToggle !== null && (
-          <div className={styles.followRow} data-testid="live-follow" data-rhythm="group">
-            {followToggle}
-          </div>
-        )}
-        {/* R152 (FR-GYRO-5, D-957): while following the facing row is not drawn — its readout is not (nothing describes the
-            sensor's view) and a pick by hand would fight the sensor; it is back, where the phone last pointed, when following ends. */}
-        {!following && facing}
-        {actions}
-        <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
-          <div className={styles.satellitesHead} data-testid="live-satellites-head">
-            <SectionHeading id={satellitesId}>{t.live.satellites({ count: legendCount })}</SectionHeading>
-            <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-          </div>
-          <SkyViewChartSlot name="list" />
-        </section>
-      </ControlsSheet>
+      <ControlsSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        place={observer.label}
+        beside={followControl}
+        className={styles.controls}
+        // R216 (FR-NOW-1, D-1239): the wide rail's groups in its order; the strip itself stands over the sky.
+        groups={{
+          strip: context,
+          view: (
+            <>
+              <div className={styles.viewRow} data-testid="live-view-row">
+                {viewRow}
+              </div>
+              {followToggle !== null && (
+                <div className={styles.followRow} data-testid="live-follow">
+                  {followToggle}
+                </div>
+              )}
+              {/* R152 (FR-GYRO-5, D-957): while following the facing row is not drawn — its readout is not (nothing describes the
+                  sensor's view) and a pick by hand would fight the sensor; it is back, where the phone last pointed, when following ends. */}
+              {!following && facing}
+            </>
+          ),
+          time: timeline,
+          layers,
+          upNow: (
+            <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites">
+              <div className={styles.satellitesHead} data-testid="live-satellites-head">
+                <SectionHeading id={satellitesId}>{t.live.satellites({ count: legendCount })}</SectionHeading>
+              </div>
+              <SkyViewChartSlot name="list" />
+            </section>
+          ),
+        }}
+      />
     );
     return page(
       <SkyViewLayout
@@ -1116,23 +1139,22 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       // R189 (FR-WIDE-9, FR-WIDE-10): the desk keys over this page's view and instant, and the full screen's readout.
       keys={skyKeys(onChartView, playback)}
       clock={{ t: shown, now: playback.realTime ? shown : now, timeZone: observer.timeZone }}
-      answer={answer}
-      viewRow={viewRow}
+      strip={answer}
+      view={<LiveView view={following ? 'window' : chartView}>{viewRow}</LiveView>}
       drawing={drawing}
       hint={hintShown && <SkyHint view={hintView} followKey={followKey} />}
-      timeline={
-        <LiveTime>
+      time={
+        <LiveTime actions={actions}>
           <TimeControl playback={playback} passes={passes} bands={bands} now={now} timeZone={observer.timeZone} clouds={snapshot?.hourly} under={steps} />
         </LiveTime>
       }
-      action={
-        <LiveGroup
-          view={following ? 'window' : chartView}
-          actions={actions}
-          facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}
-        />
+      layers={layers}
+      upNow={
+        <LiveUpNow facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}>
+          <SkyViewChartSlot name="list" />
+          {conditions}
+        </LiveUpNow>
       }
-      list={list}
     />,
   );
 }

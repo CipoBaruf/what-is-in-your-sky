@@ -142,12 +142,12 @@ export const COMPACT_CONDITIONAL: readonly LiveRow[] = ['follow', 'readout', 'hi
 export const WIDE_CORNERS: readonly LiveRow[] = ['readout', 'hint'];
 
 /**
- * R148 (FR-FULL-4, D-923, D-928) and R150 (FR-GYRO-10, D-949): the sheet's rows, in FR-GYRO-10's order — the
- * context line, the time track and the taps, the view row, the facing row, the actions with `[ Share ]`, and the
- * satellites: "Satellites (n)" with the hidden toggle at its end and the list open under it. v2.8's `[ list (n) ]`
- * is gone.
+ * R148 (FR-FULL-4, D-923, D-928) → R216 (FR-NOW-1, D-1239): the sheet's rows, in the wide rail's group order — the
+ * context line (the strip's place: the strip itself stands over the sky); `View`: the view row with `[ Share ]` at
+ * its right, then the facing row; `Time`: the track and the taps; `Layers`: `[x] stars` and the hidden toggle;
+ * `Up now`: "Satellites (n)" with the list open under it.
  */
-export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites'];
+export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'view-row', 'share', 'facing', 'track', 'taps', 'hidden', 'satellites'];
 
 /**
  * FR-WATCH-4's inventory, in reading order.

@@ -8,6 +8,7 @@ import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { BracketLink } from '../primitives/BracketLink';
 import { TextButton } from '../primitives/TextButton';
+import { SLOT_ORDER, type SkyViewRailSlot } from './SkyViewLayout';
 import styles from './ControlsSheet.module.css';
 
 /**
@@ -44,13 +45,18 @@ import styles from './ControlsSheet.module.css';
  * D-1023 (FR-X-2 as amended 2026-11-02): the body ends in the footer's one row (`Footer`'s `short` form), after the
  * page's last section, so the three sky pages credit their sources on the phone as every other page does. It is a
  * `div`, not a second `contentinfo`; it scrolls with the body, and the focus that moves in on open skips its links.
+ *
+ * R216 (FR-NOW-1, D-1239): the sheet holds the wide rail's groups in the rail's order — `groups`, rendered in
+ * `SLOT_ORDER`, each a `data-group` wrapper, before any `children` (the pages not yet moved to groups).
  */
 export interface ControlsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The place's name for the sheet's head, `null` where there is none. */
   place: string | null;
-  /** The sheet's rows, in FR-FULL-4's order (the page's, R148). */
+  /** R216 (FR-NOW-1, D-1239): the rail's groups, rendered in `SLOT_ORDER`; an empty one renders nothing. */
+  groups?: Partial<Record<SkyViewRailSlot, ReactNode>> | undefined;
+  /** The sheet's rows, in the page's order, after `groups` (R148). */
   children?: ReactNode;
   /**
    * R157 (FR-PHONE-3, D-964): what stands before `[ controls ]` on the overlay's bottom row — the page's
@@ -103,7 +109,7 @@ function firstFocusable(root: HTMLElement | null): HTMLElement | null {
   return Array.from(root?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).find((element) => !element.closest('[data-testid="app-footer"]')) ?? null;
 }
 
-export function ControlsSheet({ open, onOpenChange, place, children, beside, className }: ControlsSheetProps) {
+export function ControlsSheet({ open, onOpenChange, place, groups, children, beside, className }: ControlsSheetProps) {
   const t = useT();
   const sheetId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -220,6 +226,15 @@ export function ControlsSheet({ open, onOpenChange, place, children, beside, cla
           </button>
         </div>
         <div ref={bodyRef} className={styles.body} data-testid="sheet-body">
+          {groups !== undefined &&
+            SLOT_ORDER.map((name) => {
+              const node = groups[name];
+              return node === undefined || node === null || node === false ? null : (
+                <div key={name} className={styles.group} data-group={name}>
+                  {node}
+                </div>
+              );
+            })}
           {children}
           <Footer form="short" className={styles.foot} />
         </div>
