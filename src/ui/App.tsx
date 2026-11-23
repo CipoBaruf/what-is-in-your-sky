@@ -17,6 +17,7 @@ import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { useOwnObserver, usePageObserver } from './hooks/useOwnObserver';
 import { PassList } from './components/passes/PassList';
+import { PlaceDialogHost } from './components/location/PlaceDialog';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor } from './components/passes/passCursor';
 import { nextView } from './screens/chartViewDefault';
@@ -444,6 +445,8 @@ export function AppRoot() {
     <RootBoundary>
       <I18nProvider locale={locale}>
         <App />
+        {/* R215 (FR-LAND-4, D-1238): the place dialog, over whichever page asked for it. */}
+        <PlaceDialogHost />
       </I18nProvider>
     </RootBoundary>
   );

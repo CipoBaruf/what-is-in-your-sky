@@ -1,0 +1,48 @@
+/* R215 (FR-LAND-4, D-1238): the place dialog — `AskDialog`'s overlay and frame (the page dimmed under the raised
+   surface, a hairline edge), as wide as the place group wants and no wider than the viewport less a gutter; a frame
+   taller than the window scrolls inside itself. Every length is a token or a count of cells (FR-DS-2). */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: var(--space-3) calc(2 * var(--cell));
+  background: color-mix(in srgb, var(--bg) var(--screen-overlay-alpha), transparent);
+}
+
+.frame {
+  box-sizing: border-box;
+  inline-size: min(100%, calc(64 * var(--cell)));
+  max-block-size: 100%;
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) calc(2 * var(--cell));
+  border: var(--border);
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.frame:focus {
+  outline: none;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--cell);
+}
+
+.heading {
+  margin: 0;
+  font-size: inherit;
+  line-height: var(--row);
+}
+
+.sentence {
+  margin: 0;
+  color: var(--fg-dim);
+}
