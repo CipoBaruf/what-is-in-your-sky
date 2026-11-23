@@ -58,8 +58,8 @@ export async function expectCorners(layout: Locator, view: DeskView): Promise<vo
   const zoom = layout.locator('[data-zoom-row]');
   if (view === 'dome') await expect(zoom.getByRole('button')).toHaveCount(0);
   else {
-    // The window's three keys (R214); the globe's two until R217.
-    await expect(zoom.getByRole('button')).toHaveCount(view === 'window' ? 3 : 2);
+    // The three keys on the window (R214) and the globe (R217).
+    await expect(zoom.getByRole('button')).toHaveCount(3);
     const at = await box(zoom);
     expect(Math.abs(at.x - drawing.x), `${view}: zoom at the left`).toBeLessThanOrEqual(1);
     expect(Math.abs(at.y - drawing.y - drawing.height), `${view}: zoom under the box`).toBeLessThanOrEqual(1);
