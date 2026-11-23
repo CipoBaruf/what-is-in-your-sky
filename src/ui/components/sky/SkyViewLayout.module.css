@@ -364,6 +364,23 @@
   inset-block-end: var(--target);
 }
 
+/* R214 (D-1273, FR-SHP-3): under 440 px of window the reserved row would cut the box under
+   `LIVE_BOX_MIN_PX` (170 px at 964 × 420), so there the box keeps its height and the row stands over its foot, as full. */
+@media (max-height: 27.5rem) {
+  .layout[data-shape='rail'] .drawing {
+    height: 100%;
+  }
+
+  .layout[data-shape='rail'] .zoomRow {
+    inset-block: auto 0;
+    background: var(--sky-corner-surface);
+  }
+
+  .layout[data-shape='rail'] .drawing:has(> .zoomRow button) > .corner-hint {
+    inset-block-end: var(--target);
+  }
+}
+
 .drawing:fullscreen {
   background: var(--bg);
 }
