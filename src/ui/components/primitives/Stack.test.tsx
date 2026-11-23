@@ -48,4 +48,25 @@ describe.each(THEMES)('<Stack> under data-theme=%s', (theme) => {
     expect(screen.getByTestId('block')).toHaveAttribute('hidden');
     expect(screen.getByTestId('block')).toHaveAttribute('id', 'panel');
   });
+
+  it('FR-DS-12: the rhythm’s gaps by name, and a list whose items are the rows', async () => {
+    document.documentElement.setAttribute('data-theme', theme);
+    const { container, rerender } = render(
+      <Stack gap="row" data-testid="block">
+        <p>One.</p>
+      </Stack>,
+    );
+    expect(screen.getByTestId('block').className).toMatch(/gaprow/);
+    rerender(
+      <Stack gap="group" as="ul" data-testid="block">
+        <li>One.</li>
+        <li>Two.</li>
+      </Stack>,
+    );
+    const list = screen.getByTestId('block');
+    expect(list.tagName).toBe('UL');
+    expect(list.className).toMatch(/gapgroup/);
+    expect(list.className).toMatch(/list/);
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

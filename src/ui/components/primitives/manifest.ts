@@ -161,6 +161,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
   entry<CloseOwnProps>('Close', 'The one close or dismiss, a bare × the host places at the top-right corner of what it closes; a declined offer is a TextButton.', ['rest', 'hover', 'focus'], {
     onClose: { type: '() => void', text: 'What closes.' },
     label: { type: 'string', text: 'The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”.' },
+    danger: { type: 'boolean', text: 'A removal (a saved place’s ×): the glyph in --danger on hover.' },
     className: PLACEMENT,
   }),
   entry<PickRowOwnProps>('PickRow', 'A row or card that opens or picks something from a set: no frame, the raised ground under the pointer, the accent line at the picked one’s left.', ['rest', 'hover', 'focus', 'picked', 'disabled'], {
@@ -198,7 +199,8 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
   }),
   // R107 (FR-DS-4 item 8; D-725): the layout helpers and the hidden-text block.
   entry<StackOwnProps>('Stack', 'A column of blocks a step of the space scale apart — a line and the panel it opens, a sentence and the detail under it.', ['rest'], {
-    gap: { type: '1 | 2 | 3 | 4 | 5', text: 'The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`).' },
+    gap: { type: "1 | 2 | 3 | 4 | 5 | 'row' | 'group'", text: 'The space between the blocks: a step of the space scale, `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`), or the rhythm, `row` (`--gap-row`) between a group’s rows and `group` (`--gap-group`) between groups.' },
+    as: { type: "'div' | 'ul' | 'section'", text: 'A `div`, a `ul` whose items are the rows (no marker, no indent), or a `section`, a group with its name.' },
     children: { type: 'ReactNode', text: 'The blocks, in order.' },
     className: { type: 'string', text: 'Placement only: a grid area, a margin from the space scale, a `min-width` (D-704).' },
   }),

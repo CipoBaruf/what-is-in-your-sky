@@ -133,7 +133,7 @@ export const ui: typeof EnUi = {
   location: {
     heading: 'Ubicación',
     placeLabel: 'Nombre del lugar',
-    placePlaceholder: 'p. ej. Cipolletti',
+    placePlaceholder: 'p. ej. Buenos Aires', // R218 (FR-CTRL-7)
     placeList: 'Lugares coincidentes',
     searching: (query) => `Búsqueda de “${query}”…`,
     noMatch: (query) => ({ before: `Ningún lugar coincide con “${query}”. Se puede probar otra grafía, o `, link: coordsInstead, after: '.' }),

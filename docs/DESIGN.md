@@ -345,6 +345,7 @@ States: rest, hover, focus.
 |---|---|---|
 | `onClose` | `() => void` | What closes. |
 | `label` | `string` | The name, where “Close” alone does not say what closes; left out, the active language’s “Close” or “Cerrar”. |
+| `danger` | `boolean` | A removal (a saved place’s ×): the glyph in --danger on hover. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `PickRow`
@@ -423,7 +424,8 @@ States: rest.
 
 | Prop | Type | What it does |
 |---|---|---|
-| `gap` | `1 \| 2 \| 3 \| 4 \| 5` | The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`). |
+| `gap` | `1 \| 2 \| 3 \| 4 \| 5 \| 'row' \| 'group'` | The space between the blocks: a step of the space scale, `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`), or the rhythm, `row` (`--gap-row`) between a group’s rows and `group` (`--gap-group`) between groups. |
+| `as` | `'div' \| 'ul' \| 'section'` | A `div`, a `ul` whose items are the rows (no marker, no indent), or a `section`, a group with its name. |
 | `children` | `ReactNode` | The blocks, in order. |
 | `className` | `string` | Placement only: a grid area, a margin from the space scale, a `min-width` (D-704). |
 

@@ -146,6 +146,35 @@ test('an ambiguous name shows a pick list readable at arm\'s length: eight rows,
   expect(requests).toHaveLength(1);
 });
 
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 1280, height: 800 },
+]) {
+  test(`FR-CTRL-7, US-65 AC4: the suggestion list has the input's left edge and width, at ${String(viewport.width)} px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await routeGeocoding(page, []);
+    await page.goto('/#pass');
+    await openSettings(page);
+    const field = page.getByRole('combobox', { name: 'Place name' });
+    await expect(field).toHaveAttribute('placeholder', 'e.g. Buenos Aires');
+    await field.fill('Rosario');
+    const list = page.getByRole('listbox', { name: 'Matching places' });
+    await expect(list.getByRole('option')).toHaveCount(rosario.results.length);
+    // The drawn box is the input's own box (D-1226 draws it on the element around the input when that one is padded).
+    const input = await field.boundingBox();
+    const box = await list.boundingBox();
+    if (input === null || box === null) throw new Error('the input or the list is not on the page');
+    expect(Math.abs(box.x - input.x)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(box.width - input.width)).toBeLessThanOrEqual(0.5);
+    // A row is the name and the region on one line, with no marker before the name.
+    const first = list.getByRole('option').first();
+    expect(await first.evaluate((el) => getComputedStyle(el.firstElementChild ?? el, '::before').content)).toMatch(/^(none|normal)$/);
+    const nameBox = await first.locator(':scope > *').first().boundingBox();
+    const regionBox = await first.locator(':scope > *').nth(1).boundingBox();
+    expect(Math.abs((nameBox?.y ?? 0) - (regionBox?.y ?? 1))).toBeLessThanOrEqual(1);
+  });
+}
+
 test('no match points at the coordinates input; a failed search leaves the field usable', async ({ page }) => {
   let fail = true;
   await page.route('https://geocoding-api.open-meteo.com/**', async (route) => {

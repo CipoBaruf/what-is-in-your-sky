@@ -319,8 +319,9 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     expect(SHORT_MAX_HEIGHT_PX).toBeLessThan(WIDE_SHORT_MAX_HEIGHT_PX);
     // R214 (D-1273): the sky layout stands the zoom's row over the box's foot in the same short window.
     expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css', 'src/ui/components/sky/SkyViewLayout.module.css'].sort());
-    // R106 (D-722): the boxed field's tighter padding on a short screen is the `Field`'s own rule.
-    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual(['src/ui/components/location/LocationInput.module.css', 'src/ui/components/primitives/Field.module.css'].sort());
+    // R106 (D-722): the boxed field's tighter padding on a short screen is the `Field`'s own rule; R218 (FR-DS-12)
+    // took the place group's own short-screen gap away, its rows `--gap-row` apart at every height.
+    expect(at('height', SHORT_MAX_HEIGHT_PX)).toEqual(['src/ui/components/primitives/Field.module.css']);
     expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([SHELL_PATH]);
     // The landscape phone's height stands with its orientation and nothing else, in both files, and is the query the page asks in script.
     for (const query of queries.filter((q) => q.conditions.some((c) => c.feature === 'height' && c.value === `${String(SIDEWAYS_MAX_HEIGHT_PX)}px`))) expect(query.prelude).toBe(LANDSCAPE_PHONE_QUERY);

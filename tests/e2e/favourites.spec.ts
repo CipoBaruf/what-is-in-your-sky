@@ -91,6 +91,13 @@ test('save two places, switch between them, remove one, and the other survives a
   await page.getByRole('button', { name: `Use ${NEUQUEN_LABEL}` }).click();
   await expect(page.getByTestId('active-location')).toHaveText(`Using ${NEUQUEN_LABEL}.`);
   await expect(page.getByRole('button', { name: `Use ${NEUQUEN_LABEL}` })).toHaveAttribute('aria-current', 'true');
+  // FR-CTRL-8 (R218): the place in use is the picked row, raised with the 2 px line at its left; the other is not.
+  const lineWidth = (name: string) => page.getByRole('button', { name }).evaluate((el) => getComputedStyle(el, '::before').borderLeftWidth);
+  expect(await lineWidth(`Use ${NEUQUEN_LABEL}`)).toBe('2px');
+  expect(await lineWidth(`Use ${PARIS_LABEL}`)).not.toBe('2px');
+  await page.mouse.move(0, 0); // the list reorders on a pick, so the other row may sit under the pointer, hovered
+  const ground = (name: string) => page.getByRole('button', { name }).evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await ground(`Use ${NEUQUEN_LABEL}`)).not.toBe(await ground(`Use ${PARIS_LABEL}`));
   if (compact) {
     // The place the panel chose is the one the home screen is computing for.
     await leaveSettings(page);

@@ -323,6 +323,15 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1282 — The columns are measured in characters, and the legend's pick is the primitive's.** *(R217)*
   (FR-NOW-2, FR-CTRL-15, FR-DS-10.) `upNowColumns` gives the point and height columns their widest entry in `ch`, which aligns them because the app's face is mono; the name column takes what is left and ellipsises.
   The rows' layout moved into an inner `.cells` span, so `PickRow` keeps its own ground, line and padding; the body and empty lines indent by one `--cell` for the row's padding, since a module outside the primitives may not read `--control-pad`. The chart lane's brackets list was already `{}`: no bracketed word is left inside `skychart/`, so "the chart's tags" had nothing to convert.
+- **D-1283 — The suggestion list is drawn from the base tokens, its rows `--target` tall at every width.** *(R218)*
+  (FR-CTRL-7, FR-DS-10.) No primitive draws a listbox, and a module outside the primitives may not read the control tokens, so the active row is `--bg` on `--fg` (the values `--on-ink` and `--on-ground` alias) and a row's padding is a `--cell`.
+  The rows are `--target` tall on wide too: the list floats there (D-1033), so a taller row costs the page nothing, and one height spares a second `@media` block. The list's anchor takes the input's width (the column's, or `PlacePicker`'s 32 cells capped at the column), so the list has the input's left edge and width.
+- **D-1284 — `Stack` carries the rhythm's gaps, and the place group is stacks of rows.** *(R218)*
+  (FR-DS-12, FR-DS-10.) `Stack` gains `gap="row" | "group"` (`--gap-row`, `--gap-group`) and `as="ul" | "section"`, so a host keeps the rhythm without reading the tokens. The place dialog is one group under its heading: its content, the place group, the group's inputs, `UseMyLocation`'s button with its line and the saved places are `row` stacks.
+  The place group's own short-screen gap (`@media (height <= 700px)`, R87) goes: the rows are `--gap-row` apart at every height. `--space-block` stays in `tokens.css`, now read by no module.
+- **D-1285 — A saved place's row is `PickRow`'s, with no frame; the dialog's frame is a control's box.** *(R218)*
+  (FR-CTRL-8, FR-CTRL-17, FR-CTRL-4.) The picked row is `PickRow` with `current` (`aria-current`); the `×` is `Close`'s `danger` form. `UseMyLocation`'s label is fixed and its progress and failure are `StatusLine`s under it; the place search's searching, empty and offline words are one dim `StatusLine`.
+  The place dialog's frame is `--border-control` with `--radius-2`. The settings spec that read the saved row's frame now reads the picked row's line and ground.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,

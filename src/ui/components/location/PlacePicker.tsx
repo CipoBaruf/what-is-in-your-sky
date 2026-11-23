@@ -7,8 +7,10 @@ import { toFailure, type Failure } from '../../../state';
 import { count } from '../../../state/measure';
 import { useOnline } from '../../hooks/useOnline';
 import { FailureLine } from '../common/FailureLine';
+import { BracketLink } from '../primitives/BracketLink';
 import { Field } from '../primitives/Field';
 import { Line } from '../primitives/Line';
+import { StatusLine } from '../primitives/StatusLine';
 import { coordsLabel } from './CoordsInput';
 import styles from './PlacePicker.module.css';
 
@@ -29,6 +31,11 @@ import styles from './PlacePicker.module.css';
  * under the field says so and names the two inputs that still work: the device
  * button and the coordinates. Nothing is retried when the connection comes
  * back; the message goes, and the next keystroke or Enter searches (D-147).
+ *
+ * R218 (FR-CTRL-7, FR-CTRL-17, US-65 AC4): the suggestion list hangs from the
+ * input's left edge at exactly its width, on the raised ground, a row the name
+ * and the region on one line, the active row `OptionToggle`'s block; the
+ * searching, empty and offline words are one dim `StatusLine` under the field.
  */
 export const DEBOUNCE_MS = 500;
 
@@ -50,6 +57,9 @@ export interface PlacePickerProps {
 }
 
 type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; failure: Failure };
+
+/** The panel's input width in cells; the list's anchor is held to the same width in the stylesheet (`.anchorPanel`). */
+const PANEL_CELLS = 32;
 
 /** The provider needs two characters; one letter or blanks would only clear the list. */
 const MIN_CHARS = 2;
@@ -232,9 +242,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const linked = (text: LinkedText) => (
     <>
       {text.before}
-      <a href={`#${coordsInputId}`} onClick={focusCoords}>
-        {text.link}
-      </a>
+      <BracketLink href={`#${coordsInputId}`} label={text.link} onClick={focusCoords} />
       {text.after}
     </>
   );
@@ -252,7 +260,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       ref={inputRef}
       id={inputId}
       label={t.location.placeLabel}
-      {...(home ? { size: 'small' as const, box: look === 'boxed' } : { cells: 32, className: styles.panel })}
+      {...(home ? { size: 'small' as const, box: look === 'boxed' } : { cells: PANEL_CELLS, className: styles.panel })}
       role="combobox"
       inputMode="text"
       autoComplete="off"
@@ -267,8 +275,8 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       aria-activedescendant={activeId}
       aria-describedby={confirming ? noteId : undefined}
     >
-      <div className={styles.anchor} hidden={!showList}>
-      <ul id={listId} role="listbox" aria-label={t.location.placeList} className={home ? `${styles.list} ${styles.listFull}` : styles.list} hidden={!showList}>
+      <div className={home ? styles.anchor : `${styles.anchor} ${styles.anchorPanel}`} hidden={!showList}>
+      <ul id={listId} role="listbox" aria-label={t.location.placeList} className={styles.list} hidden={!showList}>
         {showList &&
           places.map((place, i) => {
             const region = placeRegion(place);
@@ -301,11 +309,12 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
           })}
       </ul>
       </div>
-      <p role="status" className={styles.status} data-testid="place-search-status">
+      {/* FR-CTRL-17: mounted before its words arrive, so they are announced; empty, it takes no row (`.status`). */}
+      <StatusLine tone={list.kind === 'searching' ? 'progress' : 'empty'} className={styles.status} data-testid="place-search-status">
         {offline && linked(t.location.searchOffline)}
         {!offline && list.kind === 'searching' && t.location.searching(list.query)}
         {!offline && list.kind === 'results' && list.places.length === 0 && linked(t.location.noMatch(list.query))}
-      </p>
+      </StatusLine>
       {/* R91 (FR-FAIL-1, D-541): the failure line, where the matches would have been; `[ retry ]` runs the last
           query again, which puts the status back on "Searching for …". */}
       {!offline && list.kind === 'error' && (

@@ -27,29 +27,13 @@
   margin: 0;
 }
 
-/* R76 (FR-FIRST-2, board 1B): the home page's input group — the primary
-   action, then its two alternatives, one column at every width, as the board
-   draws it in the phone and in the wide pane alike; 19 px between the three
-   (the board's 1.2 rem), and the foot's note at 14 px. On a phone the foot is
-   ruled off and stands at the bottom of the screen (`margin-top: auto`, in a
-   cold open that is one screen tall, App.module.css); in the wide pane it
-   follows the fields at the same 19 px. The alternatives' wrapper steps aside
-   so the three are one list's items. */
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-block);
-}
+/* R76 (FR-FIRST-2): the place dialog's input group — the primary action, then its two alternatives, one column at
+   every width, and the foot's note at 14 px. R218 (FR-DS-12): the group and its inputs are `Stack`s of rows, the
+   dialog's one rhythm. The alternatives' wrapper steps aside so the three are one list's items. */
 
 /* The saved places carry a row's margin for the settings panel, where they follow a sentence; in the group the grid's gap is already that row, and the two together left two. */
 .group > [data-testid='favourites'] {
   margin-top: 0;
-}
-
-.inputs {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-block);
 }
 
 .alternatives {
@@ -75,13 +59,3 @@
   margin-bottom: var(--space-2);
 }
 
-/* R87 (D-574): the phone's where step on a screen shorter than 700 px puts its
-   blocks half a row apart, as App.module.css does for the step around it. Its
-   two boxed fields tighten by the same height on their own (R106: a `Field`'s
-   `box` is a third of a row inside there, Field.module.css). */
-@media (height <= 700px) {
-  .group[data-look='boxed'],
-  .group[data-look='boxed'] .inputs {
-    gap: var(--space-2);
-  }
-}

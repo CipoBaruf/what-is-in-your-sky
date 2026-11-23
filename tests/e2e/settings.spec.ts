@@ -265,7 +265,7 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     expect(await fitsTheViewport(save)).toBe(true);
   });
 
-  test('the saved place in use is the row ruled in the accent, with no `(en uso)`, and a long name wraps inside it, at 390 in Spanish (D-1030)', async ({ page }) => {
+  test('the saved place in use is the picked row, with no `(en uso)`, and a long name wraps inside it, at 390 in Spanish (D-1030, FR-CTRL-8)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const observer = { ...NEUQUEN_OBSERVER, label: 'Berlin, State of Berlin, Germany' };
     const other = { cellKey: '-39.26,-68.78', observer: DARK_SITE, addedAt: NINE_DAYS_ON - 2 * 86_400_000, lastUsedAt: NINE_DAYS_ON - 120_000 };
@@ -273,12 +273,19 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     const rows = page.getByTestId('favourite');
     await expect(rows).toHaveCount(2);
     await expect(page.getByText('(en uso)')).toHaveCount(0);
-    const looks = await rows.evaluateAll((items) => items.map((item) => ({ current: item.getAttribute('data-current'), border: getComputedStyle(item).borderTopColor, ground: getComputedStyle(item).backgroundColor })));
-    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+    await page.mouse.move(0, 0);
+    // R218 (FR-CTRL-8): the row has no frame; the place in use is `PickRow`'s picked row, raised with the 2 px line at its left.
+    const looks = await rows.evaluateAll((items) =>
+      items.map((item) => {
+        const row = item.querySelector('button') ?? item;
+        return { current: item.getAttribute('data-current'), frame: getComputedStyle(item).borderTopWidth, line: getComputedStyle(row, '::before').borderLeftWidth, ground: getComputedStyle(row).backgroundColor };
+      }),
+    );
     const [inUse, notInUse] = [looks.find((l) => l.current === 'yes'), looks.find((l) => l.current === 'no')];
-    expect(inUse?.border).not.toBe(notInUse?.border);
+    expect([inUse?.frame, notInUse?.frame]).toEqual(['0px', '0px']);
+    expect(inUse?.line).toBe('2px');
+    expect(notInUse?.line).not.toBe('2px');
     expect(inUse?.ground).not.toBe(notInUse?.ground);
-    expect(accent).not.toBe('');
     await expect(rows.filter({ has: page.locator('[aria-current="true"]') })).toHaveCount(1);
     for (const row of await rows.all()) expect(await fitsTheViewport(row)).toBe(true);
   });
