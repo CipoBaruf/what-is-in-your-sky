@@ -383,13 +383,13 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           labelledBy={headingId}
           data-testid="pass-layout"
           className={styles.layout}
-          answer={head}
-          viewRow={viewRow}
+          strip={head}
+          view={viewRow}
           drawing={chart}
           hint={hintShown && <SkyHint view={view} />}
-          timeline={<PassTime pass={pass} observer={observer} playback={playback} now={now} />}
-          action={<PassGroup view={following ? 'window' : view} times={times} facts={<LazyFacts subject={satellite} observer={observer} at={now} />} prose={prose} foot={foot} follow={action} />}
-          {...(passList === null ? {} : { list: passList, listFirst: true })}
+          time={<PassTime pass={pass} observer={observer} playback={playback} now={now} />}
+          turn={<PassGroup view={following ? 'window' : view} times={times} facts={<LazyFacts subject={satellite} observer={observer} at={now} />} prose={prose} foot={foot} follow={action} />}
+          {...(passList === null ? {} : { upFrom: passList })}
         />
       </div>
     );

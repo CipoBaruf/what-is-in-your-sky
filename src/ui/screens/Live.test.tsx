@@ -42,6 +42,9 @@ import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
 const pass = goldenPassFixture();
+/** R216 (FR-NOW-1, D-1239): the sheet's rows — each group's rows in order, then the footer — and its groups. */
+const sheetRows = (body: Element): (string | null)[] => [...body.children].flatMap((el) => (el.hasAttribute('data-group') ? [...el.children].map((row) => row.getAttribute('data-testid')) : [el.getAttribute('data-testid')]));
+const sheetGroups = (body: Element): (string | null)[] => [...body.querySelectorAll(':scope > [data-group]')].map((el) => el.getAttribute('data-group'));
 const NOW = goldenWindowStart();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [], fetchedAt: NOW, stale: false, persistent: true };
@@ -587,7 +590,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-layout')).toHaveAttribute('data-readout', 'sheet');
     expect(screen.getByTestId('sky-readout-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'sheet');
     const sheet = screen.getByTestId('live-layout').querySelector('[data-slot="sheet"]') as HTMLElement;
-    for (const id of ['live-controls', 'live-sheet', 'live-actions', 'live-track', 'live-taps', 'live-context', 'live-view-row', 'live-facing']) expect(within(sheet).getByTestId(id), id).toBeInTheDocument();
+    for (const id of ['live-controls', 'live-sheet', 'live-share', 'live-layers', 'live-track', 'live-taps', 'live-context', 'live-view-row', 'live-facing']) expect(within(sheet).getByTestId(id), id).toBeInTheDocument();
     unmount();
     // R186 (FR-WIDE-6, D-1098): the dome, chosen — a desk's saved polar chart reads as the globe.
     act(() => {
@@ -607,8 +610,8 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
       // R186 (FR-WIDE-1, D-1098): the layout's grid cuts the box (as on the stars page), not the frame inside the slot.
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
-      // The box and its corners, then the rail in SLOT_ORDER: head, View, Time, the page group, the legend.
-      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['drawing', 'readout', 'hint', 'answer', 'viewRow', 'timeline', 'action', 'list']);
+      // The box and its corners, then the rail in SLOT_ORDER (R216, FR-NOW-1): the strip, View, Time, Layers, Up now.
+      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['drawing', 'readout', 'hint', 'strip', 'view', 'time', 'layers', 'upNow']);
       wide.unmount();
     }
     media?.restore();
@@ -621,7 +624,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
-    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
+    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'time');
   });
 
   /**
@@ -646,10 +649,10 @@ describe('<LivePage>', () => {
     const heading = within(satellites).getByRole('heading', { level: 2 });
     expect(heading).toHaveTextContent(`${word} (1)`);
     expect(satellites).toHaveAccessibleName(`${word} (1)`);
-    // The heading's row: the heading, then the hidden toggle at its end (D-905's place), then the list.
+    // The heading's row: the heading alone; R216 (FR-NOW-1) moved the hidden toggle to `Layers`.
     const head = screen.getByTestId('live-satellites-head');
-    expect([...head.children].map((el) => el.getAttribute('data-testid') ?? el.tagName.toLowerCase())).toEqual(['h2', 'live-hidden-toggle']);
-    expect(within(head).getByTestId('live-hidden-toggle')).toHaveAccessibleName(m.live.hiddenToggle);
+    expect([...head.children].map((el) => el.getAttribute('data-testid') ?? el.tagName.toLowerCase())).toEqual(['h2']);
+    expect(within(screen.getByTestId('live-layers')).getByTestId('live-hidden-toggle')).toHaveAccessibleName(m.live.hiddenToggle);
     expect([...satellites.children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-satellites-head', 'list']);
     // Open with no tap, and listing exactly the passes the drawing draws.
     const panel = screen.getByTestId('chart-legend-slot');
@@ -722,12 +725,13 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     // R132 → R186 (FR-WIDE-1, D-1098): the head is the answer — the indicator line and the headline; the conditions follow
     // the legend in the list; the scrub block is the `Time` row and the actions the page group.
-    expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
-    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'strip');
+    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
     // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
-    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
-    expect(screen.getByTestId('live-actions').closest('[data-slot]')).toHaveAttribute('data-slot', 'action');
+    expect(screen.getByTestId('live-time').closest('[data-slot]')).toHaveAttribute('data-slot', 'time');
+    // R216 (FR-NOW-1): the time buttons are `Time`'s.
+    expect(screen.getByTestId('live-actions').closest('[data-slot]')).toHaveAttribute('data-slot', 'time');
     // The narrowest wide page: the same foot, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
@@ -762,14 +766,14 @@ describe('<LivePage>', () => {
     hold();
     // Compact (R144, FR-TONIGHT-6, D-905): no playback row, no stepping row and no toggle on the actions row, held or
     // not; the hidden-objects toggle is the satellites' heading row's (R150, FR-GYRO-10) — the same saved state (FR-LIVE-6).
-    expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
+    expect(screen.queryByTestId('live-actions')).toBeNull();
     expect(screen.queryByTestId('playback-row')).toBeNull();
     expect(screen.queryByTestId('step-controls')).toBeNull();
     expect(screen.queryByTestId('time-readout')).toBeNull();
-    // R150 (FR-GYRO-10): the satellites are always on the page, the sheet's last group, after the actions.
+    // R150 (FR-GYRO-10): the satellites are always on the page, the sheet's last group; R216 (FR-NOW-1): after `Layers`.
     expect([...screen.getByTestId('live-satellites').children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-satellites-head', 'list']);
-    expect(screen.getByTestId('live-satellites').previousElementSibling).toBe(screen.getByTestId('live-actions'));
-    const toggle = within(screen.getByTestId('live-satellites-head')).getByTestId('live-hidden-toggle');
+    expect(screen.getByTestId('live-satellites').closest('[data-group]')?.previousElementSibling).toBe(screen.getByTestId('live-layers').closest('[data-group]'));
+    const toggle = within(screen.getByTestId('live-layers')).getByTestId('live-hidden-toggle');
     expect(toggle).toHaveAccessibleName('Hidden objects');
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(toggle);
@@ -780,10 +784,11 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     scrub();
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    // The rail is the sky's: the conditions after the legend in the list, the actions in the page group, the toggle among them.
-    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    expect(within(screen.getByTestId('live-group')).getByTestId('live-actions')).toBeInTheDocument();
-    expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    // R216 (FR-NOW-1): the conditions after the legend in `Up now`, the time buttons in `Time`, the toggle in `Layers`.
+    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
+    expect(within(screen.getByTestId('live-time')).getByTestId('live-actions')).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-layers')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('live-layers').closest('[data-slot]')).toHaveAttribute('data-slot', 'layers');
     // R132 → R186: the stripe block is the rail's Time row: the time row — the readout and the playback row — the overview, the stripe, the stepping row.
     // R187 (FR-WIDE-4): inside the shared time control, which is the Time row's.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(within(screen.getByTestId('live-time')).getByTestId('time-control'));
@@ -797,21 +802,21 @@ describe('<LivePage>', () => {
    * chart's view row, after the control (the actions rows are full, FR-COMP-7), on wide on the actions row in both states;
    * a press turns the stars off and the prefs remember it.
    */
-  it('offers [ stars ], on by default, at the end of the view row on compact and on wide, and remembers a press', () => {
+  it('FR-NOW-1: offers [ stars ], on by default, in Layers on compact and on wide, and remembers a press', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(toggle).toHaveAccessibleName(en.live.starsToggleName);
     expect(toggle).toHaveTextContent(en.live.starsToggle);
-    // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the control in the picker's idiom, `[x] stars` last.
-    // R148 (FR-FULL-4): on compact the row is the sheet's.
-    const viewRow = toggle.closest('[data-testid="live-view-row"]') as HTMLElement;
-    expect(viewRow).not.toBeNull();
+    // R216 (FR-NOW-1, D-1239): `[x] stars` is `Layers`'s; the view row is the control with `[ Share ]` last.
+    // R148 (FR-FULL-4): on compact both are the sheet's.
+    expect(toggle.closest('[data-testid="live-layers"]')).not.toBeNull();
+    const viewRow = screen.getByTestId('live-view-row');
     const control = within(viewRow).getByRole('group', { name: en.chart.viewGroup });
     expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Window', 'Polar', 'Dome']);
-    expect(viewRow.lastElementChild).toBe(toggle);
-    expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
+    expect(viewRow.lastElementChild).toBe(screen.getByTestId('live-share'));
+    expect(within(viewRow).queryByTestId('stars-toggle')).toBeNull();
     fireEvent.click(toggle);
     expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
     expect(appStore.getState().starsLayer).toBe(false);
@@ -819,12 +824,11 @@ describe('<LivePage>', () => {
     unmount();
     media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'layers');
     expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
-    expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
     scrub();
-    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'layers');
   });
 
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. R144: on wide, where the stripe and the step row are. */
@@ -886,7 +890,7 @@ describe('<LivePage>', () => {
     // R77 (FR-WATCH-2), R132 (FR-FLOW-4 wide): the readout heads the time row of the scrub block at the rail's foot,
     // over the overview, the stripe and the stepping row.
     const readout = within(screen.getByTestId('time-row')).getByTestId('time-readout');
-    expect(screen.getByTestId('stripe-block').closest('[data-slot]')).toHaveAttribute('data-slot', 'timeline');
+    expect(screen.getByTestId('stripe-block').closest('[data-slot]')).toHaveAttribute('data-slot', 'time');
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect(readout).toHaveTextContent(/^09:48 · \+0 min$/);
     expect(readout).toHaveAttribute('data-today', 'true');
@@ -1228,8 +1232,9 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     inventory('watching', true);
     const open = present();
-    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
-    expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
+    expect(sheetGroups(screen.getByTestId('sheet-body'))).toEqual(['strip', 'view', 'time', 'layers', 'upNow']);
+    expect(sheetRows(screen.getByTestId('sheet-body'))).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
+    expect(within(screen.getByTestId('live-share')).getByRole('button')).toHaveTextContent('Share');
     expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
     // Held: a key on the track holds the instant; nothing appears, nothing disappears.
     act(() => {
@@ -1320,7 +1325,7 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByTestId('live-controls'));
     const body = screen.getByTestId('sheet-body');
     // R150 (FR-GYRO-10, D-949): the satellites last, open, under their heading.
-    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
+    expect(sheetRows(body)).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
     expect(within(screen.getByTestId('live-satellites')).getByRole('heading', { name: 'Satellites (1)' })).toBeInTheDocument();
     expect(within(screen.getByTestId('live-satellites')).getByTestId('chart-legend-slot')).toBeInTheDocument();
     // R150 (FR-GYRO-11, D-950): the window first in the view row.
@@ -1334,9 +1339,9 @@ describe('<LivePage>', () => {
     expect(timeline.children[0]).toBe(screen.getByTestId('live-track'));
     expect(timeline.children[1]).toContainElement(screen.getByTestId('live-taps'));
     expect(within(screen.getByTestId('live-view-row')).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
-    expect(screen.getByTestId('live-view-row').lastElementChild).toBe(screen.getByTestId('stars-toggle'));
-    // Every group a group apart, the rows inside the timeline a row apart (FR-FLOW-10).
-    for (const child of body.children) expect(child).toHaveAttribute('data-rhythm', 'group');
+    expect(screen.getByTestId('live-view-row').lastElementChild).toBe(screen.getByTestId('live-share'));
+    // Every row a group apart, the rows inside the timeline a row apart (FR-FLOW-10); R216: the rows are the groups'.
+    for (const child of body.querySelectorAll(':scope > [data-group] > *')) expect(child).toHaveAttribute('data-rhythm', 'group');
     for (const child of screen.getByTestId('live-timeline').children) expect(child).toHaveAttribute('data-rhythm', 'row');
     const facing = screen.getByTestId('live-facing');
     if (view === 'window') {
@@ -1964,7 +1969,7 @@ describe('<LivePage>', () => {
       withPhone(() => Promise.resolve('granted'));
       render(<LivePage link={null} onLeave={() => undefined} />);
       const body = screen.getByTestId('sheet-body');
-      expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-follow', 'live-facing', 'live-actions', 'live-satellites', 'app-footer']);
+      expect(sheetRows(body)).toEqual(['live-context', 'live-view-row', 'live-follow', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
       expect(screen.getByTestId('live-follow')).toHaveAttribute('data-rhythm', 'group');
       expect(within(screen.getByTestId('live-follow')).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');
@@ -1972,15 +1977,15 @@ describe('<LivePage>', () => {
       expect(screen.queryByTestId('sky-screen')).toBeNull();
     });
 
-    it('on wide stands in the rail’s View group, after [x] stars, and not in a sheet (FR-GYRO-1, D-944)', () => {
+    it('on wide stands in the rail’s View group, after [ Share ], and not in a sheet (FR-GYRO-1, D-944; FR-NOW-1)', () => {
       withPhone();
       withSky();
       media = stubMatchMedia(1280, 800);
       render(<LivePage link={null} onLeave={() => undefined} />);
-      const viewRow = screen.getByTestId('live-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
+      const viewRow = screen.getByTestId('live-layout').querySelector('[data-slot="view"]') as HTMLElement;
       const follow = within(viewRow).getByTestId('follow-toggle');
       expect(follow).toHaveTextContent(en.window.followToggle);
-      expect(within(viewRow).getByTestId('stars-toggle').compareDocumentPosition(follow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(within(viewRow).getByTestId('live-share').compareDocumentPosition(follow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(screen.queryByTestId('live-follow')).toBeNull();
     });
 

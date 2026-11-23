@@ -131,7 +131,7 @@ for (const locale of ['en', 'es'] as const) {
       await openSheet(page);
       await expect(page.getByTestId('live-tap-now')).toBeEnabled();
       await expect(page.getByRole('button', { name: words.pause })).toHaveText(words.pauseButton);
-      for (const id of ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions']) await expect(page.getByTestId(id)).toBeVisible();
+      for (const id of ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-layers']) await expect(page.getByTestId(id)).toBeVisible();
       for (const id of ['time-stripe', 'step-controls', 'playback-row', 'status-strip', 'next-event', 'live-scrub', 'live-headline', 'live-top-row']) await expect(page.getByTestId(id)).toHaveCount(0);
 
       // FR-TONIGHT-3 (US-42 AC3): a drag on the track to 03:00 pauses there, within the track's pixel, and the hash

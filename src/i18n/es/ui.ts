@@ -105,7 +105,7 @@ export const ui: typeof EnUi = {
   },
 
   starsHeading: 'Estrellas esta noche',
-  skyView: { view: 'Vista', time: 'Hora', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa', exitFullscreen: 'Salir de pantalla completa' },
+  skyView: { view: 'Vista', time: 'Hora', layers: 'Capas', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa', exitFullscreen: 'Salir de pantalla completa' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
 

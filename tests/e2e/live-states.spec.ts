@@ -109,8 +109,8 @@ for (const [width, height, placement] of SHAPES) {
     expect(rounded(scrubbing.box), 'chart-box is the box it was watching').toEqual(rounded(watching.box));
     expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
     await expect(page.getByTestId('chart-bottom-overlay')).toHaveCount(0);
-    await expect(page.getByTestId('live-layout').locator('[data-slot="timeline"]').getByTestId('stripe-block')).toBeVisible();
-    await expect(page.getByTestId('live-layout').locator('[data-slot="timeline"]').getByTestId('overview-row')).toBeVisible();
+    await expect(page.getByTestId('live-layout').locator('[data-slot="time"]').getByTestId('stripe-block')).toBeVisible();
+    await expect(page.getByTestId('live-layout').locator('[data-slot="time"]').getByTestId('overview-row')).toBeVisible();
     await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
 
@@ -177,8 +177,9 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
     await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
     const OVERLAY = ['live-head', 'live-back', 'live-controls', 'live-strip'] as const;
-    // R150 (FR-GYRO-10): `[ list (n) ]` is gone; the satellites, their heading and the hidden toggle at its end are the sheet's last group.
-    const SHEET = ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions', 'live-share', 'live-satellites', 'live-satellites-head', 'live-hidden-toggle'] as const;
+    // R150 (FR-GYRO-10): `[ list (n) ]` is gone; the satellites and their heading are the sheet's last group. R216 (FR-NOW-1):
+    // `[ Share ]` is the view row's, the hidden toggle `Layers`'.
+    const SHEET = ['live-context', 'live-view-row', 'live-share', 'live-facing', 'live-track', 'live-taps', 'live-layers', 'live-hidden-toggle', 'live-satellites', 'live-satellites-head'] as const;
     const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-legend-toggle', 'stripe-block'] as const;
     const inventory = async (state: string, sheetOpen: boolean): Promise<void> => {
       for (const id of OVERLAY) await expect(page.getByTestId(id), `${state}: ${id} is visible`).toBeVisible();

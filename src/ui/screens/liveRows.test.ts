@@ -24,7 +24,8 @@ describe('rowsFor (FR-WATCH-4)', () => {
   it('compact: the box, the head, [ controls ], the hint and the next-pass strip over the sky; the sheet’s rows in FR-FULL-4’s order with the sheet open — the same list watching and scrubbing, tall and short', () => {
     expect(COMPACT_OVERLAY).toEqual(['box', 'head', 'controls', 'follow', 'readout', 'hint', 'strip', 'back-to-live']);
     // R150 (FR-GYRO-10, D-949): `list` (the button) is gone; the satellites, open, are the sheet's last row.
-    expect(COMPACT_SHEET).toEqual(['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites']);
+    // R216 (FR-NOW-1, D-1239): the rail's group order — the context, `View` (with `[ Share ]`, the facing), `Time`, `Up now`.
+    expect(COMPACT_SHEET).toEqual(['context', 'view-row', 'share', 'facing', 'track', 'taps', 'satellites']);
     expect(COMPACT_SHEET.at(-1)).toBe('satellites');
     expect(LIVE_ROWS).not.toContain('list');
     expect(COMPACT_CONDITIONAL).toEqual(['follow', 'readout', 'hint', 'back-to-live']);

@@ -26,9 +26,8 @@ export interface Shell {
   order: string[];
 }
 
-export const SHELL_ORDER = ['answer', 'viewRow', 'timeline', 'action', 'layers', 'list'];
-/** v2.14.1 (V214-33, D-1135): the pass page's rail, the list under the head. */
-export const LIST_FIRST_ORDER = ['answer', 'list', 'viewRow', 'timeline', 'action', 'layers'];
+/** R216 (FR-NOW-1, D-1239): `SLOT_ORDER`, one order on every page; the list-first order is gone. */
+export const SHELL_ORDER = ['strip', 'view', 'time', 'turn', 'layers', 'upNow', 'upFrom'];
 export const SHELL_DESKS = [
   { width: 1024, height: 640 },
   { width: 1280, height: 800 },
@@ -48,7 +47,7 @@ export async function shellOf(layout: Locator): Promise<Shell> {
 export async function chooseDeskView(layout: Locator, locale: 'en' | 'es', view: DeskView): Promise<void> {
   const label = DESK_LABELS[locale][DESK_VIEWS.indexOf(view)] ?? '';
   // R206 (FR-CTRL-2): an option's name is its word, pressed or not.
-  await layout.locator('[data-slot="viewRow"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: label, exact: true }).click();
+  await layout.locator('[data-slot="view"]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: label, exact: true }).click();
   await expect(layout.locator(view === 'globe' ? '[data-globe]' : `[data-drawing="${view}"]`).first()).toBeAttached({ timeout: 30_000 });
 }
 

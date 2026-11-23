@@ -32,13 +32,14 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
   const strip = await page.getByTestId('status-strip').boundingBox();
-  const actions = await page.getByTestId('live-actions').boundingBox();
-  if (!box || !strip || !actions) throw new Error('the page is not laid out');
+  const layers = await page.getByTestId('live-layers').boundingBox();
+  if (!box || !strip || !layers) throw new Error('the page is not laid out');
   // R132 (D-864): the rail is the layout's, its first row the answer.
-  const rail = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
+  const rail = await page.getByTestId('live-layout').locator('[data-slot="strip"]').boundingBox();
   if (!rail) throw new Error('no rail');
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-  expect(strip.y).toBeLessThan(actions.y);
+  // R216 (FR-NOW-1): the conditions are `Up now`'s, under `Layers`.
+  expect(strip.y).toBeGreaterThan(layers.y);
   expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
   await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'rail');
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });

@@ -111,6 +111,15 @@
   overscroll-behavior: contain;
 }
 
+/* R216 (FR-NOW-1, D-1239): a group of the rail, its rows a group apart as the body's are. */
+.group {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 /* D-1023: the footer's one row closes the body. The sheet already draws the two cells of side padding the frame's
    footer carries (global.css), so the row takes none of its own, no cap, and its rule does not reach out past the
    body (`Footer.module.css`'s `.rule`), which would scroll the body sideways. The sheet's own bottom padding is

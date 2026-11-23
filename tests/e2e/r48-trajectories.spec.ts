@@ -162,31 +162,32 @@ test.describe('the live page on a portrait phone', () => {
     const viewRow = await box(page, 'live-view-row');
     const track = await box(page, 'live-track');
     const taps = await box(page, 'live-taps');
-    const actions = await box(page, 'live-actions');
+    const layers = await box(page, 'live-layers');
     const sheet = await box(page, 'live-sheet');
     // R152: with `[ follow the phone ]` in the sheet (a touch device) the body scrolls to reach the list, so the rows
     // above are read before the scroll and the list, with the actions row it follows, after it — each comparison
     // between boxes read at one scroll position.
     await page.getByTestId('chart-legend-slot').scrollIntoViewIfNeeded();
-    // The list's panel, two tap rows that scroll inside themselves (`live-compact.spec.ts`), not the rows it holds.
+    // The list's panel (R216, FR-CTRL-10: uncapped, `live-compact.spec.ts`).
     const legend = await box(page, 'chart-legend-slot');
     const listHead = await box(page, 'live-satellites-head');
-    const actionsAtList = await box(page, 'live-actions');
+    const layersAtList = await box(page, 'live-layers');
     // FR-FULL-1: the box is the viewport; FR-FULL-2: the head over its top-left.
     expect(Math.round(chart.width)).toBe(PORTRAIT.width);
     expect(Math.round(chart.height)).toBe(PORTRAIT.height);
     expect(head.y).toBeLessThan(PORTRAIT.height / 4);
     expect(head.x).toBeLessThan(PORTRAIT.width / 4);
-    // FR-FULL-4: in the sheet, top to bottom — the context line, the track (two tap rows with its label row), the
-    // taps, the view row, the facing row, the actions, then the satellites' heading row and the list (R150, FR-GYRO-10).
+    // R216 (FR-NOW-1, D-1239): in the sheet, top to bottom, the rail's groups — the context line; `View`: the view row
+    // and the facing row; `Time`: the track (two tap rows with its label row) and the taps; `Layers`; then the
+    // satellites' heading row and the list (R150, FR-GYRO-10).
     expect(context.y).toBeGreaterThanOrEqual(sheet.y - 1);
-    expect(track.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
+    expect(viewRow.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
+    expect(facing.y).toBeGreaterThanOrEqual(viewRow.y + viewRow.height - 1);
+    expect(track.y).toBeGreaterThanOrEqual(facing.y + facing.height - 1);
     expect(track.height).toBeGreaterThanOrEqual(2 * row - 1);
     expect(taps.y).toBeGreaterThanOrEqual(track.y + track.height - 1);
-    expect(viewRow.y).toBeGreaterThanOrEqual(taps.y + taps.height - 1);
-    expect(facing.y).toBeGreaterThanOrEqual(viewRow.y + viewRow.height - 1);
-    expect(actions.y).toBeGreaterThanOrEqual(facing.y + facing.height - 1);
-    expect(listHead.y).toBeGreaterThanOrEqual(actionsAtList.y + actionsAtList.height - 1);
+    expect(layers.y).toBeGreaterThanOrEqual(taps.y + taps.height - 1);
+    expect(listHead.y).toBeGreaterThanOrEqual(layersAtList.y + layersAtList.height - 1);
     expect(legend.y).toBeGreaterThanOrEqual(listHead.y + listHead.height - 1);
     // FR-FULL-4, FR-TONIGHT-9: the list inside the sheet, the sheet inside the viewport, and the page does not scroll.
     expect(legend.y + legend.height).toBeLessThanOrEqual(sheet.y + sheet.height + 0.5);

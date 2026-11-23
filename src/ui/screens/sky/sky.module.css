@@ -10,6 +10,12 @@
   min-width: 0;
 }
 
+/* R216 (FR-NOW-1): a part of the layout's view row on a line of its own (the live page's `Facing`). */
+.wholeRow {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
 /* R187 (FR-WIDE-4): the stars page's `[ now ]` and day steps under the time control — one control row at the tap
    height, never wrapping, as the globe's rows were (`controlRows.test.ts` counts it against the rail). */
 .steps {

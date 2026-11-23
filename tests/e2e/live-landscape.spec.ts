@@ -90,6 +90,10 @@ test.describe('the live page on a landscape phone', () => {
     // R148 (FR-FULL-1, FR-FULL-4): the box is the whole viewport; the head stands over its top-left and the sheet
     // (opened by `enterScrubbing`) is — R150 (FR-GYRO-7) — the bottom sheet, at most SHEET_MAX_SHARE of the height,
     // under the head, with the context line and the track in it, in order.
+    // R216 (FR-NOW-1): the track is `Time`'s, after `View`, so the key on it scrolled the body; read the rows from its top.
+    await page.getByTestId('sheet-body').evaluate((el) => {
+      el.scrollTop = 0;
+    });
     const dome = await page.getByTestId('live-dome').boundingBox();
     const side = await page.getByTestId('live-sheet').boundingBox();
     const head = await page.getByTestId('live-head').boundingBox();
@@ -199,9 +203,9 @@ test.describe('the live page on a portrait phone with a compass', () => {
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    // FR-COMP-4: the actions row stays one line in both states — R150 (FR-GYRO-10): `Share` alone, the satellites
-    // after it — and the taps row `[ tonight ] [ next ] [ now ]` one line too, held or not (R213: under the play button).
-    const actions = await page.getByTestId('live-actions').boundingBox();
+    // FR-COMP-4: the row with `Share` stays one line in both states — R216 (FR-NOW-1): the view row, `Share` at its right —
+    // and the taps row `[ tonight ] [ next ] [ now ]` one line too, held or not (R213: under the play button).
+    const actions = await page.getByTestId('live-view-row').boundingBox();
     const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
     expect(shareWatching?.y ?? 0, 'one line').toBeLessThanOrEqual((actions?.y ?? 0) + (actions?.height ?? 0));
     const taps = await page.getByTestId('live-jumps').getByRole('button').all();
@@ -209,7 +213,7 @@ test.describe('the live page on a portrait phone with a compass', () => {
     for (const top of tapTops) expect(Math.abs(top - (tapTops[0] ?? 0))).toBeLessThanOrEqual(1);
     await enterScrubbing(page);
     const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
-    const actionsHeld = await page.getByTestId('live-actions').boundingBox();
+    const actionsHeld = await page.getByTestId('live-view-row').boundingBox();
     expect(share?.y ?? 0, 'one line').toBeLessThanOrEqual((actionsHeld?.y ?? 0) + (actionsHeld?.height ?? 0));
     expect(actionsHeld?.height).toBe(actions?.height);
     await page.getByTestId('live-tap-now').click();

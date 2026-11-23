@@ -228,7 +228,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Live.tsx` (R216 holds it); the place group's controls (R218); the sheet's head (R219); the bar (R220).
   - **Done when:** `npm run check` green; `Header.test.tsx` covers the three readings, the current tab's 2 px underline and `← back`; `PlaceDialog.test.tsx` sets a place each of three ways and sees it close; the compact header holds the mark and three links in 36 cells; `npm run check:sdd` green.
 
-- [ ] **R216 — The live rail, in order**
+- [x] **R216 — The live rail, in order** — the stars page and the pass detail renamed onto the seven slots too, the pass list as `upFrom` (D-1277).
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 500

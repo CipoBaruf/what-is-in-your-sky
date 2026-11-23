@@ -222,8 +222,8 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
         expect(await bandUnderBox(page, boxRect)).toBeLessThanOrEqual(SPACE_3_PX);
         expect(rail.x).toBeGreaterThanOrEqual(boxRect.x + boxRect.width - 1);
         // The facing picker in the rail (FR-SKY-2) — R186 (FR-WIDE-1): the live page's group — the readout in the box's corner.
-        await expect(page.getByTestId('live-group').getByTestId('window-facing')).toBeVisible();
-        await expect(page.getByTestId('live-group').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
+        await expect(page.getByTestId('live-facing-group').getByTestId('window-facing')).toBeVisible();
+        await expect(page.getByTestId('live-facing-group').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
         const readout = await rectOf(page.getByTestId('window-readout'));
         expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
         expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
@@ -368,8 +368,8 @@ test.describe('the landmark and the facing key (R127)', () => {
       const starName = linePattern.exec((await line.textContent()) ?? '')?.[1] ?? '';
       expect(starName).not.toBe('');
       // FR-SKY-13: the picker ends with the pass's key, after `up` — one capital, the legend's (the arc itself is not drawn yet five minutes out).
-      // R186 (FR-WIDE-1): the picker is the live page's rail group.
-      const picker = page.getByTestId('live-group').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
+      // R186 (FR-WIDE-1) → R216 (FR-NOW-1): the picker is the rail's `View` group's.
+      const picker = page.getByTestId('live-facing-group').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
       const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', locale === 'es' ? 'arriba' : 'up'];
       await expect(picker.getByRole('button')).toHaveText([...points, /^[A-Z]$/]);
       const key = (await picker.getByRole('button').last().textContent()) ?? '';
