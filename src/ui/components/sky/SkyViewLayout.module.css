@@ -97,6 +97,8 @@
   box-sizing: border-box;
   height: 100dvh;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* R220 (FR-UPD-2, D-1237): while the update bar stands fixed under the head, the box starts under the bar (`Shell.tsx`). */
+  padding-block-start: max(env(safe-area-inset-top), var(--update-bar-end, 0px));
   background: var(--bg);
 }
 
