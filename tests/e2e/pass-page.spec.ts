@@ -26,9 +26,14 @@ interface RunPass {
 }
 const RUN_PASSES = STORED_RUN.passes as RunPass[];
 
-/** The home on a desk, the stored run's list settled, nothing saved but the language (a fresh desk opens the globe). */
+/**
+ * The live page on a desk, the stored run's list settled, nothing saved but the language (a fresh desk opens the globe).
+ * R212 (FR-LAND-1): the seed settles on the satellites page; the live page is a header link from there.
+ */
 async function home(page: Page, locale: Locale): Promise<void> {
   await seedStoredRun(page, { locale, settled: true, prefs: { chartView: undefined, theme: 'dark' } });
+  await page.locator('#root > header').getByTestId('live-link').click();
+  await expect(page.getByTestId('live-layout')).toBeVisible({ timeout: 30_000 });
 }
 
 /** `[ satellites ]` from the header, and the pass page drawn. */
@@ -79,7 +84,7 @@ for (const [width, height] of SIZES) {
     test.use({ viewport: { width, height } });
     for (const locale of LOCALES) {
       test.describe(locale, () => {
-        test('FR-WIDE-1, FR-CLEAN-14: the header is a sub-page’s — [ ← ] first, [ satellites ] current — and [ ← ] returns home with the card in view (D-1134)', async ({ page }, info) => {
+        test('FR-WIDE-1, FR-CLEAN-14, FR-LAND-6: the header is a sub-page’s — [ ← ] first, [ satellites ] current — and [ ← ] returns to the live page (D-1134)', async ({ page }, info) => {
           test.skip(info.project.name !== 'chromium', 'the sizes are this file’s own');
           await home(page, locale);
           await openFromHeader(page);
@@ -87,15 +92,12 @@ for (const [width, height] of SIZES) {
           const back = header.getByRole('button', { name: WORD[locale].back });
           await expect(back).toBeVisible();
           const links = header.getByRole('navigation').locator('[data-testid$="-link"]');
-          await expect(links).toHaveText(locale === 'es' ? ['inicio', 'en vivo', 'satélites', 'estrellas'] : ['home', 'live', 'satellites', 'stars']);
+          await expect(links).toHaveText(locale === 'es' ? ['en vivo', 'satélites', 'estrellas'] : ['live', 'satellites', 'stars']);
           await expect(header.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
           await expect(header.getByTestId('pass-link')).toHaveText(WORD[locale].satellites);
-          const id = await page.getByTestId('guide-panel').getAttribute('data-pass-id');
           await back.click();
-          await expect(page).not.toHaveURL(/#pass/);
-          const card = page.locator(`article[data-pass-id="${id ?? ''}"]`);
-          await expect(card).toBeInViewport();
-          await expect(card).toBeFocused();
+          await expect(page).toHaveURL(/#live$/);
+          await expect(page.getByTestId('live-layout')).toBeVisible();
         });
 
         test('FR-WIDE-1: the rail’s first group is tonight’s passes, this one aria-current; a second row opens its pass in place (D-1135)', async ({ page }, info) => {
@@ -229,8 +231,8 @@ for (const [width, height] of SIZES) {
 }
 
 /*
- * V214-35 (D-1134): `[ ← ]` is the browser's back — to the page the reader came from. From the home that is the home
- * with the card (above); from the stars page, the stars page. A bare `#pass`, opened before the passes are known,
+ * V214-35 (D-1134): `[ ← ]` is the browser's back — to the page the reader came from. From the live page that is the
+ * live page (above); from the stars page, the stars page. A bare `#pass`, opened before the passes are known,
  * becomes the pass `[ satellites ]` names once they arrive, in its own entry.
  */
 test.describe('FR-WIDE-1: [ ← ] goes back to where the reader came from; a bare #pass finds its pass (V214-35)', () => {
@@ -274,12 +276,13 @@ test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, els
   test('with one ahead: the first rise after now', async ({ page }) => {
     await home(page, 'en');
     const href = (await page.getByTestId('pass-link').getAttribute('href')) ?? '';
-    const ids = await page.locator('article[data-pass-id]').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
-    const ahead = ids.map(startOf).filter((t) => t > NINE_DAYS_ON);
     expect(href).toMatch(/^#pass=\d+-\d+$/);
-    expect(startOf(href)).toBe(Math.min(...ahead));
-    await openFromHeader(page);
+    const layout = await openFromHeader(page);
     await expect(page).toHaveURL(new RegExp(`${href}$`));
+    // R212: the list the home drew is the pass page's rail now; the rail lists what is shown, so the next is its first ahead.
+    const ids = await layout.locator('[data-slot="list"] article[data-pass-id]').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-pass-id') ?? ''));
+    const ahead = ids.map(startOf).filter((t) => t > NINE_DAYS_ON);
+    expect(startOf(href)).toBe(Math.min(...ahead));
   });
 
   test('with a pass up: that pass', async ({ page }) => {
@@ -290,7 +293,6 @@ test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, els
     // The clock set again before the load: the pass is up; the recompute from that instant clips its rise (gotchas).
     await page.clock.setFixedTime(at);
     await page.reload();
-    await expect(page.locator('article[data-pass-id]').first()).toBeAttached({ timeout: 30_000 });
     const norad = target.id.split('-')[0] ?? '';
     await expect.poll(async () => (await page.getByTestId('pass-link').getAttribute('href')) ?? '', { timeout: 30_000 }).toMatch(new RegExp(`^#pass=${norad}-\\d+$`));
     const href = (await page.getByTestId('pass-link').getAttribute('href')) ?? '';
@@ -309,16 +311,17 @@ test.describe('FR-CLEAN-14: [ satellites ] opens the pass up, else the next, els
       },
       ['wiys:prefs:v1', JSON.stringify({ locale: 'en', observer: { lat: 89.9, lon: 0, altM: 0, label: 'North Pole', source: 'coords', timeZone: 'UTC' } })] as [string, string],
     );
+    // R212 (FR-LAND-1): `/` is the live page; the computed span's empty line is read on the pass page's rail.
     await page.goto('/');
-    await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/No darkness/, { timeout: 60_000 });
+    await expect(page).toHaveURL(/#live$/);
     await expect(page.getByTestId('pass-link')).toHaveAttribute('href', '#pass');
     const layout = await openFromHeader(page);
+    // D-1135: the rail's list is the span's, and the span holds none: its empty line, over 24 h.
+    await expect(layout.locator('[data-slot="list"]').getByRole('status')).toHaveText(/in the next 24 h/, { timeout: 60_000 });
     await expect(page).toHaveURL(/#pass$/);
     await expect(page.getByTestId('pass-empty')).toBeVisible();
     await expect(page.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
-    // D-1135: the rail's list is the span's, and the span holds none: its empty line, over 24 h.
     await expect(layout.locator('[data-slot="list"] article[data-pass-id]')).toHaveCount(0);
-    await expect(layout.locator('[data-slot="list"]').getByRole('status')).toHaveText(/in the next 24 h/);
     await expect(layout.locator('[data-arc-series][data-pass-ids]:not([data-pass-ids=""])')).toHaveCount(0);
   });
 });
