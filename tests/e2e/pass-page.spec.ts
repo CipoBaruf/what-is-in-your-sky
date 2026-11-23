@@ -205,9 +205,9 @@ for (const [width, height] of SIZES) {
           const [near, total] = ((await arc.getAttribute('data-near')) ?? '').split('/').map(Number);
           expect(total, 'the whole track is the polyline').toBeGreaterThan(2);
           expect(near, 'every point of the arc on the near side').toBe(total);
+          // Polled: the drawing can still hold the loop's last frame when the instant reads the rise.
+          await expect.poll(async () => { const g = await geometryOf(arc); return distance(g.marker, g.line[0]); }, { message: 'the marker at the rise' }).toBeLessThan(2);
           const before = await geometryOf(arc);
-          expect(before.marker, 'the marker at the rise').not.toBeNull();
-          expect(distance(before.marker, before.line[0])).toBeLessThan(2);
           await layout.getByTestId('live-play').click();
           await expect.poll(async () => distance((await geometryOf(arc)).marker, before.marker), { timeout: 10_000 }).toBeGreaterThan(3);
           const after = await geometryOf(arc);
