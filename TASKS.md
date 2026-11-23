@@ -263,7 +263,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** any live screen; the window (R214).
   - **Done when:** `npm run check` green; `globe.spec.ts` presses the three keys; `legend.test.ts` covers the 16 compass boundaries and below-horizon rows; `Legend.test.tsx` covers `upOnly` with none up and with one up; `legend-hover.spec.ts` sees the picked row's line and `aria-pressed`; `npm run check:sdd` green.
 
-- [ ] **R218 — The place group's controls**
+- [x] **R218 — The place group's controls** (Stack gained the rhythm gaps and ul/section forms, D-1284)
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 300
