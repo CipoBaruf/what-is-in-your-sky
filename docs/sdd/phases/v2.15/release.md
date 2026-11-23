@@ -1,5 +1,7 @@
 ## 29. v2.15 (spec §Phase 2x)
 
+> *History (marked 2026-11-23, FR-SHOW-1, R212): the v2.15 release’s list as it was run; R212 deleted `home.spec.ts` with the home (FR-LAND-1).*
+
 Everything in `docs/RELEASE.md` and §28 still applies.
 v2.15 is "where they stop" (V215-1..V215-7): the site counts where a first visit stops, and the privacy note is gone.
 It is the first release with a Worker script, so §29.4's preview checks come before the tag.
