@@ -38,8 +38,9 @@ for (const [width, height, where] of [[1920, 1080, 'live-actions']] as const) {
 
     test('by day, [ see this pass ] holds the page at the pass’s rise with its arc drawn, the hash carries t, and [ back to live ] returns (FR-JUMP-1, FR-JUMP-2)', async ({ page }) => {
       await openLiveByDay(page);
-      // By day, watching: the sky word says so, and the headline counts to a rise hours ahead.
-      await expect(page.getByTestId('live-sky')).toContainText(/day/i);
+      // By day, watching: the daytime line says so (R219, FR-DARK-3: the `Sky` field went with the status strip,
+      // D-1288), and the headline counts to a rise hours ahead.
+      await expect(page.getByTestId('daytime-line')).toContainText(/day/i);
       await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
       await expect(page.getByTestId('next-event-label')).toHaveAttribute('data-kind', 'rise');
       const control = page.getByTestId('next-event-see');

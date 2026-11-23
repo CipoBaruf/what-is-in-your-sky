@@ -93,13 +93,17 @@ interface Counts {
   satellites: number;
 }
 
-/** The pass id at the dome's one live arc (there is only ever one at a time for one ground station), the stripe's segment count, and the strip's count. */
+/**
+ * The pass id at the dome's one live arc (there is only ever one at a time for one ground station), the stripe's
+ * segment count, and the satellites `Up now` lists. R219 (FR-NOW-2, D-1288): the `Up n` field went with the status
+ * strip, the list is the count — the up-only legend's satellite rows, not its `Sun`/`Moon` lines (`data-body`).
+ */
 async function counts(page: Page, passId: string): Promise<Counts> {
   const dome = page.getByTestId('live-dome');
   const arc = dome.locator(`[data-drawing] [data-pass-id="${passId}"]`);
   const arcId = (await arc.count()) > 0 ? passId : null;
   const segmentCount = await page.getByTestId('time-stripe').locator('[data-pass-segment]').count();
-  const satellites = Number(await page.getByTestId('live-count').locator('[data-count]').getAttribute('data-count'));
+  const satellites = await page.locator('[data-testid="chart-legend"][data-up-only="true"] > li:not([data-body]):not([data-testid="legend-up-none"])').count();
   return { arcId, segmentCount, satellites };
 }
 
