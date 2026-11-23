@@ -703,12 +703,12 @@ async function firstVisit(page: Page, width: CaptureWidth, theme: CaptureTheme, 
 type ExamplePage = '#pass' | '#live' | '#stars';
 
 /**
- * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), its line under the header, at the set's
- * instant on the dot.
+ * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), at the set's instant on the dot. R215
+ * (D-1238): the line under the header is gone; the header itself (with its place line on wide) is what is awaited.
  */
 async function fromExample(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, hash: ExamplePage): Promise<void> {
   await firstVisit(page, width, theme, locale, CLOCK, hash);
-  await ticked(page, page.getByTestId('example-notice'));
+  await ticked(page, page.getByTestId('header').first());
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   // The page's chunk and its drawing are lazy, and the paused clock holds their reveals (R32).
   await ticked(page, page.locator('svg[data-globe][viewBox], svg[data-drawing], [data-testid="sky-chart"] [data-star]'));
