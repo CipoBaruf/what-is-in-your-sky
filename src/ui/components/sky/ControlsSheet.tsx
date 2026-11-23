@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import { SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../../lib/layout';
 import { PASS_PAGE_HASH, SETTINGS_HASH } from '../../../lib/shareLinks';
 import { Footer } from '../common/Footer';
+import { PlaceLine, useHeaderPlace, type HeaderPlace } from '../common/PlaceLine';
 import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
@@ -15,8 +16,9 @@ import styles from './ControlsSheet.module.css';
  * R147 (FR-FULL-3, FR-FULL-4, FR-FULL-5; D-921): the compact live page's one button over the sky and the sheet it
  * opens. `[ controls ]` is a `TextButton` and a toggle (`aria-expanded`, `aria-controls` naming the sheet), placed by
  * the page through `className`. The sheet is a non-modal `<section role="region">` named "Sky controls": a head —
- * the place in the dim ink, cut with an ellipsis, `satellites` (R212, FR-LAND-6: the phone's way to the list) and
- * `[ settings ]` (the header's keys and routes) and the `×` — over
+ * R219 (FR-LAND-4, D-1238): the place line (`PlaceLine`: `Salta · example  change`, or the place and `change`) with
+ * the `×`, then `satellites` (R212, FR-LAND-6: the phone's way to the list) and `[ settings ]` (the header's keys
+ * and routes) — over
  * a body that renders the page's rows (`children`) and scrolls inside the sheet while the head stays.
  *
  * R150 (FR-GYRO-7, D-947): one form, a bottom sheet the full width of the box in both shapes, as tall as its content
@@ -53,8 +55,8 @@ import styles from './ControlsSheet.module.css';
 export interface ControlsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The place's name for the sheet's head, `null` where there is none. */
-  place: string | null;
+  /** R219 (D-1238): the head's place line; left out, the place the pages open for (`useHeaderPlace`), as the header reads it. */
+  place?: HeaderPlace | null;
   /** R216 (FR-NOW-1, D-1239): the rail's groups, rendered in `SLOT_ORDER`; an empty one renders nothing. */
   groups?: Partial<Record<SkyViewRailSlot, ReactNode>> | undefined;
   /** The sheet's rows, in the page's order, after `groups` (R148). */
@@ -113,6 +115,9 @@ function firstFocusable(root: HTMLElement | null): HTMLElement | null {
 export function ControlsSheet({ open, onOpenChange, place, groups, children, beside, className }: ControlsSheetProps) {
   const t = useT();
   const sheetId = useId();
+  // R219 (FR-LAND-4, D-1238): the head's first line is the place line, read as the header reads it.
+  const pagePlace = useHeaderPlace();
+  const shownPlace = place === undefined ? pagePlace : place;
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -218,14 +223,16 @@ export function ControlsSheet({ open, onOpenChange, place, groups, children, bes
         data-testid="live-sheet"
       >
         <div className={styles.head} data-testid="sheet-head" onPointerDown={onHeadDown} onPointerMove={onHeadMove} onPointerUp={onHeadUp} onPointerCancel={onHeadCancel}>
-          <span className={styles.place} data-testid="sheet-place">
-            {place ?? ''}
-          </span>
-          <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
-          <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />
+          <div className={styles.place} data-testid="sheet-place">
+            <PlaceLine place={shownPlace} />
+          </div>
           <button type="button" ref={closeRef} className={`target ${styles.close}`} aria-label={t.sheet.close} onClick={() => onOpenChange(false)} data-testid="sheet-close">
             ×
           </button>
+          <div className={styles.links} data-testid="sheet-links">
+            <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
+            <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />
+          </div>
         </div>
         <div ref={bodyRef} className={styles.body} data-testid="sheet-body">
           {groups !== undefined &&

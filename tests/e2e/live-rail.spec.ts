@@ -47,7 +47,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
-import { bandUnderBox, domeDrawn, enterScrubbing, openSheet, seedStoredRun, sheetOrder, SPACE_3_PX, stripFilled } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, NINE_DAYS_ON, openSheet, seedStoredRun, sheetOrder, SPACE_3_PX, stripFilled, stubNetwork } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -129,7 +129,7 @@ for (const [width, height] of [
       if (!legend) throw new Error('no legend');
       expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
       let above = 0;
-      for (const id of ['live-indicator', 'live-share', 'stripe-block', 'live-layers', 'chart-legend-slot', 'status-strip']) {
+      for (const id of ['live-indicator', 'live-share', 'stripe-block', 'live-layers', 'chart-legend-slot', 'live-sky-rows']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
@@ -302,6 +302,127 @@ test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
       await expect(page.getByTestId('live-layers').getByTestId('live-hidden-toggle')).toBeAttached();
       expect(await scrollersInside(page, '[data-testid="sheet-body"]'), 'scrolling elements inside the sheet').toEqual([]);
       expect(await nestedScrolls(page, 'body'), 'a scroll inside a scroll').toEqual([]);
+    });
+  });
+});
+
+/**
+ * R219 (FR-NOW-2, FR-NOW-3, US-65 AC9; D-1239): `Up now` is the legend's up-only form — the satellites up, then the
+ * Moon and the Sun on one edge, `No satellite up` at the column's — and then `Clouds` and `Moon` rows.
+ */
+async function expectUpNow(page: Page, label: string, bodies: readonly string[] | 'any' = 'any'): Promise<void> {
+  const upNow = page.getByTestId('live-layout').locator('[data-slot="upNow"]');
+  const legend = upNow.locator('[data-testid="chart-legend"][data-up-only="true"]');
+  await expect(legend, label).toBeVisible();
+  const heading = await upNow.getByRole('heading', { name: 'Up now' }).boundingBox();
+  if (!heading) throw new Error(`${label}: no Up now heading`);
+  // Each row's first ink — the swatch, or the words of `No satellite up` — and the column's left edge.
+  const starts = await legend.locator(':scope > li').evaluateAll((items) =>
+    items.map((li) => {
+      const swatch = li.querySelector('[data-color]');
+      if (swatch) return { body: li.getAttribute('data-body'), none: false, x: swatch.getBoundingClientRect().x };
+      const range = document.createRange();
+      range.selectNodeContents(li);
+      return { body: li.getAttribute('data-body'), none: true, x: range.getBoundingClientRect().x };
+    }),
+  );
+  // The bodies are listed while the drawing carries them (D-1281): the Moon above the horizon, the Sun above −18°.
+  const listed = starts.map((row) => row.body).filter(Boolean);
+  if (bodies === 'any') expect(['moon', 'sun'].filter((body) => listed.includes(body)), `${label}: the Moon before the Sun`).toEqual(listed);
+  else expect(listed, `${label}: the bodies`).toEqual(bodies);
+  // `No satellite up` at the column's left edge, the heading's (FR-NOW-2); the satellites', the Moon's and the Sun's
+  // swatches on one edge, a pickable row's padding in, which the body lines indent by (US-65 AC9, D-1282).
+  for (const row of starts.filter((start) => start.none)) expect(Math.abs(row.x - heading.x), `${label}: No satellite up at the column's left edge`).toBeLessThanOrEqual(1);
+  const rows = starts.filter((start) => !start.none);
+  const edge = rows[0]?.x ?? heading.x;
+  expect(edge - heading.x, `${label}: the rows' edge, one cell in`).toBeGreaterThanOrEqual(0);
+  expect(edge - heading.x, `${label}: the rows' edge, one cell in`).toBeLessThanOrEqual(12);
+  for (const row of rows) expect(Math.abs(row.x - edge), `${label}: ${row.body ?? 'a satellite'} on the rows' edge`).toBeLessThanOrEqual(1);
+  // The two rows after the legend, `Clouds` then `Moon`, and no status line.
+  const legendBottom = await legend.evaluate((el) => el.getBoundingClientRect().bottom);
+  const cloud = await upNow.getByTestId('live-cloud').boundingBox();
+  const moon = await upNow.getByTestId('live-moon').boundingBox();
+  if (!cloud || !moon) throw new Error(`${label}: the sky rows are not laid out`);
+  expect(cloud.y, `${label}: Clouds after the legend`).toBeGreaterThanOrEqual(legendBottom - 1);
+  expect(moon.y, `${label}: Moon after Clouds`).toBeGreaterThanOrEqual(cloud.y + cloud.height - 1);
+  await expect(upNow.getByTestId('live-cloud')).toContainText('Clouds');
+  await expect(upNow.getByTestId('live-moon')).toContainText(/Moon.*% lit/);
+  await expect(page.getByTestId('status-strip')).toHaveCount(0);
+}
+
+/** FR-LAND-4: the sheet's head opens on the place line, the `×` at its end and the links under it. */
+async function expectPlaceFirst(page: Page, kind: 'example' | 'set'): Promise<void> {
+  await openSheet(page);
+  const head = page.getByTestId('sheet-head');
+  const line = head.getByTestId('place-line');
+  await expect(line).toHaveAttribute('data-place', kind);
+  await expect(line.getByTestId('place-change')).toBeVisible();
+  expect(await head.evaluate((el) => el.firstElementChild?.getAttribute('data-testid'))).toBe('sheet-place');
+  const place = await page.getByTestId('sheet-place').boundingBox();
+  const links = await page.getByTestId('sheet-links').boundingBox();
+  const close = await page.getByTestId('sheet-close').boundingBox();
+  if (!place || !links || !close) throw new Error('the head is not laid out');
+  expect(links.y, 'the links under the place line').toBeGreaterThanOrEqual(place.y + place.height - 1);
+  expect(close.x, 'the × after the place line').toBeGreaterThanOrEqual(place.x + place.width - 1);
+}
+
+test.describe('R219: what is up now, as rows (FR-NOW-2, FR-NOW-3, FR-LAND-4)', () => {
+  test.describe('at 1280 × 800', () => {
+    test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+    test('FR-NOW-2, FR-NOW-3: with a pass up and with nothing up, the Moon and the Sun at the left edge, Clouds and Moon after', async ({ page }) => {
+      await openLive(page);
+      await enterScrubbing(page);
+      const legend = page.getByTestId('chart-legend');
+      // A pass's rise, then two minutes on: the pass is up.
+      await page.getByRole('button', { name: 'Next pass' }).click();
+      await page.getByTestId('time-stripe').focus();
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowRight');
+      await expect(legend.locator('[data-pass-id]').first()).toBeVisible();
+      await expect(legend.getByTestId('legend-up-none')).toHaveCount(0);
+      await expectUpNow(page, 'a pass up');
+      // Three minutes back, before the rise: nothing up, and the first line says so.
+      for (let step = 0; step < 3; step += 1) await page.keyboard.press('ArrowLeft');
+      await expect(legend.getByTestId('legend-up-none')).toHaveText('No satellite up');
+      await expect(legend.locator('[data-pass-id]')).toHaveCount(0);
+      await expectUpNow(page, 'nothing up');
+      // An hour at a time into the day, until the Moon and the Sun are both listed: their rows at the edge too. The
+      // bodies are worked out at most once a second of wall time (FR-LIVE-5), so each hour waits for them.
+      const both = async (): Promise<boolean> => (await legend.locator('[data-body="moon"]').count()) + (await legend.locator('[data-body="sun"]').count()) === 2;
+      for (let hour = 0; hour < 24 && !(await both()); hour += 1) {
+        for (let step = 0; step < 6; step += 1) await page.keyboard.press('Shift+ArrowRight');
+        await page.waitForTimeout(1_200);
+      }
+      await expectUpNow(page, 'the Moon and the Sun up', ['moon', 'sun']);
+    });
+  });
+
+  test.describe('at 390 × 844', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+    test('FR-LAND-4: the sheet opens on the place line with the example', async ({ browser }) => {
+      // The example is the zone's city (FR-OPEN-1), so the context has `examplePages.spec.ts`'s zone.
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, timezoneId: 'America/Argentina/Buenos_Aires', serviceWorkers: 'block' });
+      const page = await context.newPage();
+      await page.addInitScript(() => {
+        sessionStorage.setItem('wiys:followAsked:v1', '1');
+      });
+      await page.clock.setFixedTime(NINE_DAYS_ON);
+      await stubNetwork(page);
+      await page.route('**/e', (route) => route.fulfill({ status: 204 }));
+      await page.goto('/');
+      await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live', { timeout: 60_000 });
+      await expectPlaceFirst(page, 'example');
+      await expect(page.getByTestId('sheet-place')).toContainText('Buenos Aires · example');
+      await context.close();
+    });
+
+    test('FR-LAND-4: the sheet opens on the place line with a place', async ({ page }) => {
+      await seedStoredRun(page, { settled: true });
+      await page.getByTestId('live-link').click();
+      await domeDrawn(page);
+      await expectPlaceFirst(page, 'set');
     });
   });
 });

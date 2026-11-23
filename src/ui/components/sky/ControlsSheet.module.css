@@ -59,34 +59,38 @@
   transition: none;
 }
 
-/* The head: the place, dim and cut with an ellipsis, then `[ settings ]` and the `×` at the row's right end. R150
-   (D-948): the row is the swipe's handle, so it takes the touch's moves itself; the body keeps its native scroll. */
+/* R219 (FR-LAND-4, D-1238): the head is two lines — the place line (`PlaceLine`, its name cut with an ellipsis) with
+   the `×` at the right end, then `satellites` and `[ settings ]`. R150 (D-948): the head is the swipe's handle, so
+   it takes the touch's moves itself; the body keeps its native scroll. */
 .head {
-  display: flex;
+  display: grid;
   flex: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'place close'
+    'links links';
   align-items: center;
-  gap: 0 var(--cell);
+  column-gap: var(--cell);
   touch-action: none;
 }
 
 .place {
-  flex: 1 1 auto;
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--fg-dim);
+  grid-area: place;
+  min-width: 0;
 }
 
-/* R148: the place is what gives; `[ settings ]` and the `×` keep their cells on a row too narrow for all three (360 px, Spanish). */
-.head > :not(.place) {
-  flex: none;
+.links {
+  display: flex;
+  grid-area: links;
+  align-items: center;
+  gap: 0 var(--cell);
 }
 
 /* R150 (FR-GYRO-8, D-948): the `×`, FR-FSC-2's form — the character alone, the app's one icon, in a box of at least
    `--tap` each way (`.target` adds the hit area's floor). */
 .close {
   display: flex;
+  grid-area: close;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;

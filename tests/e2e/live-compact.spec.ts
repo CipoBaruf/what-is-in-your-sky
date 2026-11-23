@@ -98,7 +98,9 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
         expect(Math.round(box.y)).toBe(0);
         await openSheet(page);
         await expect(page.getByTestId('live-legend-toggle')).toHaveCount(0);
-        const watching = await rows(page);
+                const watching = await rows(page);
+        const bodyScroll = (): Promise<number> => page.getByTestId('sheet-body').evaluate((el) => el.scrollTop);
+        const watchingScroll = await bodyScroll();
         expectNoOverlap(watching, SHEET_ROWS);
         // FR-TONIGHT-9, FR-LIVE-1: the page is the viewport and does not scroll; the sheet stands inside it.
         const pageBox = await page.getByTestId('live-page').boundingBox();
@@ -123,7 +125,13 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
         const heldBox = await page.getByTestId('chart-box').boundingBox();
         expect(heldBox, 'the box keeps its size when t leaves now').toEqual(box);
         expect(await scrolls(page), 'the page scrolls while held').toBe(false);
-        for (const id of ROWS) expect(Math.round(held[id]?.y ?? -1), `${id} stays where it was`).toBe(Math.round(watching[id]?.y ?? -2));
+        // R219 (D-1286): the sheet's two-line head leaves the body less room, so the key on the track may scroll the
+        // body (its one scroll, FR-CTRL-10) to it: a sheet row stays where it was in the body.
+        const scrolled = (await bodyScroll()) - watchingScroll;
+        for (const id of ROWS) {
+          const shift = (SHEET_ROWS as readonly string[]).includes(id) ? scrolled : 0;
+          expect(Math.round((held[id]?.y ?? -1) + shift), `${id} stays where it was`).toBe(Math.round(watching[id]?.y ?? -2));
+        }
         // A drag to the small hours: still the same box.
         await pressTrackAt(page, T + 9 * 3_600_000);
         await page.clock.runFor(300);

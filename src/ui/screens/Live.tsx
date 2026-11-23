@@ -26,7 +26,7 @@ import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
 import type { ChartHand } from '../components/guide/skychart/SkyChart.types';
 import { viewFor } from './chartViewDefault';
-import { LiveUpNow, LiveView } from './sky/live/Group';
+import { LiveSkyRows, LiveUpNow, LiveView } from './sky/live/Group';
 import { LazyFacts, useFactsPrefetch } from '../components/sky/facts/LazyFacts';
 import { fromKeyboard } from '../components/sky/facts/keyboardIntent';
 import type { FactsStars, FactsSubject, SkyPick } from '../components/sky/facts/subject';
@@ -45,7 +45,6 @@ import { ContextLine, DaytimeLine, ShownTime, shownTimeText, type ShownTimeProps
 import { SkyHead } from '../components/sky/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { TextButton } from '../components/primitives/TextButton';
-import { StatusStrip } from '../components/live/StatusStrip';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { StepControls } from '../components/live/StepControls';
 import { TimeTaps } from '../components/live/TimeTaps';
@@ -168,11 +167,6 @@ export interface LivePageProps {
 
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
 export const TICK_MS = 10_000;
-
-/** D-160: the satellites visible at `t` are the passes whose interval contains it — exactly the markers on the dome. */
-export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
-  return passes.filter((pass) => pass.start.t <= t && t <= pass.end.t).length;
-}
 
 export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps) {
   const t = useT();
@@ -630,7 +624,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   const headlineLine = landmarkText;
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
-  const upCount = visibleCount(passes, shown);
   // R144 (FR-FSC-2, D-914): the sheet's facing picker's open state is the page's, so a turn of the phone keeps it.
   const [pickerOpen, setPickerOpen] = useState(false);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
@@ -765,8 +758,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   // FR-DARK-3: the Sun above 0° at the shown instant, whatever the sky's word is in twilight.
   const daytime = bodies.sun != null && bodies.sun.altDeg > 0 ? <DaytimeLine /> : null;
   // R187 (FR-WIDE-4, D-1100): the wide page's time control is `TimeControl`, shared with the stars page and the pass detail; the step row is this page's own.
+  const conditions = has('conditions') ? <LiveSkyRows cloud={cloud} moon={bodies.moon} /> : null;
   const steps = has('steps') ? <StepControls t={shown} span={playback.span} passes={passes} onStep={playback.stepTo} /> : null;
-  const conditions = has('conditions') ? <StatusStrip sky={bodies.sky} cloud={cloud} count={upCount} moon={bodies.moon} /> : null;
   /*
    * R144 (FR-TONIGHT-3, FR-TONIGHT-4, FR-TONIGHT-7; D-897, D-900, D-901, D-911): the compact page's own rows. Tonight's
    * band is worked out once per tick for the chip and the context line (D-911). Every seek on the track pauses and
@@ -1033,6 +1026,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
             initialFacingAzDeg={0}
             {...(compact ? { legendOpen: true } : {})}
             moonPhase={compact}
+            legendUpOnly={!compact}
             chartHand={chartHand}
             scene={scene}
             facingPassId={highlighted?.id ?? null}
@@ -1074,7 +1068,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       <ControlsSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        place={observer.label}
         beside={followControl}
         className={styles.controls}
         // R216 (FR-NOW-1, D-1239): the wide rail's groups in its order; the strip itself stands over the sky.
@@ -1150,7 +1143,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       }
       layers={layers}
       upNow={
-        <LiveUpNow facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}>
+        <LiveUpNow
+          facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}
+        >
           <SkyViewChartSlot name="list" />
           {conditions}
         </LiveUpNow>

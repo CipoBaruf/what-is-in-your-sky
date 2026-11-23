@@ -105,7 +105,7 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   taps: 'live-taps',
   'view-row': 'live-view-row',
   facing: 'live-facing',
-  conditions: 'status-strip',
+  conditions: 'live-sky-rows',
   overview: 'overview-row',
   stripe: 'time-stripe',
   steps: 'step-controls',

@@ -588,7 +588,7 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
     </>
   );
   const sheet = (
-    <ControlsSheet open={sheetOpen} onOpenChange={changeSheet} place={observer.label} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
+    <ControlsSheet open={sheetOpen} onOpenChange={changeSheet} beside={sensor ? <FollowControl follow={follow} showRefusal={!sheetOpen} /> : null} className={styles.controls}>
       {/* FR-CLEAN-5: the name with the date and the zone, the landmark line under it (and the twilight label, as the column had it). */}
       <div className={styles.nameBlock} data-testid="pass-head" data-rhythm="group">
         <p className={styles.nameLine} data-testid="pass-name-line">

@@ -358,8 +358,9 @@ async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, 
   // The place is asserted after the drawing, not before: the route is lazy, and its Suspense
   // reveal is one of the timers the paused clock is holding until `liveDrawn` ticks it.
   const view = await liveDrawn(page);
-  // R149 (FR-FULL-2, FR-FULL-4): on compact the place is the sheet head's, in the tree with the sheet closed (D-932).
-  const place = (await page.getByTestId('live-place').count()) > 0 ? page.getByTestId('live-place') : page.getByTestId('sheet-place');
+  // R149 (FR-FULL-2, FR-FULL-4): on compact the place is the sheet head's, in the tree with the sheet closed (D-932);
+  // R219 (FR-LAND-4): the name inside its place line.
+  const place = (await page.getByTestId('live-place').count()) > 0 ? page.getByTestId('live-place') : page.getByTestId('sheet-place').getByTestId('place-name');
   await expect(place).toHaveText(BARILOCHE.label);
   if ((await page.getByTestId('time-track').count()) > 0) {
     await expect(page.getByTestId('time-track').locator('[data-pass-tick]').first()).toBeAttached({ timeout: 30_000 });

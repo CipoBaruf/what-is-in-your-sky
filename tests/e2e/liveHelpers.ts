@@ -574,16 +574,15 @@ export async function stripFilled(page: Page): Promise<void> {
   // R144 (FR-TONIGHT-6, FR-TONIGHT-7): the compact page has no conditions line — its headline is the shown time
   // and its context line the sky, the clouds and the next rise (or the pass up); the line is filled once the sky
   // word has arrived with the astronomy chunk (the pending ellipsis gone).
-  if ((await page.getByTestId('status-strip').count()) === 0) {
+  if ((await page.getByTestId('live-sky-rows').count()) === 0) {
     await expect(page.getByTestId('shown-time')).toBeVisible();
     // R148 (FR-FULL-4): the context line is the sheet's, in the tree whether the sheet is open or not (D-932).
     await expect(page.getByTestId('context-line')).toBeAttached();
     await expect(page.getByTestId('context-line')).not.toContainText('…', { timeout: 30_000 });
     return;
   }
-  const fields = ['sky', 'cloud', 'count'];
-  for (const field of ['time', 'moon']) if ((await page.getByTestId(`live-${field}`).count()) > 0) fields.push(field);
-  for (const field of fields) {
+  // R219 (FR-NOW-3): on wide, the `Clouds` and `Moon` rows at the end of `Up now`.
+  for (const field of ['cloud', 'moon']) {
     await expect(page.getByTestId(`live-${field}`)).toBeVisible();
     await expect(page.getByTestId(`live-${field}`)).not.toContainText('…', { timeout: 30_000 });
   }

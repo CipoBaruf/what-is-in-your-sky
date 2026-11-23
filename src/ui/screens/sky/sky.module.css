@@ -10,7 +10,24 @@
   min-width: 0;
 }
 
-/* R216 (FR-NOW-1): a part of the layout's view row on a line of its own (the live page's `Facing`). */
+/* R219 (FR-NOW-3): the `Clouds` row's value in its tone, the cloud badge's (`CloudBadge.module.css`). */
+.cloud[data-state='clear'] {
+  color: var(--ok);
+}
+
+.cloud[data-state='partly'] {
+  color: var(--warn);
+}
+
+.cloud[data-state='obscured'] {
+  color: var(--danger);
+}
+
+.cloud[data-state='unknown'] {
+  color: var(--fg-dim);
+}
+
+/* R216 (FR-NOW-1):a part of the layout's view row on a line of its own (the live page's `Facing`). */
 .wholeRow {
   flex: 0 0 100%;
   min-width: 0;

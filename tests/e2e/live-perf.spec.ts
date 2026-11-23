@@ -92,8 +92,9 @@ async function openLive(page: Page): Promise<void> {
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-  // R144 (FR-TONIGHT-7): on compact the sky word is the context line's; on wide the conditions line's.
-  const skyLine = (await page.getByTestId('live-sky').count()) > 0 ? page.getByTestId('live-sky') : page.getByTestId('context-line');
+  // R144 (FR-TONIGHT-7): on compact the sky word is the context line's. R219 (FR-NOW-3): on wide the `Sky` field
+  // went with the status strip; the `Moon` row is the one still waiting on the astronomy chunk.
+  const skyLine = (await page.getByTestId('live-moon').count()) > 0 ? page.getByTestId('live-moon') : page.getByTestId('context-line');
   await expect(skyLine).not.toContainText('…', { timeout: 30_000 });
   await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
 }

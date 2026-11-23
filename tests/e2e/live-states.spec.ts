@@ -266,16 +266,16 @@ test('at 360 px in Spanish the head is [ ← ] and the time, and the sheet’s h
   const head = await page.getByTestId('live-head').boundingBox();
   expect(head?.height, 'one row').toBeLessThanOrEqual(48.5);
   await openSheet(page);
-  const place = page.getByTestId('sheet-place');
+  const place = page.getByTestId('sheet-place').getByTestId('place-name');
   await expect(place).toHaveText(/^−?\d+\.\d\d, −?\d+\.\d\d$/);
-  // FR-FULL-4: the sheet's head is the place, `[ ajustes ]` and the `×` (R150, FR-GYRO-8) — 17 cells of controls with
-  // the `×`'s box, which at 360 px leave the place 15 of the 33 the row holds, so a long pair is cut with the
-  // ellipsis the requirement allows; the two controls stand whole at the row's end, inside the sheet.
+  // R219 (FR-LAND-4, D-1238): the sheet's head opens on the place line and the `×` (R150, FR-GYRO-8), then
+  // `satellites` and `[ ajustes ]`; at 360 px a long pair is cut with the ellipsis the requirement allows, and the
+  // controls stand whole inside the sheet.
   const fit = await place.evaluate((span) => ({ scroll: span.scrollWidth, client: span.clientWidth, overflow: getComputedStyle(span).textOverflow }));
   if (fit.scroll > fit.client) expect(fit.overflow).toBe('ellipsis');
   test.info().annotations.push({ type: 'place', description: `the place at 360 px: ${String(fit.scroll)} of ${String(fit.client)} px` });
   const sheet = await page.getByTestId('live-sheet').boundingBox();
-  for (const id of ['sheet-settings', 'sheet-close']) {
+  for (const id of ['place-change', 'sheet-satellites', 'sheet-settings', 'sheet-close']) {
     const control = await page.getByTestId(id).boundingBox();
     expect((control?.x ?? 0) + (control?.width ?? 0), `${id} inside the sheet`).toBeLessThanOrEqual((sheet?.x ?? 0) + (sheet?.width ?? 0) + 0.5);
     const whole = await page.getByTestId(id).evaluate((el) => el.scrollWidth <= el.clientWidth + 1);

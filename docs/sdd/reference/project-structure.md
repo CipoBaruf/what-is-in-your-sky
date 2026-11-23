@@ -38,7 +38,7 @@ what-is-in-your-sky-right-now/          # redrawn from `git ls-files` at 498a0ca
 │       │   │   ├── polar/  (9)         # SkyPolar.tsx, the SVG all-sky chart (FR-GUIDE-2b/4), PolarStars, fieldOutline
 │       │   │   └── window/  (46)       # lane `window`: SkyWindow, projection, camera, scene, StarField, starLabels, milkyWay, skySurface, useDeviceOrientation, orientationAccess, useViewRotation, screenTurn
 │       │   ├── sky/  (17)              # what the sky pages share: SkyViewLayout, SkyHead, ControlsSheet, SkyHint, FollowToggle, useFollow
-│       │   ├── live/  (57)             # StatusStrip, StateIndicator, TimeStripe, StripeOverview, StepControls, PlaybackControls, TimeReadout, TimeTrack, TimeTaps, ShownTime, NextPassStrip, FollowControl, StarsToggle; the hooks usePlayback, usePageShape, useSkyBands, useWakeLock, useDeclination, useHiddenObjects, useStarSource, useWallThrottle; compassHeading, liveArcs, hiddenObjects, touch
+│       │   ├── live/  (57)             # StateIndicator, TimeStripe, StripeOverview, StepControls, PlaybackControls, TimeReadout, TimeTrack, TimeTaps, ShownTime, NextPassStrip, FollowControl, StarsToggle; the hooks usePlayback, usePageShape, useSkyBands, useWakeLock, useDeclination, useHiddenObjects, useStarSource, useWallThrottle; compassHeading, liveArcs, hiddenObjects, touch
 │       │   ├── mark/  (19)             # Mark.tsx, tiers.ts, useBead.ts, rasters.json and the tier snapshots (FR-MARK-1..8, D-438..D-441)
 │       │   ├── moon/  (9)              # MoonAtPeak, MoonGlare, MoonLore (FR-MOON)
 │       │   └── weather/  (3)           # CloudBadge

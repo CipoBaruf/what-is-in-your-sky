@@ -82,7 +82,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.clock.runFor(600);
     const half = await shownInstant(page);
     expect(Math.abs(half - (T + 12 * HOUR))).toBeLessThan(15 * 60_000);
-    await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', '0');
+    // R219 (FR-NOW-2): the count went with the status line; `Up now` says no satellite is up.
+    await expect(page.getByTestId('chart-legend').getByTestId('legend-up-none')).toBeVisible();
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-1\dT\d\d:\d\d/);
     await expect(page.getByRole('button', { name: 'back to live' })).toBeEnabled();
 
@@ -288,10 +289,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(hidden.first()).toHaveText(/^[A-Z]$/);
-    const rows = page.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
-    await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
-    // The ISS is on its arc, so it is not among the dimmed (D-102).
-    await expect(rows.filter({ hasText: 'ISS' })).toHaveCount(0);
+    // R219 (FR-NOW-2, D-1281, D-1288): the wide legend is `Up now`, visible satellites only, so it lists no hidden object.
+    await expect(page.getByTestId('chart-legend').locator('button[data-state="hidden-object"]')).toHaveCount(0);
 
     await page.reload();
     await domeDrawn(page);

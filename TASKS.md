@@ -280,7 +280,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the header (R215).
   - **Done when:** `npm run check` green; the button's box is the same width before, during and after; `place-search.spec.ts` measures the list's left edge and width against the input's; `favourites.spec.ts` sees the picked row; `npm run check:sdd` green.
 
-- [ ] **R219 — What is up now, as rows**
+- [x] **R219 — What is up now, as rows** — the sheet's head is two lines (the place line and the `×`, then `satellites` and `[ settings ]`); the inert live page keeps its header place (D-1286..D-1288).
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 300

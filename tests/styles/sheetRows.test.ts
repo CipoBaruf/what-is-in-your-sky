@@ -8,7 +8,7 @@
  * `--small` 14/16.
  *
  * The rows: the head over the sky at its longest (`│ ← │ 21:47 +13 h 55 min`, FR-FULL-2, FR-STRIP-6), the
- * `controls` button (FR-FULL-3), and the sheet's head row — the place, the `settings` link, the `×` (FR-FULL-4, R150's
+ * `controls` button (FR-FULL-3), and the sheet's head — since R219 two lines, the place line and the `×`, then `satellites` and `settings` (FR-LAND-4; FR-FULL-4, R150's
  * FR-GYRO-8).
  * The place and the chip are the parts that ellipsise, so each row also says how much of it the fixed part takes.
  * This file is R147's own so the two tasks of wave 1 touch no file in common (PLAN §16.27).
@@ -131,18 +131,20 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     }
   });
 
-  it('the sheet’s head row: the place cut as it must be, the satellites and settings links and the ×, inside 360 px', () => {
-    inLocale(locale, createElement(ControlsSheet, { open: true, onOpenChange: () => undefined, place: 'Cipolletti' }));
-    const head = screen.getByTestId('sheet-head');
-    const cells = rowCells(head, table);
-    // R150 (FR-GYRO-8): the `×` is one character drawn in a `--tap` box (48 px), wider than its cell: count the box.
-    expect(rowParts(head, table)).toEqual(['Cipolletti', t.header.pages.pass, t.settings.open, '×']);
+  it('the sheet’s head, two lines (FR-LAND-4, D-1238): the place line and the ×, then satellites and settings, inside 360 px', () => {
+    inLocale(locale, createElement(ControlsSheet, { open: true, onOpenChange: () => undefined, place: { label: 'Montevideo', example: true } }));
+    const line = screen.getByTestId('sheet-place');
+    // The place line as controlRows.test.ts counts it on the satellites list (R215): a ten-letter city stays whole.
+    expect(rowParts(line, table)).toEqual(['Montevideo', `· ${t.header.place.example}`, `##${t.header.place.change}`]);
     const tapCells = Math.ceil(48 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
-    const fixed = t.header.pages.pass.length + 1 + t.settings.open.length + 1 + tapCells;
-    expect(cells - 'Cipolletti'.length - 1 - 1).toBe(t.header.pages.pass.length + 1 + t.settings.open.length + 1);
-    // R212 (D-1231): `satellites` took eleven of the place's cells: a place ellipsises after them, and some is left.
-    expect(rowCellsAt(360) - fixed - 1).toBeGreaterThanOrEqual(5);
     expect(tapCells).toBe(5);
-    expect(fixed).toBe(locale === 'en' ? 25 : 23);
+    // R150 (FR-GYRO-8): the `×` is one character drawn in a `--tap` box (48 px), wider than its cell: count the box.
+    // At 390 px a ten-letter city stays whole; at 360 px the name is what ellipsises (PlaceLine), and some of it is left.
+    const lineCells = rowCells(line, table) + 1 + tapCells;
+    expect(lineCells).toBeLessThanOrEqual(rowCellsAt(390));
+    expect(rowCellsAt(360) - (lineCells - 'Montevideo'.length)).toBeGreaterThanOrEqual(7);
+    const links = screen.getByTestId('sheet-links');
+    expect(rowParts(links, table)).toEqual([t.header.pages.pass, t.settings.open]);
+    expect(rowCells(links, table)).toBeLessThanOrEqual(rowCellsAt(360));
   });
 });
