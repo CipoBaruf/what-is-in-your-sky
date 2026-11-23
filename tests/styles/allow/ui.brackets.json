@@ -1,8 +1,4 @@
 {
-  "src/ui/components/common/Banner.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the banner's [info] and [warning]; R221 makes them Tags."
-  },
   "src/ui/components/moon/MoonGlare.module.css": {
     "count": 2,
     "reason": "R209 (D-1229): the Moon's tag; a Tag by R224."
@@ -10,14 +6,6 @@
   "src/ui/components/moon/MoonLore.module.css": {
     "count": 2,
     "reason": "R209 (D-1229): the lore's tag; a Tag by R224."
-  },
-  "src/ui/components/passes/PassCard.module.css": {
-    "count": 4,
-    "reason": "R209 (D-1229): the card's [twilight] and [faint]; R221 makes them Tags."
-  },
-  "src/ui/components/passes/PassList.module.css": {
-    "count": 2,
-    "reason": "R209 (D-1229): the night groups' [+] and [−]; R221 makes them a Disclosure."
   },
   "src/ui/components/weather/CloudBadge.module.css": {
     "count": 3,

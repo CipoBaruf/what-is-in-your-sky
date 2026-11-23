@@ -166,7 +166,10 @@ describe('<PassCard> (FR-FIRST-10)', () => {
     rerender(<PassCard pass={samplePass} timeZone={null} onOpen={onOpen} selected />);
     await userEvent.click(screen.getByRole('button', { name: 'Open guide → ISS (Zarya)' }));
     expect(onOpen).toHaveBeenCalledWith(samplePass.id);
-    expect(screen.getByRole('article')).toHaveAttribute('aria-current', 'true');
+    // R221 (FR-CTRL-15): the control is the picked row, `aria-current`; the article keeps `data-selected` for the pass cursor.
+    expect(screen.getByRole('button', { name: 'Open guide → ISS (Zarya)' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('article')).toHaveAttribute('data-selected', 'true');
+    expect(screen.getByRole('article')).not.toHaveAttribute('aria-current');
     expect(await axe(container)).toHaveNoViolations();
   });
 });

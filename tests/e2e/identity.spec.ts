@@ -196,7 +196,7 @@ test('the Next ISS tag marks the next ISS pass; "best first" reorders the list a
   await homeWithPasses(page);
   const hero = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
   // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card. R212: the Satellites door's countdown went with the home.
-  await expect(hero.getByTestId('next-tag')).toHaveText('Next ISS');
+  await expect(hero.getByTestId('next-tag')).toHaveText('[Next ISS]');
   const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
   expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 

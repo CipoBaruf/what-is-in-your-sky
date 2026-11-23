@@ -432,7 +432,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".passes.loadingElements:string",
   ".passes.magnitudeWithBand:function",
   ".passes.nextTag:function",
-  ".passes.nights.count:function",
   ".passes.nights.dated:function",
   ".passes.nights.empty:string",
   ".passes.nights.onlyFaint:function",

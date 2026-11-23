@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { Line } from '../primitives/Line';
+import { Tag } from '../primitives/Tag';
 
 /**
  * PLAN §4 `common/Banner.tsx` (R11): one line of plain text the app needs
@@ -9,6 +10,8 @@ import { Line } from '../primitives/Line';
  * (`role="alert"`, announced at once). Both carry a spelled-out prefix so the
  * meaning does not rest on colour (FR-X-5), and the terminal identity (FR-X-6)
  * is a bracketed tag on a dim rule, no icon.
+ *
+ * R221 (FR-CTRL-14, D-1229): the prefix is a `Tag` — dim for a note, `--warn` for a warning.
  *
  * R105 (FR-DS-4 item 6, D-718): a boxed `Line` — the prefix is its marker, a
  * note the `status` tone (dim marker, the accent's edge) and a warning the
@@ -33,7 +36,7 @@ export interface BannerProps {
 export function Banner({ variant, children, testId, inert = false }: BannerProps) {
   const t = useT();
   return (
-    <Line role={variant === 'warning' ? 'alert' : 'status'} inert={inert} data-variant={variant} box tone={variant === 'warning' ? 'notice' : 'status'} marker={`[${t.banner[variant]}]`} {...(testId ? { 'data-testid': testId } : {})}>
+    <Line role={variant === 'warning' ? 'alert' : 'status'} inert={inert} data-variant={variant} box tone={variant === 'warning' ? 'notice' : 'status'} marker={<Tag tone={variant === 'warning' ? 'warn' : 'dim'}>{t.banner[variant]}</Tag>} {...(testId ? { 'data-testid': testId } : {})}>
       {children}
     </Line>
   );

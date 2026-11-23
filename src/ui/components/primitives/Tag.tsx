@@ -4,7 +4,8 @@ import styles from './Tag.module.css';
 /**
  * R209 (FR-CTRL-14; D-1228): the tag — a label that cannot be pressed, its word in brackets in its tone. Brackets
  * in the app mean this and nothing else. A tag that explains itself on hover and focus takes the host's `tabIndex`
- * and `aria-describedby`; it takes no press and no role.
+ * and `aria-describedby`; it takes no press and no role. R221 (D-1292): a word is one text node with its
+ * brackets, as the eye reads it, so a reader of the DOM (the cells counter) finds no gap inside it.
  */
 type TagTone = 'dim' | 'accent' | 'ok' | 'warn' | 'danger';
 
@@ -22,7 +23,7 @@ export type TagProps = TagOwnProps & Omit<ComponentProps<'span'>, keyof TagOwnPr
 export function Tag({ tone, children, className, ...rest }: TagProps) {
   return (
     <span className={[styles.tag, styles[tone], className].filter(Boolean).join(' ')} {...rest}>
-      [{children}]
+      {typeof children === 'string' ? `[${children}]` : <>[{children}]</>}
     </span>
   );
 }

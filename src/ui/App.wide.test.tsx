@@ -88,8 +88,8 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role)).not.toHaveAttribute('inert');
     expect(document.documentElement.style.overflow).not.toBe('hidden');
     // The list is still there, still open-able, with the open pass marked.
-    expect(tagged()).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByRole('article', { name: other.name })).not.toHaveAttribute('aria-current');
+    expect(tagged().querySelector(':scope > button')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('article', { name: other.name }).querySelector(':scope > button')).not.toHaveAttribute('aria-current');
     expect(within(panel).getByTestId('guide-sentence')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -130,7 +130,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
       expect(screen.getByRole('main')).toHaveAttribute('data-sky', 'pass');
       expect(screen.queryByTestId('pass-tonight')).toBeNull();
       expect(screen.getByRole('region', { name: panelName })).toHaveAttribute('data-pass-id', pass.id);
-      expect(tagged()).toHaveAttribute('aria-current', 'true');
+      expect(tagged().querySelector(':scope > button')).toHaveAttribute('aria-current', 'true');
       // FR-CLEAN-14: a bare #pass becomes the pass up now or next.
       expect(window.location.hash).toBe(`#pass=${pass.id}`);
       unmount();

@@ -6,8 +6,8 @@
  * golden ISS pass must be among them with the expected fields.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { expect, test, type Page } from '@playwright/test';
+import { seedStoredRun, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -70,11 +70,73 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   await expect(iss).toHaveCount(1);
   // FR-FIRST-10: the start and the name, then the duration, the peak altitude and point, and the magnitude (US-5 AC1).
   await expect(iss.getByTestId('card-first-line')).toContainText(`${hhmmss(golden.start.t).slice(0, 5)} UTC`);
-  await expect(iss.getByTestId('next-tag')).toHaveText('Next ISS');
+  await expect(iss.getByTestId('next-tag')).toHaveText('[Next ISS]');
   await expect(iss.getByTestId('card-detail')).toContainText(`peak ${String(Math.round(golden.peak.elDeg))}° ${compass(golden.peak.azDeg)}`);
   await expect(iss.getByTestId('card-detail')).toHaveText(/^\d+ min · peak \d+° [NESW]{1,3} · mag [+−]\d\.\d$/);
 
   // FR-SAT-2: one request per group, never per object.
   expect(requests.map((u) => new URL(u).searchParams.get('GROUP')).sort()).toEqual(['stations', 'visual']);
   for (const u of requests) expect(u).not.toContain('CATNR');
+});
+
+/** A token resolved to the rgb() the browser computes for it, through a probe's colour. */
+async function tokenRgb(page: Page, token: string): Promise<string> {
+  return page.evaluate((name) => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(${name})`;
+    document.body.append(probe);
+    const rgb = getComputedStyle(probe).color;
+    probe.remove();
+    return rgb;
+  }, token);
+}
+
+test('FR-CTRL-15, FR-CTRL-16, FR-CTRL-14: a card has no frame and a hover ground; the nights are ▸ / ▾ disclosures; a tag has no role and no hover', async ({ page }) => {
+  await seedStoredRun(page, { settled: true });
+  const list = page.getByRole('region', { name: 'Upcoming passes' });
+  const raised = await tokenRgb(page, '--bg-raised');
+  const card = list.locator('article[data-pass-card]:visible').first();
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  expect(await card.evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe('none');
+  // The card's lines let the pointer through to its control, which lays the raised ground under them.
+  await card.hover();
+  await expect(card.locator(':scope > button')).toHaveCSS('background-color', raised);
+
+  // US-16 AC5 as amended by FR-CTRL-16: tonight open, `▾ Tonight · 3`, the rest `▸`, the whole line the control.
+  const toggles = list.getByTestId('night-toggle');
+  await expect(toggles.first()).toHaveText(/^▾ Tonight · \d+$/);
+  await expect(toggles.nth(1)).toHaveText(/^▸ Tomorrow night · \d+/);
+  await toggles.nth(1).click();
+  await expect(toggles.nth(1)).toHaveText(/^▾ Tomorrow night · \d+/);
+  await expect(toggles.nth(1)).toHaveAttribute('aria-expanded', 'true');
+
+  // FR-CTRL-14: `[Next ISS]` is a Tag — no role, never underlined, no ground under the pointer.
+  const tag = list.getByTestId('next-tag');
+  await expect(tag).toHaveText(/^\[.+\]$/);
+  expect(await tag.getAttribute('role')).toBeNull();
+  const tagLook = await tag.evaluate((el) => ({ line: getComputedStyle(el).textDecorationLine, ground: getComputedStyle(el).backgroundColor }));
+  expect(tagLook).toEqual({ line: 'none', ground: 'rgba(0, 0, 0, 0)' });
+});
+
+test.describe('on a desk', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('FR-CTRL-15, US-65 AC6: the picked row is raised, with a 2 px accent line at its left and aria-current', async ({ page }) => {
+    await seedStoredRun(page, { settled: true });
+    const rail = page.getByTestId('pass-layout').locator('[data-slot="upFrom"]');
+    const picked = rail.locator('article[data-selected]');
+    await expect(picked).toHaveCount(1, { timeout: 30_000 });
+    const control = picked.locator(':scope > button');
+    await expect(control).toHaveAttribute('aria-current', 'true');
+    await expect(control).toHaveCSS('background-color', await tokenRgb(page, '--bg-raised'));
+    const line = await control.evaluate((el) => {
+      const before = getComputedStyle(el, '::before');
+      return { width: before.borderLeftWidth, colour: before.borderLeftColor, left: el.getBoundingClientRect().left };
+    });
+    expect(line.width).toBe('2px');
+    expect(line.colour).toBe(await tokenRgb(page, '--accent'));
+    expect(Math.round(line.left)).toBe(Math.round((await picked.boundingBox())?.x ?? NaN));
+    // Every other row is not picked.
+    for (const other of await rail.locator('article[data-pass-card]:not([data-selected]) > button').all()) await expect(other).not.toHaveAttribute('aria-current');
+  });
 });

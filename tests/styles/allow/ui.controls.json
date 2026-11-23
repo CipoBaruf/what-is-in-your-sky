@@ -11,18 +11,6 @@
     "count": 1,
     "reason": "R209 (D-1229): the overlay's close; R224 makes it Close."
   },
-  "src/ui/components/guide/TimesRow.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the times row's cells; R221."
-  },
-  "src/ui/components/passes/OpenGuide.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the pass card's stretched button; R221 makes the card a PickRow."
-  },
-  "src/ui/components/passes/PassList.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the night groups' toggle; R221 makes it a Disclosure."
-  },
   "src/ui/components/sky/ControlsSheet.tsx": {
     "count": 1,
     "reason": "R209 (D-1229): the sheet's close; R224 makes it Close, so the ui lane lists it."

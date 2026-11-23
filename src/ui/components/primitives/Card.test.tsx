@@ -1,8 +1,8 @@
 /**
  * R105 (FR-DS-4 item 4): the card in both themes — an article by default, a
- * named section, or one control as a button or a link; `selected` is told in
- * the attributes and not in the colour alone; `frame="accent"` is a class and
- * nothing else changes.
+ * named section, or one control as a button or a link; `frame="accent"` is a
+ * class and nothing else changes. R221 (FR-CTRL-15): no card is `selected` —
+ * a picked pass is a `PickRow`.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -16,14 +16,14 @@ afterEach(() => {
 });
 
 describe.each(THEMES)('<Card> under data-theme=%s', (theme) => {
-  it('is an article ruled in --rule by default, and a selected one is aria-current', async () => {
+  it('is an article ruled in --rule by default, never aria-current (FR-CTRL-15)', async () => {
     document.documentElement.setAttribute('data-theme', theme);
     const { container } = render(
       <>
         <Card aria-label="A pass" data-testid="plain">
           <p>21:14 ISS</p>
         </Card>
-        <Card aria-label="The open pass" selected data-testid="selected" className="placed">
+        <Card aria-label="A placed card" data-testid="placed" className="placed">
           <p>21:52 Tiangong</p>
         </Card>
         <Card aria-label="The first card" frame="accent" data-testid="accent">
@@ -40,10 +40,9 @@ describe.each(THEMES)('<Card> under data-theme=%s', (theme) => {
     expect(plain.className).not.toMatch(/accent|control/);
     expect(plain).toHaveTextContent('21:14 ISS');
 
-    const selected = screen.getByTestId('selected');
-    expect(selected).toHaveAttribute('data-selected', 'true');
-    expect(selected).toHaveAttribute('aria-current', 'true');
-    expect(selected.className).toMatch(/placed/);
+    const placed = screen.getByTestId('placed');
+    expect(placed).not.toHaveAttribute('data-selected');
+    expect(placed.className).toMatch(/placed/);
 
     const accent = screen.getByTestId('accent');
     expect(accent.className).toMatch(/accent/);

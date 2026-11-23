@@ -85,7 +85,7 @@ describe('<PassList> faint passes (FR-FAINT-2)', () => {
     expect(screen.getByTestId('faint-toggle')).toHaveTextContent(/^show 4 faint$/);
     expect(cardNames()).toEqual(['Bright first', 'Bright last']);
     // A night with only faint passes keeps its toggle, and says what it holds.
-    expect(toggles()).toEqual(['Tonight 2 passes', 'Tomorrow night 0 passes · 2 faint']);
+    expect(toggles()).toEqual(['▾ Tonight · 2', '▸ Tomorrow night · 0 · 2 faint']);
   });
 
   it('shows them in place, dimmed and tagged, and hides them again; the choice is stored (US-34 AC2, AC3)', () => {
@@ -95,9 +95,9 @@ describe('<PassList> faint passes (FR-FAINT-2)', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/^6 visible passes in 72 h$/);
     expect(screen.getByTestId('faint-toggle')).toHaveTextContent(/^hide 4 faint$/);
     expect(cardNames()).toEqual(['Bright first', 'Faint tonight', 'Glare tonight', 'Bright last']);
-    expect(toggles()).toEqual(['Tonight 4 passes', 'Tomorrow night 2 passes']);
+    expect(toggles()).toEqual(['▾ Tonight · 4', '▸ Tomorrow night · 2']);
     const faintCard = screen.getAllByRole('article').find((card) => card.dataset.passId === 'faint-tonight');
-    expect(within(faintCard as HTMLElement).getByTestId('card-faint')).toHaveTextContent(/^faint$/);
+    expect(within(faintCard as HTMLElement).getByTestId('card-faint')).toHaveTextContent(/^\[faint\]$/);
     const brightCard = screen.getAllByRole('article').find((card) => card.dataset.passId === 'bright-first');
     expect(within(brightCard as HTMLElement).queryByTestId('card-faint')).toBeNull();
     expect(JSON.parse(window.localStorage.getItem(PREFS_KEY) ?? '{}')).toMatchObject({ showFaint: true });
@@ -113,12 +113,12 @@ describe('<PassList> faint passes (FR-FAINT-2)', () => {
     renderIn('es');
     expect(screen.getByRole('status')).toHaveTextContent(/^2 pases visibles en 72 h$/);
     expect(screen.getByTestId('faint-toggle')).toHaveTextContent(/^ver 4 tenues$/);
-    expect(toggles()).toEqual(['Esta noche 2 pases', 'Mañana a la noche 0 pases · 2 tenues']);
+    expect(toggles()).toEqual(['▾ Esta noche · 2', '▸ Mañana a la noche · 0 · 2 tenues']);
     fireEvent.click(screen.getByTestId('faint-toggle'));
     expect(screen.getByRole('status')).toHaveTextContent(/^6 pases visibles en 72 h$/);
     expect(screen.getByTestId('faint-toggle')).toHaveTextContent(/^ocultar 4 tenues$/);
     const faintCard = screen.getAllByRole('article').find((card) => card.dataset.passId === 'faint-tonight');
-    expect(within(faintCard as HTMLElement).getByTestId('card-faint')).toHaveTextContent(/^tenue$/);
+    expect(within(faintCard as HTMLElement).getByTestId('card-faint')).toHaveTextContent(/^\[tenue\]$/);
   });
 
   it('draws no control when nothing is faint', () => {
