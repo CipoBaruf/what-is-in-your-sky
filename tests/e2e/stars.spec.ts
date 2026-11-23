@@ -235,8 +235,8 @@ test.describe('the stars page’s time on a desk (FR-WIDE-4 as amended)', () => 
     await expect(page.getByTestId('time-control')).toHaveCount(0);
     const rail = page.getByTestId('stars-page').locator('[data-rail]');
     await expect(rail.locator('[data-pass-mark], [data-pass-segment], [data-pass-id], [data-testid="overview-row"]')).toHaveCount(0);
-    // V214-34: `[ now ]` then the live page's playback row, `[ Play ]` and its speeds.
-    await expect(time.getByRole('button')).toHaveText(['−1 d', '−1 h', '+1 h', '+1 d', 'now', 'Play', '1×', '60×', '600×', '3600×']);
+    // V214-34: `[ now ]` then the live page's playback row, `▶ play` and its speeds.
+    await expect(time.getByRole('button')).toHaveText(['−1 d', '−1 h', '+1 h', '+1 d', 'now', '▶ play', '1×', '60×', '600×', '3600×']);
     const clock = time.getByTestId('globe-clock');
     await expect(time.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
     const at = Number(await clock.getAttribute('data-at'));

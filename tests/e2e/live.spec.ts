@@ -50,7 +50,7 @@ test.describe('the live page', () => {
     // FR-LIVE-3 → R144 (FR-TONIGHT-7): the headline is the shown time with its `now` chip, ticking with the clock, and the
     // context line names the pass up — the ISS, which the `Up now` row counts — and what it does next.
     await stripFilled(page);
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     expect(panelCount).toBe(1);
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');
@@ -119,7 +119,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('sheet-place')).toHaveText('−38.93, −67.99');
     // Real time: the installed clock, not the link — and the ISS up at it, so FR-TONIGHT-1's jump stays on now.
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC now$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(T).slice(0, 7)}\\d UTC ● live$`));
   });
 
   // R89 (FR-LIVE-1 as amended v2.1): the states are told apart — `live-failures.spec.ts` follows each one's control.
