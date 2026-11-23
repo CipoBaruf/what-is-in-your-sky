@@ -38,7 +38,9 @@
   color: var(--fg);
 }
 
-.row[data-highlighted='false'] .name,
+/* FR-CTRL-15: the picked row's name keeps its ink even while another row is hovered — the pick moves the row to
+   the top, so the pointer that picked it is often left over the next one. */
+.row[data-highlighted='false']:not([aria-pressed='true']) .name,
 .row[data-highlighted='false'] .times {
   color: var(--fg-dim);
 }

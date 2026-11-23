@@ -69,4 +69,11 @@ test('FR-CTRL-15: a pressed row is picked — aria-pressed, the 2 px accent line
   expect(picked.colour).toBe(picked.accent);
   expect(picked.name).toBe(picked.fg);
   await expect(page.getByTestId('chart-legend').locator('button[aria-pressed="true"]')).toHaveCount(1);
+  // The pick moves the row to the top, so the pointer is often left over another row: a hover elsewhere dims the
+  // picked row's arc, but its name keeps its ink (FR-CTRL-15).
+  const other = page.getByTestId('chart-legend').locator(`button[data-pass-id]:not([data-pass-id="${second}"])`).first();
+  await other.hover();
+  await expect(other).toHaveAttribute('data-hovered', 'true');
+  await expect(row).toHaveAttribute('data-highlighted', 'false');
+  expect((await look()).name).toBe(picked.fg);
 });
