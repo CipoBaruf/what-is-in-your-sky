@@ -7,7 +7,7 @@ import { brightnessBand, elevationBand } from '../../../lib/phrases';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { MoonGlareLabel } from '../moon/MoonGlare';
-import { Card } from '../primitives/Card';
+import { Tag } from '../primitives/Tag';
 import { CloudBadge } from '../weather/CloudBadge';
 import { passMinutes } from './NextEventBlock';
 import { OpenGuide } from './OpenGuide';
@@ -35,16 +35,17 @@ import styles from './PassCard.module.css';
  * amended v2.1, D-548, F-85): the button (`OpenGuide`) covers the whole of the
  * positioned card, tags and cloud line included, so the whole box is one
  * pointer target and one tab stop; the tags are text inside it (`asText`), not
- * tooltip triggers of their own. The open pass's card is ruled in the
- * accent. Times are in `timeZone`, which the forecast fills in for coordinate
+ * tooltip triggers of their own. Times are in `timeZone`, which the forecast fills in for coordinate
  * input (FR-LOC-3); with none yet, the clock says UTC (F-27).
  *
  * R97 (FR-FAINT-2): a faint pass the reader asked to see is an ordinary card,
  * with its name in `--fg-dim` and `[faint]` on the third line.
  *
- * R105 (FR-DS-4 item 4, D-719): the box is a `Card` — the frame, the padding,
- * the selected state and the ring are the primitive's; this module draws the
- * three lines inside it and nothing of the box.
+ * R221 (FR-CTRL-15, FR-CTRL-14, D-1292): the card has no frame. Its `OpenGuide`
+ * is a `PickRow` laid under the lines, so the box takes the row's hover ground
+ * and, open, the raised ground with the accent line down its left edge and
+ * `aria-current` on the control; the article keeps `data-selected` for the
+ * pass cursor. `Next ISS`, `[sky still bright]` and `[faint]` are `Tag`s.
  */
 export interface PassCardProps {
   pass: Pass;
@@ -53,7 +54,7 @@ export interface PassCardProps {
   onOpen?: (passId: string) => void;
   /** The forecast to judge the peak by; `null` shows "weather unknown"; omitted draws no cloud word. */
   weather?: WeatherSnapshot | null;
-  /** This is the pass the guide is open on (FR-DESK-3): the card is ruled in the accent and announced as the current item. */
+  /** This is the pass the guide is open on (FR-DESK-3, FR-CTRL-15): raised, the accent line at its left, its control `aria-current`. */
   selected?: boolean;
   /** The `Next ISS` tag, on the one card `nextFeaturedPass` chooses. */
   tag?: string;
@@ -83,41 +84,43 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, ta
     point: compassPoint(pass.peak.azDeg),
     brightness: plain ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
   };
+  // The `data-card` hook hands the card the ring of its focused control (global.css); `data-selected` is the pass cursor's.
+  const selection = { 'data-card': '', ...(selected ? { 'data-selected': 'true' } : {}) };
   if (dense) {
     // V214-38: the one-line row drops the minutes so the detail fits the rail's 44..60 cells; the name gives first.
     const detailText = t.passes.cardDetailShort(peak);
-    const cardClass = [styles.dense, faint ? styles.faint : undefined].filter(Boolean).join(' ');
+    const cardClass = [styles.card, styles.dense, faint ? styles.faint : undefined].filter(Boolean).join(' ');
     return (
-      <Card selected={selected} className={cardClass} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" data-dense="" tabIndex={-1}>
+      <article className={cardClass} {...selection} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" data-dense="" tabIndex={-1}>
         <div className={styles.first} data-testid="card-first-line">
           <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
           <Name id={headingId} className={styles.name}>
             {pass.name}
           </Name>
           {tag !== undefined && (
-            <span className={[styles.tag, styles.denseTag].join(' ')} data-testid="next-tag">
+            <Tag tone="accent" className={[styles.tag, styles.denseTag].join(' ')} data-testid="next-tag">
               {tag}
-            </span>
+            </Tag>
           )}
           <span className={styles.denseDetail} data-testid="card-detail">
             {ended ? t.passes.ended : detailText}
           </span>
         </div>
-        {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} />}
-      </Card>
+        {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} picked={selected} />}
+      </article>
     );
   }
   return (
-    <Card selected={selected} className={faint ? styles.faint : undefined} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1}>
+    <article className={faint ? `${styles.card} ${styles.faint}` : styles.card} {...selection} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1}>
       <div className={styles.first} data-testid="card-first-line">
         <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
         <Name id={headingId} className={styles.name}>
           {pass.name}
         </Name>
         {tag !== undefined && (
-          <span className={styles.tag} data-testid="next-tag">
+          <Tag tone="accent" className={styles.tag} data-testid="next-tag">
             {tag}
-          </span>
+          </Tag>
         )}
       </div>
       <p className={styles.detail} data-testid="card-detail">
@@ -140,17 +143,17 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, ta
               moment={t.weather.momentPeak}
             />
           )}
-          {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
+          {pass.twilight && <Tag tone="dim">{t.passes.twilightLabel}</Tag>}
           <MoonGlareLabel moon={pass.moonAtPeak} glare={pass.moonGlare} asText />
           {faint && (
-            <span className={styles.faintTag} data-testid="card-faint">
+            <Tag tone="dim" data-testid="card-faint">
               {t.passes.faintTag}
-            </span>
+            </Tag>
           )}
         </div>
       )}
       {/* Last in the card, so its stretched box lies over everything before it. */}
-      {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} />}
-    </Card>
+      {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} picked={selected} />}
+    </article>
   );
 }

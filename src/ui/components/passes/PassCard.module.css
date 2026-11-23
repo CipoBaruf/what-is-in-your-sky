@@ -1,7 +1,10 @@
-/* R81 (FR-FIRST-10, board 1B): a box ruled in `--rule`, 12 px inside — the
-   `Card` primitive since R105 (D-719): its frame, its padding, the selected
-   state (R23, FR-DESK-3) and the ring its stretched `OpenGuide` hands it are
-   the primitive's and `global.css`'s; nothing here draws on the box. */
+/* R81 (FR-FIRST-10, board 1B), R221 (FR-CTRL-15, D-1292): the card, 12 px
+   inside and no frame. Its grounds and the picked line are its `OpenGuide`'s
+   (a `PickRow` under the lines), its ring global.css's `[data-card]` rule. */
+.card {
+  position: relative;
+  padding: var(--space-2);
+}
 
 /* `21:14   ISS`: the time and the name in the accent, three cells apart; the
    name is the part that gives when the line runs out, and the tag keeps its
@@ -29,21 +32,11 @@
   text-overflow: ellipsis;
 }
 
+/* `[Next ISS]`, a `Tag`: its place at the end of the line. */
 .tag {
   flex: none;
   margin-left: auto;
   font-size: var(--small);
-  color: var(--accent);
-}
-
-.tag::before {
-  content: '[';
-  color: var(--fg-dim);
-}
-
-.tag::after {
-  content: ']';
-  color: var(--fg-dim);
 }
 
 .detail {
@@ -74,24 +67,13 @@
   color: var(--fg-dim);
 }
 
-.twilight::before,
-.faintTag::before {
-  content: '[';
-}
-
-.twilight::after,
-.faintTag::after {
-  content: ']';
-}
-
 /* R97 (FR-FAINT-2): a faint pass shown is an ordinary card, its name dimmed and `[faint]` on its third line. */
 .faint .name {
   color: var(--fg-dim);
 }
 
-/* v2.14.1 (V214-38, D-1135): the pass page's list in the rail — one line a pass, the card's frame closer in. The
-   element in the selector outranks the `Card` primitive's padding whatever order the modules load in. */
-article.dense {
+/* v2.14.1 (V214-38, D-1135): the pass page's list in the rail — one line a pass, the card's padding closer in. */
+.card.dense {
   padding: calc(var(--space-1) / 2) var(--space-2);
 }
 
@@ -104,7 +86,7 @@ article.dense {
   white-space: nowrap;
 }
 
-/* The `[ Next ISS ]` tag keeps its place on the one line, before the detail, which then takes the line's end. */
+/* The `[Next ISS]` tag keeps its place on the one line, before the detail, which then takes the line's end. */
 .denseTag {
   margin-left: 0;
 }
