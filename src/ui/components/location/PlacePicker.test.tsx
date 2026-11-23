@@ -317,9 +317,9 @@ describe('<PlacePicker>', () => {
       const user = userEvent.setup();
       const { input } = setup(vi.fn<PlaceSearchFn>().mockResolvedValue([]));
       setOnline(false);
-      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('place-search-status').textContent).toBe('');
       await user.type(input, 'C');
-      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('place-search-status').textContent).toBe('');
     });
 
     it('F-22: a restored place in the field is not a query, so opening offline says nothing', async () => {
@@ -336,7 +336,7 @@ describe('<PlacePicker>', () => {
       const input = screen.getByRole('combobox', { name: 'Place name' });
       expect(input).toHaveValue('Cipolletti, Rio Negro, Argentina');
       // The place is already resolved and the app works offline with it; there is nothing to report.
-      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('place-search-status').textContent).toBe('');
       // Asking for something else is a question, and that one gets the answer.
       await user.clear(input);
       await user.type(input, 'Rosario');
@@ -352,7 +352,7 @@ describe('<PlacePicker>', () => {
       await user.type(input, 'Cipolletti{Enter}');
       expect(screen.getByTestId('place-search-status')).toHaveTextContent('No connection');
       setOnline(true);
-      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('place-search-status').textContent).toBe('');
       await user.type(input, '{Enter}');
       expect(await screen.findAllByRole('option')).toHaveLength(1);
       expect(search).toHaveBeenCalledTimes(1);
