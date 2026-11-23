@@ -255,9 +255,10 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   (FR-LAND-6, D-1231.) Compact `#pass` draws the full `PassList` with tonight open, and the lines no requirement removed follow it there: the install offer, the conditions with the Moon's line, the readiness and the elements lines. A desk shows none of these now (a follow-up).
   The compact controls sheet gains a `satellites` link beside `[ settings ]`, since a phone's live page has no header to reach the list from; it takes 11 cells of the place's. The compact live header keeps the place on a line under its tab row.
   The update bar stands on the wide pass page too: FR-UPD-2's every page wins over D-154's "no reload under an open pass".
+  Each of the page's blocks is a group (`data-rhythm="group"`, FR-FLOW-10), the page's grid gap `--space-3` apart. The 72 h list, its faint toggle and its keyboard walk are the phone's; the specs that read them run at 390 × 844, and a desk's `j`/`k` walk the pass page's rail from its open pass.
 - **D-1267 — Live as the first page.** *(R212)*
   (FR-LAND-1, D-1230, D-1242.) Live has no header Back. `Esc` on live at history depth 0 does nothing; above it, it goes back, until R222 removes `live.leave`.
-  After a route change the focus falls back to the page's `h1`; the unreadable-link note (`LinkNote`) shows on every page. The three-pane, guide-pane and header-fold layout constants are deleted with the layouts.
+  After a route change the focus falls back to the page's `h1` when one is drawn, never to `main`: a lazy page not yet drawn keeps the body, so the stars page's globe and the live page's Back still take the focus themselves. A desk's live page draws no Back at all, so F-100's ring is proved at 390 × 844 and 844 × 390 only. The unreadable-link note (`LinkNote`) shows on every page. The three-pane, guide-pane and header-fold layout constants are deleted with the layouts.
   `example_shown` is sent on `#live`; `where_shown` has no sender until R215's place dialog, and the example's control opens `#settings` (`requestPlace`) until then.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,

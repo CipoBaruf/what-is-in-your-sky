@@ -156,7 +156,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the window's tint and the tokens' deletion (R214).
   - **Done when:** `npm run check` green; a test of each view at a Sun altitude of +40° shows the deep surface, the faintest rung and the Sun's dot; a stored `sunGlow` is ignored on load and absent after a save; `npm run check:sdd` green.
 
-- [ ] **R212 — The live page is the first page**
+- [x] **R212 — The live page is the first page** (`usePlaceOpen.ts` went too, and the phone's list carries the lines beside it, D-1265, D-1266)
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 500
