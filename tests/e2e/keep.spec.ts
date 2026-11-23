@@ -89,7 +89,7 @@ for (const viewport of VIEWPORTS) {
         await layer(page, 'names').click();
         await layer(page, 'faint').click();
         await turnButton(page, 'stars').click();
-        await page.getByTestId('globe-zoom-in').click();
+        await page.getByRole('button', { name: 'Zoom in' }).click();
         await hourLater(page);
         await speedButton(page, 600).click();
         await expect(speedButton(page, 600)).toHaveAttribute('aria-pressed', 'true');

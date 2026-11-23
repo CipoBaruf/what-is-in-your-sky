@@ -28,6 +28,11 @@ export const chart: typeof EnChart = {
       sun: (p) => `Sol · az ${p.azimuth} · alt ${p.altitude}`,
       moon: (p) => `${p.glyph} Luna · az ${p.azimuth} · alt ${p.altitude}`,
       moonLit: (p) => `${p.glyph} Luna ${p.phase}, ${p.illumination} % · az ${p.azimuth} · alt ${p.altitude}`,
+      /** R217 (FR-NOW-2): `Arriba ahora` — `Luna   NE   30° arriba`, `Sol   WSW   4° abajo` (the compass points are the same in both, FR-I18N-4). */
+      upNone: 'Ningún satélite arriba',
+      sunName: 'Sol',
+      moonName: 'Luna',
+      height: (p) => `${p.degrees} ${p.up ? 'arriba' : 'abajo'}`,
     },
     domeGroup: 'Domo celeste',
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',

@@ -155,19 +155,34 @@ for (const viewport of DESKS) {
       await expect(page.locator('[data-globe] [data-label]')).toHaveAttribute('visibility', 'hidden');
     });
 
-    test('[ + ] and [ − ] zoom one step a press and leave the box as it was (FR-GLOBE-6 as amended, V212-12)', async ({ page }) => {
+    test('FR-CTRL-9: −, + and ⟲ under the box zoom a step each and back to the opening view; the hint goes at the first zoom and stays gone (D-1241)', async ({ page }) => {
       await openStarsPage(page);
       await showGlobe(page);
-      const box = await page.getByTestId('globe-box').boundingBox();
+      const layout = page.getByTestId('stars-layout');
+      const hint = layout.getByTestId('sky-hint');
+      await expect(hint).toHaveText('drag to turn · scroll to zoom');
+      const row = layout.locator('[data-zoom-row]');
+      const keys = row.locator('[data-zoom]');
+      await expect(keys).toHaveCount(3);
+      expect(await keys.evaluateAll((els) => els.map((el) => el.getAttribute('data-zoom')))).toEqual(['out', 'in', 'reset']);
       const disc = page.locator('[data-globe] [data-disc]');
       const r = Number(await disc.getAttribute('r'));
-      await page.getByRole('button', { name: 'Zoom in' }).click();
+      await row.getByRole('button', { name: 'Zoom in' }).click();
       await expect.poll(async () => Number(await disc.getAttribute('r'))).toBeCloseTo(r * 1.25, 0);
-      await page.getByRole('button', { name: 'Zoom out' }).click();
+      await expect(hint).toHaveCount(0);
+      // The hint gone, the box is read: a zoom key leaves it as it was.
+      const box = await page.getByTestId('globe-box').boundingBox();
+      await row.getByRole('button', { name: 'Zoom in' }).click();
+      await expect.poll(async () => Number(await disc.getAttribute('r'))).toBeCloseTo(r * 1.25 * 1.25, 0);
+      await row.getByRole('button', { name: 'Reset view' }).click();
       await expect.poll(async () => Number(await disc.getAttribute('r'))).toBeCloseTo(r, 0);
-      for (let i = 0; i < 4; i += 1) await page.getByRole('button', { name: 'Zoom out' }).click();
-      await expect(page.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
+      const out = row.getByRole('button', { name: 'Zoom out' });
+      for (let i = 0; i < 4; i += 1) await out.click();
+      await expect(out).toBeDisabled();
       expect(await page.getByTestId('globe-box').boundingBox()).toEqual(box);
+      await page.reload();
+      await showGlobe(page);
+      await expect(page.getByTestId('sky-hint')).toHaveCount(0);
     });
 
     test('moves only the globe’s clock by the steps; the hash and the prefs stay (FR-GLOBE-7)', async ({ page }) => {

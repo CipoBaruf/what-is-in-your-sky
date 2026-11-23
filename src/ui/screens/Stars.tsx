@@ -381,7 +381,8 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const skyRef = useRef<HTMLDivElement>(null);
-  const hintShown = useSkyHintShown(chartView) && !globeShown;
+  // R217 (FR-CTRL-9, D-1241): the globe carries the window's hint, in the box's corner, until the first drag or zoom.
+  const hintShown = useSkyHintShown(chartView);
 
   // Where the camera looks, on the page's root for the tests and the captures, written by ref (no render per frame).
   useLayoutEffect(() => {

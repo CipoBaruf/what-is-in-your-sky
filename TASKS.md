@@ -246,7 +246,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Up now`'s content (R219); `Turn` and `Up from` (R222).
   - **Done when:** `npm run check` green; `live-rail.spec.ts` at 1280 × 800 reads the groups in order and finds no scrolling element inside the rail; the compact sheet's order at 390 × 844; `npm run check:sdd` green.
 
-- [ ] **R217 — The globe's zoom keys and the legend's up-only form**
+- [x] **R217 — The globe's zoom keys and the legend's up-only form**
   - **Lane:** chart
   - **Tier:** standard
   - **Turns:** 300

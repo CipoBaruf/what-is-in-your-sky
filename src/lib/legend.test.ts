@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../tests/support/catalogFixtures';
 import { MOON_DOWN, MOON_FIXTURE } from '../../tests/support/moonFixtures';
 import type { Pass } from '../model';
-import { bodyLines, keyFor, legendKeys, legendRows, promoteRow, seriesToken, type LegendPass } from './legend';
+import { bodyLines, keyFor, legendKeys, legendRows, promoteRow, seriesToken, upNowBodies, upNowColumns, upNowPlace, upNowRows, type BodyLine, type LegendPass } from './legend';
 
 const pass = goldenPassFixture();
 const shift = (p: Pass, id: string, byMs: number, name = id): Pass => ({
@@ -67,7 +67,7 @@ describe('legendRows (FR-LEG-2, D-186)', () => {
   it('lists the hidden objects after the passes, dim, with the words the page gave them and no times (FR-LIVE-6, FR-LEG-3)', () => {
     const hidden = [{ id: 'hidden-1', azDeg: 40, elDeg: 20, label: 'Cosmos 2369 · in shadow' }];
     const rows = legendRows({ passes: [pass], highlightedPassId: null, hidden, colorBy: 'pass' });
-    expect(rows[1]).toEqual({ key: 'B', passId: 'hidden-1', name: 'Cosmos 2369 · in shadow', colorToken: 'pass-dim', riseMs: null, peakMs: null, endMs: null, state: 'hidden-object', highlighted: false });
+    expect(rows[1]).toEqual({ key: 'B', passId: 'hidden-1', name: 'Cosmos 2369 · in shadow', colorToken: 'pass-dim', riseMs: null, peakMs: null, endMs: null, state: 'hidden-object', highlighted: false, at: null });
   });
 
   it('cycles the series after the sixth and letters past Z without repeating', () => {
@@ -112,5 +112,58 @@ describe('bodyLines (FR-DOME-6 as amended)', () => {
     ]);
     expect(bodyLines({ sun, moon: MOON_DOWN }, { sun: false, moon: false })).toEqual([]);
     expect(bodyLines({ sun: null, moon: null }, { sun: true, moon: true })).toEqual([]);
+  });
+});
+
+describe('the up-only form (FR-NOW-2, D-1239)', () => {
+  const POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+  it('FR-NOW-2: names the 16 compass points, each sector 22.5° wide, at its boundaries on both sides', () => {
+    POINTS.forEach((point, i) => {
+      const centre = i * 22.5;
+      const start = centre - 11.25;
+      const end = centre + 11.25;
+      expect(upNowPlace(centre, 10).point, `${point} at its centre`).toBe(point);
+      expect(upNowPlace(start, 10).point, `${point} opens at ${String(start)}°`).toBe(point);
+      expect(upNowPlace(end - 0.01, 10).point, `${point} until just before ${String(end)}°`).toBe(point);
+      expect(upNowPlace(end, 10).point, `${String(end)}° is the next point`).toBe(POINTS[(i + 1) % 16]);
+    });
+    expect(upNowPlace(-11.25, 10).point).toBe('N');
+    expect(upNowPlace(359.99, 10).point).toBe('N');
+  });
+
+  it('FR-NOW-2: the height in whole degrees, below the horizon said as such, never negative', () => {
+    expect(upNowPlace(45, 30.4)).toEqual({ point: 'NE', degrees: 30, up: true });
+    expect(upNowPlace(247.5, -4.2)).toEqual({ point: 'WSW', degrees: 4, up: false });
+    expect(upNowPlace(0, -0.4)).toEqual({ point: 'N', degrees: 0, up: false });
+    expect(upNowPlace(0, 0.4)).toEqual({ point: 'N', degrees: 0, up: true });
+    expect(upNowPlace(0, 0)).toEqual({ point: 'N', degrees: 0, up: true });
+    expect(upNowPlace(180, -89.6)).toEqual({ point: 'S', degrees: 90, up: false });
+  });
+
+  it('FR-NOW-2: lists only the satellites above the horizon at the instant, in the legend order, never a hidden object', () => {
+    const mid = pass.peak.t;
+    const before = pass.start.t - 60_000;
+    const rows = legendRows({ passes: [pass, other], highlightedPassId: null, now: mid, hidden: [{ id: 'hidden-1', azDeg: 10, elDeg: 40, label: 'Cosmos · in shadow' }], colorBy: 'pass' });
+    expect(rows.find((row) => row.passId === pass.id)?.at?.elDeg).toBeGreaterThan(0);
+    expect(rows.find((row) => row.passId === other.id)?.at).toBeNull();
+    expect(upNowRows(rows).map((row) => row.passId)).toEqual([pass.id]);
+    expect(upNowRows(legendRows({ passes: [pass, other], highlightedPassId: null, now: before }))).toEqual([]);
+    // A row whose marker is on the arc but under the horizon is not up.
+    const low = rows.map((row) => (row.passId === pass.id ? { ...row, at: { azDeg: 200, elDeg: -1 } } : row));
+    expect(upNowRows(low)).toEqual([]);
+  });
+
+  it('FR-NOW-2: the Moon before the Sun, whatever order the drawing carries them in', () => {
+    const sun: BodyLine = { body: 'sun', azDeg: 250, altDeg: -4 };
+    const moon: BodyLine = { body: 'moon', azDeg: 45, altDeg: 30 };
+    expect(upNowBodies([sun, moon])).toEqual([moon, sun]);
+    expect(upNowBodies([sun])).toEqual([sun]);
+    expect(upNowBodies([])).toEqual([]);
+  });
+
+  it('FR-NOW-2: the columns are as wide as their widest entry, in characters', () => {
+    expect(upNowColumns([{ point: 'NE', height: '30° up' }, { point: 'WSW', height: '4° below' }])).toEqual({ point: 3, height: 8 });
+    expect(upNowColumns([])).toEqual({ point: 0, height: 0 });
   });
 });

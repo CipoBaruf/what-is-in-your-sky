@@ -1,5 +1,6 @@
 import type { MoonState, Pass } from '../model';
 import { arcState, isDrawn, type ArcState } from './arcReveal';
+import { compassPoint, type CompassPoint } from './compass';
 import { interpolateTrack } from './skyGeometry';
 
 /**
@@ -58,6 +59,8 @@ export interface LegendRow {
   state: LegendState;
   /** Whether the drawing emphasises this arc: the row reads the same way (FR-LEG-4). */
   highlighted: boolean;
+  /** R217 (FR-NOW-2, D-1239): where the pass's marker is at `now`, or `null` where it is not on the arc; absent is `null`. */
+  at?: { azDeg: number; elDeg: number } | null;
 }
 
 export const SERIES_COUNT = 6;
@@ -76,10 +79,16 @@ export const seriesToken = (index: number): LegendColor => `series-${String((((i
 
 const isHighlighted = (passId: string, highlightedPassId: string | null): boolean => highlightedPassId === null || highlightedPassId === passId;
 
+/** Where a pass's marker is at `now`, or `null` where the marker is not on the arc. */
+function markerAt(pass: LegendPass, now: number | undefined): { azDeg: number; elDeg: number } | null {
+  if (now === undefined || now < pass.start.t || now > pass.end.t || pass.track.length === 0) return null;
+  const { azDeg, elDeg } = interpolateTrack(pass.track, now);
+  return { azDeg, elDeg };
+}
+
 /** The elevation of a pass's marker at `now`, or −∞ where the marker is not on the arc: the zenith order's key (FR-LEG-4). */
 function markerElevation(pass: LegendPass, now: number | undefined): number {
-  if (now === undefined || now < pass.start.t || now > pass.end.t || pass.track.length === 0) return -Infinity;
-  return interpolateTrack(pass.track, now).elDeg;
+  return markerAt(pass, now)?.elDeg ?? -Infinity;
 }
 
 /**
@@ -109,10 +118,11 @@ export function legendRows(input: LegendInput): LegendRow[] {
       endMs: pass.end.t,
       state,
       highlighted,
+      at: markerAt(pass, now),
     };
   });
   for (const marker of hidden) {
-    rows.push({ key: '', passId: marker.id, name: marker.label, colorToken: 'pass-dim', riseMs: null, peakMs: null, endMs: null, state: 'hidden-object', highlighted: false });
+    rows.push({ key: '', passId: marker.id, name: marker.label, colorToken: 'pass-dim', riseMs: null, peakMs: null, endMs: null, state: 'hidden-object', highlighted: false, at: null });
   }
   return rows.map((row, index) => ({ ...row, key: keyFor(index) }));
 }
@@ -148,4 +158,44 @@ export function bodyLines(input: { sun?: { azDeg: number; altDeg: number } | nul
   if (input.sun && drawn.sun) out.push({ body: 'sun', azDeg: input.sun.azDeg, altDeg: input.sun.altDeg });
   if (input.moon && drawn.moon) out.push({ body: 'moon', azDeg: input.moon.azDeg, altDeg: input.moon.elDeg, moon: input.moon });
   return out;
+}
+
+/**
+ * R217 (FR-NOW-2, D-1239): the legend's up-only form — the rows whose satellite is above the horizon at the shown
+ * instant, in the legend's order; a hidden object (FR-LIVE-6) is not a visible satellite, so it is never one.
+ */
+export function upNowRows(rows: readonly LegendRow[]): LegendRow[] {
+  return rows.filter((row) => row.state !== 'hidden-object' && row.at != null && row.at.elDeg > 0);
+}
+
+/** FR-NOW-2: the Moon's line, then the Sun's, as the up-only form lists them; each only while the drawing carries it. */
+export function upNowBodies(bodies: readonly BodyLine[]): BodyLine[] {
+  return [...bodies.filter((line) => line.body === 'moon'), ...bodies.filter((line) => line.body === 'sun')];
+}
+
+/** FR-NOW-2: a row's direction and height — the 16-point compass point, whole degrees, and which side of the horizon. */
+export interface UpNowPlace {
+  point: CompassPoint;
+  /** Whole degrees from the horizon, never negative. */
+  degrees: number;
+  /** Above the horizon, or exactly on it: `30° up`; under it, even by less than half a degree: `0° below`, `4° below`. */
+  up: boolean;
+}
+
+export function upNowPlace(azDeg: number, altDeg: number): UpNowPlace {
+  const whole = Math.round(altDeg);
+  // The side comes from the altitude itself: rounding -0.4 gives -0, and -0 >= 0 would call it up.
+  return { point: compassPoint(azDeg), degrees: Math.abs(whole), up: altDeg >= 0 };
+}
+
+/**
+ * FR-NOW-2: the widths, in characters, of the up-only form's two right columns — the compass point and the height —
+ * so every row's point and height start at one x. The font is monospaced (`--font-mono`); a proportional one would
+ * need the columns measured instead.
+ */
+export function upNowColumns(cells: readonly { point: string; height: string }[]): { point: number; height: number } {
+  return {
+    point: Math.max(0, ...cells.map((cell) => [...cell.point].length)),
+    height: Math.max(0, ...cells.map((cell) => [...cell.height].length)),
+  };
 }

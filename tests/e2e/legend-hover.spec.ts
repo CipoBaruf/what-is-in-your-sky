@@ -42,3 +42,38 @@ test('FR-WIDE-7: hover a row, its arc; hover the arc, its row; leave, both resto
   await expect(page.getByTestId('chart-legend').locator('button[aria-pressed="true"]')).toHaveCount(0);
   await expect(page.getByTestId('facts-group')).toHaveCount(0);
 });
+
+test('FR-CTRL-15: a pressed row is picked — aria-pressed, the 2 px accent line down its left edge, its name in its own ink', async ({ page }) => {
+  await openLiveThreePasses(page);
+  const [, second = ''] = await legendIds(page);
+  const row = page.getByTestId('chart-legend').locator(`button[data-pass-id="${second}"]`);
+  await expect(row).toHaveAttribute('aria-pressed', 'false');
+  const look = () =>
+    row.evaluate((el) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--accent)';
+      document.body.append(probe);
+      const accent = getComputedStyle(probe).color;
+      probe.style.color = 'var(--fg)';
+      const fg = getComputedStyle(probe).color;
+      probe.remove();
+      const line = getComputedStyle(el, '::before');
+      const name = el.querySelector('[class*="nameText"]');
+      return { width: line.borderLeftWidth, colour: line.borderLeftColor, content: line.content, accent, fg, name: name ? getComputedStyle(name).color : '' };
+    });
+  expect((await look()).content).toBe('none');
+  await row.click();
+  await expect(row).toHaveAttribute('aria-pressed', 'true');
+  const picked = await look();
+  expect(picked.width).toBe('2px');
+  expect(picked.colour).toBe(picked.accent);
+  expect(picked.name).toBe(picked.fg);
+  await expect(page.getByTestId('chart-legend').locator('button[aria-pressed="true"]')).toHaveCount(1);
+  // The pick moves the row to the top, so the pointer is often left over another row: a hover elsewhere dims the
+  // picked row's arc, but its name keeps its ink (FR-CTRL-15).
+  const other = page.getByTestId('chart-legend').locator(`button[data-pass-id]:not([data-pass-id="${second}"])`).first();
+  await other.hover();
+  await expect(other).toHaveAttribute('data-hovered', 'true');
+  await expect(row).toHaveAttribute('data-highlighted', 'false');
+  expect((await look()).name).toBe(picked.fg);
+});

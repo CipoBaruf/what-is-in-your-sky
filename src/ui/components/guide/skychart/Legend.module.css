@@ -20,26 +20,17 @@
   margin: 0;
 }
 
-.row {
+/* R217 (FR-CTRL-15): the row is a `PickRow` — its ground, its picked line and its hit box are the primitive's; the
+   pinned one is told by the line and `aria-pressed`, and its name keeps its ink (the accent name went). `.row` is
+   a hook for the inventory's sizes below; `.cells` lays the row out. */
+.cells {
+  flex: 1 1 100%;
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   column-gap: var(--cell);
   align-items: baseline;
-  width: 100%;
-  min-height: var(--tap);
+  min-width: 0;
   padding: calc(var(--row) / 4) 0;
-  border: 0;
-  background: none;
-  color: var(--fg);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-/* FR-LEG-4: the highlighted row reads as such without colour too — a pressed row is the one whose arc is alone at full weight. */
-.row[aria-pressed='true'] .name {
-  color: var(--accent);
 }
 
 /* R188 (FR-WIDE-7): the row under the pointer or the focus, or whose arc the pointer is on, reads at full ink. */
@@ -47,7 +38,9 @@
   color: var(--fg);
 }
 
-.row[data-highlighted='false'] .name,
+/* FR-CTRL-15: the picked row's name keeps its ink even while another row is hovered — the pick moves the row to
+   the top, so the pointer that picked it is often left over the next one. */
+.row[data-highlighted='false']:not([aria-pressed='true']) .name,
 .row[data-highlighted='false'] .times {
   color: var(--fg-dim);
 }
@@ -88,17 +81,58 @@
    left margin and the dim weight the body lines have — it is a statement about
    the sky, not a row to tap. */
 .empty {
-  padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 2);
+  padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 3);
   color: var(--fg-dim);
 }
 
-/* FR-DOME-6 as amended: the two bodies, one line each, not buttons. */
+/* FR-DOME-6 as amended: the two bodies, one line each, not buttons; their swatch under the rows' swatches. */
 .body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: var(--cell);
   align-items: baseline;
-  padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 2);
+  padding: calc(var(--row) / 4) var(--cell) calc(var(--row) / 4) calc(var(--cell) * 3);
+  color: var(--fg-dim);
+}
+
+/* R217 (FR-NOW-2, D-1239): the up-only form. Every line is the swatch, the name, then the compass point and the
+   height in two columns as wide as their widest entry (`upNowColumns`, in characters of the mono face), so a
+   point and a height start at one x on every line. A body line sits in the rows' padding, its swatch under theirs. */
+.upCells {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) var(--up-point) var(--up-height);
+  column-gap: var(--cell);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.upCells .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.point,
+.height {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.upBody {
+  display: flex;
+  align-items: center;
+  min-height: var(--row);
+  padding: 0 var(--cell);
+  color: var(--fg-dim);
+}
+
+/* FR-NOW-2: the first line with no satellite up, in `--fg-dim`, at the column's left edge. */
+.upNone {
+  display: flex;
+  align-items: center;
+  min-height: var(--row);
   color: var(--fg-dim);
 }
 
@@ -138,6 +172,10 @@
   margin-block: 0;
   padding-block: 0;
   overflow: hidden;
+}
+
+.clipped .cells {
+  padding-block: 0;
 }
 
 /* D-863: the name is cut by an ellipsis and the state after it is not — it is the row's fixed part. */

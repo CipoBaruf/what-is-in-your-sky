@@ -1,6 +1,1 @@
-{
-  "src/ui/components/guide/skychart/Legend.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the legend's rows; R217 makes them PickRows."
-  }
-}
+{}
