@@ -76,6 +76,7 @@
 
 .place {
   grid-area: place;
+  min-width: 0;
 }
 
 .links {

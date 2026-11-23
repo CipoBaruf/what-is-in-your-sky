@@ -63,7 +63,7 @@ function Page({ initial = false, children = rows, onChange }: { initial?: boolea
           onChange?.(next);
           setOpen(next);
         }}
-        place="Cipolletti, Río Negro"
+        place={{ label: 'Cipolletti, Río Negro', example: false }}
       >
         {children}
       </ControlsSheet>
@@ -121,8 +121,11 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     expect(close).toHaveAttribute('data-testid', 'sheet-close');
     expect(close).toHaveTextContent(/^×$/);
     expect(m.sheet.close).toBe(locale === 'en' ? 'Close controls' : 'Cerrar controles');
-    // The head's order: the place, `satellites`, `settings`, then the `×` at the row's end.
-    expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-satellites', 'sheet-settings', 'sheet-close']);
+    // R219 (FR-LAND-4, D-1238): the head's first line is the place line with the `×` at its end, then `satellites` and `settings`.
+    expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-close', 'sheet-links']);
+    expect(within(head).getByTestId('place-line')).toHaveAttribute('data-place', 'set');
+    expect(within(head).getByTestId('place-change')).toHaveTextContent(m.header.place.change);
+    expect([...within(head).getByTestId('sheet-links').children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-satellites', 'sheet-settings']);
     // R212 (FR-LAND-6, D-1231): the phone's way to tonight's list.
     const list = within(head).getByTestId('sheet-satellites');
     expect(list).toHaveAttribute('href', '#pass');
@@ -382,5 +385,32 @@ describe('ControlsSheet.module.css (FR-FULL-4)', () => {
     expect(css).not.toMatch(/--sheet-side-share|data-form/);
     expect(css).toMatch(/z-index: var\(--z-sheet\)/);
     expect(css).toMatch(/overflow-y: auto/);
+  });
+});
+
+describe('<ControlsSheet> head (FR-LAND-4, D-1238)', () => {
+  it.each([
+    ['en', en],
+    ['es', es],
+  ] as const)('FR-LAND-4: opens on the place line with the example in %s — `<city> · example  change`', (locale, m) => {
+    render(
+      <I18nProvider locale={locale}>
+        <ControlsSheet open onOpenChange={() => undefined} place={{ label: 'Salta', example: true }} />
+      </I18nProvider>,
+    );
+    const head = screen.getByTestId('sheet-head');
+    expect(head.firstElementChild).toBe(within(head).getByTestId('sheet-place'));
+    const line = within(head).getByTestId('place-line');
+    expect(line).toHaveAttribute('data-place', 'example');
+    expect(line).toHaveTextContent(`Salta · ${m.header.place.example}${m.header.place.change}`);
+  });
+
+  it('FR-LAND-4: with no place, the line is `Set your place`', () => {
+    render(
+      <I18nProvider locale="en">
+        <ControlsSheet open onOpenChange={() => undefined} place={null} />
+      </I18nProvider>,
+    );
+    expect(within(screen.getByTestId('sheet-place')).getByTestId('place-set')).toHaveTextContent(en.header.place.set);
   });
 });

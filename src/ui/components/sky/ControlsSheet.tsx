@@ -3,7 +3,7 @@ import { useT } from '../../../i18n/useT';
 import { SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../../lib/layout';
 import { PASS_PAGE_HASH, SETTINGS_HASH } from '../../../lib/shareLinks';
 import { Footer } from '../common/Footer';
-import { PlaceLine, useHeaderPlace } from '../common/PlaceLine';
+import { PlaceLine, useHeaderPlace, type HeaderPlace } from '../common/PlaceLine';
 import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
@@ -55,6 +55,8 @@ import styles from './ControlsSheet.module.css';
 export interface ControlsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** R219 (D-1238): the head's place line; left out, the place the pages open for (`useHeaderPlace`), as the header reads it. */
+  place?: HeaderPlace | null;
   /** R216 (FR-NOW-1, D-1239): the rail's groups, rendered in `SLOT_ORDER`; an empty one renders nothing. */
   groups?: Partial<Record<SkyViewRailSlot, ReactNode>> | undefined;
   /** The sheet's rows, in the page's order, after `groups` (R148). */
@@ -110,11 +112,12 @@ function firstFocusable(root: HTMLElement | null): HTMLElement | null {
   return Array.from(root?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).find((element) => !element.closest('[data-testid="app-footer"]')) ?? null;
 }
 
-export function ControlsSheet({ open, onOpenChange, groups, children, beside, className }: ControlsSheetProps) {
+export function ControlsSheet({ open, onOpenChange, place, groups, children, beside, className }: ControlsSheetProps) {
   const t = useT();
   const sheetId = useId();
   // R219 (FR-LAND-4, D-1238): the head's first line is the place line, read as the header reads it.
-  const place = useHeaderPlace();
+  const pagePlace = useHeaderPlace();
+  const shownPlace = place === undefined ? pagePlace : place;
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -221,12 +224,12 @@ export function ControlsSheet({ open, onOpenChange, groups, children, beside, cl
       >
         <div className={styles.head} data-testid="sheet-head" onPointerDown={onHeadDown} onPointerMove={onHeadMove} onPointerUp={onHeadUp} onPointerCancel={onHeadCancel}>
           <div className={styles.place} data-testid="sheet-place">
-            <PlaceLine place={place} />
+            <PlaceLine place={shownPlace} />
           </div>
           <button type="button" ref={closeRef} className={`target ${styles.close}`} aria-label={t.sheet.close} onClick={() => onOpenChange(false)} data-testid="sheet-close">
             ×
           </button>
-          <div className={styles.links}>
+          <div className={styles.links} data-testid="sheet-links">
             <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
             <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />
           </div>
