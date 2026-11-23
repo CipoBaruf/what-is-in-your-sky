@@ -33,8 +33,8 @@ const PASS_LINK = `/#pass?lat=48.86&lon=2.35&alt=35&norad=25544&start=${START}`;
 
 test.use({ viewport: { width: 1280, height: 800 } });
 
-/** The place the page looks from, as the desk header names it (`<page>-place`). */
-const shownPlace = (page: Page) => page.getByTestId('header').locator('[data-testid$="-place"]');
+/** The place the page looks from, as the desk header names it: R215's place line (FR-LAND-4, D-1238). */
+const shownPlace = (page: Page) => page.getByTestId('header').getByTestId('place-line');
 /** R212 (FR-LAND-1): what a cleared hash reads now: `#live`, or nothing in the moment before the reader replaces it. */
 const CLEARED = /^(#live)?$/;
 

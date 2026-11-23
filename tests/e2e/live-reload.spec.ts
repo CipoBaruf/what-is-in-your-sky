@@ -171,5 +171,5 @@ test('a click on the stripe, and a reload of the link it writes, keep the same p
   // on the old code, which rebuilds a fresh `source: 'coords'` observer here and starts a search
   // instead (D-280).
   expect(await counts(page, targetId)).toEqual(clicked);
-  await expect(page.getByTestId('live-place')).toHaveText(GEOCODED.label);
+  await expect(page.getByTestId('header').getByTestId('place-name')).toHaveText(GEOCODED.label);
 });
