@@ -32,6 +32,9 @@ const moonPhase = {
   waningCrescent: 'waning crescent',
 } satisfies Record<MoonPhaseName, string>;
 
+/** R219 (FR-NOW-3): the `Clouds` row's word, lower case as the row reads it (`clear · 5 %`). */
+const cloudRowWord = { clear: 'clear', partly: 'partly cloudy', obscured: 'likely obscured', unknown: 'unknown' } satisfies Record<CloudState, string>;
+
 /**
  * R32 (FR-LIVE-1, FR-LIVE-3, FR-LIVE-9; US-15). The live page: how it is
  * reached, what it says when it cannot draw, and the five fields of the
@@ -57,17 +60,17 @@ export const live = {
     loadingElements: 'Loading orbital elements…',
     failedInstead: 'There is no stored sky to draw meanwhile.',
     /**
-     * The conditions line's accessible name; the fields below are its labels (FR-LIVE-3). R77 (FR-WATCH-3):
-     * one line in both states, `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon waxing crescent, 18 % lit`. Wide's
-     * alone since R145: compact's `21:14:32 dark clear 3 up` and its words went with FR-TONIGHT-6.
+     * R219 (FR-NOW-3, D-1239): the sky's state as rows at the end of `Up now`, replacing the conditions line —
+     * `Clouds  clear · 5 %`, `Moon  waxing gibbous · 90 % lit`. `Sky` went (FR-DARK-1, FR-DARK-3) and `Up` went (the list is the count).
      */
-    strip: 'Sky conditions',
-    skyLabel: 'Sky',
+    /** R219 (FR-NOW-2): the rail group's heading. */
+    upNowHeading: 'Up now',
     cloudLabel: 'Clouds',
-    countLabel: 'Up',
     moonLabel: 'Moon',
-    /** The sky state in words (FR-LIVE-3, `SkyState`). */
-    sky: { day: 'day', 'bright-twilight': 'bright twilight', dark: 'dark' } satisfies Record<SkyState, string>,
+    /** The cover in its word and its percentage; the word alone with no forecast. */
+    cloudRow: (p: { state: CloudState; percent: string | null }) => (p.percent === null ? cloudRowWord[p.state] : `${cloudRowWord[p.state]} · ${p.percent} %`),
+    /** The Moon's phase and light, and nothing about where it is: `Up now`'s row above says that. */
+    moonRow: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]} · ${p.illumination} % lit`,
     /**
      * R85 (FR-COMP-7): what a screen reader says for the cloud word, where the word is an abbreviation (Spanish `s/d`);
      * the same word here. R145: the context line's (`context.cloudWord`) since the compact conditions line went (FR-TONIGHT-6).
@@ -75,8 +78,6 @@ export const live = {
     cloudSpoken: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
     /** A field whose value is not known yet — the astronomy is still loading. */
     pending: '…',
-    /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
-    moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
     /**
      * R77 (FR-WATCH-1, FR-WATCH-2, FR-MARK-5): the state indicator's word beside the mark — never the colour
      * alone (FR-X-5) — and the two ways between the states. `[ scrub the night ]` holds the instant at the tap;

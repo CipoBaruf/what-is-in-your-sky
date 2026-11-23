@@ -37,7 +37,7 @@ import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LEGEND_OPEN_ROWS } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
-import { LivePage, TICK_MS, visibleCount } from './Live';
+import { LivePage, TICK_MS } from './Live';
 import { PlaceDialogHost } from '../components/location/PlaceDialog';
 import { closePlaceRequest } from './home/placeRequest';
 import { COMPACT_CONDITIONAL, LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor, WIDE_CORNERS } from './liveRows';
@@ -103,19 +103,13 @@ const withSky = (passes: Pass[] = all, elements: ElementsState = ready): void =>
   });
 };
 
-describe('livePasses / visibleCount (FR-LIVE-2, D-160)', () => {
+describe('livePasses (FR-LIVE-2)', () => {
   it('keeps every pass overlapping now … now + 24 h, in the list order, and drops the rest', () => {
     expect(livePasses(all, T).map((p) => p.id)).toEqual([pass.id, 'later', 'tomorrow']);
     // The edges are inclusive: a pass ending exactly now, or starting exactly 24 h out, is in.
     expect(livePasses([shifted('ends-now', 'x', T - pass.end.t)], T).map((p) => p.id)).toEqual(['ends-now']);
     expect(livePasses([shifted('at-edge', 'x', T + LIVE_WINDOW_MS - pass.start.t)], T).map((p) => p.id)).toEqual(['at-edge']);
     expect(livePasses([shifted('past-edge', 'x', T + LIVE_WINDOW_MS + 1 - pass.start.t)], T)).toEqual([]);
-  });
-
-  it('counts the passes whose interval contains the instant: the markers on the dome', () => {
-    expect(visibleCount(all, T)).toBe(1);
-    expect(visibleCount(all, pass.end.t + 1)).toBe(0);
-    expect(visibleCount([pass, shifted('twin', 'y', 5_000)], T)).toBe(2);
   });
 });
 

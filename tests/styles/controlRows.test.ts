@@ -99,7 +99,6 @@ const CSS = [
   'src/ui/App.module.css',
   'src/ui/components/passes/NextEventBlock.module.css',
   'src/ui/screens/Live.module.css',
-  'src/ui/components/live/StatusStrip.module.css',
   'src/ui/components/live/StateIndicator.module.css',
   'src/ui/components/common/VisitNotice.module.css',
 ].map((file) => resolve(process.cwd(), file));

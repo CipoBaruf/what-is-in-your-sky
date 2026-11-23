@@ -1,7 +1,7 @@
 import type { UpEvent } from '../../lib/contextLine';
 import type { Landmark } from '../../lib/landmark';
 import { offsetSpan, stripSpan } from '../../lib/playback';
-import type { MoonPhaseName } from '../../model';
+import type { CloudState, MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
 /** R123 para R127 (FR-SKY-11): la palabra de dirección de la línea del punto de referencia. */
@@ -19,6 +19,9 @@ const moonPhase = {
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
 
+/** R219 (FR-NOW-3): la palabra de la fila `Nubes` (`despejado · 5 %`). */
+const cloudRowWord: Record<CloudState, string> = { clear: 'despejado', partly: 'parcialmente nublado', obscured: 'probablemente tapado', unknown: 'sin datos' };
+
 /** R143 (FR-TONIGHT-7): qué hace después un pase que está arriba; las mismas palabras que la puerta de satélites (`es/home.ts`). */
 const upVerb: Record<UpEvent, string> = { peak: 'culmina', horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' };
 
@@ -32,16 +35,14 @@ export const live: typeof EnLive = {
     setPlace: 'elegir un lugar',
     loadingElements: 'Cargando los elementos orbitales…',
     failedInstead: 'Mientras tanto no hay un cielo guardado para dibujar.',
-    strip: 'Condiciones del cielo',
-    skyLabel: 'Cielo',
+    upNowHeading: 'Arriba ahora',
     cloudLabel: 'Nubes',
-    countLabel: 'Arriba',
     moonLabel: 'Luna',
-    sky: { day: 'de día', 'bright-twilight': 'crepúsculo claro', dark: 'oscuro' },
+    cloudRow: (p) => (p.percent === null ? cloudRowWord[p.state] : `${cloudRowWord[p.state]} · ${p.percent} %`),
+    moonRow: (p) => `${moonPhase[p.phase]} · ${p.illumination} % iluminada`,
     /** R85 (FR-COMP-7): `S/d` se lee "sin datos"; desde R145, el de la línea de contexto (`context.cloudWord`). */
     cloudSpoken: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 'sin datos' },
     pending: '…',
-    moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
     /**
      * R77 (FR-WATCH-1, FR-WATCH-2): "fijado" es el estado; `[ ir al vivo ]` cabía en la fila compacta de 36 celdas
      * junto a `[ ] Ocultos Compartir` (V20-8), donde "volver al vivo" se pasaba por cuatro. R145 (FR-TONIGHT-6): la

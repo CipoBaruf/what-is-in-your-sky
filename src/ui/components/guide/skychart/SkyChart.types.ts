@@ -250,6 +250,8 @@ export interface SkyChartProps {
    * them to — and FR-MOON-3 leaves the Now panel, the wide live page and every other legend unchanged.
    */
   moonPhase?: boolean;
+  /** R219 (FR-NOW-2, D-1239): the legend in its up-only form, `Up now` — the wide live page's rail alone. */
+  legendUpOnly?: boolean;
   /**
    * FR-WIN-4 / D-240 (R47): a view that cannot stay mounted says why — the
    * window after a refused orientation permission (`denied`) or on a phone
