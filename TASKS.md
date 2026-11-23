@@ -174,7 +174,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Live.tsx` and `Stars.tsx` (never edited here); the header's place line and tabs (R215); the strip (R213).
   - **Done when:** `npm run check` and `npm run check:dead` green; `landing.spec.ts` covers `/`, `/#`, `/#nope` at 390 × 844 and 1280 × 800 with `history.length` unchanged; the compact `#pass` e2e opens a card's sheet; `update-banner.spec.ts` green on `#live`; a test that `example_shown` is sent on `#live`; `npm run check:sdd` green.
 
-- [ ] **R213 — The next pass is a strip, not a question**
+- [x] **R213 — The next pass is a strip, not a question**
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 300
