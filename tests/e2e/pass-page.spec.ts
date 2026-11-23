@@ -92,7 +92,7 @@ for (const [width, height] of SIZES) {
           const back = header.getByRole('button', { name: WORD[locale].back });
           await expect(back).toBeVisible();
           const links = header.getByRole('navigation').locator('[data-testid$="-link"]');
-          await expect(links).toHaveText(locale === 'es' ? ['en vivo', 'satélites', 'estrellas'] : ['live', 'satellites', 'stars']);
+          await expect(links).toHaveText(locale === 'es' ? ['en vivo', 'satélites', 'ajustes'] : ['live', 'satellites', 'settings']);
           await expect(header.getByTestId('pass-link')).toHaveAttribute('aria-current', 'page');
           await expect(header.getByTestId('pass-link')).toHaveText(WORD[locale].satellites);
           await back.click();
@@ -232,7 +232,10 @@ test.describe('FR-WIDE-1: [ ← ] goes back to where the reader came from; a bar
   for (const locale of LOCALES) {
     test(`from the stars page, [ satellites ] then [ ← ] is the stars page again, in ${locale}`, async ({ page }) => {
       await home(page, locale);
-      await page.locator('#root > header').getByTestId('stars-link').click();
+      // R215 (FR-LAND-6): the header's tabs are live, satellites and settings; the stars page is reached by address.
+      await page.evaluate(() => {
+        location.hash = '#stars';
+      });
       await expect(page).toHaveURL(/#stars/);
       await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
       await openFromHeader(page);
@@ -241,7 +244,6 @@ test.describe('FR-WIDE-1: [ ← ] goes back to where the reader came from; a bar
       await expect(page).toHaveURL(/#stars/);
       await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
       await expect(page.getByTestId('pass-layout')).toHaveCount(0);
-      await expect(page.locator('#root > header').getByTestId('stars-link')).toHaveAttribute('aria-current', 'page');
     });
   }
 
