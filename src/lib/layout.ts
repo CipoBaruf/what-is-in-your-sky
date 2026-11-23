@@ -61,8 +61,6 @@ export const WIDE_MIN_PX = thresholdPx(WIDE_CELLS);
 /** R103 (FR-DS-3, D-702): every query, in script and in the stylesheets, is range syntax — the floor is Safari 16.4 / Chrome 104 / Firefox 63. */
 export const WIDE_QUERY = `(width >= ${String(WIDE_MIN_PX)}px)`;
 
-/** The gutter between two columns of the wide shell, in cells (the sky pages' grids). */
-export const GUTTER_CELLS = 3;
 
 /** The side padding of the header, the main and the footer, in cells (`styles/global.css`). */
 export const SHELL_PADDING_CELLS = 2;
