@@ -272,6 +272,16 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
   At 964 × 420 the reserved row left the box 170 px, under FR-SHP-3's `LIVE_BOX_MIN_PX`; so under `LANDSCAPE_PHONE_QUERY` (landscape, 500 px tall or less: the short-wide rows and the landscape phone) the box keeps its height and the row stands over its foot as when full, the one existing height fold rather than a fourth (FR-DS-3).
   `wiys:hint:globe:v1` governs the window's and the globe's line, which a tap no longer dismisses and which has no follow clause; the dome, which does not zoom, keeps its drag line and `skyHintSeen`.
 
+- **D-1280 — The globe's hint is shown by the stars page, and any zoom ends it.** *(R217)*
+  (FR-CTRL-9, D-1241, D-1273.) The hint is the page's slot, and `Stars.tsx` had held it off the wide globe since R170; R217's one line there drops that guard, the only edit outside its lane, so the globe "carries the hint" as the task asks.
+  `zoomBy` ends it, so the keys, the wheel, the pinch and the `+` / `-` keys all do; so does the first drag past `HIT_RADIUS_PX` and `⟲` / `Home`. A tap does not. Box keys and the zoom range are FR-GLOBE-6's, unchanged.
+- **D-1281 — `Up now` lists the Moon before the Sun and drops the key letter.** *(R217)*
+  (FR-NOW-2, D-1239.) FR-NOW-2's prose says "the Sun and the Moon" but its example and D-1239 put the Moon first; the example wins. A row is FR-NOW-2's four cells (swatch, name, point, height): the arc's key letter and the times are the full legend's.
+  A row is up when its marker, interpolated at the shown instant on the pass's track (`LegendRow.at`), is above 0°; a FR-LIVE-6 hidden object is never up. Heights round to whole degrees and `−0.4°` reads `0° up`.
+- **D-1282 — The columns are measured in characters, and the legend's pick is the primitive's.** *(R217)*
+  (FR-NOW-2, FR-CTRL-15, FR-DS-10.) `upNowColumns` gives the point and height columns their widest entry in `ch`, which aligns them because the app's face is mono; the name column takes what is left and ellipsises.
+  The rows' layout moved into an inner `.cells` span, so `PickRow` keeps its own ground, line and padding; the body and empty lines indent by one `--cell` for the row's padding, since a module outside the primitives may not read `--control-pad`. The chart lane's brackets list was already `{}`: no bracketed word is left inside `skychart/`, so "the chart's tags" had nothing to convert.
+
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
 R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-1306, R226 D-1307..D-1308, R227 D-1309..D-1311.**
