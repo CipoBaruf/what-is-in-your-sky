@@ -12,7 +12,7 @@
  * and `example_shown` is sent from the live page. `where_shown` has no sender until R215's place dialog, and the
  * example's control opens the settings page's place group (D-1230).
  */
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { isMeasureEvent, type MeasureEvent } from '../../src/model/measure';
 import { LABEL, NINE_DAYS_ON, stubNetwork } from './liveHelpers';
 import { NEUQUEN } from './observers';
@@ -84,9 +84,9 @@ async function painted(page: Page): Promise<void> {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 50))));
 }
 
-async function pickCipolletti(page: Page): Promise<void> {
-  await page.getByRole('combobox').first().pressSequentially(TYPED, { delay: 20 });
-  await page.getByRole('option').first().click();
+async function pickCipolletti(page: Page, within: Page | Locator = page): Promise<void> {
+  await within.getByRole('combobox').first().pressSequentially(TYPED, { delay: 20 });
+  await within.getByRole('option').first().click();
   // The pointer would otherwise rest where the next screen draws a tooltip over its control.
   await page.mouse.move(0, 0);
 }
@@ -101,22 +101,26 @@ for (const language of [
     test.describe('from the example, at 390 × 844', () => {
       test.use({ viewport: { width: 390, height: 844 }, timezoneId: EXAMPLE_ZONE });
 
-      test('FR-OPEN-10, D-1242: open:live, example_shown on the live page, place_set — once each, in order, under one id, and no word of the example', async ({ page }) => {
+      test('FR-OPEN-10, D-1242: open:live, example_shown on the live page, where_shown from the place dialog, place_set — once each, in order, under one id, and no word of the example', async ({ page }) => {
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
         await expect(page).toHaveURL(/#live$/);
-        await expect(page.getByTestId('example-notice')).toBeVisible({ timeout: 60_000 });
+        await expect(page.getByTestId('live-layout')).toBeVisible({ timeout: 60_000 });
         await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
-        await page.getByTestId('example-notice-set').click();
-        await expect(page).toHaveURL(/#settings$/);
-        await pickCipolletti(page);
-        await expect(page.getByTestId('place-confirmation')).toBeVisible();
-        await expect.poll(() => walked(bodies).length).toBe(3);
+        // R215 (D-1238): a phone's `change` is the satellites list's head until R219's sheet.
+        await page.evaluate(() => {
+          location.hash = '#pass';
+        });
+        await page.getByTestId('place-change').first().click({ timeout: 30_000 });
+        const dialog = page.getByTestId('place-dialog');
+        await pickCipolletti(page, dialog);
+        await expect(dialog).toHaveCount(0);
+        await expect.poll(() => walked(bodies).length).toBe(4);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'place_set:search']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'where_shown:example', 'place_set:search']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'compact', lang: language.lang });
         // V215-7: once per pair per load.
@@ -133,13 +137,13 @@ for (const language of [
         await serve(page);
         await page.goto('/');
         await page.getByTestId('live-set-place').click({ timeout: 60_000 });
-        await expect(page).toHaveURL(/#settings$/);
-        await pickCipolletti(page);
-        await expect.poll(() => walked(bodies).length).toBe(3);
+        const dialog = page.getByTestId('place-dialog');
+        await pickCipolletti(page, dialog);
+        await expect.poll(() => walked(bodies).length).toBe(4);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies)).toEqual(['open:live', 'example_shown:no_city', 'place_set:search']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:no_city', 'where_shown:fallback', 'place_set:search']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'compact', lang: language.lang });
         expect(new Set(pairs(bodies)).size).toBe(bodies.length);
@@ -155,19 +159,18 @@ for (const language of [
         await serve(page);
         await page.goto('/');
         await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
-        await page.getByTestId('example-notice-set').click();
-        await expect(page).toHaveURL(/#settings$/);
-        const disclosure = page.getByTestId('coords-disclosure');
-        if ((await disclosure.getAttribute('aria-expanded')) === 'false') await disclosure.click();
-        await page.getByLabel(LABEL[language.lang].coords).fill(PAIR);
-        await expect.poll(() => walked(bodies).length).toBe(3);
+        await page.getByTestId('header').getByTestId('place-change').click();
+        const dialog = page.getByTestId('place-dialog');
+        await dialog.getByLabel(LABEL[language.lang].coords).fill(PAIR);
+        await dialog.getByTestId('place-dialog-continue').click();
+        await expect.poll(() => walked(bodies).length).toBe(4);
         await page.getByTestId('pass-link').click();
         await expect(page).toHaveURL(/#pass=/, { timeout: 60_000 });
         await expect.poll(() => pairs(bodies).includes('pass_open')).toBe(true);
         await painted(page);
 
         const all = events(bodies);
-        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'place_set:coords', 'pass_open']);
+        expect(walked(bodies)).toEqual(['open:live', 'example_shown:pass', 'where_shown:example', 'place_set:coords', 'pass_open']);
         expect(new Set(all.map((event) => event.id)).size).toBe(1);
         for (const event of all) expect(event).toMatchObject({ visit: 'first', layout: 'wide', lang: language.lang });
         expectNoPlace(bodies);
@@ -219,7 +222,7 @@ async function fullVisit(page: Page, context: BrowserContext, bodies: readonly s
   // Its run is in before the reader moves on: a place set during the wait leaves the outcome `pending` (D-1191).
   // R212: the live page draws the example's line from the first paint, so the latch is read where it is sent — the
   // `example_shown` count — on the measured visit; the visit without the measurement waits for the elements below.
-  await expect(page.getByTestId('example-notice')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('live-layout')).toBeVisible({ timeout: 60_000 });
   if (bodies) await expect.poll(() => pairs(bodies), { timeout: 60_000 }).toContain('example_shown:pass');
   // The elements are cached as they arrive; "before" is the page once both groups are in, with and without the measurement.
   await expect.poll(async () => ((await kept(page, context)) as { idb: Record<string, string[]> }).idb['wiys/elementGroups']).toEqual(['stations', 'visual']);
@@ -281,7 +284,10 @@ test.describe('offline', () => {
     await expect.poll(() => walked(bodies), { timeout: 60_000 }).toEqual(['open:live', 'example_shown:pass']);
     // The settings chunk in hand before the connection goes (the service worker that would serve it is blocked here).
     const chunk = page.waitForResponse((response) => /\/Settings-[^/]*\.js$/.test(response.url()), { timeout: 5_000 }).catch(() => undefined);
-    await page.getByTestId('example-notice-set').click();
+    // R215: the example's control is the place dialog now; this walk sets the place on the settings page, by address.
+    await page.evaluate(() => {
+      location.hash = '#settings';
+    });
     await chunk;
     await expect(page.getByTestId('location-actions')).toBeVisible();
 
