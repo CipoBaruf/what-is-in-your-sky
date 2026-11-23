@@ -30,9 +30,12 @@ async function loadWithPasses(page: Page, locale: 'en' | 'es' = 'en', { cards = 
   // to land first, because the first object of it replaces the list (see `listSettled`). The tests
   // that only open the overlay do not, and those are most of this file.
   await seedStoredRun(page, { locale, settled: cards });
-  // Nothing was typed, so nothing has the caret — but the click is kept: FR-DESK-4 says the keys are
+  // Nothing was typed, so nothing has the caret — but the focus is cleared: FR-DESK-4 says the keys are
   // the page's only while no field holds it, and starting from a known focus is what makes that true here.
-  await page.getByRole('heading', { level: 1 }).click();
+  // R212 (D-1267): a route change hands the focus to the page's h1, so it is blurred rather than clicked.
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
   expect(await page.evaluate(() => document.activeElement?.tagName.toLowerCase())).toBe('body');
 }
 
@@ -52,9 +55,13 @@ async function cardIds(page: Page): Promise<string[]> {
 
 test('j and k move the cursor over the list, Enter opens the pass and Esc closes it (US-14 AC4)', async ({ page }) => {
   await loadWithPasses(page, 'en', { cards: true });
+  // R212 (FR-LAND-6): the list is the pass page's rail, and the open pass's card is where the cursor starts.
   const ids = await cardIds(page);
-  expect(ids.length).toBeGreaterThan(2);
-  const [first, second] = ids as [string, string];
+  const open = await page.getByTestId('guide-panel').getAttribute('data-pass-id');
+  const at = ids.indexOf(open ?? '');
+  expect(at).toBeGreaterThanOrEqual(0);
+  expect(ids.length).toBeGreaterThan(at + 2);
+  const [first, second] = [ids[at + 1], ids[at + 2]] as [string, string];
 
   await page.keyboard.press('j');
   expect(await cursor(page)).toBe(first);
@@ -70,20 +77,26 @@ test('j and k move the cursor over the list, Enter opens the pass and Esc closes
   await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', first);
   expect(page.url()).toContain(`#pass=${first}`);
 
+  // On a desk the pass page closes to the live page.
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('guide-panel')).toHaveCount(0);
-  expect(page.url()).not.toContain('#pass=');
+  expect(page.url()).toContain('#live');
 });
 
-test('k from the bottom, and the ends of the list stop rather than wrap', async ({ page }) => {
+test('k and j stop at the ends of the list rather than wrap', async ({ page }) => {
   await loadWithPasses(page, 'en', { cards: true });
   const ids = await cardIds(page);
   const last = ids[ids.length - 1] as string;
+  const first = ids[0] as string;
 
-  await page.keyboard.press('k');
+  for (const _ of ids) await page.keyboard.press('j');
   expect(await cursor(page)).toBe(last);
   await page.keyboard.press('j');
   expect(await cursor(page)).toBe(last);
+  for (const _ of ids) await page.keyboard.press('k');
+  expect(await cursor(page)).toBe(first);
+  await page.keyboard.press('k');
+  expect(await cursor(page)).toBe(first);
 });
 
 test('l opens the live page (FR-LIVE-1)', async ({ page }) => {
@@ -135,6 +148,7 @@ test('typing a place name types it and fires nothing (FR-DESK-4, D-73)', async (
   await loadWithPasses(page);
   // R212 (D-1230): the place group is the settings page’s.
   await openSettings(page);
+  const url = page.url();
   const field = page.getByLabel('Place name');
   await field.click();
   await field.pressSequentially('jknvl?');
@@ -143,7 +157,7 @@ test('typing a place name types it and fires nothing (FR-DESK-4, D-73)', async (
   await expect(page.getByTestId('shortcuts-overlay')).toHaveCount(0);
   await expect(page.getByTestId('guide-panel')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.dataset['theme'])).toBe('dark');
-  expect(page.url()).not.toContain('#');
+  expect(page.url()).toBe(url);
   // The cursor never moved: focus is still in the field, not on a card.
   await expect(field).toBeFocused();
 });
