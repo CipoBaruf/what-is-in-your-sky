@@ -144,10 +144,10 @@ export const WIDE_CORNERS: readonly LiveRow[] = ['readout', 'hint'];
 /**
  * R148 (FR-FULL-4, D-923, D-928) → R216 (FR-NOW-1, D-1239): the sheet's rows, in the wide rail's group order — the
  * context line (the strip's place: the strip itself stands over the sky); `View`: the view row with `[ Share ]` at
- * its right, then the facing row; `Time`: the track and the taps; `Layers`: `[x] stars` and the hidden toggle;
+ * its right, then the facing row; `Time`: the track and the taps; `Layers`: `[x] stars` and the hidden toggle (no row of its own on compact, as before);
  * `Up now`: "Satellites (n)" with the list open under it.
  */
-export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'view-row', 'share', 'facing', 'track', 'taps', 'hidden', 'satellites'];
+export const COMPACT_SHEET: readonly LiveRow[] = ['context', 'view-row', 'share', 'facing', 'track', 'taps', 'satellites'];
 
 /**
  * FR-WATCH-4's inventory, in reading order.

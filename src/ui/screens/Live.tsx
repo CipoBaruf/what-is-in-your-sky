@@ -857,7 +857,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       <SectionHeading id={layersId}>{t.skyView.layers}</SectionHeading>
       <div className={styles.layerRow}>
         <StarsToggle />
-        {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+        {(compact || has('hidden')) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       </div>
     </section>
   );
@@ -1082,11 +1082,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
           strip: context,
           view: (
             <>
-              <div className={styles.viewRow} data-testid="live-view-row">
+              <div className={styles.viewRow} data-testid="live-view-row" data-rhythm="group">
                 {viewRow}
               </div>
               {followToggle !== null && (
-                <div className={styles.followRow} data-testid="live-follow">
+                <div className={styles.followRow} data-testid="live-follow" data-rhythm="group">
                   {followToggle}
                 </div>
               )}
@@ -1098,7 +1098,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
           time: timeline,
           layers,
           upNow: (
-            <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites">
+            <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
               <div className={styles.satellitesHead} data-testid="live-satellites-head">
                 <SectionHeading id={satellitesId}>{t.live.satellites({ count: legendCount })}</SectionHeading>
               </div>

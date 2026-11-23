@@ -76,7 +76,7 @@ const inside = (inner: Box, outer: Box, slack = 1): boolean => inner.x >= outer.
 
 /** The view row is one line: the control and `[x] stars` share it, the toggle at the row's right end. R148: the live page's row is the sheet's, given as itself. */
 async function expectViewRowOneLine(layout: Locator, locale: Locale): Promise<void> {
-  const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="viewRow"]');
+  const row = ['live-view-row', 'pass-view-row'].includes((await layout.getAttribute('data-testid')) ?? '') ? layout : layout.locator('[data-slot="view"]');
   const control = await box(row.getByRole('group', { name: WORDS[locale].viewGroup }));
   const stars = await box(row.getByRole('button', { name: WORDS[locale].stars }));
   expect(Math.abs(control.y + control.height / 2 - (stars.y + stars.height / 2))).toBeLessThanOrEqual(4);
@@ -355,7 +355,7 @@ for (const locale of LOCALES) {
 
     test('FR-WIDE-2: the View row reads Globe Window Dome on the three pages, and a view chosen on the live page is the others’ after a reload', async ({ page }) => {
       const layout = await openLive(page, locale);
-      const row = layout.locator('[data-slot="viewRow"]').getByRole('group', { name: WORDS[locale].viewGroup });
+      const row = layout.locator('[data-slot="view"]').getByRole('group', { name: WORDS[locale].viewGroup });
       await expect(row.getByRole('button')).toHaveText(DESK_LABELS[locale]);
       await chooseDeskView(layout, locale, 'window');
       await page.goto('/#stars');

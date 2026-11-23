@@ -17,7 +17,7 @@ import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { fireEvent } from '@testing-library/react';
-import { CORNERS, LIST_FIRST_ORDER, LIST_FIRST_RHYTHM, SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
+import { CORNERS, SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
 
 let media: MatchMediaStub | null = null;
 stubResizeObserver(390, 390);
@@ -44,8 +44,8 @@ const all = (locale: Locale = 'en', extra: Partial<SkyViewLayoutProps> = {}) =>
     <I18nProvider locale={locale}>
       <SkyViewLayout
         data-testid="layout"
-        answer={<h1>answer</h1>}
-        viewRow={
+        strip={<h1>strip</h1>}
+        view={
           <>
             <SkyViewChartSlot name="control" />
             <button type="button">stars</button>
@@ -61,15 +61,16 @@ const all = (locale: Locale = 'en', extra: Partial<SkyViewLayoutProps> = {}) =>
           </div>
         }
         hint={<p>hint</p>}
-        timeline={<p>timeline</p>}
-        action={
+        time={<p>time</p>}
+        turn={
           <div>
             <SkyViewChartSlot name="picker" />
             <button type="button">act</button>
           </div>
         }
         layers={<p>layers</p>}
-        list={<SkyViewChartSlot name="list" />}
+        upNow={<SkyViewChartSlot name="list" />}
+        upFrom={<p>up from</p>}
         {...extra}
       />
     </I18nProvider>,
@@ -115,21 +116,21 @@ function stubFullscreen({ refuse = false } = {}) {
 }
 
 describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () => {
-  it('FR-WIDE-1: renders the rail in SLOT_ORDER, each row marked for the rhythm (D-851), and nothing for an empty one', () => {
+  it('FR-NOW-1, FR-WIDE-1: renders the rail in SLOT_ORDER, each row marked for the rhythm (D-851), and nothing for an empty one', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
-    expect(SLOT_ORDER).toEqual(['answer', 'viewRow', 'timeline', 'action', 'layers', 'list']);
+    expect(SLOT_ORDER).toEqual(['strip', 'view', 'time', 'turn', 'layers', 'upNow', 'upFrom']);
     expect(railSlots()).toEqual([...SLOT_ORDER]);
     for (const slot of screen.getByTestId('layout').querySelectorAll<HTMLElement>('[data-rail] > [data-slot]')) {
       expect(slot.dataset['rhythm']).toBe(SLOT_RHYTHM[slot.dataset['slot'] as keyof typeof SLOT_RHYTHM]);
     }
     cleanup();
-    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} list={<p>list</p>} />);
-    expect(railSlots()).toEqual(['list']);
-    expect(screen.getByTestId('layout').querySelector('[data-slot="answer"]')).toBeNull();
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} upFrom={<p>list</p>} />);
+    expect(railSlots()).toEqual(['upFrom']);
+    expect(screen.getByTestId('layout').querySelector('[data-slot="strip"]')).toBeNull();
     // A page that has no hint to show (seen, or the polar chart) hands the slot `false`, and no corner is left.
     cleanup();
-    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} hint={false} list={<p>list</p>} />);
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} hint={false} upFrom={<p>list</p>} />);
     expect(corners()).toEqual(['readout']);
     expect(screen.getByTestId('layout')).not.toHaveAttribute('data-fill');
     cleanup();
@@ -176,7 +177,7 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
   it('labels the rail’s view row `View` (`Vista`) on wide and not on compact (D-846)', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
-    expect(screen.getByRole('heading', { level: 2, name: en.skyView.view }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(screen.getByRole('heading', { level: 2, name: en.skyView.view }).closest('[data-slot]')).toHaveAttribute('data-slot', 'view');
     cleanup();
     all('es');
     expect(screen.getByRole('heading', { level: 2, name: es.skyView.view })).toBeInTheDocument();
@@ -197,11 +198,11 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
       expect(screen.getByTestId('chart').querySelector(`[data-placed="${name}"]`), name).toBeNull();
       expect(layout.querySelector(`[data-inline="${name}"]`), name).toBeNull();
     }
-    expect(layout.querySelector('[data-placed="control"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
-    expect(layout.querySelector('[data-placed="picker"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'action');
-    expect(layout.querySelector('[data-placed="list"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
-    // The view row: the chart's control first, the page's `[x] stars` last.
-    const viewRow = layout.querySelector('[data-slot="viewRow"]');
+    expect(layout.querySelector('[data-placed="control"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'view');
+    expect(layout.querySelector('[data-placed="picker"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'turn');
+    expect(layout.querySelector('[data-placed="list"]')?.closest('[data-slot]')).toHaveAttribute('data-slot', 'upNow');
+    // The view row: the chart's control first, the page's own control last.
+    const viewRow = layout.querySelector('[data-slot="view"]');
     expect(viewRow?.lastElementChild).toHaveTextContent('stars');
   });
 
@@ -247,24 +248,12 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842; FR-WIDE-1, FR-WIDE-5, D-1098)', () 
     expect(screen.queryByText('over')).toBeNull();
   });
 
-  it('V214-33 (D-1135): listFirst puts the list right under the head, before View and Time, scrolling inside itself (V214-37)', () => {
+  it('FR-CTRL-10 (D-1239): no group of the rail is a keyboard stop or a scroll of its own; the list-first order is gone', () => {
     media = stubMatchMedia(WIDE_PX);
-    all('en', { listFirst: true });
-    expect(LIST_FIRST_ORDER).toEqual(['answer', 'list', 'viewRow', 'timeline', 'action', 'layers']);
-    expect(railSlots()).toEqual([...LIST_FIRST_ORDER]);
-    const rail = screen.getByTestId('layout').querySelector('[data-rail]');
-    expect(rail).toHaveAttribute('data-list-first');
-    // V214-37: capped at about three cards, the list scrolls inside itself, so it is a keyboard stop (FR-A11Y-7).
-    expect(rail?.querySelector('[data-slot="list"]')).toHaveAttribute('tabindex', '0');
-    // V214-38: the rail closes up round the list — the count line and `View` a row's step from what is above them.
-    expect(LIST_FIRST_RHYTHM).toEqual({ ...SLOT_RHYTHM, list: 'row', viewRow: 'row' });
-    for (const el of rail?.querySelectorAll<HTMLElement>(':scope > [data-slot]') ?? []) {
-      expect(el.dataset['rhythm']).toBe(LIST_FIRST_RHYTHM[el.dataset['slot'] as keyof typeof LIST_FIRST_RHYTHM]);
-    }
-    cleanup();
     all('en');
-    expect(screen.getByTestId('layout').querySelector('[data-rail]')).not.toHaveAttribute('data-list-first');
-    expect(screen.getByTestId('layout').querySelector('[data-slot="list"]')).toHaveAttribute('tabindex', '0');
+    const rail = screen.getByTestId('layout').querySelector('[data-rail]');
+    expect(rail).not.toHaveAttribute('data-list-first');
+    for (const el of rail?.querySelectorAll<HTMLElement>(':scope > [data-slot]') ?? []) expect(el).not.toHaveAttribute('tabindex');
     media.restore();
   });
 
