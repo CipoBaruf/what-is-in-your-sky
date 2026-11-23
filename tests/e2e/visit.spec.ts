@@ -39,8 +39,6 @@ const shownPlace = (page: Page) => page.getByTestId('header').locator('[data-tes
 const CLEARED = /^(#live)?$/;
 
 test.beforeEach(async ({ page }) => {
-  // Until R213 lands the wide live page asks about its first pass; the reader stays (`Esc`).
-  await page.addLocatorHandler(page.getByTestId('first-pass-dialog-overlay'), () => page.keyboard.press('Escape'));
   await page.clock.setFixedTime(CLOCK);
   await page.route('https://celestrak.org/**', async (route) => {
     const url = new URL(route.request().url());

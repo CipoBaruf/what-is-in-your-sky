@@ -151,8 +151,6 @@ for (const language of [
       test.use({ viewport: { width: 1280, height: 800 }, timezoneId: EXAMPLE_ZONE });
 
       test('FR-OPEN-10: the wide walk — the example on the live page, a place by coordinates, the satellites page on a pass', async ({ page }) => {
-        // Until R213 lands the wide live page asks about its first pass; the reader stays (`Esc`).
-        await page.addLocatorHandler(page.getByTestId('first-pass-dialog-overlay'), () => page.keyboard.press('Escape'));
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');

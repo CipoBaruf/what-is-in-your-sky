@@ -33,10 +33,16 @@ async function loadWithPasses(page: Page, locale: 'en' | 'es' = 'en', { cards = 
   // Nothing was typed, so nothing has the caret — but the focus is cleared: FR-DESK-4 says the keys are
   // the page's only while no field holds it, and starting from a known focus is what makes that true here.
   // R212 (D-1267): a route change hands the focus to the page's h1, so it is blurred rather than clicked.
-  await page.evaluate(() => {
-    (document.activeElement as HTMLElement | null)?.blur();
-  });
-  expect(await page.evaluate(() => document.activeElement?.tagName.toLowerCase())).toBe('body');
+  // Polled: a lazy page that lands after the blur takes the focus again, so it is blurred until it stays a frame.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+        return document.activeElement?.tagName.toLowerCase();
+      }),
+    )
+    .toBe('body');
 }
 
 /** The pass the cursor is on: focus is the cursor (`components/passes/passCursor.ts`). */

@@ -98,9 +98,12 @@ test('the list is as tall as the shell and no taller (F-9)', async ({ page }) =>
   const height = viewportHeight(page);
   await onThePassPage(page);
   await listSettled(page);
-  const box = await page.getByTestId('pass-layout').locator('[data-slot="upFrom"]').boundingBox();
-  if (!box) throw new Error('the list is not laid out');
-  expect(box.y + box.height, 'the list overflows the viewport').toBeLessThanOrEqual(height + 1);
+  // R216 (D-1277): the list is the rail's last group and the rail is the one scroll, so the rail is what fits.
+  const rail = page.getByTestId('pass-layout').locator('[data-rail]');
+  await expect(rail.locator('[data-slot="upFrom"]')).toBeAttached();
+  const box = await rail.boundingBox();
+  if (!box) throw new Error('the rail is not laid out');
+  expect(box.y + box.height, 'the rail overflows the viewport').toBeLessThanOrEqual(height + 1);
   // The page itself does not scroll (D-119).
   expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), 'the page scrolls').toBeLessThanOrEqual(1);
 });

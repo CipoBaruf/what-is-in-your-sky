@@ -122,8 +122,6 @@ test.describe('from the example to a place (US-61, FR-OPEN-5, D-1230)', () => {
   for (const viewport of SIZES) {
     test(`at ${size(viewport)} the line's control opens the place group on the settings page, and a place set there is kept`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      // Until R213 lands the wide live page asks about its first pass; the reader stays (`Esc`).
-      await page.addLocatorHandler(page.getByTestId('first-pass-dialog-overlay'), () => page.keyboard.press('Escape'));
       await open(page);
       await page.getByTestId('example-notice-set').click({ timeout: 60_000 });
       await expect(page).toHaveURL(/#settings$/);
