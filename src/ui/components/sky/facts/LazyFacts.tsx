@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { loadGlobe } from '../../../screens/stars/globeChunk';
+import { loadGlobe } from '../../guide/skychart/globe/globeChunk';
 import { whenIdle } from '../../../screens/whenIdle';
 import type { FactsGroupProps } from './FactsGroup';
 

@@ -17,7 +17,7 @@ import { appStore } from '../../../../../state';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { starsAt } from '../../../../../lib/skyStars';
 import { MOON_PHASE_GLYPH } from '../bodies';
-import { sceneCatalog } from '../../../../screens/stars/field';
+import { sceneCatalog } from '../../../live/field';
 import { POLAR_STAR_MAG } from '../layers';
 import { createHandCamera } from '../window/camera';
 import type { SkyScene, StarField } from '../window/scene';

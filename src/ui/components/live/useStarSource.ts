@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { loadStarsChunk, prefetchStarsWhenIdle } from '../../screens/starsChunk';
+import { loadStarsChunk, prefetchStarsWhenIdle } from './starsChunk';
 import type { StarSource } from '../guide/skychart/useSkyScene';
 
 /** The source once any page has had it: a second pass detail, or the live page after one, draws its stars from the first frame. */

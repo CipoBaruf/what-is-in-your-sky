@@ -4,7 +4,7 @@ import type { ArcState } from '../../../../lib/arcReveal';
 import type { CompassPoint } from '../../../../lib/compass';
 import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
-import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
+import type { ChartView, EpochMs, GlobeTurn, MoonState, Observer, Pass } from '../../../../model';
 import type { HandCamera, SkyCamera } from './window/camera';
 import type { SkyScene } from './window/scene';
 import type { HandPose } from './window/useViewRotation';
@@ -380,6 +380,11 @@ export interface SkyChartProps {
    */
   globeOpenCentre?: { azDeg: number; altDeg: number };
   globeWholeArcs?: boolean;
+  /** R222 (FR-LAND-3, FR-GLOBE-5): the live page's `Turn` — with you (absent) or with the stars. The globe view alone reads it. */
+  globeTurn?: GlobeTurn;
+  /** R222 (FR-LAND-3, FR-GLOBE-10): the live page's `[ ] faint`, and what to do when the deep catalogue fails to load. */
+  globeFaint?: boolean;
+  onGlobeFaintFailed?: () => void;
   className?: string;
 }
 

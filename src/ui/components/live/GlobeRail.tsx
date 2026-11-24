@@ -5,11 +5,11 @@ import { useStarsPageT } from '../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import { BODIES_EVERY_MS } from '../../../lib/playback';
-import type { EpochMs, Favourite, Observer } from '../../../model';
-import { globeSky, starVectors, upCount, upList } from '../../components/guide/skychart/globe/scene';
-import { useWallThrottle } from '../../components/live/useWallThrottle';
-import { SectionHeading } from '../../components/primitives/SectionHeading';
-import { ToggleGroup } from '../../components/primitives/ToggleGroup';
+import type { EpochMs, Observer } from '../../../model';
+import { globeSky, starVectors, upCount, upList } from '../guide/skychart/globe/scene';
+import { useWallThrottle } from './useWallThrottle';
+import { SectionHeading } from '../primitives/SectionHeading';
+import { ToggleGroup } from '../primitives/ToggleGroup';
 import { FieldList } from './FieldList';
 import styles from './GlobeRail.module.css';
 
@@ -22,11 +22,6 @@ import styles from './GlobeRail.module.css';
  */
 
 export type GlobeTurn = 'you' | 'stars';
-/** The `Place` group's choice: `null` for the observer, else a saved place's `cellKey` (D-1051). */
-export type PlaceChoice = string | null;
-/** The observer's button value inside the group; a cell key is `"lat,lon"`, so it never collides. */
-const OBSERVER_VALUE = 'observer';
-
 /** FR-GLOBE-5: `[x] with you [ ] with the stars`; R190 (FR-KEEP-1): the page keeps it on the device (`globeTurn`). */
 export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn: GlobeTurn) => void }) {
   const t = useT();
@@ -45,24 +40,6 @@ export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn:
           onChange={onTurn}
         />
       </div>
-    </section>
-  );
-}
-
-/**
- * FR-GLOBE-9: the observer, then the saved places by `mostRecentlyUsed`, one press each; the observer's own saved entry is not listed twice.
- * R203 (FR-OPEN-2, FR-OPEN-7; D-1205): under the example `observer` is `null` — the example is no place of the reader's — and
- * with nothing saved the group, heading and all, is not drawn, as `StarsGroup` draws nothing empty.
- */
-export function GlobePlaces({ observer, places, choice, onChoice }: { observer: Observer | null; places: readonly Favourite[]; choice: PlaceChoice; onChoice: (choice: PlaceChoice) => void }) {
-  const t = useT();
-  const headingId = useId();
-  const options = [...(observer === null ? [] : [{ value: OBSERVER_VALUE, label: observer.label }]), ...places.map((place) => ({ value: place.cellKey, label: place.observer.label }))];
-  if (options.length === 0) return null;
-  return (
-    <section aria-labelledby={headingId} className={styles.block} data-testid="globe-place">
-      <SectionHeading id={headingId}>{t.globe.placeHeading}</SectionHeading>
-      <ToggleGroup name={t.globe.placeHeading} options={options} value={choice ?? OBSERVER_VALUE} onChange={(value) => { onChoice(value === OBSERVER_VALUE ? null : value); }} className={styles.places} />
     </section>
   );
 }

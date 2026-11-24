@@ -4,8 +4,8 @@ import type { StarCatalog } from '../../../data/stars/catalog';
 import { CONSTELLATION_NAMES } from '../../../data/stars/constellations';
 import { figureName, starName, type StarNamesSource, type StarsAt } from '../../../lib/skyStars';
 import type { Locale } from '../../../model';
-import { project, type Mat3, type View } from '../../components/guide/skychart/window/projection';
-import type { StarField } from '../../components/guide/skychart/window/scene';
+import { project, type Mat3, type View } from '../guide/skychart/window/projection';
+import type { StarField } from '../guide/skychart/window/scene';
 
 /**
  * R115 (FR-STAR-7, FR-STAR-3; D-756): the page's arithmetic over the field —

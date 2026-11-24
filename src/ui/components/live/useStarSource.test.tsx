@@ -15,7 +15,7 @@ const load = vi.fn(() => Promise.resolve(module));
 const cancel = vi.fn();
 const prefetch = vi.fn(() => cancel);
 
-vi.mock('../../screens/starsChunk', () => ({ loadStarsChunk: load, prefetchStarsWhenIdle: prefetch }));
+vi.mock('./starsChunk', () => ({ loadStarsChunk: load, prefetchStarsWhenIdle: prefetch }));
 
 /** A fresh copy of the hook each test: it keeps the loaded source at module level, which is the point of it. */
 async function freshHook() {

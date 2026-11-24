@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { starsAt } from '../../../../../lib/skyStars';
 import type { Observer } from '../../../../../model';
-import { FIELD_LIST_MAX, fieldObjects } from '../../../../screens/stars/field';
+import { FIELD_LIST_MAX, fieldObjects } from '../../../live/field';
 import { handRotation } from '../window/camera';
 import { WINDOW_FOV } from '../window/projection';
 import { dot, ECLIPTIC_POLE, EQUATORIAL, greatCircle, project, projector, radec, type Vec3 } from './projection';

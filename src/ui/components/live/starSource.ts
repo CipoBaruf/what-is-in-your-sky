@@ -1,11 +1,8 @@
 import { starCatalog } from '../../../data/stars/catalog';
 import { constellationAt, landmark } from '../../../lib/landmark';
-import { STARS_PAGE_CATALOGS } from '../../../i18n/starsPageT';
-import type { CompassPoint } from '../../../lib/compass';
-import { brightestDrawn, constellationName, figureName, starName, starsAt } from '../../../lib/skyStars';
-import type { EpochMs, Locale, Observer } from '../../../model';
-import { starSourceOf } from '../../components/guide/skychart/starScene';
-import type { StarNames, StarSource } from '../../components/guide/skychart/useSkyScene';
+import { constellationName, figureName, starName, starsAt } from '../../../lib/skyStars';
+import { starSourceOf } from '../guide/skychart/starScene';
+import type { StarNames, StarSource } from '../guide/skychart/useSkyScene';
 import { sceneCatalog } from './field';
 
 /**
@@ -13,10 +10,8 @@ import { sceneCatalog } from './field';
  * live page and the pass detail draw their stars from — the catalogue in the
  * scene's shape, and the positions at an instant, as the
  * scene at an instant (`starScene.ts`, D-837) — built in
- * the `stars` chunk, which is the only place the catalogue and
- * `astronomy-engine` live. `Stars.tsx` re-exports it, so the pages reach it
- * through `starsChunk.ts`'s one request and the chunk gains no entry of its
- * own. Built on first use and kept: the scene hook keys its memo on
+ * the `starSource` chunk (`starsChunk.ts`), the only place the catalogue and
+ * `astronomy-engine` live, and the chunk's entry since R222 (D-1240). Built on first use and kept: the scene hook keys its memo on
  * `sceneAt`, so every call must hand back the same function.
  */
 let source: StarSource | undefined;
@@ -40,15 +35,3 @@ export function starSource(): StarSource {
   return source;
 }
 
-/**
- * R130 (FR-FLOW-1, D-843): the home's Stars door's second line — the brightest star or planet
- * above 0° for `observer` at `t` (`brightestDrawn`), named in `lang` with its 16-point direction, or `null`
- * with none up or the Sun up. Here, in the `stars` chunk, beside the catalogue and the planets' names.
- */
-export function brightestNow(observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs, lang: Locale): { name: string; dir: CompassPoint } | null {
-  const catalog = starCatalog();
-  const found = brightestDrawn({ mag: catalog.mag, positions: starsAt(catalog, observer, t) });
-  if (found === null) return null;
-  const name = found.kind === 'star' ? starName(catalog, found.index, lang) : STARS_PAGE_CATALOGS[lang].planets[found.body];
-  return { name, dir: found.dir };
-}

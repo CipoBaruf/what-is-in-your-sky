@@ -12,7 +12,7 @@ import { starCatalog } from '../../../../data/stars/catalog';
 import { skyBodiesAt } from '../../../../lib/skyBodies';
 import { RUNG_MAX_MAG } from '../../../../lib/starRungs';
 import type { Observer } from '../../../../model';
-import { starSource } from '../../../screens/stars/source';
+import { starSource } from '../../live/starSource';
 import { domeLayers } from './dome/domeLayers';
 import { CHART_TOKENS, MEANINGS, readPalette } from './dome/palette';
 import { SkyDome } from './dome/SkyDome';

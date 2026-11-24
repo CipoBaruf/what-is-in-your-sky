@@ -1,0 +1,25 @@
+/* R222 (FR-LAND-3, D-1240): `Turn` and `Layers` on the live page — each a block of `--space-1` rows, as the stars
+   page drew them (`Stars.module.css`, gone). Every length is a token or a count of cells (FR-DS-2). */
+
+.block {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* FR-FLOW-8 → FR-CLEAN-4: the layer toggles are one group of rows, `--space-1` apart. */
+.rows {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* One control row at the tap height (`controlRows.test.ts` counts them). R206 (D-1249): a screen narrower than the
+   budget's wraps the third toggle rather than scroll the sheet sideways. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+  white-space: nowrap;
+}

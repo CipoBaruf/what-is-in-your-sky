@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../../../data/stars/catalog';
 import { starName, starsAt } from '../../../lib/skyStars';
 import type { EpochMs } from '../../../model';
-import { handRotation } from '../../components/guide/skychart/window/camera';
-import { project, WINDOW_FOV, type View } from '../../components/guide/skychart/window/projection';
+import { handRotation } from '../guide/skychart/window/camera';
+import { project, WINDOW_FOV, type View } from '../guide/skychart/window/projection';
 import { FIELD_LIST_MAX, fieldObjects, formatStarMag, sceneCatalog } from './field';
 
 const catalog = starCatalog();

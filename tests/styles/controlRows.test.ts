@@ -33,7 +33,7 @@ import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
 import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
-import { FieldList } from '../../src/ui/screens/stars/FieldList';
+import { FieldList } from '../../src/ui/components/live/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer, TonightCloud } from '../../src/model';
 import { appStore } from '../../src/state';
