@@ -219,13 +219,13 @@ async function blurFocus(page: Page): Promise<void> {
 }
 
 /**
- * R128 (FR-CAP-5; D-830): whether the `stars` chunk has been fetched, from a listener attached before the page's
+ * R128 (FR-CAP-5; D-830): whether the stars' chunk (`starSource-*.js` since R222, `Stars-*.js` before) has been fetched, from a listener attached before the page's
  * first navigation — so a fetch made before the route asks (a prefetch, a precache hit) is counted, not missed.
  */
 function starsChunkWatch(page: Page): () => boolean {
   let fetched = false;
   page.on('response', (response) => {
-    if (/\/assets\/Stars-[^/]*\.js$/.test(response.url())) fetched = true;
+    if (/\/assets\/starSource-[^/]*\.js$/.test(response.url())) fetched = true;
   });
   return () => fetched;
 }
@@ -613,7 +613,7 @@ async function firstVisit(page: Page, width: CaptureWidth, theme: CaptureTheme, 
 }
 
 /** R212 (FR-LAND-1, FR-LAND-6): the example's three pages, by address. */
-type ExamplePage = '#pass' | '#live' | '#stars';
+type ExamplePage = '#pass' | '#live';
 
 /**
  * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), at the set's instant on the dot. R215
