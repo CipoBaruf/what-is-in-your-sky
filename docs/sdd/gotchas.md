@@ -20,7 +20,7 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   `performance.getEntriesByType('resource')` returned `[]` and is not one.
   A clock cannot be rewound (`pauseAt` throws), and `clock.install` a second time drops pending timers.
   *Why:* R93, 2026-09-24.
-- **A hash-only `page.goto('/#live?…')` stays in the document**, so `startApp` does not rerun: follow it with `page.reload()`. To go to the live page from a settled home page, set `location.hash` in the page, which keeps the store.
+- **A hash-only `page.goto('/#live?…')` stays in the document**, so `startApp` does not rerun: follow it with `page.reload()`. To go to the live page from a settled live page, set `location.hash` in the page, which keeps the store.
 - **The search window starts at now**, so a pass already under way has a clipped start and a different id than the golden one. Match `[data-pass-id^="25544-"]`.
 - **Seed prefs with `addInitScript`, but only when absent.**
   The script runs again on every navigation and would overwrite what the app wrote (a snooze, a dismissal, a favourite), so a reload test fails one step after the real cause: `if (localStorage.getItem(key) === null) localStorage.setItem(key, value)`.
@@ -92,7 +92,7 @@ Hard-won facts about this project, one section per subject (FR-SDD-12). Each is 
   It sets `process.env.CAPTURES = '1'`, loads the base config with a dynamic `await import('../playwright.config')` *after* that (a static import reads the env too early and gates every `*-captures.spec.ts` out: "No tests found"), spreads it, and re-points both `testDir` and `webServer.cwd` at the repo root, since Playwright resolves them against the config file.
   It is loaded as ESM, so derive the root from `fileURLToPath(import.meta.url)`, and keep it out of `node_modules` (tsx will not strip types there).
   *Why:* a `VAR=1` prefix is refused headless, and the web server otherwise serves `sdd-run/`.
-- **Shoot on a plain `npm run build`.** The e2e build carries the lore flag, so every `v1-home-*` and `v1-favourites-*` file differs by the lore line (D-179). That looks like a regression and is not.
+- **Shoot on a plain `npm run build`.** The e2e build carries the lore flag, so every home-era (`v1-favourites-*` and the other lore-line) file differs by the lore line (D-179). That looks like a regression and is not.
 - **Expect only F-99's files to differ.** On a plain build about 22 live-clock and legend-edge files differ and about 232 are byte-identical. Diff each changed file against `git show HEAD:<path>` with `pngjs`: F-99 noise is at most 15 px at a channel delta of 2, a real move shows as a box (a 105 × 40 box at 390 px) or a page shift.
 - **The set is not byte-stable on the Mac.** Two runs off one commit differ by sub-pixel anti-aliasing on a few live, legend and polar files, even on main's spec, and software compositing does not help. FR-CAP-5 is stated over `captures.yml` on Linux, and its two workflow runs are the reading of record. Do not spend a session chasing it locally.
 - **Commit the spec before any `git show … > file` experiment**; one overwrote uncommitted edits.

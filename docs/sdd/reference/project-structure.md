@@ -18,13 +18,13 @@ what-is-in-your-sky-right-now/          # redrawn from `git ls-files` at 498a0ca
 │   ├── model/  (12)                    # shared types only, zero imports: catalog, elements, observer, pass, place, weather, thresholds, prefs, moon, offline
 │   ├── physics/  (27)                  # pure functions, the thing Task Zero validates (§10), a test beside each: constants, time, sgp4, frames, sun, shadow, magnitude, moon, visibility, passes, darkness, now
 │   ├── worker/  (8)                    # protocol.ts (§6), handlers.ts (pure, testable in Node), nights.ts (D-77, D-95), passes.worker.ts
-│   ├── i18n/  (29)                     # en.ts / es.ts and their en/, es/ parts (chart, failure, home, live, sheet, stars, starsPage, track, ui, window); messages.ts, locale.ts, useT.ts, starsPageT.ts (FR-I18N-1..6, D-69); a missing Spanish key is a tsc error
+│   ├── i18n/  (29)                     # en.ts / es.ts and their en/, es/ parts (chart, failure, live, sheet, stars, starsPage, track, ui, window); messages.ts, locale.ts, useT.ts, starsPageT.ts (FR-I18N-1..6, D-69); a missing Spanish key is a tsc error
 │   ├── data/  (45)                     # catalog/ (catalog.json, schema.ts), moon/ (lore.json, schema.ts), openMeteo/ (geocode, forecast, schemas), stars/ (the star, constellation, deep-sky and Milky Way tables), places/ (the offline nearest-town table, D-1025); zod.ts (the only importer of zod, D-26), schemas.ts, db.ts (D-105), celestrak.ts, elementsCache.ts, elementsLoader.ts, passesCache.ts, weatherCache.ts, storage.ts, favourites.ts, localPrefs.ts
 │   ├── state/  (29)                    # store.ts and slices/; effects.ts, failure.ts, hash.ts, liveNow.ts, moonLore.ts, openLink.ts, passWindow.ts, serviceWorker.ts, workerClient.ts, deviceName.ts
 │   ├── lib/  (76)                      # presentation helpers, pure, one module per question with its test beside it: compass, phrases, format, passSort, cloudVerdict, skyGeometry, skyBodies (its own chunk, D-148), shareLinks, layout, shortcuts, moonPhrases, readiness, flags, legend, timeStripe, arcReveal, installSnooze, declination, nextEvent, tonightStripe, passPath, moonNote, faint, nights, playback, routeTitle, …
 │   └── ui/
 │       ├── App.tsx  Shell.tsx  RootBoundary.tsx  navigation.ts   # and their .module.css
-│       ├── screens/  (51)              # Home.tsx and home/ (the doors and the steps of the first run, FR-FIRST-1..11), PassDetail.tsx, Live.tsx + LiveRoute.ts + liveRows.ts (the stars' groups since R222, in components/live/), Settings.tsx + SettingsRoute.tsx + settingsChunk.ts, passSelection.ts (hash ↔ selected pass, D-13/D-33)
+│       ├── screens/  (51)              # home/ (what is left of the home: placeRequest.ts, shownPasses.ts, useNight.ts; the route is gone, FR-LAND-1), PassDetail.tsx, Live.tsx + LiveRoute.ts + liveRows.ts (the stars' groups since R222, in components/live/), Settings.tsx + SettingsRoute.tsx + settingsChunk.ts, passSelection.ts (hash ↔ selected pass, D-13/D-33)
 │       ├── components/
 │       │   ├── primitives/  (38)       # *(v2.3, D-703)* the primitives, one .tsx + .module.css each (twelve at this commit), manifest.ts and its test; OptionToggle and SectionHeading moved here from common/
 │       │   ├── common/  (39)           # Header, Footer (the attributions, FR-X-2), Banner, Countdown, FailureLine (FR-FAIL), InstallAction + InstallHint + installEnv + installOffer, LanguageToggle, ThemeToggle, ReadinessLine, ShareButton, ShortcutsOverlay, UpdateBanner, VisitNotice
@@ -93,11 +93,9 @@ Unit tests are co-located (`*.test.ts` beside the source).
 src/ui/components/sky/SkyViewLayout.tsx (+ .module.css, .test.tsx)   # D-842: the one order, compact column / wide box + rail
 src/ui/components/sky/SkyHint.tsx (+ test)                           # D-848
 src/ui/components/guide/TimesRow.tsx (+ test)                        # D-849
-src/ui/screens/home/HomeDoors.tsx (+ .module.css, .test.tsx)         # D-843
-src/ui/screens/home/doorLines.ts (+ test)                            # D-843, pure
 src/ui/styles/primitives.css                                         # .target, .target-row (D-851)
 tests/e2e/rhythm.spec.ts, tests/e2e/targets.spec.ts                  # D-851
-removed: src/ui/screens/home/StarsLine.tsx, src/ui/components/location/WhereDome.tsx (+ css)
+removed: src/ui/screens/home/HomeDoors.tsx, src/ui/screens/home/doorLines.ts, src/ui/screens/home/StarsLine.tsx, src/ui/components/location/WhereDome.tsx (+ css)
 ```
 
 **v2.10 additions** *(FR-PHONE, FR-LOOK)*

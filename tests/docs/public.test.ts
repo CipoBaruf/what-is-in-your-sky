@@ -276,8 +276,8 @@ describe('the reading order (FR-PUB-3)', () => {
 });
 
 describe('the stars, named where a reader looks (SPEC §9 Phase 2l, R118)', () => {
-  it('the first screen says what the stars page does', () => {
-    expect(prologue).toMatch(/stars page/);
+  it('the first screen says what the live page does with the stars (FR-LAND-3)', () => {
+    expect(prologue).toMatch(/live page names/);
     expect(prologue).toMatch(/held up to the sky/);
   });
 
