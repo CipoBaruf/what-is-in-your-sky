@@ -2,7 +2,7 @@ import { createRef, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
-import { isPassPageRoute, LIVE_HASH, observerFromLink, PASS_PAGE_HASH, passIdHash, resolvePassLink, routeOfHash, STARS_HASH } from '../lib/shareLinks';
+import { isPassPageRoute, LIVE_HASH, observerFromLink, PASS_PAGE_HASH, passIdHash, resolvePassLink, routeOfHash } from '../lib/shareLinks';
 import type { AppShortcutId } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { catalogName, isFeatured, useAppStore } from '../state';
@@ -26,7 +26,6 @@ import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
 import { settingsShell } from './screens/SettingsRoute';
 import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
-import { StarsPage, useStarsRoute } from './screens/StarsRoute';
 import { close as closeRoute, landRoute, open as openRoute, useHash } from './navigation';
 import { PassEmpty, PassTonight } from './screens/sky/pass/Empty';
 import { Shell } from './Shell';
@@ -42,16 +41,16 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
 /** R186: the live page's link notes (FR-VISIT-3), under the app's header on wide as the page's top row held them. */
 const LIVE_NOTES = ['past', 'far'] as const;
 
-/** R203 (D-1205): the pages with none of the moment's notes; the stars page's strip holds the example's line alone, on wide. */
+/** R203 (D-1205): the pages with none of the moment's notes. */
 const NO_NOTES = [] as const;
 
 /** R129 (D-845): the settings header's `[ ← ]`, which the settings chunk focuses when it arrives. One app, one ref. */
 const SETTINGS_BACK = createRef<HTMLButtonElement>();
 
 /**
- * The app's four routes, each one `Shell` (R92): live, the first page (R212, FR-LAND-1, D-1230), the satellites
- * (`#pass`: a desk's pass page, a phone's list of tonight with the pass's sheet over it, D-1231), settings and, until
- * R222, the stars. The screens only write the observer to the store; the effects `main.tsx` starts load the elements
+ * The app's three routes, each one `Shell` (R92): live, the first page (R212, FR-LAND-1, D-1230), the satellites
+ * (`#pass`: a desk's pass page, a phone's list of tonight with the pass's sheet over it, D-1231) and settings; R222
+ * (FR-LAND-3, D-1240) folded the stars into live, and `#stars…` lands as `#live…` (`navigation.landStars`). The screens only write the observer to the store; the effects `main.tsx` starts load the elements
  * and drive the worker (PLAN §3: `src/ui` imports `src/state`, never `src/data` or `src/physics`). The route is the
  * hash (D-13). R35 (FR-DESK-4, D-73): the app's one `keydown` listener is mounted here, where the selection, the
  * route and the preferences are in scope at once.
@@ -151,8 +150,6 @@ export function App() {
   const live = useLiveRoute();
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
   const settings = useSettingsRoute();
-  // R115 (FR-STAR-3, D-756): the fourth, the stars page.
-  const stars = useStarsRoute();
   // FR-LAND-1: a hash that arrives naming no route draws live; the shell's listener writes `#live` over it.
   const route: RouteName = routeOfHash(hash) ?? 'live';
   // FR-LAND-6, FR-CLEAN-14: on wide the satellites are the pass page; with no place there is no sky for it to draw.
@@ -223,11 +220,6 @@ export function App() {
         settings.leave();
         return true;
       }
-      // R115: and the stars page, the same way.
-      if (stars.active) {
-        stars.leave();
-        return true;
-      }
       if (selected === null && !passDesk) return false;
       closePass();
       return true;
@@ -237,14 +229,6 @@ export function App() {
       // R189: on the live page itself (a desk runs these keys there now) it is the page already, and a held instant stays.
       if (live.active) return helpOpen;
       openRoute(LIVE_HASH);
-      return true;
-    },
-    // R115 (FR-DESK-4 as amended v2.4): `s` opens the stars page; on the page itself it is the page already, and
-    // the press did something only if it closed the overlay.
-    stars: () => {
-      setHelpOpen(false);
-      if (stars.active) return helpOpen;
-      openRoute(STARS_HASH);
       return true;
     },
     view: () => {
@@ -287,9 +271,8 @@ export function App() {
   useEffect(() => {
     if (passShown) count('pass_open');
     if (liveShown) count('live_open');
-    if (stars.active) count('stars_open');
     if (settings.active) count('settings_open');
-  }, [passShown, liveShown, stars.active, settings.active]);
+  }, [passShown, liveShown, settings.active]);
   // The shortcuts overlay, over every page the keys run on.
   const overlay = helpOpen && (
     <ShortcutsOverlay
@@ -304,7 +287,7 @@ export function App() {
     // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
     // D-1023 (FR-X-2 as amended 2026-11-02): on a desk the footer's one row follows the page's one viewport, under the
     // fold (`Live.module.css`); on a phone the row is the controls sheet's last (`ControlsSheet`).
-    // R186 (FR-WIDE-1, D-1098): on wide the live page is a page like the stars page — the app's header (`live` current
+    // R186 (FR-WIDE-1, D-1098): on wide the live page is a desk page — the app's header (`live` current
     // and the place; R212: no Back, it is the first page), the page in the shell's `main`, the footer under it; on a phone it is its own screen (D-529).
     if (mode === 'wide') {
       return (
@@ -320,7 +303,7 @@ export function App() {
           after={overlay}
         >
           <Suspense fallback={<p className={styles.starsLoading}>{t.live.loading}</p>}>
-            <LivePage link={live.link} onLeave={live.leave} chartHand={liveHand} />
+            <LivePage link={live.link} chartHand={liveHand} />
           </Suspense>
         </Shell>
       );
@@ -334,7 +317,7 @@ export function App() {
             </main>
           }
         >
-          <LivePage link={live.link} onLeave={live.leave} chartHand={liveHand} />
+          <LivePage link={live.link} chartHand={liveHand} />
         </Suspense>
       </Shell>
     );
@@ -348,31 +331,6 @@ export function App() {
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
   if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: own?.label ?? null })} />;
-  /*
-   * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
-   * current page's), the page as `main` — and a chunk of its own, fetched here or from the link ahead
-   * of the tap. The shortcuts overlay opens over it as over home. D-1023 (FR-X-2 as amended 2026-11-02): on a desk
-   * the footer's one row under it, as every page; on a phone the row is the controls sheet's last (`ControlsSheet`).
-   */
-  if (stars.active) {
-    return (
-      <Shell
-        chrome="stars"
-        routeKey={routeKey}
-        title={title}
-        banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
-        barInert={helpOpen}
-        beforeMain={<PageNotices kinds={NO_NOTES} visit={false} inert={helpOpen} />}
-        mainProps={{ inert: helpOpen, className: styles.stars }}
-        {...(mode === 'wide' ? { footer: <Footer inert={helpOpen} /> } : {})}
-        after={overlay}
-      >
-        <Suspense fallback={<p className={styles.starsLoading}>{t.stars.loading}</p>}>
-          <StarsPage />
-        </Suspense>
-      </Shell>
-    );
-  }
   const notice =
     shareNotice === null ? null : (
       <Banner variant="info" testId="share-fallback">

@@ -56,17 +56,15 @@ import { writeFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { compressPng } from '../../scripts/captures/compress';
 import { GLOBE_KEY_STEP_DEG } from '../../src/ui/components/guide/skychart/globe/constants';
-import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, LONDON_FAVOURITE, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, SHOWN_PASS, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { closeSheet, domeDrawn, enterScrubbing, openLegend, openSettings, openSheet, shownOnTrack, stripFilled, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
-import { BARILOCHE, BARILOCHE_FORECAST_FILE, LONDON, NEUQUEN } from './observers';
+import { BARILOCHE, BARILOCHE_FORECAST_FILE, NEUQUEN } from './observers';
 import { aimedAt, setReadings, stubOrientation } from './orientation';
-import { clickFirstRowMark } from './factsHelpers';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
 const localHhmmss = (t: number): string =>
@@ -162,26 +160,17 @@ async function settled(page: Page): Promise<void> {
 // width — the sheet's files at 844 too — and `stars-following`, which is not a live screen.
 // R161 (FR-PHONE-16, D-993): and `stars-whole-following`, the stars page following under the whole sky.
 // R165 (FR-CLEAN-9, D-1001): and the stars page's and the pass detail's sheets, at 844 too, as the live sheet is.
-const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'stars-following', 'stars-whole-following', 'stars-sheet', 'guide-sheet']);
-/** R161 (FR-PHONE-16, FR-LOOK-12, D-993): the stars page's other screens, a touch phone at 390 as `stars` is. */
-const STARS_PAGE = new Set<string>(['stars', 'stars-whole', 'stars-zoom']);
+// R222 (FR-LAND-3, D-1245): the stars page's screens left the set with the page.
+const TOUCH = new Set<string>(['live-sheet', 'live-sheet-list', 'guide-sheet']);
 
-/**
- * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
- * a touch phone at 360 and 390, where `[ hold up to the sky ]` is on the page, and a desk without touch at
- * 1280 and 1920, where it is not. So touch is a property of the capture, not only of the screen.
- * R135 (FR-FLOW-15): the page at 844 × 390 is the same phone turned, so it has touch too.
- */
+/** R157 (FR-PHONE-5, D-966): touch is a property of the capture, not only of the screen. */
 const isTouch = (screen: string, width: CaptureWidth): boolean =>
   TOUCH.has(screen) ||
-  // R157 (FR-PHONE-5, D-966): a screen marked `touch` is a touch phone at its compact widths.
-  (SCREENS.find((candidate) => candidate.name === screen)?.touch === true && VIEWPORTS[width].width <= 390) ||
-  (STARS_PAGE.has(screen) && (VIEWPORTS[width].width <= 390 || width === 844));
+  // A screen marked `touch` is a touch phone at its compact widths.
+  (SCREENS.find((candidate) => candidate.name === screen)?.touch === true && VIEWPORTS[width].width <= 390);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
-/** R161 (FR-PHONE-7): the stars page's view row, the polar chart's option by its name. */
-const WHOLE_SKY = { en: 'Whole sky', es: 'Cielo entero' } as const;
 const FRAME_MS = 16;
 
 /**
@@ -230,13 +219,13 @@ async function blurFocus(page: Page): Promise<void> {
 }
 
 /**
- * R128 (FR-CAP-5; D-830): whether the `stars` chunk has been fetched, from a listener attached before the page's
+ * R128 (FR-CAP-5; D-830): whether the stars' chunk (`starSource-*.js` since R222, `Stars-*.js` before) has been fetched, from a listener attached before the page's
  * first navigation — so a fetch made before the route asks (a prefetch, a precache hit) is counted, not missed.
  */
 function starsChunkWatch(page: Page): () => boolean {
   let fetched = false;
   page.on('response', (response) => {
-    if (/\/assets\/Stars-[^/]*\.js$/.test(response.url())) fetched = true;
+    if (/\/assets\/starSource-[^/]*\.js$/.test(response.url())) fetched = true;
   });
   return () => fetched;
 }
@@ -253,8 +242,7 @@ async function starsChunkLoaded(page: Page, fetched: () => boolean): Promise<voi
   // R212 (FR-LAND-6): the home and its idle prefetch are gone. A desk's satellites page draws a sky, which loads the
   // chunk; the phone's list draws none and nothing on it fetches the chunk, so there the chart loads it on mount.
   if (!fetched() && (await page.getByTestId('pass-tonight').count()) > 0) return;
-  const link = page.locator('[data-testid="stars-link"]:visible');
-  if (!fetched() && (await link.count()) > 0) await link.first().focus();
+  // R222 (FR-LAND-3): the header's `[ stars ]` link, which loaded the chunk ahead of a tap, went with the page.
   await expect
     .poll(async () => {
       await page.clock.runFor(100);
@@ -489,39 +477,6 @@ async function followed(page: Page, scope: Locator): Promise<void> {
 const DAYLIGHT = CLOCK + 480 * 60_000;
 
 /**
- * R118 (FR-STAR-3, FR-STAR-8; D-786): the `#stars` page, settled, at `CLOCK`. Reached the way `liveAt`
- * reaches the live page — the satellites page first, the search let finish, then the hash — so nothing the
- * background run streams in can change the document between the two ticks `settled` reads. The page
- * draws the catalogue and the clock (FR-STAR-8), so what it waits for is its own: the lazy chunk's and
- * the window's Suspense reveals, which the paused clock holds (R32), and a star in the field. Then the
- * instant is put back on `CLOCK` (F-48), since the positions move with it.
- */
-async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time = CLOCK, prefs: Partial<SeedPrefs> = {}): Promise<void> {
-  await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, time);
-  await page.goto(LIST);
-  await listSettled(page);
-  await page.evaluate(() => {
-    location.hash = '#stars';
-  });
-  // V212-11 (D-1054): a desk opens on the globe. The window's screens press `Window`, and the globe's press `Globe`
-  // after it (`globeShown`), the route R171 shot them by.
-  const sky = page.getByTestId('stars-sky');
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(200);
-      return sky.count();
-    }, { timeout: 30_000 })
-    .toBeGreaterThan(0);
-  if ((await sky.getAttribute('data-view')) === 'globe') await page.getByTestId('stars-view-row').getByRole('button', { name: WINDOW_OPTION[locale] }).click();
-  await starsDrawn(page, sky.locator('[data-drawing="window"]'), SHOWN_WINDOW_STAR, 500);
-  await pinnedAt(page, time);
-  // The opening facing is the pole side, which over Bariloche is south, 35° up (FR-STAR-3).
-  await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-az', '180');
-  await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-alt', '35');
-  await page.mouse.move(0, 0);
-}
-
-/**
  * R128 (FR-SKY-2, FR-SKY-9; D-829): a chart's view control turned to `Window`, by the reader's click rather than
  * a seeded `chartView` — on compact the choice is not saved (FR-SKY-2), so a seed would be a state no compact
  * reader opens in, and the click is the same route at every width. With no touch panel the window is laid out
@@ -570,33 +525,6 @@ async function sheetOpen(page: Page, shown: number): Promise<void> {
   await page.mouse.move(0, 0);
 }
 
-/**
- * R161 (FR-PHONE-7, FR-PHONE-8, D-993): the stars page's `Whole sky` pressed in its view row — the polar chart in the
- * box, its stars group a lazy chunk the paused clock holds (R32), so the wait is a placed mark ticking the clock, then
- * the field's outline drawn. The focus ring leaves the row's button. Returns the chart's drawing.
- */
-async function wholeSky(page: Page, locale: CaptureLocale): Promise<Locator> {
-  await page.getByTestId('stars-view-row').getByRole('button', { name: WHOLE_SKY[locale] }).click();
-  await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'polar');
-  const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
-  await starsDrawn(page, polar, '[data-layer="stars"] [data-star]');
-  await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/);
-  await blurFocus(page);
-  return polar;
-}
-
-/** R171 (FR-GLOBE-1, FR-GLOBE-5, FR-GLOBE-10): the wide stars page's view row and rail words, in both languages. */
-const GLOBE_OPTION = { en: 'Globe', es: 'Globo' } as const;
-const TURN_STARS = { en: 'with the stars', es: 'con las estrellas' } as const;
-
-/**
- * R171 (FR-GLOBE-1, FR-GLOBE-18; D-1042): `Globe` pressed in the wide stars page's view row. The globe and its rail
- * groups are lazy chunks whose Suspense reveal the paused clock holds (R32), so the wait ticks the clock until the
- * globe's SVG has had its first frame — `GlobeRenderer` builds every node hidden at mount and writes the `viewBox` only
- * in a frame — and the rail's groups are drawn, then a second more, and the instant is
- * put back on `CLOCK` (F-48) — the globe's own clock opens at now and ticks with real time (FR-GLOBE-7), so the pin is
- * its instant too. The focus ring leaves the row's button.
- */
 /**
  * R186 (FR-WIDE-3): the live page's or the pass detail's globe drawn — its SVG laid out and at least `arcs` of the
  * passes' series paths given a pass — ticking the paused clock, which holds the chunk's reveal (R32).
@@ -655,22 +583,6 @@ async function factsShown(page: Page, scope: Locator): Promise<void> {
   await group.scrollIntoViewIfNeeded();
 }
 
-async function globeShown(page: Page, locale: CaptureLocale): Promise<void> {
-  await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_OPTION[locale] }).click();
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(200);
-      return (await page.locator('svg[data-globe][viewBox]').count()) > 0 && (await page.getByTestId('stars-group').count()) > 0;
-    }, { timeout: 30_000 })
-    .toBe(true);
-  await page.clock.runFor(1000);
-  await pinnedAt(page, CLOCK);
-  await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'globe');
-  await expect(page.getByTestId('stars-time').getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
-  await blurFocus(page);
-  await page.mouse.move(0, 0);
-}
-
 /** R161 (FR-LOOK-2, FR-LOOK-12): 07:45 local on the 6th, the Sun 3.9° under the eastern horizon by the page's own reading — civil twilight, near the middle of its step. */
 const TWILIGHT = CLOCK + 165 * 60_000;
 
@@ -701,7 +613,7 @@ async function firstVisit(page: Page, width: CaptureWidth, theme: CaptureTheme, 
 }
 
 /** R212 (FR-LAND-1, FR-LAND-6): the example's three pages, by address. */
-type ExamplePage = '#pass' | '#live' | '#stars';
+type ExamplePage = '#pass' | '#live';
 
 /**
  * R203 (FR-OPEN-7, D-1205): a page the example opens (R212: by address), at the set's instant on the dot. R215
@@ -736,9 +648,6 @@ const REACH: Record<string, Reach> = {
     await fromExample(page, width, theme, locale, '#live');
   },
 
-  async 'first-stars'(page, width, theme, locale) {
-    await fromExample(page, width, theme, locale, '#stars');
-  },
 
   async guide(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'dome');
@@ -932,33 +841,6 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
-   * R118 (FR-STAR-3, D-786): the page as it opens. A touch phone at 360 and 390 has `[ follow the phone ]`
-   * on it (FR-WIN-4; R152, FR-GYRO-1, in place of `[ hold up to the sky ]`); a desk has the rail and `In this field` beside the box.
-   */
-  async stars(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    // R165 (FR-CLEAN-4): on a phone the sky with the sheet closed, `[ controls ]` at its foot; on a desk the rail.
-    if (isTouch('stars', width)) await expect(page.getByTestId('live-controls')).toBeVisible();
-    else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
-    await blurFocus(page);
-  },
-
-  /** R165 (FR-CLEAN-4, FR-CLEAN-9): the stars page as it opens, `[ controls ]` pressed — the sheet over the sky. */
-  async 'stars-sheet'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await sheetOpen(page, CLOCK);
-  },
-
-  /** R153 (FR-GYRO-9; US-44 AC1): the stars page as `stars` opens it at 390, `[ follow the phone ]` on, aimed where it faced. */
-  async 'stars-following'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await inSheet(page, () => followed(page, page.getByTestId('stars-sky')));
-    await blurFocus(page);
-    await pinnedAt(page, CLOCK);
-    await page.mouse.move(0, 0);
-  },
-
-  /**
    * R128 (FR-SKY-2, FR-SKY-9; US-41 AC1, AC4): the live page watching at `SHOWN`, its view control on `Window`.
    * Wide: the window-shaped box and the picker in the rail; compact: the square box by hand, the picker in its row.
    */
@@ -1030,50 +912,6 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /**
-   * R161 (FR-PHONE-7, FR-PHONE-8, FR-PHONE-16): the stars page as it opens, `Whole sky` pressed. R171 (FR-GLOBE-18):
-   * at 390 alone — the wide page's whole sky is the globe — where the view row is the sheet's (R165, FR-CLEAN-4).
-   */
-  async 'stars-whole'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await inSheet(page, () => wholeSky(page, locale));
-    await pinnedAt(page, CLOCK);
-    await page.mouse.move(0, 0);
-  },
-
-  /**
-   * R161 (FR-PHONE-9, FR-PHONE-16; D-992): `stars-following`'s page, then `Whole sky`: following stays on, and the
-   * outline is the sensor's, at the stubbed reading the page already faced.
-   */
-  async 'stars-whole-following'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    // R165 (FR-CLEAN-4): the toggle and the view row are the sheet's.
-    const polar = await inSheet(page, async () => {
-      await followed(page, page.getByTestId('stars-sky'));
-      return wholeSky(page, locale);
-    });
-    const outline = polar.locator('[data-field-outline]');
-    await expect(outline).toHaveAttribute('data-following', 'true');
-    // FR-CAP-5: the following outline eases onto the readings, so the wait is for its path to hold across half a second
-    // of them before the instant is pinned. The path is then the same string in every run; two faint hairlines in the
-    // disc's lower left still rasterise in one of two ways (RELEASE §23.1, F-99).
-    let previous = '';
-    await expect
-      .poll(async () => {
-        await page.clock.runFor(500);
-        const d = (await outline.getAttribute('d')) ?? '';
-        const still = d === previous;
-        previous = d;
-        return still;
-      }, { timeout: 30_000 })
-      .toBe(true);
-    // The sheet is closed: following shows on the bottom row's `[ follow ]`.
-    await expect(page.getByTestId('live-follow-control')).toHaveAttribute('aria-pressed', 'true');
-    await blurFocus(page);
-    await pinnedAt(page, CLOCK);
-    await page.mouse.move(0, 0);
-  },
-
   /** R161 (FR-PHONE-13, FR-PHONE-16): the `guide` screen's pass at 390 × 667, `shoot` having set the height. */
   async 'guide-short'(page, width, theme, locale) {
     await openChart(page, width, theme, locale, 'dome');
@@ -1100,25 +938,6 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /**
-   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens, zoomed to the narrowest
-   * field by the box's `+` — at 1280, and since R161 at 390 too (FR-LOOK-12), where the key stands in for the pinch to
-   * the same field, so the picture is the phone's at 20° and not the gesture's. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
-   * press more than 60 / 1.25ⁿ needs is held at the minimum.
-   */
-  async 'stars-zoom'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    const w = page.getByTestId('stars-sky').locator('[data-look-az]');
-    await w.locator('div[data-dragging]').focus();
-    for (let i = 0; i < 6; i += 1) await page.keyboard.press('+');
-    await page.clock.runFor(FRAME_MS);
-    await expect(w).toHaveAttribute('data-fov', String(WINDOW_FOV_MIN_DEG));
-    await expect(w).toHaveAttribute('data-look-az', '180');
-    await expect(page.getByTestId('window-readout')).toContainText(`${String(WINDOW_FOV_MIN_DEG)}°`);
-    await pinnedAt(page, CLOCK);
-    await blurFocus(page);
-    await page.mouse.move(0, 0);
-  },
 
   /** R186 (FR-WIDE-1, FR-WIDE-3): the live page as a fresh desk opens it — the globe with the passes' arcs. */
   async 'sky-live-globe'(page, width, theme, locale) {
@@ -1162,15 +981,6 @@ const REACH: Record<string, Reach> = {
     await page.mouse.move(0, 0);
   },
 
-  /** R188 (FR-FACT-3): `stars-globe` with the mark of the list's first row clicked, its facts in the page group. */
-  async 'sky-stars-star-facts'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await globeShown(page, locale);
-    await clickFirstRowMark(page);
-    await factsShown(page, page.getByTestId('stars-group'));
-    await blurFocus(page);
-    await page.mouse.move(0, 0);
-  },
 
   /** R188 (FR-WIDE-7): the live page with the pointer resting on the legend's first row. */
   async 'sky-hover'(page, width, theme, locale) {
@@ -1209,97 +1019,6 @@ const REACH: Record<string, Reach> = {
     await page.keyboard.press('f');
     await expect(page.getByTestId('live-layout')).toHaveAttribute('data-full', '');
     await page.clock.runFor(FRAME_MS);
-    await page.mouse.move(0, 0);
-  },
-
-  /** R171 (FR-GLOBE-1..5, FR-GLOBE-18): the wide stars page as it opens, `Globe` pressed — turning with you. */
-  async 'stars-globe'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await globeShown(page, locale);
-    await expect(page.getByTestId('globe-turn-row').getByRole('button', { name: TURN_STARS[locale] })).toHaveAttribute('aria-pressed', 'false');
-  },
-
-  /** R171 (FR-GLOBE-5, FR-GLOBE-18): `stars-globe`, then `with the stars` in the `Turn` row. */
-  async 'stars-globe-stars'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await globeShown(page, locale);
-    const stars = page.getByTestId('globe-turn-row').getByRole('button', { name: TURN_STARS[locale] });
-    await stars.click();
-    await expect(stars).toHaveAttribute('aria-pressed', 'true');
-    await page.clock.runFor(FRAME_MS);
-    await pinnedAt(page, CLOCK);
-    await blurFocus(page);
-    await page.mouse.move(0, 0);
-  },
-
-  /**
-   * R171 (FR-GLOBE-10, FR-GLOBE-18): `stars-globe`, then `[ ] faint` pressed. The deep catalogue is `deepChunk.ts`'s
-   * lazy fetch, so the wait ticks the clock until the count's total ("… of N stars") is past the bright catalogue's —
-   * the total moves only when the deep chunk is in (the visible number moves with the instant too) — then gives the
-   * renderer, handed the same chunk, a second for its frame and pins the instant again.
-   */
-  async 'stars-globe-faint'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await globeShown(page, locale);
-    const count = page.getByTestId('globe-count');
-    const total = async (): Promise<number> => Number(/ (?:of|de) (\d+) /.exec((await count.textContent()) ?? '')?.[1] ?? NaN);
-    const bright = await total();
-    expect(bright).toBeGreaterThan(0);
-    const faint = page.locator('[data-layer="faint"]');
-    await faint.click();
-    await expect(faint).toHaveAttribute('aria-pressed', 'true');
-    await expect
-      .poll(async () => {
-        await page.clock.runFor(200);
-        return total();
-      }, { timeout: 30_000 })
-      .toBeGreaterThan(bright);
-    await page.clock.runFor(1000);
-    await pinnedAt(page, CLOCK);
-    await blurFocus(page);
-    await page.mouse.move(0, 0);
-  },
-
-  /**
-   * R171 (FR-GLOBE-9, FR-GLOBE-18; D-1042): `stars-globe` over the seeds' saved London, pressed in the `Place` group —
-   * the globe's place only; the app's stays Bariloche.
-   */
-  async 'stars-globe-place'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale, CLOCK, { favourites: [LONDON_FAVOURITE] });
-    await globeShown(page, locale);
-    // The whole label (R206: the name is the label alone), so no other saved London matches.
-    const london = page.getByTestId('globe-place').getByRole('button', { name: LONDON.label, exact: true });
-    await london.click();
-    await expect(london).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /London/);
-    // At 1280 × 800 the rail scrolls inside itself and London's row is past its foot: the picture has the pressed
-    // place whole at the rail's end, whatever the click's own scroll left.
-    await london.evaluate((button) => {
-      button.scrollIntoView({ block: 'end' });
-    });
-    await page.clock.runFor(FRAME_MS);
-    await pinnedAt(page, CLOCK);
-    await expect(page.getByTestId('stars-time').getByTestId('globe-clock')).toHaveAttribute('data-at', String(CLOCK));
-    await blurFocus(page);
-    await page.mouse.move(0, 0);
-  },
-
-  /**
-   * R171 (FR-GLOBE-11, FR-GLOBE-12, FR-GLOBE-18): `stars-globe` with the first row of `Up from <place>` pressed. The
-   * name holds for `STAR_LABEL_HOLD_S` and a pin is a ten-second tick, so the instant is pinned first (`globeShown`)
-   * and the row pressed after it; the one frame here and the shot's settle are well inside the hold. The list's name
-   * is the globe's too (FR-GLOBE-12): the label beside Sirius with its magnitude, and the readout line under the box.
-   */
-  async 'stars-globe-named'(page, width, theme, locale) {
-    await starsAt(page, width, theme, locale);
-    await globeShown(page, locale);
-    const first = page.locator('[data-testid="stars-field"][data-field="globe"] [data-testid="field-list"] button').first();
-    await first.click();
-    await expect(first).toHaveAttribute('aria-pressed', 'true');
-    await page.clock.runFor(FRAME_MS);
-    await expect(page.getByTestId('globe-named')).toBeVisible();
-    await expect(page.locator('svg[data-globe] [data-label]')).toHaveAttribute('visibility', 'visible');
-    await blurFocus(page);
     await page.mouse.move(0, 0);
   },
 

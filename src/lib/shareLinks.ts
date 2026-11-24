@@ -284,18 +284,6 @@ export function isSettingsRoute(hash: string): boolean {
 /** The hash the compact header's `[ settings ]` control points at. */
 export const SETTINGS_HASH = '#settings';
 
-/**
- * R115 (FR-STAR-3, D-756): whether the app is on the stars page. `#stars`
- * carries nothing, as `#settings` does not: the page draws now (FR-STAR-8,
- * no `t` in this phase) at the reader's own place, and its camera is not
- * saved, so there is nothing for the hash to hold.
- */
-export function isStarsRoute(hash: string): boolean {
-  return (hash.startsWith('#') ? hash.slice(1) : hash) === 'stars';
-}
-
-/** The hash the header's `[ stars ]`, the When pane's `[ look up ]` and the `s` key open. */
-export const STARS_HASH = '#stars';
 
 /**
  * v2.14.1 (FR-CLEAN-14 as amended, D-1134): the pass page with no pass — what the wide header's `[ satellites ]`
@@ -328,13 +316,22 @@ export function liveLinkFromHash(hash: string): LiveLink | null {
 /** R212 (FR-LAND-1): the first page's hash, what the route with no hash becomes. */
 export const LIVE_HASH = '#live';
 
-export type HashRoute = 'live' | 'pass' | 'settings' | 'stars';
+export type HashRoute = 'live' | 'pass' | 'settings';
+
+/**
+ * R222 (FR-LAND-3, D-1240): the stars page folded into live. A load of `#stars`, with or without its parameters, is
+ * `#live` with the same parameters (the ones `useLiveRoute` reads are kept, the rest it ignores); any other hash is `null`.
+ */
+export function starsAsLive(hash: string): string | null {
+  const text = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (text === 'stars') return LIVE_HASH;
+  return text.startsWith('stars?') ? `#live${text.slice('stars'.length)}` : null;
+}
 
 /** R212 (FR-LAND-1, D-1230): the route a hash names, or null for an empty, unknown or unreadable one, which opens live. */
 export function routeOfHash(hash: string): HashRoute | null {
   if (isLiveRoute(hash)) return hash.replace(/^#/, '') === 'live' || liveLinkFromHash(hash) !== null ? 'live' : null;
   if (isSettingsRoute(hash)) return 'settings';
-  if (isStarsRoute(hash)) return 'stars';
   if (isPassPageRoute(hash)) return 'pass';
   const parsed = parseHash(hash);
   return parsed?.kind === 'passId' || parsed?.kind === 'pass' ? 'pass' : null;

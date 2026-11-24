@@ -6,7 +6,7 @@ import { compassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
 import { starName } from '../../../../../lib/skyStars';
 import type { Observer } from '../../../../../model';
-import { formatStarMag } from '../../../../screens/stars/field';
+import { formatStarMag } from '../../../live/field';
 import { GLOBE_DIM_OPACITY, GLOBE_GROUND_OPACITY, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, PLANET_MARK_PX } from './constants';
 import { DOT_STEPS, GlobeRenderer, type GlobeState } from './GlobeRenderer';
 import { openView, project, type Vec3 } from './projection';

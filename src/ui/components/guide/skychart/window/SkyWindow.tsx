@@ -9,7 +9,7 @@ import { PINCH_HANDOFF_RATIO } from '../../../../../lib/layout';
 import { shortcutFor } from '../../../../../lib/shortcuts';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
 import type { PassPoint } from '../../../../../model';
-import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
+import { STAR_LABEL_HOLD_S } from '../../../live/field';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { moonVisible, sunVisible } from '../bodies';

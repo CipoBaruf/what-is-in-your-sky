@@ -128,13 +128,10 @@ export const ui = {
     backWords: '← back',
     backName: 'Back',
     nav: 'Pages',
-    pages: { live: 'live', pass: 'satellites', stars: 'stars', settings: 'settings' } satisfies Record<HeaderPage, string>,
+    pages: { live: 'live', pass: 'satellites', settings: 'settings' } satisfies Record<HeaderPage, string>,
     /** FR-LAND-4 (R215, D-1238): the place line — `Salta · example  change`, `<place>  change`, or `Set your place` with none. */
     place: { example: 'example', change: 'change', set: 'Set your place' },
   },
-
-  /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
-  starsHeading: 'Stars tonight',
 
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
   // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
@@ -648,7 +645,7 @@ export const ui = {
     /** Read out for the key column; the keys themselves are printed as they are written on the keyboard. */
     keyHeading: 'Key',
     doesHeading: 'Does',
-    /** R189 (FR-WIDE-9): the group of keys the live page, the stars page and a pass run on a desk. */
+    /** R189 (FR-WIDE-9): the group of keys the live page and a pass run on a desk. */
     skyHeading: 'On the sky pages, on a desk',
     close: 'Close',
     does: {
@@ -657,7 +654,6 @@ export const ui = {
       open: 'Open the pass the cursor is on',
       close: 'Close the guide, or this list',
       live: 'Open the live sky',
-      stars: 'Open the stars',
       view: 'Switch the view: globe, window, dome on a desk; dome and polar on a phone',
       theme: 'Switch the palette between dark and night',
       help: 'Show this list',

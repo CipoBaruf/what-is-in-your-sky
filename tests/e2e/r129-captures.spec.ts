@@ -42,10 +42,7 @@ for (const width of [390, 1280] as const) {
       await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live', { timeout: 30_000 });
       await shot('live');
 
-      await go(page, 'stars');
-      await expect(page.getByTestId('stars-intro')).toBeVisible({ timeout: 30_000 });
-      await shot('stars');
-
+      // R222 (D-1240): the stars page is gone, folded into live.
       await go(page, 'settings');
       await expect(page.getByTestId('app-footer')).toBeAttached();
       await expect(page.getByTestId('location-actions')).toBeVisible();

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type HTMLAttributes, type RefObject, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useT } from '../i18n/useT';
-import { LIVE_HASH, routeOfHash } from '../lib/shareLinks';
+import { LIVE_HASH, routeOfHash, starsAsLive } from '../lib/shareLinks';
 import { followHash } from '../state';
 import { UpdateBanner } from './components/common/UpdateBanner';
 import { VisuallyHidden } from './components/primitives/VisuallyHidden';
@@ -134,7 +134,11 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
         if (event.type !== 'hashchange') return;
         // The hash that arrived, not the one left: a live page mounted on it may have written its own already.
         const { newURL } = event as HashChangeEvent;
-        followHash(newURL ? new URL(newURL).hash : window.location.hash);
+        const arrived = newURL ? new URL(newURL).hash : window.location.hash;
+        // R222 (FR-LAND-3, D-1240): a stored `#stars…` link is the live page with its parameters, followed as one.
+        const folded = starsAsLive(arrived);
+        if (folded !== null) replace(folded);
+        followHash(folded ?? arrived);
         // FR-LAND-1: read first, so an unreadable link's note outlives its hash.
         if (routeOfHash(window.location.hash) === null) replace(LIVE_HASH);
       }),

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { isLiveRoute, liveLinkFromHash, type LiveLink } from '../../lib/shareLinks';
-import { close, useHash } from '../navigation';
+import { useHash } from '../navigation';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route, read from the hash the way
@@ -14,19 +14,17 @@ import { close, useHash } from '../navigation';
  * writing state: the first render already knows which page it is on, so the
  * home screen is never painted for a frame under a `#live` URL.
  *
- * R92 (FR-ROUTE-1, D-533): the route writes no history of its own. `leave` is
- * `navigation.close` — back to the entry the page was opened from, or home in
- * place when `#live` was the load's entry.
+ * R92 (FR-ROUTE-1, D-533): the route writes no history of its own. R222
+ * (D-1230): live is a tab — it has no `leave`, no Back, and its `Esc` closes
+ * only what is open on it (the sheet, the facts; `Live.tsx`).
  */
 export interface LiveRoute {
   active: boolean;
   link: LiveLink | null;
-  /** Returns to where the page was opened from (FR-ROUTE-1). */
-  leave: () => void;
 }
 
 export function useLiveRoute(): LiveRoute {
   const hash = useHash();
   // Parsed once per hash: `link` is a fresh object each time it is parsed, and the page keys its instant on it.
-  return useMemo(() => ({ active: isLiveRoute(hash), link: liveLinkFromHash(hash), leave: close }), [hash]);
+  return useMemo(() => ({ active: isLiveRoute(hash), link: liveLinkFromHash(hash) }), [hash]);
 }

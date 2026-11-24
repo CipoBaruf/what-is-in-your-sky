@@ -5,7 +5,7 @@
  *   and the bowl inside it is checked; FR-FLOW-9's compact cut from the bowl (D-850, `DOME_COMPACT_SLACK_PX`) has no
  *   compact page left to bind (FR-CLEAN-8) and its constant leaves with R165.
  * - **Wide, 1280 × 800:** the box runs from under the header to the hint line for every view — the dome, the globe
- *   and the window on the live page (R186, FR-WIDE-2), the window on the stars page — so no band under the drawing is taller
+ *   and the window on the live page (R186, FR-WIDE-2) — so no band under the drawing is taller
  *   than `--space-3`.
  * - **The pass panel, 1280 × 800:** the drawing is at least `DETAIL_DRAWING_MIN_SHARE` of the panel's body (R132's
  *   reading, D-866); its share of the whole panel is logged beside it for the record.
@@ -14,11 +14,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { DETAIL_DRAWING_MIN_SHARE } from '../../src/lib/layout';
 import { painted } from './domeInk';
 import { bandUnderBox, domeDrawn, seedStoredRun, SPACE_3_PX } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
-import { onWindow } from './globeHelpers';
 
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 
 interface Box {
   x: number;
@@ -124,27 +120,6 @@ test.describe('the wide box runs to the hint line (FR-FLOW-9) and the panel’s 
       expect(Math.abs(chartBox.y - layoutBox.y), `${view}: the box at the layout's top`).toBeLessThanOrEqual(1);
       expect(chartBox.y + chartBox.height).toBeLessThanOrEqual(800);
     }
-  });
-
-  test('the stars page at 1280 × 800: the window’s box down to the hint line', async ({ page }) => {
-    await page.clock.setFixedTime(NINE_DAYS_ON);
-    for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-    await page.addInitScript(
-      ([key, value]: [string, string]) => {
-        if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-      },
-      [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
-    );
-    await page.goto('/#stars');
-    await onWindow(page);
-    const layout = page.getByTestId('stars-layout');
-    await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
-    const sky = await settledBox(page.getByTestId('stars-sky'));
-    const band = await bandUnderBox(page, sky, 'stars-layout');
-    console.log(`stars 1280 × 800: box ${fmt(sky)}, band under it ${band.toFixed(1)} px`);
-    expect(band).toBeLessThanOrEqual(SPACE_3_PX);
-    expect(Math.abs(sky.y - (await box(layout)).y)).toBeLessThanOrEqual(1);
-    expect(sky.y + sky.height).toBeLessThanOrEqual(800);
   });
 
   test('the pass panel at 1280 × 800: the drawing is most of the panel’s body', async ({ page }) => {

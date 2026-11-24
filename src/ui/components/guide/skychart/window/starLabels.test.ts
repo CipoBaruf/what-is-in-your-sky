@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { starsAt } from '../../../../../lib/skyStars';
 import type { EpochMs } from '../../../../../model';
-import { sceneCatalog } from '../../../../screens/stars/field';
+import { sceneCatalog } from '../../../live/field';
 import { handRotation } from './camera';
 import { project, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';

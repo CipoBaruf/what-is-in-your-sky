@@ -7,11 +7,9 @@
  * window at 1280 px turned south and tilted up, where the night's gibbous
  * Moon stands, for the disc with its phase. No text changed, so English alone.
  */
-import { expect, test, type Page } from '@playwright/test';
-import type { Theme } from '../../src/model';
+import { expect, test } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
-import { pinch } from './windowZoom';
+import { FIXTURE_DATE, PARIS } from './observers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block' });
@@ -19,47 +17,7 @@ test.use({ serviceWorkers: 'block' });
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 
-/** The stars page as `window-zoom.spec.ts` opens it, in `theme`, turned to SW 35° up with the deep chunk in. */
-async function openStars(page: Page, viewport: { width: number; height: number }, theme: Theme): Promise<void> {
-  await page.setViewportSize(viewport);
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale: 'en', theme, observer: NEUQUEN })] as [string, string],
-  );
-  await page.goto('/#stars');
-  const w = page.getByTestId('stars-sky').locator('[data-look-az]');
-  await expect(w).toHaveAttribute('data-state', 'hand');
-  const box = w.locator('div[data-dragging]');
-  await box.focus();
-  for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
-  await expect(w).toHaveAttribute('data-look-az', '225');
-  await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
-  await expect.poll(() => w.locator('[data-deep-pool] > circle:not([visibility="hidden"])').count()).toBeGreaterThan(0);
-  await page.mouse.move(0, 0);
-}
-
-test.describe('the stars page’s window', () => {
-  for (const theme of ['dark', 'night'] as const) {
-    test(`390 px, SW 35° up, at 60° and at 20°, ${theme}`, async ({ page }) => {
-      await openStars(page, { width: 390, height: 844 }, theme);
-      await page.screenshot({ path: `${CAPTURE_DIR}/r155-stars-390-window-60-${theme}-en.png` });
-      const w = page.getByTestId('stars-sky').locator('[data-look-az]');
-      await pinch(w.locator('div[data-dragging]'), 40, 120);
-      await expect(w).toHaveAttribute('data-fov', '20');
-      await expect.poll(() => w.locator('[data-star-name][visibility="visible"]').count()).toBeGreaterThan(0);
-      await page.screenshot({ path: `${CAPTURE_DIR}/r155-stars-390-window-20-${theme}-en.png` });
-    });
-  }
-
-  test('1280 px, SW 35° up, at 60°, dark', async ({ page }) => {
-    await openStars(page, { width: 1280, height: 800 }, 'dark');
-    await page.screenshot({ path: `${CAPTURE_DIR}/r155-stars-1280-window-60-dark-en.png` });
-  });
-});
+// R222 (D-1240): the stars page's window captures went with the page.
 
 test.describe('the live page’s window', () => {
   test('1280 px, facing south, the Moon’s disc with its phase, dark', async ({ page }) => {

@@ -39,7 +39,8 @@ export function SkyHead({ line, onBack, backRef, className }: SkyHeadProps) {
   const atStart = useAtStart();
   return (
     <div className={[styles.head, className].filter(Boolean).join(' ')} data-testid="live-head">
-      {!atStart && <TextButton label={t.header.back} aria-label={t.header.backName} className={`${styles.back} target`} onClick={onBack} ref={backRef} data-testid="live-back" />}
+      {/* R222 (D-1230): a page with no Back (the live page, a tab) hands in no `onBack`. */}
+      {!atStart && onBack !== undefined && <TextButton label={t.header.back} aria-label={t.header.backName} className={`${styles.back} target`} onClick={onBack} ref={backRef} data-testid="live-back" />}
       <div className={styles.time}>{line}</div>
     </div>
   );

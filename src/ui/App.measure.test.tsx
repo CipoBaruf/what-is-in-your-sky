@@ -1,6 +1,6 @@
 /**
  * FR-MEAS-2 (D-1147): the four pages a load can open after it starts are counted from `App`'s route hooks — a pass
- * detail, the live page, the stars page, the settings page — each when its route is on screen and not before.
+ * detail, the live page, the settings page (R222: the stars page is gone) — each when its route is on screen and not before.
  */
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -59,8 +59,7 @@ describe.each([
   it.each([
     ['pass_open', passIdHash(pass.id), '#settings'],
     ['live_open', '#live', '#settings'],
-    ['stars_open', '#stars', '#settings'],
-    ['settings_open', '#settings', '#stars'],
+    ['settings_open', '#settings', '#live'],
   ])('%s when %s is on screen, and not before it', async (name, hash, before) => {
     window.history.replaceState(null, '', before);
     render(<App />);

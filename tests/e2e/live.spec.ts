@@ -70,13 +70,17 @@ test.describe('the live page', () => {
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 
-    // Esc returns to the page it was opened from, the satellites page, with the same observer (R148: the sheet closes
-    // first, D-927; R212: FR-LAND-6).
+    // R222 (D-1230): live is a tab — Esc closes what is open on it (the sheet, R148, D-927) and goes nowhere after.
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
     await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/#live$/);
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
+    // The satellites page is a tab away, with the same observer (FR-LAND-6).
+    await page.evaluate(() => {
+      location.hash = '#pass';
+    });
     await expect(page.getByRole('banner')).toBeVisible();
-    await expect(page).toHaveURL(/#pass$/);
     await expect(page.getByTestId('live-page')).toHaveCount(0);
     await expect(page.getByTestId('conditions')).toBeVisible();
 
@@ -126,7 +130,9 @@ test.describe('the live page', () => {
     await stubNetwork(page, 'down');
     await page.goto('/#live');
     const inert = page.getByTestId('live-inert');
-    await expect(inert).toHaveText('The live sky needs a place.set a place');
+    // R222 (FR-LAND-5): with no place and no example the box holds the place group under the tagline.
+    await expect(inert.getByTestId('live-place-group')).toBeVisible();
+    await expect(inert.getByTestId('live-tagline')).toBeVisible();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
     await expect(page.getByTestId('live-sky-rows')).toHaveCount(0);
@@ -189,7 +195,8 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByTestId('live-link')).toHaveCount(0);
   await domeDrawn(page);
   await stripFilled(page);
-  await expect(page.getByRole('button', { name: LABEL.es.backCompact, exact: true })).toBeVisible();
+  // R222 (D-1230): live is a tab, with no Back.
+  await expect(page.getByRole('button', { name: LABEL.es.backCompact, exact: true })).toHaveCount(0);
   // R144 (FR-TONIGHT-7, FR-I18N-2): the headline's spoken name, the chip, the context line and the taps in Spanish.
   await expect(page.getByTestId('shown-time')).toHaveText(/^Hora mostrada: \d\d:\d\d:\d\d UTC ● en vivo$/);
   await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up');

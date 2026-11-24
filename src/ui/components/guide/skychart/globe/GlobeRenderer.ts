@@ -7,7 +7,7 @@ import { compassPoint, type CompassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
 import { figureName, PLANETS, starLabelKind, starName } from '../../../../../lib/skyStars';
 import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
-import { formatStarMag } from '../../../../screens/stars/field';
+import { formatStarMag } from '../../../live/field';
 import { inkOffsetPx } from '../window/inkOffsets';
 import { limbAngleDeg, litPath } from '../window/MoonDisc';
 import { COLLISION_PX, dotRadiusPx, hitLine, hitTest, markFor, toneToken, type Point, type ToneToken } from '../window/starGlyphs';

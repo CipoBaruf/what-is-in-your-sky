@@ -1,17 +1,13 @@
 /**
- * R170 (FR-GLOBE-1, FR-GLOBE-6..9, FR-GLOBE-15, FR-GLOBE-16; US-50 AC1, AC4..AC7; D-1035, D-1039, D-1040, D-1042):
- * the wide stars page's globe in a browser, at 1280 × 800 and 1920 × 1080 — the view row, the breakpoint crossing
- * with the globe chosen, a drag, the box's keys, the steps, ×3600 under a paused `page.clock`, a saved place, the Tab
- * order through the rail, the hash unchanged throughout; and at 390 × 844 the compact page, which never asks for
- * `SkyGlobe-*.js`.
+ * R170 (FR-GLOBE-1, FR-GLOBE-6, FR-GLOBE-11, FR-GLOBE-15; US-50 AC1, AC4; D-1035, D-1042): the globe in a browser, at
+ * 1280 × 800 and 1920 × 1080 — a drag, the box's keys, the hover, the zoom keys; and at 390 × 844 the compact page,
+ * which never asks for `SkyGlobe-*.js`. R222 (FR-LAND-3, D-1240): on the live page, the stars page having folded into
+ * it; the stars page's own view row, steps, playback and `Place` group went with it.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { globeAt, GLOBE_WORD, LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { openLiveSky, showGlobe } from './globeHelpers';
 import { seedThreePasses } from './threePasses';
 import { seedStoredRun } from './liveHelpers';
-
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
 
 /** Where the zenith's and the north pole's marks are drawn, to the pixel: the view's turn, read off the renderer's attributes. */
 async function zenith(page: Page): Promise<string> {
@@ -44,37 +40,8 @@ for (const viewport of DESKS) {
   test.describe(`the globe at ${String(viewport.width)} × ${String(viewport.height)}`, () => {
     test.use({ viewport });
 
-    test('opens on the globe, reads [ Globe ] Window Dome, and keeps the choice across the breakpoint (FR-GLOBE-1 as amended, FR-WIDE-2, V212-11)', async ({ page }) => {
-      await openStarsPage(page);
-      const hash = await page.evaluate(() => window.location.hash);
-      const row = page.getByTestId('stars-view-row');
-      // R186 (FR-WIDE-2): the wide row is the three pages' one row.
-      await expect(row.getByRole('button')).toHaveText(['Globe', 'Window', 'Dome']);
-      // A desk opens on the globe, unsaved; the window is one press away.
-      await expect(row.getByRole('button', { name: 'Globe' })).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('globe-box')).toBeVisible();
-      await row.getByRole('button', { name: 'Window' }).click();
-      await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
-      await showGlobe(page);
-      await expect(page.locator('[data-drawing]')).toHaveCount(0);
-      // The globe's box is the window's: it stands where the window stood, beside the rail.
-      const box = await page.getByTestId('globe-box').boundingBox();
-      const rail = await page.getByTestId('stars-group').boundingBox();
-      expect(box && rail && box.x + box.width <= rail.x).toBe(true);
-      // Compact: the polar chart, the row in the sheet reading Whole sky; back to wide: the globe.
-      await page.setViewportSize({ width: 390, height: 844 });
-      await expect(page.locator('[data-drawing="polar"]')).toBeAttached({ timeout: 30_000 });
-      await expect(page.getByTestId('globe-box')).toHaveCount(0);
-      // The sheet is closed, so its row is inert: read its buttons' words, not their roles.
-      await expect(row.locator('button')).toHaveText(['Window', 'Whole sky']);
-      await page.setViewportSize(viewport);
-      await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
-      await expect(page.locator('[data-drawing]')).toHaveCount(0);
-      expect(await page.evaluate(() => window.location.hash)).toBe(hash);
-    });
-
     test('turns under a drag and the box’s keys, and Home returns to the opening view (FR-GLOBE-6)', async ({ page }) => {
-      await openStarsPage(page);
+      await openLiveSky(page);
       await showGlobe(page);
       const box = page.getByTestId('globe-box');
       const before = await zenith(page);
@@ -105,7 +72,7 @@ for (const viewport of DESKS) {
     });
 
     test('a hover on a star or a planet names it and never changes the globe’s size (FR-GLOBE-11 as amended, V212-13, D-1055)', async ({ page }) => {
-      await openStarsPage(page);
+      await openLiveSky(page);
       await showGlobe(page);
       await page.mouse.move(2, 2);
       await expect(page.getByTestId('globe-named')).toHaveCount(0);
@@ -126,9 +93,9 @@ for (const viewport of DESKS) {
     });
 
     test('a hovered figure is drawn in the emphasis, its name shown with the names off, and leaving restores it (FR-GLOBE-11 as amended, V212-13)', async ({ page }) => {
-      await openStarsPage(page);
+      await openLiveSky(page);
       await showGlobe(page);
-      await page.getByTestId('stars-layers').getByRole('button', { name: 'names' }).click();
+      await page.getByTestId('live-layers').getByRole('button', { name: 'names' }).click();
       const emphasis = page.locator('[data-globe] [data-figure-named]');
       await expect(emphasis).toHaveAttribute('d', '');
       const before = await globeSize(page);
@@ -156,9 +123,9 @@ for (const viewport of DESKS) {
     });
 
     test('FR-CTRL-9: −, + and ⟲ under the box zoom a step each and back to the opening view; the hint goes at the first zoom and stays gone (D-1241)', async ({ page }) => {
-      await openStarsPage(page);
+      await openLiveSky(page);
       await showGlobe(page);
-      const layout = page.getByTestId('stars-layout');
+      const layout = page.getByTestId('live-layout');
       const hint = layout.getByTestId('sky-hint');
       await expect(hint).toHaveText('drag to turn · scroll to zoom');
       const row = layout.locator('[data-zoom-row]');
@@ -184,114 +151,25 @@ for (const viewport of DESKS) {
       await showGlobe(page);
       await expect(page.getByTestId('sky-hint')).toHaveCount(0);
     });
-
-    test('moves only the globe’s clock by the steps; the hash and the prefs stay (FR-GLOBE-7)', async ({ page }) => {
-      await openStarsPage(page);
-      await showGlobe(page);
-      const hash = await page.evaluate(() => window.location.hash);
-      const prefs = await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'));
-      const at = await globeAt(page);
-      const steps = page.getByTestId('globe-steps');
-      await steps.getByRole('button', { name: 'A day later' }).click();
-      await expect.poll(() => globeAt(page)).toBe(at + DAY_MS);
-      await steps.getByRole('button', { name: 'An hour earlier' }).click();
-      await expect.poll(() => globeAt(page)).toBe(at + DAY_MS - HOUR_MS);
-      // FR-WIDE-4 as amended (D-1138): a step holds the instant (the chip leaves `now`); `[ now ]` lets it go.
-      await expect(page.getByTestId('globe-chip')).not.toHaveAttribute('data-kind', 'now');
-      await page.getByTestId('globe-now').click();
-      await expect(page.getByTestId('globe-chip')).toHaveAttribute('data-kind', 'now');
-      expect(await page.evaluate(() => window.location.hash)).toBe(hash);
-      expect(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))).toBe(prefs);
-    });
-
-    test('×3600 for one second of wall time under a paused clock moves the globe an hour, and the hash stays (FR-GLOBE-7)', async ({ page }) => {
-      await openStarsPage(page, { clock: 'installed' });
-      await showGlobe(page);
-      const hash = await page.evaluate(() => window.location.hash);
-      const now = await page.evaluate(() => Date.now());
-      await page.clock.pauseAt(now + 1_000);
-      // FR-WIDE-4 as amended (V214-34): the live page's playback row — 3600× picks the rate, `[ Play ]` plays, `[ Pause ]` holds.
-      const row = page.getByTestId('stars-time').getByTestId('playback-controls');
-      await row.getByRole('button', { name: '3600×' }).click();
-      await row.getByRole('button', { name: 'Play' }).click();
-      await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
-      const from = await globeAt(page);
-      await page.clock.runFor(1_000);
-      const moved = (await globeAt(page)) - from;
-      // One second of frames at ×3600: an hour, give or take the frames at either end.
-      expect(Math.abs(moved - HOUR_MS), `moved ${String(moved)} ms`).toBeLessThanOrEqual(3 * 3_600 * 17);
-      await row.getByRole('button', { name: 'Pause' }).click();
-      await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'false');
-      expect(await page.evaluate(() => window.location.hash)).toBe(hash);
-    });
-
-    test('moves the globe to a saved place: the clock’s zone and the list follow, the app’s place stays (FR-GLOBE-8, FR-GLOBE-9)', async ({ page }) => {
-      await openStarsPage(page, { favourites: [LONDON] });
-      await showGlobe(page);
-      const prefs = await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'));
-      const places = page.getByTestId('globe-place');
-      await expect(places.getByRole('button')).toHaveCount(2);
-      // FR-GLOBE-8: held an hour on, the clock is in the shown place's zone.
-      await page.getByTestId('globe-steps').getByRole('button', { name: 'An hour later' }).click();
-      const at = await globeAt(page);
-      const readout = page.getByTestId('stars-time').getByTestId('globe-clock').locator('time');
-      const before = await readout.textContent();
-      await places.getByRole('button', { name: 'London' }).click();
-      await expect(places.getByRole('button', { name: 'London' })).toHaveAttribute('aria-pressed', 'true');
-      await expect(readout).not.toHaveText(before ?? '');
-      await expect(page.getByRole('heading', { name: 'Up from London' })).toBeVisible();
-      await expect(page.getByTestId('stars-sky')).toHaveAttribute('aria-label', /over London/);
-      expect(await globeAt(page)).toBe(at);
-      expect(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))).toBe(prefs);
-    });
-
-    test('Tabs through the box, the view row and the rail in reading order (FR-GLOBE-16, FR-WIDE-1)', async ({ page }) => {
-      await openStarsPage(page, { favourites: [LONDON] });
-      await showGlobe(page);
-      // R186 (FR-WIDE-1, D-1098): the shell reads left to right — the box, its corners, then the rail from its head.
-      await page.getByTestId('globe-box').focus();
-      const seen: string[] = [];
-      for (let i = 0; i < 30; i += 1) {
-        await page.keyboard.press('Tab');
-        seen.push(
-          await page.evaluate(() => {
-            const el = document.activeElement as HTMLElement | null;
-            if (!el) return '';
-            return el.dataset['testid'] ?? el.getAttribute('aria-label') ?? el.textContent?.trim() ?? '';
-          }),
-        );
-      }
-      // FR-WIDE-4 as amended (D-1138, V214-34): the steps, `[ now ]` and the playback row, then the page's group.
-      const order = [GLOBE_WORD.en, 'Window', 'Dome', 'A day earlier', 'A day later', 'globe-now', 'live-play', 'with the stars', 'London', 'faint'];
-      // The rail's scrolling row is a stop of its own (a scroll container takes the focus in Chromium): names are matched whole.
-      const at = order.map((name) => seen.indexOf(name));
-      expect(at.every((index) => index >= 0), seen.join(' | ')).toBe(true);
-      expect([...at].sort((a, b) => a - b), seen.join(' | ')).toEqual(at);
-      // Nothing before the view row but the box's own corners.
-      expect(seen.slice(0, at[0]).every((name) => !order.includes(name)), seen.join(' | ')).toBe(true);
-    });
   });
 }
 
-test.describe('the compact stars page', () => {
+test.describe('the compact live page', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test('never asks for SkyGlobe-*.js, the whole sky drawn as the polar chart (FR-GLOBE-1, FR-GLOBE-15)', async ({ page }) => {
+  test('the live page never asks for SkyGlobe-*.js (FR-GLOBE-1, FR-GLOBE-15)', async ({ page }) => {
     const asked: string[] = [];
     page.on('request', (request) => {
       if (/SkyGlobe-|GlobeRail-/.test(request.url())) asked.push(request.url());
     });
-    await openStarsPage(page);
-    await page.getByTestId('live-controls').click();
-    await page.getByTestId('stars-view-row').getByRole('button', { name: 'Whole sky' }).click();
-    await expect(page.locator('[data-drawing="polar"]')).toBeAttached({ timeout: 30_000 });
+    await openLiveSky(page);
     // Past the idle the wide page prefetches on.
     await page.waitForTimeout(1_500);
     expect(asked).toEqual([]);
     await expect(page.getByTestId('globe-box')).toHaveCount(0);
   });
 
-  test('R188 (FR-WIDE-11): the compact pages never ask for facts-*.js — the home, a pass, the live page and the stars page', async ({ page }) => {
+  test('R188 (FR-WIDE-11): the compact pages never ask for facts-*.js — a pass and the live page', async ({ page }) => {
     const asked: string[] = [];
     page.on('request', (request) => {
       if (/\/facts-[^/]*\.(js|css)$/.test(request.url())) asked.push(request.url());
@@ -304,8 +182,6 @@ test.describe('the compact stars page', () => {
     await page.reload();
     await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(1_500);
-    await page.goto('/#stars');
-    await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
     // Past the idle the wide pages prefetch on.
     await page.waitForTimeout(1_500);
     expect(asked).toEqual([]);
@@ -348,12 +224,10 @@ test.describe('the live page’s globe at 1280 × 800', () => {
     await page.goto('/#live');
     await page.reload();
     await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
-    // The stars page too, and past the idle the desk prefetches the globe on.
-    await page.goto('/#stars');
-    await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
+    // Past the idle the desk prefetches the globe on.
     await page.waitForTimeout(1_500);
     expect(asked).toEqual([]);
-    await page.getByTestId('stars-view-row').getByRole('button', { name: 'Dome', exact: true }).click();
+    await page.getByTestId('live-layout').getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Dome', exact: true }).click();
     await expect(page.locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
     expect(asked.length).toBeGreaterThan(0);
   });

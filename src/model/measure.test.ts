@@ -7,7 +7,7 @@ const context = { visit: 'first', layout: 'compact', lang: 'en', id: '0123456789
 describe('FR-MEAS-2: the table', () => {
   it('is exactly the spec table, name by name and detail by detail', () => {
     expect(EVENTS).toEqual({
-      open: ['pass', 'live', 'stars', 'settings'],
+      open: ['pass', 'live', 'settings'],
       example_shown: ['pass', 'none', 'no_city', 'failed', 'slow'],
       where_shown: ['example', 'fallback'],
       place_set: ['search', 'coords', 'device', 'favourite', 'link'],
@@ -16,7 +16,6 @@ describe('FR-MEAS-2: the table', () => {
       watch: [],
       pass_open: [],
       live_open: [],
-      stars_open: [],
       sky_screen_open: [],
       settings_open: [],
       follow_answer: ['allow', 'not_now', 'refused'],

@@ -27,7 +27,7 @@ function spyActions(): ShortcutActions & { calls: ShortcutId[] } {
 
 describe('the shortcut table', () => {
   it("holds FR-DESK-4's keys, then FR-WIDE-9's: g w d , . t Space a f (R189)", () => {
-    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 's', 'v', 'n', '?', 'g', 'w', 'd', ',', '.', 't', ' ', 'a', 'f']);
+    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 'v', 'n', '?', 'g', 'w', 'd', ',', '.', 't', ' ', 'a', 'f']);
     expect(SHORTCUTS.filter((shortcut) => shortcut.group === 'sky').map((shortcut) => shortcut.id)).toEqual(['globe', 'window', 'dome', 'back', 'ahead', 'now', 'play', 'face', 'full']);
     // FR-WIDE-9 amends FR-SKY-13: `a` faces the pass, `f` is full screen.
     expect(shortcutFor(press('a'))?.id).toBe('face');

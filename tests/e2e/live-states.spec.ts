@@ -176,11 +176,12 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
     await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
     await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
-    const OVERLAY = ['live-head', 'live-back', 'live-controls', 'live-strip'] as const;
+    // R222 (D-1230): live is a tab, with no Back.
+    const OVERLAY = ['live-head', 'live-controls', 'live-strip'] as const;
     // R150 (FR-GYRO-10): `[ list (n) ]` is gone; the satellites and their heading are the sheet's last group. R216 (FR-NOW-1):
     // `[ Share ]` is the view row's, the hidden toggle `Layers`'.
     const SHEET = ['live-context', 'live-view-row', 'live-share', 'live-facing', 'live-track', 'live-taps', 'live-layers', 'live-hidden-toggle', 'live-satellites', 'live-satellites-head'] as const;
-    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-legend-toggle', 'stripe-block'] as const;
+    const GONE = ['live-back', 'live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-legend-toggle', 'stripe-block'] as const;
     const inventory = async (state: string, sheetOpen: boolean): Promise<void> => {
       for (const id of OVERLAY) await expect(page.getByTestId(id), `${state}: ${id} is visible`).toBeVisible();
       // The sheet's rows stay in the tree while it is closed (D-932), inert and hidden; reachable only while it is open.
@@ -254,15 +255,13 @@ for (const [width, height, placement] of COMPACT_SHAPES) {
  * time, and the place — Neuquén's coordinates, the label the home page gives a typed pair — is the sheet's head's,
  * drawn whole, not ellipsised.
  */
-test('at 360 px in Spanish the head is [ ← ] and the time, and the sheet’s head shows a whole coordinate pair (FR-COMP-7, FR-FULL-2, F-82)', async ({ page }) => {
+test('at 360 px in Spanish the head is the time with no [ ← ], and the sheet’s head shows a whole coordinate pair (FR-COMP-7, FR-FULL-2, F-82)', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await homeAt(page, T, 'es');
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
-  const back = page.getByTestId('live-head').getByRole('button', { name: 'Volver', exact: true });
-  await expect(back).toHaveText('←');
-  const tap = await back.boundingBox();
-  expect(tap?.height, 'the 44 px hit box is unchanged').toBeGreaterThanOrEqual(43.5);
+  // R222 (D-1230): live is a tab, so its head has no Back.
+  await expect(page.getByTestId('live-head').getByRole('button', { name: 'Volver', exact: true })).toHaveCount(0);
   const head = await page.getByTestId('live-head').boundingBox();
   expect(head?.height, 'one row').toBeLessThanOrEqual(48.5);
   await openSheet(page);

@@ -123,18 +123,18 @@ test('with the elements failing, the page says so, and [ retry ] shows loading a
   await domeDrawn(page);
 });
 
-test('with no place, [ set a place ] opens the place dialog (FR-FIRST-1, F-75, D-1238)', async ({ page }) => {
+// R222 (FR-LAND-5, US-62 AC2): no place and no example — the place group stands in the sky's box, no dialog to open.
+test('with no place, the box holds the place group under the tagline (FR-LAND-5, FR-FIRST-1, F-75)', async ({ page }) => {
   await page.clock.setFixedTime(T);
   await stubNetwork(page);
   await page.goto('/#live');
   await expect(page.getByTestId('live-inert')).toHaveAttribute('data-inert', 'no-place');
-  await expect(page.getByTestId('live-inert')).toContainText('The live sky needs a place.');
-  await page.getByRole('button', { name: 'set a place' }).click();
-  // R215 (D-1238): the place group opens in the place dialog over the page.
-  const dialog = page.getByTestId('place-dialog');
-  await expect(dialog).toBeVisible();
+  const group = page.getByTestId('live-inert').getByTestId('live-place-group');
+  await expect(group).toBeVisible();
+  await expect(page.getByTestId('live-tagline')).toBeVisible();
+  await expect(page.getByTestId('place-dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/#live$/);
-  await expect(dialog.getByRole('button', { name: 'Use my location' })).toBeVisible();
+  await expect(group.getByRole('button', { name: 'Use my location' })).toBeVisible();
 });
 
 test.describe('a live link’s moment (FR-VISIT-3)', () => {

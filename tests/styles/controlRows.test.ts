@@ -25,7 +25,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { createElement, createRef, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
@@ -33,9 +33,9 @@ import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALES } from '../../src/i18n/locale';
 import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, RAIL_MIN_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
-import { FieldList } from '../../src/ui/screens/stars/FieldList';
+import { FieldList } from '../../src/ui/components/live/FieldList';
 import type { Messages } from '../../src/i18n/messages';
-import type { Locale, Observer, TonightCloud } from '../../src/model';
+import type { Locale, Observer } from '../../src/model';
 import { appStore } from '../../src/state';
 import { Header } from '../../src/ui/components/common/Header';
 import { ElementsLine } from '../../src/ui/components/elements/ElementsLine';
@@ -59,9 +59,7 @@ import { LivePage } from '../../src/ui/screens/Live';
 import { PassDetail } from '../../src/ui/screens/PassDetail';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
-import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { SkyHead } from '../../src/ui/components/sky/SkyHead';
-import { StarsPage } from '../../src/ui/screens/Stars';
 import { DETAIL_TIMES_CELLS } from '../../src/lib/format';
 import { TimesRow } from '../../src/ui/components/guide/TimesRow';
 import type { HeaderPage } from '../../src/i18n/messages';
@@ -78,7 +76,7 @@ const LIVE_ROW_BUDGET = BUDGET - 2;
 /** R132 (FR-FLOW-4, D-846): the view row is 30 cells in English and 35 in Spanish, and the spec pins the Spanish number. */
 const VIEW_ROW_BUDGET = 35;
 /** R129 (FR-FLOW-3), R212 (D-1231): the pages with the header's compact `[ ← ]` row; live and the satellites' list are tabs. */
-const SUB_PAGES = ['stars', 'settings'] as const satisfies readonly HeaderPage[];
+const SUB_PAGES = ['settings'] as const satisfies readonly HeaderPage[];
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
@@ -110,11 +108,6 @@ const stepGap = (): number => {
   if (part === undefined) throw new Error('StepControls.module.css: .steps has no gap in shares of a cell');
   return 1 / Number(part);
 };
-/**
- * R160, R206: the stars page's view row is options alone, measured on that module's rules — `cells.ts` keys a rule by
- * its local class name, and a page's module may use an option's.
- */
-const optionTable = decorations([resolve(process.cwd(), 'src/ui/components/primitives/OptionToggle.module.css')]);
 
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const pass = goldenPassFixture();
@@ -162,7 +155,7 @@ const chartView = (): ReactElement =>
 
 /** R212 (D-1230): the head has no Back on the first page, live with nothing behind it. */
 const offTheFirstPage = (): void => {
-  window.history.replaceState(null, '', '#stars');
+  window.history.replaceState(null, '', '#settings');
 };
 
 const offerAnInstall = (): void => {
@@ -290,19 +283,27 @@ const rows = (t: Messages): readonly Row[] => [
    * FR-COMP-4's 36, in both languages — the room to spare F-82 found Spanish did not have.
    */
   // R148 (FR-FULL-2, D-920): the compact live top row is gone — the head over the sky and the sheet's head are `sheetRows.test.ts`'s rows.
+  // R132 (FR-FLOW-8) → R206 (D-1249) → R222 (FR-LAND-3, D-1240): the live page's `Layers`, the stars page's rows — three
+  // toggles then `names` (25.5 and 7 cells in English, 30.5 and 9 in Spanish), split by `firstRowCount` — then `Hidden`.
+  ...([0, 1] as const).map(
+    (index): Row => ({
+      name: `the live layers row ${String(index + 1)} (FR-LAND-3, FR-STAR-3)`,
+      element: createElement(LivePage, { link: null }),
+      find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
+      setUp: withLiveSky,
+    }),
+  ),
   {
-    // R216 (FR-NOW-1, D-1239): the compact actions row is gone — `[ Share ]` is the view row's; `Layers`' one row,
-    // `[x] stars` and `Hidden`, in both states.
-    name: 'the live layers row (FR-NOW-1, FR-COMP-7)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('stars-toggle').parentElement as HTMLElement,
+    name: 'the live layers row of the page’s own (FR-LIVE-6)',
+    element: createElement(LivePage, { link: null }),
+    find: () => screen.getByTestId('live-layers-own'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
   },
   {
     // R213 (FR-STRIP-6, D-1269): the one play button has a row of its own over the three taps.
     name: 'the live play row (FR-STRIP-6)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
+    element: createElement(LivePage, { link: null }),
     find: () => screen.getByTestId('live-play').parentElement as HTMLElement,
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
@@ -310,7 +311,7 @@ const rows = (t: Messages): readonly Row[] => [
   {
     // R144 (FR-TONIGHT-4, D-901) → R213: the taps row as the page renders it.
     name: 'the live taps row (FR-TONIGHT-4)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
+    element: createElement(LivePage, { link: null }),
     find: () => screen.getByTestId('live-jumps'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
@@ -319,7 +320,7 @@ const rows = (t: Messages): readonly Row[] => [
     // R144 (FR-TONIGHT-6, D-905) → R150 (FR-GYRO-10, D-949): the satellites' heading row — "Satellites (n)" with its
     // rule, and the hidden-objects toggle at its end, `[ ] Hidden` / `[ ] Ocultos`.
     name: 'the live satellites heading row (FR-GYRO-10, FR-LIVE-6)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
+    element: createElement(LivePage, { link: null }),
     find: () => screen.getByTestId('live-satellites-head'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
@@ -333,7 +334,7 @@ const rows = (t: Messages): readonly Row[] => [
    */
   {
     name: 'the live view row (FR-FLOW-4, D-846)',
-    element: createElement(LivePage, { link: null, onLeave: noop }),
+    element: createElement(LivePage, { link: null }),
     // R148 (FR-FULL-4): the live page's view row is the sheet's.
     find: () => screen.getByTestId('live-view-row'),
     setUp: withLiveSky,
@@ -369,59 +370,6 @@ const rows = (t: Messages): readonly Row[] => [
   ),
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
   /*
-   * R115 (FR-STAR-3, FR-STAR-10, FR-COMP-4): the stars page's compact rows, from the page itself — the facing picker
-   * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with a cell between, D-245: 24 cells in English, 28 in Spanish with `arriba`), the
-   * layers' rows of three and one (R206: `stars figures planets` 25.5 and 30.5; one row of four would be 32.75 and 39.75, D-776), and the
-   * When pane's way in at `--small` (`Estrellas esta noche · [ mirá arriba ]`, 38 of its 41).
-   */
-  {
-    name: 'the stars facing row (FR-STAR-3)',
-    element: createElement(StarsPage),
-    find: () => screen.getByRole('group', { name: starsPage(t).facing }),
-    setUp: () => {
-      appStore.setState({ observer });
-    },
-    // R163 (FR-CLEAN-4): on compact the picker is the sheet's facing row's, opened by a tap on the readout.
-    after: () => {
-      fireEvent.click(screen.getByTestId('sky-readout-toggle'));
-    },
-  },
-  {
-    // R160 (FR-PHONE-7, D-971): `[ Window ] Whole sky` / `[ Ventana ] Cielo entero`, the bracket mark — 20 cells in English, 24 in Spanish.
-    name: 'the stars view row (FR-PHONE-7)',
-    element: createElement(StarsPage),
-    find: () => screen.getByTestId('stars-view-row'),
-    setUp: () => {
-      appStore.setState({ observer });
-    },
-    measure: (row) => rowCells(row, optionTable),
-  },
-  // R132 (FR-FLOW-8) → R163 (FR-CLEAN-11) → R206 (D-1249): two rows — three toggles then `names` (25.5 and 7 cells in
-  // English, 30.5 and 9 in Spanish), the split cut to the budget by `firstRowCount`; `[ passes ]` is gone.
-  ...([0, 1] as const).map(
-    (index): Row => ({
-      name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-CLEAN-11)`,
-      element: createElement(StarsPage),
-      find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
-      setUp: () => {
-        appStore.setState({ observer });
-      },
-    }),
-  ),
-  /*
-   * R163 (FR-CLEAN-2, D-1009): the compact stars head — `[ ← ]`, then the Stars door's line at `--small` in its longest
-   * form, the dark window with the longest cloud word ("Dark 20:25 → 07:05 · Partly cloudy" / "Oscuro 20:25 → 07:05 ·
-   * Algo nuboso", 34 characters): the line's characters count 14/16 of a cell, as `sheetRows.test.ts` counts a chip, so
-   * the row is 35.75 cells in both languages — inside 36 at 390 px, and cut by the head's ellipsis at 360.
-   */
-  {
-    name: "the stars head's line (FR-CLEAN-2)",
-    setUp: offTheFirstPage,
-    element: createElement(SkyHead, { line: createElement('p', { 'data-testid': 'stars-head-line' }, longestStarsLine(t)), onBack: noop }),
-    find: () => screen.getByTestId('live-head'),
-    measure: (row) => rowCells(within(row as HTMLElement).getByTestId('live-back'), table) + 1 + ([...longestStarsLine(t)].length * 14) / 16,
-  },
-  /*
    * R164 (FR-CLEAN-2 as amended, D-1012): the compact pass detail's head — `[ ← ]`, then the countdown in the head's
    * phase words at `--text-heading` (1.25 cells a character) and the pass's name as its chip, which is what gives (cut
    * by the head's ellipsis), so the row's fixed part is the back control and the countdown at its longest form, a
@@ -441,27 +389,6 @@ function longestPassHead(t: Messages): string {
   const forms = (['before', 'to-peak', 'to-end', 'over'] as const).map((phase) => t.countdown.head({ phase, clock: '23:59:59' }));
   return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
 }
-
-/**
- * D-1028: every form tonight's cloud takes — each state all night, `variable`, and a change between every pair of the
- * three states at a two-digit hour (with no zone there is no forecast, so a change never carries a UTC clock, D-859).
- */
-const STATES = ['clear', 'partly', 'obscured'] as const;
-const TONIGHT_CLOUDS: TonightCloud[] = [
-  ...(['clear', 'partly', 'obscured', 'unknown'] as const).map((state): TonightCloud => ({ kind: 'steady', state })),
-  { kind: 'variable' },
-  ...STATES.flatMap((before) => STATES.filter((after) => after !== before).map((after): TonightCloud => ({ kind: 'change', before, after, at: '23:00' }))),
-];
-
-/** R163: the longest of the head line's forms (`starsHeadLine`'s three, over every cloud word), in the catalog's language. */
-function longestStarsLine(t: Messages): string {
-  const clouds = TONIGHT_CLOUDS;
-  const forms = [...clouds.map((cloud) => t.doors.stars.dark({ from: '20:25', to: '07:05', cloud })), ...clouds.map((cloud) => t.doors.stars.noDark(cloud)), t.doors.stars.from('20:25')];
-  return forms.reduce((longest, form) => ([...form].length > [...longest].length ? form : longest), '');
-}
-
-/** The stars page's own words for the catalog `rows` was given (they ride in the page's chunk, D-777). */
-const starsPage = (t: Messages) => STARS_PAGE_CATALOGS[t === CATALOGS.es ? 'es' : 'en'];
 
 beforeEach(() => {
   media = stubMatchMedia(COMPACT_PX);
@@ -507,8 +434,8 @@ describe.each(LOCALES)('FR-FLOW-3: the three compact sub-page rows in %s', (loca
    * off compact and R149 `Header`'s `status` with it), so 14 → 10 and 17 → 13.
    */
   const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
-    en: { stars: 12, settings: 15 },
-    es: { stars: 18, settings: 16 },
+    en: { settings: 15 },
+    es: { settings: 16 },
   };
 
   it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {
@@ -536,7 +463,7 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
   const EXPECTED: Record<Locale, number> = { en: 29.5, es: 34.5 };
 
   it.each([
-    ['the live page', () => createElement(LivePage, { link: null, onLeave: noop }), 'live-layout', withLiveSky],
+    ['the live page', () => createElement(LivePage, { link: null }), 'live-layout', withLiveSky],
     ['the pass detail', () => createElement(PassDetail, { pass, observer, onClose: noop }), 'pass-layout', noop],
   ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
     setUp();
@@ -557,56 +484,18 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
 });
 
 /**
- * R160 (FR-PHONE-7, D-971): the stars page's view row, `Window Whole sky` / `Ventana Cielo entero` — a
- * `ToggleGroup`, 19.25 cells in English and 23.25 in Spanish since R206's two blocks and their quarter cell,
- * the window first (FR-GYRO-11), inside 36 at 390 px and inside what 360 px has.
+ * R170 (FR-GLOBE-16) → R222 (FR-LAND-3, D-1240): the wide live page's globe rows — `Turn` and the layer rows with
+ * `faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages.
  */
-describe.each(LOCALES)('FR-PHONE-7: the stars view row in %s', (locale: Locale) => {
-  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  const EXPECTED: Record<Locale, number> = { en: 19.25, es: 23.25 };
-
-  it('is one line of the spec’s cells, the window first, inside both widths', () => {
-    appStore.setState({ observer });
-    render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
-    const row = screen.getByTestId('stars-view-row');
-    const cells = rowCells(row, optionTable);
-    expect(cells, rowParts(row, optionTable).join(' | ')).toBe(EXPECTED[locale]);
-    const views = CATALOGS[locale].chart.views;
-    expect(rowParts(row, optionTable)).toEqual([`##${views.window}`, `##${views.wholeSky}`]);
-    expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
-    expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
-  });
-});
-
-/**
- * R170 (FR-GLOBE-1, FR-GLOBE-7, FR-GLOBE-16; D-1035): the wide stars page's globe rail — the view row
- * `Window Globe`, the four steps, `now` with the time-lapse (D-1138), the turn and the layer rows with
- * `faint` — each one line inside the rail's minimum (`RAIL_MIN_CELLS`) in both languages. The places' options are
- * cut at the rail's width with an ellipsis (FR-GLOBE-9) and are not counted.
- */
-describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', (locale: Locale) => {
-  const t = CATALOGS[locale];
-  const place: Observer = { ...observer, label: 'Buenos Aires', timeZone: 'America/Argentina/Buenos_Aires' };
-
-  beforeEach(async () => {
+describe.each(LOCALES)('FR-GLOBE-16: every globe row of the live rail fits the rail in %s', (locale: Locale) => {
+  beforeEach(() => {
     media.restore();
     media = stubMatchMedia(1280);
-    appStore.setState({ observer: place });
-    render(createElement(I18nProvider, { locale, children: createElement(StarsPage) }));
-    // R186 (FR-WIDE-2, D-1095): a desk with nothing saved opens on the globe; the rail's groups are the shell's slots.
-    await screen.findByTestId('globe-turn-row', {}, { timeout: 5_000 });
-  });
-
-  it('FR-WIDE-2: the view row reads Globe, Window, Dome', () => {
-    const row = screen.getByTestId('stars-view-row');
-    // FR-CTRL-2: a block's two cells whether on or off, so the row does not move with the choice.
-    expect(rowParts(row, optionTable)).toEqual([`##${t.globe.view}`, `##${t.chart.views.window}`, `##${t.chart.view.dome}`]);
-    expect(rowCells(row, optionTable)).toBeLessThanOrEqual(RAIL_MIN_CELLS);
+    withLiveSky();
+    render(createElement(I18nProvider, { locale, children: createElement(LivePage, { link: null }) }));
   });
 
   it.each([
-    // v2.14.1 (FR-WIDE-4 as amended, D-1138): FR-GLOBE-7's steps again; `[ now ]` and the playback row are below.
-    ['the steps', () => screen.getByTestId('globe-steps')],
     ['the turn', () => screen.getByTestId('globe-turn-row')],
     ['the first layer row', () => screen.getAllByTestId('stars-layers-row')[0] as Element],
     ['the second layer row, with faint', () => screen.getAllByTestId('stars-layers-row')[1] as Element],
@@ -614,20 +503,6 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
     const row = find();
     const cells = rowCells(row, table);
     expect(cells, `${name} in ${locale}: ${rowParts(row, table).join(' | ')}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
-  });
-
-  /*
-   * V214-34 (D-1138): `[ now ]` then the live page's playback row — one line at the rail's usual 60 cells
-   * (`SkyViewLayout.module.css`' `minmax(44 cells, 60 cells)`), and at its 44-cell minimum two, broken once before the
-   * speeds: `[ now ] [ Play ]` and the speeds each fit 44.
-   */
-  it('[ now ] and the playback row', () => {
-    const row = screen.getByTestId('globe-speeds');
-    const parts = rowParts(row, table).join(' | ');
-    expect(rowCells(row, table), `${locale}: ${parts}`).toBeLessThanOrEqual(60);
-    const head = rowCells(screen.getByTestId('globe-now'), table) + 1 + rowCells(within(row).getByTestId('live-play'), table);
-    expect(head, `${locale}: ${parts}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
-    expect(rowCells(within(row).getByRole('group', { name: t.live.speedGroup }), table), `${locale}: ${parts}`).toBeLessThanOrEqual(RAIL_MIN_CELLS);
   });
 });
 
@@ -642,11 +517,11 @@ describe.each(LOCALES)('FR-GLOBE-16: every globe rail row fits the rail in %s', 
  * name. R163 (FR-CLEAN-11): the pass rows R126 added went with the toggle.
  */
 describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () => {
-  const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/stars/FieldList.module.css'), 'utf8');
-  const block = (selector: string): string => new RegExp(`\\n${selector.replace('.', '\\.')} \\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/components/live/FieldList.module.css'), 'utf8');
+  const block = (selector: string): string => new RegExp(`\\n${selector.replace(/[.>]/g, (c) => `\\${c}`)} \\{([^}]*)\\}`).exec(css)?.[1] ?? '';
   /** The cells a 360 px viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
   const rowCells360 = Math.floor(360 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
-  const fixed = [...block('.row').matchAll(/calc\((\d+) \* var\(--cell\)\)/g)].map((match) => Number(match[1]));
+  const fixed = [...block('.item > .row').matchAll(/calc\((\d+) \* var\(--cell\)\)/g)].map((match) => Number(match[1]));
   const nameCells = rowCells360 - fixed.reduce((sum, cells) => sum + cells, 0) - fixed.length;
   const LONGEST = ['Cabeza de la Serpiente', 'Cabellera de Berenice'];
 
@@ -871,7 +746,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, 
     // R215 (FR-LAND-4, FR-LAND-6, D-1238): `settings` is one of the three tabs, and the place line stands between the
     // title and the tabs. With a five-letter city the whole row is 94 cells in English and 100 in Spanish, so it fits
     // the wide breakpoint (964 px, `WIDE_CELLS`) whole; a longer name is cut (below).
-    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', place: { label: 'Salta', example: true }, onBack: noop }) }));
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'pass', place: { label: 'Salta', example: true }, onBack: noop }) }));
     const row = within(container).getByTestId('header');
     const parts = rowParts(row, table);
     expect(parts).toEqual([t.header.backWords, '#'.repeat(markCells), t.app.title, 'Salta', `· ${t.header.place.example}`, expect.stringContaining(t.header.place.change), t.header.pages.live, t.header.pages.pass, t.header.pages.settings]);
@@ -885,7 +760,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, 
 
   it('with a long place, the place line gives — its name cut with an ellipsis — never the title, back or the tabs', () => {
     const place = 'San Carlos de Bariloche, Río Negro, Argentina';
-    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'stars', place: { label: place, example: false }, onBack: noop }) }));
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'pass', place: { label: place, example: false }, onBack: noop }) }));
     const parts = rowParts(within(container).getByTestId('header'), table);
     expect(parts).toEqual([t.header.backWords, '#'.repeat(markCells), t.app.title, place, expect.stringContaining(t.header.place.change), t.header.pages.live, t.header.pages.pass, t.header.pages.settings]);
     const rule = (css: string, selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';

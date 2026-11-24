@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { starCatalog } from '../../../../../data/stars/catalog';
 import { loadDeepChunk } from '../../../../../data/stars/deepChunk';
 import type { EpochMs, Locale, Observer, Pass } from '../../../../../model';
-import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
+import { STAR_LABEL_HOLD_S } from '../../../live/field';
 import { CATALOGS } from '../../../../../i18n/useT';
 import { ZoomKeys } from '../../../primitives/ZoomKeys';
 import { markZoomHintDone } from '../../../sky/SkyHint';

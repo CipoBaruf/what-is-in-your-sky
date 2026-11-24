@@ -3,7 +3,7 @@
  * what opened the route. jsdom traverses the history a task later, as a browser does, hence the waits.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { close, depth, isRouteHref, landRoute, open, replace, resetNavigation, subscribe, takeFocusTarget } from './navigation';
+import { close, depth, isRouteHref, landRoute, landStars, open, replace, resetNavigation, subscribe, takeFocusTarget } from './navigation';
 
 // Every traversal here lands on the load's entry; waiting for it rather than for a fixed time keeps a loaded run honest.
 const settle = (): Promise<void> =>
@@ -104,6 +104,34 @@ describe('navigation (D-533)', () => {
     expect(window.location.hash).toBe('#settings');
   });
 
+  it('FR-LAND-3 (R222): a load of #stars or #stars?… is #live with the same parameters, in its entry, and tells nobody', () => {
+    for (const [hash, landed] of [
+      ['#stars', '#live'],
+      ['#stars?lat=-38.93&lon=-67.99&alt=270&t=2026-09-02T03:04:05Z', '#live?lat=-38.93&lon=-67.99&alt=270&t=2026-09-02T03:04:05Z'],
+      ['#stars?view=globe', '#live?view=globe'],
+    ] as const) {
+      window.history.replaceState({ wiys: 2 }, '', `${window.location.pathname}${hash}`);
+      const entries = window.history.length;
+      const heard = vi.fn();
+      const off = subscribe(heard);
+      landStars();
+      off();
+      expect(window.location.hash, hash).toBe(landed);
+      expect(window.history.length, hash).toBe(entries);
+      expect(heard, hash).not.toHaveBeenCalled();
+    }
+    // Through `landRoute`: the folded link is a live route, and one live cannot read is `#live`.
+    window.history.replaceState(null, '', '#stars?lat=51.5&lon=-0.12&alt=0');
+    landRoute();
+    expect(window.location.hash).toBe('#live?lat=51.5&lon=-0.12&alt=0');
+    window.history.replaceState(null, '', '#stars?view=globe');
+    landRoute();
+    expect(window.location.hash).toBe('#live');
+    window.history.replaceState(null, '', '#starsx');
+    landStars();
+    expect(window.location.hash).toBe('#starsx');
+  });
+
   it('FR-LAND-1: the live page as the load entry has nowhere to close to', () => {
     const link = '#live?lat=51.5&lon=-0.12&alt=0';
     window.history.replaceState(null, '', link);
@@ -127,7 +155,8 @@ describe('navigation (D-533)', () => {
   it('takes only the app routes from the browser', () => {
     expect(isRouteHref('#live')).toBe(true);
     expect(isRouteHref('#settings')).toBe(true);
-    expect(isRouteHref('#stars')).toBe(true);
+    // R222 (D-1240): `#stars` is no route; a load of it lands as `#live` (`landStars`).
+    expect(isRouteHref('#stars')).toBe(false);
     expect(isRouteHref('#pass=25544-1')).toBe(true);
     // v2.14.1 (D-1134): the pass page with no pass, `[ satellites ]` with none in the span.
     expect(isRouteHref('#pass')).toBe(true);

@@ -3,7 +3,7 @@ import { compassPoint } from '../../../../../lib/compass';
 import { skyBodiesAt } from '../../../../../lib/skyBodies';
 import { PLANETS, starName, type StarNamesSource, type StarPositionsSource } from '../../../../../lib/skyStars';
 import type { EpochMs, Locale, MoonState, Observer } from '../../../../../model';
-import { FIELD_LIST_MAX, type FieldObject } from '../../../../screens/stars/field';
+import { FIELD_LIST_MAX, type FieldObject } from '../../../live/field';
 import type { Point } from '../window/starGlyphs';
 import { add, dot, localFrame, scale, type Frame, type Vec3 } from './projection';
 

@@ -106,27 +106,27 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     ]);
   });
 
-  it('stars: the page is named by its h1, "Stars tonight", visible on wide and hidden on compact, the header leaving it the rank (R129, FR-FLOW-3; R163, FR-CLEAN-2)', async () => {
-    for (const width of [390, WIDE_PX]) {
-      media = stubMatchMedia(width);
-      withPasses();
-      const { unmount } = render(<App />);
-      go('#stars');
-      const heading = await screen.findByRole('heading', { level: 1, name: en.starsHeading });
-      // R163 (FR-CLEAN-2): on compact the page is the sky and its name stays in the document for the outline, visually hidden.
-      if (width === WIDE_PX) expect(heading).not.toHaveAttribute('data-visually-hidden');
-      else expect(heading).toHaveAttribute('data-visually-hidden');
-      const headings = outline();
-      expect(headings[0]).toEqual([1, en.starsHeading]);
-      expect(headings.filter(([level]) => level === 1)).toHaveLength(1);
-      expect(skippedLevels(headings)).toEqual([]);
-      unmount();
-      media.restore();
-      media = null;
-      act(() => {
-        window.history.replaceState(null, '', window.location.pathname);
-      });
-    }
+  it('FR-LAND-3, US-62 AC3: a load of #stars or #stars?… is the live page, with the parameters live reads (R222)', async () => {
+    window.history.replaceState(null, '', '#stars?lat=-38.93&lon=-67.99&alt=0');
+    withPasses();
+    const { unmount } = render(<App />);
+    // The live page at real time writes its bare route over the link once it has the place (D-171); `landStars` is `navigation.test.ts`'s.
+    expect(window.location.hash).toMatch(/^#live/);
+    expect(await screen.findByTestId('live-page')).toBeInTheDocument();
+    unmount();
+    window.history.replaceState(null, '', '#stars');
+    render(<App />);
+    expect(window.location.hash).toBe('#live');
+    expect(await screen.findByTestId('live-page')).toBeInTheDocument();
+    // A stored link followed in a running tab lands the same way.
+    go('#stars');
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#live');
+    });
+    expect(screen.getByTestId('live-page')).toBeInTheDocument();
+    act(() => {
+      window.history.replaceState(null, '', window.location.pathname);
+    });
   });
 
   it('live: the page is named by its h1, and nothing under it skips a rank', async () => {
@@ -238,14 +238,11 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     liveLink.focus();
     fireEvent.click(liveLink);
     await screen.findByTestId('live-page');
-    // R213 (FR-STRIP-5): nothing asks on opening, so the focus is where the page puts it, on Back (FR-A11Y-4).
-    await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByTestId('live-back'));
-    });
+    // R222 (D-1230): live is a tab — no Back to focus or press; the route's focus rule puts it in the page.
     expect(announcer).toHaveTextContent(`${en.live.open} · ${APP}`);
-    fireEvent.click(screen.getByTestId('live-back'));
+    expect(screen.queryByTestId('live-back')).toBeNull();
     await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByTestId('live-link'));
+      expect(document.activeElement).not.toBe(document.body);
     });
   });
 
@@ -296,7 +293,6 @@ describe('history (FR-ROUTE-1..3, F-91)', () => {
     const after = window.history.length;
     await open(cards()[1] as HTMLElement, sheetBack);
     await open(cards()[0] as HTMLElement, sheetBack);
-    await open(screen.getByTestId('live-link'), () => screen.getByTestId('live-back'));
     go('#settings');
     // A typed hash is the browser's entry, not the app's (it takes the forward entry the Backs left): closing
     // it replaces it in place, with the first page (R212, FR-LAND-1).

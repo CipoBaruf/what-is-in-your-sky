@@ -1,11 +1,20 @@
 
 import { nightClouds, type NightClouds } from '../../../lib/nightClouds';
 import type { SkyBand, Span } from '../../../lib/timeStripe';
-import { tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
+import { tonightSpan, tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
 import type { EpochMs, Observer, WeatherSnapshot } from '../../../model';
 import { useAppStore } from '../../../state';
 import { useTonight } from '../../components/now/useTonight';
-import { nightWindow } from './tonight';
+
+/**
+ * R82 (D-513), moved here from `tonight.ts` by R222 (D-1240): the stretch of tonight the cloud word is about — the
+ * rest of the dark band (from now if it is already open), or the stripe's twelve hours where there is none (OQ-33).
+ */
+function nightWindow(bands: readonly SkyBand[], observer: Pick<Observer, 'lon' | 'timeZone'>, now: EpochMs): Span {
+  const dark = tonightsDark(bands, now);
+  if (dark) return { start: Math.max(dark.from, now), end: dark.to };
+  return tonightSpan(bands, observer, now);
+}
 
 /**
  * R82 (FR-FIRST-4 as amended v2.0.2), read by the satellites' list since R212: tonight — the bands the stripe draws

@@ -1,6 +1,6 @@
 /**
  * R152 (FR-GYRO-1..6; US-44 AC1..AC4; PLAN D-941..D-946): `[ follow the phone ]` on the production build, on
- * the live page, the stars page and the pass detail, at 390 × 844 and 844 × 390 in both languages, under
+ * the live page and the pass detail (the stars page folded into live in R222), at 390 × 844 and 844 × 390 in both languages, under
  * `stubOrientation` (D-946: the spec brings its own `requestPermission` and its own readings, so a Chromium that
  * implements the request shoots the same set).
  *
@@ -10,7 +10,7 @@
  * back and turns the toggle off, that the refusal line reads in the page's language, and that nothing opens a sky
  * screen any more (FR-GYRO-6). It replaces `sky-screen.spec.ts` and `stars-screen.spec.ts`.
  *
- * R163 (FR-CLEAN-3, FR-CLEAN-4; D-997): the stars page is the full form too — its toggle the sheet's row after the view
+ * R163 (FR-CLEAN-3, FR-CLEAN-4; D-997; gone with the page in R222): the stars page was the full form too — its toggle the sheet's row after the view
  * row and `[ follow ]` the bottom row's — so it is opened and read as the live page is; the pass detail keeps its
  * action slot until R164.
  *
@@ -37,7 +37,6 @@ import { FULL_OVERLAY_MAX_SHARE } from '../../src/lib/layout';
 const REFUSED_OVERLAY_MAX_SHARE = FULL_OVERLAY_MAX_SHARE + 0.005;
 import { FOLLOW_HORIZON_SHARE } from '../../src/ui/components/guide/skychart/window/projection';
 import { openSheet, seedStoredRun } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
 import { aimedAt, orientationAsks, setReadings, stubOrientation } from './orientation';
 
 /** `useFollow.ts`'s `FOLLOW_ASKED_KEY`, written out: that module pulls in the store, which Node does not load. */
@@ -62,14 +61,14 @@ async function allowInQuestion(page: Page): Promise<void> {
 }
 
 type Locale = 'en' | 'es';
-type Which = 'live' | 'stars' | 'detail';
+type Which = 'live' | 'detail';
 
 const SIZES = [
   { width: 390, height: 844 },
   { width: 844, height: 390 },
 ] as const;
 const LOCALES: readonly Locale[] = ['en', 'es'];
-const PAGES: readonly Which[] = ['live', 'stars', 'detail'];
+const PAGES: readonly Which[] = ['live', 'detail'];
 
 /** The toggle's words and the refusal's line (`i18n/{en,es}/window.ts`). */
 const TOGGLE: Record<Locale, string> = { en: 'follow the phone', es: 'seguir el teléfono' };
@@ -77,19 +76,6 @@ const REFUSED: Record<Locale, string> = { en: "Motion access is off. Allow it in
 const OPEN_GUIDE: Record<Locale, RegExp> = { en: /Open guide/, es: /Abrir la guía/ };
 
 const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
-
-/** A reader with a place and no stored run, which is all the stars page needs (`flowPages.ts`'s seed). */
-async function seedReader(page: Page, locale: Locale, prefs: Record<string, unknown> = {}): Promise<void> {
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN, ...prefs })] as [string, string],
-  );
-}
 
 /**
  * The page, drawn, with the dome saved as the view — so following has a view to switch from and the saved view to
@@ -105,16 +91,6 @@ async function openPage(page: Page, which: Which, locale: Locale): Promise<Locat
       const layout = page.getByTestId('live-layout');
       await expect(layout).toBeVisible({ timeout: 30_000 });
       await expect(layout.locator('[data-drawing="dome"]')).toBeAttached({ timeout: 30_000 });
-      await openSheet(page);
-      return layout;
-    }
-    case 'stars': {
-      await seedReader(page, locale);
-      await page.goto('/#stars');
-      const layout = page.getByTestId('stars-layout');
-      await expect(layout).toBeVisible();
-      await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
-      // R163 (FR-CLEAN-4): the stars page's toggle is its sheet's row too.
       await openSheet(page);
       return layout;
     }
@@ -149,14 +125,14 @@ async function settledOn(w: Locator, azDeg: number, altDeg: number): Promise<voi
   await expect.poll(async () => azClose((await look(w)).az, azDeg), { timeout: 15_000 }).toBe(true);
 }
 
-/** Where the toggle stands on each page (FR-GYRO-1, D-944; R163, FR-CLEAN-4): the sheet's own row after the view row on the live page and the stars page; the action slot where `[ hold up to the sky ]` stood on the pass detail. */
+/** Where the toggle stands on each page (FR-GYRO-1, D-944; R163, FR-CLEAN-4): the sheet's own row after the view row on the live page; the action slot where `[ hold up to the sky ]` stood on the pass detail. */
 async function expectPlaced(page: Page, root: Locator, which: Which, locale: Locale): Promise<Locator> {
   const toggle = root.getByTestId('follow-toggle');
   await expect(toggle).toHaveText(TOGGLE[locale]);
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   if (inSheet(which)) {
     const rows = await page.getByTestId('sheet-body').locator(':scope > *, :scope > [data-group] > *').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
-    const [view, follow, facing] = which === 'live' ? ['live-view-row', 'live-follow', 'live-facing'] : which === 'stars' ? ['stars-view-row', 'stars-follow', 'stars-facing'] : ['pass-view-row', 'pass-follow', 'pass-facing'];
+    const [view, follow, facing] = which === 'live' ? ['live-view-row', 'live-follow', 'live-facing'] : ['pass-view-row', 'pass-follow', 'pass-facing'];
     expect(rows.indexOf(follow)).toBe(rows.indexOf(view) + 1);
     expect(rows.indexOf(facing)).toBe(rows.indexOf(follow) + 1);
   } else {
@@ -180,21 +156,21 @@ for (const size of SIZES) {
           const root = await openPage(page, which, locale);
           const toggle = await expectPlaced(page, root, which, locale);
           expect(await orientationAsks(page)).toBe(0);
-          const chart = which === 'stars' ? null : root.getByTestId('sky-chart');
-          if (chart) await expect(chart).toHaveAttribute('data-view', 'dome');
+          const chart = root.getByTestId('sky-chart');
+          await expect(chart).toHaveAttribute('data-view', 'dome');
 
           // FR-GYRO-2: the request is the tap's, and the view becomes the window without the preference being written.
           await toggle.click();
           await expect(toggle).toHaveAttribute('aria-pressed', 'true');
           expect(await orientationAsks(page)).toBe(1);
-          if (chart) {
+          {
             await expect(chart).toHaveAttribute('data-view', 'window');
             await expect(chart).toHaveAttribute('data-follow', 'true');
           }
           const w = windowRoot(root);
           await expect(w).toHaveAttribute('data-follow', 'true', { timeout: 15_000 });
           await settledOn(w, 90, 30);
-          expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject(which === 'stars' ? {} : { chartView: 'dome' });
+          expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
 
           // FR-GYRO-5: nothing over the drawing — no readout, no note, no chip, no advice, no gutter.
           await expect(page.getByTestId('window-readout')).toHaveCount(0);
@@ -204,9 +180,8 @@ for (const size of SIZES) {
           await expect(page.getByTestId('compass-gutter')).toHaveCount(0);
           await expect(page.getByTestId('sky-screen')).toHaveCount(0);
           await expect(page.getByTestId('chart-view-note')).toHaveCount(0);
-          // D-957: the sheet's facing row goes while following and is back when it ends (R163: the stars sheet's too).
+          // D-957: the sheet's facing row goes while following and is back when it ends.
           if (which === 'live') await expect(page.getByTestId('live-facing')).toHaveCount(0);
-          if (which === 'stars') await expect(page.getByTestId('stars-facing')).toHaveCount(0);
 
           // v2.12: held level, the horizon is a straight line (its stroke tall) near the bottom of the screen, the sky the rest.
           if (size.height > size.width) {
@@ -234,8 +209,7 @@ for (const size of SIZES) {
           await expect(w).toHaveAttribute('data-state', 'hand');
           expect((await look(w)).alt).toBe(50);
           if (which === 'live') await expect(page.getByTestId('live-facing')).toBeVisible();
-          if (which === 'stars') await expect(page.getByTestId('stars-facing')).toBeVisible();
-          if (chart) {
+          {
             await expect(chart).toHaveAttribute('data-view', 'window');
             await expect(chart).not.toHaveAttribute('data-follow', 'true');
             expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
@@ -261,9 +235,7 @@ test.describe('the refusal and the finger, at 390 × 844', () => {
         await expect(root.getByTestId('follow-refused')).toHaveText(REFUSED[locale]);
         await expect(root.getByTestId('follow-refused')).toHaveAttribute('role', 'status');
         await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-        if (which !== 'stars') await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-        // The stars page's window is there whatever the toggle says; the other two are on the dome, with no window to follow.
-        if (which === 'stars') await expect(windowRoot(root)).not.toHaveAttribute('data-follow', 'true');
+        await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
         await expect(page.getByTestId('sky-screen')).toHaveCount(0);
         // The next tap asks again — the stub refuses again — and the toggle is still off; the line's going between taps is `FollowToggle.test.tsx`'s.
         await toggle.click();
@@ -289,7 +261,7 @@ test.describe('the refusal and the finger, at 390 × 844', () => {
       const box = root.locator('[data-follow="true"] [tabindex="0"]');
       await box.scrollIntoViewIfNeeded();
       const rect = (await box.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
-      // On the live page and the stars page the open sheet covers the lower 70 % of the sky and the head the top-left corner, so the drag is a fifth of the way down.
+      // On the live page the open sheet covers the lower 70 % of the sky and the head the top-left corner, so the drag is a fifth of the way down.
       const y = inSheet(which) ? rect.y + rect.height * 0.2 : rect.y + rect.height / 2;
       const x = rect.x + rect.width / 2 - 30;
       await page.mouse.move(x, y);
@@ -302,7 +274,7 @@ test.describe('the refusal and the finger, at 390 × 844', () => {
       await expect(root.getByTestId('follow-refused')).toHaveCount(0);
       await expect(w).not.toHaveAttribute('data-follow', 'true');
       await expect(w).toHaveAttribute('data-state', 'hand');
-      if (which !== 'stars') {
+      {
         await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
         await expect(root.getByTestId('sky-chart')).not.toHaveAttribute('data-follow', 'true');
       }
@@ -344,13 +316,6 @@ async function openPlain(page: Page, which: Which, locale: Locale, prefs: Record
       await expect(root.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
       return { root, sky: root.getByTestId('sky-chart') };
     }
-    case 'stars': {
-      await seedReader(page, locale, prefs);
-      await page.goto('/#stars');
-      const root = page.getByTestId('stars-layout');
-      await expect(root.locator('[data-drawing="window"]')).toBeAttached();
-      return { root, sky: page.getByTestId('stars-sky') };
-    }
     case 'detail': {
       await seedStoredRun(page, { locale, settled: true, prefs: { chartView: 'dome', ...prefs } });
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
@@ -368,7 +333,7 @@ async function touchSky(page: Page, which: Which, sky: Locator): Promise<void> {
   await page.touchscreen.tap(rect.x + rect.width / 2, rect.y + rect.height * (inSheet(which) ? 0.35 : 0.5));
 }
 
-/** The control a page shows the state on with the sheet closed: the overlay's `[ follow ]` on the live page and the stars page (R163), the toggle on the pass detail. */
+/** The control a page shows the state on with the sheet closed: the overlay's `[ follow ]` on the live page, the toggle on the pass detail. */
 const shownBy = (root: Locator, which: Which): Locator => root.getByTestId(inSheet(which) ? 'live-follow-control' : 'follow-toggle');
 
 const grantSaved = async (page: Page): Promise<unknown> => (JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { followGranted?: unknown }).followGranted;
@@ -390,7 +355,7 @@ for (const size of SIZES) {
           const w = windowRoot(root);
           await expect(w).toHaveAttribute('data-follow', 'true', { timeout: 15_000 });
           await settledOn(w, 90, 30);
-          if (which !== 'stars') {
+          {
             await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
             expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
           }
@@ -446,12 +411,10 @@ for (const size of SIZES) {
           await expect(line).toHaveText(REFUSED[locale]);
           await expect(line).toHaveAttribute('role', 'status');
           await expect(line).toBeVisible();
-          // The finger keeps the sky: the stars page's window by hand, the other two on their saved dome.
-          if (which === 'stars') await expect(windowRoot(root)).toHaveAttribute('data-state', 'hand');
-          else await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+          // The finger keeps the sky: the page on its saved dome.
+          await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
           await expect(root.locator('[data-follow="true"]')).toHaveCount(0);
-          // R163: the stars head carries the door's line, so its share is bound where FR-CLEAN-3 binds it, the portrait phone.
-          if (which === 'live' || (which === 'stars' && size.width === 390)) {
+          if (which === 'live') {
             // D-987: the line stands on the row above the bottom row, inside the box, and the overlay stays inside its share.
             const lineBox = (await line.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
             const row = (await page.getByTestId('live-bottom-row').boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };

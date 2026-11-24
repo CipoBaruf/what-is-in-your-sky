@@ -11,13 +11,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
 import { domeDrawn, seedStoredRun } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block' });
 
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const VIEW_NAME = { en: { Dome: 'Dome', Polar: 'Polar', Window: 'Window' }, es: { Dome: 'Domo', Polar: 'Polar', Window: 'Ventana' } } as const;
 
@@ -78,22 +75,7 @@ test('the live page at 1280 × 800, the window in Spanish: the two-line hint und
   await page.screenshot({ path: `${CAPTURE_DIR}/r133-live-1280-window-dark-es.png` });
 });
 
-test('the stars page at 1280 × 800: the window down to the hint line', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
-  );
-  await page.goto('/#stars');
-  await expect(page.getByTestId('stars-layout').locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
-  await page.waitForTimeout(1500);
-  await page.mouse.move(0, 0);
-  await page.screenshot({ path: `${CAPTURE_DIR}/r133-stars-1280-window-dark-en.png` });
-});
+// R222 (D-1240): the stars page's capture went with the page.
 
 test('the pass detail at 1280 × 800: the drawing most of the panel', async ({ page }) => {
   await detail(page, { width: 1280, height: 800 });

@@ -488,14 +488,12 @@ export async function setThemeByKey(page: Page, theme: 'dark' | 'night'): Promis
 }
 
 /**
- * R148 (FR-FULL-5, D-927) → R213 (FR-STRIP-5): leaves the live page with `Esc`. On compact `Esc` closes the sheet
- * first, so the page is left as a reader leaves it: the sheet closed, then `Esc`.
- * R212 (FR-LAND-1): live as the load's entry has nowhere to go back to, so there it is left for the list.
+ * Leaves the live page for the satellites list, the sheet closed first. R222 (D-1230): live is a tab, its `Esc` closes
+ * only what is open on it and it has no Back, so the page is left as a tab is — for another.
  */
 export async function leaveLive(page: Page): Promise<void> {
   await closeSheet(page);
-  if (await page.evaluate(() => ((history.state as { wiys?: number } | null)?.wiys ?? 0) > 0)) await page.keyboard.press('Escape');
-  else await page.evaluate(() => location.replace('#pass'));
+  await page.evaluate(() => location.replace('#pass'));
   await expect(page.getByTestId('live-page')).toHaveCount(0);
 }
 

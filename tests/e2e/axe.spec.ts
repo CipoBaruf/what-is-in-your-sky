@@ -17,7 +17,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON } from './observers';
 import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
-import { LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { openLiveSky, showGlobe } from './globeHelpers';
 import { clickFirstRowMark } from './factsHelpers';
 import { seedThreePasses } from './threePasses';
 import { WIDE_MIN_PX } from '../../src/lib/layout';
@@ -71,14 +71,14 @@ async function toLive(page: Page, theme: Theme): Promise<void> {
 /** R170: a screen only the wide layout has (`wideOnly`) is skipped at the phone's width. */
 const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: Theme) => Promise<void> }[] = [
   {
-    // R212 (FR-LAND-1): `/` is the live page; in UTC there is no example, so it asks for a place.
+    // R212 (FR-LAND-1): `/` is the live page; in UTC there is no example, so the box holds the place group (R222, FR-LAND-5).
     name: 'live, no place',
     open: async (page, theme) => {
       await page.clock.setFixedTime(NINE_DAYS_ON);
       await stubNetwork(page);
       await page.addInitScript(([key, value]: [string, string]) => localStorage.setItem(key, value), [PREFS_KEY, JSON.stringify({ locale: 'en', theme })] as [string, string]);
       await page.goto('/');
-      await expect(page.getByTestId('live-set-place')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('live-place-group')).toBeVisible({ timeout: 30_000 });
     },
   },
   {
@@ -140,21 +140,22 @@ const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: The
     },
   },
   {
-    name: '#stars, a star’s facts',
+    // R222 (FR-LAND-3): the stars page folded into live; a star's facts open in the live page's rail.
+    name: '#live, a star’s facts',
     wideOnly: true,
     open: async (page, theme) => {
-      await openStarsPage(page, { theme });
+      await openLiveSky(page, { theme });
       await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
       await clickFirstRowMark(page);
-      await expect(page.getByTestId('stars-group').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('live-layout').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
     },
   },
-  // R170 (FR-GLOBE-16, D-1042): the stars page with the globe shown, its rail's groups and list, a saved place among them, in both languages.
+  // R170 (FR-GLOBE-16, D-1042), R222 (FR-LAND-3): the live page with the globe shown — Turn, the layers and Up from — in both languages.
   ...((['en', 'es'] as const).map((locale) => ({
-    name: `#stars, the globe (${locale})`,
+    name: `#live, the globe's groups (${locale})`,
     wideOnly: true,
     open: async (page: Page, theme: Theme) => {
-      await openStarsPage(page, { locale, theme, favourites: [LONDON] });
+      await openLiveSky(page, { locale, theme });
       await showGlobe(page, locale);
     },
   }))),

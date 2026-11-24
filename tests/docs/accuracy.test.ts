@@ -264,7 +264,11 @@ describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R1
       .split('\n')
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
       .map((line) => line.split('|').map((cell) => cell.trim()));
-    const table = rows.map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }));
+    // R222 (D-1246): the `stars` row left `BUDGETS` with its chunk; R227's record drops it.
+    const LEFT = ['stars'];
+    const table = rows
+      .map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }))
+      .filter(({ name }) => !LEFT.includes(name));
     expect(table).toEqual(expect.arrayContaining(BUDGETS.map(({ name, limitKb }) => ({ name, limitKb }))));
     expect(table).toHaveLength(BUDGETS.length);
   });
@@ -311,7 +315,8 @@ describe('the address (FR-ADDR-1, FR-ADDR-4)', () => {
     // FR-SHOW-1 marked §6–§9 and §11–§14; R176 moved them, marker and all, to their phase folders.
     // R213 marked v2.14.2: its list names `live-dialog.spec.ts`, which FR-STRIP-5 deleted.
     // R212 marked v2.15 and v2.16: their lists name home specs FR-LAND-1 deleted.
-    expect(RECORDS.filter((version) => record(version).includes(HISTORY))).toEqual(['v1', 'v1.1', 'v1.2', 'v1.3', 'v1.4', 'v2.0', 'v2.1', 'v2.14.2', 'v2.15', 'v2.16', 'v2.2']);
+    // R222 marked v2.6.1: its list names `Stars.tsx`, which FR-LAND-3 deleted.
+    expect(RECORDS.filter((version) => record(version).includes(HISTORY))).toEqual(['v1', 'v1.1', 'v1.2', 'v1.3', 'v1.4', 'v2.0', 'v2.1', 'v2.14.2', 'v2.15', 'v2.16', 'v2.2', 'v2.6.1']);
     expect(release).not.toContain(HISTORY);
   });
 });
@@ -344,7 +349,9 @@ describe('RELEASE.md is the procedure only (FR-SDD-9, US-51 AC4, R176)', () => {
     expect(RECORDS).toEqual(expect.arrayContaining(MOVED.map(([, version]) => version)));
     for (const [number, version] of MOVED) {
       expect(record(version), version).toMatch(new RegExp(`^## ${number}\\. ${version.replace(/\./g, '\\.')} \\(`));
-      expect(collapse(record(version)), `${version} body`).toBe(collapse(parentSection(number)));
+      // A history marker (FR-SHOW-1's, or a later phase's: R222 on v2.6.1) is the record's note, not its body.
+      const body = (text: string): string => collapse(text.replace(/^> \*History \([^\n]*\n\n/m, ''));
+      expect(body(record(version)), `${version} body`).toBe(body(parentSection(number)));
       expect(release).toContain(`| §${number} | ${version} | \`docs/sdd/phases/${version}/release.md\` |`);
     }
   });

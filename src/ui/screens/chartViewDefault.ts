@@ -22,7 +22,7 @@ export function viewFor(page: SkyPage, mode: LayoutMode, saved: ChartView | unde
 }
 
 /** R186 (FR-WIDE-2, FR-DESK-4): the wide row's order, which `v` cycles. */
-export const WIDE_VIEWS: readonly ChartView[] = ['globe', 'window', 'dome'];
+const WIDE_VIEWS: readonly ChartView[] = ['globe', 'window', 'dome'];
 
 /**
  * R186 (FR-WIDE-2, FR-DESK-4): what `v` saves — on wide the next of the row's three after the view shown; on compact

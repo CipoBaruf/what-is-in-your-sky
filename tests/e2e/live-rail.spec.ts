@@ -245,17 +245,26 @@ async function scrollersInside(page: Page, root: string): Promise<string[]> {
   );
 }
 
-test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
+/**
+ * R216 (FR-NOW-1, FR-CTRL-10) and R222 (FR-LAND-3, D-1240): the rail's groups in order, the stars page's three among
+ * them — `Turn` (on the globe, wide only), `Layers` with the stars' layers, and `Up from <place>`.
+ */
+test.describe('R216, R222: the live rail, in order (FR-NOW-1, FR-LAND-3, FR-CTRL-10)', () => {
   test.describe('at 1280 × 800', () => {
     test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
-    test('FR-NOW-1: the rail reads strip, View with Share, Time, Layers, Up now, and nothing inside it scrolls (FR-CTRL-10)', async ({ page }) => {
+    test('FR-NOW-1, FR-LAND-3: the rail reads all seven groups — strip, View with Share, Time, Turn, Layers, Up now, Up from — and nothing inside it scrolls (FR-CTRL-10)', async ({ page }) => {
       await openLive(page);
       const layout = page.getByTestId('live-layout');
+      // On the dome `Turn` is not drawn: it turns the globe alone (FR-LAND-3).
+      const slots = () => layout.locator('[data-rail] > [data-slot]').evaluateAll((els) => els.map((el) => el.getAttribute('data-slot')));
+      expect(await slots(), 'on the dome').toEqual(['strip', 'view', 'time', 'layers', 'upNow', 'upFrom']);
+      await layout.locator('[data-slot="view"]').getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Globe' }).click();
+      await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'globe');
       for (const held of [false, true]) {
         if (held) await enterScrubbing(page);
-        const order = await layout.locator('[data-rail] > [data-slot]').evaluateAll((els) => els.map((el) => el.getAttribute('data-slot')));
-        expect(order, `held ${String(held)}`).toEqual(['strip', 'view', 'time', 'layers', 'upNow']);
+        const order = await slots();
+        expect(order, `held ${String(held)}`).toEqual(['strip', 'view', 'time', 'turn', 'layers', 'upNow', 'upFrom']);
         // The groups top to bottom, each under the one before it.
         let above = 0;
         for (const name of order) {
@@ -275,8 +284,12 @@ test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
         expect(rail.x + rail.width - (share.x + share.width), 'Share is at the group’s right').toBeLessThanOrEqual(24);
         const layers = layout.locator('[data-slot="layers"]');
         await expect(layers.getByRole('heading', { name: 'Layers' })).toBeVisible();
-        await expect(layers.getByTestId('stars-toggle')).toBeVisible();
+        for (const layer of ['stars', 'figures', 'planets', 'names', 'faint']) await expect(layers.locator(`[data-layer="${layer}"]`), layer).toBeVisible();
         await expect(layers.getByTestId('live-hidden-toggle')).toBeVisible();
+        const turn = layout.locator('[data-slot="turn"]');
+        await expect(turn.getByRole('heading', { name: 'Turn' })).toBeVisible();
+        await expect(turn.getByRole('button', { name: 'with you' })).toHaveAttribute('aria-pressed', 'true');
+        await expect(layout.locator('[data-slot="upFrom"]').getByRole('heading', { name: /Up from / })).toBeVisible();
         await expect(layout.locator('[data-slot="upNow"]').getByTestId('chart-legend-slot')).toBeAttached();
         if (!held) await expect(layout.locator('[data-slot="time"]').getByTestId('live-scrub')).toBeVisible();
         // FR-CTRL-10: the rail is the column's one scroll; no element inside it scrolls, and none sits in another scroll.
@@ -289,15 +302,15 @@ test.describe('R216: the live rail, in order (FR-NOW-1, FR-CTRL-10)', () => {
   test.describe('at 390 × 844', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-    test('FR-NOW-1: the sheet holds the same groups in the same order, and the sheet’s body is its one scroll (FR-CTRL-10)', async ({ page }) => {
+    test('FR-NOW-1, FR-LAND-3: the sheet holds the same groups in the same order, no Turn, and the sheet’s body is its one scroll (FR-CTRL-10)', async ({ page }) => {
       await seedStoredRun(page, { settled: true });
       await page.getByTestId('live-link').click();
       await domeDrawn(page);
       await openSheet(page);
       const groups = await page.getByTestId('sheet-body').locator(':scope > [data-group]').evaluateAll((els) => els.map((el) => el.getAttribute('data-group')));
-      expect(groups).toEqual(['strip', 'view', 'time', 'layers', 'upNow']);
+      expect(groups).toEqual(['strip', 'view', 'time', 'layers', 'upNow', 'upFrom']);
       const rows = (await sheetOrder(page)).filter((id) => id !== 'live-follow');
-      expect(rows).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
+      expect(rows).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'live-up-from', 'app-footer']);
       await expect(page.getByTestId('live-view-row').getByTestId('live-share')).toBeVisible();
       await expect(page.getByTestId('live-layers').getByTestId('live-hidden-toggle')).toBeAttached();
       expect(await scrollersInside(page, '[data-testid="sheet-body"]'), 'scrolling elements inside the sheet').toEqual([]);

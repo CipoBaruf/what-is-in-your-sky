@@ -3,6 +3,7 @@ import { useStarsPageT } from '../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../i18n/useT';
 import { degrees } from '../../../lib/format';
 import { formatStarMag, type FieldObject } from './field';
+import { PickRow } from '../primitives/PickRow';
 import styles from './FieldList.module.css';
 
 /**
@@ -24,7 +25,9 @@ import styles from './FieldList.module.css';
  * Every name column is one line ended by `…`, and the row's accessible name
  * carries the whole name (FR-STAR-10 as amended v2.5). R163 (FR-CLEAN-11,
  * D-1004): the pass rows R126 listed ahead of the stars went with the
- * `[ passes ]` toggle; the list is stars and planets only.
+ * `[ passes ]` toggle; the list is stars and planets only. R222 (FR-CTRL-15,
+ * D-1240): each row is a `PickRow` — no frame, the raised ground, the picked
+ * one with the mark down its left edge; the live page's `Up from <place>`.
  *
  * Pointed at the ground (FR-FOL-5's second step, no sky in the field) the list
  * is the note instead, in the window's own words for it; with sky in the field
@@ -69,17 +72,16 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
         const altitude = degrees(object.altDeg);
         return (
           <li key={object.index} className={styles.item}>
-            <button
-              type="button"
+            <PickRow
               className={styles.row}
+              picked={named === object.index}
               data-index={object.index}
               data-kind={object.planet === null ? 'star' : 'planet'}
-              aria-pressed={named === object.index}
               aria-label={p.named({ name, mag, altitude, point: object.point })}
               onPointerDown={() => {
                 down.current = { index: object.index, named: named === object.index };
               }}
-              onClick={() => {
+              onPick={() => {
                 const pressed = down.current?.index === object.index ? down.current.named : named === object.index;
                 down.current = null;
                 onName(pressed ? null : object.index);
@@ -92,7 +94,7 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
               <span className={styles.mag}>{p.mag({ mag })}</span>
               <span className={styles.alt}>{altitude}</span>
               <span className={styles.point}>{object.point}</span>
-            </button>
+            </PickRow>
           </li>
         );
       })}

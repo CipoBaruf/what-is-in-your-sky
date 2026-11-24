@@ -26,7 +26,7 @@
  */
 
 /** What a shortcut does; also the message key for its description. */
-export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'stars' | 'view' | 'theme' | 'help' | SkyShortcutId;
+export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'view' | 'theme' | 'help' | SkyShortcutId;
 
 /**
  * R189 (FR-WIDE-9, D-1102): the desk sky pages' keys — `g` `w` `d` choose the view, `,` `.` step the hour, `t` is now,
@@ -60,8 +60,6 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'open', keys: ['Enter'], label: 'Enter', group: 'app' },
   { id: 'close', keys: ['Escape'], label: 'Esc', group: 'app' },
   { id: 'live', keys: ['l'], label: 'l', group: 'app' },
-  // R115 (FR-DESK-4 as amended v2.4, V24-1): a plain letter, as `l` is.
-  { id: 'stars', keys: ['s'], label: 's', group: 'app' },
   { id: 'view', keys: ['v'], label: 'v', group: 'app' },
   { id: 'theme', keys: ['n'], label: 'n', group: 'app' },
   { id: 'help', keys: ['?'], label: '?', group: 'app' },

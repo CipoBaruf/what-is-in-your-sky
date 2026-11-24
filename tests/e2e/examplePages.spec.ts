@@ -1,6 +1,6 @@
 /**
  * R203 (FR-OPEN-7; D-1180, D-1205), R212 (FR-LAND-1, FR-LAND-6; D-1230): every page opens for the example — the live
- * page `/` opens, the satellites page (`#pass`) and the stars page, by address. R215 (FR-LAND-4, FR-OPEN-7 as amended;
+ * page `/` opens, and the satellites page (`#pass`), by address (the stars page folded into live in R222). R215 (FR-LAND-4, FR-OPEN-7 as amended;
  * D-1238): the line under the header is gone; on a desk every page's header reads `Buenos Aires · example  change`, on
  * a phone the satellites list's head does, and `change` opens the place dialog. The settings page shows no place.
  * At 390 × 844 and 1280 × 800, both languages; the zone, the clock and the elements are `firstRun.spec.ts`'s.
@@ -48,7 +48,7 @@ for (const lang of ['en', 'es'] as const) {
       test.use({ viewport, locale: w.locale });
 
       /** The pages the example opens, by address (R212: no door leads to them). */
-      const PAGES = ['#live', '#pass', '#stars'] as const;
+      const PAGES = ['#live', '#pass'] as const;
 
       test('FR-OPEN-7, FR-LAND-4: every page opens for the example, its place line reading it, and change opens the dialog', async ({ page }) => {
         test.setTimeout(180_000);
@@ -57,7 +57,7 @@ for (const lang of ['en', 'es'] as const) {
           await goTo(page, hash);
           // The page opened for the example, not its "needs a place".
           await expect(page.getByRole('main'), hash).toBeVisible({ timeout: 30_000 });
-          for (const id of ['live-set-place', 'stars-set-place', 'pass-set-place']) await expect(page.getByTestId(id), hash).toHaveCount(0);
+          for (const id of ['live-set-place', 'pass-set-place']) await expect(page.getByTestId(id), hash).toHaveCount(0);
           // On a desk the header's place line on every page; on a phone the satellites list's head.
           if (wide || hash === '#pass') {
             const line = page.getByTestId('place-line').first();
@@ -66,8 +66,8 @@ for (const lang of ['en', 'es'] as const) {
             await expect(line, hash).toContainText(CITY);
             await expect(line, hash).toContainText(w.example);
           }
-          // D-1205: the wide stars page's globe lists no place under the example (nothing saved, so no Place group).
-          if (wide && hash === '#stars') {
+          // D-1205: the wide globe lists no place under the example (nothing saved, so no Place group); on #live since R222.
+          if (wide && hash === '#live') {
             await expect(page.getByTestId('globe-turn-row')).toBeVisible({ timeout: 30_000 });
             await expect(page.getByTestId('globe-place')).toHaveCount(0);
           }
@@ -76,6 +76,8 @@ for (const lang of ['en', 'es'] as const) {
         await goTo(page, '#pass');
         const change = page.getByTestId('place-change').first();
         await expect(change).toBeVisible({ timeout: 30_000 });
+        // On a desk a bare `#pass` becomes the pass `[ satellites ]` names once the passes are in (V214-35): read the address after.
+        if (wide) await expect(page).toHaveURL(/#pass=\d+-\d+$/, { timeout: 30_000 });
         const before = page.url();
         await change.click();
         await expect(page.getByTestId('place-dialog')).toBeVisible();

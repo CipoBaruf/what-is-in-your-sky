@@ -1,5 +1,5 @@
 /**
- * R170 (FR-GLOBE-15; US-50 AC10; D-62, D-817, D-1042): the globe's rate, by `stars-perf.spec.ts`'s method — Chromium
+ * R170 (FR-GLOBE-15; US-50 AC10; D-62, D-817, D-1042): the globe's rate, by the window's perf method (R118's, whose spec went with the stars page in R222) — Chromium
  * under a 4× CDP CPU throttle (FR-GUIDE-6's device as that spec stands for it), counting the animation frames in
  * which the globe's SVG was written (the renderer writes it by ref, D-744, so a mutation in it is one update, counted
  * once per frame). Every layer on, with the faint stars off and on, at 1280 × 800 and 1920 × 1080: a 5 s drag, the
@@ -8,7 +8,7 @@
  * run with `DOME_PERF=1`.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { openStarsPage, showGlobe } from './globeHelpers';
+import { openLiveSky, showGlobe } from './globeHelpers';
 import { seedThreePasses } from './threePasses';
 
 const THROTTLE = 4;
@@ -69,7 +69,7 @@ const stop = (page: Page): Promise<Sample> => page.evaluate(() => window.__globe
 const dotLength = (page: Page): Promise<number> => page.evaluate(() => [...document.querySelectorAll('[data-globe] [data-dots] path')].reduce((sum, path) => sum + (path.getAttribute('d')?.length ?? 0), 0));
 
 async function prepare(page: Page, faint: boolean): Promise<void> {
-  await openStarsPage(page);
+  await openLiveSky(page);
   await showGlobe(page);
   for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
   if (faint) {
@@ -124,10 +124,10 @@ async function drag(page: Page): Promise<Sample> {
 
 async function lapse(page: Page): Promise<Sample> {
   // FR-WIDE-4 as amended (V214-34): the live page's playback row — 3600×, then `[ Play ]`.
-  const row = page.getByTestId('stars-time').getByTestId('playback-controls');
+  const row = page.getByTestId('live-layout').getByTestId('playback-controls');
   await row.getByRole('button', { name: '3600×' }).click();
   await row.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByTestId('stars-time')).toHaveAttribute('data-playing', 'true');
+  await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
   await page.evaluate(installCounter);
   await page.waitForTimeout(SECONDS * 1000);
   const sample = await stop(page);

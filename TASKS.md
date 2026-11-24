@@ -334,7 +334,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Done when:** `npm run check` green; `pass-list.spec.ts` sees the picked row's line and `aria-current`; a `Tag` has no role and no hover; no allow entry left for the modules named; `npm run check:sdd` green.
   - **Done note:** the card stays an `article` (its heading) over a stretched `PickRow`, which carries `aria-current` (D-1292); the times row also became `PickRow`s (D-1294).
 
-- [ ] **R222 — The stars fold into live**
+- [x] **R222 — The stars fold into live** — `placeRequest.ts` stays, R215's place dialog imports it (D-1295)
   - **Lane:** live
   - **Tier:** standard
   - **Turns:** 500

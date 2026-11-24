@@ -122,7 +122,7 @@ describe('<App> frame (R12)', () => {
       appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true }, updateReady: true, applyUpdate: () => undefined });
     });
     render(<App />);
-    for (const hash of ['#live', '#settings', '#stars', '#pass']) {
+    for (const hash of ['#live', '#settings', '#pass']) {
       act(() => {
         window.location.hash = hash;
         window.dispatchEvent(new HashChangeEvent('hashchange'));

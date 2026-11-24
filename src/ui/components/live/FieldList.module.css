@@ -10,30 +10,12 @@
   margin: 0;
 }
 
-.row {
+/* R222 (FR-CTRL-15): the row is a `PickRow` (its ground, its mark, its hit box); the four columns are placed here. */
+.item > .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) calc(8 * var(--cell)) calc(4 * var(--cell)) calc(3 * var(--cell));
   column-gap: var(--cell);
   align-items: baseline;
-  width: 100%;
-  min-height: var(--tap);
-  padding: calc(var(--row) / 4) 0;
-  border: 0;
-  background: none;
-  color: var(--fg);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-}
-
-/* R126 (FR-SKY-6, D-794): a pass's row is the same four columns — the key, the swatch and the name; the FR-LEG-3
-   state word; the peak's altitude; its direction — and names nothing on a tap, so it is not a control. */
-.row[data-kind='pass'] {
-  cursor: default;
-}
-
-.row[aria-pressed='true'] .name {
-  color: var(--accent);
 }
 
 .name {

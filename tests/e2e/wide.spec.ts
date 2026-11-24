@@ -150,8 +150,9 @@ test('the shortcuts overlay gives focus back to the card, and leaves j to the br
  * 1280 px, under the cap, nothing moves: every row is the viewport's width. Both languages; the 1280 project only
  * (the sizes are this describe's own).
  */
-type DeskPage = 'live' | 'stars' | 'pass' | 'settings';
-const DESK_PAGES: readonly DeskPage[] = ['live', 'stars', 'pass', 'settings'];
+// R222 (FR-LAND-3): the stars page folded into live.
+type DeskPage = 'live' | 'pass' | 'settings';
+const DESK_PAGES: readonly DeskPage[] = ['live', 'pass', 'settings'];
 
 async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): Promise<void> {
   await seedStoredRun(page, { locale, settled: true });
@@ -164,22 +165,18 @@ async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): 
   await page.goto(`/#${target}`);
   if (target === 'live') {
     await expect(page.getByTestId('live-layout').locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
-  } else if (target === 'stars') {
-    // V212-11 (D-1054): a desk opens the stars page on the globe.
-    await expect(page.getByTestId('stars-layout').locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   } else {
     await expect(page.getByTestId('settings-back')).toBeVisible();
   }
 }
 
 /**
- * The page's rows, `#root`'s own children that carry its content: the header, `main` and — on every page but the
- * stars page, which is not asked for it — the footer, plus the
+ * The page's rows, `#root`'s own children that carry its content: the header, `main` and the footer, plus the
  * page notices where they say something. Every expected row must be there, so a row moved out of `#root` fails.
  */
-async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
+async function contentRows(page: Page): Promise<{ name: string; x: number; width: number }[]> {
   // R186 (FR-WIDE-1): the live page is in the shell, inside `main`, with the header and the footer as every page.
-  const required = target === 'stars' ? ['#root > header', '#root > main'] : ['#root > header', '#root > main', '#root > footer'];
+  const required = ['#root > header', '#root > main', '#root > footer'];
   const rows = await page.evaluate((selectors) => selectors.map((selector) => {
     const element = document.querySelector(selector);
     if (!element) return { name: selector, x: NaN, width: NaN };
@@ -193,7 +190,7 @@ async function contentRows(page: Page, target: DeskPage): Promise<{ name: string
 /** The sky's box on the page, where it has one. */
 function skyBox(page: Page, target: DeskPage) {
   if (target === 'settings') return null;
-  const layout = target === 'live' ? 'live-layout' : target === 'stars' ? 'stars-layout' : 'pass-layout';
+  const layout = target === 'live' ? 'live-layout' : 'pass-layout';
   return page.getByTestId(layout).locator('[data-slot="drawing"]').first();
 }
 
@@ -212,7 +209,7 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
             await openDeskPage(page, target, locale);
             const cell = await cellPx(page);
             const capped = Math.min(width, 160 * cell);
-            const rows = await contentRows(page, target);
+            const rows = await contentRows(page);
             for (const row of rows) {
               expect(Math.abs(row.width - capped), `${row.name} is ${String(row.width)} px, not ${String(capped)}`).toBeLessThanOrEqual(1);
               expect(Math.abs(row.x - (width - row.width) / 2), `${row.name} is not centred`).toBeLessThanOrEqual(1);

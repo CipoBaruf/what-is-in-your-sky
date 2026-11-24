@@ -6,7 +6,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON, stubNetwork } from './liveHelpers';
-import { openStarsPage } from './globeHelpers';
+import { openLiveSky } from './globeHelpers';
 
 test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
@@ -103,9 +103,10 @@ test('FR-WIDE-14: the settings page, the coordinates opened — one line on ever
   expect(strays).toEqual([]);
 });
 
-test('FR-WIDE-14: the stars page — no field draws a ring, its buttons keep theirs', async ({ page }) => {
-  await openStarsPage(page);
+// R222 (FR-LAND-3): the stars page folded into live; its groups are the live page's rail, tabbed here.
+test('FR-WIDE-14: the live page with the stars\' groups — no field draws a ring, its buttons keep theirs', async ({ page }) => {
+  await openLiveSky(page);
   const seen = await tabThrough(page, 30);
-  // The stars page has no text field today; any it gains is held to the same line.
+  // The live page has no text field today; any it gains is held to the same line.
   oneLineOnEachField(seen, 0);
 });

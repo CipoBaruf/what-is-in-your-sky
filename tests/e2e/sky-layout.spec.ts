@@ -2,7 +2,7 @@
  * R132 (FR-FLOW-4, FR-FLOW-6, FR-FLOW-7, FR-FLOW-8; D-842, D-846, D-848, D-849): one order for every sky view,
  * measured by bounding boxes at 390 × 844 and 1280 × 800 in both languages.
  *
- * - The live page (each view), the stars page and the pass detail lay their slots out in FR-FLOW-4's order: top to
+ * - The live page (each view) and the pass detail (the stars page until R222) lay their slots out in FR-FLOW-4's order: top to
  *   bottom on the phone; on a desk the box at the left with the readout on its corner and the hint under it, the
  *   rail at the right in the same order (the pass detail's panel: the head band, the one control line, the drawing
  *   at the panel's width, the prose and the table under it).
@@ -11,9 +11,7 @@
  * - The pass detail's drawing is at least `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk
  *   (FR-FLOW-7). R164 (FR-CLEAN-1, FR-CLEAN-5, FR-CLEAN-7): on the phone it is the full form in both shapes, the
  *   drawing the viewport and the head, the times and the table the sheet's; `DETAIL_DRAWING_TOP_PX` binds no more.
- * - R163 (FR-CLEAN-1, FR-CLEAN-7): the stars page is the full form on the phone in both shapes, as the live page is;
- *   FR-FLOW-8's column and its fold rule are withdrawn.
- * - R166 (FR-CLEAN-13, D-1008): on the wide stars page the rail's View, Facing and Layers rows share one left edge.
+ * - R163, R166: the stars page's cases went with the page in R222 (FR-LAND-3).
  *
  * R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877):
  *
@@ -27,12 +25,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun, sheetOrder } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
-import { onWindow } from './globeHelpers';
 import { chooseDeskView, DESK_LABELS, DESK_VIEWS, expectCorners, SHELL_DESKS, SHELL_ORDER, shellOf, type Shell } from './deskShell';
 
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
 const TURNED = [
@@ -107,17 +101,6 @@ async function expectTimesOneRow(page: Page, head: Locator): Promise<void> {
   await expect(page.getByTestId('pass-name-line')).toContainText(/\d{4}-\d\d-\d\d · (GMT[−+-]?[\d:]*|UTC)/);
 }
 
-async function seedReader(page: Page, locale: Locale): Promise<void> {
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN })] as [string, string],
-  );
-}
-
 /** A fresh profile: no view saved, so the page opens on its default (FR-FLOW-14). */
 const FRESH = { chartView: undefined };
 
@@ -139,27 +122,6 @@ async function openDetail(page: Page, locale: Locale): Promise<Locator> {
   const layout = page.getByTestId('pass-layout');
   // R164: on the phone the full form's root holds a fixed box and has none of its own, so attached, not visible.
   await expect(layout).toBeAttached();
-  await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
-  return layout;
-}
-
-async function openStars(page: Page, locale: Locale): Promise<Locator> {
-  await seedReader(page, locale);
-  await page.goto('/#stars');
-  await onWindow(page);
-  const layout = page.getByTestId('stars-layout');
-  await expect(layout).toBeVisible();
-  await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
-  return layout;
-}
-
-/** The wide stars page as a fresh desk opens it — on the globe. */
-async function openStarsDesk(page: Page, locale: Locale): Promise<Locator> {
-  await seedReader(page, locale);
-  await page.goto('/#stars');
-  await page.reload();
-  const layout = page.getByTestId('stars-layout');
-  await expect(layout).toBeVisible();
   await expect(layout.locator('[data-drawing], [data-globe]').first()).toBeAttached({ timeout: 30_000 });
   return layout;
 }
@@ -213,7 +175,7 @@ for (const locale of LOCALES) {
         // The sheet's rows in FR-GYRO-10's order (R150: the satellites last), the view row one line.
         // R216 (FR-NOW-1, D-1239): in the rail's group order.
         const order = await sheetOrder(page);
-        expect(order, view).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'app-footer']);
+        expect(order, view).toEqual(['live-context', 'live-view-row', 'live-facing', 'live-timeline', 'live-layers', 'live-satellites', 'live-up-from', 'app-footer']);
         await expectViewRowOneLine(page.getByTestId('live-view-row'), locale);
         // The facing row: the readout as a button on the window and the polar chart, which have a picker — a tap opens
         // it directly under the readout, a second tap closes it; the dome's readout stands alone.
@@ -233,51 +195,6 @@ for (const locale of LOCALES) {
         await expect(toggle).toHaveAttribute('aria-expanded', 'false');
         await expect(picker).toHaveCount(0);
       }
-    });
-
-    /**
-     * R163 (FR-CLEAN-1, FR-CLEAN-3, FR-CLEAN-4; D-997): the compact stars page is the full form too — the drawing the
-     * viewport, the hint over the box at its bottom-left, the sheet's rows in FR-CLEAN-4's order with the layer rows a
-     * group of two and no `[ passes ]` (FR-CLEAN-11). FR-FLOW-8's column and its fold rule are withdrawn (FR-CLEAN-8);
-     * `clean-sky.spec.ts` measures the rest.
-     */
-    test('the stars page is the full form: the drawing the viewport, the hint over the box, the sheet’s rows in order, no passes toggle (FR-CLEAN-1, FR-CLEAN-4, FR-CLEAN-11)', async ({ page }) => {
-      const layout = await openStars(page, locale);
-      await expect(layout).toHaveAttribute('data-shape', 'full');
-      const slots = await slotBoxes(layout);
-      expect(slots.map((slot) => slot.name)).toEqual(['drawing', 'overlay', 'readout', 'sheet']);
-      const drawing = slots.find((slot) => slot.name === 'drawing');
-      if (!drawing) throw new Error('no drawing');
-      expect(Math.round(drawing.box.width)).toBe(PHONE.width);
-      expect(Math.round(drawing.box.height)).toBe(PHONE.height);
-      const hintBox = await box(layout.getByTestId('sky-hint'));
-      expect(inside(hintBox, drawing.box), 'the hint over the box').toBe(true);
-      expect(hintBox.y).toBeGreaterThan(drawing.box.y + drawing.box.height / 2);
-      expect(hintBox.x).toBeLessThan(drawing.box.x + drawing.box.width / 4);
-      await openSheet(page);
-      const order = await page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
-      // No sensor on this profile: no follow row.
-      expect(order).toEqual(['stars-view-row', 'stars-facing', 'stars-layer-rows', 'stars-field', 'app-footer']);
-      await expect(layout.getByTestId('stars-layers-row')).toHaveCount(2);
-      await expect(layout.getByTestId('stars-layers').getByRole('button')).toHaveCount(4);
-      await expect(layout.locator('[data-layer="passes"]')).toHaveCount(0);
-      await expect(page.getByTestId('sheet-body').getByRole('heading', { name: WORDS[locale].field })).toBeAttached();
-      expect(await pageScrolls(layout)).toEqual([]);
-    });
-
-    test('the first drag on the stars page puts the hint away for good, with no slot left for it (FR-FLOW-6)', async ({ page }) => {
-      const layout = await openStars(page, locale);
-      await expect(layout.getByTestId('sky-hint')).toBeVisible();
-      const drawing = await box(layout.locator('[data-slot="drawing"]'));
-      await page.mouse.move(drawing.x + drawing.width / 2, drawing.y + drawing.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(drawing.x + drawing.width / 2 + 40, drawing.y + drawing.height / 2, { steps: 4 });
-      await page.mouse.up();
-      await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
-      await expect(layout.locator('[data-slot="hint"]')).toHaveCount(0);
-      await page.reload();
-      await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
-      await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
     });
 
     test('the pass detail is the full form: the drawing the viewport, the head over it, the times, the prose and the table in the sheet (FR-FLOW-7 as amended, FR-CLEAN-1, FR-CLEAN-5)', async ({ page }) => {
@@ -310,7 +227,6 @@ for (const locale of LOCALES) {
     test('FR-WIDE-1: the box and the rail stand at one place on the three pages, the rail in SLOT_ORDER', async ({ page }) => {
       const measured: Record<string, Shell> = {};
       measured['live'] = await shellOf(await openLive(page, locale));
-      measured['stars'] = await shellOf(await openStarsDesk(page, locale));
       measured['pass'] = await shellOf(await openDetail(page, locale));
       const live = measured['live'];
       for (const [name, shell] of Object.entries(measured)) {
@@ -319,13 +235,14 @@ for (const locale of LOCALES) {
         // R216 (FR-NOW-1, D-1239): the groups a page fills are SLOT_ORDER's, in that order, on every page; the list last.
         expect(shell.order, name).toEqual(SHELL_ORDER.filter((slot) => shell.order.includes(slot)));
         expect(shell.order.slice(0, 3), name).toEqual(['strip', 'view', 'time']);
-        expect(shell.order.at(-1), name).toBe(name === 'live' ? 'upNow' : 'upFrom');
+        // R222 (FR-LAND-3): `Up from <place>` closes the live rail too.
+        expect(shell.order.at(-1), name).toBe('upFrom');
       }
       test.info().annotations.push({ type: 'shell', description: JSON.stringify(measured) });
     });
 
     // R187 (FR-WIDE-4, US-52 AC4): held, the live and pass Time groups show the same controls in order; the rows a page
-    // adds are its own. v2.14.1 (FR-WIDE-4 as amended, D-1138): the stars page's is FR-GLOBE-7's own (`stars.spec.ts`).
+    // adds are its own.
     test('FR-WIDE-4: the live and pass Time groups have the same controls in the same order', async ({ page }) => {
       const controls: Record<string, string[]> = {};
       for (const [name, open] of [
@@ -348,7 +265,7 @@ for (const locale of LOCALES) {
     });
 
     test('FR-WIDE-5: each view keeps its extras in their corners on every page', async ({ page }) => {
-      for (const open of [openLive, openStarsDesk, openDetail]) {
+      for (const open of [openLive, openDetail]) {
         const layout = await open(page, locale);
         for (const view of DESK_VIEWS) {
           await chooseDeskView(layout, locale, view);
@@ -357,15 +274,11 @@ for (const locale of LOCALES) {
       }
     });
 
-    test('FR-WIDE-2: the View row reads Globe Window Dome on the three pages, and a view chosen on the live page is the others’ after a reload', async ({ page }) => {
+    test('FR-WIDE-2: the View row reads Globe Window Dome, and a view chosen on the live page is the pass detail’s after a reload', async ({ page }) => {
       const layout = await openLive(page, locale);
       const row = layout.locator('[data-slot="view"]').getByRole('group', { name: WORDS[locale].viewGroup });
       await expect(row.getByRole('button')).toHaveText(DESK_LABELS[locale]);
       await chooseDeskView(layout, locale, 'window');
-      await page.goto('/#stars');
-      await page.reload();
-      await expect(page.getByTestId('stars-sky')).toHaveAttribute('data-view', 'window', { timeout: 30_000 });
-      await expect(page.getByTestId('stars-view-row').getByRole('button')).toHaveText(DESK_LABELS[locale]);
       await page.goto('/#pass');
       await page.reload();
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
@@ -439,24 +352,6 @@ for (const viewport of TURNED) {
           expect(partBox.y + partBox.height).toBeLessThanOrEqual(sheetBody.y + sheetBody.height + 1);
         }
         expect(await pageScrolls(layout)).toEqual([]);
-      });
-
-      test('the stars page: the full form, the window the whole viewport, the bottom sheet at its share, no page scroll (FR-CLEAN-7)', async ({ page }) => {
-        // R163 (FR-CLEAN-7, D-997): the landscape stars page is all sky too; the rail of FR-FLOW-15 is withdrawn for compact.
-        const layout = await openStars(page, locale);
-        await expect(layout).toHaveAttribute('data-shape', 'full');
-        const drawing = await box(layout.locator('[data-slot="drawing"]'));
-        expect(Math.round(drawing.width)).toBe(viewport.width);
-        expect(Math.round(drawing.height)).toBe(viewport.height);
-        expect(await pageScrolls(layout)).toEqual([]);
-        await openSheet(page);
-        const sheet = await box(page.getByTestId('live-sheet'));
-        expect(Math.abs(sheet.width - viewport.width)).toBeLessThanOrEqual(1);
-        expect(sheet.height).toBeLessThanOrEqual(SHEET_MAX_SHARE * viewport.height + 1);
-        expect(Math.abs(sheet.y + sheet.height - viewport.height)).toBeLessThanOrEqual(1);
-        await expect(page.getByTestId('stars-view-row')).toBeVisible();
-        expect(await pageScrolls(layout)).toEqual([]);
-        await expect(page.getByTestId('sky-screen')).toHaveCount(0);
       });
 
       test('the pass detail: the full form, the window the whole viewport, the bottom sheet at its share (FR-CLEAN-7)', async ({ page }) => {

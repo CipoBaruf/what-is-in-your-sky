@@ -1,20 +1,19 @@
 /**
  * R134 (FR-FLOW-10, FR-FLOW-11; D-851): the five pages `rhythm.spec.ts` and `targets.spec.ts` measure at 390 × 844 —
- * the satellites' list (R212: in the home's place), the live page, the stars page, the pass detail and the settings page — each opened
+ * the satellites' list (R212: in the home's place), the live page (the stars page folded into it in R222), the pass detail and the settings page — each opened
  * the way R132's `sky-layout.spec.ts` opens them and returned as the root to measure under.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
 import { openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
-import { onWindow } from './globeHelpers';
 
 export const PHONE = { width: 390, height: 844 };
-/** R165 (FR-CLEAN-8, D-1000): the phone turned, where the stars page and the pass detail are the full form too. */
+/** R165 (FR-CLEAN-8, D-1000): the phone turned, where the pass detail is the full form too. */
 export const TURNED = { width: 844, height: 390 };
 export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
-export type FlowPage = 'list' | 'live' | 'stars' | 'detail' | 'settings';
-const FLOW_PAGES: readonly FlowPage[] = ['list', 'live', 'stars', 'detail', 'settings'];
+export type FlowPage = 'list' | 'live' | 'detail' | 'settings';
+const FLOW_PAGES: readonly FlowPage[] = ['list', 'live', 'detail', 'settings'];
 /**
  * R139 (FR-FLOW-10, FR-FLOW-11 as amended; D-885): the two views a phone opens the live page and the pass detail on —
  * the window, a fresh profile's (FR-FLOW-14: no `chartView` saved), and the dome, a saved `chartView`.
@@ -27,8 +26,8 @@ export interface FlowCase {
   view: FlowView | null;
 }
 export const FLOW_CASES: readonly FlowCase[] = FLOW_PAGES.flatMap((page): FlowCase[] => (page === 'live' || page === 'detail' ? FLOW_VIEWS.map((view) => ({ page, view })) : [{ page, view: null }]));
-/** R165 (FR-CLEAN-8): the two sky pages whose sheets the specs measure open and closed, in each view they open on. */
-export const SHEET_CASES: readonly FlowCase[] = FLOW_CASES.filter(({ page }) => page === 'stars' || page === 'detail');
+/** R165 (FR-CLEAN-8): the sky page whose sheet the specs measure (the stars page left in R222) open and closed, in each view they open on. */
+export const SHEET_CASES: readonly FlowCase[] = FLOW_CASES.filter(({ page }) => page === 'detail');
 /** Whether `openFlowPage` opens the page's sheet (the default) or leaves the sky with the sheet closed. */
 export type SheetState = 'open' | 'closed';
 /** A case's name in a test title: `live (window)`, `list`. */
@@ -41,7 +40,7 @@ const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
-/** A reader with a place and no stored run: the stars page and the settings page need nothing else. */
+/** A reader with a place and no stored run: the settings page needs nothing else. */
 async function seedReader(page: Page, locale: Locale): Promise<void> {
   await page.clock.setFixedTime(NINE_DAYS_ON);
   for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
@@ -78,19 +77,6 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       await openSheet(page);
       return page.locator('body');
     }
-    case 'stars': {
-      await seedReader(page, locale);
-      await page.goto('/#stars');
-      await onWindow(page);
-      const layout = page.getByTestId('stars-layout');
-      await expect(layout).toBeVisible();
-      await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
-      // R163 (FR-CLEAN-4, FR-CLEAN-8): the compact stars page is measured with its sheet open, as the live page is — its rows are the sheet's.
-      // R165: or closed, the sky and what stands over it.
-      if (sheet === 'open') await openSheet(page);
-      else await expect(page.getByTestId('live-controls')).toBeVisible();
-      return page.locator('body');
-    }
     case 'detail': {
       await seedStoredRun(page, { locale, settled: true, prefs: viewPrefs(drawn) });
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
@@ -99,7 +85,7 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       await expect(layout).toBeAttached();
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
       // The compact guide stands over the list, which it makes inert: the dialog is the page. R164 (FR-CLEAN-5,
-      // FR-CLEAN-8): it is measured with its sheet open, as the live page and the stars page are — its rows are the sheet's.
+      // FR-CLEAN-8): it is measured with its sheet open, as the live page is — its rows are the sheet's.
       // R165: or closed, the sky and what stands over it.
       if (sheet === 'open') await openSheet(page);
       else await expect(page.getByTestId('live-controls')).toBeVisible();

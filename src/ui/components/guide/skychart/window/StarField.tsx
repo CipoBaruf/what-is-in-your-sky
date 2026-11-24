@@ -8,7 +8,7 @@ import { compassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
 import { figureName, starLabelKind, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { Locale } from '../../../../../model';
-import { formatStarMag } from '../../../../screens/stars/field';
+import { formatStarMag } from '../../../live/field';
 import { whenIdle } from '../../../../screens/whenIdle';
 import { BLOOM_STOPS, BLOOM_TONES, bloomGradientId, bloomRadiusPx } from './bloom';
 import { deepFrame, prepareDeep, type DeepDrawn, type PreparedDeep } from './deepField';

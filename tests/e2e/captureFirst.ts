@@ -18,10 +18,4 @@ export const FIRST_VISIT: readonly CaptureScreen[] = [
     themes: ['dark'],
     what: "The live page — on a phone the sky screen — opened for the example at `/` (FR-OPEN-7, FR-LAND-1): the example's sky, the line under the head (390) or the header (1280), and no \"The live sky needs a place.\"",
   },
-  {
-    name: 'first-stars',
-    widths: [390, 1280],
-    themes: ['dark'],
-    what: "The stars page opened for the example at `#stars` (FR-OPEN-7): Buenos Aires's sky, the line under the head (390) or the header (1280).",
-  },
 ];

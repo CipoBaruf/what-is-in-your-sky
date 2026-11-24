@@ -1,14 +1,1 @@
-{
-  "src/ui/screens/Live.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the facing readout's hit area; R222 empties the live lane's list."
-  },
-  "src/ui/screens/Stars.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the facing readout's hit area; R222 deletes the page."
-  },
-  "src/ui/screens/stars/FieldList.tsx": {
-    "count": 1,
-    "reason": "R209 (D-1229): the stars' and planets' rows; the list goes with the stars page (R222)."
-  }
-}
+{}

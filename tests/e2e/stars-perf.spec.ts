@@ -1,5 +1,5 @@
 /**
- * R116 (FR-STAR-9; US-38 AC6; D-744, D-751, D-758): the stars page's rate
+ * R116 (FR-STAR-9; US-38 AC6; D-744, D-751, D-758), on the live page's window since R222 (FR-LAND-3): the stars' rate
  * with every layer on, by `dome-perf.spec.ts`'s method (D-62): a 5 s real
  * pointer drag in Chromium at the phone's width under Chrome DevTools CPU
  * throttling, counting the animation frames in which the star field was
@@ -7,23 +7,20 @@
  * the field's group, so a mutation there is one update, counted once per
  * frame.
  *
- * The page opens over Neuquén facing south, the pole side (FR-STAR-3): the
+ * The page opens over the stored run's place, turned to the south-west: the
  * dense southern field the spike measured at 19 draws/s through React and
  * about 100 by ref (D-744). Unlike the dome's measurement this one is a gate
  * — FR-STAR-9's ≥ 30 at 4× — since the ref path leaves it three times the
  * headroom; the printed line goes in the task's Done note.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
+import { seedStoredRun } from './liveHelpers';
 import { pinch } from './windowZoom';
 
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 /** FR-STAR-9: the FR-GUIDE-6 device's budget, by D-62's proxy. */
 const THROTTLE = 4;
 const DRAG_SECONDS = 5;
 const TARGET_PER_SECOND = 30;
-const LAYERS = ['stars', 'figures', 'planets', 'names'] as const;
 
 interface Sample {
   updatesPerSecond: number;
@@ -72,17 +69,12 @@ function installCounter(): void {
 }
 
 async function openStars(page: Page): Promise<void> {
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
-  );
-  await page.goto('/#stars');
-  await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-layer="stars"] [data-star]').first()).toBeAttached();
+  await seedStoredRun(page, { settled: true, prefs: { chartView: undefined } });
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
+  await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-drawing="window"] [data-layer="stars"] [data-star]').first()).toBeAttached({ timeout: 30_000 });
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -100,18 +92,18 @@ const FIELDS = [
 for (const field of FIELDS) {
   test(`with every layer on at ${field.name} (${String(field.fovDeg)}°), a drag draws at ≥ 30 updates/s at the phone width under a 4x CPU throttle (FR-STAR-9, FR-LOOK-11)`, async ({ page }) => {
   await openStars(page);
-  // Every layer on: the page's default, asserted rather than assumed.
-  for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
-  const sky = page.getByTestId('stars-sky').locator('[tabindex="0"]');
+  // Every layer on: the live page's default with nothing saved (FR-STAR-3 as amended).
+  const sky = page.getByTestId('sky-chart').locator('[tabindex="0"]');
   await sky.scrollIntoViewIfNeeded();
   const box = await sky.boundingBox();
   if (!box) throw new Error('the drawing has no box');
   // R155: everything on means the deep stars too — the chunk has landed and the pool holds stars — and the haze's three bands are drawn.
-  // Turned to SW 35° up, as `window-zoom.spec.ts` is, where the 20° field still holds named stars (Ara's) on the fixture night.
-  const w = page.getByTestId('stars-sky').locator('[data-look-az]');
+  // Turned three steps right, toward the south-west, where the 20° field still holds named stars on the fixture night.
+  const w = page.getByTestId('sky-chart').locator('[data-look-az]');
   await w.locator('div[data-dragging]').focus();
+  const az = await w.getAttribute('data-look-az');
   for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
-  await expect(w).toHaveAttribute('data-look-az', '225');
+  await expect(w).not.toHaveAttribute('data-look-az', az ?? '');
   await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
   if (field.fovDeg !== 60) {
     await pinch(sky, 40, (40 * 60) / field.fovDeg);

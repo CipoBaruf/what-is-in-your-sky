@@ -134,8 +134,8 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     render(<App />);
     await userEvent.keyboard('?');
     const overlay = screen.getByRole('dialog', { name: en.shortcuts.title });
-    // the header row and the nine app shortcuts; R189's sky block: its heading row and nine keys; the box block: its heading row and four
-    expect(within(overlay).getAllByRole('row')).toHaveLength(1 + 9 + 1 + 9 + 1 + 4);
+    // the header row and the eight app shortcuts (R222: `s` went with the stars page); R189's sky block: its heading row and nine keys; the box block: its heading row and four
+    expect(within(overlay).getAllByRole('row')).toHaveLength(1 + 8 + 1 + 9 + 1 + 4);
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
 
     await userEvent.keyboard('{Escape}');
@@ -226,7 +226,7 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
  * the shortcuts overlay up, the sheet is behind it like everything else and
  * its back control, its switches and its share button were all still live.
  */
-describe('<App> s on the stars page (FR-DESK-4 as amended v2.4)', () => {
+describe('<App> s is no key (R222, D-1240: the stars page is gone)', () => {
   beforeEach(() => {
     media = stubMatchMedia(WIDE_PX);
     resetNavigation();
@@ -238,27 +238,14 @@ describe('<App> s on the stars page (FR-DESK-4 as amended v2.4)', () => {
     window.history.replaceState(null, '', window.location.pathname);
   });
 
-  it('claims the press when it closes the overlay, and leaves it to the browser when it does nothing', async () => {
-    window.history.replaceState(null, '', '#stars');
-    act(() => {
-      appStore.setState({ observer });
-    });
+  it('leaves s to the browser and the hash where it is', () => {
     render(<App />);
-    expect(await screen.findByTestId('stars-page', {}, { timeout: 5000 })).toBeInTheDocument();
-    await userEvent.keyboard('?');
-    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
-    const closing = new KeyboardEvent('keydown', { key: 's', cancelable: true, bubbles: true });
+    const press = new KeyboardEvent('keydown', { key: 's', cancelable: true, bubbles: true });
     act(() => {
-      document.dispatchEvent(closing);
+      document.dispatchEvent(press);
     });
-    expect(closing.defaultPrevented).toBe(true);
-    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
-    const idle = new KeyboardEvent('keydown', { key: 's', cancelable: true, bubbles: true });
-    act(() => {
-      document.dispatchEvent(idle);
-    });
-    expect(idle.defaultPrevented).toBe(false);
-    expect(window.location.hash).toBe('#stars');
+    expect(press.defaultPrevented).toBe(false);
+    expect(window.location.hash).toBe('#pass');
   });
 });
 

@@ -14,7 +14,7 @@ import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { FieldAim, SkyChartProps, SkyChartView } from './SkyChart.types';
 import { viewFor as pageViewFor } from '../../../screens/chartViewDefault';
-import { loadGlobe, useGlobePrefetch } from '../../../screens/stars/globeChunk';
+import { loadGlobe, useGlobePrefetch } from './globe/globeChunk';
 import type { GlobePick } from './globe/SkyGlobe';
 import type { GlobeLayers } from './globe/GlobeRenderer';
 import { useChartHand } from './useChartHand';
@@ -139,13 +139,12 @@ const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 const SkyGlobe = lazy(() => loadGlobe().then((module) => module));
 /** With no scene (the stars toggle off, or its source not in yet), the globe draws the planets and nothing of the stars. */
 const NO_STARS: GlobeLayers = { stars: false, figures: false, planets: true, names: false };
-/** FR-DARK-2: with `[x] stars` the globe draws its stars and figures at every Sun, as the other views do. */
-const STARS_ON: GlobeLayers = { stars: true, figures: true, planets: true, names: false };
 
 function GlobeView(props: SkyChartProps) {
   const language = useLocale();
   const field = props.scene?.stars;
-  const layers = useMemo<GlobeLayers>(() => (field ? { ...STARS_ON, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
+  // FR-DARK-2: the scene's layers at every Sun, as the other views draw them; R222 (FR-LAND-3): the live page's four switches.
+  const layers = useMemo<GlobeLayers>(() => (field ? { stars: field.layers.stars, figures: field.layers.figures, planets: field.layers.planets, names: field.layers.names } : NO_STARS), [field]);
   const { onSelectPass, onSkyPick, onPassHover } = props;
   // The page's shown instant; a chart given none (a test) draws the moment it mounted.
   const [mounted] = useState(() => Date.now());
@@ -166,9 +165,10 @@ function GlobeView(props: SkyChartProps) {
         <SkyGlobe
           place={props.observer}
           instant={at}
-          turn="you"
+          turn={props.globeTurn ?? 'you'}
           layers={layers}
-          faint={false}
+          faint={props.globeFaint ?? false}
+          {...(props.onGlobeFaintFailed === undefined ? {} : { onFaintFailed: props.onGlobeFaintFailed })}
           language={language}
           passes={props.passes}
           t={at}

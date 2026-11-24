@@ -1,6 +1,6 @@
 /**
  * v2.14.2 (FR-PHONE-17, V214-39..V214-44; D-1142..D-1144): a phone page asks before it follows the phone, at 390 × 844
- * in both languages, under `stubOrientation` with and without a motion request. The live page, the stars page and
+ * in both languages, under `stubOrientation` with and without a motion request. The live page (the stars page folded into it in R222) and
  * the pass detail each show "Use your phone to look at the sky?" — at load where a request exists (iOS), at the first
  * reading with a north where none does (Android) — focus on `[ allow ]`; `[ allow ]` asks once inside its click and
  * follows, `[ not now ]` and `Esc` leave the page as it opened. Once answered, the other pages and a reload in the
@@ -14,13 +14,13 @@ import { seedStoredRun } from './liveHelpers';
 import { aimedAt, orientationAsks, stubOrientation } from './orientation';
 
 type Locale = 'en' | 'es';
-type Which = 'live' | 'stars' | 'detail';
+type Which = 'live' | 'detail';
 
 const WORDS = {
   en: { question: 'Use your phone to look at the sky?', allow: 'allow', notNow: 'not now', openGuide: /Open guide/ },
   es: { question: '¿Usar el teléfono para mirar el cielo?', allow: 'permitir', notNow: 'ahora no', openGuide: /Abrir la guía/ },
 } as const;
-const PAGES: readonly Which[] = ['live', 'stars', 'detail'];
+const PAGES: readonly Which[] = ['live', 'detail'];
 
 /** Until the stub has dispatched `n` more readings than it had, so an Android question has had its chance to open. */
 async function readingsPass(page: Page, n = 3): Promise<void> {
@@ -37,11 +37,6 @@ async function openPage(page: Page, which: Which, locale: Locale): Promise<Locat
         window.location.hash = '#live';
       });
       return page.getByTestId('live-layout');
-    case 'stars':
-      await page.evaluate(() => {
-        window.location.hash = '#stars';
-      });
-      return page.getByTestId('stars-layout');
     case 'detail':
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
       return page.getByTestId('pass-layout');
@@ -100,18 +95,19 @@ for (const locale of ['en', 'es'] as const) {
       await expect(control(root)).toHaveAttribute('aria-pressed', 'false');
       await expect(root.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
       await page.evaluate(() => {
-        window.location.hash = '#stars';
+        window.location.hash = '#pass';
       });
-      const stars = page.getByTestId('stars-layout');
-      await expect(control(stars)).toBeAttached({ timeout: 30_000 });
+      await page.locator('article[data-pass-id]').first().getByRole('button', { name: words.openGuide }).click();
+      const detail = page.getByTestId('pass-layout');
+      await expect(control(detail)).toBeAttached({ timeout: 30_000 });
       await readingsPass(page);
       await expect(question(page)).toHaveCount(0);
-      await expect(control(stars)).toHaveAttribute('aria-pressed', 'false');
+      await expect(control(detail)).toHaveAttribute('aria-pressed', 'false');
     });
 
     test('Android: allow follows at once and saves the allow, so the next visit follows unasked', async ({ page }) => {
       await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)], request: false });
-      const root = await openPage(page, 'stars', locale);
+      const root = await openPage(page, 'live', locale);
       await expect(question(page)).toBeVisible({ timeout: 30_000 });
       await page.getByTestId('follow-ask-allow').click();
       await expect(control(root)).toHaveAttribute('aria-pressed', 'true');
@@ -161,7 +157,7 @@ test.describe('the follow question fits every phone (FR-PHONE-17)', () => {
       test(`${String(width)} × ${String(height)}, ${locale}: centred, inside the screen, no sideways scroll`, async ({ page }) => {
         await page.setViewportSize({ width, height });
         await stubOrientation(page, { answer: 'granted', readings: [aimedAt(90, 30)] });
-        await openPage(page, 'stars', locale);
+        await openPage(page, 'live', locale);
         const shown = question(page);
         await expect(shown).toBeVisible({ timeout: 30_000 });
         const box = (await shown.boundingBox()) ?? { x: -1, y: -1, width: 0, height: 0 };

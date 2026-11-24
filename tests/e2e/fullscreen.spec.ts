@@ -40,8 +40,7 @@ async function state(layout: Locator): Promise<{ readout: string; look: string |
   // Read only what is there: a locator's `evaluate` would wait for an element the view does not draw.
   const looks = layout.locator('[data-look-az]');
   const look = (await looks.count()) === 0 ? null : await looks.first().evaluate((el) => ['data-look-az', 'data-look-alt', 'data-fov'].map((name) => el.getAttribute(name)).join(' '));
-  // The stars page's window and dome show real time and draw no time control.
-  const t = (await layout.locator('[data-testid="stripe-overview"], [data-testid="globe-clock"]').count()) === 0 ? null : await shownInstant(layout);
+  const t = (await layout.locator('[data-testid="stripe-overview"]').count()) === 0 ? null : await shownInstant(layout);
   return { readout, look, t };
 }
 
@@ -79,8 +78,7 @@ for (const which of DESK_PAGES) {
       const box = await drawn(layout);
       expect(box.width, 'the box beside the rail').toBeLessThan(DESK.width - 300);
       if (view !== 'dome') await tagDrawing(layout);
-      // The globe holds the instant; the window and the dome show real time on the stars page.
-      if (which !== 'stars' || view === 'globe') await page.keyboard.press('.');
+      await page.keyboard.press('.');
       const before = await state(layout);
 
       // The control enters, `[ × ]` leaves.

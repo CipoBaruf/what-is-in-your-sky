@@ -4,7 +4,7 @@ import { starCatalog } from '../../../../../data/stars/catalog';
 import { loadDeepChunk, parseDeepCatalog } from '../../../../../data/stars/deepChunk';
 import { legendRows } from '../../../../../lib/legend';
 import type { Observer, Pass, PassPoint } from '../../../../../model';
-import { formatStarMag, STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
+import { formatStarMag, STAR_LABEL_HOLD_S } from '../../../live/field';
 import { HIT_RADIUS_PX } from '../window/starGlyphs';
 import { GLOBE_KEY_STEP_DEG, GLOBE_MAX_NODES, GLOBE_RADIUS_SHARE, GLOBE_ZOOM_MAX, GLOBE_ZOOM_MIN, GLOBE_ZOOM_STEP } from './constants';
 import { readoutLine } from './GlobeRenderer';
