@@ -361,6 +361,7 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1297 — The stars page's e2e cases go unless they read a layer, the window or a shared flow.** *(R222)*
   (FR-LAND-3, D-1240.) Window and layer cases move to `#live` (`openLiveSky`, the stored run's Neuquén): the globe, the keep, the zoom keys, the deep stars, the Spanish layers row, axe, focus.
   Cases about the page's own shape go; `whole-sky.spec.ts` and `r115-captures.spec.ts` are deleted. A spec that read the stars page's 180° / 35° opening reads the live window's own. The star catalogue's chunk is `starSource-*.js`.
+- **D-1301 — Inline actions are `TextButton` `link`, `--tap` wide; `FailureLine` is the alert.** *(R224)* (FR-CTRL-13, FR-CTRL-17.) The why is in R224's PR.
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
