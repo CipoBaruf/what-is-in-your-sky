@@ -106,8 +106,8 @@ describe('capturesReached', () => {
   it('re-shoots only the screens a screen-level change reaches', () => {
     const reached = capturesReached(edited('src/ui/screens/Settings.tsx'), manifest);
     expect(reached).toEqual(['favourites', 'settings']);
-    // R222 (D-1240): the globe's rail groups are the live lane's now, so a change there re-shoots the live page's globe.
-    const globe = capturesReached(edited('src/ui/components/live/GlobeRail.tsx'), manifest);
+    // R222 (D-1240): `Up from <place>` is the live lane's now, so a change there re-shoots the live page's globe.
+    const globe = capturesReached(edited('src/ui/components/live/UpFrom.tsx'), manifest);
     expect(globe).toContain('sky-live-globe');
     expect(globe).not.toContain('home');
   });

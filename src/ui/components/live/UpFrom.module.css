@@ -1,0 +1,21 @@
+/* R170 (FR-GLOBE-12; D-1035), the live page's `Up from <place>` since R222: a block of `--space-1` rows, the count
+   and the planets' line at `--small`. Every length is a token or a count of cells (FR-DS-2). */
+
+.block {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* FR-GLOBE-12: the count and the planets' line, at `--small` in the dim ink. */
+.counts {
+  display: grid;
+  gap: 0;
+}
+
+.counts p {
+  margin: 0;
+  font-size: var(--small);
+  color: var(--fg-dim);
+}
+

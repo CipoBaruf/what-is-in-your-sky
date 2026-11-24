@@ -9,40 +9,14 @@ import type { EpochMs, Observer } from '../../../model';
 import { globeSky, starVectors, upCount, upList } from '../guide/skychart/globe/scene';
 import { useWallThrottle } from './useWallThrottle';
 import { SectionHeading } from '../primitives/SectionHeading';
-import { ToggleGroup } from '../primitives/ToggleGroup';
 import { FieldList } from './FieldList';
-import styles from './GlobeRail.module.css';
+import styles from './UpFrom.module.css';
 
 /**
- * R170 (FR-GLOBE-5, FR-GLOBE-7..10, FR-GLOBE-12, FR-GLOBE-16; PLAN D-1035, D-1039, D-1040): the wide stars page's rail
- * groups while the globe is shown — `Turn`, `Place` and the count with `Up from <place>`; R187 (FR-WIDE-4) moved `Time`
- * to the shared time control (`sky/stars/Time.tsx`).
- * Pure composition over props: the page owns every state (the playback, the turn, the place's choice), so leaving the globe
- * and coming back within the visit keeps them, and nothing here writes the hash, the prefs or the store.
+ * R170 (FR-GLOBE-12; D-1035, D-1039), the live page's since R222 (FR-LAND-3, D-1240, D-1295): the count, the planets up and
+ * `Up from <place>`, its own lazy chunk (`UpFrom-*.js`, the `live` budget row) so the compact page, which lists it too,
+ * never fetches a globe chunk (FR-GLOBE-15). Pure composition over props; it writes nothing.
  */
-
-export type GlobeTurn = 'you' | 'stars';
-/** FR-GLOBE-5: `[x] with you [ ] with the stars`; R190 (FR-KEEP-1): the page keeps it on the device (`globeTurn`). */
-export function GlobeTurnRow({ turn, onTurn }: { turn: GlobeTurn; onTurn: (turn: GlobeTurn) => void }) {
-  const t = useT();
-  const headingId = useId();
-  return (
-    <section aria-labelledby={headingId} className={styles.block} data-testid="globe-turn">
-      <SectionHeading id={headingId}>{t.globe.turnHeading}</SectionHeading>
-      <div className={styles.row} data-testid="globe-turn-row">
-        <ToggleGroup
-          name={t.globe.turnHeading}
-          options={[
-            { value: 'you', label: t.globe.turn.you },
-            { value: 'stars', label: t.globe.turn.stars },
-          ]}
-          value={turn}
-          onChange={onTurn}
-        />
-      </div>
-    </section>
-  );
-}
 
 const NO_DEEP: DeepCatalog | null = null;
 
@@ -65,7 +39,7 @@ function useDeep(faint: boolean): DeepCatalog | null {
   return faint ? deep : null;
 }
 
-export interface GlobeFieldProps {
+export interface UpFromFieldProps {
   place: Observer;
   instant: EpochMs;
   layers: { stars: boolean; planets: boolean };
@@ -80,7 +54,7 @@ export interface GlobeFieldProps {
  * change per `BODIES_EVERY_MS` of wall time, as the live page's bodies are (D-1039), so a time-lapse recomputes them
  * once a second while the globe writes every frame.
  */
-export function GlobeField({ place, instant, layers, faint, named, onName }: GlobeFieldProps) {
+export function UpFromField({ place, instant, layers, faint, named, onName }: UpFromFieldProps) {
   const t = useT();
   const p = useStarsPageT();
   const lang = useLocale();

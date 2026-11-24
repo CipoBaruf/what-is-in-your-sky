@@ -501,7 +501,7 @@
 | FR-LAND-2 | `src/ui/components/sky/time/usePlayback.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts` |
 | FR-LAND-3 | `src/ui/App.structure.test.tsx`, `src/ui/components/live/SkyLayers.test.tsx`, `src/ui/navigation.test.ts`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/live-layers.spec.ts`, `tests/e2e/live-rail.spec.ts` |
 | FR-LAND-4 | `src/ui/components/common/Header.test.tsx`, `src/ui/components/location/PlaceDialog.test.tsx`, `src/ui/components/sky/ControlsSheet.test.tsx`, `tests/e2e/examplePages.spec.ts`, `tests/e2e/firstRun.spec.ts`, `tests/e2e/live-rail.spec.ts`, `tests/styles/sheetRows.test.ts` |
-| FR-LAND-5 | `src/ui/components/common/Header.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts` |
+| FR-LAND-5 | `src/ui/components/common/Header.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/live-failures.spec.ts` |
 | FR-LAND-6 | `src/ui/App.live.test.tsx`, `src/ui/App.test.tsx`, `src/ui/App.wide.test.tsx`, `src/ui/components/common/Header.test.tsx`, `tests/e2e/landing.spec.ts`, `tests/e2e/pass-page.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-LAND-7 | `tests/e2e/firstRun.spec.ts` |
 | FR-LEG-1 | `src/lib/legend.test.ts`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts` |

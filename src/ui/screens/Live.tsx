@@ -16,7 +16,6 @@ import { nextPassStrip, watchInstant } from '../../lib/nextPassStrip';
 import { nextTarget, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
 import type { SkyScene } from '../components/guide/skychart/window/scene';
-import { loadGlobeRail } from '../components/guide/skychart/globe/globeChunk';
 import { STAR_LABEL_HOLD_S } from '../components/live/field';
 import { PlaceGroup } from '../components/live/PlaceGroup';
 import { LayersGroup, TurnGroup, useSkyLayers } from '../components/live/SkyLayers';
@@ -446,8 +445,8 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
   return <TimeTrack {...props} valueText={shownTimeText(m, locale, { ...shownTime, clock })} />;
 }
 
-/** R222 (FR-LAND-3, FR-GLOBE-12): `Up from <place>`, lazy with the globe's rail (`GlobeRail-*.js`), on every view and width. */
-const UpFrom = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
+/** R222 (FR-LAND-3, FR-GLOBE-12; D-1295): `Up from <place>`, its own lazy chunk (`UpFrom-*.js`), on every view and width. */
+const UpFrom = lazy(() => import('../components/live/UpFrom').then((module) => ({ default: module.UpFromField })));
 
 /** FR-LAND-2, FR-STRIP-4 (D-1233): a desk opens on real time running at 1×. */
 const WIDE_OPENING: Opening = { speed: 1 };
