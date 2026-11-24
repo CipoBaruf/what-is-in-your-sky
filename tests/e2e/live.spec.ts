@@ -206,8 +206,8 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByRole('button', { name: 'controles', exact: true })).toBeVisible();
   await openSheet(page);
   await expect(page.getByTestId('live-taps').getByRole('button')).toHaveText(['▶ reproducir', 'noche', 'próximo', 'ahora']);
-  // R150 (FR-GYRO-8, FR-GYRO-10): the `×` named in Spanish, and the satellites' heading.
-  await expect(page.getByRole('button', { name: 'Cerrar controles', exact: true })).toHaveText('×');
+  // R150 (FR-GYRO-8, FR-GYRO-10), R224 (FR-CTRL-12): the `×` named "Cerrar", and the satellites' heading.
+  await expect(page.getByRole('button', { name: 'Cerrar', exact: true })).toHaveText('×');
   await expect(page.getByTestId('live-satellites').getByRole('heading', { level: 2 })).toHaveText(/^Satélites \(\d+\)$/);
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });

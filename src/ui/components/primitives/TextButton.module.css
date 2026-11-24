@@ -94,7 +94,8 @@
 }
 
 /* R224 (FR-CTRL-13): `link`, an action inside a line of text — drawn as global.css's `a`: the accent,
-   underlined, no box and no width floor; `inline-control` gives it the --tap hit area. Disabled, the same
+   underlined, no box; `inline-control` gives it the --tap height and the --tap floor on its width keeps a short
+   word (`retry`) a 44 px target (FR-FLOW-11), the words centred in it. Disabled, the same
    underlined words in the dim ink (FR-CTRL-17). */
 .link {
   border: 0;
@@ -104,6 +105,8 @@
   text-decoration: underline;
   text-underline-offset: var(--link-underline-offset);
   white-space: nowrap;
+  min-width: var(--tap);
+  text-align: center;
 }
 
 .link:disabled {

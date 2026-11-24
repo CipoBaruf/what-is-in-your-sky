@@ -81,11 +81,11 @@ for (const which of DESK_PAGES) {
       await page.keyboard.press('.');
       const before = await state(layout);
 
-      // The control enters, `[ × ]` leaves.
+      // The control enters, `×` (`Close`, FR-CTRL-12) leaves.
       await layout.getByTestId('sky-fullscreen').click();
       await expectFull(page, layout);
       expect(await state(layout), `${view}: across entering`).toEqual(before);
-      await layout.getByRole('button', { name: 'Close' }).click();
+      await layout.getByTestId('sky-fullscreen-exit').click();
       await expect(layout).not.toHaveAttribute('data-full');
       await expect.poll(() => drawn(layout)).toEqual(box);
       expect(await state(layout), `${view}: across leaving`).toEqual(before);
