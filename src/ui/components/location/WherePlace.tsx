@@ -102,7 +102,7 @@ function WhereFault({ readiness, age }: { readiness: ReturnType<typeof useReadin
         tone="failure"
         ink="tone"
         rows="controls"
-        actions={<TextButton label={t.failure.retry} data-testid="where-retry" onClick={retryElements} />}
+        actions={<TextButton link label={t.failure.retry} data-testid="where-retry" onClick={retryElements} />}
         data-testid="where-status"
         data-fault="failure"
       >
@@ -153,7 +153,7 @@ export function WherePlace({ open, onToggle, controls, folded = false }: WherePl
   const t = useT();
   const observer = useActiveObserver();
   if (observer === null) return null;
-  const change = <TextButton inline label={t.location.summaryChange} aria-expanded={open} aria-controls={controls} data-testid="location-summary-change" onClick={onToggle} />;
+  const change = <TextButton link label={t.location.summaryChange} aria-expanded={open} aria-controls={controls} data-testid="location-summary-change" onClick={onToggle} />;
   if (folded) return <FoldedWhere observer={observer} change={change} />;
   return (
     <div className={styles.where}>

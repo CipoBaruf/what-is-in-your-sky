@@ -50,7 +50,7 @@ const list = async (page: Page): Promise<void> => {
 };
 const openGuide = (page: Page, nth = 0) => page.getByRole('button', { name: /Open guide|Abrir la guía/ }).nth(nth);
 /** The guide's way out: the sheet's `← Back to the list` on a phone, the panel's `×` on a desk. */
-const closeGuide = (page: Page) => page.locator('[role="dialog"][data-pass-id] button').first().or(page.getByTestId('guide-panel').getByRole('button', { name: 'Close the guide' }));
+const closeGuide = (page: Page) => page.locator('[role="dialog"][data-pass-id] button').first().or(page.getByTestId('guide-panel').getByRole('button', { name: 'Close' }));
 const focused = (page: Page): Promise<string> =>
   page.evaluate(() => {
     const active = document.activeElement;

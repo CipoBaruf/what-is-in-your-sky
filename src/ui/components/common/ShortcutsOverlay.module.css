@@ -27,10 +27,6 @@
   margin: 0;
 }
 
-.close {
-  min-height: var(--tap);
-}
-
 .table {
   border-collapse: collapse;
   text-align: left;

@@ -20,20 +20,6 @@
   cursor: inherit;
 }
 
-.badge::before {
-  content: '[';
-}
-
-.badge::after {
-  content: ']';
-}
-
-/* R81 (FR-FIRST-9, FR-FIRST-10): the word alone, as the table and the card write it. */
-.word::before,
-.word::after {
-  content: none;
-}
-
 .badge[data-state='clear'] {
   color: var(--ok);
 }
@@ -70,11 +56,6 @@
   color: var(--fg);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.tip::before {
-  content: '[Clouds] ';
-  color: var(--fg-dim);
 }
 
 .wrap:hover .tip,

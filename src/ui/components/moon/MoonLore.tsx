@@ -5,6 +5,7 @@ import { calendarMonth } from '../../../lib/timeFormat';
 import type { MoonState } from '../../../model';
 import { MOON_LORE, fullMoonName, phaseLore, signAtLongitude } from '../../../state/moonLore';
 import { SectionHeading } from '../primitives/SectionHeading';
+import { Tag } from '../primitives/Tag';
 import styles from './MoonLore.module.css';
 
 /**
@@ -49,7 +50,9 @@ export function MoonLore({ moon, timeZone }: MoonLoreProps) {
         {t.moon.lore.heading}
       </SectionHeading>
       <p className={styles.line}>
-        <span id={traditionId} className={styles.tradition}>
+        {/* R224 (FR-CTRL-14, D-1229): the label is a `Tag`; the region's name takes the word alone, from a hidden copy. */}
+        <Tag tone="dim">{t.moon.lore.tradition}</Tag>
+        <span id={traditionId} hidden>
           {t.moon.lore.tradition}
         </span>{' '}
         {t.moon.lore.line(params)}

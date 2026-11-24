@@ -99,7 +99,7 @@ test('cloud words from the recorded forecast on every card and the conditions ta
       expect(STATES).toContain(await badge.getAttribute('data-state'));
       // R81 (FR-FIRST-10): the card's cloud word, its percentage in the tooltip behind it (US-7 AC3).
       await expect(badge).toHaveText(/^(Clear|Partly cloudy|Likely obscured)$/);
-      await expect(card.locator('[role="tooltip"]')).toContainText(/^\d+ % effective cloud at the pass peak\./);
+      await expect(card.locator('[role="tooltip"]')).toContainText(/^(\[Clouds\] )?\d+ % effective cloud at the pass peak\./);
     }
     // The start on the card's first line is the Salta clock time (`21:14`); the zone's name is the forecast stamp's.
     await expect(card.getByTestId('card-first-line')).toContainText(localStamp(startMs, ZONE).slice(11, 16));

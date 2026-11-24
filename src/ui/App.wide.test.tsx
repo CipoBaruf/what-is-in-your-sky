@@ -101,7 +101,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
       const { unmount } = render(<App />);
       const panel = screen.getByRole('region', { name: panelName });
       const entries = window.history.length;
-      if (leave === 'close') await userEvent.click(within(panel).getByRole('button', { name: en.guide.close }));
+      if (leave === 'close') await userEvent.click(within(panel).getByTestId('pass-close'));
       else await userEvent.keyboard('{Escape}');
       expect(screen.queryByRole('region', { name: panelName })).toBeNull();
       expect(window.location.hash).toBe('#live');

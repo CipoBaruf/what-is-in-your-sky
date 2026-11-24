@@ -26,6 +26,20 @@ function controls(path: string, text: string = readFileSync(path, 'utf8')): Hit[
   return found;
 }
 
+/** R224 (FR-CTRL-12): a `×` written in JSX — as text or as a prop's string — outside the primitives, where only `Close` draws one. */
+function closeGlyphs(path: string, text: string = readFileSync(path, 'utf8')): Hit[] {
+  if (path.startsWith(`${PRIMITIVES_DIR}/`)) return [];
+  const { source, line } = parsed(path, text);
+  const found: Hit[] = [];
+  const visit = (node: ts.Node): void => {
+    const glyph = (ts.isJsxText(node) && node.text.trim() === '×') || (ts.isStringLiteral(node) && ts.isJsxAttribute(node.parent) && node.text.trim() === '×');
+    if (glyph) found.push({ line: line(node), text: '×' });
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
 const files = components().filter(isShipped);
 const lists = laneLists('controls');
 
@@ -42,6 +56,15 @@ describe('every control is a primitive (FR-DS-11, D-1229)', () => {
 
   it('the lists are one per lane, a file in one of them, each with its count and reason', () => {
     expect(listFaults('controls', lists)).toEqual([]);
+  });
+
+  it('FR-CTRL-12: every close is `Close` — no module outside the primitives writes a `×` of its own', () => {
+    expect(files.flatMap((path) => closeGlyphs(path).map((hit) => `${path}:${String(hit.line)}`))).toEqual([]);
+    expect(closeGlyphs('src/ui/X.tsx', 'const x = <><TextButton label="×" /><b>×</b><Close onClose={f} /><i>2×</i></>;')).toHaveLength(2);
+  });
+
+  it('FR-DS-11: R224 (D-1229) leaves every list `{}`, the controls’ and the brackets’, in every lane', () => {
+    for (const list of [...lists, ...laneLists('brackets')]) expect(list.entries, list.path).toEqual({});
   });
 
   describe('what it matches and what the ratchet does with it', () => {

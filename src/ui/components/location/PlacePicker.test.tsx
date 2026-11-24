@@ -21,6 +21,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Place } from '../../../model';
 import { count } from '../../../state/measure';
 import { DEBOUNCE_MS, PlacePicker, type PlaceSearchFn } from './PlacePicker';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
@@ -204,6 +205,8 @@ describe('<PlacePicker>', () => {
     await within(status).findByRole('link');
     expect(status).toHaveTextContent('No place matches “Zzzzqqqq”. Try another spelling, or enter coordinates instead.');
     const link = within(status).getByRole('link', { name: 'enter coordinates instead' });
+    // FR-CTRL-13 (R224): an `<a>` inside the sentence, drawn as a link.
+    expectInlineLink(link);
     expect(link).toHaveAttribute('href', '#coords');
     await user.click(link);
     expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveFocus();
@@ -222,7 +225,7 @@ describe('<PlacePicker>', () => {
     // message only behind `[ details ]`.
     expect(within(alert).getByTestId('failure-sentence')).toHaveTextContent('Could not search for places. Meanwhile you can enter coordinates instead.');
     expect(within(alert).getByTestId('failure-sentence').textContent).not.toMatch(/HTTP|\d{3}|Error:/);
-    expect(within(alert).getByTestId('failure-detail')).toHaveTextContent('Open-Meteo geocoding: HTTP 503');
+    expect(screen.getByTestId('failure-detail')).toHaveTextContent('Open-Meteo geocoding: HTTP 503');
     expect(within(alert).getByRole('link')).toHaveAttribute('href', '#coords');
     expect(input).not.toBeDisabled();
     expect(input).toHaveValue('Cipolletti');
@@ -252,7 +255,8 @@ describe('<PlacePicker>', () => {
     const { input } = setup(search);
     await user.type(input, 'Cipolletti{Enter}');
     const alert = await screen.findByRole('alert');
-    expect(within(alert).getByTestId('failure-line')).toHaveAttribute('data-kind', 'rate-limited');
+    expect(within(alert).getByTestId('failure-sentence')).toBeInTheDocument();
+    expect(screen.getByTestId('failure-line')).toHaveAttribute('data-kind', 'rate-limited');
     await user.click(within(alert).getByTestId('failure-retry'));
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls[1]?.[0]).toBe('Cipolletti');

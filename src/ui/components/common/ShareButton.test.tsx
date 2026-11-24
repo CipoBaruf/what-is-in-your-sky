@@ -60,6 +60,8 @@ describe('<ShareButton>', () => {
     await waitFor(() => {
       expect(screen.getByRole('status')).toHaveTextContent('Link copied');
     });
+    // R224 (FR-CTRL-17): success is StatusLine ok, the same line every form uses.
+    expect(screen.getByTestId('share-status').className).toMatch(/ok/);
   });
 
   it('falls through to the clipboard when the share sheet refuses the payload', async () => {
@@ -83,16 +85,16 @@ describe('<ShareButton>', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Share this pass' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('The link could not be copied.');
+      expect(screen.getByRole('alert')).toHaveTextContent('The link could not be copied.');
     });
-    expect(screen.getByRole('status')).toHaveTextContent(URL_);
+    expect(screen.getByRole('alert')).toHaveTextContent(URL_);
   });
 
   it('survives a browser with no clipboard at all', async () => {
     render(<ShareButton {...props} />);
     await userEvent.click(screen.getByRole('button', { name: 'Share this pass' }));
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('The link could not be copied.');
+      expect(screen.getByRole('alert')).toHaveTextContent('The link could not be copied.');
     });
   });
 

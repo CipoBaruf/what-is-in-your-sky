@@ -33,7 +33,9 @@ import { usePlayback } from '../components/sky/time/usePlayback';
 import { viewFor } from './chartViewDefault';
 import { PassGroup } from './sky/pass/Group';
 import { PassTime } from './sky/pass/Time';
-import { TextButton } from '../components/primitives/TextButton';
+import { Disclosure } from '../components/primitives/Disclosure';
+import { Tag } from '../components/primitives/Tag';
+import { Close } from '../components/primitives/Close';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
@@ -73,7 +75,7 @@ import styles from './PassDetail.module.css';
  * full-screen sheet, portaled to `document.body` so that the page behind it
  * can be made inert while the sheet is not (D-117). R186 (FR-WIDE-1, D-1098):
  * wide is the desk's one shell in the home's place — `SkyViewLayout`'s box and
- * rail, the head with the name and `[ × ]`, `View`, `Time`, the page group
+ * rail, the head with the name and `×`, `View`, `Time`, the page group
  * (`sky/pass/Group.tsx`) and the home's pass list with this card highlighted;
  * the header is the app's, so neither the sheet's top row nor the scroll lock.
  * What both shells share is everything that is about the guide rather than its
@@ -294,7 +296,11 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   const meta = (
     <p className={styles.meta} data-testid="pass-meta">
       {formatDate(pass.start.t, timeZone, locale)}
-      {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
+      {pass.twilight && (
+        <Tag tone="dim" className={styles.twilight}>
+          {t.passes.twilightLabel}
+        </Tag>
+      )}
     </p>
   );
   // The wide band's three cells (the compact sheet draws its own one-row form, R164).
@@ -358,14 +364,14 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   if (!compact) {
     // R188 (FR-FACT-2, US-53 AC2): `This satellite` under the times — the height from the record the store holds (FR-FACT-1).
     const satellite: FactsSubject = { kind: 'satellite', noradId: pass.noradId, name: pass.name, description: undefined, height: selectOrbitHeight(elements, pass.noradId) };
-    // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `[ × ]` back to the home, the landmark line and the date.
+    // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `×` back to the home, the landmark line and the date.
     const head = (
       <div className={styles.deskHead} data-testid="pass-head">
         <div className={styles.deskTitle}>
           <h1 id={headingId} ref={headingRef} tabIndex={-1} className={styles.deskName}>
             {pass.name}
           </h1>
-          <TextButton label="×" onClick={onClose} aria-label={t.guide.close} data-testid="pass-close" />
+          <Close onClose={onClose} data-testid="pass-close" />
         </div>
         {landmark}
         {meta}
@@ -531,21 +537,22 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
   }, [pickerOpen]);
   const facing = (
     <div className={styles.facing} data-testid="pass-facing" data-rhythm="group">
+      {/* R224 (FR-DS-11, D-1229): the live page's row (R222, D-1296) — a `Disclosure` laid over the readout, named by the words, its arrow in the cell they leave. */}
       <div className={styles.facingReadout}>
-        <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
+        <div className={[styles.facingWords, hasPicker ? styles.facingWordsOpener : ''].filter(Boolean).join(' ')} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
           {!cornerReadout && <SkyViewChartSlot name="readout" />}
         </div>
         {hasPicker && (
-          <button
-            type="button"
-            className={styles.facingHit}
-            data-testid="sky-readout-toggle"
-            aria-labelledby={facingLabelId}
-            aria-expanded={pickerOpen}
-            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
-            onClick={() => {
+          <Disclosure
+            open={pickerOpen}
+            onToggle={() => {
               setPickerOpen(!pickerOpen);
             }}
+            label=""
+            className={styles.facingHit}
+            aria-labelledby={facingLabelId}
+            data-testid="sky-readout-toggle"
+            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
           />
         )}
       </div>
@@ -597,7 +604,9 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
         {landmark('pass-landmark')}
         {pass.twilight && (
           <p className={styles.meta} data-testid="pass-meta">
-            <span className={styles.twilight}>{t.passes.twilightLabel}</span>
+            <Tag tone="dim" className={styles.twilight}>
+              {t.passes.twilightLabel}
+            </Tag>
           </p>
         )}
       </div>

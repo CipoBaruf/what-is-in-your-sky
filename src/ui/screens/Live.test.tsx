@@ -1600,7 +1600,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
     expect(clicked).toHaveBeenCalledTimes(2);
     // The `×` closes it, and gives the focus back to `[ controls ]`.
-    fireEvent.click(screen.getByRole('button', { name: en.sheet.close }));
+    fireEvent.click(screen.getByRole('button', { name: en.shortcuts.close }));
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
     expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
   });

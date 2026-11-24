@@ -94,7 +94,7 @@ describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
     expect(screen.getByTestId('location-actions')).toContainElement(screen.getByTestId('coords-disclosure'));
     expect(screen.getByTestId('clear-saved-location').closest('div')).toBe(screen.getByTestId('save-favourite').parentElement);
     // D-1023 (FR-SET-1 as amended): the foot is the app's footer, after the whole of the page's main region, not inside
-    // it — the full credits on a phone. D-1150: it carries no privacy sentence and no `[ × ]`.
+    // it — the full credits on a phone. D-1150: it carries no privacy sentence and no `×`.
     const footer = screen.getByRole('contentinfo');
     expect(main).not.toContainElement(footer);
     expect(footer).toHaveAttribute('data-form', 'full');

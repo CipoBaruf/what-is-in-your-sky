@@ -180,6 +180,7 @@
   --on-ink: var(--bg); /* the words of what is on */
   --hover-ground: var(--bg-raised); /* under what the pointer is on */
   --mark: var(--accent); /* lines, underlines, the picked row's line, focus */
+  --link-underline-offset: calc(var(--row) / 10); /* 2.4 px, the old 0.15em at the body size: a link's underline under its words: an `a` and `TextButton`'s `link` (R224, FR-CTRL-13) */
   --gap-row: var(--space-1); /* between two rows */
   --gap-group: var(--space-4); /* between two groups */
   --label-col: calc(9 * var(--cell)); /* the column a row's label stands in */

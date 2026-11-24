@@ -16,14 +16,16 @@ import styles from './FailureLine.module.css';
  * exception name or a provider message: those are `detail`, shown only inside
  * the disclosure, in monospace, as selectable text a reader can copy.
  *
- * `[ retry ]` is the slice's retry action (D-541), a full button, so it is
- * FR-FAIL-1's 48 px control on compact; the caller shows the loading state
+ * `retry` is the slice's retry action (D-541), its own button, so it keeps
+ * FR-FAIL-1's 48 px hit area on compact; the caller shows the loading state
  * the retry puts the slice in. The live page places it first (R89); R91 places
  * it everywhere else.
  *
  * R105 (FR-DS-4 item 6, D-718): the sentence and its two controls are a
  * `Line` in the `failure` tone with the controls on their own row
  * (`rows="controls"`); the detail stands under it in this module's grid.
+ * R224 (FR-CTRL-17, FR-CTRL-13): the line is `role="alert"` in `--danger`, the same
+ * for every host, and `retry` and `details` are links inside it.
  */
 export interface FailureLineProps {
   failure: Failure;
@@ -44,12 +46,14 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
     <Stack gap={1} className={styles.line} data-testid="failure-line" data-kind={failure.kind} data-site={site}>
       <Line
         tone="failure"
+        ink="tone"
+        role="alert"
         rows="controls"
         actions={
           <>
-            <TextButton label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
+            <TextButton link label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
             <TextButton
-              inline
+              link
               label={t.failure.details}
               aria-expanded={open}
               aria-controls={detailId}

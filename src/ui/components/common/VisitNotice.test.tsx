@@ -9,6 +9,7 @@ import type { LiveLink } from '../../../lib/shareLinks';
 import type { Locale, Observer } from '../../../model';
 import { appStore, type AppState } from '../../../state';
 import { LinkNote, PageNotices, VisitNotice } from './VisitNotice';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 /**
  * R87 (FR-VISIT-2..4, US-32 AC1 and AC3, D-539): the visit notice names the
@@ -66,6 +67,9 @@ describe('VisitNotice (FR-VISIT-2)', () => {
   it('back brings the saved place back and keep stores the visited one, and either removes the notice', () => {
     set({ observer: saved, visiting: visited });
     show(<VisitNotice />);
+    // FR-CTRL-13 (R224): both follow the notice's sentence, so both are links.
+    expectInlineLink(screen.getByTestId('visit-back'));
+    expectInlineLink(screen.getByTestId('visit-keep'));
     fireEvent.click(screen.getByTestId('visit-back'));
     expect(appStore.getState().visiting).toBeNull();
     expect(appStore.getState().observer).toBe(saved);
@@ -95,7 +99,7 @@ describe('LinkNote (FR-VISIT-3, FR-VISIT-4)', () => {
     set({ observer: saved, linkResult: { kind: 'unreadable' } });
     show(<LinkNote kinds={['unreadable']} />);
     expect(screen.getByRole('status')).toHaveTextContent(en.visit.unreadable);
-    fireEvent.click(screen.getByRole('button', { name: en.visit.dismiss }));
+    fireEvent.click(screen.getByRole('button', { name: en.shortcuts.close }));
     expect(screen.queryByTestId('link-note')).toBeNull();
     expect(appStore.getState().linkResult).toBeNull();
   });

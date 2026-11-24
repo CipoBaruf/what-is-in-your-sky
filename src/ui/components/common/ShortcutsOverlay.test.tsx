@@ -69,6 +69,20 @@ describe('<ShortcutsOverlay> (FR-DESK-4)', () => {
     }
   });
 
+  it.each([
+    ['en', en],
+    ['es', es],
+  ] as const)('FR-CTRL-12: its close is the one ×, named by the %s word', (lang, catalog) => {
+    render(
+      <I18nProvider locale={lang}>
+        <ShortcutsOverlay onClose={vi.fn()} />
+      </I18nProvider>,
+    );
+    const close = screen.getByTestId('shortcuts-close');
+    expect(close).toHaveAccessibleName(catalog.shortcuts.close);
+    expect(close).toHaveTextContent('×');
+  });
+
   it('is a modal dialog that takes focus on open and gives it back on close, and closes from its button', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

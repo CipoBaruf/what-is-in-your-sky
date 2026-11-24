@@ -37,14 +37,6 @@
   cursor: inherit;
 }
 
-.badge::before {
-  content: '[';
-}
-
-.badge::after {
-  content: ']';
-}
-
 .tip {
   display: none;
   position: absolute;

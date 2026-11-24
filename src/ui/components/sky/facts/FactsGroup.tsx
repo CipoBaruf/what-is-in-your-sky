@@ -9,7 +9,7 @@ import { skyBodiesAt } from '../../../../lib/skyBodies';
 import { formatShortClock } from '../../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../../model';
 import { SectionHeading } from '../../primitives/SectionHeading';
-import { TextButton } from '../../primitives/TextButton';
+import { Close } from '../../primitives/Close';
 import { catalogDescription, type FactEntry } from '../../../../state';
 import shown from './factsShown.json';
 import type { FactsStars, FactsSubject, SkyPick } from './subject';
@@ -51,7 +51,7 @@ export default function FactsGroup({ subject, observer, at, stars = null, onClos
     <section className={styles.group} aria-labelledby={headingId} data-testid="facts-group" data-facts={subject.kind === 'satellite' ? 'satellite' : subject.pick.kind}>
       <div className={styles.head}>
         <SectionHeading id={headingId}>{subject.kind === 'satellite' ? f.satelliteHeading : f.skyHeading}</SectionHeading>
-        {onClose !== undefined && <TextButton label="×" padded tone="dim" aria-label={f.closeLabel} onClick={onClose} data-testid="facts-close" />}
+        {onClose !== undefined && <Close onClose={onClose} data-testid="facts-close" />}
       </div>
       {subject.kind === 'satellite' ? <SatelliteLines subject={subject} at={at} f={f} /> : <SkyLines pick={subject.pick} observer={observer} at={at} stars={stars} f={f} />}
     </section>

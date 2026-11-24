@@ -14,6 +14,7 @@ import { EPOCH_WARN_MS, newestEpoch } from '../../../lib/elementsAge';
 import type { Observer } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
 import { ElementsLine } from './ElementsLine';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 const records = fixtureRecords();
 const NEWEST = newestEpoch(records);
@@ -82,6 +83,8 @@ describe('<ElementsLine> (FR-SAT-4 as amended)', () => {
     render(<ElementsLine now={NEWEST + EPOCH_WARN_MS + 1000} />);
     // A stale copy is a warning on the line too (FR-SAT-6).
     expect(screen.getByTestId('elements-line')).toHaveAttribute('data-warn', 'true');
+    // FR-CTRL-13 (R224): `details` follows the line's words, so it is a link.
+    expectInlineLink(screen.getByTestId('elements-details'));
     const panel = document.getElementById(screen.getByTestId('elements-details').getAttribute('aria-controls') ?? '') as HTMLElement;
     for (const id of ['elements-age', 'stale-banner', 'epoch-banner', 'not-cached-banner', 'unavailable-banner']) expect(within(panel).getByTestId(id)).toBeInTheDocument();
     expect(within(panel).getByTestId('stale-banner')).toHaveTextContent('CelesTrak could not be reached');

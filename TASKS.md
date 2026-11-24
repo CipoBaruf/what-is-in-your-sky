@@ -370,7 +370,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `Live.tsx` and the rail (R222).
   - **Done when:** `npm run check` green; `live-playback.spec.ts` steps by pass and by time; no allow entry left under `components/sky/time/`; `npm run check:sdd` green.
 
-- [ ] **R224 — One close, links in a line, one feedback**
+- [x] **R224 — One close, links in a line, one feedback**
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 500

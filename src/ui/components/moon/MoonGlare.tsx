@@ -1,8 +1,9 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { moonGlareFacts } from '../../../lib/moonPhrases';
 import type { MoonGlare as MoonGlareVerdict, MoonState } from '../../../model';
 import { DEFAULT_MOON_GLARE_THRESHOLDS } from '../../../state';
+import { Tag } from '../primitives/Tag';
 import styles from './MoonGlare.module.css';
 
 /**
@@ -22,7 +23,7 @@ export interface MoonGlareProps {
 }
 
 /** The trigger and its tooltip; the caller supplies the visible text and the class it wears. */
-function Tip({ moon, glare, children, className, asText = false }: MoonGlareProps & { children: string; className: string | undefined; asText?: boolean }) {
+function Tip({ moon, glare, children, className, asText = false }: MoonGlareProps & { children: ReactNode; className: string | undefined; asText?: boolean }) {
   const t = useT();
   const tipId = useId();
   return (
@@ -47,7 +48,8 @@ export function MoonGlareLabel({ moon, glare, asText = false }: MoonGlareProps &
   return (
     <p className={asText ? `${styles.label} ${styles.text}` : styles.label} data-testid="moon-glare-label">
       <Tip moon={moon} glare={glare} className={styles.badge} asText={asText}>
-        {t.moon.glare.label}
+        {/* R224 (FR-CTRL-14, D-1229): the bracketed word is a `Tag`. */}
+        <Tag tone="warn">{t.moon.glare.label}</Tag>
       </Tip>
     </p>
   );

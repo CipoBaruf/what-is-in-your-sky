@@ -34,13 +34,14 @@ describe('<CloudBadge>', () => {
     ['obscured', 89, 'Likely obscured, 89 % cloud'],
   ] as const)('renders the %s state with its data-state', (state, pct, text) => {
     render(<CloudBadge verdict={verdict(state, pct)} forecast={forecast} timeZone={null} moment="at the pass peak" />);
-    const badge = screen.getByText(text);
+    // R224 (FR-CTRL-14): the words are a `Tag`, brackets and all, inside the focusable badge.
+    const badge = screen.getByText(`[${text}]`).parentElement;
     expect(badge).toHaveAttribute('data-state', state);
   });
 
   it('renders unknown without a percentage and says no forecast is available', () => {
     render(<CloudBadge verdict={verdict('unknown', null)} forecast={null} timeZone={null} moment="at the pass peak" />);
-    const badge = screen.getByText('Weather unknown');
+    const badge = screen.getByText('[Weather unknown]').parentElement;
     expect(badge).toHaveAttribute('data-state', 'unknown');
     expect(badge).toHaveAccessibleDescription(/No cloud forecast at the pass peak\. Clear below 30 %, partly cloudy 30–70 %, likely obscured above 70 %.*No forecast is available\./);
   });
@@ -52,7 +53,9 @@ describe('<CloudBadge>', () => {
     expect(tip).toHaveTextContent('30');
     expect(tip).toHaveTextContent('70');
     expect(tip).toHaveTextContent('Forecast by Open-Meteo, fetched 2026-09-10 23:05:10 GMT-3.');
-    expect(screen.getByText('Partly cloudy, 45 % cloud')).toHaveAccessibleDescription(tip.textContent ?? '');
+    // The lead `[Clouds]` is a tag for the eye, left out of the description.
+    expect(tip).toHaveTextContent(/^\[Clouds\] 45 %/);
+    expect(screen.getByText('[Partly cloudy, 45 % cloud]').parentElement).toHaveAccessibleDescription((tip.textContent ?? '').replace('[Clouds] ', ''));
     expect(tooltipText(verdict('partly', 45), forecast, null, en.weather.momentNow, en, 'en')).toContain('fetched 2026-09-11 02:05:10 UTC');
     expect(await axe(container)).toHaveNoViolations();
   });

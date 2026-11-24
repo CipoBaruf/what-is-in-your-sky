@@ -69,7 +69,8 @@ test('the pass whose Moon is up, bright and close wears the label and the guide 
   const card = page.locator(`article[data-pass-id="${GLARE_PASS}"]`).first();
   await expect(card).toContainText('moon glare');
   // FR-MOON-2: the thresholds are in the tooltip, so the label can be judged.
-  await expect(card.getByText('moon glare').first()).toHaveAccessibleDescription(/74 % lit and 8° from the pass peak.*at least 50 % lit and closer than 30°/);
+  // R224 (FR-CTRL-14): the word is a Tag inside the described label.
+  await expect(card.locator('[aria-describedby]', { hasText: 'moon glare' }).first()).toHaveAccessibleDescription(/74 % lit and 8° from the pass peak.*at least 50 % lit and closer than 30°/);
 
   await openNightOf(page, card);
   await card.getByRole('button', { name: /Open guide/ }).click();
@@ -106,7 +107,8 @@ test('the conditions table carries the Moon’s facts and the tradition line is 
   const lore = page.getByRole('region', { name: 'Moon tonight' });
   await expect(lore).toContainText('lore');
   await expect(lore).toContainText('The Moon is in Taurus');
-  await expect(lore).toHaveAccessibleName(/Moon tonight.*\[lore\]/);
+  // R224 (FR-CTRL-14): the label is a Tag; the name takes the word alone.
+  await expect(lore).toHaveAccessibleName(/Moon tonight.*lore/);
   await expect(now).not.toContainText('The Moon is in Taurus');
   // FR-MOON-3 as amended: the tradition line stands under the table.
   const [tableBox, loreBox] = await Promise.all([now.boundingBox(), lore.boundingBox()]);

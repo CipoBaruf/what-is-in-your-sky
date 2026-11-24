@@ -66,6 +66,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     busy: { type: 'boolean', text: 'The action runs: `aria-busy`, the words pulse (held dim under reduced motion), the label and the box do not change; it keeps the focus and takes no press.' },
     pressed: { type: 'boolean', text: 'An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle.' },
     inline: { type: 'boolean', text: 'Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow.' },
+    link: { type: 'boolean', text: 'An action inside a line of text: the accent words underlined, no box, the --tap hit area of an inline control (FR-CTRL-13).' },
     bare: { type: 'boolean', text: 'The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play).' },
     padded: { type: 'boolean', text: 'A cell outside the box at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it.' },
     box: { type: "'plain' | 'accent'", text: 'The box’s edge: `--control-edge` (the default), or the accent of the primary form, one per screen at most.' },
@@ -82,6 +83,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     label: { type: 'ReactNode', text: 'The link’s words.' },
     current: { type: 'boolean', text: 'The page this control stands on: a dim `aria-current` span with the same box, not a link.' },
     tab: { type: 'boolean', text: 'A header tab: dim words, `--fg` on hover; with `current`, `--fg` over a 2 px accent rule.' },
+    prose: { type: 'boolean', text: 'A link in a line of prose (the footer’s sources, the skip link): it breaks with its words.' },
     className: PLACEMENT,
   }),
   entry<OptionToggleOwnProps>('OptionToggle', 'One option, a filled block when on and the dim word when off; alone for a single on/off, or inside a ToggleGroup.', ['rest', 'hover', 'focus', 'on', 'disabled'], {

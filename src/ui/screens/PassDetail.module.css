@@ -45,16 +45,9 @@
   color: var(--fg-dim);
 }
 
+/* R224 (FR-CTRL-14): the twilight label is a dim `Tag`; this places it two cells after the date. */
 .twilight {
   margin-left: calc(2 * var(--cell));
-}
-
-.twilight::before {
-  content: '[';
-}
-
-.twilight::after {
-  content: ']';
 }
 
 /* R127 (FR-SKY-11, D-796): the landmark line under the pass's name, on both
@@ -231,18 +224,16 @@
   margin: 0;
 }
 
+/* R224 (D-1229): the disclosure laid over the readout at the row's whole size, its arrow in the cell the words leave (the live page's, R222). */
 .facingHit {
   position: absolute;
   inset: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  appearance: none;
+  display: flex;
+  align-items: center;
+}
+
+.facingWordsOpener {
+  padding-inline-start: var(--cell);
 }
 
 .facingPicker {
