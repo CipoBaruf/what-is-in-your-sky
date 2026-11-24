@@ -7,11 +7,9 @@
  * window at 1280 px turned south and tilted up, where the night's gibbous
  * Moon stands, for the disc with its phase. No text changed, so English alone.
  */
-import { expect, test, type Page } from '@playwright/test';
-import type { Theme } from '../../src/model';
+import { expect, test } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
-import { pinch } from './windowZoom';
+import { FIXTURE_DATE, PARIS } from './observers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block' });

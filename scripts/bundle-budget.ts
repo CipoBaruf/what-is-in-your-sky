@@ -510,7 +510,7 @@ export const BUDGETS: readonly Budget[] = [
   // R191 (D-178): the star catalogue (`src/data/stars/catalog.ts`) left `Stars-*.js` for a shared `catalog-*.js` when the live page's and the pass detail's globe drew the stars too (R186); the row matches both, so the catalogue stays budgeted. 30.8 on 2.14.0 (7.5 + 23.4, judged on the total) against 31.4 on 2.13; × 1.1 = 33.9, so 35 stays.
   // R198 (FR-OPEN-1, D-1174, D-1186): the zone table, `zones.txt?raw` imported by `loadZoneCity`, which Rollup names `zones-*.js`. R203 (D-178, D-1208): 6.6 on 2.16.0 (6,760 bytes), moved here from `PHASE_BUDGETS`; × 1.1 = 7.3, floored at 10 and capped at ZONE_TABLE_MAX_KB, so 9.
   { name: 'zones', match: (file) => /^zones-.*\.js$/.test(file), limitKb: ZONE_TABLE_MAX_KB },
-  { name: 'stars', match: (file) => /^(Stars|catalog)-.*\.js$/.test(file), limitKb: 35 }, // D-1054 (V212-11): 32,121 bytes, −26 against 2.12.0 — the desk's globe default paid for by the `globeSky` class switch going to a `data-view` selector; R171 (D-178): 31.4 on 2.12.0 against 29.9 on 2.11.0 (32,147 bytes against 30,611, +1,536) — the view row's third value, the globe's wiring and its named row, at GLOBE_STARS_KB; × 1.1 = 34.5, so 35 stays; R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
+  // R222 (D-1240, D-1246): the `stars` row left with `Stars-*.js`, the page's chunk; the catalogue it also matched is `PHASE_BUDGETS`'s `catalog` row until R227 measures it. The row's history: D-1054 (V212-11): 32,121 bytes, −26 against 2.12.0 — the desk's globe default paid for by the `globeSky` class switch going to a `data-view` selector; R171 (D-178): 31.4 on 2.12.0 against 29.9 on 2.11.0 (32,147 bytes against 30,611, +1,536) — the view row's third value, the globe's wiring and its named row, at GLOBE_STARS_KB; × 1.1 = 34.5, so 35 stays; R161 (D-178): 29.2 on 2.10.0 against 26.0 on 2.9.0 (29,863 bytes against 26,665, +3,198) — the `bv` column, the haze outline and the view row; × 1.1 = 32.1, up to 35 under the 40 ceiling; R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
 /**
@@ -524,7 +524,8 @@ export const BUDGETS: readonly Budget[] = [
 // R161 (D-993): empty between phases; v2.10's `stars-deep` row is in `BUDGETS` with its measure.
 // R171 (D-178, D-1042): empty again; R170's `globe` row is in `BUDGETS` with the 2.12.0 measure.
 // R203 (D-178, D-1208): empty again; v2.16's `zones` row is in `BUDGETS` with the 2.16.0 measure.
-export const PHASE_BUDGETS: readonly Budget[] = [];
+// R222 (D-1246): the star catalogue's `catalog-*.js`, which the `stars` row matched beside the page's chunk; 35 is that row's limit, kept until R227 re-sets it by D-178.
+export const PHASE_BUDGETS: readonly Budget[] = [{ name: 'catalog', match: (file) => /^catalog-.*\.js$/.test(file), limitKb: 35 }];
 
 /** Every row the script measures: the release's and the phase's. */
 const ALL_BUDGETS: readonly Budget[] = [...BUDGETS, ...PHASE_BUDGETS];

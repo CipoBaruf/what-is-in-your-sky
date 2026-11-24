@@ -11,13 +11,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
 import { domeDrawn, seedStoredRun } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block' });
 
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const VIEW_NAME = { en: { Dome: 'Dome', Polar: 'Polar', Window: 'Window' }, es: { Dome: 'Domo', Polar: 'Polar', Window: 'Ventana' } } as const;
 

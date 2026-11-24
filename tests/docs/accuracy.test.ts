@@ -264,7 +264,11 @@ describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R1
       .split('\n')
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
       .map((line) => line.split('|').map((cell) => cell.trim()));
-    const table = rows.map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }));
+    // R222 (D-1246): the `stars` row left `BUDGETS` with its chunk; R227's record drops it.
+    const LEFT = ['stars'];
+    const table = rows
+      .map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }))
+      .filter(({ name }) => !LEFT.includes(name));
     expect(table).toEqual(expect.arrayContaining(BUDGETS.map(({ name, limitKb }) => ({ name, limitKb }))));
     expect(table).toHaveLength(BUDGETS.length);
   });
