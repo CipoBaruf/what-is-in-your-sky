@@ -1,12 +1,8 @@
 /* R107 (D-725): the row — the action and its confirmation, wrapping, two
-   cells apart on one baseline — is a `Cluster` as a paragraph; this module
-   keeps the confirmation's ink alone. R104 (D-704): the action is a
+   cells apart on one baseline — is a `Cluster`; this module
+   keeps the hand-copy link's ink alone; the confirmation and the failure are
+   `StatusLine`s (R224, FR-CTRL-17). R104 (D-704): the action is a
    `TextButton` (its box, FR-CTRL-1); nothing here draws on it. */
-
-.confirmation {
-  color: var(--fg-dim);
-  overflow-wrap: anywhere;
-}
 
 .url {
   color: var(--fg);

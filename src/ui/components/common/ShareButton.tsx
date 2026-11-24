@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n/useT';
 import { Cluster } from '../primitives/Cluster';
+import { StatusLine } from '../primitives/StatusLine';
 import { TextButton } from '../primitives/TextButton';
 import styles from './ShareButton.module.css';
 
@@ -76,7 +77,7 @@ export function ShareButton({ url, title, text, label, ariaLabel }: ShareButtonP
   };
 
   return (
-    <Cluster as="p">
+    <Cluster>
       <TextButton
         label={label ?? t.share.pass}
         {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
@@ -84,15 +85,16 @@ export function ShareButton({ url, title, text, label, ariaLabel }: ShareButtonP
           void onClick();
         }}
       />
-      {/* Live from the first render, so the confirmation is announced when it arrives rather than when the region does. */}
-      <span role="status" className={styles.confirmation} data-testid="share-status">
+      {/* R224 (FR-CTRL-17): success is StatusLine `ok`, live from the first render so it is announced when it arrives;
+          a refused copy is the same failure line as every form's, with the link to copy by hand. */}
+      <StatusLine tone="ok" data-testid="share-status">
         {confirmation === 'copied' && t.share.copied}
-        {confirmation === 'failed' && (
-          <>
-            {t.share.copyFailed} <code className={styles.url}>{url}</code>
-          </>
-        )}
-      </span>
+      </StatusLine>
+      {confirmation === 'failed' && (
+        <StatusLine tone="failure" data-testid="share-failed">
+          {t.share.copyFailed} <code className={styles.url}>{url}</code>
+        </StatusLine>
+      )}
     </Cluster>
   );
 }
