@@ -75,7 +75,7 @@ import styles from './PassDetail.module.css';
  * full-screen sheet, portaled to `document.body` so that the page behind it
  * can be made inert while the sheet is not (D-117). R186 (FR-WIDE-1, D-1098):
  * wide is the desk's one shell in the home's place — `SkyViewLayout`'s box and
- * rail, the head with the name and `[ × ]`, `View`, `Time`, the page group
+ * rail, the head with the name and `×`, `View`, `Time`, the page group
  * (`sky/pass/Group.tsx`) and the home's pass list with this card highlighted;
  * the header is the app's, so neither the sheet's top row nor the scroll lock.
  * What both shells share is everything that is about the guide rather than its
@@ -364,7 +364,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   if (!compact) {
     // R188 (FR-FACT-2, US-53 AC2): `This satellite` under the times — the height from the record the store holds (FR-FACT-1).
     const satellite: FactsSubject = { kind: 'satellite', noradId: pass.noradId, name: pass.name, description: undefined, height: selectOrbitHeight(elements, pass.noradId) };
-    // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `[ × ]` back to the home, the landmark line and the date.
+    // R186 (FR-WIDE-1): the head — the pass's name as the page's `h1` with `×` back to the home, the landmark line and the date.
     const head = (
       <div className={styles.deskHead} data-testid="pass-head">
         <div className={styles.deskTitle}>

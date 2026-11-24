@@ -340,7 +340,7 @@ export function App() {
   /*
    * R186 (FR-WIDE-1, D-1098), v2.14.1 (FR-WIDE-1, FR-CLEAN-14 as amended; D-1134): on wide the satellites are a page
    * of the app's header — `page="pass"`, so `[ satellites ]` is the current link — the desk's shell with the pass list
-   * in its rail, the footer. `[ ← ]` is the page's close (`Esc`, `[ × ]`): back, or the live page where the pass was
+   * in its rail, the footer. `[ ← ]` is the page's close (`Esc`, `×`): back, or the live page where the pass was
    * the load's. A bare `#pass` is the same page with no pass (`PassEmpty`). The hash is still `#pass=<id>` (D-13).
    */
   if (passDesk) {
