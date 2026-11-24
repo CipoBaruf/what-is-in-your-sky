@@ -113,6 +113,56 @@ for (const viewport of SIZES) {
         await expect(page).toHaveURL('about:blank');
       });
     }
+
+    // R222 (FR-LAND-3, US-62 AC3, D-1240): the stars page folded into live; its address lands there, parameters kept.
+    test('FR-LAND-3: #stars opens #live with no history entry', async ({ page }) => {
+      await page.clock.setFixedTime(NINE_DAYS_ON);
+      await stubNetwork(page);
+      await page.route('**/e', (route) => route.fulfill({ status: 204 }));
+      await page.goto('about:blank');
+      const before = await page.evaluate(() => history.length);
+      await page.goto('/#stars');
+      await expect(page).toHaveURL(/\/#live$/);
+      await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
+      expect(await page.evaluate(() => history.length)).toBe(before + 1);
+    });
+
+    test('FR-LAND-3: #stars?<params> opens #live with the parameters live reads', async ({ page }) => {
+      const t = NINE_DAYS_ON + 3_600_000;
+      const params = `lat=${String(NEUQUEN.lat)}&lon=${String(NEUQUEN.lon)}&alt=0&t=${new Date(t).toISOString()}`;
+      await page.clock.setFixedTime(NINE_DAYS_ON);
+      await stubNetwork(page);
+      await page.route('**/e', (route) => route.fulfill({ status: 204 }));
+      await page.goto(`/#stars?${params}`);
+      await expect(page).toHaveURL(new RegExp(`/#live\\?lat=${String(NEUQUEN.lat)}&lon=${String(NEUQUEN.lon)}&alt=0&t=`));
+      await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
+      // The link's place is the observer, and on a desk its instant is the one shown, paused (FR-LIVE-9).
+      await expect(page.getByTestId('place-line')).toContainText(`${NEUQUEN.lat.toFixed(2).replace('-', '−')}`);
+      if (viewport.width >= 1280) {
+        await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+        await expect.poll(() => shownInstant(page.getByTestId('live-layout'))).toBe(t);
+      }
+    });
+
+    // R222 (FR-LAND-5, US-62 AC2): no stored place and, in UTC, no city for an example — the place group in the box.
+    test('FR-LAND-5: with no place and no example the box holds the place group under the tagline', async ({ page }) => {
+      await page.clock.setFixedTime(NINE_DAYS_ON);
+      await stubNetwork(page);
+      await page.route('**/e', (route) => route.fulfill({ status: 204 }));
+      await page.goto('/');
+      const box = page.getByTestId('live-inert');
+      await expect(box).toHaveAttribute('data-inert', 'no-place', { timeout: 30_000 });
+      const group = box.getByTestId('live-no-place').getByTestId('live-place-group');
+      await expect(group).toBeVisible();
+      await expect(group.getByRole('heading', { level: 2 })).toBeVisible();
+      const tagline = await box.getByTestId('live-tagline').boundingBox();
+      const card = await group.boundingBox();
+      if (!tagline || !card) throw new Error('the place group is not laid out');
+      expect(tagline.y + tagline.height, 'the tagline above the group').toBeLessThanOrEqual(card.y + 1);
+      // The wide header's place line (FR-LAND-4); the compact header has none, its place line is the sheet's, and the
+      // inert page has no sheet — the group itself is in the box.
+      if (viewport.width >= 1280) await expect(page.getByTestId('header').getByTestId('place-line')).toContainText('Set your place');
+    });
   });
 }
 
