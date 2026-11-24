@@ -1,7 +1,8 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { searchPlaces, useAppStore } from '../../../state';
+import { count } from '../../../state/measure';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useOwnObserver } from '../../hooks/useOwnObserver';
 import { LocationInput, type LocationInputProps } from '../location/LocationInput';
@@ -15,6 +16,7 @@ import styles from './PlaceGroup.module.css';
  * R222 (FR-LAND-5, US-62 AC2): with no stored place and no example the live page draws the place group in the sky's
  * box, the tagline above it — the place dialog's group (`PlaceDialog`, D-1238) in a card rather than a modal frame.
  * A searched place, the device's, or a saved one is set as it arrives; a typed pair waits for `continue`, as there.
+ * It is the fallback's place group, so it counts `where_shown` with `fallback` as it is drawn (FR-MEAS-2 as amended).
  */
 export interface PlaceGroupProps {
   search?: PlaceSearchFn;
@@ -29,6 +31,9 @@ export function PlaceGroup({ search = searchPlaces, geolocation }: PlaceGroupPro
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const [typed, setTyped] = useState<Observer | null>(null);
+  useEffect(() => {
+    count('where_shown', 'fallback');
+  }, []);
   const onObserver = (next: Observer | null): void => {
     if (next?.source === 'coords') {
       setTyped(next);

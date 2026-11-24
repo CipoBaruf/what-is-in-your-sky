@@ -136,9 +136,10 @@ for (const language of [
         const bodies = await recordBeacons(page);
         await serve(page);
         await page.goto('/');
-        await page.getByTestId('live-set-place').click({ timeout: 60_000 });
-        const dialog = page.getByTestId('place-dialog');
-        await pickCipolletti(page, dialog);
+        // R222 (FR-LAND-5): with no example the place group stands in the sky's box, no dialog to open.
+        const group = page.getByTestId('live-place-group');
+        await expect(group).toBeVisible({ timeout: 60_000 });
+        await pickCipolletti(page, group);
         await expect.poll(() => walked(bodies).length).toBe(4);
         await painted(page);
 

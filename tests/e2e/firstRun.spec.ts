@@ -44,7 +44,7 @@ async function open(page: Page): Promise<{ hosts: Set<string>; forecasts: URL[] 
 /** The example is the page's: on a desk the header's place line reads it; on a phone the live page draws the sky. */
 async function exampleShown(page: Page, wide: boolean, word: string): Promise<void> {
   await expect(page.getByTestId('live-layout')).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId('live-set-place')).toHaveCount(0);
+  await expect(page.getByTestId('live-no-place')).toHaveCount(0);
   if (!wide) return;
   const line = page.getByTestId('header').getByTestId('place-line');
   await expect(line).toHaveAttribute('data-place', 'example', { timeout: 60_000 });
@@ -161,13 +161,16 @@ test.describe('when there is no example (FR-OPEN-6)', () => {
     test.describe(`no city (Etc/UTC), at ${size(viewport)}`, () => {
       test.use({ viewport, timezoneId: 'Etc/UTC', locale: 'en-GB' });
 
-      test('the live page asks for a place, with no example line', async ({ page }) => {
+      // R222 (FR-LAND-5, US-62 AC2): no city, so the sky's box holds the place group under the tagline.
+      test('the live page draws the place group in the box, the tagline above it, with no example line', async ({ page }) => {
         await open(page);
         await expect(page).toHaveURL(/#live$/);
-        const ask = page.getByTestId('live-set-place');
-        await expect(ask).toBeVisible({ timeout: 60_000 });
-        await ask.click();
-        await expect(page.getByTestId('place-dialog')).toBeVisible();
+        const group = page.getByTestId('live-place-group');
+        await expect(group).toBeVisible({ timeout: 60_000 });
+        await expect(group.getByRole('combobox').first()).toBeVisible();
+        const tagline = await page.getByTestId('live-tagline').boundingBox();
+        const card = await group.boundingBox();
+        expect(tagline && card && tagline.y + tagline.height <= card.y + 1).toBe(true);
         await expect(page).toHaveURL(/#live$/);
       });
     });

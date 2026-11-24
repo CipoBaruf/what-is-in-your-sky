@@ -83,7 +83,17 @@ for (const viewport of VIEWPORTS) {
         await page.getByRole('button', { name: 'Zoom in' }).click();
         expect(await stored(page)).toMatchObject({ chartView: 'globe', starLayers: { stars: true, figures: false, planets: true }, namesChoice: false, faintStars: true, globeTurn: 'stars', windowFov: 48 });
         expect((await stored(page))['globeZoom']).toBeGreaterThan(1);
-        const radius = await page.locator('[data-globe] [data-disc]').getAttribute('r');
+        // The zoom eases in: the radius is read once it holds still.
+        const disc = page.locator('[data-globe] [data-disc]');
+        let radius = await disc.getAttribute('r');
+        await expect
+          .poll(async () => {
+            const was = radius;
+            await page.waitForTimeout(150);
+            radius = await disc.getAttribute('r');
+            return was === radius;
+          }, { timeout: 5_000 })
+          .toBe(true);
         await page.reload();
         await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
         await expect(sky(page)).toHaveAttribute('data-view', 'globe');
@@ -119,11 +129,16 @@ for (const viewport of VIEWPORTS) {
     test('FR-KEEP-2: a reload opens at the opening aim', async ({ page }) => {
       await openLiveSky(page);
       if (wide) {
-        await page.getByTestId('globe-box').focus();
-        await page.keyboard.press('Home');
         await page.waitForTimeout(200);
         const aim = await zenith(page);
-        await page.keyboard.press('ArrowRight');
+        // R222: on the live page the arrow keys step the instant (FR-LIVE-4), so the globe is turned by hand.
+        const globe = await page.getByTestId('globe-box').boundingBox();
+        if (!globe) throw new Error('no globe');
+        const [cx, cy] = [globe.x + globe.width / 2, globe.y + globe.height / 2];
+        await page.mouse.move(cx, cy);
+        await page.mouse.down();
+        await page.mouse.move(cx + 120, cy + 60, { steps: 6 });
+        await page.mouse.up();
         await expect.poll(() => zenith(page)).not.toBe(aim);
         await page.reload();
         await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
