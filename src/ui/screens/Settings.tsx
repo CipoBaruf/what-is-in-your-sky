@@ -6,6 +6,8 @@ import { InstallAction } from '../components/common/InstallAction';
 import { useInstallOffer, type InstallEnv } from '../components/common/installEnv';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
+import { SettingRow } from '../components/primitives/SettingRow';
+import { Stack } from '../components/primitives/Stack';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ClearSavedLocation } from '../components/location/ClearSavedLocation';
 import { Favourites } from '../components/location/Favourites';
@@ -98,7 +100,7 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
   };
 
   return (
-    <>
+    <Stack gap="group">
         <div className={styles.location} data-rhythm="group" onClickCapture={openCoordsForLink}>
           <LocationInput
             observer={observer}
@@ -136,29 +138,25 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
 
         <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser" data-rhythm="group">
           <SectionHeading id={browserId}>{t.settings.browser}</SectionHeading>
-          <div className={styles.rows}>
-            {/* The visible labels are for the eye; each control is already a group named by the same word. */}
-            <span className={styles.label} aria-hidden="true">
-              {t.app.language}
-            </span>
-            <LanguageToggle />
-            <span className={styles.label} aria-hidden="true">
-              {t.app.theme}
-            </span>
-            <ThemeToggle />
+          {/* R225 (FR-DS-12, US-65 AC8): SettingRows, the labels in one --label-col column, the rows --gap-row apart.
+              The labels are for the eye; each control is already a group named by the same word. */}
+          <div>
+            <SettingRow label={<span aria-hidden="true">{t.app.language}</span>}>
+              <LanguageToggle />
+            </SettingRow>
+            <SettingRow label={<span aria-hidden="true">{t.app.theme}</span>}>
+              <ThemeToggle />
+            </SettingRow>
             {canInstall && (
-              <>
-                <span className={styles.label} aria-hidden="true">
-                  {t.settings.installLabel}
-                </span>
+              <SettingRow label={<span aria-hidden="true">{t.settings.installLabel}</span>}>
                 <span className={styles.install} data-testid="settings-install">
                   <InstallAction bare {...(installEnv ? { env: installEnv } : {})} />
                 </span>
-              </>
+              </SettingRow>
             )}
           </div>
         </section>
-    </>
+    </Stack>
   );
 }
 

@@ -373,7 +373,7 @@
 | FR-CTRL-7 | `src/ui/components/primitives/Field.test.tsx`, `tests/e2e/place-search.spec.ts`, `tests/styles/focus.test.ts` |
 | FR-CTRL-8 | `src/ui/components/primitives/Close.test.tsx`, `tests/e2e/settings.spec.ts` |
 | FR-CTRL-9 | `src/ui/components/guide/skychart/globe/SkyGlobe.test.tsx`, `src/ui/components/guide/skychart/window/SkyWindow.zoom.test.tsx`, `src/ui/components/primitives/ZoomKeys.test.tsx`, `src/ui/components/sky/SkyHint.test.tsx`, `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/globe.spec.ts`, `tests/e2e/window-zoom.spec.ts` |
-| FR-CTRL-10 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/live-rail.spec.ts`, `tests/e2e/pass-page.spec.ts` |
+| FR-CTRL-10 | `src/ui/components/sky/SkyViewLayout.test.tsx`, `tests/e2e/live-rail.spec.ts`, `tests/e2e/one-scroll.spec.ts`, `tests/e2e/pass-page.spec.ts` |
 | FR-CTRL-11 | `src/ui/components/primitives/BracketLink.test.tsx`, `src/ui/components/primitives/manifest.test.ts` |
 | FR-CTRL-12 | `src/ui/components/common/ShortcutsOverlay.test.tsx`, `src/ui/components/primitives/Close.test.tsx`, `tests/styles/controls.test.ts` |
 | FR-CTRL-13 | `src/ui/components/primitives/TextButton.test.tsx` |
@@ -405,7 +405,7 @@
 | FR-DS-8 | `src/ui/components/guide/skychart/dome/palette.test.tsx`, `tests/styles/tokens.test.ts` |
 | FR-DS-10 | `tests/styles/tokens.test.ts` |
 | FR-DS-11 | `tests/styles/controls.test.ts` |
-| FR-DS-12 | `src/ui/components/primitives/SettingRow.test.tsx`, `src/ui/components/primitives/Stack.test.tsx` |
+| FR-DS-12 | `src/ui/components/primitives/SettingRow.test.tsx`, `src/ui/components/primitives/Stack.test.tsx`, `tests/e2e/rhythm.spec.ts` |
 | FR-DS-13 | `src/ui/components/primitives/manifest.test.ts` |
 | FR-FACT-1 | `src/lib/orbitHeight.test.ts`, `src/state/slices/elements.test.ts`, `src/ui/components/sky/facts/FactsGroup.test.tsx` |
 | FR-FACT-2 | `src/ui/components/sky/facts/FactsGroup.test.tsx`, `tests/e2e/live.spec.ts` |
@@ -784,5 +784,5 @@
 | US-62 | `src/ui/App.structure.test.tsx`, `src/ui/components/common/Header.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | US-63 | `src/ui/components/live/NextPassStrip.test.tsx`, `src/ui/screens/Live.test.tsx`, `tests/e2e/live-strip.spec.ts` |
 | US-64 | `src/ui/screens/Settings.test.tsx` |
-| US-65 | `tests/e2e/location.spec.ts`, `tests/e2e/pass-list.spec.ts`, `tests/e2e/place-search.spec.ts` |
+| US-65 | `tests/e2e/location.spec.ts`, `tests/e2e/one-scroll.spec.ts`, `tests/e2e/pass-list.spec.ts`, `tests/e2e/place-search.spec.ts`, `tests/e2e/rhythm.spec.ts` |
 | US-66 | `tests/e2e/update-banner.spec.ts` |
