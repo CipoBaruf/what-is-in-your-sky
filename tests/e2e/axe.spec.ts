@@ -17,7 +17,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { NINE_DAYS_ON } from './observers';
 import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
-import { LONDON, openStarsPage, showGlobe } from './globeHelpers';
+import { openLiveSky, showGlobe } from './globeHelpers';
 import { clickFirstRowMark } from './factsHelpers';
 import { seedThreePasses } from './threePasses';
 import { WIDE_MIN_PX } from '../../src/lib/layout';
@@ -140,21 +140,22 @@ const SCREENS: { name: string; wideOnly?: boolean; open: (page: Page, theme: The
     },
   },
   {
-    name: '#stars, a star’s facts',
+    // R222 (FR-LAND-3): the stars page folded into live; a star's facts open in the live page's rail.
+    name: '#live, a star’s facts',
     wideOnly: true,
     open: async (page, theme) => {
-      await openStarsPage(page, { theme });
+      await openLiveSky(page, { theme });
       await expect(page.locator('svg[data-globe][viewBox]')).toBeAttached({ timeout: 30_000 });
       await clickFirstRowMark(page);
-      await expect(page.getByTestId('stars-group').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('live-layout').getByTestId('facts-group')).toBeVisible({ timeout: 30_000 });
     },
   },
-  // R170 (FR-GLOBE-16, D-1042): the stars page with the globe shown, its rail's groups and list, a saved place among them, in both languages.
+  // R170 (FR-GLOBE-16, D-1042), R222 (FR-LAND-3): the live page with the globe shown — Turn, the layers and Up from — in both languages.
   ...((['en', 'es'] as const).map((locale) => ({
-    name: `#stars, the globe (${locale})`,
+    name: `#live, the globe's groups (${locale})`,
     wideOnly: true,
     open: async (page: Page, theme: Theme) => {
-      await openStarsPage(page, { locale, theme, favourites: [LONDON] });
+      await openLiveSky(page, { locale, theme });
       await showGlobe(page, locale);
     },
   }))),

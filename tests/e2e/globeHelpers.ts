@@ -1,68 +1,52 @@
 /**
- * R170 (FR-GLOBE-1, FR-GLOBE-9; D-1042): the wide stars page with the globe shown, for `globe.spec.ts`,
- * `globe-perf.spec.ts` and `axe.spec.ts` — the stars page opened over Neuquén on the suite's night with the network
- * refused, optionally a saved place, then `Globe` pressed and the globe drawn.
+ * R170 (FR-GLOBE-1, FR-GLOBE-9; D-1042), on the live page since R222 (FR-LAND-3, D-1240): the wide sky with the globe
+ * shown, for `globe.spec.ts`, `globe-perf.spec.ts`, `axe.spec.ts` and the specs that read the stars' groups — the live
+ * page opened over the stored run's Neuquén on the suite's night, optionally a saved place, and its opening view drawn.
  */
 import { expect, type Page } from '@playwright/test';
 import { favouriteCellKey } from '../../src/data/favourites';
 import type { Observer } from '../../src/model';
-import { NEUQUEN, NINE_DAYS_ON } from './observers';
-
-const PREFS_KEY = 'wiys:prefs:v1';
-const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
+import { NINE_DAYS_ON, seedStoredRun } from './liveHelpers';
 
 /** FR-GLOBE-9's saved place for the specs: London, in a zone of its own. */
 export const LONDON: Observer = { lat: 51.51, lon: -0.13, altM: 0, label: 'London', source: 'coords', timeZone: 'Europe/London' };
 
 export const GLOBE_WORD = { en: 'Globe', es: 'Globo' } as const;
 
-export interface StarsSeed {
+export interface SkySeed {
   locale?: 'en' | 'es';
   theme?: 'dark' | 'night';
   favourites?: readonly Observer[];
-  /** `'fixed'` (the default): `setFixedTime`, the timers and frames real; `'installed'`: the fake clock, running, for `pauseAt`. */
-  clock?: 'fixed' | 'installed';
 }
 
-/** The stars page over Neuquén on the suite's night, its opening view drawn: the globe on a desk (FR-GLOBE-1 as amended, V212-11), the window on a phone. */
-export async function openStarsPage(page: Page, { locale = 'en', theme = 'dark', favourites = [], clock = 'fixed' }: StarsSeed = {}): Promise<void> {
-  if (clock === 'installed') await page.clock.install({ time: NINE_DAYS_ON });
-  else await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
+/** The live page over Neuquén on the suite's night, its opening view drawn: the globe on a desk (FR-LAND-2), the window on a phone. */
+export async function openLiveSky(page: Page, { locale = 'en', theme = 'dark', favourites = [] }: SkySeed = {}): Promise<void> {
   const saved = favourites.map((observer, i) => ({ cellKey: favouriteCellKey(observer), observer, addedAt: NINE_DAYS_ON - 1_000, lastUsedAt: NINE_DAYS_ON - 1_000 * (i + 1) }));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale, theme, observer: NEUQUEN, favourites: saved })] as [string, string],
-  );
-  await page.goto('/#stars');
-  await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
+  await seedStoredRun(page, { locale, settled: true, prefs: { theme, favourites: saved, chartView: undefined } });
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
+  await expect(page.getByTestId('live-page')).toBeVisible({ timeout: 30_000 });
   if ((page.viewportSize()?.width ?? 0) >= 964) await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
   else await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
 }
 
-/**
- * FR-GLOBE-1 as amended (V212-11, D-1054): a desk opens the stars page on the globe, so the specs written for the
- * window press `Window` after the open; on a phone the page is on the window already and nothing is pressed.
- */
+/** The live page's view row. */
+const viewRow = (page: Page) => page.getByTestId('live-layout').getByRole('group', { name: /^(Chart view|Vista del gráfico)$/ });
+
+/** `Window` pressed where the page opened on the globe; on a phone the page is on the window already and nothing is pressed. */
 export async function onWindow(page: Page): Promise<void> {
-  const sky = page.getByTestId('stars-sky');
+  const sky = page.getByTestId('sky-chart');
   await expect(sky).toBeAttached({ timeout: 30_000 });
   if ((await sky.getAttribute('data-view')) !== 'globe') return;
-  await page.getByTestId('stars-view-row').getByRole('button', { name: /^(Window|Ventana)$/ }).click();
+  await viewRow(page).getByRole('button', { name: /^(Window|Ventana)$/ }).click();
   await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
 }
 
-/** `Globe` pressed in the view row, the globe drawn (its disc in the SVG) and the rail's groups in. */
+/** `Globe` pressed in the view row (if it is not the view already), the globe drawn (its disc in the SVG) and `Turn` in the rail. */
 export async function showGlobe(page: Page, locale: 'en' | 'es' = 'en'): Promise<void> {
-  await page.getByTestId('stars-view-row').getByRole('button', { name: GLOBE_WORD[locale] }).click();
+  if ((await page.getByTestId('sky-chart').getAttribute('data-view')) !== 'globe') await viewRow(page).getByRole('button', { name: GLOBE_WORD[locale] }).click();
   await expect(page.getByTestId('globe-box')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-globe] > *').first()).toBeAttached({ timeout: 30_000 });
-  await expect(page.getByTestId('stars-group')).toBeVisible({ timeout: 30_000 });
-}
-
-/** The globe's instant: the clock's `data-at` (FR-GLOBE-8; back from R187's overview slider by D-1138). */
-export async function globeAt(page: Page): Promise<number> {
-  return Number(await page.getByTestId('stars-time').getByTestId('globe-clock').getAttribute('data-at'));
+  await expect(page.getByTestId('globe-turn')).toBeVisible({ timeout: 30_000 });
 }
