@@ -3,6 +3,7 @@
  * US-24 AC3, AC4): the six stepping buttons in the order the requirement lists
  * them — the pass jumps, the chunk arrows, the minute steps — the ends that
  * disable rather than disappear, and the row's width in cells, both languages.
+ * R223 (FR-CTRL-16, D-1298): each is FR-CTRL-1's box, and the boxed row fits the wide rail.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -11,6 +12,7 @@ import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
+import { RAIL_MIN_CELLS } from '../../../lib/layout';
 import { CHUNK_MS, HOUR_MS, STRIPE_CHUNK_H, type Span } from '../../../lib/timeStripe';
 import type { Pass } from '../../../model';
 import { StepControls } from './StepControls';
@@ -21,9 +23,8 @@ const golden = goldenPassFixture();
 const rising = (id: string, atMs: number): Pass => ({ ...golden, id, start: { ...golden.start, t: START + atMs }, end: { ...golden.end, t: START + atMs + 10 * 60_000 } });
 const passes = [rising('a', HOUR_MS), rising('b', 6 * HOUR_MS)];
 
-/** FR-COMP-4 as amended v1.4: the stepping row's budget is 35 cells — the labels and one cell between each pair. */
-const BUDGET = 35;
-const cells = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + [...label].length, 0) + labels.length - 1;
+/** D-1298: a boxed label is its words and a cell each side (FR-CTRL-1), the boxes half a cell apart; the row stands in the wide rail. */
+const cells = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + [...label].length + 2, 0) + (labels.length - 1) / 2;
 
 describe('<StepControls>', () => {
   it('is FR-SPAN-3s six in its order: the pass jumps, the chunk arrows and the minute steps', async () => {
@@ -73,7 +74,19 @@ describe('<StepControls>', () => {
     expect(onStep).toHaveBeenLastCalledWith(span.end - CHUNK_MS);
   });
 
-  it('speaks Spanish, and the row fits 35 cells in both languages (FR-I18N-2, FR-COMP-4)', () => {
+  it('FR-CTRL-16: the six are the primitive’s boxed buttons, not controls of the row’s own', () => {
+    const { container } = render(<StepControls t={START} span={span} passes={passes} onStep={vi.fn()} />);
+    const buttons = [...container.querySelectorAll('button')];
+    expect(buttons).toHaveLength(6);
+    // TextButton's plain form: the button is the hit box, the drawn box the one span inside it, the words in it.
+    for (const button of buttons) {
+      expect(button.children).toHaveLength(1);
+      expect(button.firstElementChild?.tagName).toBe('SPAN');
+      expect(button.firstElementChild?.textContent).toBe(button.textContent);
+    }
+  });
+
+  it('speaks Spanish, and the boxed row fits the wide rail in both languages (FR-I18N-2, D-1298)', () => {
     render(
       <I18nProvider locale="es">
         <StepControls t={START} span={span} passes={passes} onStep={vi.fn()} />
@@ -83,7 +96,7 @@ describe('<StepControls>', () => {
     expect(screen.getByRole('button', { name: 'Pasada siguiente' })).toHaveTextContent('sale ▶|');
     expect(screen.getByRole('button', { name: 'Cuatro horas adelante' })).toHaveTextContent('4h ▶');
     for (const catalog of [en, es]) {
-      expect(cells(Object.values(catalog.live.step))).toBeLessThanOrEqual(BUDGET);
+      expect(cells(Object.values(catalog.live.step))).toBeLessThanOrEqual(RAIL_MIN_CELLS);
       // The chunk buttons say the hours the stripe actually draws.
       expect(catalog.live.step.forwardChunk).toContain(`${String(STRIPE_CHUNK_H)}h`);
       expect(catalog.live.step.backChunk).toContain(`${String(STRIPE_CHUNK_H)}h`);

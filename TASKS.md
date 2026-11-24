@@ -352,7 +352,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** `components/sky/time/**` (R223).
   - **Done when:** `npm run check` and `npm run check:dead` green; `landing.spec.ts` gains `#stars` and `#stars?<params>`; an e2e toggles each layer on `#live` at both widths; `live-rail.spec.ts` reads all seven groups at 1280 × 800 and the compact sheet's order; the no-place e2e sees the place group in the box; `npm run check:sdd` green.
 
-- [ ] **R223 — The time row's buttons**
+- [x] **R223 — The time row's buttons** (the times row was already `PickRow`s from R221, D-1294; the stepping row lives in `components/live/`)
   - **Lane:** window
   - **Tier:** standard
   - **Turns:** 300
