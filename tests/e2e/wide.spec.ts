@@ -174,7 +174,7 @@ async function openDeskPage(page: Page, target: DeskPage, locale: 'en' | 'es'): 
  * The page's rows, `#root`'s own children that carry its content: the header, `main` and the footer, plus the
  * page notices where they say something. Every expected row must be there, so a row moved out of `#root` fails.
  */
-async function contentRows(page: Page, target: DeskPage): Promise<{ name: string; x: number; width: number }[]> {
+async function contentRows(page: Page): Promise<{ name: string; x: number; width: number }[]> {
   // R186 (FR-WIDE-1): the live page is in the shell, inside `main`, with the header and the footer as every page.
   const required = ['#root > header', '#root > main', '#root > footer'];
   const rows = await page.evaluate((selectors) => selectors.map((selector) => {
@@ -209,7 +209,7 @@ test.describe('FR-CLEAN-12: one width on a desk (D-1003)', { tag: SEEDS_ITSELF }
             await openDeskPage(page, target, locale);
             const cell = await cellPx(page);
             const capped = Math.min(width, 160 * cell);
-            const rows = await contentRows(page, target);
+            const rows = await contentRows(page);
             for (const row of rows) {
               expect(Math.abs(row.width - capped), `${row.name} is ${String(row.width)} px, not ${String(capped)}`).toBeLessThanOrEqual(1);
               expect(Math.abs(row.x - (width - row.width) / 2), `${row.name} is not centred`).toBeLessThanOrEqual(1);

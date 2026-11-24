@@ -10,7 +10,6 @@
   "failure-line.spec.ts": 46.4,
   "faint.spec.ts": 25.4,
   "favourites.spec.ts": 14.4,
-  "first-step-screen.spec.ts": 3.8,
   "firstRun.spec.ts": 147.3,
   "focus.spec.ts": 19.9,
   "follow-ask.spec.ts": 290,
@@ -18,8 +17,6 @@
   "footer-every-page.spec.ts": 152.9,
   "fullscreen.spec.ts": 25.4,
   "globe.spec.ts": 58.5,
-  "home-desk.spec.ts": 183.7,
-  "home.spec.ts": 31.4,
   "identity.spec.ts": 45.5,
   "install-snooze.spec.ts": 3.4,
   "keep.spec.ts": 20,
@@ -64,7 +61,6 @@
   "sky-dome.spec.ts": 13.7,
   "sky-layout.spec.ts": 907.7,
   "sky-window.spec.ts": 80.4,
-  "stars.spec.ts": 19,
   "streaming.spec.ts": 8.5,
   "structure.spec.ts": 76.9,
   "targets.spec.ts": 312.2,
@@ -72,7 +68,6 @@
   "update-banner.spec.ts": 1,
   "visit.spec.ts": 8.3,
   "weather.spec.ts": 13.2,
-  "whole-sky.spec.ts": 34.2,
   "wide.spec.ts": 303.2,
   "window-zoom.spec.ts": 24
 }

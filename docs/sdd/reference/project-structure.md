@@ -24,7 +24,7 @@ what-is-in-your-sky-right-now/          # redrawn from `git ls-files` at 498a0ca
 │   ├── lib/  (76)                      # presentation helpers, pure, one module per question with its test beside it: compass, phrases, format, passSort, cloudVerdict, skyGeometry, skyBodies (its own chunk, D-148), shareLinks, layout, shortcuts, moonPhrases, readiness, flags, legend, timeStripe, arcReveal, installSnooze, declination, nextEvent, tonightStripe, passPath, moonNote, faint, nights, playback, routeTitle, …
 │   └── ui/
 │       ├── App.tsx  Shell.tsx  RootBoundary.tsx  navigation.ts   # and their .module.css
-│       ├── screens/  (51)              # Home.tsx and home/ (the doors and the steps of the first run, FR-FIRST-1..11), PassDetail.tsx, Live.tsx + LiveRoute.ts + liveRows.ts, Stars.tsx + StarsRoute.ts + stars/ + starsChunk.ts, Settings.tsx + SettingsRoute.tsx + settingsChunk.ts, passSelection.ts (hash ↔ selected pass, D-13/D-33)
+│       ├── screens/  (51)              # Home.tsx and home/ (the doors and the steps of the first run, FR-FIRST-1..11), PassDetail.tsx, Live.tsx + LiveRoute.ts + liveRows.ts (the stars' groups since R222, in components/live/), Settings.tsx + SettingsRoute.tsx + settingsChunk.ts, passSelection.ts (hash ↔ selected pass, D-13/D-33)
 │       ├── components/
 │       │   ├── primitives/  (38)       # *(v2.3, D-703)* the primitives, one .tsx + .module.css each (twelve at this commit), manifest.ts and its test; OptionToggle and SectionHeading moved here from common/
 │       │   ├── common/  (39)           # Header, Footer (the attributions, FR-X-2), Banner, Countdown, FailureLine (FR-FAIL), InstallAction + InstallHint + installEnv + installOffer, LanguageToggle, ThemeToggle, ReadinessLine, ShareButton, ShortcutsOverlay, UpdateBanner, VisitNotice
@@ -115,7 +115,6 @@ src/ui/components/guide/skychart/window/deepField.ts (+ test)        # D-974: th
 src/data/stars/deep.json, src/data/stars/milkyWay.json              # D-973: build outputs, committed
 src/data/stars/deepChunk.ts                                          # D-973: the lazy `stars-deep` chunk
 src/ui/styles/theme.ts (resolveTheme)                                # D-972
-tests/e2e/whole-sky.spec.ts                                          # the view row, the outline, the handoff (§9.12)
 ```
 
 **v2.11 additions** *(FR-CLEAN)*
