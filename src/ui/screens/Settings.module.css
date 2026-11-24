@@ -12,8 +12,8 @@
 .page {
   display: grid;
   align-content: start;
-  /* R134 (FR-FLOW-10, D-851): Location, Saved places and This browser are groups (`data-rhythm`), `--space-3` apart. */
-  gap: var(--space-3);
+  /* R225 (FR-DS-12, D-1304): Location, Saved places and This browser are groups (`data-rhythm`), `--gap-group` apart:
+     the page's `Stack`, its one child, sets the gap. */
   padding-top: calc(0.5 * var(--row));
   padding-bottom: 0;
 }
@@ -74,29 +74,11 @@
   margin-bottom: 0;
 }
 
-/* R75 (FR-SET-1, D-445): one heading over three label-and-control rows. The
-   labels are one column as wide as the longest of them in this language, so
-   the three controls start on one edge. */
+/* R75 (FR-SET-1, D-445) → R225 (FR-DS-12): one heading over the browser's SettingRows, whose labels stand in the
+   one --label-col column and whose rows are --gap-row apart (the primitive's). */
 .browser {
   display: grid;
   gap: 0;
-}
-
-.rows {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: center;
-  column-gap: var(--cell);
-}
-
-.rows > * {
-  min-height: var(--tap);
-  display: flex;
-  align-items: center;
-}
-
-.label {
-  color: var(--fg-dim);
 }
 
 .install {
@@ -115,12 +97,12 @@
   }
 
   /* R166 (FR-CLEAN-15, V211-10): on a desk the page breathes. FR-SET-2's fit is the phone's 844 px; the desk has the
-     room, so the three sections stand a section gap apart as the home's do (FR-FLOW-10), each heading's rule
-     `--space-2` above its first row, the rows inside a section one text row apart, and the footer a section gap
+     room, so each heading's rule stands `--space-2` above its first row, the blocks inside the Location and Saved
+     places sections one text row apart, and the footer a section gap. R225 (FR-DS-12, D-1304): the sections are
+     `--gap-group` apart at every width, and the browser's SettingRows `--gap-row`;
      under the last section (D-1023: the footer's row, where the privacy line stood). The page is one of the wide shell's panes (D-119): what no longer fits a short window
      scrolls inside it, never the page. Widths and controls are untouched; compact keeps the rules above. */
   .page {
-    gap: var(--space-5);
     padding-bottom: var(--space-5);
     min-height: 0;
     overflow-y: auto;
@@ -133,10 +115,6 @@
   /* The heading's rule sits `--space-2` over the first row: the section's row gap less the difference. */
   .page section > h2 {
     margin-bottom: calc(var(--space-2) - var(--space-3));
-  }
-
-  .rows {
-    row-gap: var(--space-3);
   }
 
   /* The phone sets a field's label, box and help line flush (`gap: 0`, FR-SET-2's fit), and the focus ring, drawn
