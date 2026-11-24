@@ -626,7 +626,7 @@ describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %
  * label column and a control column. A label-and-control row is as wide as the
  * *longest* label in that language, one cell of gap, and its control: the
  * labels are one grid column, so a short label still reserves the long one's
- * width. R225 (FR-DS-12, D-1305): the browser's three rows are SettingRows now, the label column `--label-col`;
+ * width. R225 (FR-DS-12, D-1304): the browser's three rows are SettingRows now, the label column `--label-col`;
  * `rhythm.spec.ts` measures them on the page (one height, the labels one column), so their cases here went.
  */
 describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (locale: Locale) => {

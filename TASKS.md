@@ -387,7 +387,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the settings page's rhythm (R225).
   - **Done when:** `npm run check` green; every allow list is `{}`; every close is `Close` with its name in both languages; a test per inline action that it is a link with the `--tap` hit area; `npm run check:sdd` green.
 
-- [ ] **R225 — One rhythm on every page**
+- [x] **R225 — One rhythm on every page**
   - **Lane:** ui
   - **Tier:** standard
   - **Turns:** 300

@@ -84,7 +84,7 @@ for (const size of SIZES) {
     test.use({ viewport: size });
 
     for (const which of PAGES) {
-      test(`FR-CTRL-10: the ${which} page has no scroll inside a scroll`, async ({ page }) => {
+      test(`FR-CTRL-10, US-65 AC7: the ${which} page has no scroll inside a scroll`, async ({ page }) => {
         await open(page, which);
         expect(await nestedScrolls(page)).toEqual([]);
       });

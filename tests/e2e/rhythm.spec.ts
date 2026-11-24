@@ -295,7 +295,7 @@ for (const size of RHYTHM_SIZES) {
     test.describe(`FR-DS-12 at ${String(size.width)} × ${String(size.height)}, ${locale}`, () => {
       test.use({ viewport: size });
 
-      test('FR-DS-12: the settings page’s browser group is rows of one height, --gap-row apart, the labels in one column', async ({ page }) => {
+      test('FR-DS-12, US-65 AC8: the settings page’s browser group is rows of one height, --gap-row apart, the labels in one column', async ({ page }) => {
         await openFlowPage(page, 'settings', locale);
         const measured = await oneRhythm(page, { selector: '#root > main', up: 0 }, '[data-rhythm="group"]');
         expect(measured.problems).toEqual([]);
