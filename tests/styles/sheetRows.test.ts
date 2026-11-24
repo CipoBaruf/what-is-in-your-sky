@@ -135,7 +135,7 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     inLocale(locale, createElement(ControlsSheet, { open: true, onOpenChange: () => undefined, place: { label: 'Montevideo', example: true } }));
     const line = screen.getByTestId('sheet-place');
     // The place line as controlRows.test.ts counts it on the satellites list (R215): a ten-letter city stays whole.
-    expect(rowParts(line, table)).toEqual(['Montevideo', `· ${t.header.place.example}`, `##${t.header.place.change}`]);
+    expect(rowParts(line, table)).toEqual(['Montevideo', `· ${t.header.place.example}`, t.header.place.change]); // R224 (FR-CTRL-13): a link, no box
     const tapCells = Math.ceil(48 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
     expect(tapCells).toBe(5);
     // R150 (FR-GYRO-8): the `×` is one character drawn in a `--tap` box (48 px), wider than its cell: count the box.

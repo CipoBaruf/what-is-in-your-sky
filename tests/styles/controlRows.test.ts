@@ -744,7 +744,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, 
 
   it('fits a sub-page’s row — ← back, the mark and the title, the example’s place line, the three tabs — at the wide breakpoint in both languages', () => {
     // R215 (FR-LAND-4, FR-LAND-6, D-1238): `settings` is one of the three tabs, and the place line stands between the
-    // title and the tabs. With a five-letter city the whole row is 94 cells in English and 100 in Spanish, so it fits
+    // title and the tabs. With a five-letter city the whole row is 92 cells in English and 98 in Spanish (R224: `change` is a link, no box), so it fits
     // the wide breakpoint (964 px, `WIDE_CELLS`) whole; a longer name is cut (below).
     const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'pass', place: { label: 'Salta', example: true }, onBack: noop }) }));
     const row = within(container).getByTestId('header');
@@ -753,7 +753,7 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row in %s (D-546, 
     expect(rowGap).toBe(2);
     expect(navGap).toBe(1);
     const fixed = 2 * SHELL_PADDING_CELLS + rowCells(row, table);
-    expect(fixed, parts.join(' | ')).toBe(locale === 'es' ? 100 : 94);
+    expect(fixed, parts.join(' | ')).toBe(locale === 'es' ? 98 : 92);
     expect(WIDE_MIN_PX).toBe(964);
     expect(fixed, 'the whole row at 964 px').toBeLessThanOrEqual(WIDE_CELLS);
   });

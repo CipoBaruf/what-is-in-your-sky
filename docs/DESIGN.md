@@ -91,6 +91,7 @@ The plain-character borders, the three radii, the one focus ring (`global.css`�
 | `--on-ink` | `var(--bg)` | the words of what is on |
 | `--hover-ground` | `var(--bg-raised)` | under what the pointer is on |
 | `--mark` | `var(--accent)` | lines, underlines, the picked row's line, focus |
+| `--link-underline-offset` | `0.15em` | a link's underline under its words: an `a` and `TextButton`'s `link` (R224, FR-CTRL-13) |
 | `--gap-row` | `var(--space-1)` | between two rows |
 | `--gap-group` | `var(--space-4)` | between two groups |
 | `--label-col` | `calc(9 * var(--cell))` | the column a row's label stands in |
@@ -183,6 +184,7 @@ States: rest, hover, focus, on, busy, disabled.
 | `busy` | `boolean` | The action runs: `aria-busy`, the words pulse (held dim under reduced motion), the label and the box do not change; it keeps the focus and takes no press. |
 | `pressed` | `boolean` | An option: the dim word when off, `--on-ink` on a block of `--on-ground` when on, as an OptionToggle. |
 | `inline` | `boolean` | Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow. |
+| `link` | `boolean` | An action inside a line of text: the accent words underlined, no box, the --tap hit area of an inline control (FR-CTRL-13). |
 | `bare` | `boolean` | The words without a box, for a glyph that stands in a cell of its own (the compact taps row’s play). |
 | `padded` | `boolean` | A cell outside the box at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it. |
 | `box` | `'plain' \| 'accent'` | The box’s edge: `--control-edge` (the default), or the accent of the primary form, one per screen at most. |
@@ -206,6 +208,7 @@ States: rest, hover, focus, on.
 | `label` | `ReactNode` | The link’s words. |
 | `current` | `boolean` | The page this control stands on: a dim `aria-current` span with the same box, not a link. |
 | `tab` | `boolean` | A header tab: dim words, `--fg` on hover; with `current`, `--fg` over a 2 px accent rule. |
+| `prose` | `boolean` | A link in a line of prose (the footer’s sources, the skip link): it breaks with its words. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `OptionToggle`

@@ -2,13 +2,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AskDialog } from './AskDialog';
 
 /** R224 (FR-CTRL-16, FR-CTRL-17): one dialog frame, its answers boxes with the first one primary. */
 describe('<AskDialog> (FR-CTRL-16, FR-CTRL-17)', () => {
   it('FR-CTRL-16: the first answer is the primary box, the second a plain box', () => {
-    render(<AskDialog question="Follow?" yes="Yes" no="No" onYes={() => {}} onNo={() => {}} testId="ask" yesTestId="ask-yes" noTestId="ask-no" />);
+    render(<AskDialog question="Follow?" yes="Yes" no="No" onYes={vi.fn()} onNo={vi.fn()} testId="ask" yesTestId="ask-yes" noTestId="ask-no" />);
     expect(screen.getByTestId('ask-yes').className).toMatch(/accent/);
     expect(screen.getByTestId('ask-no').className).not.toMatch(/accent/);
     expect(screen.getByTestId('ask-yes')).toHaveFocus();
