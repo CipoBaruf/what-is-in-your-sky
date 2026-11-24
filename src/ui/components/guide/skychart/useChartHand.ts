@@ -15,7 +15,7 @@ import type { HandCamera } from './window/camera';
  * the drawing (`SkyHint`) is gone for good. Read off the store at the call,
  * not subscribed: a drag's frame must not re-render the page that holds this.
  */
-export function markSkyHintSeen(): void {
+function markSkyHintSeen(): void {
   const state = appStore.getState();
   if (!state.skyHintSeen) state.setSkyHintSeen(true);
 }

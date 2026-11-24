@@ -8,10 +8,7 @@ import { favouriteCellKey } from '../../src/data/favourites';
 import type { Observer } from '../../src/model';
 import { NINE_DAYS_ON, seedStoredRun } from './liveHelpers';
 
-/** FR-GLOBE-9's saved place for the specs: London, in a zone of its own. */
-export const LONDON: Observer = { lat: 51.51, lon: -0.13, altM: 0, label: 'London', source: 'coords', timeZone: 'Europe/London' };
-
-export const GLOBE_WORD = { en: 'Globe', es: 'Globo' } as const;
+const GLOBE_WORD = { en: 'Globe', es: 'Globo' } as const;
 
 export interface SkySeed {
   locale?: 'en' | 'es';
@@ -33,15 +30,6 @@ export async function openLiveSky(page: Page, { locale = 'en', theme = 'dark', f
 
 /** The live page's view row. */
 const viewRow = (page: Page) => page.getByTestId('live-layout').getByRole('group', { name: /^(Chart view|Vista del gráfico)$/ });
-
-/** `Window` pressed where the page opened on the globe; on a phone the page is on the window already and nothing is pressed. */
-export async function onWindow(page: Page): Promise<void> {
-  const sky = page.getByTestId('sky-chart');
-  await expect(sky).toBeAttached({ timeout: 30_000 });
-  if ((await sky.getAttribute('data-view')) !== 'globe') return;
-  await viewRow(page).getByRole('button', { name: /^(Window|Ventana)$/ }).click();
-  await expect(page.locator('[data-drawing="window"]')).toBeAttached({ timeout: 30_000 });
-}
 
 /** `Globe` pressed in the view row (if it is not the view already), the globe drawn (its disc in the SVG) and `Turn` in the rail. */
 export async function showGlobe(page: Page, locale: 'en' | 'es' = 'en'): Promise<void> {

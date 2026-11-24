@@ -184,7 +184,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/state/effects.ts` — exports: LoadedElements, VisibilitySource, EffectDeps, NOW_TICK_MS, ELEMENTS_RECHECK_MS, documentVisibility, ALWAYS_VISIBLE, startEffects — PLAN §4 `state/effects.ts`: observer change → load elements if needed → hand them to the worker once → `computePasses`.
 - `src/state/failure.ts` — exports: FailureKind, Failure, isFailure, toFailure — R86 (FR-FAIL-2, D-540): a failure is stored as a kind, never as a sentence.
 - `src/state/hash.ts` — exports: clearLocationHash — R83 (D-538): `endVisit` clears the link from the URL.
-- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +17
+- `src/state/index.ts` — exports: followHash, catalogName, isFeatured, catalogDescription, StartAppOverrides, startApp, appStore, useActiveObserver, +16
 - `src/state/liveNow.ts` — exports: setLiveNowClient, computeNowAt — R33 (FR-LIVE-6, D-169): the live page's way to the worker.
 - `src/state/measure.ts` — exports: count, randomId, browserEnv, LoadFacts, startMeasure — FR-MEAS-1, FR-MEAS-3 (D-1146): the load's context and its one sender, built by `startApp`; `count` is what `src/ui` imports.
 - `src/state/measureEffects.ts` — exports: startMeasureEffects — FR-MEAS-2's state rows (D-1147): one store subscription counts `place_set`, `no_passes`, `failure` and `example_shown`.
@@ -254,7 +254,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/components/guide/skychart/polar/SkyPolar.tsx` — exports: HORIZON_R, SkyPolar, POLAR_VIEW — FR-GUIDE-2b, FR-GUIDE-4 (R13): the 2D all-sky chart as SVG (FR-GUIDE-5: no canvas).
 - `src/ui/components/guide/skychart/polar/fieldOutline.ts` — exports: FIELD_OUTLINE_SAMPLES, PolarProjection, OutlineCamera, unprojectBox, fieldOutline — R158 (FR-PHONE-9; V210-5; PLAN D-969): the window's field on the whole sky, as a pure path.
 - `src/ui/components/guide/skychart/starScene.ts` — exports: StarParts, starSourceOf — D-837 (FR-SKY-10; R123's D-815): the scene's stars, built in the `stars` chunk.
-- `src/ui/components/guide/skychart/useChartHand.ts` — exports: markSkyHintSeen, useChartHand, useVisitHand — D-789 (R121 review): the window-in-the-box state, held by whoever calls this — the live page for its charts, a chart for itself elsewhere.
+- `src/ui/components/guide/skychart/useChartHand.ts` — exports: useChartHand, useVisitHand — D-789 (R121 review): the window-in-the-box state, held by whoever calls this — the live page for its charts, a chart for itself elsewhere.
 - `src/ui/components/guide/skychart/useSkyBodies.ts` — exports: ChartBodies, useSkyBodies — FR-DOME-6 (R22): the Sun and the Moon at the instant the chart is showing.
 - `src/ui/components/guide/skychart/useSkyScene.ts` — exports: StarNames, StarSource, ScenePass, SkySceneInput, useSkyScene — R119 (FR-SKY-1, FR-SKY-8, FR-LIVE-10 as amended; PLAN D-788, D-802): the one scene a page builds per tick and hands to whichever views it d…
 - `src/ui/components/guide/skychart/window/FacingPicker.tsx` — exports: FollowTarget, FacingPickerProps, FacingPicker — R121 (FR-STAR-4, FR-SKY-2, FR-SKY-7; D-789, D-790): the facing picker — the compact speeds' form (D-245), a cell between the options: `N NE…
@@ -283,7 +283,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/components/live/NextPassStrip.tsx` — exports: NextPassStripProps, NextPassStrip — R213 (FR-STRIP-1..3, D-1232): the next-pass strip, always drawn.
 - `src/ui/components/live/PlaceGroup.tsx` — exports: PlaceGroupProps, PlaceGroup — R222 (FR-LAND-5, US-62 AC2): with no stored place and no example the live page draws the place group in the sky's box, the tagline above it…
 - `src/ui/components/live/ShownTime.tsx` — exports: ShownTimeProps, shownTimeText, ShownTime, DaytimeLine, ContextLineProps, ContextLine — R143 (FR-TONIGHT-7, D-903): the compact live page's headline — the shown time at the headline size, `HH:MM` in the observer's zone (`HH:MM:…
-- `src/ui/components/live/SkyLayers.tsx` — exports: LAYER_KEYS, firstRowCount, SkyLayersState, useSkyLayers, TurnGroup, LayersGroupProps, LayersGroup — R222 (FR-LAND-3, FR-STAR-3 as amended; D-1240): the stars page's `Turn` and `Layers`, moved into the live page's `turn` and `layers` slots.
+- `src/ui/components/live/SkyLayers.tsx` — exports: firstRowCount, SkyLayersState, useSkyLayers, TurnGroup, LayersGroupProps, LayersGroup — R222 (FR-LAND-3, FR-STAR-3 as amended; D-1240): the stars page's `Turn` and `Layers`, moved into the live page's `turn` and `layers` slots.
 - `src/ui/components/live/StarsToggle.tsx` — exports: StarsToggle — R123 (FR-SKY-3, US-40 AC1, D-791): `[x] stars` / `[x] estrellas` — the one toggle for the stars, the figures and the planets under the arcs…
 - `src/ui/components/live/StateIndicator.tsx` — exports: INDICATOR_MARK_PX, StateIndicator
 - `src/ui/components/live/StepControls.tsx` — exports: StepControlsProps, StepControls — R48 (FR-TRAJ-5, US-22 AC6, D-190), re-cut by R70 (FR-SPAN-3, FR-SPAN-4, D-384): the stepping row under the stripe, six buttons on one line:…
@@ -388,7 +388,7 @@ Tests, `.d.ts` files and snapshots are left out.
 - `src/ui/screens/PassDetail.tsx` — exports: PassDetailProps, TICK_MS, PassDetail — US-6 (R6): the guide for one pass.
 - `src/ui/screens/Settings.tsx` — exports: SettingsPageProps, SettingsPage — R52 (FR-COMP-2, US-20, D-184), R75 (FR-SET-1, FR-SET-2, US-29, D-445): the settings page at `#settings`.
 - `src/ui/screens/SettingsRoute.tsx` — exports: SettingsRouteOptions, settingsShell — R92 (D-529): the settings route as the shell's slots — the header as its `banner`, the page as its `main`, the app's footer as its `content…
-- `src/ui/screens/chartViewDefault.ts` — exports: SkyPage, viewFor, WIDE_VIEWS, nextView
+- `src/ui/screens/chartViewDefault.ts` — exports: SkyPage, viewFor, nextView
 - `src/ui/screens/home/placeRequest.ts` — exports: requestPlace, closePlaceRequest, usePlaceRequested — R215 (FR-LAND-4, D-1238): `set your place` and the header's `change`, wherever they stand, open the place dialog (`PlaceDialog`, mounted on…
 - `src/ui/screens/home/shownPasses.ts` — exports: useShownClock, hasEnded, useShownPasses, ListedPasses, useListedPasses, faintIds
 - `src/ui/screens/home/useNight.ts` — exports: Night, useNight — R82 (D-513), moved here from `tonight.ts` by R222 (D-1240): the stretch of tonight the cloud word is about — the rest of the dark band (fro…

@@ -17,7 +17,7 @@ import styles from './SkyLayers.module.css';
  */
 
 /** FR-STAR-3 as amended v2.11: the four layer toggles in this order. */
-export const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
+const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
 
 /** FR-COMP-4's 36 cells at 390 px less the shell's padding each side (R163): the room a layer row has, 32 cells. */
 const LAYER_ROW_BUDGET = 36 - 2 * SHELL_PADDING_CELLS;
