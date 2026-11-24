@@ -177,9 +177,11 @@ describe('<InstallAction> (V11-16, D-260)', () => {
         </I18nProvider>,
       );
       const row = screen.getByTestId('settings-install');
-      expect(row.previousElementSibling).toHaveTextContent(/^App$/);
+      // R225 (FR-DS-12): the row is a SettingRow, its label the row's first child.
+      const label = row.closest('[data-setting-row]')?.firstElementChild ?? null;
+      expect(label).toHaveTextContent(/^App$/);
       expect(within(row).getByTestId('install-action')).toHaveTextContent(new RegExp(`^${(locale === 'en' ? en : es).install.action}$`));
-      expect(`${row.previousElementSibling?.textContent ?? ''} [ ${row.textContent ?? ''} ]`).toBe(`App [ ${(locale === 'en' ? en : es).install.action} ]`);
+      expect(`${label?.textContent ?? ''} [ ${row.textContent ?? ''} ]`).toBe(`App [ ${(locale === 'en' ? en : es).install.action} ]`);
     });
   }
 

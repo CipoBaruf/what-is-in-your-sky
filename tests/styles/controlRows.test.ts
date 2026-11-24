@@ -626,7 +626,8 @@ describe.each(LOCALES)('FR-OPEN-8: every new row of the example first run fits %
  * label column and a control column. A label-and-control row is as wide as the
  * *longest* label in that language, one cell of gap, and its control: the
  * labels are one grid column, so a short label still reserves the long one's
- * width.
+ * width. R225 (FR-DS-12, D-1304): the browser's three rows are SettingRows now, the label column `--label-col`;
+ * `rhythm.spec.ts` measures them on the page (one height, the labels one column), so their cases here went.
  */
 describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (locale: Locale) => {
   const t = CATALOGS[locale];
@@ -666,19 +667,6 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
   it('the saved place row: [ <label> ] (in use) [ × ]', () => {
     const row = screen.getByTestId('favourite');
     expect(rowCells(row, table), rowParts(row, table).join(' | ')).toBeLessThanOrEqual(BUDGET);
-  });
-
-  it.each([
-    ['Language', () => screen.getByRole('group', { name: t.app.language })],
-    ['Theme', () => screen.getByRole('group', { name: t.app.theme })],
-    ['Install', () => screen.getByTestId('settings-install')],
-  ] as const)('the %s row: its label and its control', (_name, control) => {
-    // The column is the three visible labels `Settings.tsx` draws — the Install row's is `App` since v2.1 (V21-17, F-83), not
-    // the button's `Install`. R156 (FR-PHONE-15): the Theme row with Auto is 8 + 1 + 27 = 36 in English and 6 + 1 + 29 = 36 in Spanish.
-    const labels = [t.app.language, t.app.theme, t.settings.installLabel];
-    const column = Math.max(...labels.map((label) => label.length));
-    const cells = column + 1 + rowCells(control(), table);
-    expect(cells, `${String(column)} + 1 + ${rowParts(control(), table).join(' | ')}`).toBeLessThanOrEqual(BUDGET);
   });
 });
 
