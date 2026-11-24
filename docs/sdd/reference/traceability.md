@@ -363,7 +363,7 @@
 | FR-CLEAN-16 | `src/ui/components/primitives/Card.test.tsx` |
 | FR-COMP-1 | `src/ui/components/common/Header.test.tsx`, `tests/e2e/settings.spec.ts`, `tests/styles/controlRows.test.ts` |
 | FR-COMP-2 | `src/ui/App.settings.test.tsx`, `src/ui/screens/Settings.test.tsx`, `tests/e2e/settings.spec.ts` |
-| FR-COMP-4 | `src/ui/components/live/StepControls.test.tsx`, `tests/styles/controlRows.test.ts` |
+| FR-COMP-4 | `tests/styles/controlRows.test.ts` |
 | FR-COMP-5 | `src/ui/components/guide/skychart/SkyChart.contract.test.tsx`, `tests/e2e/narrow.spec.ts`, `tests/styles/liveShape.test.ts` |
 | FR-COMP-7 | `src/ui/screens/Live.test.tsx`, `tests/e2e/live-states.spec.ts` |
 | FR-CTRL-1 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/components/primitives/manifest.test.ts`, `tests/styles/controlRows.test.ts` |
@@ -380,7 +380,7 @@
 | FR-CTRL-12 | `src/ui/components/primitives/Close.test.tsx` |
 | FR-CTRL-14 | `src/ui/components/primitives/Tag.test.tsx`, `tests/e2e/pass-list.spec.ts`, `tests/styles/literals.test.ts` |
 | FR-CTRL-15 | `src/ui/components/guide/skychart/Legend.test.tsx`, `src/ui/components/primitives/Card.test.tsx`, `src/ui/components/primitives/PickRow.test.tsx`, `tests/e2e/legend-hover.spec.ts`, `tests/e2e/pass-list.spec.ts` |
-| FR-CTRL-16 | `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/primitives/Disclosure.test.tsx`, `tests/e2e/pass-list.spec.ts` |
+| FR-CTRL-16 | `src/ui/components/live/StepControls.test.tsx`, `src/ui/components/passes/PassList.test.tsx`, `src/ui/components/primitives/Disclosure.test.tsx`, `tests/e2e/pass-list.spec.ts` |
 | FR-CTRL-17 | `src/ui/components/primitives/Field.test.tsx`, `src/ui/components/primitives/OptionToggle.test.tsx`, `src/ui/components/primitives/PickRow.test.tsx`, `src/ui/components/primitives/StatusLine.test.tsx`, `src/ui/components/primitives/TextButton.test.tsx`, `src/ui/components/primitives/ZoomKeys.test.tsx`, `tests/styles/literals.test.ts` |
 | FR-DARK-1 | `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx` |
 | FR-DARK-2 | `src/ui/components/guide/skychart/SkyChart.test.tsx`, `src/ui/components/guide/skychart/bodies.test.ts`, `src/ui/components/guide/skychart/darkSky.test.tsx`, `src/ui/components/guide/skychart/dome/domeGeometry.test.ts`, `src/ui/components/guide/skychart/dome/domeLayers.test.ts`, `src/ui/components/guide/skychart/globe/GlobeRenderer.test.ts`, `src/ui/components/guide/skychart/globe/scene.test.ts`, `src/ui/components/guide/skychart/polar/SkyPolar.test.tsx`, `src/ui/components/guide/skychart/useSkyScene.test.ts` |

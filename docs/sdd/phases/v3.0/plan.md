@@ -348,6 +348,10 @@ After R227: the `captures.yml` run that shoots the set (D-1245), the gallery and
 - **D-1288 — `Up now`'s legend is up-only, so the wide legend no longer lists a pass ahead or lingering.** *(R219)*
   (FR-NOW-2, FR-NOW-3, D-1239, D-1281.) `Live.tsx` passes `legendUpOnly` on wide; the drawn arc keeps its ahead and linger states, the legend lists only the rows above 0°. `visibleCount` and the `Up n` field go with `StatusStrip` (the list is the count); `Clouds` and `Moon` are `LiveSkyRows`' two `SettingRow`s at the end of the slot. e2e specs that measured `status-strip` measure `live-sky-rows`.
   Two consequences the specs now read: a satellite above the horizon before its visible rise or after its set is listed (its row `ahead` or `linger`), and FR-LIVE-6's hidden objects, never visible satellites (D-1281), lose their reason row on wide — the dome keeps their dimmed key. Where the reason goes on wide is left to the owner.
+- **D-1298 — The step buttons are boxed `TextButton`s, counted against the wide rail.** *(R223)*
+  (FR-CTRL-16, FR-CTRL-1, FR-COMP-4, D-1229.) The six step buttons are `TextButton`'s plain box in the default ink; `StepControls.module.css` keeps only the row's placement, the boxes half a cell apart at the least and spread by `space-between`.
+  A box is its words and two cells, so the row is 40 cells in either language: past FR-COMP-4's 35, which counted a compact row the page has not drawn since R144 (`liveRows`: `steps` is wide-only). `controlRows.test.ts` and the unit test hold it to `RAIL_MIN_CELLS` (44), half a cell per gap (42.5).
+  The window lane's controls list is `{}`; `components/sky/time/**` had no entry and draws no control of its own (the times row's `PickRow`s are R221's, D-1294).
 
 **Decision blocks** (§16.2): **R206 D-1247..D-1249, R207 D-1250..D-1252, R208 D-1253..D-1255, R209 D-1256..D-1258, R210 D-1259..D-1261, R211 D-1262..D-1264, R212 D-1265..D-1267, R213 D-1268..D-1270,
 R214 D-1271..D-1273, R215 D-1274..D-1276, R216 D-1277..D-1279, R217 D-1280..D-1282, R218 D-1283..D-1285, R219 D-1286..D-1288, R220 D-1289..D-1291, R221 D-1292..D-1294,
