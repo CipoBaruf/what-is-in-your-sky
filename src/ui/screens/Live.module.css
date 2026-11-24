@@ -171,8 +171,8 @@
   margin-left: auto;
 }
 
-/* The facing row (FR-FULL-4, D-923): the chart's readout as the words of a `Disclosure` (R222, FR-DS-11) that opens the
-   picker under it, a row apart, a target tall. On the dome the words stand alone. */
+/* The facing row (FR-FULL-4, D-923): the chart's readout with a `Disclosure` (R222, FR-DS-11) laid over it, named by
+   the words, that opens the picker under it, a row apart, a target tall. On the dome the words stand alone. */
 .facing {
   display: grid;
   gap: var(--space-1);
@@ -196,14 +196,16 @@
   margin: 0;
 }
 
-.facingToggle {
-  flex: 1 1 auto;
-  min-width: 0;
+/* R222: the disclosure laid over the readout at the row's whole size, its arrow in the cell the words leave. */
+.facingHit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
 }
 
-.facingWords {
-  display: inline-block;
-  vertical-align: top;
+.facingWordsOpener {
+  padding-inline-start: var(--cell);
 }
 
 .facingPicker {

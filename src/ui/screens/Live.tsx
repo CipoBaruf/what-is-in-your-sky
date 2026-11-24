@@ -945,6 +945,7 @@ function LiveSky({ observer, link, wakeLock, escRef, visitHand }: { observer: Ob
     [],
   );
   const facingPickerId = useId();
+  const facingLabelId = useId();
   const hasPicker = hintView !== 'dome';
   const facingPickerRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -958,21 +959,27 @@ function LiveSky({ observer, link, wakeLock, escRef, visitHand }: { observer: Ob
   );
   const facing = (
     <div className={styles.facing} data-testid="live-facing" data-rhythm="group">
-      {/* R222 (FR-DS-11, D-1229): on a view with a picker the readout is a `Disclosure` that opens it; on the dome, the words alone. */}
+      {/*
+        R222 (FR-DS-11, D-1229): on a view with a picker a `Disclosure` laid over the readout opens it, named by the
+        words; on the dome, the words alone. The words stay outside it: they are the chart's portal, and a click on a
+        portal bubbles through the chart's React tree, never the button's.
+      */}
       <div className={styles.facingReadout}>
-        {hasPicker ? (
+        <div className={[styles.facingWords, hasPicker ? styles.facingWordsOpener : ''].filter(Boolean).join(' ')} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
+          {!cornerReadout && <SkyViewChartSlot name="readout" />}
+        </div>
+        {hasPicker && (
           <Disclosure
             open={pickerOpen}
             onToggle={() => {
               setPickerOpen(!pickerOpen);
             }}
-            label={<span className={styles.facingWords}>{!cornerReadout && <SkyViewChartSlot name="readout" />}</span>}
-            className={styles.facingToggle}
+            label=""
+            className={styles.facingHit}
+            aria-labelledby={facingLabelId}
             data-testid="sky-readout-toggle"
             {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
           />
-        ) : (
-          <div className={styles.facingWords}>{!cornerReadout && <SkyViewChartSlot name="readout" />}</div>
         )}
       </div>
       {hasPicker && pickerOpen && (

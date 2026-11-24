@@ -76,6 +76,8 @@ for (const lang of ['en', 'es'] as const) {
         await goTo(page, '#pass');
         const change = page.getByTestId('place-change').first();
         await expect(change).toBeVisible({ timeout: 30_000 });
+        // On a desk a bare `#pass` becomes the pass `[ satellites ]` names once the passes are in (V214-35): read the address after.
+        if (wide) await expect(page).toHaveURL(/#pass=\d+-\d+$/, { timeout: 30_000 });
         const before = page.url();
         await change.click();
         await expect(page.getByTestId('place-dialog')).toBeVisible();
