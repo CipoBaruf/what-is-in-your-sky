@@ -231,6 +231,11 @@
  * `first-stars` stay: the example's pages, opened by address now that no door opens them, and `shortcuts` is the
  * overlay over the satellites page. The files themselves go when the owner's `captures.yml` run re-shoots the set
  * after R227 (D-1245); `main` keeps none.
+ *
+ * R222 (FR-LAND-3, D-1240, D-1245): the stars page folds into live, so its screens leave the set — `stars`,
+ * `stars-whole` and its following twin, the five `stars-globe*`, `sky-stars-star-facts`, `stars-following`,
+ * `stars-sheet`, `stars-zoom` and `first-stars`. Its layers and list are the live page's rail and sheet now, which
+ * `sky-live-globe` and `live-sheet` show; the files go with the same re-shoot.
  */
 
 import { FIRST_VISIT } from './captureFirst';
@@ -365,41 +370,6 @@ export const SCREENS: readonly CaptureScreen[] = [
     what: "The compact live page following the phone (FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, R152; US-44 AC1, AC2): `[ follow the phone ]` tapped in the sheet on a touch phone, the motion permission granted and the readings stubbed (D-946) aimed where the window already looked, then the sheet closed by its `×` — the sky is the window turned by the phone, with no readout, note or chip over it, `[ ← ]` and the shown time at the top and `[ controls ]` at the foot. FR-GYRO-9 names the one size, 390 × 844.",
   },
   {
-    name: 'stars',
-    widths: [360, 390, 844, 1280, 1920],
-    what: "The `#stars` page as it opens (FR-STAR-3, FR-STAR-6, R115–R117), over Bariloche at 05:00 local on the 6th, facing the pole side — south, 35° up — with every layer on: the stars on the ladder's three sizes, the figures as hairlines with their spaced names (Crux, Centaurus, Carina), the bright stars named (Canopus, Acrux, Hadar) and the horizon at the box's foot. No planet is in that field at that instant, so the planet layer is on and draws nothing there. At 360 and 390 (a touch phone, FR-WIN-4) it is the readout, the box full-bleed and square, the facing row and the layers, with `[ follow the phone ]` where the sensor is (FR-GYRO-1; `[ hold up to the sky ]` until v2.9); `In this field` is under the fold, which the viewport shot leaves out. Since v2.6 the action comes first, then the layers, then the list (FR-FLOW-8). At 844 × 390 it is the same touch phone turned: the box left at full height and the rail beside it, scrolling inside itself (FR-FLOW-15, R135). At 1280 and 1920 it is the box at the left and the rail beside it — the facing picker, the layers and `In this field` with its rows. Since v2.11 (FR-CLEAN-1, FR-CLEAN-4, R163) the page on a phone, at 360, 390 and 844 × 390, is the sky in the full form with its sheet closed: the head with the dark window's line, the corner readout and `[ follow ] [ controls ]` at the foot; the view row, the facing row, the layers and `In this field` are the sheet's (`stars-sheet`). Since V212-11 a desk opens the page on the globe (FR-GLOBE-1 as amended), so at 1280 and 1920 this is the page with `Window` pressed, one press from its opening; the opening itself is `stars-globe`.",
-  },
-  {
-    name: 'stars-whole',
-    widths: [390],
-    what: "The `#stars` page as `stars` opens it, with `Whole sky` pressed in its view row (FR-PHONE-7, FR-PHONE-8, R158, R160): the polar chart in the box with every star to 4.5 on the ladder, the figures as hairlines with the gap at each mark, the surface and the band inside the rim and the Moon with its phase, and the window's field outlined where the page faced, south 35° up (FR-PHONE-9). The readout slot holds the chart's convention line and the picker slot its looking-up / map toggle; `In this field` lists the whole sky's twelve brightest. At 390 a touch phone, the names off by the compact default (`[ ] names`). FR-PHONE-16 named 390 and 1280. Since v2.11 at 390 `Whole sky` is pressed in the sheet, which is then closed: the polar chart fills the screen under the head (FR-CLEAN-4, R163). Since v2.12 a phone's screen alone: on wide the view row reads `[ Window ] Globe` and the whole sky is the globe (FR-GLOBE-1, FR-GLOBE-18), so the 1280 file left the set for `stars-globe`.",
-  },
-  {
-    name: 'stars-globe',
-    widths: [1280, 1920],
-    what: "The `#stars` page as it opens on a desk (V212-11; R171 pressed `Globe` from the window), `Globe` pressed in its view row (FR-GLOBE-1..5, FR-GLOBE-18, R169, R170): the celestial sphere from outside in the box where the window stood, turning with you — Bariloche's zenith up, the equatorial grid, the ecliptic dashed, the Milky Way dotted, the figures mirrored as on a brass globe, the stars on the ladder and the bodies, the horizon's near half with the ground below it shaded and dimmed, the poles and the zenith marked. The rail beside it holds the view row `[ Window ] Globe`, `Time` with the clock in the place's zone, the steps and the speeds, `Turn` with `[x] with you`, `Place` with the app's place alone, the layers with `[ ] faint`, the count and `Up from Bariloche`. FR-GLOBE-18 names 1280 × 800 and 1920 × 1080. Since V212-12 the row under the box holds `[ + ] [ − ]` at its right end and keeps its height whether a name is shown or not (FR-GLOBE-6, FR-GLOBE-11 as amended, D-1055), so the box is that row's height shorter than R171's on every globe screen.",
-  },
-  {
-    name: 'stars-globe-stars',
-    widths: [1280],
-    what: "`stars-globe` with `with the stars` pressed in the `Turn` row (FR-GLOBE-5): the frame the equatorial one, the north celestial pole up: the direction at the view's centre is kept (the south celestial pole near it) and the globe is rolled under it, so the horizon crosses the stars with the ground above it, the zenith low and the Sun, Mercury and Venus on the far side of the ground. FR-GLOBE-18 names 1280.",
-  },
-  {
-    name: 'stars-globe-faint',
-    widths: [1920],
-    what: "`stars-globe` with `[x] faint` pressed (FR-GLOBE-10): the deep catalogue's 7,373 stars to 6.5 drawn as dots into the globe's paths, the count reading the whole drawn set. FR-GLOBE-18 names 1920 × 1080.",
-  },
-  {
-    name: 'stars-globe-place',
-    widths: [1280],
-    what: "`stars-globe` with the seeds' saved London pressed in the `Place` group (FR-GLOBE-9, D-1042): the horizon, the ground, the zenith and the compass points London's, so the south is the shaded side; the clock in London's zone at the same instant, the count and `Up from London`; the app's place, Bariloche, unchanged. FR-GLOBE-18 names 1280.",
-  },
-  {
-    name: 'stars-globe-named',
-    widths: [1280],
-    what: "`stars-globe` with the first row of `Up from Bariloche` pressed (FR-GLOBE-11, FR-GLOBE-12, FR-STAR-7): the brightest object above the horizon (Sirius) named, its row pressed and the rail scrolled to the list, shot inside `STAR_LABEL_HOLD_S`, and the row's naming is the globe's too (FR-GLOBE-12, FR-LEG-4's rule): the label beside Sirius's mark with its magnitude, and the readout line under the box. FR-GLOBE-18 names 1280.",
-  },
-  {
     name: 'sky-live-globe',
     widths: [1280],
     what: "The live page at the set's instant as a fresh desk opens it (FR-WIDE-1..3, FR-WIDE-5, R186): the app's header and footer, the box at the left with the globe in it — over Bariloche, turning with you — and the passes FR-LIVE-2 draws as arcs in their legend colours, each with its marker and its key; the facing readout top-left and `[ + ] [ − ]` bottom-right. R191: the set's one pass is on the far side of the opening view, so the globe is turned by `ArrowLeft` to the step that draws most of its arc (`globeDrawn`). The rail at the right in its order: the head, `View` reading `[ Globe ] Window Dome`, `Time`, the page group and the legend.",
@@ -425,11 +395,6 @@ export const SCREENS: readonly CaptureScreen[] = [
     what: "`sky-live-globe` with the legend's first row clicked (FR-FACT-2, US-53 AC3, R188): its arc highlighted, the others dimmed, and `This satellite` with `[ × ]` in the page group under `Facing`.",
   },
   {
-    name: 'sky-stars-star-facts',
-    widths: [1280],
-    what: "`stars-globe` with the mark of `Up from Bariloche`'s first row clicked (FR-FACT-3, US-54 AC1, R188): the object named on the globe, and its facts with `[ × ]` in the page group under `Turn` and `Place` — the names (`Sirio · Sirius` in Spanish), the designation and the constellation, the magnitude, the altitude and the point, and the night's rise and set.",
-  },
-  {
     name: 'sky-hover',
     widths: [1280],
     what: "`sky-live-globe` with the pointer resting on the legend's first row (FR-WIDE-7, US-55 AC1, R188): the row at full ink and its arc emphasised as the highlight draws it, with the ticks and the arrow, the others dimmed; nothing pressed, nothing in the hash.",
@@ -438,22 +403,6 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'sky-fullscreen',
     widths: [1280],
     what: "`sky-live-globe` with `f` pressed (FR-WIDE-10, US-56 AC2, R189): the box alone over the whole screen, the globe refitted with no rail beside it, the facing readout top-left, the time readout and `[ × ]` top-right, `[ + ] [ − ]` bottom-right; the Fullscreen API stubbed, so the page's own full form is what is shot.",
-  },
-  {
-    name: 'stars-whole-following',
-    widths: [390],
-    what: "The stars page following the phone, then `Whole sky` pressed (FR-PHONE-9, D-992): following stays on under the whole sky, `[x] follow the phone` in the action slot, and the field's outline is the sensor's — a stubbed reading aimed where the page faced, south 35° up — drawn on the polar chart and marked `data-following`. FR-PHONE-16 names the one size, 390 × 844. Since v2.11 the toggle and `Whole sky` are pressed in the sheet, which is then closed (FR-CLEAN-4, R163).",
-  },
-  {
-    name: 'stars-following',
-    widths: [390],
-    what: "The `#stars` page as `stars` opens it at 390, with `[ follow the phone ]` on (FR-GYRO-1, FR-GYRO-2, FR-GYRO-5, R152; US-44 AC1): the toggle in the action slot where `[ hold up to the sky ]` stood, the window following a stubbed reading (D-946) aimed where the page faced — south, 35° up — and no readout over it. FR-GYRO-9 names the one size, 390 × 844. Since v2.11 the toggle is pressed in the sheet, which is then closed, as `live-following` is (FR-CLEAN-4, R163).",
-  },
-  {
-    name: 'stars-sheet',
-    touch: true,
-    widths: [390, 844],
-    what: "The `#stars` page as `stars` opens it, with `[ controls ]` pressed (FR-CLEAN-4, FR-CLEAN-9, R163): the sheet over the bottom of the sky with its head (the place, `[ settings ]`, the `×`) and its body — the view row `[Window] Whole sky`, `[ follow the phone ]` (a touch phone), the facing row, the layer toggles and `In this field` open, the body scrolling inside the sheet and no taller than `SHEET_MAX_SHARE` of the height. The sky behind it is `stars`'s, unmoved. FR-CLEAN-9 names the two sizes, upright and turned.",
   },
   {
     name: 'guide-sheet',
@@ -475,11 +424,6 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'guide-window',
     widths: [360, 390, 1280, 1920],
     what: "The night's brightest pass (the `guide` screen's) open on the window (FR-SKY-2, FR-SKY-7, R121): the hand camera facing the peak's azimuth at the tilt that keeps the peak in the field, the arc under the stars clipped at the box's edge, the picker with `peak` first and pressed, and the landmark line under the pass's name (FR-SKY-11). Wide is the window-shaped box in the sheet; at 360 and 390 it is the compact reader without a sensor, the square box by hand. Since v2.11 at 360 and 390 `Window` is pressed in the sheet's view row, which is then closed: the window fills the screen under the countdown head (FR-CLEAN-5, R164).",
-  },
-  {
-    name: 'stars-zoom',
-    widths: [390, 1280],
-    what: 'The `#stars` page as `stars` opens it, zoomed by `+` to `WINDOW_FOV_MIN_DEG`, 20° (FR-SKY-14, R125): the same stars spread about the centre at their sizes, the readout naming the field and the facing unchanged. Since v2.10 the field\'s detail follows it (FR-LOOK-9): at 20° the deep catalogue to 6.5 is drawn and more names are placed. FR-SKY-9 named 1280 for it; FR-LOOK-12 adds 390, a touch phone, as `stars` is there. Since v2.11 at 390 the full form\'s sky with the sheet closed (FR-CLEAN-4, R163).',
   },
   {
     name: 'guide-short',

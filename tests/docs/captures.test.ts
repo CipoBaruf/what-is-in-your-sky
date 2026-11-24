@@ -46,7 +46,7 @@ describe('the v1 capture set', () => {
     // R202 (FR-OPEN-11): the first visit's states are shot in both languages and the dark theme, the example alone in both themes.
     // R203 (FR-OPEN-7): the pages the example opens, the same way. R212 (D-1245): the first visit's home states left.
     expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => [screen.name, screen.themes, screen.locales])).toEqual(
-      ['first-pass', 'first-live', 'first-stars'].map((name) => [name, ['dark'], undefined]),
+      ['first-pass', 'first-live'].map((name) => [name, ['dark'], undefined]),
     );
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
@@ -77,7 +77,7 @@ describe('the v1 capture set', () => {
     // R187 (FR-WIDE-8): and the clouds on the stripe.
     // R188 (FR-FACT-2, FR-FACT-3, FR-WIDE-7): so are the facts groups and the hover, which compact never loads.
     // R189 (FR-WIDE-10): and the full sky, which compact does not offer.
-    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe', 'sky-clouds', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover', 'sky-fullscreen']);
+    const DESK_ONLY = new Set(['live-window-follow', 'sky-live-globe', 'sky-pass-globe', 'sky-clouds', 'sky-pass-facts', 'sky-live-facts', 'sky-hover', 'sky-fullscreen']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
     const DESK_WIDE = new Set(['live-window']);
@@ -95,29 +95,26 @@ describe('the v1 capture set', () => {
       ['live-tonight', [360, 390, 844]],
       ['live-sheet', [390, 844]],
       ['live-sheet-list', [390, 844]],
-      // R165 (FR-CLEAN-9, D-1001): the stars page's and the pass detail's sheets, at the same two sizes.
-      ['stars-sheet', [390, 844]],
+      // R165 (FR-CLEAN-9, D-1001): the pass detail's sheet, at the same two sizes (R222: the stars page's left with it).
       ['guide-sheet', [390, 844]],
     ]);
     // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
     // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
     // R161 (FR-PHONE-16, D-993): and the whole sky's outline while following, at the same one size.
-    const FOLLOWING = new Set(['live-following', 'stars-following', 'stars-whole-following']);
+    // R222 (FR-LAND-3): the stars page's two left with the page.
+    const FOLLOWING = new Set(['live-following']);
     // R171 (FR-GLOBE-18, D-1042): the whole sky keeps its 390 alone — its wide file left for the globe.
-    const UPRIGHT_ONLY = new Set(['stars-whole']);
+    // R222: `stars-whole` left with the stars page.
+    const UPRIGHT_ONLY = new Set<string>([]);
     // R171 (FR-GLOBE-18, D-1042): the globe is a desk's screen — the compact stars page draws the whole sky as the polar
     // chart — at the sizes FR-GLOBE-18 names for each.
-    const GLOBE: ReadonlyMap<string, readonly number[]> = new Map([
-      ['stars-globe', [1280, 1920]],
-      ['stars-globe-stars', [1280]],
-      ['stars-globe-faint', [1920]],
-      ['stars-globe-place', [1280]],
-      ['stars-globe-named', [1280]],
-    ]);
+    // R222 (FR-LAND-3, D-1245): the five left with the stars page; the live page's globe is `sky-live-globe`.
+    const GLOBE: ReadonlyMap<string, readonly number[]> = new Map([]);
     // R161 (FR-PHONE-16, FR-LOOK-12, D-993): the files the two requirements name at the phone's and the desk's width,
     // 390 and 1280 and no 360 beside them — `stars-zoom` among them, FR-LOOK-12's 390 joining FR-SKY-9's 1280.
     // R165 (FR-CLEAN-9): `stars-whole-passes` left with the stars page's passes. R171: `stars-whole` kept its 390 alone.
-    const NAMED_PAIR = new Set(['live-twilight', 'stars-zoom']);
+    // R222: `stars-zoom` left with the stars page.
+    const NAMED_PAIR = new Set(['live-twilight']);
     // R161 (FR-PHONE-16): the pass detail at 390 × 667, the one screen with a height of its own.
     const SHORT = new Set(['guide-short']);
     // R203 (FR-OPEN-7, D-1205): the pages the example opens, at the phone's and the desk's size. R212 (FR-LAND-1,
@@ -125,7 +122,6 @@ describe('the v1 capture set', () => {
     const FIRST: ReadonlyMap<string, readonly number[]> = new Map([
       ['first-pass', [390, 1280]],
       ['first-live', [390, 1280]],
-      ['first-stars', [390, 1280]],
     ]);
     expect(SCREENS.filter((screen) => screen.height !== undefined).map((screen) => [screen.name, screen.height])).toEqual([['guide-short', 667]]);
     for (const screen of SCREENS) {
@@ -214,11 +210,15 @@ describe('the v1 capture set', () => {
     // R212 (FR-LAND-1, D-1245): − 16 `location`, − 2 `location-short`, − 12 `first-example`, − 4 `first-example-short`,
     // − 2 each for `first-wait`, `first-wait-short`, `first-place`, `first-place-short` and `first-noon`, − 48 `home`
     // with its `-view` twins, − 16 each for `home-up-now`, `home-no-pass` and `home-daylight`, − 8 `where-opened`.
-    expect(captureSet()).toHaveLength(360);
+    // R222 (FR-LAND-3, D-1245): − 20 `stars`, − 4 `stars-whole`, − 8 `stars-globe`, − 4 each for the other four
+    // `stars-globe-*`, − 4 `sky-stars-star-facts`, − 4 each for `stars-whole-following` and `stars-following`, − 8 each
+    // for `stars-sheet` and `stars-zoom`, − 4 `first-stars`.
+    expect(captureSet()).toHaveLength(280);
   });
 
   it("FR-WIDE-12: the eight v2.14 desk screens at 1280 in the set's themes and languages, and polar a phone's", () => {
-    const EIGHT = ['sky-live-globe', 'sky-pass-globe', 'sky-pass-facts', 'sky-live-facts', 'sky-stars-star-facts', 'sky-hover', 'sky-clouds', 'sky-fullscreen'];
+    // R222 (D-1245): `sky-stars-star-facts` left with the stars page.
+    const EIGHT = ['sky-live-globe', 'sky-pass-globe', 'sky-pass-facts', 'sky-live-facts', 'sky-hover', 'sky-clouds', 'sky-fullscreen'];
     for (const name of EIGHT) {
       expect(SCREENS.find((screen) => screen.name === name)?.widths, name).toEqual([1280]);
       expect(captureSet().filter((capture) => capture.file.startsWith(`v1-${name}-1280-`)), name).toHaveLength(4);
