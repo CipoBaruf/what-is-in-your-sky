@@ -227,7 +227,7 @@ export function ControlsSheet({ open, onOpenChange, place, groups, children, bes
           <div className={styles.place} data-testid="sheet-place">
             <PlaceLine place={shownPlace} />
           </div>
-          <Close ref={closeRef} onClose={() => onOpenChange(false)} className={styles.close} data-testid="sheet-close" />
+          <Close ref={closeRef} onClose={() => onOpenChange(false)} label={t.shortcuts.close} className={styles.close} data-testid="sheet-close" />
           <div className={styles.links} data-testid="sheet-links">
             <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
             <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />

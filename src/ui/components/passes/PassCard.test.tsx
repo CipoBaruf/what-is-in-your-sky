@@ -107,7 +107,7 @@ describe('<PassCard> (FR-FIRST-10)', () => {
   it('carries the "[moon glare]" label only when the pass has the verdict (FR-MOON-2)', () => {
     const { rerender } = render(<PassCard pass={{ ...samplePass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} timeZone={null} />);
     const card = screen.getByRole('article');
-    expect(within(card).getByText('moon glare')).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
+    expect(within(card).getByText('[moon glare]').parentElement).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
     rerender(<PassCard pass={samplePass} timeZone={null} />);
     expect(card).not.toHaveTextContent('moon glare');
   });
@@ -142,7 +142,7 @@ describe('<PassCard> (FR-FIRST-10)', () => {
     // The stretched control comes last, so its box lies over the tags and the cloud line.
     expect(card.lastElementChild).toBe(screen.getByRole('button'));
     expect(within(card).getByText('Clear')).not.toHaveAttribute('tabindex');
-    expect(within(card).getByText('moon glare')).not.toHaveAttribute('tabindex');
+    expect(within(card).getByText('[moon glare]').parentElement).not.toHaveAttribute('tabindex');
     expect(container.querySelector('[tabindex="0"]')).toBeNull();
   });
 

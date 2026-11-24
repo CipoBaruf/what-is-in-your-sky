@@ -318,17 +318,15 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       {/* R91 (FR-FAIL-1, D-541): the failure line, where the matches would have been; `[ retry ]` runs the last
           query again, which puts the status back on "Searching for …". */}
       {!offline && list.kind === 'error' && (
-        <div role="alert">
-          <FailureLine
-            failure={list.failure}
-            what={t.failure.what.search}
-            instead={linked(t.location.searchFailed)}
-            site="search"
-            onRetry={() => {
-              runSearch(list.query);
-            }}
-          />
-        </div>
+        <FailureLine
+          failure={list.failure}
+          what={t.failure.what.search}
+          instead={linked(t.location.searchFailed)}
+          site="search"
+          onRetry={() => {
+            runSearch(list.query);
+          }}
+        />
       )}
       {confirming && (
         <Line ink="dim" id={noteId} data-testid="place-confirmation">
