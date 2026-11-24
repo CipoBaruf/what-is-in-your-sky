@@ -116,11 +116,11 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     const settings = within(head).getByRole('link', { name: m.settings.open });
     expect(settings).toHaveAttribute('href', '#settings');
     expect(settings).toHaveAttribute('data-testid', 'sheet-settings');
-    // R150 (FR-GYRO-8): the `×` alone, named "Close controls" / "Cerrar controles".
-    const close = within(head).getByRole('button', { name: m.sheet.close });
+    // R150 (FR-GYRO-8), R224 (FR-CTRL-12): the one close, the `×` alone, named "Close" / "Cerrar".
+    const close = within(head).getByRole('button', { name: m.shortcuts.close });
     expect(close).toHaveAttribute('data-testid', 'sheet-close');
     expect(close).toHaveTextContent(/^×$/);
-    expect(m.sheet.close).toBe(locale === 'en' ? 'Close controls' : 'Cerrar controles');
+    expect(m.shortcuts.close).toBe(locale === 'en' ? 'Close' : 'Cerrar');
     // R219 (FR-LAND-4, D-1238): the head's first line is the place line with the `×` at its end, then `satellites` and `settings`.
     expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-close', 'sheet-links']);
     expect(within(head).getByTestId('place-line')).toHaveAttribute('data-place', 'set');
@@ -129,7 +129,8 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     // R212 (FR-LAND-6, D-1231): the phone's way to tonight's list.
     const list = within(head).getByTestId('sheet-satellites');
     expect(list).toHaveAttribute('href', '#pass');
-    for (const control of [list, settings, close]) expect(control.classList.contains('target')).toBe(true);
+    // `Close` carries its own `--target` hit area (FR-CTRL-12); the links take `.target`.
+    for (const control of [list, settings]) expect(control.classList.contains('target')).toBe(true);
     // The body holds the page's rows, after the head.
     const body = within(region).getByTestId('sheet-body');
     expect(within(body).getByTestId('row-first')).toBeInTheDocument();

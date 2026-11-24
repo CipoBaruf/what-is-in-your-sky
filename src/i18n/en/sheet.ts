@@ -1,7 +1,7 @@
 /**
  * FR-I18N-2 (D-199 (2)): the controls sheet's own section of the English catalog.
  * R147 (FR-FULL-3, FR-FULL-4, FR-FULL-8, D-921): the compact live page's one
- * button over the sky, the sheet it opens and that sheet's `×` (R150). The
+ * button over the sky and the sheet it opens; R224 (FR-CTRL-12): its `×` is `Close`, named by `shortcuts.close`. The
  * sheet's `[ settings ]` reuses the header's key (`settings.open`). R157 (FR-PHONE-3): `[ follow ]` beside the button.
  */
 export const sheet = {
@@ -12,8 +12,6 @@ export const sheet = {
     follow: 'follow',
     /** The sheet's region name for assistive technology. */
     name: 'Sky controls',
-    /** R150 (FR-GYRO-8, D-948): the accessible name of the sheet head's last control, drawn `×`. */
-    close: 'Close controls',
     /** v2.14.2 (FR-PHONE-17, V214-44; D-1142): the question a phone page asks before it follows the phone. */
     followAsk: {
       question: 'Use your phone to look at the sky?',

@@ -1,6 +1,7 @@
 import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { BracketLink } from '../primitives/BracketLink';
 import { Rule } from '../primitives/Rule';
 import styles from './Footer.module.css';
 
@@ -69,7 +70,7 @@ function Linked({ text, href }: { text: LinkedText; href: string }) {
   return (
     <>
       {text.before}
-      <a href={href}>{text.link}</a>
+      <BracketLink prose href={href} label={text.link} />
       {text.after}
     </>
   );
@@ -100,16 +101,16 @@ export function Footer({ inert = false, form = 'full', className }: FooterProps)
         <Rule className={styles.rule} />
         <p className={styles.line}>
           {t.footer.short.sources}{' '}
-          <a href={ATTRIBUTION_URLS.celestrak}>CelesTrak</a>
+          <BracketLink prose href={ATTRIBUTION_URLS.celestrak} label="CelesTrak" />
           {', '}
-          <a href={ATTRIBUTION_URLS.openMeteo}>Open-Meteo.com</a>
+          <BracketLink prose href={ATTRIBUTION_URLS.openMeteo} label="Open-Meteo.com" />
           {', '}
-          <a href={ATTRIBUTION_URLS.geonames}>GeoNames</a> {t.footer.short.licence}
+          <BracketLink prose href={ATTRIBUTION_URLS.geonames} label="GeoNames" /> {t.footer.short.licence}
           <span className={styles.dot}>·</span>
           <Linked text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
           <span className={styles.dot}>·</span>
           {t.footer.short.chart}{' '}
-          <a href={ATTRIBUTION_URLS.glyphcss}>{t.footer.chart.link}</a>
+          <BracketLink prose href={ATTRIBUTION_URLS.glyphcss} label={t.footer.chart.link} />
         </p>
       </Tag>
     );

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
 import { PAGE_KEYS, SHORTCUTS, type Shortcut } from '../../../lib/shortcuts';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
+import { Close } from '../primitives/Close';
 import styles from './ShortcutsOverlay.module.css';
 
 /**
@@ -49,9 +50,8 @@ export function ShortcutsOverlay({ onClose }: ShortcutsOverlayProps) {
           <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
             {t.shortcuts.title}
           </h2>
-          <button type="button" className={styles.close} onClick={onClose}>
-            {t.shortcuts.close}
-          </button>
+          {/* R224 (FR-CTRL-12): the one close, at the frame's top-right corner. */}
+          <Close onClose={onClose} label={t.shortcuts.close} data-testid="shortcuts-close" />
         </div>
         <table className={styles.table}>
           <thead>

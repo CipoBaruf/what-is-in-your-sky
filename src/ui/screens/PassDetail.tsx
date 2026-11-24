@@ -33,6 +33,7 @@ import { usePlayback } from '../components/sky/time/usePlayback';
 import { viewFor } from './chartViewDefault';
 import { PassGroup } from './sky/pass/Group';
 import { PassTime } from './sky/pass/Time';
+import { Disclosure } from '../components/primitives/Disclosure';
 import { TextButton } from '../components/primitives/TextButton';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
@@ -531,21 +532,22 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
   }, [pickerOpen]);
   const facing = (
     <div className={styles.facing} data-testid="pass-facing" data-rhythm="group">
+      {/* R224 (FR-DS-11, D-1229): the live page's row (R222, D-1296) — a `Disclosure` laid over the readout, named by the words, its arrow in the cell they leave. */}
       <div className={styles.facingReadout}>
-        <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
+        <div className={[styles.facingWords, hasPicker ? styles.facingWordsOpener : ''].filter(Boolean).join(' ')} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
           {!cornerReadout && <SkyViewChartSlot name="readout" />}
         </div>
         {hasPicker && (
-          <button
-            type="button"
-            className={styles.facingHit}
-            data-testid="sky-readout-toggle"
-            aria-labelledby={facingLabelId}
-            aria-expanded={pickerOpen}
-            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
-            onClick={() => {
+          <Disclosure
+            open={pickerOpen}
+            onToggle={() => {
               setPickerOpen(!pickerOpen);
             }}
+            label=""
+            className={styles.facingHit}
+            aria-labelledby={facingLabelId}
+            data-testid="sky-readout-toggle"
+            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
           />
         )}
       </div>

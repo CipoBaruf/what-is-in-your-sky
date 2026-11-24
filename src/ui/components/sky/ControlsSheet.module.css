@@ -86,23 +86,9 @@
   gap: 0 var(--cell);
 }
 
-/* R150 (FR-GYRO-8, D-948): the `×`, FR-FSC-2's form — the character alone, the app's one icon, in a box of at least
-   `--tap` each way (`.target` adds the hit area's floor). */
+/* R150 (FR-GYRO-8, D-948), R224 (FR-CTRL-12): the `×` is `Close`; this file only places it in the head. */
 .close {
-  display: flex;
   grid-area: close;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  min-inline-size: var(--tap);
-  min-block-size: var(--tap);
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--fg);
-  font-size: var(--row);
-  line-height: 1;
-  cursor: pointer;
 }
 
 .body {

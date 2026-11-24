@@ -16,14 +16,16 @@ export interface BracketLinkOwnProps {
   current?: boolean;
   /** R215 (FR-CTRL-5, V30-16): a header tab — the words in `--fg-dim`, `--fg` on hover; `current`, `--fg` over a 2 px `--accent` rule 6 px under the words. */
   tab?: boolean;
+  /** R224 (FR-CTRL-13, FR-DS-11): a link in a line of prose (the footer's sources, the skip link), which breaks with its words rather than staying on one line. */
+  prose?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 export type BracketLinkProps = BracketLinkOwnProps & Omit<ComponentProps<'a'>, keyof BracketLinkOwnProps | 'children' | 'style'>;
 
-export function BracketLink({ href, label, current = false, tab = false, className, ...rest }: BracketLinkProps) {
-  const classes = [styles.bracketLink, tab ? styles.tab : undefined, current ? styles.current : undefined, className].filter(Boolean).join(' ');
+export function BracketLink({ href, label, current = false, tab = false, prose = false, className, ...rest }: BracketLinkProps) {
+  const classes = [prose ? undefined : styles.bracketLink, tab ? styles.tab : undefined, current ? styles.current : undefined, className].filter(Boolean).join(' ');
   if (current) {
     return (
       <span className={classes} aria-current="page" {...(rest as Omit<ComponentProps<'span'>, 'children'>)}>

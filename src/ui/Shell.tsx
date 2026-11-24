@@ -3,6 +3,7 @@ import { useT } from '../i18n/useT';
 import { LIVE_HASH, routeOfHash, starsAsLive } from '../lib/shareLinks';
 import { followHash } from '../state';
 import { UpdateBanner } from './components/common/UpdateBanner';
+import { BracketLink } from './components/primitives/BracketLink';
 import { VisuallyHidden } from './components/primitives/VisuallyHidden';
 import { isRouteHref, open, replace, subscribe, takeFocusTarget } from './navigation';
 import styles from './Shell.module.css';
@@ -178,17 +179,17 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
 
   const skip =
     chrome === 'live' ? null : (
-      <a
+      <BracketLink
+        prose
         href={`#${MAIN_ID}`}
+        label={t.a11y.skip}
         className="skip-link"
         data-testid="skip-link"
         onClick={(event: ReactMouseEvent<HTMLAnchorElement>) => {
           event.preventDefault();
           main.current?.focus();
         }}
-      >
-        {t.a11y.skip}
-      </a>
+      />
     );
 
   return (

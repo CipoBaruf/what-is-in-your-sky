@@ -8,6 +8,7 @@ import { REDUCED_MOTION, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { BracketLink } from '../primitives/BracketLink';
+import { Close } from '../primitives/Close';
 import { TextButton } from '../primitives/TextButton';
 import { SLOT_ORDER, type SkyViewRailSlot } from './SkyViewLayout';
 import styles from './ControlsSheet.module.css';
@@ -226,9 +227,7 @@ export function ControlsSheet({ open, onOpenChange, place, groups, children, bes
           <div className={styles.place} data-testid="sheet-place">
             <PlaceLine place={shownPlace} />
           </div>
-          <button type="button" ref={closeRef} className={`target ${styles.close}`} aria-label={t.sheet.close} onClick={() => onOpenChange(false)} data-testid="sheet-close">
-            ×
-          </button>
+          <Close ref={closeRef} onClose={() => onOpenChange(false)} className={styles.close} data-testid="sheet-close" />
           <div className={styles.links} data-testid="sheet-links">
             <BracketLink href={PASS_PAGE_HASH} label={t.header.pages.pass} className="target" data-testid="sheet-satellites" />
             <BracketLink href={SETTINGS_HASH} label={t.settings.open} className="target" data-testid="sheet-settings" onPointerEnter={prefetch} onFocus={prefetch} />
