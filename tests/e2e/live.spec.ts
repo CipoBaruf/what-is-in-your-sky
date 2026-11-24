@@ -379,7 +379,7 @@ test.describe('the live page’s facts on a desk (R188)', () => {
     await page.getByTestId('chart-legend').locator(`button[data-pass-id="${second}"]`).focus();
     await page.keyboard.press('Enter');
     await expect(group.getByRole('heading', { name: 'This satellite' })).toBeFocused({ timeout: 30_000 });
-    await group.getByRole('button', { name: 'Close the facts' }).click();
+    await group.getByRole('button', { name: 'Close' }).click();
     await expect(group).toHaveCount(0);
   });
 });

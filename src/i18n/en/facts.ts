@@ -13,7 +13,6 @@ export const facts = {
   satelliteHeading: 'This satellite',
   skyHeading: 'In the sky',
   close: 'close',
-  closeLabel: 'Close the facts',
   countries: { US: 'United States', RU: 'Russia', JP: 'Japan', CA: 'Canada', ESA: 'ESA', CN: 'China', UA: 'Ukraine', FR: 'France' } satisfies Record<(typeof FACT_COUNTRIES)[number], string>,
   purposes: {
     'crewed-station': 'crewed space station',

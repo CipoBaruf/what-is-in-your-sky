@@ -354,7 +354,7 @@ for (const locale of LOCALES) {
       // The `×` first: a tap right after the protocol's instant flick is swallowed by the browser's own tap
       // suppression after a fling, which is the browser's and not the page's.
       await openSheet(page);
-      const close = page.getByRole('button', { name: locale === 'en' ? 'Close controls' : 'Cerrar controles' });
+      const close = page.getByRole('button', { name: locale === 'en' ? 'Close' : 'Cerrar' });
       const closeBox = await close.boundingBox();
       expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(43.5);
       expect(closeBox?.height ?? 0).toBeGreaterThanOrEqual(43.5);

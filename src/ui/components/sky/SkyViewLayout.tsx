@@ -7,6 +7,7 @@ import { enterFullscreen, exitFullscreen, fullscreenElement, fullscreenSupported
 import { installShortcuts, skyShortcuts, type ShortcutActions, type SkyKeyActions } from '../../../lib/shortcuts';
 import type { EpochMs } from '../../../model';
 import { TimeReadout } from '../live/TimeReadout';
+import { Close } from '../primitives/Close';
 import { TextButton } from '../primitives/TextButton';
 import { SectionHeading } from '../primitives/SectionHeading';
 import styles from './SkyViewLayout.module.css';
@@ -339,7 +340,7 @@ export function SkyViewLayout({ describedBy, labelledBy, fill = false, readoutIn
     return (
       <>
         {clock !== undefined && <TimeReadout t={clock.t} now={clock.now} timeZone={clock.timeZone} />}
-        <TextButton label="×" aria-label={t.skyView.exitFullscreen} onClick={toggleFull} data-testid="sky-fullscreen-exit" />
+        <Close onClose={toggleFull} data-testid="sky-fullscreen-exit" />
       </>
     );
   };

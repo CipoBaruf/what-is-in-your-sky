@@ -35,7 +35,7 @@ import { PassGroup } from './sky/pass/Group';
 import { PassTime } from './sky/pass/Time';
 import { Disclosure } from '../components/primitives/Disclosure';
 import { Tag } from '../components/primitives/Tag';
-import { TextButton } from '../components/primitives/TextButton';
+import { Close } from '../components/primitives/Close';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
@@ -371,7 +371,7 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
           <h1 id={headingId} ref={headingRef} tabIndex={-1} className={styles.deskName}>
             {pass.name}
           </h1>
-          <TextButton label="×" onClick={onClose} aria-label={t.guide.close} data-testid="pass-close" />
+          <Close onClose={onClose} data-testid="pass-close" />
         </div>
         {landmark}
         {meta}

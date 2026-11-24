@@ -440,7 +440,7 @@ describe('<SkyViewLayout> keys and the full sky (R189: FR-WIDE-9, FR-WIDE-10; D-
     expect(document.fullscreenElement).toBe(box);
     expect(layout).toHaveAttribute('data-full', '');
     expect(screen.getByTestId('time-readout')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: en.skyView.exitFullscreen })).toHaveFocus();
+    expect(screen.getByTestId('sky-fullscreen-exit')).toHaveFocus();
     press('f');
     expect(layout).not.toHaveAttribute('data-full');
     expect(screen.getByTestId('sky-fullscreen')).toHaveFocus();

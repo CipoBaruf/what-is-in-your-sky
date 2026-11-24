@@ -8,7 +8,7 @@
  * `SHEET_MAX_SHARE` from `lib/layout.ts` (R150, FR-GYRO-7); a turn with the sheet open; no transition under reduced
  * motion; no backdrop, no trap, nothing written to the URL.
  *
- * R150 (FR-GYRO-8, D-948): the `×` named "Close controls" / "Cerrar controles"; the swipe on the head row — 40 px
+ * R150 (FR-GYRO-8, D-948): the `×`, since R224 `Close` named "Close" / "Cerrar"; the swipe on the head row — 40 px
  * snaps back, 80 px closes, a short fast flick closes — the sheet following the finger downward only, with no
  * transition while dragged; a press on the head's controls is not a drag.
  */

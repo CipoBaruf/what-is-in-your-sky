@@ -95,7 +95,7 @@ describe('LinkNote (FR-VISIT-3, FR-VISIT-4)', () => {
     set({ observer: saved, linkResult: { kind: 'unreadable' } });
     show(<LinkNote kinds={['unreadable']} />);
     expect(screen.getByRole('status')).toHaveTextContent(en.visit.unreadable);
-    fireEvent.click(screen.getByRole('button', { name: en.visit.dismiss }));
+    fireEvent.click(screen.getByRole('button', { name: en.shortcuts.close }));
     expect(screen.queryByTestId('link-note')).toBeNull();
     expect(appStore.getState().linkResult).toBeNull();
   });

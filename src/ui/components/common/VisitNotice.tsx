@@ -4,6 +4,7 @@ import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { Line } from '../primitives/Line';
+import { Close } from '../primitives/Close';
 import { TextButton } from '../primitives/TextButton';
 import styles from './VisitNotice.module.css';
 
@@ -92,7 +93,7 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
   }
   // R105 (D-718): the same `Line` as the notice above, in the strip's dim ink, its one control after the sentence.
   return (
-    <Line role="status" inert={inert} size="small" ink="dim" actions={<TextButton inline label="×" aria-label={t.visit.dismiss} data-testid="link-note-dismiss" onClick={dismiss} />} data-note={kind} data-testid="link-note">
+    <Line role="status" inert={inert} size="small" ink="dim" actions={<Close onClose={dismiss} data-testid="link-note-dismiss" />} data-note={kind} data-testid="link-note">
       {text}
     </Line>
   );

@@ -77,7 +77,7 @@ describe('FactsGroup — This satellite (FR-FACT-2)', () => {
     const onClose = vi.fn();
     show(tiangong, 'en', { onClose, focusOnOpen: true });
     expect(screen.getByRole('heading', { name: 'This satellite' })).toHaveFocus();
-    fireEvent.click(screen.getByRole('button', { name: 'Close the facts' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('facts-group')).not.toHaveAttribute('aria-live');
   });

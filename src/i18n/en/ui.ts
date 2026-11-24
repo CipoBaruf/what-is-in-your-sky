@@ -135,9 +135,9 @@ export const ui = {
 
   /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
   // R187 (FR-WIDE-4): `time` heads the desk's shared time control; `now` returns a held instant to real time (FR-GLOBE-7).
-  /** R189 (FR-WIDE-10): `fullscreen` is the box's top-right control, `exitFullscreen` the accessible name of its `[ × ]`. */
+  /** R189 (FR-WIDE-10): `fullscreen` is the box's top-right control; its exit is `Close` (R224, FR-CTRL-12). */
   /** R216 (FR-NOW-1): `layers` heads the live rail's `Layers` group. */
-  skyView: { view: 'View', time: 'Time', layers: 'Layers', now: 'now', facing: 'Facing', fullscreen: 'full screen', exitFullscreen: 'Leave full screen' },
+  skyView: { view: 'View', time: 'Time', layers: 'Layers', now: 'now', facing: 'Facing', fullscreen: 'full screen' },
 
   banner: { info: 'Note', warning: 'Warning' },
 
@@ -472,8 +472,6 @@ export const ui = {
   },
 
   guide: {
-    /** R23 (FR-DESK-3): the wide panel's close control. The glyph is `×`; this is what it is called. */
-    close: 'Close the guide',
     /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */
     panelLabel: (p: { name: string }) => `Guide: ${p.name}`,
     /**
@@ -552,7 +550,6 @@ export const ui = {
     past: (p: { time: string }) => `This link was for ${p.time}, which has passed. Showing now.`,
     far: (p: { time: string }) => `This link was for ${p.time}, which is more than 24 h ahead. Showing the latest the page can.`,
     unreadable: 'That link could not be read.',
-    dismiss: 'Dismiss',
   },
 
   weather: {

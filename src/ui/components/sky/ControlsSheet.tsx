@@ -27,7 +27,7 @@ import styles from './ControlsSheet.module.css';
  * stylesheet as a custom property written through the CSSOM (the CSP allows no style attribute).
  *
  * R150 (FR-GYRO-8, D-948): the head ends in a `×` (FR-FSC-2's form: the character alone, a 44 px target) named
- * "Close controls", and the head row is a handle: a downward drag that starts on it moves the sheet with the finger
+ * "Close" (`Close`, R224), and the head row is a handle: a downward drag that starts on it moves the sheet with the finger
  * (`--sheet-drag`, never upward, no transition while it lasts) and on release closes it past `SHEET_SWIPE_CLOSE_PX`
  * or faster than `SHEET_FLICK_PX_PER_MS` over its last 100 ms, else snaps it back. The row alone has
  * `touch-action: none`, so the body keeps its native scroll. A press on `[ settings ]` or the `×` is theirs (D-953).

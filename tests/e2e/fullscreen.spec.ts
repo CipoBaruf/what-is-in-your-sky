@@ -65,7 +65,7 @@ async function expectFull(page: Page, layout: Locator): Promise<void> {
   await expect.poll(async () => Math.round((await inner.boundingBox())?.width ?? 0)).toBeGreaterThan(DESK.width - 40);
   const corner = layout.locator('[data-corner="fullscreen"]');
   await expect(corner.getByTestId('time-readout')).toBeVisible();
-  await expect(corner.getByRole('button', { name: 'Leave full screen' })).toBeVisible();
+  await expect(corner.getByRole('button', { name: 'Close' })).toBeVisible();
   expect(await page.evaluate(() => document.fullscreenElement?.getAttribute('data-slot'))).toBe('drawing');
 }
 
@@ -85,7 +85,7 @@ for (const which of DESK_PAGES) {
       await layout.getByTestId('sky-fullscreen').click();
       await expectFull(page, layout);
       expect(await state(layout), `${view}: across entering`).toEqual(before);
-      await layout.getByRole('button', { name: 'Leave full screen' }).click();
+      await layout.getByRole('button', { name: 'Close' }).click();
       await expect(layout).not.toHaveAttribute('data-full');
       await expect.poll(() => drawn(layout)).toEqual(box);
       expect(await state(layout), `${view}: across leaving`).toEqual(before);

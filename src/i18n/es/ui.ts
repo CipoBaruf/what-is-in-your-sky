@@ -106,7 +106,7 @@ export const ui: typeof EnUi = {
     place: { example: 'ejemplo', change: 'cambiar', set: 'Elegí tu lugar' },
   },
 
-  skyView: { view: 'Vista', time: 'Hora', layers: 'Capas', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa', exitFullscreen: 'Salir de pantalla completa' },
+  skyView: { view: 'Vista', time: 'Hora', layers: 'Capas', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
 
@@ -323,7 +323,6 @@ export const ui: typeof EnUi = {
   },
 
   guide: {
-    close: 'Cerrar la guía',
     panelLabel: (p: { name: string }) => `Guía: ${p.name}`,
     toList: 'lista',
     sentence: (p: GuideParams) => {
@@ -377,7 +376,6 @@ export const ui: typeof EnUi = {
     past: (p) => `Este enlace era para ${p.time}, que ya pasó. Mostrando ahora.`,
     far: (p) => `Este enlace era para ${p.time}, más de 24 h adelante. Mostrando lo más lejos que llega la página.`,
     unreadable: 'No se pudo leer ese enlace.',
-    dismiss: 'Cerrar',
   },
 
   weather: {

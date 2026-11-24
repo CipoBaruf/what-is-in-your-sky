@@ -5,7 +5,6 @@ export const facts: typeof EnFacts = {
   satelliteHeading: 'Este satélite',
   skyHeading: 'En el cielo',
   close: 'cerrar',
-  closeLabel: 'Cerrar los datos',
   countries: { US: 'Estados Unidos', RU: 'Rusia', JP: 'Japón', CA: 'Canadá', ESA: 'ESA', CN: 'China', UA: 'Ucrania', FR: 'Francia' },
   purposes: {
     'crewed-station': 'estación espacial tripulada',
