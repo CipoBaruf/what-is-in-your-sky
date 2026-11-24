@@ -1,6 +1,7 @@
 import { useT } from '../../../i18n/useT';
 import { CHUNK_MS, MINUTE_MS, nextRise, previousRise, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
+import { TextButton } from '../primitives/TextButton';
 import styles from './StepControls.module.css';
 
 /**
@@ -13,19 +14,16 @@ import styles from './StepControls.module.css';
  * is what US-22 AC6 asks for in three; `|◀ pass` the previous one. The chunk
  * buttons move it four hours — `STRIPE_CHUNK_H`, the stripe's own window — so
  * the tap that moves the instant is the tap that redraws the stripe around it
- * (FR-SPAN-1: the chunk follows the instant and is never set). The ±10 min
- * pair the spike chose is withdrawn: the stripe now draws 40 s a pixel, where
- * ten minutes is a drag of a quarter inch, and the row has 35 cells to live in
- * (FR-COMP-4 as amended v1.4).
+ * (FR-SPAN-1: the chunk follows the instant and is never set).
+ *
+ * R223 (FR-CTRL-16, D-1298): each is FR-CTRL-1's box, a `TextButton`; the row
+ * draws no control of its own. The row is the wide page's alone since R144, so
+ * it is counted against the rail's 44 cells, not FR-COMP-4's compact 35.
  *
  * A button with nowhere to go is disabled rather than absent, so the row never
  * moves — the rise jumps at the ends of the passes, the chunk buttons at the
- * ends of the span. The visible labels are glyphs, 33 cells with their gaps;
- * the accessible names say the same in words. Pure display: the hook's
- * `stepTo` (D-190) is the one contract, and it clamps.
- *
- * The row is rendered wherever the stripe is, on a pointer as well as a touch
- * device (V14-6): `pass ▶|` is a control a mouse wants as much as a thumb.
+ * ends of the span. The accessible names say the glyphs in words. Pure display:
+ * the hook's `stepTo` (D-190) is the one contract, and it clamps.
  */
 export interface StepControlsProps {
   /** The shown instant. */
@@ -44,24 +42,12 @@ export function StepControls({ t, span, passes, onStep }: StepControlsProps) {
   };
   return (
     <div className={styles.steps} role="group" aria-label={m.live.stepping} data-testid="step-controls">
-      <button type="button" className={styles.step} data-step="prev-rise" aria-label={m.live.stepName.prevRise} disabled={previous === null} onClick={() => previous !== null && onStep(previous)}>
-        {m.live.step.prevRise}
-      </button>
-      <button type="button" className={styles.step} data-step="-chunk" aria-label={m.live.stepName.backChunk} disabled={t <= span.start} onClick={() => step(-CHUNK_MS)}>
-        {m.live.step.backChunk}
-      </button>
-      <button type="button" className={styles.step} data-step="-1m" aria-label={m.live.stepName.back1} onClick={() => step(-MINUTE_MS)}>
-        {m.live.step.back1}
-      </button>
-      <button type="button" className={styles.step} data-step="+1m" aria-label={m.live.stepName.forward1} onClick={() => step(MINUTE_MS)}>
-        {m.live.step.forward1}
-      </button>
-      <button type="button" className={styles.step} data-step="+chunk" aria-label={m.live.stepName.forwardChunk} disabled={t >= span.end} onClick={() => step(CHUNK_MS)}>
-        {m.live.step.forwardChunk}
-      </button>
-      <button type="button" className={styles.step} data-step="next-rise" aria-label={m.live.stepName.nextRise} disabled={next === null} onClick={() => next !== null && onStep(next)}>
-        {m.live.step.nextRise}
-      </button>
+      <TextButton label={m.live.step.prevRise} data-step="prev-rise" aria-label={m.live.stepName.prevRise} disabled={previous === null} onClick={() => previous !== null && onStep(previous)} />
+      <TextButton label={m.live.step.backChunk} data-step="-chunk" aria-label={m.live.stepName.backChunk} disabled={t <= span.start} onClick={() => step(-CHUNK_MS)} />
+      <TextButton label={m.live.step.back1} data-step="-1m" aria-label={m.live.stepName.back1} onClick={() => step(-MINUTE_MS)} />
+      <TextButton label={m.live.step.forward1} data-step="+1m" aria-label={m.live.stepName.forward1} onClick={() => step(MINUTE_MS)} />
+      <TextButton label={m.live.step.forwardChunk} data-step="+chunk" aria-label={m.live.stepName.forwardChunk} disabled={t >= span.end} onClick={() => step(CHUNK_MS)} />
+      <TextButton label={m.live.step.nextRise} data-step="next-rise" aria-label={m.live.stepName.nextRise} disabled={next === null} onClick={() => next !== null && onStep(next)} />
     </div>
   );
 }

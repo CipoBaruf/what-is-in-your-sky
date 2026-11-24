@@ -104,6 +104,12 @@ const CSS = [
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
+/** R223 (D-1298): the share of a cell between two step buttons, as `StepControls.module.css` declares it. */
+const stepGap = (): number => {
+  const part = /\.steps \{[^}]*gap: 0 calc\(var\(--cell\) \/ (\d+)\)/.exec(readFileSync('src/ui/components/live/StepControls.module.css', 'utf8'))?.[1];
+  if (part === undefined) throw new Error('StepControls.module.css: .steps has no gap in shares of a cell');
+  return 1 / Number(part);
+};
 /**
  * R160, R206: the stars page's view row is options alone, measured on that module's rules — `cells.ts` keys a rule by
  * its local class name, and a page's module may use an option's.
@@ -263,12 +269,14 @@ const rows = (t: Messages): readonly Row[] => [
   // R145 (FR-TONIGHT-6): the playback row is wide's alone (the compact page plays from `TimeTaps`, pinned below), so it has no compact row here.
   { name: 'the hidden-objects toggle (FR-LIVE-6)', element: createElement(HiddenToggle, { hidden: false, onToggle: noop }), find: () => screen.getByTestId('live-hidden-toggle') },
   {
-    // R70 (FR-SPAN-3, FR-COMP-4 as amended v1.4): the six controls the row is re-cut to are the tightest row in
-    // the app, and the requirement names their number — 35 of the 36 — which is why the ±10 min pair could not stay.
+    // R70 (FR-SPAN-3, FR-COMP-4 as amended v1.4) counted the row at 35; R144 took it off compact, and R223 (FR-CTRL-16,
+    // D-1298) boxed its six buttons, so it is held to the wide rail it stands in, 44 cells at the least.
     name: 'the stepping row (FR-TRAJ-5 as amended v1.4, FR-SPAN-3)',
     element: createElement(StepControls, { t: pass.start.t, span: { start: pass.start.t - 3_600_000, end: pass.start.t + 3_600_000 }, passes: [pass], onStep: noop }),
     find: () => screen.getByTestId('step-controls'),
-    budget: 35,
+    budget: RAIL_MIN_CELLS,
+    // The boxes stand half a cell apart (StepControls.module.css), not the one cell `rowCells` counts between a pair.
+    measure: (row) => rowCells(row, table) - (row.querySelectorAll(':scope > button').length - 1) * (1 - stepGap()),
   },
   { name: 'the share action (FR-SHARE-2)', element: createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share }), find: () => screen.getByRole('button', { name: t.live.share }) },
   /*
