@@ -3,9 +3,9 @@
 A web app for the naked-eye sky. Give it a place and it lists which of about thirty bright
 satellites (the ISS, Tiangong, Hubble and others) cross the sky there in the next three
 nights: when each appears, where to look, how high and how bright, and the cloud forecast.
-A pass opens with a countdown and its path over the stars it crosses. The stars page names
+A pass opens with a countdown and its path over the stars it crosses. The live page names
 the stars, the constellations and the planets for any hour, turned by hand or
-held up to the sky. At a desk the satellites, the live sky and the stars share one celestial
+held up to the sky. At a desk the satellites and the live sky share one celestial
 globe, with each pass's arc and a satellite's facts beside it. It runs in the browser, with
 no account and no server of its own beyond one counting route, works offline, and speaks English and Spanish.
 
@@ -85,7 +85,7 @@ The long version, with one task followed end to end, is
   predictions are tested against fixed, dated fixtures. The compass is corrected for magnetic
   declination with geomagnetism.
 - The sky is SVG and DOM, no canvas or WebGL, in the page's monospace grid. At a desk the
-  live sky, a pass and the stars page open on a celestial globe seen from outside — the stars,
+  live sky and a pass open on a celestial globe seen from outside — the stars,
   the figures, the planets, the horizon and each pass's arc — with the window, a part of the
   sky, beside it as a choice, and the dome, a 3D bowl drawn as text with @glyphcss/react, as
   the other. On a phone each page is the sky full-screen with its controls in a bottom sheet:

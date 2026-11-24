@@ -166,8 +166,7 @@ Persistence:
 
 - `Prefs.skyHintSeen: boolean`, default `false`, persisted with the other prefs by `localPrefs.ts` and set once by the first gesture on any sky view (D-848); since v3.0 it hides the dome's hint alone, the window's and the globe's being `wiys:hint:globe:v1`'s (D-1273).
   It is not reset by a change of language or theme.
-- `DoorLines` (`screens/home/doorLines.ts`): `{ satellites: { lines: string[]; href: string }, stars: { lines: string[]; pending: boolean }, both: { lines: string[] } }`, built from data the home already holds.
-  `pending` means the `stars` chunk has not resolved yet (D-843).
+- `DoorLines` was the home door text; the home and its type are removed (R212, FR-LAND-1).
 
 **v2.10 additions** *(FR-PHONE-2, FR-PHONE-15, FR-LOOK-3, FR-LOOK-8)*
 
@@ -200,7 +199,7 @@ Persistence:
 | `failure` | `elements`, `forecast`, `search`, `passes`, `live` |
 
 `watch` is accepted before anything sends it (R213 adds the sender).
-`door` stays accepted until R212 removes it with the home; the funnel no longer prints it.
+`door` is no longer read; the home is gone and the funnel does not print it.
 The funnel reads each step as a share of first-visit `open` whatever its `detail` (FR-MEAS-6 as amended).
 
 ---

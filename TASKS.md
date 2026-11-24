@@ -405,7 +405,7 @@ R222 D-1295..D-1297, R223 D-1298..D-1300, R224 D-1301..D-1303, R225 D-1304..D-13
   - **Out of scope:** the documents (R226).
   - **Done when:** `npm run check` green; `rhythm.spec.ts` measures the settings page's browser group and the rails at 1280 × 800 and 390 × 844, equal to the pixel; `one-scroll.spec.ts` walks every page at 1280 × 800, 1024 × 700 and 390 × 844; `npm run check:sdd` green.
 
-- [ ] **R226 — The documents describe 3.0**
+- [x] **R226 — The documents describe 3.0**
   - **Lane:** docs
   - **Tier:** light
   - **Turns:** 300
