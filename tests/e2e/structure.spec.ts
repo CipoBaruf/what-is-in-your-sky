@@ -5,10 +5,9 @@
  * `App.structure.test.tsx` holds the same per screen in jsdom; this is where the widths, the stored run and
  * the real history are.
  */
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { test } from '@playwright/test';
-import { ROW_PX } from '../../src/lib/layout';
-import { domeDrawn, seedStoredRun, STORED_RUN, type StoredRun } from './liveHelpers';
+import { seedStoredRun, STORED_RUN, type StoredRun } from './liveHelpers';
 import { A11Y_MAX_H2, landmarkCounts, pageOutline, skippedLevels } from './structure';
 
 const PHONE = { width: 390, height: 844 };
@@ -52,8 +51,6 @@ const list = async (page: Page): Promise<void> => {
 const openGuide = (page: Page, nth = 0) => page.getByRole('button', { name: /Open guide|Abrir la guía/ }).nth(nth);
 /** The guide's way out: the sheet's `← Back to the list` on a phone, the panel's `×` on a desk. */
 const closeGuide = (page: Page) => page.locator('[role="dialog"][data-pass-id] button').first().or(page.getByTestId('guide-panel').getByRole('button', { name: 'Close the guide' }));
-/** The live page's Back control: R148's head over the sky carries it with its `live-back` test id. */
-const liveBack = (page: Page) => page.getByTestId('live-back');
 const focused = (page: Page): Promise<string> =>
   page.evaluate(() => {
     const active = document.activeElement;
@@ -128,7 +125,8 @@ test.describe('the title (FR-A11Y-3, US-30 AC3)', () => {
       await expect(page).toHaveTitle(words.app);
       await page.getByTestId('live-link').click();
       await expect(page).toHaveTitle(`${words.live} · ${words.app}`);
-      await page.getByTestId('live-back').click();
+      // R222 (D-1230): live is a tab with no Back; the browser's Back leaves it.
+      await page.goBack();
       await expect(page).toHaveTitle(words.app);
       await openGuide(page).click();
       // "<satellite> <start time> · <app title>"
@@ -162,9 +160,10 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
 
     await page.getByTestId('live-link').focus();
     await page.keyboard.press('Enter');
-    // R213 (FR-STRIP-5): nothing asks, so the focus is Back's and one `Esc` leaves the page to the control that opened it (FR-A11Y-4).
-    await expect.poll(() => focused(page)).toBe('live-back');
-    await page.keyboard.press('Escape');
+    // R222 (D-1230): live is a tab with no Back, so the focus is its `h1`; the browser's Back leaves it, the focus back on
+    // the control that opened it (FR-A11Y-4).
+    await expect.poll(() => focused(page)).toMatch(/^h1:/);
+    await page.goBack();
     await list(page);
     await expect.poll(() => focused(page)).toBe('live-link');
 
@@ -221,7 +220,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     });
     cycles.push(async () => {
       await page.getByTestId('live-link').click();
-      await liveBack(page).click();
+      await page.goBack();
     });
     cycles.push(async () => {
       await page.getByTestId('settings-link').click();
@@ -303,20 +302,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
   });
 });
 
-/** FR-CTRL-17, D-1247: the box overhangs Back's line by a hairline, and the ring's inner edge is outside it on every side. */
-async function expectRingOutsideBox(back: Locator): Promise<void> {
-  const covered = await back.evaluate((element) => {
-    const box = element.querySelector('span');
-    if (!box) throw new Error('Back has no box');
-    const line = element.getBoundingClientRect();
-    const drawn = box.getBoundingClientRect();
-    const offset = parseFloat(getComputedStyle(element).outlineOffset);
-    return Math.max(line.top - drawn.top, drawn.bottom - line.bottom, line.left - drawn.left, drawn.right - line.right) - offset;
-  });
-  expect(covered, 'the ring covers none of the box').toBeLessThanOrEqual(0.1);
-}
-
-// R215 (FR-CTRL-5): the header's `← back` has no box, so FR-CTRL-17's rule is the live page's Back's alone (below).
+// R215 (FR-CTRL-5): the header's `← back` has no box, and the live page's Back, FR-CTRL-17's other case, went in R222 (D-1230).
 test("the header's back draws no box, Settings at 360 px (FR-CTRL-5)", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await seedStoredRun(page, { settled: true });
@@ -330,40 +316,4 @@ test("the header's back draws no box, Settings at 360 px (FR-CTRL-5)", async ({ 
   for (const width of borders) expect(width).toBe('0px');
 });
 
-/**
- * F-100 (V21-24, D-642; FR-A11Y-4, FR-X-5): entering `#live` focuses Back, and with no pointer or key yet pressed
- * the browser draws that as `:focus-visible`. The ring goes round the text line, not the 48 px tap box, so it stays
- * off the line under it, and taking the tap box away while it shows moves nothing on the page. A row that grew here
- * once moved `[ scrub ]` between a pointer's down and up, and the click was lost.
- */
-// R212 (D-1267): 1200 × 450 left the list: a desk's live page is a tab and draws no Back.
-for (const size of [PHONE, { width: 844, height: 390 }]) {
-  test(`Back's focus ring hugs its line and moves nothing, ${String(size.width)} × ${String(size.height)} (F-100)`, async ({ page }) => {
-    await page.setViewportSize(size);
-    await seedStoredRun(page, { settled: true });
-    // R212 (D-1267): live as the load's own entry has no Back, so it is entered from the satellites page's link, by key.
-    await page.locator('#root > header').getByTestId('live-link').focus();
-    await page.keyboard.press('Enter');
-    await domeDrawn(page);
-    const back = page.getByTestId('live-back');
-    // R213 (FR-STRIP-5): nothing asks at any width, so the focus is where the page put it and the ring the browser's own.
-    await expect(page.locator('[aria-modal="true"]')).toHaveCount(0);
-    await expect(back).toBeFocused();
-    expect(await back.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
-    const boxes = (): Promise<number[][]> =>
-      page.evaluate(() =>
-        Array.from(document.querySelectorAll('[data-testid="live-page"] button')).filter((b) => b.getAttribute('data-testid') !== 'live-back').map((b) => {
-          const r = b.getBoundingClientRect();
-          return [r.x, r.y, r.width, r.height];
-        }),
-      );
-    const focusedBoxes = await boxes();
-    const ring = await back.boundingBox();
-    expect(ring?.height, 'the ring is drawn round the text line, not the tap box').toBeLessThanOrEqual(ROW_PX);
-    await expectRingOutsideBox(back);
-    await back.evaluate((element) => {
-      (element as HTMLElement).blur();
-    });
-    expect(await boxes(), 'nothing on the page moved when the ring went').toEqual(focusedBoxes);
-  });
-}
+// R222 (D-1230): F-100's Back on `#live` went with live's Back; live is a tab at every width.

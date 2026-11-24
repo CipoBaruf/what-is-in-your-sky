@@ -74,6 +74,7 @@ import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import styles from './Live.module.css';
 import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { depth } from '../navigation';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -181,6 +182,21 @@ export function LivePage({ link, chartHand: visitHand }: LivePageProps) {
    * tap targets, and FR-COMP-2 puts both on the settings page on a phone
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
+  /*
+   * R222 (FR-A11Y-4, D-1230): live is a tab, with no Back to take the focus on the way in, so it takes the page's
+   * `h1` as the shell gives a tab whose opener went — here from inside, the chunk being lazy. Only when the page was
+   * entered from inside the app (`depth() > 0`): a load leaves the focus where the browser puts it.
+   */
+  useEffect(() => {
+    if (depth() === 0 || document.activeElement !== document.body) return;
+    const heading = document.querySelector<HTMLElement>('[data-testid="live-page"] h1');
+    if (!heading) return;
+    if (!heading.hasAttribute('tabindex')) {
+      heading.setAttribute('tabindex', '-1');
+      heading.addEventListener('blur', () => heading.removeAttribute('tabindex'), { once: true });
+    }
+    heading.focus();
+  }, []);
   /*
    * R148 (FR-FULL-5; D-927) → R152 (FR-GYRO-6, D-945) → R222 (D-1230): `Esc` in steps, in this one listener — the
    * open sheet closes, then the facts do; with nothing open the key is not the page's (live is a tab, nothing to
