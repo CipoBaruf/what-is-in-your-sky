@@ -1,6 +1,6 @@
 /**
  * R134 (FR-FLOW-10, F9; D-851): three gaps. At 390 × 844, in both languages, the vertical gap between consecutive
- * marked blocks (`data-rhythm="row" | "group" | "section"`) on the home, the live page, the stars page, the pass
+ * marked blocks (`data-rhythm="row" | "group" | "section"`) on the home, the live page, the pass
  * detail and the settings page is the lower block's token — `--space-1`, `--space-3` or `--space-5`, read off the
  * page — to a pixel, and no row gap is larger than a group gap, nor a group gap than a section gap.
  *
@@ -12,7 +12,7 @@
  * them on, the window (a fresh profile) and the dome (a saved `chartView`), and no gap is a known exception: the
  * dome's empty `picker` slot takes no gap, so its drawing and its hint stand one row apart.
  *
- * R165 (FR-CLEAN-8, D-1000): the stars page and the pass detail are the sky with a sheet on the phone, upright and
+ * R165 (FR-CLEAN-8, D-1000): the pass detail (and until R222 the stars page) is the sky with a sheet on the phone, upright and
  * turned, so their rows are measured with the sheet open and with it closed at 390 × 844 and at 844 × 390. With the
  * sheet closed what stands over the sky may carry no mark at all; whatever is marked and drawn keeps the gaps.
  *

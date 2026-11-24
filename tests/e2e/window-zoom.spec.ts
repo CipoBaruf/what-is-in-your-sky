@@ -1,8 +1,8 @@
 /**
  * R125 (FR-SKY-14; FR-WIN-1, FR-GUT-3, FR-STAR-4 as amended; US-41 AC6; D-798):
  * the zoom on the production build, on the two boxes the hand drives — the
- * live page's on wide, where the window is the saved view in the box, and the
- * stars page's. `+` three times narrows the field to 30° and spreads the
+ * live page's on wide, where the window is the saved view in the box (the
+ * stars page's box folded into it in R222, FR-LAND-3). `+` three times narrows the field to 30° and spreads the
  * drawing about its centre; `0` restores it; the wheel, with ctrl or plain
  * (R214, FR-CTRL-9: a key's step a notch), and a synthetic two-pointer pinch
  * move the field the same way; R214's three keys under the box and the hint
@@ -18,9 +18,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR } from './captureSet';
-import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
-import { ctrlWheel, pinch, pinchPolar, placedAt, skyUnder, wheel } from './windowZoom';
-import { onWindow } from './globeHelpers';
+import { FIXTURE_DATE, PARIS } from './observers';
+import { seedStoredRun } from './liveHelpers';
+import { ctrlWheel, pinch, placedAt, wheel } from './windowZoom';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -33,7 +33,7 @@ const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', '
 const READOUT = /^Facing [NESW]{1,3} \(\d+°\) · up -?\d+°( · field \d+°)?$/;
 
 /** `sky-window.spec.ts`'s opening: the saved view in the prefs, the elements from the fixtures, the clock paused. */
-async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window'; starsLayer?: boolean }): Promise<Locator> {
+async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window'; starLayers?: { stars: boolean; figures: boolean; planets: boolean } }): Promise<Locator> {
   await page.setViewportSize(DESK);
   await page.addInitScript(
     ([key, value]: [string, string]) => {
@@ -67,21 +67,15 @@ async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView
   return w;
 }
 
-/** The stars page as a reader with a saved place, every provider refused (`stars.spec.ts`'s opening). */
+/** R222 (FR-LAND-3): the live page over the stored run's Neuquén on the suite's night, the window the saved view, on a desk. */
 async function openStars(page: Page): Promise<Locator> {
   await page.setViewportSize(DESK);
-  await page.clock.setFixedTime(NINE_DAYS_ON);
-  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
-  );
-  await page.goto('/#stars');
-  await onWindow(page);
-  const w = page.getByTestId('stars-sky').locator('[data-look-az]');
-  await expect(w).toHaveAttribute('data-state', 'hand');
+  await seedStoredRun(page, { settled: true, prefs: { chartView: 'window' } });
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
+  const w = page.getByTestId('sky-chart').locator('[data-look-az]');
+  await expect(w).toHaveAttribute('data-state', 'hand', { timeout: 30_000 });
   return w;
 }
 
@@ -96,11 +90,11 @@ async function toPhone(page: Page): Promise<void> {
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 }
 
-/** R155 (FR-LOOK-8 as amended): the two star chunks' requests, in order — `Stars-*.js` (the catalogue) and `deep-*.js` (`stars-deep`, D-976). */
+/** R155 (FR-LOOK-8 as amended): the two star chunks' requests, in order — `starSource-*.js` (the catalogue; `Stars-*.js` until R222) and `deep-*.js` (`stars-deep`, D-976). */
 function watchStarChunks(page: Page): string[] {
   const seen: string[] = [];
   page.on('request', (request) => {
-    const name = /\/(Stars|deep)-[^/]*\.js$/.exec(request.url())?.[1];
+    const name = /\/(starSource|deep)-[^/]*\.js$/.exec(request.url())?.[1];
     if (name) seen.push(name);
   });
   return seen;
@@ -222,72 +216,26 @@ test.describe('the deep chunk on the live page (R155, FR-LOOK-8 as amended)', ()
 
   test('with [ ] stars the chunk is never requested; turning the stars on requests it once, after the stars chunk', async ({ page }) => {
     const chunks = watchStarChunks(page);
-    const w = await openLiveWindow(page, { observer: PARIS, chartView: 'window', starsLayer: false });
-    await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    const w = await openLiveWindow(page, { observer: PARIS, chartView: 'window', starLayers: { stars: false, figures: true, planets: true } });
+    // R222 (FR-LAND-3): the stars' own layer row is the live page's switch now.
+    const starsLayer = page.getByTestId('stars-layers').locator('[data-layer="stars"]');
+    await expect(starsLayer).toHaveAttribute('aria-pressed', 'false');
     // The stars chunk is prefetched on idle with the layer off (D-791); the deep one is not, since no field draws stars.
     await page.clock.runFor(6_000);
-    await expect.poll(() => chunks.filter((name) => name === 'Stars').length).toBe(1);
+    await expect.poll(() => chunks.filter((name) => name === 'starSource').length).toBe(1);
     expect(chunks).not.toContain('deep');
-    await page.getByTestId('stars-toggle').click();
-    await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
+    await starsLayer.click();
+    await expect(starsLayer).toHaveAttribute('aria-pressed', 'true');
     await expect(w.locator('[data-layer="stars"]')).toBeAttached();
     await page.clock.runFor(6_000);
     await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
-    expect(chunks).toEqual(['Stars', 'deep']);
+    expect(chunks).toEqual(['starSource', 'deep']);
     // Once per visit: a second field (the dome and back) asks for nothing again.
     const toggle = page.getByRole('group', { name: 'Chart view' });
     await toggle.getByRole('button', { name: 'Dome' }).click();
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(6_000);
-    expect(chunks).toEqual(['Stars', 'deep']);
-  });
-});
-
-test.describe('zoom on the stars page', () => {
-  test.use({ viewport: DESK, hasTouch: false });
-
-  test('+ narrows the field and the list with it, 0 restores it, the pinch and ctrl + wheel work on the box, and a reload opens at the kept field (FR-KEEP-1)', async ({ page }) => {
-    const w = await openStars(page);
-    await expect(w).toHaveAttribute('data-fov', '60');
-    await expect(readout(page)).toHaveText(READOUT);
-    const rows = page.getByRole('list', { name: 'In this field' }).getByRole('button');
-    await expect.poll(async () => rows.count()).toBeGreaterThan(0);
-    const listed = await rows.count();
-    const before = await placedAt(zenith(w));
-    // The page opens with its box focused (FR-A11Y-1..3) — on a desk the globe's since V212-11, so after `Window` the
-    // window's box is focused by hand and the keys reach it.
-    await box(w).focus();
-    await expect(box(w)).toBeFocused();
-    for (let i = 0; i < 3; i += 1) await page.keyboard.press('+');
-    await expect(w).toHaveAttribute('data-fov', '31');
-    await expect(readout(page)).toHaveText(READOUT);
-    await expect(w).toHaveAttribute('data-look-az', '180');
-    await expect(w).toHaveAttribute('data-look-alt', '35');
-    expect((await placedAt(zenith(w))).y).toBeLessThan(before.y - 50);
-    // `In this field` lists what the narrowed box shows: never more than at 60°.
-    await expect.poll(async () => rows.count()).toBeLessThanOrEqual(listed);
-    await page.keyboard.press('0');
-    await expect(w).toHaveAttribute('data-fov', '60');
-    await expect.poll(async () => rows.count()).toBe(listed);
-    // The pinch and the wheel on this box too; the picker's point keeps the zoom.
-    await pinch(box(w), 100, 200);
-    await expect(w).toHaveAttribute('data-fov', '30');
-    const centre = await box(w).boundingBox();
-    if (!centre) throw new Error('no box');
-    await page.mouse.move(centre.x + centre.width / 2, centre.y + centre.height / 2);
-    await ctrlWheel(page, -100);
-    await expect(w).toHaveAttribute('data-fov', '24');
-    await page.getByRole('group', { name: 'Facing' }).locator('[data-option="W"]').click();
-    await expect(w).toHaveAttribute('data-look-az', '270');
-    await expect(w).toHaveAttribute('data-fov', '24');
-    // FR-CTRL-9 (D-1272): the plain wheel zooms here, a key's step a notch.
-    expect(await wheel(box(w), 100, false)).toBe(false);
-    await expect(w).toHaveAttribute('data-fov', '30');
-    // R190 (FR-KEEP-1): kept on the device, so the reload opens at the field left, the aim at its opening rule (FR-KEEP-2).
-    await page.reload();
-    await onWindow(page);
-    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-fov', '30');
-    expect(Math.round(Number((JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { windowFov?: number }).windowFov))).toBe(30);
+    expect(chunks).toEqual(['starSource', 'deep']);
   });
 });
 
@@ -296,7 +244,9 @@ test.describe('the zoom keys and the hint (R214, FR-CTRL-9)', () => {
 
   test('FR-CTRL-9: −, + and ⟲ under the box at its left zoom a step each and back to the opening camera; the hint is gone after one drag and after a reload', async ({ page }) => {
     const w = await openStars(page);
-    const layout = page.getByTestId('stars-layout');
+    const layout = page.getByTestId('live-layout');
+    // The live window's opening camera (FR-KEEP-2), which `Reset view` goes back to.
+    const [az, alt] = [await w.getAttribute('data-look-az'), await w.getAttribute('data-look-alt')];
     const hint = layout.getByTestId('sky-hint');
     await expect(hint).toHaveText('drag to turn · scroll to zoom');
 
@@ -314,7 +264,7 @@ test.describe('the zoom keys and the hint (R214, FR-CTRL-9)', () => {
     await page.mouse.down();
     await page.mouse.move(centre.x + centre.width / 2 + 120, centre.y + centre.height / 2, { steps: 5 });
     await page.mouse.up();
-    await expect(w).not.toHaveAttribute('data-look-az', '180');
+    await expect(w).not.toHaveAttribute('data-look-az', az ?? '');
     await expect(hint).toHaveCount(0);
 
     await expect(w).toHaveAttribute('data-fov', '60');
@@ -326,12 +276,11 @@ test.describe('the zoom keys and the hint (R214, FR-CTRL-9)', () => {
     await expect(w).toHaveAttribute('data-fov', '75');
     await row.getByRole('button', { name: 'Reset view' }).click();
     await expect(w).toHaveAttribute('data-fov', '60');
-    await expect(w).toHaveAttribute('data-look-az', '180');
-    await expect(w).toHaveAttribute('data-look-alt', '35');
+    await expect(w).toHaveAttribute('data-look-az', az ?? '');
+    await expect(w).toHaveAttribute('data-look-alt', alt ?? '');
 
     await page.reload();
-    await onWindow(page);
-    await expect(page.getByTestId('stars-sky').locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    await expect(page.getByTestId('sky-chart').locator('[data-look-az]')).toHaveAttribute('data-state', 'hand', { timeout: 30_000 });
     await expect(page.getByTestId('sky-hint')).toHaveCount(0);
   });
 });
@@ -349,13 +298,13 @@ test.describe('zoom on a compact page without a sensor', () => {
     const w = await openStars(page);
     await toPhone(page);
     await expect(w).toHaveAttribute('data-fov', '60');
-    // Turned to SW 35° up, where Ara's three bright stars with no proper name stand on the fixture night (Alp, Bet and Zet Ara, V 2.8–3.1).
+    // Turned to SW, where Ara's three bright stars with no proper name stand on the fixture night (Alp, Bet and Zet Ara, V 2.8–3.1).
     await box(w).focus();
+    const az = Number(await w.getAttribute('data-look-az'));
     for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
-    await expect(w).toHaveAttribute('data-look-az', '225');
-    await expect(w).toHaveAttribute('data-look-alt', '35');
+    await expect(w).toHaveAttribute('data-look-az', String((az + 45) % 360));
     await expect(w.locator('[data-layer="stars"]')).toHaveAttribute('data-deep', /^[1-9]\d*$/, { timeout: 30_000 });
-    expect(chunks).toEqual(['Stars', 'deep']);
+    expect(chunks).toEqual(['starSource', 'deep']);
     const deep = w.locator('[data-layer="stars"] [data-deep-pool] > circle:not([visibility="hidden"])');
     await expect.poll(() => deep.count()).toBeGreaterThan(0);
     const at60 = await drawnStars(w).count();
@@ -372,71 +321,7 @@ test.describe('zoom on a compact page without a sensor', () => {
     console.log(`[FR-LOOK-9] 390 px, SW 35° up over Neuquén on the fixture night: ${String(at60)} stars drawn at 60° (${String(deepAt60)} deep), ${String(at20)} at 20° (${String(deepAt20)} deep); names at 60°: ${names60.join(', ')}; at 20°: ${names20.join(', ')}`);
     expect(names20.some((name) => DESIGNATION.test(name)), names20.join(', ')).toBe(true);
     expect(names20).not.toContain('ζ Ara');
-    expect(chunks).toEqual(['Stars', 'deep']);
+    expect(chunks).toEqual(['starSource', 'deep']);
   });
 
-  test('the pinch narrows the stars page’s box on a phone-sized window', async ({ page }) => {
-    const w = await openStars(page);
-    await toPhone(page);
-    await expect(w).toHaveAttribute('data-fov', '60');
-    await pinch(box(w), 80, 160);
-    await expect(w).toHaveAttribute('data-fov', '30');
-    await expect(w).toHaveAttribute('data-look-az', '180');
-    await page.screenshot({ path: `${CAPTURE_DIR}/r125-stars-390-window-30-dark-en.png` });
-    // R160: to the end and not past it (30 × 150 / 50 = 90°); past it by the ratio is the whole sky's (below).
-    await pinch(box(w), 150, 50);
-    await expect(w).toHaveAttribute('data-fov', '90');
-    await expect(readout(page)).toHaveText(READOUT);
-  });
-
-  /**
-   * R160 (FR-PHONE-10; US-46 AC4; D-970): the ends. A pinch that stops at the widest field stays at it, and one that
-   * goes on by less than `PINCH_HANDOFF_RATIO` too; past the ratio the release opens the whole sky with the window's
-   * camera kept at 90°; a pinch in on the whole sky that stops short of the ratio stays, and past it returns to the
-   * window at 90° facing the sky under the fingers; the narrow end stays at 20° whatever the pinch asks.
-   */
-  test('a pinch stopping at either end stays there; past the widest field by the ratio it opens the whole sky, and the pinch in on it returns to the window', async ({ page }) => {
-    const w = await openStars(page);
-    await toPhone(page);
-    await expect(w).toHaveAttribute('data-fov', '60');
-    const chart = page.getByTestId('sky-chart');
-    // R186 (FR-KEEP-1): `Window` pressed on the desk (`onWindow`) is the reader's pick and saved; the pinches after it write nothing (FR-PHONE-10).
-    const storedView = async (): Promise<unknown> => (JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as Record<string, unknown>)['chartView'];
-    const picked = await storedView();
-    expect(picked).toBe('window');
-    // To the end exactly (60 × 150 / 100 = 90°), and then 10 % past it: the field holds at 90 and the view stays the window.
-    await pinch(box(w), 150, 100);
-    await expect(w).toHaveAttribute('data-fov', '90');
-    await expect(chart).toHaveAttribute('data-view', 'window');
-    await pinch(box(w), 110, 100);
-    await expect(w).toHaveAttribute('data-fov', '90');
-    await expect(chart).toHaveAttribute('data-view', 'window');
-    // The narrow end: 20° however far the fingers go, and never a handoff.
-    await pinch(box(w), 50, 500);
-    await expect(w).toHaveAttribute('data-fov', '20');
-    await expect(chart).toHaveAttribute('data-view', 'window');
-    await pinch(box(w), 500, 100);
-    await expect(w).toHaveAttribute('data-fov', '90');
-    // Past the end by the ratio: 90 × 120 / 100 = 108° asked, over 103.5: the whole sky, the camera at 90°.
-    await pinch(box(w), 120, 100);
-    await expect(chart).toHaveAttribute('data-view', 'polar');
-    expect(await storedView()).toBe(picked);
-    const polar = page.getByTestId('stars-sky').locator('svg[data-drawing="polar"]');
-    await expect(polar.locator('[data-field-outline]')).toHaveAttribute('d', /^M/, { timeout: 30_000 });
-    // In on the whole sky (the fingers spreading) short of the ratio: it stays; past it, about the zenith: the window, up, at 90°.
-    await pinchPolar(polar, 100, 110);
-    await expect(chart).toHaveAttribute('data-view', 'polar');
-    const rect = await polar.evaluate((el) => el.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number });
-    const at = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    expect((await skyUnder(polar, at)).altDeg).toBeCloseTo(90, 6);
-    await pinchPolar(polar, 60, 100, at);
-    await expect(chart).toHaveAttribute('data-view', 'window');
-    const back = page.getByTestId('stars-sky').locator('[data-look-az][data-fov]');
-    await expect(back).toHaveAttribute('data-state', 'hand');
-    await expect(back).toHaveAttribute('data-fov', '90');
-    await expect(back).toHaveAttribute('data-look-alt', '90');
-    // R190 (FR-KEEP-1): the field the pinch reached before the handoff is the reader's zoom, and kept; the handoff writes nothing.
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY))).toMatchObject({ windowFov: 90 });
-    expect(await storedView()).toBe(picked);
-  });
 });

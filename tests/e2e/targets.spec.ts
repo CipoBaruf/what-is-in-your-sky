@@ -9,7 +9,7 @@
  * D-500's ring round its text line, which takes the inline control's tap box away while the ring is drawn — the
  * keyboard's state, held by `settings.spec.ts` — so the focus is let go before the measure.
  *
- * R165 (FR-CLEAN-8, D-1000): the stars page and the pass detail are the sky with a sheet on the phone, upright and
+ * R165 (FR-CLEAN-8, D-1000): the pass detail (and until R222 the stars page) is the sky with a sheet on the phone, upright and
  * turned, so their controls are measured with the sheet open and with it closed (the bottom row and the head over the
  * sky) at 390 × 844 and at 844 × 390.
  *
@@ -88,11 +88,11 @@ for (const locale of LOCALES) {
       });
     }
 
-    /** R152 (FR-GYRO-1, D-944): on a phone with the sensor, `[ follow the phone ]` stands on three pages and is a target like the rest. */
+    /** R152 (FR-GYRO-1, D-944): on a phone with the sensor, `[ follow the phone ]` stands on the live page and the pass detail and is a target like the rest. */
     test.describe('[ follow the phone ] (a touch device, FR-WIN-4)', () => {
       test.use({ hasTouch: true });
 
-      for (const which of ['live', 'stars', 'detail'] as const) {
+      for (const which of ['live', 'detail'] as const) {
         test(`[ follow the phone ] on the ${which} page is a 44 × 44 target`, async ({ page }) => {
           const root = await openFlowPage(page, which, locale, 'window');
           await expect(root.getByTestId('follow-toggle')).toBeVisible();

@@ -38,6 +38,9 @@ async function box(locator: Locator): Promise<Box> {
 /** The corner readout's drawn line — its paragraph, the surface — and not the target-tall row it is centred in (R157). */
 const lineBox = (page: Page): Promise<Box> => box(page.getByTestId('sky-corner-readout').locator('p').first());
 
+const chart = (page: Page): Locator => page.getByTestId('sky-chart');
+const sheetOrder = (page: Page): Promise<(string | null)[]> => page.getByTestId('sheet-body').evaluate((el) => [...el.children].map((child) => child.getAttribute('data-testid')));
+
 const scrolls = (page: Page): Promise<boolean> => page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1 || document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
 
 /**
