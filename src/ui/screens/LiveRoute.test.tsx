@@ -1,11 +1,10 @@
 /**
  * R32 (FR-LIVE-1, FR-LIVE-9): the `#live` route as the hash carries it —
  * active for the bare route and for any `#live?…`, the link only when it
- * parses, following `hashchange`, and `leave` staying put where live is the
- * first page (R212, FR-LAND-1).
+ * parses, following `hashchange`; R222 (D-1230): no `leave`, live is a tab.
  */
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { useLiveRoute } from './LiveRoute';
 
 const go = (hash: string): void => {
@@ -48,19 +47,9 @@ describe('useLiveRoute', () => {
     expect(result.current.active).toBe(true);
   });
 
-  it('leave, on an entry the app did not push (the load, a typed URL), stays: live is the first page (FR-LAND-1)', () => {
+
+  it('D-1230: live is a tab — the route has no leave (R222)', () => {
     const { result } = renderHook(() => useLiveRoute());
-    go('#live');
-    const heard = vi.fn();
-    window.addEventListener('hashchange', heard);
-    const entries = window.history.length;
-    act(() => {
-      result.current.leave();
-    });
-    window.removeEventListener('hashchange', heard);
-    expect(window.location.hash).toBe('#live');
-    expect(result.current.active).toBe(true);
-    expect(heard).not.toHaveBeenCalled();
-    expect(window.history.length).toBe(entries);
+    expect(Object.keys(result.current).sort()).toEqual(['active', 'link']);
   });
 });

@@ -29,7 +29,7 @@ describe('<LivePage> counts its failure line (FR-MEAS-2: failure:live)', () => {
     act(() => {
       appStore.setState({ observer, elements: { status: 'loading' } });
     });
-    render(<LivePage link={null} onLeave={() => undefined} />);
+    render(<LivePage link={null} />);
     expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'loading');
     expect(count).not.toHaveBeenCalled();
     act(() => {
@@ -40,7 +40,7 @@ describe('<LivePage> counts its failure line (FR-MEAS-2: failure:live)', () => {
   });
 
   it('is not counted with no place', () => {
-    render(<LivePage link={null} onLeave={() => undefined} />);
+    render(<LivePage link={null} />);
     expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'no-place');
     expect(count).not.toHaveBeenCalled();
   });

@@ -35,7 +35,7 @@ afterEach(() => {
   window.history.replaceState(null, '', window.location.pathname);
 });
 
-const SUB_PAGES = ['stars', 'settings'] as const satisfies readonly HeaderPage[];
+const SUB_PAGES = ['settings'] as const satisfies readonly HeaderPage[];
 const TABS = ['live', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
 const HREF: Record<(typeof TABS)[number], string> = { live: '#live', pass: '#pass', settings: '#settings' };
 const PLACE = '−38.93, −67.99';
@@ -92,7 +92,7 @@ describe('FR-CTRL-5: the tab form and the back form', () => {
     media = stubMatchMedia(WIDE_PX);
     const t = CATALOGS[locale];
     const onBack = vi.fn();
-    renderIn(locale, { page: 'stars', place: null, onBack });
+    renderIn(locale, { page: 'pass', place: null, onBack });
     const back = screen.getByRole('button', { name: t.header.backName });
     expect(back).toHaveTextContent(locale === 'es' ? '← volver' : '← back');
     expect(back.className).toMatch(/bare/);
@@ -203,7 +203,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-LAND-4, FR-LAND-6)', (locale: Lo
     expect(change).toHaveBeenCalledTimes(3);
   });
 
-  it.each(['pass', 'stars', 'settings'] as const)('%s: ← back first, the title, the place line, the tabs; no tagline', async (page) => {
+  it.each(['pass', 'settings'] as const)('%s: ← back first, the title, the place line, the tabs; no tagline', async (page) => {
     media = stubMatchMedia(WIDE_PX);
     const onBack = vi.fn();
     const { container } = renderIn(locale, { page, place: { label: PLACE, example: false }, onBack });
@@ -217,7 +217,7 @@ describe.each(LOCALES)('<Header> wide in %s (FR-LAND-4, FR-LAND-6)', (locale: Lo
     fireEvent.click(back);
     expect(onBack).toHaveBeenCalledOnce();
     expectTabs(locale, page);
-    // The live, stars and pass pages carry their own h1 (the pass's name, D-1134); settings has the title as its h1.
+    // The live and pass pages carry their own h1 (the pass's name, D-1134); settings has the title as its h1.
     expect(screen.queryAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(page === 'settings' ? [t.app.title] : []);
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();

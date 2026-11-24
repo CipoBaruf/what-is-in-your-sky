@@ -42,7 +42,7 @@ export function PlaceGroup({ search = searchPlaces, geolocation }: PlaceGroupPro
       <p className={styles.tagline} data-testid="live-tagline">
         {t.app.tagline}
       </p>
-      <Card as="section" aria-labelledby={headingId} className={styles.card} data-testid="live-place-group">
+      <Card as="section" className={styles.card} data-testid="live-place-group">
         <Stack gap="row">
           <h2 id={headingId} className={styles.heading}>
             {t.home.coldHeading}
