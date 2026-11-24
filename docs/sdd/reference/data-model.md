@@ -183,7 +183,7 @@ Persistence:
 
 | Name | `detail` |
 |---|---|
-| `open` | `home`, `pass`, `live`, `stars`, `settings` |
+| `open` | `pass`, `live`, `settings` |
 | `example_shown` | `pass`, `none`, `no_city`, `failed`, `slow` |
 | `where_shown` | `example`, `fallback` |
 | `place_set` | `search`, `coords`, `device`, `favourite`, `link` |
@@ -193,7 +193,6 @@ Persistence:
 | `watch` | none |
 | `pass_open` | none |
 | `live_open` | none |
-| `stars_open` | none |
 | `sky_screen_open` | none |
 | `settings_open` | none |
 | `follow_answer` | `allow`, `not_now`, `refused` |

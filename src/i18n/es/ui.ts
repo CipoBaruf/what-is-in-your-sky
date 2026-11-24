@@ -102,11 +102,10 @@ export const ui: typeof EnUi = {
     backWords: '← volver',
     backName: 'Volver',
     nav: 'Páginas',
-    pages: { live: 'en vivo', pass: 'satélites', stars: 'estrellas', settings: 'ajustes' },
+    pages: { live: 'en vivo', pass: 'satélites', settings: 'ajustes' },
     place: { example: 'ejemplo', change: 'cambiar', set: 'Elegí tu lugar' },
   },
 
-  starsHeading: 'Estrellas esta noche',
   skyView: { view: 'Vista', time: 'Hora', layers: 'Capas', now: 'ahora', facing: 'Hacia', fullscreen: 'pantalla completa', exitFullscreen: 'Salir de pantalla completa' },
 
   banner: { info: 'Nota', warning: 'Aviso' },
@@ -462,7 +461,6 @@ export const ui: typeof EnUi = {
       open: 'Abrir el pase donde está el cursor',
       close: 'Cerrar la guía, o esta lista',
       live: 'Abrir el cielo en vivo',
-      stars: 'Abrir las estrellas',
       view: 'Cambiar la vista: globo, ventana, domo en la compu; domo y polar en el teléfono',
       theme: 'Cambiar la paleta entre oscura y nocturna',
       help: 'Mostrar esta lista',

@@ -28,7 +28,7 @@ import { PlaceLine, useHeaderPlace, type HeaderPlace } from './PlaceLine';
  *
  * **Compact.** A tab — live, the satellites' list (R212, D-1231) — is one row of at most 36 cells (FR-COMP-1): the
  * mark and the three links. The place line is not on it: it heads the satellites list and the controls sheet
- * (FR-LAND-4, V30-32). Every other page — stars, settings — is `← back`, the page's name in the accent and the
+ * (FR-LAND-4, V30-32). The other page, settings, is `← back`, the page's name in the accent and the
  * context in `--fg-dim`, cut with an ellipsis where the row's cells run out; on settings the name is the page's `h1`.
  * The compact live page has no header row since v2.8: its head is `SkyHead` over the sky (FR-FULL-2), and this row is
  * drawn there only while there is no sky to draw (the inert page).
@@ -124,8 +124,8 @@ export function Header({ page, place, onChangePlace, context = null, onBack, bac
     ) : null;
 
   if (mode === 'compact') {
-    if (page === 'settings' || page === 'stars') {
-      const Name = page === 'settings' ? 'h1' : 'span';
+    if (page === 'settings') {
+      const Name = 'h1';
       return (
         <Root inert={inert} className={rootClass(`${styles.compact} ${styles.sub}`)} data-testid="header" data-page={page}>
           {back}

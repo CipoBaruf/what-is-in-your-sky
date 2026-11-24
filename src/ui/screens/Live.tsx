@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { hintFitsBeside, scrubPlacement, type PageShape, type ScrubPlacement } from '../../lib/layout';
@@ -15,6 +15,12 @@ import type { Span } from '../../lib/timeStripe';
 import { nextPassStrip, watchInstant } from '../../lib/nextPassStrip';
 import { nextTarget, TONIGHT_LEAD_MS, tonightTarget } from '../../lib/tonightJump';
 import type { ChartView, EpochMs, NoradId, Observer, Pass } from '../../model';
+import type { SkyScene } from '../components/guide/skychart/window/scene';
+import { loadGlobeRail } from '../components/guide/skychart/globe/globeChunk';
+import { STAR_LABEL_HOLD_S } from '../components/live/field';
+import { PlaceGroup } from '../components/live/PlaceGroup';
+import { LayersGroup, TurnGroup, useSkyLayers } from '../components/live/SkyLayers';
+import { Disclosure } from '../components/primitives/Disclosure';
 import { selectOrbitHeight, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { count } from '../../state/measure';
 import { sameLocation } from '../../state/slices/location';
@@ -44,8 +50,6 @@ import { TimeControl } from '../components/sky/time/TimeControl';
 import { ContextLine, DaytimeLine, ShownTime, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
 import { SkyHead } from '../components/sky/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
-import { TextButton } from '../components/primitives/TextButton';
-import { StarsToggle } from '../components/live/StarsToggle';
 import { StepControls } from '../components/live/StepControls';
 import { TimeTaps } from '../components/live/TimeTaps';
 import { TimeTrack, type TimeTrackProps } from '../components/live/TimeTrack';
@@ -69,7 +73,6 @@ import { useNow } from '../hooks/useNow';
 import { usePageObserver } from '../hooks/useOwnObserver';
 import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { SectionHeading } from '../components/primitives/SectionHeading';
-import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
 import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
 
@@ -77,8 +80,8 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
  * AC9): the live page at `#live`. The whole viewport is the dome, with a row
  * of controls above it and, under it, the time stripe, the playback controls
- * and the status strip; `Esc` and the return control go back to the home
- * page, and the header and the Now panel are where it is reached from. The
+ * and the status strip. R222 (D-1230): live is a tab — it has no Back, and
+ * `Esc` closes only what is open on it (the sheet, the facts). The
  * route itself is `LiveRoute.ts`; `App.tsx` mounts this page instead of the
  * home screen, as a lazy chunk of its own (PLAN §11).
  *
@@ -157,7 +160,6 @@ import { jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from 
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
   link: LiveLink | null;
-  onLeave: () => void;
   /**
    * R190 (R186's note): the hand camera's slot for the visit, held by `App`, which mounts the page in another shell on
    * each side of the wide breakpoint — so the facing survives the remount as it survives a turn. Absent, the page's own.
@@ -168,7 +170,7 @@ export interface LivePageProps {
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
 export const TICK_MS = 10_000;
 
-export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps) {
+export function LivePage({ link, chartHand: visitHand }: LivePageProps) {
   const t = useT();
   // R203 (FR-OPEN-7, D-1180, D-1205): the example opens the page; "needs a place" is for no example, or one the fallback replaced.
   const observer = usePageObserver();
@@ -181,12 +183,10 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
   /*
-   * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
-   *
-   * R148 (FR-FULL-5; D-927) → R152 (FR-GYRO-6, D-945): `Esc` in steps, in this one listener — the open sheet
-   * closes, then the facts do; else the page is left. (R64's first step, the sky screen, went with the screen, and
-   * R213 took the card's.) The first steps are the sky page's state (`LiveSky`, which is mounted only with a sky
-   * to draw), read through `escRef`: it answers `true` when it took the key.
+   * R148 (FR-FULL-5; D-927) → R152 (FR-GYRO-6, D-945) → R222 (D-1230): `Esc` in steps, in this one listener — the
+   * open sheet closes, then the facts do; with nothing open the key is not the page's (live is a tab, nothing to
+   * leave to). The steps are the sky page's state (`LiveSky`, mounted only with a sky to draw), read through
+   * `escRef`: it answers `true` when it took the key.
    */
   const escRef = useRef<() => boolean>(() => false);
   useEffect(() => {
@@ -194,32 +194,19 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
       if (event.key !== 'Escape') return;
       // R189: on wide the app's listener runs here too, and its `Esc` closes the shortcuts overlay first (D-73).
       if (event.defaultPrevented || document.querySelector('[data-testid="shortcuts-overlay"]') !== null) return;
-      event.preventDefault();
-      if (escRef.current()) return;
-      onLeave();
+      if (escRef.current()) event.preventDefault();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [onLeave]);
+  }, []);
 
   const passes = useAppStore((s) => s.passes);
   const retryElements = useAppStore((s) => s.retryElements);
   const state = liveState(observer, elements, passes);
   // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
   const wakeLock = useWakeLock(state === 'sky');
-  /*
-   * R92 (FR-A11Y-4): entering the page puts the focus on its Back control, as the settings page does — the
-   * control the reader pressed is gone with the home page. The inert page and the sky are two trees, so the
-   * control is a new element when the sky arrives; a focus the swap dropped to the body is put back on it.
-   */
-  const sky = state === 'sky';
-  useEffect(() => {
-    const active = document.activeElement;
-    if (active === null || active === document.body) document.querySelector<HTMLElement>('[data-testid="live-back"]')?.focus();
-  }, [sky]);
-
   // D-1152 (FR-MEAS-2): the live page's start failing is its own failure line, counted where the page shows it.
   const failed = state === 'failed';
   useEffect(() => {
@@ -228,14 +215,10 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
 
   if (state !== 'sky' || observer === null) {
     return (
-      <Page state="inert" wakeLock={wakeLock} placement={null} top={<TopRow place={observer?.label ?? null} onLeave={onLeave} />}>
+      <Page state="inert" wakeLock={wakeLock} placement={null} top={<TopRow place={observer?.label ?? null} />}>
         <div className={styles.inert} data-testid="live-inert" data-inert={state}>
-          {state === 'no-place' && (
-            <>
-              <p className={styles.inertLine}>{t.live.noPlace}</p>
-              <TextButton label={t.live.setPlace} data-testid="live-set-place" onClick={requestPlace} />
-            </>
-          )}
+          {/* R222 (FR-LAND-5): no place and no example — the place group in the sky's box, the tagline above it. */}
+          {state === 'no-place' && <PlaceGroup />}
           {state === 'loading' && (
             <p className={styles.inertLine}>
               <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running />
@@ -249,7 +232,7 @@ export function LivePage({ link, onLeave, chartHand: visitHand }: LivePageProps)
       </Page>
     );
   }
-  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} escRef={escRef} visitHand={visitHand} />;
+  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} escRef={escRef} visitHand={visitHand} />;
 }
 
 /**
@@ -324,15 +307,15 @@ function Page({ state, wakeLock, placement, shape = 'portrait', form = 'rows', t
  *
  * R148, R149 (FR-FULL-2, D-934): the compact page with a place has `SkyHead` over the sky in its stead, so on compact
  * this row is the inert page's alone; the mark and the state indicator it carried on compact (R77, R144) left with it.
+ * R222 (D-1230): no Back — live is a tab.
  */
-function TopRow({ place, onLeave }: { place: string | null; onLeave: () => void }) {
+function TopRow({ place }: { place: string | null }) {
   return (
     /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment note head the page under this row,
        R87's components as home mounts them; empty, the strip is not drawn and the area is the row alone. */
     <div className={styles.topArea} data-testid="live-top-area">
       <div className={styles.topRow} data-testid="live-top-row">
-        {/* R85 (FR-COMP-7, D-549): `[ ← ]`, named by the word it no longer draws, is the header's on every sub-page now. */}
-        <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} />
+        <Header page="live" landmark={false} context={place} />
       </div>
       <PageNotices kinds={LIVE_NOTES} />
     </div>
@@ -432,10 +415,10 @@ function SecondClock({ clockRef, children }: { clockRef: RefObject<EpochMs>; chi
   return <SecondClockContext.Provider value={clock}>{children}</SecondClockContext.Provider>;
 }
 
-/** R148 (FR-FULL-2, D-920): the head over the sky — `[ ← ]` and the shown time — on the page's 1 s clock. */
-function ClockedHead({ onBack, ...props }: Omit<ShownTimeProps, 'clock'> & { onBack: () => void }) {
+/** R148 (FR-FULL-2, D-920): the head over the sky — the shown time — on the page's 1 s clock. R222 (D-1230): no `[ ← ]`, live is a tab. */
+function ClockedHead(props: Omit<ShownTimeProps, 'clock'>) {
   const clock = useContext(SecondClockContext);
-  return <SkyHead line={<ShownTime {...props} clock={clock} />} onBack={onBack} />;
+  return <SkyHead line={<ShownTime {...props} clock={clock} />} />;
 }
 
 /**
@@ -463,13 +446,16 @@ function ClockedTrack({ shownTime, ...props }: Omit<TimeTrackProps, 'valueText'>
   return <TimeTrack {...props} valueText={shownTimeText(m, locale, { ...shownTime, clock })} />;
 }
 
+/** R222 (FR-LAND-3, FR-GLOBE-12): `Up from <place>`, lazy with the globe's rail (`GlobeRail-*.js`), on every view and width. */
+const UpFrom = lazy(() => loadGlobeRail().then((module) => ({ default: module.GlobeField })));
+
 /** FR-LAND-2, FR-STRIP-4 (D-1233): a desk opens on real time running at 1×. */
 const WIDE_OPENING: Opening = { speed: 1 };
 /** FR-STRIP-2: `▶ watch` on a desk. */
 const WATCH_SPEED: Speed = 60;
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
-function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void; escRef: RefObject<() => boolean>; visitHand: ChartHand | undefined }) {
+function LiveSky({ observer, link, wakeLock, escRef, visitHand }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; escRef: RefObject<() => boolean>; visitHand: ChartHand | undefined }) {
   const t = useT();
   const mode = useLayoutMode();
   const compact = mode === 'compact';
@@ -602,8 +588,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
    * with the arcs. The positions carry the Sun at the same shown instant, not the
    * once-a-second bodies, and no Sun altitude thins them (FR-DARK-2).
    */
-  const starsLayer = useAppStore((s) => s.starsLayer);
-  const starSource = useStarSource(starsLayer);
+  // R222 (FR-LAND-3, D-1240): the layers are the stars page's four switches now (`useSkyLayers`, below), so the source is always asked for.
+  const starSource = useStarSource(true);
   /*
    * R127 (FR-SKY-11, FR-SKY-13; D-796, D-797): the highlighted pass is the one the headline is about — `nextEvent` on
    * the page's clock, as the next-event block reads it (the block ticks on the real time, not the shown instant) — so
@@ -611,16 +597,16 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
    */
   const headline = useMemo(() => nextEventOf(passes, now), [passes, now]);
   const highlighted = isNoEvent(headline) ? null : headline.pass;
-  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource, pass: highlighted });
+  const baseScene = useSkyScene({ observer, now: shown, starsLayer: true, source: starSource, pass: highlighted });
   // FR-SKY-11: the line under the headline's name line, worded once (`lib/landmarkLine.ts`) in the active language (D-832).
   const landmarkText = useMemo(() => {
-    if (!starSource || !highlighted || scene.landmark?.passId !== highlighted.id) return null;
+    if (!starSource || !highlighted || baseScene.landmark?.passId !== highlighted.id) return null;
     return landmarkLine(
-      scene.landmark,
+      baseScene.landmark,
       landmarkNames(starSource.names, starSource.catalog.con, locale),
       t.live,
     );
-  }, [starSource, highlighted, scene.landmark, locale, t]);
+  }, [starSource, highlighted, baseScene.landmark, locale, t]);
   const headlineLine = landmarkText;
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
@@ -688,6 +674,32 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     },
     [setChartView],
   );
+  /*
+   * R222 (FR-LAND-3, FR-STAR-3 as amended; D-1240): the stars page's `Turn`, `Layers` and `Up from <place>`. The
+   * layers are the kept choices, laid over the scene the hook built (the landmark is the scene's whatever they say);
+   * `Turn` and `faint` are the globe's, on wide. A name from the list or a tap on a mark holds for
+   * `STAR_LABEL_HOLD_S` (FR-STAR-7), as on the stars page.
+   */
+  const skyLayers = useSkyLayers(chartView);
+  const drawnLayers = skyLayers.layers;
+  const scene = useMemo<SkyScene>(() => (baseScene.stars === null ? baseScene : { ...baseScene, stars: { ...baseScene.stars, layers: drawnLayers } }), [baseScene, drawnLayers]);
+  const globeShown = !compact && !following && chartView === 'globe';
+  const turn = useAppStore((s) => s.globeTurn);
+  const setTurn = useAppStore((s) => s.setGlobeTurn);
+  const [named, setNamed] = useState<{ index: number } | null>(null);
+  const onName = useCallback((index: number | null) => {
+    setNamed(index === null ? null : { index });
+  }, []);
+  useEffect(() => {
+    if (named === null) return;
+    const id = window.setTimeout(() => {
+      setNamed(null);
+    }, STAR_LABEL_HOLD_S * 1000);
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [named]);
+  const namedIndex = named?.index ?? null;
   // R150 (FR-GYRO-10, D-949): the satellites' heading, which names the list at the sheet's end.
   const satellitesId = useId();
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
@@ -844,15 +856,21 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
       <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} />
     </div>
   );
-  const layersId = useId();
+  // R222 (FR-LAND-3): the stars page's layers, `faint` with the globe, and the page's own `Hidden objects` last.
   const layers = (
-    <section className={styles.layers} aria-labelledby={layersId} data-testid="live-layers" {...(compact ? { 'data-rhythm': 'group' } : {})}>
-      <SectionHeading id={layersId}>{t.skyView.layers}</SectionHeading>
-      <div className={styles.layerRow}>
-        <StarsToggle />
-        {(compact || has('hidden')) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
-      </div>
-    </section>
+    <LayersGroup state={skyLayers} withFaint={globeShown} rhythm={compact}>
+      {(compact || has('hidden')) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+    </LayersGroup>
+  );
+  // FR-LAND-3: `Turn` is drawn on wide only, where the globe is, and while it is the view.
+  const turnGroup = globeShown ? <TurnGroup turn={turn} onTurn={setTurn} /> : null;
+  // FR-LAND-3, FR-GLOBE-12: `Up from <place>` — the count, the planets up and the brightest above the place at the shown instant.
+  const upFrom = (
+    <div data-testid="live-up-from" {...(compact ? { 'data-rhythm': 'group' } : {})}>
+      <Suspense fallback={null}>
+        <UpFrom place={observer} instant={shown} layers={drawnLayers} faint={globeShown && skyLayers.faint} named={namedIndex} onName={onName} />
+      </Suspense>
+    </div>
   );
 
   /*
@@ -863,11 +881,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
    */
   const top = compact ? (
     <div className={styles.fullTop} data-testid="live-top-area">
-      <ClockedHead {...shownTimeProps} onBack={onLeave} />
+      <ClockedHead {...shownTimeProps} />
       <PageNotices kinds={LIVE_NOTES} />
     </div>
   ) : (
-    <TopRow place={observer.label} onLeave={onLeave} />
+    <TopRow place={observer.label} />
   );
   const page = (children: ReactNode): ReactNode => (
     <SecondClock clockRef={clockRef}>
@@ -926,7 +944,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
     },
     [],
   );
-  const facingLabelId = useId();
   const facingPickerId = useId();
   const hasPicker = hintView !== 'dome';
   const facingPickerRef = useCallback(
@@ -941,22 +958,21 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
   );
   const facing = (
     <div className={styles.facing} data-testid="live-facing" data-rhythm="group">
+      {/* R222 (FR-DS-11, D-1229): on a view with a picker the readout is a `Disclosure` that opens it; on the dome, the words alone. */}
       <div className={styles.facingReadout}>
-        <div className={styles.facingWords} id={facingLabelId} {...(hasPicker ? { 'aria-hidden': true } : {})}>
-          {!cornerReadout && <SkyViewChartSlot name="readout" />}
-        </div>
-        {hasPicker && (
-          <button
-            type="button"
-            className={styles.facingHit}
-            data-testid="sky-readout-toggle"
-            aria-labelledby={facingLabelId}
-            aria-expanded={pickerOpen}
-            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
-            onClick={() => {
+        {hasPicker ? (
+          <Disclosure
+            open={pickerOpen}
+            onToggle={() => {
               setPickerOpen(!pickerOpen);
             }}
+            label={<span className={styles.facingWords}>{!cornerReadout && <SkyViewChartSlot name="readout" />}</span>}
+            className={styles.facingToggle}
+            data-testid="sky-readout-toggle"
+            {...(pickerOpen ? { 'aria-controls': facingPickerId } : {})}
           />
+        ) : (
+          <div className={styles.facingWords}>{!cornerReadout && <SkyViewChartSlot name="readout" />}</div>
         )}
       </div>
       {hasPicker && pickerOpen && (
@@ -1036,6 +1052,11 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
             view={chartView}
             onViewChange={onChartView}
             onViewHold={setHeldView}
+            namedStar={namedIndex}
+            onNameStar={onName}
+            globeTurn={turn}
+            globeFaint={skyLayers.faint}
+            onGlobeFaintFailed={skyLayers.onFaintFailed}
             {...(compact ? {} : { onSelectPass: pickPass, onSkyPick: pickSky })}
           />
     </div>
@@ -1090,6 +1111,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
           ),
           time: timeline,
           layers,
+          upFrom,
           upNow: (
             <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
               <div className={styles.satellitesHead} data-testid="live-satellites-head">
@@ -1141,7 +1163,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef, visitHand }: { obs
           <TimeControl playback={playback} passes={passes} bands={bands} now={now} timeZone={observer.timeZone} clouds={snapshot?.hourly} under={steps} />
         </LiveTime>
       }
+      turn={turnGroup}
       layers={layers}
+      upFrom={upFrom}
       upNow={
         <LiveUpNow
           facts={factsSubject === null ? null : <LazyFacts subject={factsSubject} observer={observer} at={shown} stars={factsStars} onClose={closeFacts} focusOnOpen={picked?.keyboard ?? false} />}

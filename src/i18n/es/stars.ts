@@ -1,10 +1,8 @@
 import type { stars as EnStars } from '../en/stars';
 
-/** FR-I18N-2, FR-STAR-10 (R115, D-777): las palabras de la página de estrellas que dibuja el chunk principal. */
+/** FR-I18N-2, FR-STAR-10 (R115, D-777): las palabras de la página de estrellas que dibuja el chunk principal; R222: quedan las teclas del cielo enfocado. */
 export const stars: typeof EnStars = {
   stars: {
-    heading: 'Estrellas',
-    loading: 'Cargando las estrellas…',
     keysHeading: 'Con el cielo enfocado',
     keys: {
       starsTurn: 'Girar el cielo, con el dibujo enfocado',

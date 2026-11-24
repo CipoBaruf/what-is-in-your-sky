@@ -171,9 +171,8 @@
   margin-left: auto;
 }
 
-/* The facing row (FR-FULL-4, D-923): the chart's readout with a button laid over it at the row's whole size — a
-   target tall, named by the words (a button holds phrasing content only, the readout is a `p`) — and the picker
-   under it while open, a row apart. On the dome the words stand alone. */
+/* The facing row (FR-FULL-4, D-923): the chart's readout as the words of a `Disclosure` (R222, FR-DS-11) that opens the
+   picker under it, a row apart, a target tall. On the dome the words stand alone. */
 .facing {
   display: grid;
   gap: var(--space-1);
@@ -197,18 +196,14 @@
   margin: 0;
 }
 
-.facingHit {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  appearance: none;
+.facingToggle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.facingWords {
+  display: inline-block;
+  vertical-align: top;
 }
 
 .facingPicker {
@@ -274,18 +269,6 @@
   display: none;
 }
 
-/* R216 (FR-NOW-1, D-1239): `Layers` — its heading over one row of options, `[x] stars` and `Hidden objects`. */
-.layers {
-  min-width: 0;
-}
-
-.layerRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--cell);
-  min-height: var(--tap);
-}
 
 /* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like the toggles beside it, not the boxed
    button. R85 (D-549): bracketed again, `[ Compartir ]`. R144 (FR-TONIGHT-9): the row is one text row — each
@@ -339,13 +322,6 @@
 /* R129 (FR-FLOW-3, D-845): the top row is the app's one header, told it is the live page. This box is only what the sky screen makes inert. */
 .topRow {
   min-width: 0;
-}
-
-/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4); the ring goes round the text line, not the tap box. R129 (D-855): Back is the header's `[ ← ]`. */
-.page[data-compact] .back:focus-visible {
-  min-height: 0;
-  padding-block: 0;
-  margin-block: 0;
 }
 
 .dome {

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isLiveRoute, isPassPageRoute, isSettingsRoute, isStarsRoute, LIVE_HASH, parseHash, routeOfHash } from '../lib/shareLinks';
+import { isLiveRoute, isPassPageRoute, isSettingsRoute, LIVE_HASH, parseHash, routeOfHash, starsAsLive } from '../lib/shareLinks';
 
 /**
  * R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app
@@ -164,7 +164,17 @@ export function close(to: string = LIVE_HASH): void {
  * runs before the first render, which then reads the hash it left.
  */
 export function landRoute(): void {
+  landStars();
   if (routeOfHash(window.location.hash) === null) window.history.replaceState(window.history.state, '', `${path()}${LIVE_HASH}`);
+}
+
+/**
+ * R222 (FR-LAND-3, D-1240): a load of `#stars` or `#stars?…` is `#live` with the same parameters, written over the entry.
+ * `main.tsx` runs it before `startApp`, so a link's place is read from the live hash it becomes.
+ */
+export function landStars(): void {
+  const folded = starsAsLive(window.location.hash);
+  if (folded !== null) window.history.replaceState(window.history.state, '', `${path()}${folded}`);
 }
 
 const atStart = (): boolean => depth() === 0 && routeOfHash(window.location.hash) === 'live';
@@ -193,7 +203,7 @@ export function takeFocusTarget(): HTMLElement | null {
 /** A same-document link to one of the app's routes, which `open` takes instead of the browser (so its entry is marked). */
 export function isRouteHref(href: string): boolean {
   if (!href.startsWith('#') || href === '#') return false;
-  return isLiveRoute(href) || isSettingsRoute(href) || isStarsRoute(href) || isPassHash(href);
+  return isLiveRoute(href) || isSettingsRoute(href) || isPassHash(href);
 }
 
 /** A pass's hash, or v2.14.1's bare `#pass` (D-1134): the pass page, so a pass opened from it takes its entry in place. */

@@ -4,6 +4,7 @@ import { applyLocale } from './i18n/useT';
 import { appStore, registerServiceWorker, startApp } from './state';
 import { count } from './state/measure';
 import { AppRoot } from './ui/App';
+import { landStars } from './ui/navigation';
 import { openedRoute } from './ui/openedRoute';
 import { applyTheme } from './ui/styles/theme';
 import './ui/styles/tokens.css';
@@ -20,6 +21,8 @@ import './ui/styles/global.css';
  * paint, so no frame is composited in the wrong palette. `AppRoot` keeps both
  * on the current choice for every later switch.
  */
+// R222 (FR-LAND-3, D-1240): `#stars…` is `#live…` before the boot reads a link's place from it.
+landStars();
 startApp();
 applyLocale(appStore.getState().locale);
 applyTheme(appStore.getState().theme);
