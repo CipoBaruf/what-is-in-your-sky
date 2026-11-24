@@ -64,8 +64,7 @@ for (const which of DESK_PAGES) {
       await layout.locator('[data-slot="view"]').getByRole('button', { name: 'Window', exact: true }).focus();
       await page.keyboard.press(' ');
       await expect.poll(() => shownView(layout), { timeout: 30_000 }).toBe('window');
-      // The key was the button's alone: the instant is still real time (no playback row; the stars page's window has no
-      // time control) — on the pass page, still playing as it opened (R208, FR-STRIP-4), where the page's Space pauses.
+      // The key was the button's alone: the instant is still real time (no playback row) — on the pass page, still playing as it opened (R208, FR-STRIP-4), where the page's Space pauses.
       if (which === 'pass') await expect(layout.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
       else await expect(layout.getByTestId('live-play')).toHaveCount(0);
 

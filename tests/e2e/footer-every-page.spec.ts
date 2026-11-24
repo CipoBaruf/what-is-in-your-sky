@@ -9,7 +9,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openFlowPage, PHONE, type FlowPage, type Locale } from './flowPages';
 
 const DESK = { width: 1280, height: 800 };
-const PAGES: readonly FlowPage[] = ['detail', 'settings', 'live', 'stars'];
+const PAGES: readonly FlowPage[] = ['detail', 'settings', 'live'];
 /** D-1150 (FR-MEAS-7): no privacy sentence or word stands in any footer. */
 const PRIVACY = { en: /No tracking|No analytics/, es: /Sin rastreo|Sin analítica/ } as const;
 
@@ -92,7 +92,7 @@ for (const locale of ['en', 'es'] as const) {
       });
     }
 
-    for (const which of ['live', 'stars', 'detail'] as const) {
+    for (const which of ['live', 'detail'] as const) {
       test(`${which} ends its controls sheet in the one row, no privacy word, a group gap under the last section`, async ({ page }) => {
         await open(page, which, locale);
         const sheet = page.getByTestId('live-sheet');

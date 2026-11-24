@@ -223,29 +223,11 @@ for (const [width, height] of SIZES) {
 
 /*
  * V214-35 (D-1134): `[ ← ]` is the browser's back — to the page the reader came from. From the live page that is the
- * live page (above); from the stars page, the stars page. A bare `#pass`, opened before the passes are known,
+ * live page (above); the stars page folded into live in R222. A bare `#pass`, opened before the passes are known,
  * becomes the pass `[ satellites ]` names once they arrive, in its own entry.
  */
 test.describe('FR-WIDE-1: [ ← ] goes back to where the reader came from; a bare #pass finds its pass (V214-35)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
-
-  for (const locale of LOCALES) {
-    test(`from the stars page, [ satellites ] then [ ← ] is the stars page again, in ${locale}`, async ({ page }) => {
-      await home(page, locale);
-      // R215 (FR-LAND-6): the header's tabs are live, satellites and settings; the stars page is reached by address.
-      await page.evaluate(() => {
-        location.hash = '#stars';
-      });
-      await expect(page).toHaveURL(/#stars/);
-      await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
-      await openFromHeader(page);
-      await expect(page).toHaveURL(/#pass=\d+-\d+$/);
-      await page.locator('#root > header').getByRole('button', { name: WORD[locale].back }).click();
-      await expect(page).toHaveURL(/#stars/);
-      await expect(page.getByTestId('stars-page')).toBeVisible({ timeout: 30_000 });
-      await expect(page.getByTestId('pass-layout')).toHaveCount(0);
-    });
-  }
 
   test('a bare #pass loaded before the passes are known becomes [ satellites ]’ pass, in place', async ({ page }) => {
     await home(page, 'en');
