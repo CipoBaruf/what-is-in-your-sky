@@ -12,6 +12,7 @@ import { useStill } from './useStill';
  * adds (D-704: a feature module may place a primitive and may not restyle it).
  *
  * `inline` is a control hung off a line of prose (global.css `inline-control`);
+ * `link` (R224, FR-CTRL-13) is an action inside a line of text, drawn as a link;
  * `pressed` is an option (FR-CTRL-2), drawn on `OptionToggle`'s box; `bare`
  * the words without a box (the taps row's play glyph); `padded` a cell outside
  * the box (the guide panel's close); `box="accent"` the screen's one primary
@@ -38,6 +39,8 @@ export interface TextButtonOwnProps {
   pressed?: boolean;
   /** Hung off a line of prose: the 48 px box as padding and a matching negative margin (global.css `inline-control`), so the line does not grow. */
   inline?: boolean;
+  /** R224 (FR-CTRL-13): an action inside a line of text — the words in `--accent`, underlined, no box and no brackets, as a link is drawn; `inline-control`'s `--tap` hit area, so the line does not grow. */
+  link?: boolean;
   /** The words without a box, for a glyph that stands in a cell of its own (the compact taps row's play, D-911). */
   bare?: boolean;
   /** A cell outside the box at each side and a `--tap` floor on the width: a control standing clear of a heading beside it. */
@@ -64,18 +67,18 @@ export type TextButtonProps = TextButtonOwnProps & Omit<ComponentProps<'button'>
 
 const TONE: Record<TextButtonTone, string | undefined> = { accent: styles.inkAccent, dim: styles.dim, danger: styles.danger };
 
-export function TextButton({ label, tone, pressed, busy = false, inline = false, bare = false, padded = false, box = 'plain', fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
+export function TextButton({ label, tone, pressed, busy = false, inline = false, link = false, bare = false, padded = false, box = 'plain', fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
   const noteId = useId();
   const still = useStill(busy);
   const hasNote = note !== undefined;
   // One root class per form: an element carries exactly one of them, and only the boxed ones have a span inside.
-  const root = pressed !== undefined ? styles.toggle : hasNote ? styles.boxedNote : bare ? styles.bare : styles.textButton;
-  const boxClass = pressed !== undefined ? optionStyles.optionBox : bare ? undefined : styles.buttonBox;
+  const root = pressed !== undefined ? styles.toggle : hasNote ? styles.boxedNote : link ? styles.link : bare ? styles.bare : styles.textButton;
+  const boxClass = pressed !== undefined ? optionStyles.optionBox : bare || link ? undefined : styles.buttonBox;
   const classes = [
     root,
     tone === undefined ? undefined : TONE[tone],
-    inline ? 'inline-control' : undefined,
-    inline ? styles.inline : undefined,
+    inline || link ? 'inline-control' : undefined,
+    inline || link ? styles.inline : undefined,
     padded ? styles.padded : undefined,
     box === 'accent' ? styles.accent : undefined,
     fill ? styles.fill : undefined,

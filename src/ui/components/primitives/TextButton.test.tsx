@@ -246,6 +246,21 @@ describe('<TextButton> forms in its stylesheet (R206)', () => {
     expect(rule('.words,\n.busy > .note')).not.toMatch(/padding|margin|width|height|border|display/);
   });
 
+  it('FR-CTRL-13: `link` is an action in a line of text — the accent, underlined, no box, no width floor, inline-control’s --tap hit area', () => {
+    render(<TextButton link label="change" />);
+    const button = screen.getByRole('button', { name: 'change' });
+    expect(button.className).toMatch(/link/);
+    expect(button.className).toMatch(/inline-control/);
+    expect(button.className).not.toMatch(/textButton/);
+    expect(button.children).toHaveLength(0);
+    const look = rule('.link');
+    expect(look).toMatch(/color:\s*var\(--accent\)/);
+    expect(look).toMatch(/text-decoration:\s*underline/);
+    expect(look).toMatch(/border:\s*0/);
+    expect(look).not.toMatch(/min-height|min-width|inline-size|padding-block/);
+    expect(rule('.link:disabled')).toMatch(/color:\s*var\(--fg-dim\)/);
+  });
+
   it('FR-CTRL-4: a busy summary loses the pointer', () => {
     expect(rule('.summary.busy')).toMatch(/cursor:\s*default/);
   });
