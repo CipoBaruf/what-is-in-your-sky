@@ -68,7 +68,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
-    expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
+    // R224 (FR-CTRL-14): the twilight label is a `Tag`, its brackets in the text.
+    expect(within(dialog).getByText('[sky still bright]', { selector: 'p span' })).toBeInTheDocument();
     // R13: the chart is a figure described by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM, never canvas (FR-GUIDE-5).
     // R21 (FR-DOME-7): the dome is the default again and the polar view is one toggle away; the contract test covers both views themselves.
     // R132 (FR-FLOW-7, D-849): the sentence is the `list` slot's first line, after the drawing, and the figure points at it.

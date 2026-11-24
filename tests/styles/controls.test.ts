@@ -44,6 +44,10 @@ describe('every control is a primitive (FR-DS-11, D-1229)', () => {
     expect(listFaults('controls', lists)).toEqual([]);
   });
 
+  it('FR-DS-11: R224 (D-1229) leaves every list `{}`, the controls’ and the brackets’, in every lane', () => {
+    for (const list of [...lists, ...laneLists('brackets')]) expect(list.entries, list.path).toEqual({});
+  });
+
   describe('what it matches and what the ratchet does with it', () => {
     const PATH = 'src/ui/X.tsx';
     const count = (tsx: string, path = PATH): number => controls(path, tsx).length;

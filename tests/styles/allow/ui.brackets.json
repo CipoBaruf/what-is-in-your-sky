@@ -1,18 +1,1 @@
-{
-  "src/ui/components/moon/MoonGlare.module.css": {
-    "count": 2,
-    "reason": "R209 (D-1229): the Moon's tag; a Tag by R224."
-  },
-  "src/ui/components/moon/MoonLore.module.css": {
-    "count": 2,
-    "reason": "R209 (D-1229): the lore's tag; a Tag by R224."
-  },
-  "src/ui/components/weather/CloudBadge.module.css": {
-    "count": 3,
-    "reason": "R209 (D-1229): the cloud tag and its tooltip's [Clouds]; a Tag by R224."
-  },
-  "src/ui/screens/PassDetail.module.css": {
-    "count": 2,
-    "reason": "R209 (D-1229): the detail's tag; a Tag by R224."
-  }
-}
+{}

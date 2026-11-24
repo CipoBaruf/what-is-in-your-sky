@@ -4,6 +4,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { CLEAR_BELOW_PCT, OBSCURED_ABOVE_PCT } from '../../../lib/cloudVerdict';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { CloudVerdict, EpochMs, Locale } from '../../../model';
+import { Tag, type TagProps } from '../primitives/Tag';
 import styles from './CloudBadge.module.css';
 
 /**
@@ -35,6 +36,9 @@ export interface CloudBadgeProps {
   asText?: boolean;
 }
 
+/** The badge's tag in its state's ink, the word form's colours (below, the stylesheet). */
+const TONE: Record<CloudVerdict['state'], TagProps['tone']> = { clear: 'ok', partly: 'warn', obscured: 'danger', unknown: 'dim' };
+
 /** FR-I18N-6: a provider's name is its own in every language; only the display casing is ours. */
 const PROVIDER_NAMES: Record<string, string> = { 'open-meteo': 'Open-Meteo' };
 
@@ -64,14 +68,19 @@ export function CloudBadge({ verdict, forecast, timeZone, moment, form = 'badge'
   return (
     <span className={styles.wrap}>
       <span
-        className={`${asText ? styles.text : 'inline-control'} ${styles.badge}${form === 'word' ? ` ${styles.word}` : ''}`}
+        className={`${asText ? styles.text : 'inline-control'} ${styles.badge}`}
         data-state={verdict.state}
         {...(asText ? {} : { tabIndex: 0 })}
         aria-describedby={tipId}
       >
-        {form === 'word' ? (word ?? t.weather.state[verdict.state]) : badgeText(verdict, t)}
+        {/* R224 (FR-CTRL-14, D-1229): the badge's brackets are a `Tag`'s, in the state's tone. */}
+        {form === 'word' ? (word ?? t.weather.state[verdict.state]) : <Tag tone={TONE[verdict.state]}>{badgeText(verdict, t)}</Tag>}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>
+        {/* The tooltip's lead, a dim tag the eye reads and the description leaves out (it was CSS content, in English only). */}
+        <Tag tone="dim" aria-hidden="true">
+          {t.live.cloudLabel}
+        </Tag>{' '}
         {tooltipText(verdict, forecast, timeZone, moment, t, locale)}
       </span>
     </span>

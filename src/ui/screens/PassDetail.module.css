@@ -45,16 +45,9 @@
   color: var(--fg-dim);
 }
 
+/* R224 (FR-CTRL-14): the twilight label is a dim `Tag`; this places it two cells after the date. */
 .twilight {
   margin-left: calc(2 * var(--cell));
-}
-
-.twilight::before {
-  content: '[';
-}
-
-.twilight::after {
-  content: ']';
 }
 
 /* R127 (FR-SKY-11, D-796): the landmark line under the pass's name, on both

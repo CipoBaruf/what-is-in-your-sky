@@ -34,6 +34,7 @@ import { viewFor } from './chartViewDefault';
 import { PassGroup } from './sky/pass/Group';
 import { PassTime } from './sky/pass/Time';
 import { Disclosure } from '../components/primitives/Disclosure';
+import { Tag } from '../components/primitives/Tag';
 import { TextButton } from '../components/primitives/TextButton';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
@@ -295,7 +296,11 @@ export function PassDetail({ pass, observer, onClose, passList = null, inert = f
   const meta = (
     <p className={styles.meta} data-testid="pass-meta">
       {formatDate(pass.start.t, timeZone, locale)}
-      {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
+      {pass.twilight && (
+        <Tag tone="dim" className={styles.twilight}>
+          {t.passes.twilightLabel}
+        </Tag>
+      )}
     </p>
   );
   // The wide band's three cells (the compact sheet draws its own one-row form, R164).
@@ -599,7 +604,9 @@ function PassFull({ pass, observer, now, follow, view, proseId, headingId, landm
         {landmark('pass-landmark')}
         {pass.twilight && (
           <p className={styles.meta} data-testid="pass-meta">
-            <span className={styles.twilight}>{t.passes.twilightLabel}</span>
+            <Tag tone="dim" className={styles.twilight}>
+              {t.passes.twilightLabel}
+            </Tag>
           </p>
         )}
       </div>
