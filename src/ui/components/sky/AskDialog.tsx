@@ -67,7 +67,8 @@ export function AskDialog({ question, yes, no, onYes, onNo, testId, yesTestId, n
           {question}
         </p>
         <div className={styles.actions}>
-          <TextButton label={yes} className="target" ref={first} data-testid={yesTestId} onClick={onYes} />
+          {/* FR-CTRL-16 (R224): the dialogs' answers are boxes, the first one primary. */}
+          <TextButton label={yes} box="accent" className="target" ref={first} data-testid={yesTestId} onClick={onYes} />
           <TextButton label={no} className="target" data-testid={noTestId} onClick={onNo} />
         </div>
       </div>
