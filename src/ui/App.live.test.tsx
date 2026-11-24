@@ -5,7 +5,7 @@
  * the live page, and the satellites page's header links to it.
  */
 import { act, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import { MOON_FIXTURE } from '../../tests/support/moonFixtures';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX } from '../../tests/support/matchMedia';
@@ -87,7 +87,7 @@ describe('<App> and the live route', () => {
     expect(screen.getByTestId('live-link')).toHaveTextContent('live');
   });
 
-  it('mounts the live page, and nothing of the satellites page, under #live; its Back returns to what opened it', async () => {
+  it('mounts the live page, and nothing of the satellites page, under #live; it has no Back (R222, D-1230: a tab)', async () => {
     withSky();
     window.history.replaceState(null, '', '#pass');
     render(<App />);
@@ -110,15 +110,8 @@ describe('<App> and the live route', () => {
     expect(await screen.findByTestId('live-context')).toBeInTheDocument();
     // FR-LAND-6: the phone's way to the list is the sheet's head.
     expect(screen.getByTestId('sheet-satellites')).toHaveAttribute('href', '#pass');
-    act(() => {
-      // R85 (FR-COMP-7): the compact return control is `[ ← ]`, named "Back"; opened from a page, it goes back to it.
-      screen.getByRole('button', { name: 'Back' }).click();
-    });
-    await vi.waitFor(() => {
-      expect(screen.getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
-    });
-    expect(window.location.hash).toBe('#pass');
-    expect(screen.queryByTestId('live-page')).toBeNull();
+    // R222 (D-1230): live is a tab, opened from the list or not — no Back; the list is the sheet's head's link.
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
 
   /**
