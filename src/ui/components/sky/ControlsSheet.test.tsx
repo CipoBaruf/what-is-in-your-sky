@@ -25,6 +25,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import { SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from '../../../lib/layout';
 import type { Locale } from '../../../model';
 import { ControlsSheet } from './ControlsSheet';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 let media: MatchMediaStub;
 
@@ -125,6 +126,8 @@ describe('<ControlsSheet> (FR-FULL-3, FR-FULL-4, FR-FULL-5)', () => {
     expect([...head.children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-place', 'sheet-close', 'sheet-links']);
     expect(within(head).getByTestId('place-line')).toHaveAttribute('data-place', 'set');
     expect(within(head).getByTestId('place-change')).toHaveTextContent(m.header.place.change);
+    // FR-CTRL-13 (R224): `change` ends the place line, so it is a link.
+    expectInlineLink(within(head).getByTestId('place-change'));
     expect([...within(head).getByTestId('sheet-links').children].map((child) => child.getAttribute('data-testid'))).toEqual(['sheet-satellites', 'sheet-settings']);
     // R212 (FR-LAND-6, D-1231): the phone's way to tonight's list.
     const list = within(head).getByTestId('sheet-satellites');
@@ -413,5 +416,7 @@ describe('<ControlsSheet> head (FR-LAND-4, D-1238)', () => {
       </I18nProvider>,
     );
     expect(within(screen.getByTestId('sheet-place')).getByTestId('place-set')).toHaveTextContent(en.header.place.set);
+    // FR-CTRL-13 (R224): `Set your place` is the place line's words, so it is a link.
+    expectInlineLink(within(screen.getByTestId('sheet-place')).getByTestId('place-set'));
   });
 });

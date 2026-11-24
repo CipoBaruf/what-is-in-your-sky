@@ -17,6 +17,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
 import { WhereOpenedStatus, WherePlace } from './WherePlace';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 /** The place as the Where reading hosts it: the open state is the host's, and the group it controls is the host's too. */
 function Host() {
@@ -223,6 +224,8 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     expect(screen.getByTestId('where-folded')).toHaveAttribute('data-state', 'ready');
     expect(screen.queryByTestId('where-opened-status')).toBeNull();
     expect(screen.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
+    // FR-CTRL-13 (R224): `change` ends the place's line, so it is a link.
+    expectInlineLink(screen.getByTestId('location-summary-change'));
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -298,6 +301,8 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
     expect(status).toHaveTextContent(/^Could not load the orbital elements: this device is offline\./);
     // D-858: the readiness line is not ready too (no elements, no job), and the failure, with its retry, goes first.
     expect(status).toHaveAttribute('data-fault', 'failure');
+    // FR-CTRL-13 (R224): `retry` follows the failure's sentence, so it is a link.
+    expectInlineLink(screen.getByTestId('where-retry'));
     fireEvent.click(screen.getByTestId('where-retry'));
     expect(retryElements).toHaveBeenCalledOnce();
   });

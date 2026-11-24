@@ -47,9 +47,9 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
         rows="controls"
         actions={
           <>
-            <TextButton label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
+            <TextButton link label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
             <TextButton
-              inline
+              link
               label={t.failure.details}
               aria-expanded={open}
               aria-controls={detailId}

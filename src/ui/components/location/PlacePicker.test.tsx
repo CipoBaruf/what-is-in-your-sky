@@ -21,6 +21,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Place } from '../../../model';
 import { count } from '../../../state/measure';
 import { DEBOUNCE_MS, PlacePicker, type PlaceSearchFn } from './PlacePicker';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 vi.mock('../../../state/measure', () => ({ count: vi.fn() }));
 
@@ -204,6 +205,8 @@ describe('<PlacePicker>', () => {
     await within(status).findByRole('link');
     expect(status).toHaveTextContent('No place matches “Zzzzqqqq”. Try another spelling, or enter coordinates instead.');
     const link = within(status).getByRole('link', { name: 'enter coordinates instead' });
+    // FR-CTRL-13 (R224): an `<a>` inside the sentence, drawn as a link.
+    expectInlineLink(link);
     expect(link).toHaveAttribute('href', '#coords');
     await user.click(link);
     expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveFocus();

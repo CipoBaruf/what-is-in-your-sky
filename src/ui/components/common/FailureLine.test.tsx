@@ -7,6 +7,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import type { Failure, FailureKind } from '../../../state/failure';
 import { FailureLine } from './FailureLine';
+import { expectInlineLink } from '../../../../tests/styles/inlineLink';
 
 /**
  * R89 (FR-FAIL-1, FR-FAIL-2; US-33 AC1): one sentence per failure kind in each
@@ -48,6 +49,9 @@ describe('FailureLine', () => {
         expect(detail).toHaveTextContent(DETAILS[kind]);
         const toggle = screen.getByTestId('failure-details');
         expect(toggle).toHaveTextContent(messages.failure.details);
+        // FR-CTRL-13 (R224): `details` and `retry` follow the sentence in its line, so both are links.
+        expectInlineLink(toggle);
+        expectInlineLink(screen.getByTestId('failure-retry'));
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         expect(toggle).toHaveAttribute('aria-controls', detail.id);
         fireEvent.click(toggle);

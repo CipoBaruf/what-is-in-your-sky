@@ -35,7 +35,7 @@ export function PlaceLine({ place, onChangePlace = requestPlace, className }: Pl
   if (place === null) {
     return (
       <p className={classes} data-testid="place-line" data-place="none">
-        <TextButton inline label={t.header.place.set} className="target" data-testid="place-set" onClick={onChangePlace} />
+        <TextButton link label={t.header.place.set} className="target" data-testid="place-set" onClick={onChangePlace} />
       </p>
     );
   }
@@ -45,7 +45,7 @@ export function PlaceLine({ place, onChangePlace = requestPlace, className }: Pl
         {place.label}
       </span>
       {place.example && <span className={styles.example}>{` · ${t.header.place.example}`}</span>}
-      <TextButton inline label={t.header.place.change} className={`${styles.change} target`} data-testid="place-change" onClick={onChangePlace} />
+      <TextButton link label={t.header.place.change} className={`${styles.change} target`} data-testid="place-change" onClick={onChangePlace} />
     </p>
   );
 }

@@ -64,7 +64,7 @@ export function ElementsLine({ now: nowProp }: ElementsLineProps) {
         dot
         actions={
           <TextButton
-            inline
+            link
             label={t.elements.details}
             aria-expanded={open}
             aria-controls={detailsId}

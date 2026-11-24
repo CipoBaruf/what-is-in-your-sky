@@ -42,8 +42,8 @@ export function VisitNotice({ inert = false }: { inert?: boolean }) {
       {...(wide ? {} : { rows: 'text' as const })}
       actions={
         <>
-          <TextButton inline label={t.visit.back} data-testid="visit-back" onClick={endVisit} />
-          <TextButton inline label={t.visit.keep} data-testid="visit-keep" onClick={keepVisit} />
+          <TextButton link label={t.visit.back} data-testid="visit-back" onClick={endVisit} />
+          <TextButton link label={t.visit.keep} data-testid="visit-keep" onClick={keepVisit} />
         </>
       }
       data-form={wide ? 'line' : 'rows'}
