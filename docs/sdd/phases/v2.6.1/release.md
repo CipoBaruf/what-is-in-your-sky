@@ -1,5 +1,7 @@
 ## 19. v2.6.1 (spec §9 Phase 2o)
 
+> *History (marked 2026-11-24, FR-SHOW-1, R222): the v2.6.1 release’s list as it was run; R222 deleted `Stars.tsx` with the stars page (FR-LAND-3, D-1240).*
+
 Everything above still applies, §1 to §5 included, and §18's list is run with this one if
 `v2.6.0` has not been tagged yet. v2.6.1 is the review's fixes to v2.6 (V26-15), inside the
 handoff's boards: the window turns to the pass when the passes arrive after it opened

@@ -57,14 +57,7 @@ for (const locale of ['en', 'es'] as const) {
     await page.screenshot({ path: `${CAPTURE_DIR}/r152-live-390-sheet-dark-${locale}.png` });
   });
 
-  test(`the stars page with [ follow the phone ] on, 390, ${locale}`, async ({ page }) => {
-    await stubOrientation(page, { answer: 'granted', readings: [aimedAt(135, 30)] });
-    await seedReader(page, locale);
-    await page.goto('/#stars');
-    await expect(page.getByTestId('stars-layout').locator('[data-drawing="window"]')).toBeAttached();
-    await following(page);
-    await page.screenshot({ path: `${CAPTURE_DIR}/r152-stars-390-dark-${locale}.png`, fullPage: true });
-  });
+  // R222 (D-1240): the stars page's capture went with the page.
 
   test(`the pass detail with [ follow the phone ] on, 390, ${locale}`, async ({ page }) => {
     await stubOrientation(page, { answer: 'granted', readings: [aimedAt(135, 30)] });
